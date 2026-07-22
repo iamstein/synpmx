@@ -251,7 +251,11 @@ print.pmx_structural_model <- function(x, ...) {
 #' @param n_doses Number of doses per subject in a parallel design.
 #' @param dose_interval Time between doses when doses are equally spaced.
 #' @param dose_escalation Per-occasion dose amounts for a within-subject
-#'   escalation, for example `c(10, 30, 100)`. Applied to every subject.
+#'   escalation, for example `c(10, 30, 100)`. Applied to every subject. For a
+#'   trial that also escalates between cohorts, supply a list of sequences, one
+#'   per cohort, for example `list(c(1, 2, 4), c(2, 4, 8), c(4, 8, 16))`, with
+#'   `cohort_sizes` giving the subjects in each. Every sequence must have the
+#'   same length, since the dosing schedule is shared.
 #' @param dose_times Explicit dose times, for example `c(0, 7, 14)`. Defaults to
 #'   equally spaced times at `dose_interval`.
 #' @param duration Infusion duration; zero for bolus or oral.
@@ -270,20 +274,36 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
          call. = FALSE)
   }
   escalating <- !is.null(dose_escalation)
+  escalation_list <- NULL
   if (escalating) {
     if (!is.null(dose_levels)) {
       stop("Supply either `dose_levels` (parallel) or `dose_escalation` ",
            "(within-subject), not both.", call. = FALSE)
     }
-    if (!is.numeric(dose_escalation) || length(dose_escalation) < 1L ||
-        any(!is.finite(dose_escalation)) || any(dose_escalation <= 0)) {
-      stop("`dose_escalation` must be finite positive dose amounts.",
-           call. = FALSE)
+    # One sequence applied to all subjects, or a list of sequences, one per
+    # cohort (e.g. list(c(1, 2, 4), c(2, 4, 8)) for two escalation arms).
+    sequences <- if (is.list(dose_escalation)) {
+      dose_escalation
+    } else {
+      list(dose_escalation)
     }
-    # A single arm receives the whole escalating sequence.
-    dose_levels <- dose_escalation[1L]
-    cohort_sizes <- 1L
-    n_doses <- length(dose_escalation)
+    ok <- vapply(sequences, function(s) {
+      is.numeric(s) && length(s) >= 1L && !anyNA(s) && all(is.finite(s)) &&
+        all(s > 0)
+    }, logical(1))
+    if (!length(sequences) || !all(ok)) {
+      stop("`dose_escalation` must be a vector of positive dose amounts, or a ",
+           "list of such vectors, one per cohort.", call. = FALSE)
+    }
+    if (length(unique(lengths(sequences))) != 1L) {
+      stop("Every cohort's escalation sequence must have the same number of ",
+           "doses, because the dosing schedule is shared.", call. = FALSE)
+    }
+    escalation_list <- lapply(sequences, as.numeric)
+    n_doses <- length(escalation_list[[1L]])
+    # One cohort per sequence; its starting dose drives cohort assignment.
+    dose_levels <- vapply(escalation_list, `[`, numeric(1), 1L)
+    if (is.null(cohort_sizes)) cohort_sizes <- 1L
   } else {
     if (!is.numeric(dose_levels) || !length(dose_levels) ||
         any(!is.finite(dose_levels)) || any(dose_levels <= 0)) {
@@ -313,7 +333,7 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
   }
   structure(list(
     dose_levels = as.numeric(dose_levels), cohort_sizes = cohort_sizes,
-    escalation = if (escalating) as.numeric(dose_escalation) else NULL,
+    escalation = escalation_list,
     sampling = as.numeric(sampling),
     n_doses = n_doses,
     dose_interval = as.numeric(dose_interval),
@@ -328,8 +348,17 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
 print.pmx_trial_design <- function(x, ...) {
   cat("Public trial design\n", sep = "")
   if (!is.null(x$escalation)) {
-    cat("  within-subject escalation: ",
-        paste(x$escalation, collapse = " -> "), "\n", sep = "")
+    if (length(x$escalation) == 1L) {
+      cat("  within-subject escalation: ",
+          paste(x$escalation[[1L]], collapse = " -> "), "\n", sep = "")
+    } else {
+      cat("  within-subject escalation, ", length(x$escalation), " cohorts:\n",
+          sep = "")
+      for (c in seq_along(x$escalation)) {
+        cat("    cohort ", c, " (n = ", x$cohort_sizes[c], "): ",
+            paste(x$escalation[[c]], collapse = " -> "), "\n", sep = "")
+      }
+    }
   } else {
     cat("  doses: ", paste(x$dose_levels, collapse = ", "),
         "  (n = ", paste(x$cohort_sizes, collapse = ", "), ")\n", sep = "")
@@ -346,9 +375,14 @@ print.pmx_trial_design <- function(x, ...) {
   design$dose_times %||% ((seq_len(design$n_doses) - 1L) * design$dose_interval)
 }
 
-# Per-occasion dose amounts for one subject in a given cohort.
+# Per-occasion dose amounts for one subject in a given cohort. Equal doses for a
+# parallel cohort; the cohort's own increasing sequence under escalation.
 .design_dose_amounts <- function(design, cohort = 1L) {
-  design$escalation %||% rep(design$dose_levels[cohort], design$n_doses)
+  if (!is.null(design$escalation)) {
+    design$escalation[[cohort]]
+  } else {
+    rep(design$dose_levels[cohort], design$n_doses)
+  }
 }
 
 # Nominal observation times: the protocol grid repeated after each dose, then

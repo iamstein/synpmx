@@ -31,7 +31,11 @@ Defaults to equal cohorts.}
 \item{dose_interval}{Time between doses when doses are equally spaced.}
 
 \item{dose_escalation}{Per-occasion dose amounts for a within-subject
-escalation, for example \code{c(10, 30, 100)}. Applied to every subject.}
+escalation, for example \code{c(10, 30, 100)}. Applied to every subject. For a
+trial that also escalates between cohorts, supply a list of sequences, one
+per cohort, for example \code{list(c(1, 2, 4), c(2, 4, 8), c(4, 8, 16))}, with
+\code{cohort_sizes} giving the subjects in each. Every sequence must have the
+same length, since the dosing schedule is shared.}
 
 \item{dose_times}{Explicit dose times, for example \code{c(0, 7, 14)}. Defaults to
 equally spaced times at \code{dose_interval}.}
