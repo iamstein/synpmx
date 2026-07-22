@@ -230,3 +230,41 @@ test_that("a pd prior without a pd model is rejected", {
     "no PD component"
   )
 })
+
+test_that("fitting and generating agree on what `typical` means", {
+  # `typical` is the median of a lognormal parameter, and the released
+  # correction is a mean on the log scale, so it targets the same quantity.
+  # Centering the arithmetic mean when generating would leave a systematic
+  # exp(sigma^2 / 2) gap that no amount of N or epsilon removes.
+  design <- .v3_design()
+  truth <- pmx_structural_model("1cmt_oral", c(cl = 12, v = 70, ka = 1),
+                                source = "round-trip truth")
+  data <- pmx_generate(truth, design, n_subjects = 400, seed = 21)
+
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
+  # Noiseless backend isolates estimator bias from privacy noise.
+  fit <- fit_calibrated_pmx(data, pmx_generated_roles(), .v3_model(), design,
+                            priors, epsilon = 1, backend = "public",
+                            public_source = TRUE)
+  recovered <- fit$corrected_typical[["cl"]]
+  expect_gt(recovered, 12 / 1.15)
+  expect_lt(recovered, 12 * 1.15)
+})
+
+test_that("median-centred variability keeps the population median on target", {
+  set.seed(4)
+  drawn <- .draw_subject_params(c(cl = 10), c(cl = 0.4), 20000)
+  expect_equal(stats::median(drawn[, "cl"]), 10, tolerance = 0.03)
+  # Arithmetic mean is deliberately above the median for a lognormal.
+  expect_gt(mean(drawn[, "cl"]), 10)
+})
+
+test_that("pre-flight caps the fold-error at the prior half-width", {
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
+  # f = 1.33 would give exp(1.33 * 2.08) = 16x uncapped, but clipping means a
+  # release can never land outside the prior.
+  hopeless <- pmx_preflight(priors, epsilon = 0.25, n_subjects = 6)
+  expect_gt(hopeless$f, 1)
+  expect_lte(hopeless$table$expected_fold_error,
+             exp(priors$pk$span / 2) + 1e-9)
+})

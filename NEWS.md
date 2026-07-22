@@ -28,6 +28,17 @@
   all. `fit_calibrated_pmx()` warns when it would not.
 * A released correction pressed against its prior boundary is reported as a
   diagnostic: the prior was probably wrong and the release is censored.
+* `typical` parameter values are the median of the lognormal population, the
+  usual population-PK convention. They previously centred the arithmetic mean
+  when generating while calibration estimated the geometric mean, leaving a
+  systematic `exp(sigma^2 / 2)` gap between fitting and generation that did not
+  shrink with cohort size or privacy budget.
+* `pmx_preflight()` caps its reported fold-error at the prior's half-width.
+  Clipping prevents a release from landing outside the prior, so the error
+  saturates rather than diverging; the uncapped formula reported absurd values
+  in exactly the regime where the release is worthless anyway.
+* Covariate columns are explicitly out of scope. Generated output exercises
+  event-table, timing, dosing, and censoring code, but not covariate handling.
 
 ## Fixes
 

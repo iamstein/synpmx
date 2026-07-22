@@ -4,14 +4,19 @@
 # where the typical parameters came from; everything below is post-processing
 # and consumes no privacy budget.
 
+# `typical` is the median (equivalently the geometric mean), following the usual
+# population-PK convention for a lognormal parameter. This also has to match
+# what the calibration estimates: the released correction is a mean on the log
+# scale, so it targets the geometric mean. Centering the arithmetic mean here
+# instead would leave a systematic exp(sigma^2 / 2) gap between what is fitted
+# and what is generated, which does not shrink with N or epsilon.
 .draw_subject_params <- function(typical, iiv, n) {
   out <- matrix(rep(typical, each = n), nrow = n,
                 dimnames = list(NULL, names(typical)))
   for (name in intersect(names(iiv), colnames(out))) {
     cv <- iiv[[name]]
     if (!is.finite(cv) || cv <= 0) next
-    sd <- sqrt(log(1 + cv^2))
-    out[, name] <- out[, name] * stats::rlnorm(n, -sd^2 / 2, sd)
+    out[, name] <- out[, name] * stats::rlnorm(n, 0, sqrt(log(1 + cv^2)))
   }
   out
 }

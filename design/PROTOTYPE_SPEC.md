@@ -276,10 +276,10 @@ What to use, at what epsilon, and what to expect. Fold-error figures are measure
 median error on CL from 200 replicate OpenDP releases; see
 `design/FEASIBILITY.md` section 8.
 
-Estimates below assume `d = 3` and a correction-factor prior spanning 8-fold
-(2.08 log units), per section 6. They are arithmetic from the error law
-confirmed in `design/FEASIBILITY.md` section 8, not measurements of an
-implementation.
+Figures below are **measured against the implementation** — 40 replicate OpenDP
+releases per cell, `d = 2`, an 8-fold correction-factor prior, reported as the
+total fold-error on clearance including estimator bias. See
+`design/FEASIBILITY.md` section 8.
 
 **In every scenario, sampling times and event structure are exact**, because
 they come from the protocol and the schema. What varies below is only how well
@@ -289,30 +289,35 @@ the exposure magnitude is pinned down.
 
 **Calibrated mode at epsilon 1-2, or Prior mode. Run the pre-flight check and decide.**
 
-| Configuration | `f` | Resulting spread |
-|---|---:|---|
-| epsilon 0.5 | 1.00 | 8-fold — worthless, use Prior mode |
-| epsilon 1 | 0.50 | ~2.8-fold — halves the prior |
-| epsilon 2 | 0.25 | ~1.7-fold |
+| Configuration | `f` | Measured total error |
+|---|---:|---:|
+| epsilon 0.25 | 1.33 | 2.3-fold |
+| epsilon 1 | 0.33 | 1.7-fold |
+| epsilon 2 | 0.17 | 1.6-fold |
 
-At epsilon 1 the release is genuinely informative and the guarantee is intact.
-The margin is thin, though: halve the epsilon and it becomes worthless. Prior mode
-remains entirely reasonable here, and governance may prefer it regardless of the
-arithmetic.
+Note how little epsilon buys here: eight times the budget moves the error from
+2.3-fold to 1.6-fold, because at N = 6 the release is dominated by the prior and
+by estimator bias rather than by noise. That is the signature of a configuration
+where **Prior mode is the honest choice** — it gives roughly the same answer for
+no privacy cost at all. Use the calibrated path at N = 6 only if the prior is
+genuinely poor and the correction is expected to be large.
 
 ## Mid: N = 20
 
 **Calibrated mode at epsilon 0.5. This is the design centre.**
 
-| Configuration | `f` | Resulting spread |
-|---|---:|---|
-| epsilon 0.25 | 0.60 | ~2.3-fold |
-| **epsilon 0.5** | **0.30** | **~1.9-fold** |
-| epsilon 1 | 0.15 | ~1.4-fold |
+| Configuration | `f` | Measured total error |
+|---|---:|---:|
+| epsilon 0.25 | 0.40 | 1.60-fold |
+| **epsilon 0.5** | **0.20** | **1.60-fold** |
+| epsilon 1 | 0.10 | 1.26-fold |
+| epsilon 2 | 0.05 | 1.19-fold |
 
-At epsilon 0.5 exposures land within about 2-fold, which comfortably meets the
-accuracy bar. Epsilon 1 buys 1.4-fold instead — accuracy the use case does not
-need, at twice the privacy cost. **Prefer epsilon 0.5.**
+At epsilon 0.5 exposures land within about 1.6-fold, comfortably inside the
+accuracy bar. Note that epsilon 0.25 measures the same 1.6-fold, so **the
+cheaper setting is the better buy** — the extra budget at 0.5 is absorbed by
+bias rather than converted into accuracy. Epsilon 1 does reach 1.26-fold, but
+that is precision the use case does not need at twice the cost.
 
 Stage-1 range-finding is not needed here. The correction-factor prior is already
 tight enough.
@@ -321,14 +326,16 @@ tight enough.
 
 **Calibrated mode at epsilon 0.1, or lower.**
 
-| Configuration | `f` | Resulting spread |
-|---|---:|---|
-| epsilon 0.1 | 0.10 | ~1.2-fold |
-| epsilon 0.5 | 0.02 | ~1.04-fold |
+| Configuration | `f` | Measured total error |
+|---|---:|---:|
+| epsilon 0.25 | 0.03 | 1.08-fold |
+| epsilon 0.5 | 0.01 | 1.08-fold |
+| epsilon 1 | 0.01 | 1.06-fold |
 
-At N = 300 the constraint has stopped binding entirely. Epsilon 0.5 gives
-accuracy far beyond anything mock data needs. **Take epsilon 0.1 and bank the
-guarantee**, which is strong by any standard.
+At N = 300 the constraint has stopped binding entirely, and the residual error
+is estimator bias rather than privacy noise — epsilon 0.25 and epsilon 1 are
+indistinguishable in the output. **Take the smaller epsilon and bank the
+guarantee.** Anything below about 0.25 is free here.
 
 Empirical mode becomes technically viable around N = 1000 at epsilon 5 and N = 10000 at
 epsilon 1. Given the accuracy bar, it is hard to justify: it buys empirical
@@ -535,6 +542,20 @@ generated data is then driven by the boundary, not by the study, and the user
 must be told. This is a real mitigation for the "confidently wrong output" risk
 in `design/FEASIBILITY.md` section 8, and it is the one self-check the design
 gets for free.
+
+## Out of scope: covariates
+
+The generator emits no covariate columns, and this is a deliberate boundary
+rather than an unfinished feature. Covariates would need public marginal
+distributions, public structural relationships such as allometric weight
+scaling, and a decision about whether any covariate-response relationship is
+worth privacy budget. None of that serves the stated objective, which is
+exercising a pipeline rather than reproducing a covariate analysis.
+
+Users needing covariate columns should join them onto generated output from
+their own public or synthetic source. The consequence is worth stating plainly
+in user documentation: **covariate-handling code is not exercised by this
+package's output.**
 
 ## PD is weaker than PK, and the spec should say so
 

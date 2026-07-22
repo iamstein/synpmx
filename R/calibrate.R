@@ -72,6 +72,11 @@ print.pmx_prior <- function(x, ...) {
 #' survives as noise, and the resulting fold-error. This consumes no privacy
 #' budget and reads no data: it depends only on the configuration.
 #'
+#' The fold-error is `exp(f * span)`, capped at the prior's half-width because
+#' clipping prevents a release from landing outside the prior. The uncapped
+#' form is accurate for `f` below roughly 0.25 and increasingly pessimistic
+#' above it; see `design/FEASIBILITY.md` section 8.
+#'
 #' @param priors A [pmx_priors()] object.
 #' @param epsilon The privacy budget under consideration.
 #' @param n_subjects Number of subjects in the fit.
@@ -97,7 +102,12 @@ pmx_preflight <- function(priors, epsilon, n_subjects) {
       quantity = name,
       prior_fold = priors[[name]]$range[2L] / priors[[name]]$range[1L],
       f = f,
-      expected_fold_error = exp(f * priors[[name]]$span),
+      # Clipping to the prior bounds the damage: a release cannot land outside
+      # the prior range, so the error saturates near the prior's half-width
+      # however large f becomes. Without the cap the formula reports absurd
+      # values in exactly the regime where the release is worthless anyway.
+      expected_fold_error = min(exp(f * priors[[name]]$span),
+                                exp(priors[[name]]$span / 2)),
       stringsAsFactors = FALSE
     )
   })

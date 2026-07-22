@@ -53,8 +53,9 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 - [ ] `REV-017` Record realized trial-design quantities in `proof_assumptions`
       with a source field.
 - [ ] Two-compartment PK, and a transit-absorption option.
-- [ ] Covariates. The generator currently emits none, so covariate-handling
-      pipelines are untested by its output.
+- [x] Covariates: **out of scope**, stated in `PROTOTYPE_SPEC.md` section 6.
+      Users join their own; covariate-handling code is not exercised by this
+      package's output.
 - [ ] Schema flexibility. Output is a fixed column set; real datasets are not.
 
 ### Guardrails
@@ -85,8 +86,8 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
       executed.
 - [ ] Measure the correction-factor parameterization. The ~1.37-fold estimate at
       N = 20, epsilon 1 is arithmetic from the error law, not a measurement.
-- [ ] Measure PD correction, PD baseline, and t-half. Only CL has been confirmed
-      against the error law; terminal-slope estimates are noisier per subject.
+- [ ] Measure the PD correction. Only PK has been confirmed; the PD prior is
+      wider and its per-subject estimate noisier, so expect it to behave worse.
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 

@@ -21,3 +21,9 @@ Reports \code{f = d / (epsilon * N)}, the fraction of each prior's width that
 survives as noise, and the resulting fold-error. This consumes no privacy
 budget and reads no data: it depends only on the configuration.
 }
+\details{
+The fold-error is \code{exp(f * span)}, capped at the prior's half-width because
+clipping prevents a release from landing outside the prior. The uncapped
+form is accurate for \code{f} below roughly 0.25 and increasingly pessimistic
+above it; see \code{design/FEASIBILITY.md} section 8.
+}
