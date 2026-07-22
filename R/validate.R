@@ -1,230 +1,213 @@
+.finish_validation <- function(checks, summary) {
+  check_table <- if (length(checks)) do.call(rbind, checks) else data.frame()
+  structure(list(
+    valid = !nrow(check_table) || !any(check_table$status == "error"),
+    checks = check_table, summary = summary
+  ), class = "pmx_validation")
+}
+
 #' Validate a pharmacometric event dataset
 #'
-#' Performs structural checks using explicit roles. Validation concerns event
-#' coherence, schema usability, ordering, endpoint fields, and baseline
-#' constancy; it does not assess scientific model fit or distributional
-#' equivalence.
+#' Checks schema usability, chronological event logic, explicit endpoint
+#' semantics, derived timing fields, censoring conventions, and baseline
+#' constancy. It does not assess scientific or inferential validity.
 #'
-#' @param data A data frame containing PMX event records.
-#' @param roles A role mapping from [pmx_roles()].
-#' @param strict If `TRUE`, stop when any error-level check fails.
+#' @param data A PMX event data frame or tibble.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param endpoints Optional named endpoint declarations from [pmx_endpoint()].
+#' @param strict Stop when any error-level check fails.
 #'
-#' @return A `pmx_validation` list with `valid`, `checks`, and `summary`
-#'   components.
+#' @return A `pmx_validation` report with `valid`, `checks`, and `summary`.
 #' @export
-#'
-#' @examples
-#' data <- data.frame(
-#'   ID = c(1L, 1L), TIME = c(0, 1), DV = c(0, 2.1),
-#'   AMT = c(100, 0), EVID = c(1L, 0L), WT = c(70, 70)
-#' )
-#' roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID",
-#'                    covariates = "WT")
-#' validate_pmx(data, roles)
-validate_pmx <- function(data, roles, strict = FALSE) {
+validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   checks <- list()
-  add_check <- function(check, status, message) {
+  add <- function(check, status, message) {
     checks[[length(checks) + 1L]] <<- data.frame(
-      check = check,
-      status = status,
-      message = message,
+      check = check, status = status, message = message,
       stringsAsFactors = FALSE
     )
   }
-
   if (!is.data.frame(data)) {
-    add_check("data_frame", "error", "`data` is not a data frame or tibble.")
+    add("data_frame", "error", "`data` is not a data frame or tibble.")
     report <- .finish_validation(checks, list())
     if (strict) stop(report$checks$message[1L], call. = FALSE)
     return(report)
   }
-  if (!nrow(data)) {
-    add_check("rows", "error", "The dataset has no rows.")
-  } else {
-    add_check("rows", "pass", paste(nrow(data), "rows found."))
-  }
-  if (anyDuplicated(names(data))) {
-    add_check("column_names", "error", "Column names are not unique.")
-  } else {
-    add_check("column_names", "pass", "Column names are unique.")
-  }
-
-  role_error <- tryCatch({
-    .assert_roles(data, roles)
-    NULL
-  }, error = function(error) conditionMessage(error))
+  add("rows", if (nrow(data)) "pass" else "error",
+      if (nrow(data)) paste(nrow(data), "rows found.") else "No rows found.")
+  add("column_names", if (anyDuplicated(names(data))) "error" else "pass",
+      if (anyDuplicated(names(data))) "Column names are not unique." else
+        "Column names are unique.")
+  role_error <- tryCatch({ .assert_roles(data, roles); NULL },
+                         error = function(e) conditionMessage(e))
   if (!is.null(role_error)) {
-    add_check("roles", "error", role_error)
+    add("roles", "error", role_error)
     report <- .finish_validation(checks, list(rows = nrow(data)))
     if (strict) stop(role_error, call. = FALSE)
     return(report)
   }
-  add_check("roles", "pass", "All explicit role columns are available.")
+  add("roles", "pass", "All explicit role columns are available.")
 
   id <- data[[roles$id]]
   time <- data[[roles$time]]
   dv <- data[[roles$dv]]
   evid <- data[[roles$evid]]
-  if (anyNA(id)) {
-    add_check("id_missing", "error", "ID contains missing values.")
+  add("id_missing", if (anyNA(id)) "error" else "pass",
+      if (anyNA(id)) "ID contains missing values." else
+        "ID has no missing values.")
+  if (!is.numeric(time) || any(!is.finite(time))) {
+    add("time", "error", "Actual time must be numeric and finite.")
   } else {
-    add_check("id_missing", "pass", "ID has no missing values.")
+    add("time", "pass", "Actual time is numeric and finite.")
   }
-  if (!is.numeric(time)) {
-    add_check("time_type", "error", "TIME must be numeric.")
-  } else if (any(!is.finite(time))) {
-    add_check("time_finite", "error", "TIME contains non-finite values.")
-  } else {
-    add_check("time_finite", "pass", "TIME is numeric and finite.")
-  }
-  if (!is.numeric(dv)) {
-    add_check("dv_type", "error", "DV must be numeric.")
-  }
-  if (anyNA(evid)) {
-    add_check("evid_missing", "error", "EVID contains missing values.")
-  } else {
-    add_check("evid_missing", "pass", "EVID has no missing values.")
-  }
+  if (!is.numeric(dv)) add("dv_type", "error", "DV must be numeric.") else
+    add("dv_type", "pass", "DV is numeric.")
+  add("evid_missing", if (anyNA(evid)) "error" else "pass",
+      if (anyNA(evid)) "EVID contains missing values." else
+        "EVID has no missing values.")
 
-  id_order <- .unique_in_order(id)
-  badly_ordered <- vapply(id_order, function(subject) {
-    if (is.na(subject)) return(FALSE)
-    subject_time <- time[!is.na(id) & id == subject]
-    is.numeric(subject_time) && any(diff(subject_time) < 0, na.rm = TRUE)
+  subjects <- .unique_in_order(id)
+  decreasing <- vapply(subjects, function(subject) {
+    rows <- !is.na(id) & id == subject
+    is.numeric(time) && any(diff(time[rows]) < -1e-10, na.rm = TRUE)
   }, logical(1))
-  if (any(badly_ordered)) {
-    add_check(
-      "row_order", "error",
-      paste("TIME decreases within", sum(badly_ordered), "subject(s).")
-    )
-  } else {
-    add_check("row_order", "pass", "Rows are nondecreasing in TIME by subject.")
-  }
+  add("row_order", if (any(decreasing)) "error" else "pass",
+      if (any(decreasing)) paste("TIME decreases within", sum(decreasing),
+                                 "subject(s).") else
+        "Rows are nondecreasing in actual time within subject.")
 
-  observation_candidate <- .is_zero(evid)
-  observation_allowed <- .observation_rows(data, roles)
-  observation_present <- observation_allowed & !is.na(dv)
-  event_rows <- !is.na(evid) & !.is_zero(evid)
-  if (!any(observation_allowed)) {
-    add_check("observations", "error", "No genuine observation rows were found.")
-  } else {
-    add_check(
-      "observations", "pass",
-      paste(sum(observation_present), "non-missing observations found.")
-    )
-  }
-  missing_observation <- observation_candidate & !observation_present
-  if (any(missing_observation)) {
-    add_check(
-      "missing_observations", "warning",
-      paste(sum(missing_observation),
-            "EVID-zero rows carry missing DV or a nonzero MDV convention.")
-    )
-  } else {
-    add_check("missing_observations", "pass",
-              "No missing observation rows were found.")
-  }
-  if (!any(event_rows)) {
-    add_check("events", "warning", "No nonzero-EVID event rows were found.")
-  } else {
-    add_check("events", "pass", paste(sum(event_rows), "event rows found."))
-  }
-  if (is.numeric(dv) && any(!is.finite(dv[observation_present]))) {
-    add_check("dv_finite", "error", "Observed DV contains non-finite values.")
-  } else {
-    add_check("dv_finite", "pass", "All non-missing observed DVs are finite.")
-  }
+  allowed <- .observation_rows(data, roles)
+  present <- allowed & !is.na(dv)
+  event <- .event_rows(data, roles)
+  if (!any(allowed)) add("observations", "error", "No observation rows found.") else
+    add("observations", "pass", paste(sum(present), "observed DVs found."))
+  if (is.numeric(dv) && any(!is.finite(dv[present]))) {
+    add("dv_finite", "error", "Observed DV contains non-finite values.")
+  } else add("dv_finite", "pass", "Observed DVs are finite.")
+  add("events", if (any(event)) "pass" else "warning",
+      if (any(event)) paste(sum(event), "event rows found.") else
+        "No nonzero-EVID event rows were found.")
 
   if (!is.null(roles$dvid)) {
-    missing_endpoint <- observation_allowed & is.na(data[[roles$dvid]])
-    if (any(missing_endpoint)) {
-      add_check(
-        "endpoint", "error",
-        paste(sum(missing_endpoint), "observation rows have missing DVID.")
-      )
-    } else {
-      add_check("endpoint", "pass", "Every observation row has an endpoint.")
+    missing <- allowed & is.na(data[[roles$dvid]])
+    add("endpoint", if (any(missing)) "error" else "pass",
+        if (any(missing)) paste(sum(missing),
+                               "observation rows have missing DVID.") else
+          "Every observation row has a DVID.")
+  }
+  if (!is.null(endpoints)) {
+    endpoint_name <- .endpoint_name_for_rows(data, roles, endpoints)
+    unknown <- allowed & is.na(endpoint_name)
+    add("endpoint_declaration", if (any(unknown)) "error" else "pass",
+        if (any(unknown)) paste(sum(unknown),
+                               "observations use undeclared DVID values.") else
+          "All observation endpoints are explicitly declared.")
+  }
+
+  if (!is.null(roles$nominal_time)) {
+    nominal <- data[[roles$nominal_time]]
+    if (!is.numeric(nominal) || any(!is.finite(nominal))) {
+      add("nominal_time", "error", "Nominal time must be numeric and finite.")
+    } else add("nominal_time", "pass", "Nominal time is numeric and finite.")
+  }
+  if (!is.null(roles$tad)) {
+    tad <- suppressWarnings(as.numeric(data[[roles$tad]]))
+    bad <- allowed & (!is.finite(tad) | tad < -1e-8)
+    add("tad", if (any(bad)) "error" else "pass",
+        if (any(bad)) "Observation TAD is missing, non-finite, or negative." else
+          "Observation TAD is finite and nonnegative.")
+  }
+  if (!is.null(roles$occasion)) {
+    occasion <- suppressWarnings(as.numeric(data[[roles$occasion]]))
+    bad <- allowed & (!is.finite(occasion) | occasion < 1)
+    add("occasion", if (any(bad)) "error" else "pass",
+        if (any(bad)) "Observation occasion must be a positive value." else
+          "Observation occasion values are positive.")
+  }
+
+  if (!is.null(roles$cens)) {
+    cens <- suppressWarnings(as.numeric(as.character(data[[roles$cens]])))
+    bad_value <- is.na(cens) | !(cens %in% c(-1, 0, 1))
+    add("cens_values", if (any(bad_value)) "error" else "pass",
+        if (any(bad_value)) "CENS must contain only -1, 0, or 1." else
+          "CENS uses only the supported Monolix-style states.")
+    bad_event <- event & !is.na(cens) & cens != 0
+    add("cens_events", if (any(bad_event)) "error" else "pass",
+        if (any(bad_event)) "Event rows cannot be censored." else
+          "Event rows are uncensored.")
+    censored <- allowed & cens != 0
+    if (any(censored & !is.finite(dv))) {
+      add("cens_boundary", "error", "Censored DV boundaries must be finite.")
+    } else add("cens_boundary", "pass", "Censored DV boundaries are finite.")
+    if (!is.null(roles$limit)) {
+      limit <- suppressWarnings(as.numeric(data[[roles$limit]]))
+      left_interval <- allowed & cens == 1 & is.finite(limit)
+      right_interval <- allowed & cens == -1 & is.finite(limit)
+      bad_direction <- (left_interval & limit > dv) |
+        (right_interval & dv > limit)
+      add("cens_limit_direction", if (any(bad_direction)) "error" else "pass",
+          if (any(bad_direction))
+            "Censoring interval boundaries have an invalid direction." else
+            "Censoring interval boundaries are ordered consistently.")
     }
   }
 
   if (!is.null(roles$amt)) {
-    amt <- data[[roles$amt]]
-    nonzero_observation_amt <- observation_allowed & !is.na(amt) & amt != 0
-    if (any(nonzero_observation_amt)) {
-      add_check(
-        "observation_amount", "warning",
-        paste(sum(nonzero_observation_amt),
-              "observation rows have nonzero AMT; verify this convention.")
-      )
-    } else {
-      add_check("observation_amount", "pass",
-                "Observation rows do not carry nonzero AMT.")
-    }
+    amount <- suppressWarnings(as.numeric(data[[roles$amt]]))
+    nonzero_observation <- allowed & is.finite(amount) & amount != 0
+    add("observation_amount", if (any(nonzero_observation)) "warning" else "pass",
+        if (any(nonzero_observation))
+          "Some observation rows carry nonzero AMT; verify the convention." else
+          "Observation rows carry zero or missing AMT.")
   }
-
   if (!is.null(roles$mdv)) {
     mdv <- data[[roles$mdv]]
-    if (anyNA(mdv)) {
-      add_check("mdv", "warning", "MDV contains missing values.")
-    } else {
-      add_check("mdv", "pass", "MDV is complete.")
-    }
+    inconsistent <- (.is_zero(mdv) != allowed)
+    add("mdv", if (any(inconsistent)) "error" else "pass",
+        if (any(inconsistent)) "MDV is inconsistent with observation eligibility." else
+          "MDV is consistent with observation eligibility.")
   }
 
   for (covariate in roles$covariates) {
-    constant <- vapply(id_order, function(subject) {
-      if (is.na(subject)) return(TRUE)
+    constant <- vapply(subjects, function(subject) {
       value <- data[[covariate]][!is.na(id) & id == subject]
       length(unique(value[!is.na(value)])) <= 1L
     }, logical(1))
-    if (all(constant)) {
-      add_check(paste0("covariate_", covariate), "pass",
-                paste(covariate, "is constant within subject."))
-    } else {
-      add_check(
-        paste0("covariate_", covariate), "error",
-        paste(covariate, "varies within", sum(!constant), "subject(s).")
-      )
-    }
+    add(paste0("covariate_", covariate),
+        if (all(constant)) "pass" else "error",
+        if (all(constant)) paste(covariate, "is constant within subject.") else
+          paste(covariate, "varies within", sum(!constant), "subject(s)."))
   }
 
-  endpoint <- .endpoint(data, roles)
+  direct <- setdiff(.direct_identifier_names(names(data)), roles$id)
+  add("direct_identifiers", if (length(direct)) "error" else "pass",
+      if (length(direct)) paste("Possible direct identifiers:",
+                                paste(direct, collapse = ", ")) else
+        "No obvious direct-identifier column names remain.")
+  endpoint_summary <- if (is.null(roles$dvid)) "DV" else
+    sort(unique(as.character(data[[roles$dvid]][allowed])))
   summary <- list(
-    rows = nrow(data),
-    subjects = length(unique(id)),
-    event_rows = sum(event_rows),
-    observation_rows = sum(observation_candidate),
-    observed_dv = sum(observation_present),
-    missing_observations = sum(missing_observation),
-    endpoints = sort(unique(endpoint[observation_allowed]))
+    rows = nrow(data), subjects = length(unique(id)),
+    event_rows = sum(event), observation_rows = sum(allowed),
+    observed_dv = sum(present), censored_observations = if (is.null(roles$cens))
+      0L else sum(suppressWarnings(as.numeric(as.character(
+        data[[roles$cens]][allowed]
+      ))) != 0, na.rm = TRUE),
+    endpoints = endpoint_summary
   )
   report <- .finish_validation(checks, summary)
   if (strict && !report$valid) {
-    errors <- report$checks$message[report$checks$status == "error"]
-    stop("PMX validation failed: ", paste(errors, collapse = " "),
-         call. = FALSE)
+    stop("PMX validation failed: ", paste(
+      report$checks$message[report$checks$status == "error"], collapse = " "
+    ), call. = FALSE)
   }
   report
-}
-
-.finish_validation <- function(checks, summary) {
-  check_table <- if (length(checks)) do.call(rbind, checks) else data.frame()
-  structure(
-    list(
-      valid = !nrow(check_table) || !any(check_table$status == "error"),
-      checks = check_table,
-      summary = summary
-    ),
-    class = "pmx_validation"
-  )
 }
 
 #' @export
 print.pmx_validation <- function(x, ...) {
   cat(if (isTRUE(x$valid)) "Valid PMX structure" else "Invalid PMX structure",
       "\n")
-  if (nrow(x$checks)) {
-    print(x$checks, row.names = FALSE)
-  }
+  print(x$checks, row.names = FALSE)
   invisible(x)
 }

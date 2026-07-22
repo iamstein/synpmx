@@ -1,166 +1,198 @@
 # pmxSynthData
 
-`pmxSynthData` is an R package prototype for generating structurally faithful mock
-pharmacometric event datasets from an existing dataset without fitting or
-calling a PK, PD, or nonlinear mixed-effects model.
+`pmxSynthData` generates source-calibrated **mock data for model-workflow
+exploration** from a low-dimensional, subject-level differentially private
+population model.
 
-It is designed to create **mock data for model-workflow exploration**: run the
-generator where restricted source data are available, then use the result to
-develop data manipulation, diagnostics, plotting, and model-run plumbing in a
-less restricted environment.
+The architecture is deliberately fit once, generate many:
 
-The output is not anonymous data. The package provides no formal anonymization,
-differential privacy, re-identification risk bound, or guarantee of scientific
-fidelity. Do not use mock output for estimation, inference, model selection, or
-clinical decisions.
+1. `fit_private_pmx()` runs inside the restricted source environment, bounds
+   each complete subject contribution, and releases only OpenDP-noised
+   population summaries plus a privacy ledger.
+2. `generate_pmx()` reads only that fitted model. Repeated datasets are
+   post-processing and consume no additional privacy budget.
 
-## How it works
+Generated data can exercise cleaning, joins, reshaping, plots, control-file
+plumbing, repeated-dose PK code, longitudinal PD/biomarker code, infusion
+events, and censoring conventions. It aims for broad magnitude and shape—not
+source distributions, parameter estimates, covariate-response relationships,
+scientific fidelity, inference, model selection, or clinical conclusions.
 
-`mock_pmx()` uses an AVATAR-inspired method adapted to longitudinal PMX data. It
-is an AVATAR-like variant, not an exact reproduction of published AVATAR
-software.
+## Privacy contract
 
-For each generated subject, the prototype:
+The production claim is:
 
-1. separates baseline covariates, longitudinal measurements, and event-control
-   fields using an explicit `pmx_roles()` mapping;
-2. forms source-subject profiles from baseline covariates and endpoint-specific
-   trajectories on common grids;
-3. median-imputes profile features only for distance calculation, standardizes
-   them, and uses a rank-safe PCA representation when possible;
-4. samples one source subject's complete event template, preserving row order,
-   tied times, doses, infusion start/stop records, compartments, and endpoints;
-5. finds compatible non-anchor neighbors and assigns capped randomized weights
-   based on profile distance and randomized rank;
-6. uses the same weights for baseline covariates and all endpoint trajectories;
-7. interpolates and blends each endpoint separately, then adds a subject shift
-   and modest AR(1) noise; and
-8. restores source names, column order, practical classes, factor levels, and
-   deterministic MDV logic when present.
+> Generated from a subject-level `(epsilon, delta)`-differentially private model.
 
-For compatible donors, the raw weighting rule is
-`Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)`. Weights are normalized,
-and a dominant donor is capped at 0.80 with the excess redistributed. If a
-donor lacks an interpolated value, the available weights are renormalized for
-that value only. Positive-like endpoints use an offset log transformation and
-are constrained to be nonnegative after back-transformation; transform choices
-are endpoint-specific and recorded in `attr(mock, "pmx_settings")`.
+One subject's complete longitudinal record is the privacy unit. Neighboring
+datasets differ by adding or removing that complete subject. Epsilon is the
+one-person influence limit: smaller is stronger, and no universal default is
+chosen. Delta is a very small additive allowance in the probability bound; it
+is not a re-identification probability or fraction of unprotected patients.
 
-Event fields such as `EVID`, `AMT`, `RATE`, `CMT`, `DVID`, `ADDL`, and `II` are
-not averaged, PCA-transformed, or generated independently. They remain a
-coherent sampled template. Profile and donor times are aligned relative to each
-subject's first positive dose within compatible schedule groups. When this
-aligned-time interpolation cannot cover an irregular subject's observation
-window, the prototype uses a normalized within-window fallback rather than
-unbounded extrapolation.
+Privacy is mathematically bounded, not absolute. Differential privacy does not
+guarantee impossibility of linkage or re-identification, establish legal
+anonymity, authorize release, secure a compromised environment, or validate
+public-input claims. Independent privacy, legal, information-security, and
+data-governance review remains required.
+
+## Production dependency
+
+Fitting confidential data requires the official [OpenDP R
+package](https://docs.opendp.org/en/stable/api/r/). The package fails closed if
+OpenDP is unavailable and never falls back to hand-written or ordinary R noise.
+
+```r
+install.packages("opendp", repos = "https://opendp.r-universe.dev")
+dp_backend_status()
+run_dp_backend_tests()  # canonical adapter checks; requires OpenDP
+```
+
+An explicitly noiseless `backend = "public"` exists only for fully public
+fixtures and requires `public_source = TRUE`. Its privacy report makes no DP
+claim; it must never process confidential data.
 
 ## Public API
 
-- `pmx_roles()` declares all critical and optional column roles explicitly.
-- `mock_pmx()` generates an ordinary data frame or tibble with a lightweight
-  `pmx_settings` attribute.
-- `validate_pmx()` returns a structured report and can fail in strict mode.
-- `compare_pmx()` returns structural summaries and exploratory plots without
-  claiming statistical equivalence.
+- `pmx_roles()` declares PMX semantics, including nominal time, TAD, occasion,
+  CENS/LIMIT, ADDL/II, covariates, and explicit exclusions.
+- `pmx_endpoint()` declares each DVID's dose-relative, study-time, occasion, or
+  hybrid scientific clock.
+- `pmx_bounds()`, `pmx_schema()`, `pmx_public_design()`,
+  `pmx_contribution_limits()`, and `pmx_budget_allocation()` make proof-relevant
+  public inputs explicit.
+- `fit_private_pmx()` is the only confidential-data stage.
+- `generate_pmx()` constructs new event tables from the fitted model and, by
+  default, uses its privacy-accounted subject-count release.
+- `privacy_report()` and `validate_private_model()` expose accounting,
+  assumptions, the release ledger, and leakage guards.
+- `validate_pmx()` checks generated PMX structure and censoring coherence.
+- `compare_pmx()` is a restricted diagnostic and marks every source-derived
+  component `restricted_not_releasable`.
 
-## Installation and development
-
-```r
-install.packages(c("testthat", "roxygen2"))
-# From this repository:
-install.packages(".", repos = NULL, type = "source")
-```
-
-Open `pmxSynthData.Rproj` for RStudio development. Run tests with:
-
-```r
-testthat::test_local()
-```
-
-## Theophylline repeated dosing
+## Minimal shape of a confidential workflow
 
 ```r
-library(pmxSynthData)
-
-data("theo_md", package = "nlmixr2data")
-theo_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", covariates = "WT"
+roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", tad = "TAD",
+  occasion = "OCC", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "DVID", mdv = "MDV", rate = "RATE",
+  cens = "CENS", limit = "LIMIT", covariates = "WT"
 )
 
-theo_mock <- mock_pmx(theo_md, theo_roles, seed = 101)
-theo_check <- validate_pmx(theo_mock, theo_roles)
-theo_comparison <- compare_pmx(theo_md, theo_mock, theo_roles)
-theo_comparison$plots$faceted
-```
-
-The complete seven-dose subject templates are retained, including dose and
-observation rows tied at the same time. Mock IDs are new and concentrations are
-generated as coherent nonnegative longitudinal blends.
-
-## Warfarin PK and PD endpoints
-
-```r
-data("warfarin", package = "nlmixr2data")
-warfarin_roles <- pmx_roles(
-  id = "id", time = "time", dv = "dv", amt = "amt",
-  evid = "evid", dvid = "dvid",
-  covariates = c("wt", "age", "sex")
+endpoints <- list(
+  cp = pmx_endpoint(
+    dvid = "cp", alignment = "dose_relative",
+    transform = "log", shape = "occasion", cmt = 2
+  ),
+  response = pmx_endpoint(
+    dvid = "response", alignment = "study_time",
+    transform = "auto", shape = "global", cmt = 3
+  )
 )
 
-warfarin_mock <- mock_pmx(warfarin, warfarin_roles, seed = 202)
-warfarin_comparison <- compare_pmx(warfarin, warfarin_mock, warfarin_roles)
-warfarin_comparison$plots$overlay
-```
-
-The lower-case schema and factor levels are retained. The `cp` concentration
-and `pca` response endpoints are transformed, interpolated, blended, and
-constrained separately.
-
-## WBC infusion and delayed response
-
-```r
-data("wbcSim", package = "nlmixr2data")
-wbc_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", rate = "RATE",
-  covariates = c("V2I", "V1I", "CLI")
+# Bounds, schema, levels, grids, and protocol values must be justified public
+# inputs, not exact extrema silently derived from confidential patients.
+private_model <- fit_private_pmx(
+  confidential_data, roles, endpoints,
+  epsilon = approved_epsilon,
+  delta = approved_delta,
+  delta_justification = approved_delta_justification,
+  bounds = approved_bounds,
+  public_design = approved_public_design,
+  contribution_limits = approved_contribution_limits,
+  budget_allocation = approved_budget,
+  backend = "opendp"
 )
 
-wbc_mock <- mock_pmx(wbcSim, wbc_roles, seed = 303)
-wbc_comparison <- compare_pmx(wbcSim, wbc_mock, wbc_roles)
-wbc_comparison$plots$faceted
+privacy_report(private_model)
+mock_1 <- generate_pmx(private_model, seed = 101)
+mock_2 <- generate_pmx(private_model, seed = 202)
+validate_pmx(mock_1, roles, endpoints, strict = TRUE)
 ```
 
-Positive infusion-start and negative infusion-stop `AMT`/`RATE` records are
-copied together from a subject template. Delayed nadir/recovery shapes come
-from blended observed trajectories; the known Friberg model is never called.
+There is intentionally no fitting seed. OpenDP controls private mechanism
+randomness; ordinary seeds control only generation from an already released
+model. Omitted `n_subjects` uses the fitted noisy count release (or the exact
+count for an explicitly public fixture); pass it explicitly only when a
+different public workflow cohort size is intended.
 
-A runnable version of all three examples is in
-[`scripts/demo_nlmixr2data.R`](scripts/demo_nlmixr2data.R).
+## Endpoint and event behavior
+
+- Dose-relative endpoints use a small private TAD curve and create a new
+  excursion after every generated dose.
+- Study-time endpoints use one global curve and do not restart after a dose.
+- Occasion endpoints use related within-occasion profiles.
+- Hybrid endpoints combine a global baseline with a small dose-relative
+  excursion.
+- Multiple DVIDs are learned and generated separately.
+- Actual-like times are generated around generalized nominal cells; tied
+  collection blocks share jitter, TAD/occasion are re-derived, and the released
+  total observation count limits how densely endpoint grids are instantiated.
+- For dose-relative endpoints, the private timing release separately learns
+  each occasion's sampling probability and its bounded observation count
+  conditional on being sampled. Generation can therefore distinguish an
+  uncommon dense visit from a sparse visit in every subject, without copying a
+  source visit vector. `sampling_summary()` exposes these fitted quantities as
+  releasable post-processing.
+- A public `endpoint_occasion_grids` schedule can declare different sampling
+  grids by dose occasion when the protocol is independently public; this is an
+  optional override rather than a requirement.
+- Factor-valued ID columns retain the factor class but never retain source ID
+  levels; generated IDs receive a fresh mock-only level set.
+- Dose and infusion fields are created coherently. A generated infusion start
+  and negative stop share the generated amount/rate and duration.
+- Censoring is applied to a generated latent value, then DV, CENS, and LIMIT are
+  reconstructed together under Monolix-style conventions.
+- Source IDs, raw rows, complete profiles, schedules, residuals, and unnoised
+  aggregates are absent from the fitted model.
+
+## Public examples
+
+The practical vignette and `scripts/demo_nlmixr2data.R` exercise:
+
+- `nlmixr2data::theo_md`: the privacy-accounted event/timing fit discovers the
+  seven-dose Q24H regimen, dense first/final profiles, sparse occasion-2
+  sampling, and no observations after doses 3--6;
+- `nlmixr2data::warfarin`: lower-case schema, factor preservation, separate
+  dose-relative `cp` and global study-time `pca`; and
+- `nlmixr2data::wbcSim`: coherent infusion starts/stops, generalized follow-up,
+  and delayed decline/nadir/recovery without reproducing the singleton
+  multi-thousand-hour regimen.
+
+`pmx_censoring_fixture()` supplies a fully simulated public example with
+uncensored, left-censored, right-censored, and interval-censored records.
+`pmx_simulated_fixture()` supplies a deterministic, two-endpoint repeated-dose
+study with 60 subjects by default for broader privacy-utility evaluation.
 
 ## Important limitations
 
-- Mock records can retain structural information from the source, including a
-  complete event template. Treat the result as potentially sensitive until an
-  appropriate privacy review says otherwise.
-- The algorithm intentionally does not preserve parameter estimates,
-  covariate-response relationships, or the source distribution exactly.
-- Sparse endpoints and small compatible event-pattern groups may require a
-  documented fallback and emit a warning. Inspect `attr(x, "pmx_settings")`.
-- Normalized observation-window interpolation is pragmatic for irregular
-  follow-up; it is not an occasion model or a biological time-warping model.
-- Nonnegative constraints are applied only to endpoints classified as
-  positive-like from their observed support.
-- The prototype is intended for workflow development, not scientific analysis.
+- Six- or twelve-subject studies can satisfy the same formal privacy definition
+  but may yield very noisy summaries. The package warns when private count and
+  requested dimensionality imply weak utility.
+- Broad generated variability is intentionally public rather than precisely
+  estimated from a small source study.
+- The current mechanism uses conservative L1 sensitivity proportional to each
+  released vector's dimension and basic sequential composition.
+- OpenDP's mechanism, the R/OpenDP boundary, serialization, public-input
+  assertions, floating-point behavior, and side channels still require an
+  independent specialist audit.
+- Empirical attacks can discover bugs but cannot prove differential privacy.
+- Generated data remain inappropriate for scientific analysis.
 
-## Repository layout
+See `vignette("pmxSynthData-demo")` and
+`vignette("pmxSynthData-method")` for the worked API and full method.
 
-- `R/` — package implementation
-- `tests/testthat/` — fixture-based unit tests and optional integration tests
-- `scripts/` — runnable demonstrations
-- `references/` — papers, specifications, and notes excluded from package builds
-- `data/` and `output/` — local/generated artifacts ignored by Git
+## Development
+
+```r
+testthat::test_local()
+roxygen2::roxygenise()
+```
+
+Run a source build and `R CMD check` after behavioral changes. The repository
+keeps package functions in `R/`, tests in `tests/testthat/`, and runnable public
+demonstrations in `scripts/`.
 
 ## License
 

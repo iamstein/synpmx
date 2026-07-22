@@ -2,11 +2,12 @@
 ^\.Rproj\.user$
 ^AGENTS\.md$
 ^CLAUDE\.md$
-^PROTOTYPE_SPEC\.md$
-^METHODS\.md$
+^design$
 ^references$
 ^scripts$
 ^output$
+^vignettes/.*\.(html|pdf)$
 ^data/\.gitkeep$
 ^LICENSE\.md$
 ^\.DS_Store$
+^\.posit$

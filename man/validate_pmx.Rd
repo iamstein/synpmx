@@ -4,31 +4,22 @@
 \alias{validate_pmx}
 \title{Validate a pharmacometric event dataset}
 \usage{
-validate_pmx(data, roles, strict = FALSE)
+validate_pmx(data, roles, endpoints = NULL, strict = FALSE)
 }
 \arguments{
-\item{data}{A data frame containing PMX event records.}
+\item{data}{A PMX event data frame or tibble.}
 
-\item{roles}{A role mapping from \code{\link[=pmx_roles]{pmx_roles()}}.}
+\item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
 
-\item{strict}{If \code{TRUE}, stop when any error-level check fails.}
+\item{endpoints}{Optional named endpoint declarations from \code{\link[=pmx_endpoint]{pmx_endpoint()}}.}
+
+\item{strict}{Stop when any error-level check fails.}
 }
 \value{
-A \code{pmx_validation} list with \code{valid}, \code{checks}, and \code{summary}
-components.
+A \code{pmx_validation} report with \code{valid}, \code{checks}, and \code{summary}.
 }
 \description{
-Performs structural checks using explicit roles. Validation concerns event
-coherence, schema usability, ordering, endpoint fields, and baseline
-constancy; it does not assess scientific model fit or distributional
-equivalence.
-}
-\examples{
-data <- data.frame(
-  ID = c(1L, 1L), TIME = c(0, 1), DV = c(0, 2.1),
-  AMT = c(100, 0), EVID = c(1L, 0L), WT = c(70, 70)
-)
-roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID",
-                   covariates = "WT")
-validate_pmx(data, roles)
+Checks schema usability, chronological event logic, explicit endpoint
+semantics, derived timing fields, censoring conventions, and baseline
+constancy. It does not assess scientific or inferential validity.
 }

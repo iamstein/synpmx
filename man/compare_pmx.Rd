@@ -2,34 +2,25 @@
 % Please edit documentation in R/compare.R
 \name{compare_pmx}
 \alias{compare_pmx}
-\title{Compare source and mock PMX structures}
+\title{Compare source and generated PMX structures inside the restricted environment}
 \usage{
-compare_pmx(source, mock, roles)
+compare_pmx(source, mock, roles, endpoints = NULL)
 }
 \arguments{
 \item{source}{Source PMX data.}
 
-\item{mock}{Mock PMX data from \code{\link[=mock_pmx]{mock_pmx()}}.}
+\item{mock}{Generated mock PMX data.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
+
+\item{endpoints}{Optional endpoint declarations.}
 }
 \value{
-A \code{pmx_comparison} list containing \code{summary}, \code{event_counts},
-\code{column_classes}, validation reports, and a named \code{plots} list.
+A \code{pmx_comparison} containing component-level release metadata.
 }
 \description{
-Produces concise structural tables and, when \code{ggplot2} is installed,
-exploratory trajectory plots. This function does not test or claim
-distributional, scientific, or statistical equivalence.
-}
-\examples{
-source <- data.frame(
-  ID = rep(1:3, each = 3), TIME = rep(c(0, 1, 2), 3),
-  DV = c(0, 2, 1, 0, 3, 1, 0, 4, 2),
-  AMT = rep(c(100, 0, 0), 3), EVID = rep(c(1L, 0L, 0L), 3)
-)
-roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID")
-mock <- mock_pmx(source, roles, n_subjects = 2)
-comparison <- compare_pmx(source, mock, roles)
-comparison$summary
+Any component that uses \code{source} is marked
+\code{"restricted_not_releasable"}. A fitted private model does not make a new
+source-derived comparison private; releasing such a diagnostic requires a
+separate public justification or budgeted DP mechanism.
 }
