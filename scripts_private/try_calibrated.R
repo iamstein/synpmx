@@ -30,28 +30,49 @@ EPSILON     <- 1             # from governance, not chosen to look good
 SEED        <- 1234          # ordinary generation seed; unrelated to DP noise
 
 # --- 1. Trial design (from the protocol) ------------------------------------
-# Three escalating doses, one week apart, given to every subject.
+# Dose escalation BOTH between cohorts AND within each patient: every patient
+# gets three doses a week apart, and each cohort starts a step higher. Supply
+# one increasing sequence per cohort; cohort_sizes gives the patients in each.
 DESIGN <- pmx_trial_design(
-  dose_escalation = c(10, 30, 100),        # dose amounts, in order
+  dose_escalation = list(c(1, 2, 4),       # cohort 1: 1 mg, then 2, then 4
+                         c(2, 4, 8),        # cohort 2
+                         c(4, 8, 16)),      # cohort 3
+  cohort_sizes    = c(6, 6, 6),            # patients per cohort
   dose_times      = c(0, 7, 14),           # days (use consistent time units)
   sampling        = c(0, 1, 4, 24, 72, 167), # times after EACH dose
   duration        = 0,                     # 0 = oral/bolus; >0 = infusion hours
   source          = "FILL IN: protocol vX section Y"
 )
 
-# --- 2. PK structural model + prior (from preclinical / FIH prediction) -----
-# typical values are the PREDICTION, not measured from this dataset.
+# --- 2. PK structural model (from preclinical / FIH prediction) -------------
+# Two-compartment model with oral absorption. `typical` are your PREDICTED
+# parameter values, from allometric scaling -- NOT measured from this dataset.
+#   cl = clearance, v = central volume, q = inter-compartmental clearance,
+#   v2 = peripheral volume, ka = absorption rate constant.
 MODEL <- pmx_structural_model(
-  pk          = "1cmt_oral",               # 1cmt_iv / 1cmt_infusion / 2cmt_*
-  typical     = c(cl = 10, v = 70, ka = 1),
+  pk          = "2cmt_oral",
+  typical     = c(cl = 10, v = 30, q = 15, v2 = 100, ka = 1),
   pd          = "none",                    # PK only for now; see PD block below
   source      = "FILL IN: allometric scaling memo vX",
-  iiv         = c(cl = 0.3, v = 0.2),      # public between-subject CV
+  iiv         = c(cl = 0.3, v = 0.2),      # public between-subject CV, per param
   residual_cv = 0.15                       # public assay + model CV
 )
 
+# --- Prior: how wrong might the PREDICTION be? ------------------------------
+# This is NOT a prior on cl, v, ka separately. The calibration releases ONE
+# number: a multiplier on the whole exposure (clearance). The prior is the
+# plausible range of that multiplier.
+#
+#   c(1/4, 4)  means "the true clearance could be anywhere from 1/4x to 4x my
+#              prediction" -- i.e. the prediction might be off by up to 4-fold
+#              in either direction. That is typical for allometric scaling.
+#
+# A tighter range (e.g. c(1/2, 2)) costs less privacy budget but is only honest
+# if you genuinely believe the prediction that well. See the explanation printed
+# by the pre-flight below.
 PRIORS <- pmx_priors(
-  pk = pmx_prior(c(1 / 4, 4), source = "FILL IN: scaling accuracy, ~4-fold")
+  pk = pmx_prior(c(1 / 4, 4),              # 4-fold either way
+                 source = "FILL IN: allometric scaling accuracy")
 )
 
 # --- 3. PD (leave commented for the PK-only version) ------------------------
@@ -95,9 +116,10 @@ dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
 read_source <- function() {
   if (DRY_RUN) {
     # A public stand-in dataset with a known true clearance, so we can confirm
-    # the pipeline recovers it before ever touching real data.
+    # the pipeline recovers it before ever touching real data. Same structure
+    # as MODEL but with a clearance 2.2x higher than the prediction.
     truth <- pmx_structural_model(
-      "1cmt_oral", c(cl = 22, v = 70, ka = 1),   # 2.2x the prediction
+      "2cmt_oral", c(cl = 22, v = 30, q = 15, v2 = 100, ka = 1),
       source = "dry-run stand-in truth"
     )
     return(pmx_generate(truth, DESIGN, n_subjects = 40, seed = 1))

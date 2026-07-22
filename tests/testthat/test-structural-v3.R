@@ -431,3 +431,32 @@ test_that("calibration works on an escalating regimen", {
   expect_gt(fit$corrected_typical[["cl"]], 14)
   expect_lt(fit$corrected_typical[["cl"]], 32)
 })
+
+test_that("per-cohort escalation gives each cohort its own sequence", {
+  model <- pmx_structural_model("1cmt_oral", c(cl = 10, v = 70, ka = 1),
+                                source = "x")
+  design <- pmx_trial_design(
+    dose_escalation = list(c(1, 2, 4), c(2, 4, 8), c(4, 8, 16)),
+    cohort_sizes = c(6, 6, 6), dose_times = c(0, 7, 14),
+    sampling = c(0, 1, 4, 24, 72, 167), source = "x"
+  )
+  expect_length(design$escalation, 3L)
+
+  table <- pmx_generate(model, design, seed = 1)
+  expect_true(validate_pmx(table, pmx_generated_roles())$valid)
+  expect_equal(length(unique(table$ID)), 18L)
+
+  # Exactly the three protocol sequences appear, six subjects each.
+  doses <- table[table$EVID == 1, ]
+  seqs <- tapply(doses$AMT, doses$ID, function(a) paste(a, collapse = "-"))
+  expect_setequal(unique(seqs), c("1-2-4", "2-4-8", "4-8-16"))
+  expect_true(all(table(seqs) == 6))
+})
+
+test_that("escalation sequences must share a length", {
+  expect_error(
+    pmx_trial_design(dose_escalation = list(c(1, 2, 4), c(2, 4)),
+                     dose_times = c(0, 7, 14), sampling = c(0, 1), source = "x"),
+    "same number of doses"
+  )
+})
