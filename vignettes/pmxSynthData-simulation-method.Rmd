@@ -170,11 +170,27 @@ After release, the cell mean is reconstructed approximately as
 $$\widehat\mu_{ej}=\operatorname{clip}_{[0,1]}
 \left(\frac{\widetilde B_{ej}}{\max(\widetilde A_{ej},10^{-8})}\right).$$
 
-A cell with negligible released presence is filled by piecewise-linear
-interpolation from released occupied neighbors (and the nearest occupied value
-beyond the endpoints). Only an endpoint with no released occupied cell falls
-back to the midpoint of the public range. Tildes emphasize that a production
-model stores privacy-mechanism outputs, not exact source sums.
+A cell counts as occupied only when its released presence $\widetilde A_{ej}$
+exceeds a support threshold
+
+$$\tau=\max\left(0.25,\ \min\left(3b,\ \tfrac{1}{2}\widetilde N\right)\right),
+\qquad b=\frac{\Delta}{\varepsilon_{\text{group}}},$$
+
+where $b$ is the scale of the mechanism that produced the release. The
+threshold is necessary because $\widetilde A_{ej}$ is an unnormalized subject
+count of order $N$, not a probability: a fixed constant would let noise around
+zero pass as evidence of support, after which $\widetilde B_{ej}/\widetilde
+A_{ej}$ collapses to the bottom of the working domain. The $3b$ term leaves
+roughly a 5% chance that an empty cell survives, the $\tfrac{1}{2}\widetilde N$
+cap prevents the threshold from deleting genuinely occupied cells when noise is
+large relative to the cohort, and the $0.25$ floor makes the noiseless
+public-fixture backend behave exactly as before ($b=0$ there).
+
+A cell below the threshold is filled by piecewise-linear interpolation from
+released occupied neighbors (and the nearest occupied value beyond the
+endpoints). Only an endpoint with no released occupied cell falls back to the
+midpoint of the public range. Tildes emphasize that a production model stores
+privacy-mechanism outputs, not exact source sums.
 
 ## Smoothing and interpolation: explicitly not a spline
 
@@ -228,7 +244,7 @@ the probability that the occasion is sampled, and
 
 $$\widehat n_{eo}=L_e
 \frac{\widetilde{\sum_i C_{ieo}}}
-{\max(\widetilde{\sum_i H_{ieo}},0.25)},$$
+{\max(\widetilde{\sum_i H_{ieo}},\tau)},$$
 
 the mean sample count **conditional on that occasion being sampled**.
 `sampling_summary()` exposes these post-processed quantities.

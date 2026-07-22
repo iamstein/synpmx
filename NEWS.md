@@ -1,5 +1,18 @@
 # pmxSynthData 0.0.0.9000
 
+## Fixes
+
+* Fixed released presence fields being decoded against a fixed constant as
+  though they were probabilities. They are unnormalized subject counts, so
+  privacy noise around zero passed the "this cell had support" test and the
+  cell then decoded to the bottom of the endpoint working domain, producing
+  spurious deep troughs on log-scale endpoints. Decoding now gates on a
+  threshold derived from the release's own mechanism scale
+  (`sensitivity / epsilon`). At epsilon 5 this removes the artifact entirely
+  for cohorts of about 600 subjects or more and halves population-curve error
+  at 2000 subjects. Noiseless public-fixture fits are unchanged by
+  construction. Tracked as `SIM-020` in `design/TEST_SIM.md`.
+
 ## Version 2 private population generator
 
 * Replaced the source-subject synthesis architecture with a fit-once,

@@ -51,7 +51,10 @@
       "OpenDP Laplace measurement over finite f64 values",
       "(internally exact-rational/discrete sampling)"
     ),
-    production = TRUE, validated = TRUE, release = release
+    production = TRUE, validated = TRUE, release = release,
+    # Decoding needs to know how large the perturbation on a released sum is,
+    # so it can tell "no support in this cell" from "noise around zero".
+    noise_scale = function(sensitivity, epsilon) sensitivity / epsilon
   ), class = "pmx_dp_backend")
 }
 
@@ -61,7 +64,8 @@
       "pmxSynthData"
     )), mechanism = "no noise; source explicitly asserted public",
     production = FALSE, validated = FALSE,
-    release = function(value, sensitivity, epsilon) as.numeric(value)
+    release = function(value, sensitivity, epsilon) as.numeric(value),
+    noise_scale = function(sensitivity, epsilon) 0
   ), class = "pmx_dp_backend")
 }
 
@@ -159,6 +163,13 @@ run_dp_backend_tests <- function() {
     dimensions = length(value), stringsAsFactors = FALSE
   )
   output
+}
+
+.release_noise_scale <- function(accountant, sensitivity, epsilon) {
+  scale <- accountant$backend$noise_scale
+  if (!is.function(scale)) return(0)
+  value <- suppressWarnings(as.numeric(scale(sensitivity, epsilon)))
+  if (length(value) != 1L || !is.finite(value) || value < 0) 0 else value
 }
 
 .accounting_table <- function(accountant) {

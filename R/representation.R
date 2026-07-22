@@ -570,7 +570,24 @@
   )
 }
 
-.decode_timing <- function(released, count, timing_map) {
+# Released presence fields are unnormalized subject counts, not probabilities,
+# so a bare constant cannot separate "no released support" from "Laplace noise
+# around zero": the noise grows with sensitivity/epsilon while the constant
+# does not. Suppress a cell only when its count is small relative to the
+# perturbation that produced it. `multiple = 3` leaves roughly a 5% chance that
+# an empty cell survives, since P(|Laplace(b)| > 3b) = exp(-3). The cap keeps
+# the gate from deleting genuinely occupied cells when noise is large relative
+# to the cohort, and the 0.25 floor preserves the noiseless public-fixture
+# behavior exactly (noise_scale is 0 there).
+.support_threshold <- function(count, noise_scale, multiple = 3,
+                               cap_fraction = 0.5) {
+  noise_scale <- if (is.finite(noise_scale)) max(noise_scale, 0) else 0
+  count <- if (is.finite(count)) max(count, 0) else 0
+  max(0.25, min(multiple * noise_scale, cap_fraction * count))
+}
+
+.decode_timing <- function(released, count, timing_map, noise_scale = 0) {
+  threshold <- .support_threshold(count, noise_scale)
   lapply(timing_map, function(spec) {
     grid_probability <- pmin(pmax(
       released[spec$grid_presence] / max(count, 1), 0
@@ -586,7 +603,7 @@
     occasion_observation_count <- if (length(spec$occasion_count)) {
       pmin(pmax(
         released[spec$occasion_count] /
-          pmax(released_occasion_presence, 0.25) *
+          pmax(released_occasion_presence, threshold) *
           spec$observation_limit,
         0
       ), spec$observation_limit)
@@ -601,6 +618,7 @@
 
 .fill_unoccupied_curve <- function(value_unit, presence, grid,
                                    threshold = 0.25) {
+  threshold <- if (is.finite(threshold)) max(threshold, 0.25) else 0.25
   occupied <- which(presence > threshold & is.finite(value_unit))
   if (!length(occupied)) return(rep(0.5, length(value_unit)))
   if (length(occupied) == 1L) return(rep(value_unit[occupied], length(value_unit)))
@@ -614,18 +632,20 @@
   )$y
 }
 
-.decode_trajectories <- function(released, trajectory_map, endpoints) {
+.decode_trajectories <- function(released, trajectory_map, endpoints,
+                                 count = 0, noise_scale = 0) {
+  threshold <- .support_threshold(count, noise_scale)
   out <- list()
   for (name in names(endpoints)) {
     spec <- trajectory_map[[name]]
     presence <- pmax(released[spec$presence], 0)
     value_sum <- pmax(released[spec$value], 0)
-    value_unit <- ifelse(presence > 0.25,
+    value_unit <- ifelse(presence > threshold,
                          value_sum / pmax(presence, 1e-8), NA_real_)
     value_unit <- pmin(pmax(value_unit, 0), 1)
     endpoint <- endpoints[[name]]
     value_unit <- .fill_unoccupied_curve(
-      value_unit, presence, endpoint$grid
+      value_unit, presence, endpoint$grid, threshold
     )
     working <- .from_unit(value_unit, .endpoint_working_bounds(endpoint))
     item <- list(
@@ -636,7 +656,7 @@
     if (endpoint$alignment == "hybrid") {
       local_presence <- pmax(released[spec$local_presence], 0)
       local_sum <- pmax(released[spec$local_value], 0)
-      local_unit <- ifelse(local_presence > 0.25,
+      local_unit <- ifelse(local_presence > threshold,
                            local_sum / pmax(local_presence, 1e-8), 0.5)
       item$local_grid <- endpoint$local_grid
       item$local_excursion_unit <- pmin(pmax(local_unit, 0), 1) - 0.5
@@ -646,16 +666,21 @@
   out
 }
 
-.decode_covariates <- function(released, count, covariate_map, bounds) {
+.decode_covariates <- function(released, count, covariate_map, bounds,
+                               noise_scale = 0) {
+  threshold <- .support_threshold(count, noise_scale)
   out <- list()
   for (name in names(covariate_map)) {
     spec <- covariate_map[[name]]
     if (spec$type == "numeric") {
       fields <- spec$fields
       presence <- max(released[[fields[1L]]], 0)
-      center <- if (presence > 0.25) released[[fields[2L]]] / presence else 0.5
-      second <- if (presence > 0.25) released[[fields[3L]]] / presence else
-        center^2 + 0.05^2
+      center <- if (presence > threshold) {
+        released[[fields[2L]]] / presence
+      } else 0.5
+      second <- if (presence > threshold) {
+        released[[fields[3L]]] / presence
+      } else center^2 + 0.05^2
       center <- min(max(center, 0), 1)
       variance <- min(max(second - center^2, 0.01^2), 0.25)
       out[[name]] <- list(
@@ -676,12 +701,14 @@
   out
 }
 
-.decode_censoring <- function(released, count, censor_map, endpoints, bounds) {
+.decode_censoring <- function(released, count, censor_map, endpoints, bounds,
+                              noise_scale = 0) {
+  threshold <- .support_threshold(count, noise_scale)
   out <- list()
   for (name in names(censor_map)) {
     fields <- censor_map[[name]]
     observed <- max(released[[fields[1L]]], 0)
-    denominator <- max(observed, 0.25)
+    denominator <- max(observed, threshold)
     rates <- pmin(pmax(released[fields[2:4]] / denominator, 0), 1)
     total <- sum(rates)
     if (total > 0.95) rates <- rates * 0.95 / total
@@ -771,6 +798,17 @@
     )
   } else numeric()
 
+  # Each group's decoder needs the perturbation scale that produced its own
+  # release. `.release_matrix_sum()` charges sensitivity = ncol unless told
+  # otherwise, so mirror that here.
+  noise_for <- function(sensitivity, group) {
+    .release_noise_scale(accountant, sensitivity, group_epsilon[[group]])
+  }
+  timing_noise <- noise_for(ncol(timing_features$matrix), "timing")
+  trajectory_noise <- noise_for(ncol(trajectory_features$matrix), "endpoints")
+  covariate_noise <- noise_for(ncol(covariate_features$matrix), "covariates")
+  censor_noise <- noise_for(ncol(censor_features$matrix), "censoring")
+
   decoded_event <- .decode_property_events(
     event_release, event_matrix$map, private_count, bounds,
     contribution_limits
@@ -780,15 +818,18 @@
     event = decoded_event$event,
     subject_properties = decoded_event$subject_properties,
     timing = .decode_timing(timing_release, private_count,
-                            timing_features$map),
+                            timing_features$map, timing_noise),
     trajectories = .decode_trajectories(
-      trajectory_release, trajectory_features$map, endpoints
+      trajectory_release, trajectory_features$map, endpoints,
+      private_count, trajectory_noise
     ),
     covariates = .decode_covariates(
-      covariate_release, private_count, covariate_features$map, bounds
+      covariate_release, private_count, covariate_features$map, bounds,
+      covariate_noise
     ),
     censoring = if (length(censor_release)) .decode_censoring(
-      censor_release, private_count, censor_features$map, endpoints, bounds
+      censor_release, private_count, censor_features$map, endpoints, bounds,
+      censor_noise
     ) else list()
   )
 }

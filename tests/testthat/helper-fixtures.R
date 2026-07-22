@@ -102,3 +102,32 @@ fit_public_fixture <- function(data = private_fixture(), ...) {
     public_source = TRUE, ...
   ))
 }
+
+# Minimal normalized endpoint plus trajectory field map for decode-level tests
+# (SIM-020 / REV-001). Built through the public constructors so the working
+# bounds, transform, and grid match what `fit_private_pmx()` would produce.
+.threshold_fixture <- function(cells = 5L) {
+  bounds <- pmx_bounds(c(0, 24), list(cp = c(0, 200)), amt = c(0, 500))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID")
+  design <- pmx_public_design(
+    pmx_schema(data.frame(
+      ID = 1L, TIME = 0, DV = 0, AMT = 0, EVID = 0L
+    )),
+    dose_evid = 1
+  )
+  limits <- pmx_contribution_limits(40, 8, 8, 20, cells)
+  endpoints <- .normalize_endpoints(
+    list(cp = pmx_endpoint(alignment = "dose_relative", transform = "log",
+                           shape = "occasion")),
+    roles, bounds, design, limits
+  )
+  list(
+    endpoints = endpoints,
+    map = list(cp = list(
+      presence = paste("cp", "presence", seq_len(cells), sep = "__"),
+      value = paste("cp", "value", seq_len(cells), sep = "__"),
+      local_presence = character(), local_value = character()
+    ))
+  )
+}
