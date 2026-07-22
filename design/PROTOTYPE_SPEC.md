@@ -96,12 +96,43 @@ fewer released quantities, a narrower clipping range, more subjects. Only the
 first two are under our control at a fixed study size, and **the clipping range
 is the cheaper of the two**.
 
+## Background: `d`, `f`, and the error law
+
+Full derivation with worked examples in `design/PRIVACY_BACKGROUND.md`. The
+short version, because these two symbols appear throughout:
+
+**`d` is how many separate quantities you release.** Privacy budget is spent,
+not shared, so releasing `d` things splits epsilon `d` ways under basic
+composition. Each release gets `epsilon/d`, and since a clipped per-subject
+value has sensitivity 1, the Laplace noise on each released *sum* has scale
+`b = d/epsilon`. **Releasing twice as many numbers doubles the noise on every
+one of them.**
+
+We want means, not sums, so we divide by the released count — post-processing,
+which is free. That divides the error by `N`:
+
+$$f \;=\; \frac{b}{N} \;=\; \frac{d}{\varepsilon N}$$
+
+**`f` is the error expressed as a fraction of the prior range's width.** It is
+dimensionless because every subject's value was scaled into `[0, 1]` by clipping
+to that range, so 0 is the bottom of the prior and 1 is the top.
+
+That reading is what makes `f` useful. `f = 1` means the noise is as wide as the
+whole prior, so the release said nothing you had not already assumed. `f = 0.25`
+means it quartered your uncertainty.
+
+To get a fold-error, multiply by the prior's log span `S` and exponentiate: a
+prior spanning a factor of `k` has `S = ln k`, and the fold-error is
+`exp(f * S)`. Note that `f` says nothing about `S` — a wide prior and a narrow
+one at identical `f` give very different answers, which is exactly why the
+correction-factor parameterization in section 6 is worth so much.
+
 ## The decision rule: does the release beat the prior?
 
 The right question is **not** "is the error small enough?" It is "is the
 released value more informative than the prior I already had?" Below a
 threshold, the release adds nothing over the prior and paying budget for it is
-strictly worse than not paying — Mode A gives the same output for free.
+strictly worse than not paying — Prior mode gives the same output for free.
 
 With `d` releases, epsilon `e`, `N` subjects and a prior spanning `S` log units,
 the released mean has error about `f * S` where `f = d/(e N)`. So `f` *is* the
@@ -109,7 +140,7 @@ fraction of the prior's width that survives as noise:
 
 | `f` | Interpretation | Verdict |
 |---:|---|---|
-| >= 1.0 | Noise equals or exceeds the prior width | **Worthless.** Use Mode A |
+| >= 1.0 | Noise equals or exceeds the prior width | **Worthless.** Use Prior mode |
 | ~0.5 | Roughly halves the uncertainty | Marginal but real |
 | ~0.25 | Quarters it | Clearly worthwhile |
 | <= 0.1 | Prior contributes almost nothing | Consider lowering epsilon instead |
@@ -118,79 +149,80 @@ fraction of the prior's width that survives as noise:
 Given the accuracy bar above, a smaller guarantee is worth more than precision
 nobody needs.
 
-## Correction to an earlier claim about N = 6
+## Very small cohorts
 
-An earlier draft of this specification, and of `design/FEASIBILITY.md`, asserted
-that N = 6 "cannot be served by any private release" because one subject is 17%
-of every statistic. **That conflated utility with the guarantee and was wrong.**
+The differential-privacy guarantee does not weaken as `N` falls. At a given
+epsilon it is exactly as strong at N = 6 as at N = 6000 — that is the
+definition, and resisting an attacker who already knows five of six subjects is
+precisely what DP provides and k-anonymity does not. Cohort size affects only
+how much signal survives the noise, which is a utility question.
 
-The differential-privacy guarantee at epsilon 1 is exactly as strong at N = 6 as
-at N = 6000. That is the definition: one subject's influence on the output
-distribution is bounded by `exp(epsilon)` regardless of cohort size. Resistance
-to an attacker who knows five of six subjects is precisely what DP provides and
-k-anonymity does not. Cohort size affects only how much signal survives the
-noise.
+At N = 6 with `d = 3` and a correction-factor prior, `f = 0.5` at epsilon 1: the
+release roughly halves the prior uncertainty, taking an 8-fold prior to about
+2.8-fold. Against the accuracy bar above, that is useful.
 
-The corrected position: at N = 6, with `d = 3` and a correction-factor prior,
-`f = 3/(1 * 6) = 0.5` at epsilon 1 — the release roughly halves the prior
-uncertainty, taking an 8-fold prior to about 2.8-fold. Under the accuracy bar
-above that is genuinely useful, and the guarantee is intact.
-
-Two honest cautions remain, neither of which is the mathematical impossibility
-previously claimed:
-
-- At epsilon 0.5 and N = 6, `f = 1.0` and the release is worthless. The margin
-  is thin, so run the pre-flight check rather than assuming.
-- Governance may decline to authorize any release derived from six patients
-  irrespective of the arithmetic. That is a policy judgment, and a reasonable
-  one, but it is not a claim this specification should make on mathematical
-  grounds.
+Two cautions apply. The margin is thin — at epsilon 0.5, `f = 1.0` and the
+release conveys nothing — so run the pre-flight check rather than assuming. And
+governance may decline to authorize any release derived from six patients as a
+policy matter. That is a reasonable position, but it is a policy judgment rather
+than a mathematical one, and this specification should not dress it up as the
+latter.
 
 ---
 
 # 3. Overall shape of what will be developed
 
 Three generation modes sharing one API, one validator, and one event-table
-constructor. The mode is chosen by cohort size and by whether a privacy claim is
-needed at all.
+constructor. They form an increasing-data-use axis:
+
+| Mode | Uses the data | One-line description |
+|---|---|---|
+| **Prior** | Not at all | Generate entirely from declared design and priors. No budget, no DP claim |
+| **Calibrated** | A few numbers | A structural model corrected by a handful of privately released scalars |
+| **Empirical** | The shape itself | Learn trajectories directly from a dense private grid (Version 2) |
+
+Pick by cohort size and by whether a privacy claim is needed at all.
 
 ```
                  public inputs                     confidential data
                        |                                   |
                        v                                   v
-  +--------------------------------+      +--------------------------------+
-  |  Mode A: public design only    |      |  Stage 1: private range-finding|
-  |  schema, roles, protocol,      |      |  coarse histogram, sensitivity |
-  |  priors, assay, dose levels    |      |  1, cheap                      |
-  |  no budget, no DP claim        |      +----------------+---------------+
-  +----------------+---------------+                       |
-                   |                       +---------------v---------------+
-                   |                       |  Stage 2: parameter release   |
-                   |                       |  d <= 8 bounded scalars via   |
-                   |                       |  per-subject NCA, clipped to  |
-                   |                       |  the stage-1 range            |
-                   |                       +---------------+---------------+
-                   |                                       |
-                   |            +--------------------------+
-                   v            v
+  +------------------------------+     +------------------------------+
+  |  PRIOR                       |     |  optional range-finding      |
+  |  schema, roles, protocol,    |     |  coarse histogram,           |
+  |  structural model, priors,   |     |  sensitivity 1, cheap        |
+  |  assay, dose levels          |     +--------------+---------------+
+  |  no budget, no DP claim      |                    |
+  +--------------+---------------+     +--------------v---------------+
+                 |                     |  CALIBRATED                  |
+                 |                     |  d <= 3 correction factors   |
+                 |                     |  from per-subject NCA,       |
+                 |                     |  clipped to public priors    |
+                 |                     +--------------+---------------+
+                 |                                    |
+                 |                     +--------------v---------------+
+                 |                     |  EMPIRICAL (v2)              |
+                 |                     |  dense per-cell grid release |
+                 |                     |  large pooled corpora only   |
+                 |                     +--------------+---------------+
+                 |            +---------------------- +
+                 v            v
         +------------------------------------------+
         |  Structural generator                    |
-        |  linear-PK exposure model + PD shape,    |
-        |  protocol sampling schedule, public      |
-        |  variability, injected messiness         |
+        |  rxode2 model + protocol schedule +      |
+        |  public variability + injected messiness |
         +--------------------+---------------------+
                              |
                              v
                   PMX event table + validation
 ```
 
-- **Mode A — public design only.** Reads no confidential data, spends no
-  budget, needs no DP claim. The answer for very small studies and the default
-  for anyone who just wants a realistic table.
-- **Mode B — low-dimensional private release (v3).** Two-stage: locate the data
-  cheaply, then release a handful of parameters precisely. The main development
-  work.
-- **Mode C — dense-grid release (v2, implemented).** Retained for large pooled
+- **Prior.** Reads no confidential data, spends no budget, needs no DP claim.
+  The answer for very small studies, and the default for anyone who just wants a
+  realistic table. Everything in sections 1 and 5 still applies.
+- **Calibrated.** The main development work. A public structural model plus a
+  small multiplicative correction learned from the data. Section 6.
+- **Empirical.** The implemented Version 2 engine. Retained for large pooled
   corpora where its cost is affordable. Not the default.
 
 The structural generator, event-table construction, censoring, schema
@@ -216,22 +248,22 @@ the exposure magnitude is pinned down.
 
 ## Smallest: N = 6
 
-**Mode B at epsilon 1-2, or Mode A. Run the pre-flight check and decide.**
+**Calibrated mode at epsilon 1-2, or Prior mode. Run the pre-flight check and decide.**
 
 | Configuration | `f` | Resulting spread |
 |---|---:|---|
-| epsilon 0.5 | 1.00 | 8-fold — worthless, use Mode A |
+| epsilon 0.5 | 1.00 | 8-fold — worthless, use Prior mode |
 | epsilon 1 | 0.50 | ~2.8-fold — halves the prior |
 | epsilon 2 | 0.25 | ~1.7-fold |
 
 At epsilon 1 the release is genuinely informative and the guarantee is intact.
-The margin is thin, though: halve the epsilon and it becomes worthless. Mode A
+The margin is thin, though: halve the epsilon and it becomes worthless. Prior mode
 remains entirely reasonable here, and governance may prefer it regardless of the
 arithmetic.
 
 ## Mid: N = 20
 
-**Mode B at epsilon 0.5. This is the design centre.**
+**Calibrated mode at epsilon 0.5. This is the design centre.**
 
 | Configuration | `f` | Resulting spread |
 |---|---:|---|
@@ -248,7 +280,7 @@ tight enough.
 
 ## Large for this context: N = 300
 
-**Mode B at epsilon 0.1, or lower.**
+**Calibrated mode at epsilon 0.1, or lower.**
 
 | Configuration | `f` | Resulting spread |
 |---|---:|---|
@@ -259,21 +291,21 @@ At N = 300 the constraint has stopped binding entirely. Epsilon 0.5 gives
 accuracy far beyond anything mock data needs. **Take epsilon 0.1 and bank the
 guarantee**, which is strong by any standard.
 
-Mode C becomes technically viable around N = 1000 at epsilon 5 and N = 10000 at
+Empirical mode becomes technically viable around N = 1000 at epsilon 5 and N = 10000 at
 epsilon 1. Given the accuracy bar, it is hard to justify: it buys empirical
 shape detail that is not required, at an epsilon an order of magnitude weaker.
-Prefer Mode B.
+Prefer Calibrated mode.
 
 ## Summary
 
 | N | Mode | Recommended epsilon | Expected spread | Notes |
 |---:|---|---:|---|---|
-| 6 | B, or A | 1-2 | ~1.7-2.8-fold | Thin margin; check before spending |
-| 20 | B | 0.5 | ~1.9-fold | Design centre |
-| 60 | B | 0.25 | ~1.5-fold | Comfortable |
-| 100 | B | 0.2 | ~1.4-fold | Comfortable |
-| 300 | B | 0.1 | ~1.2-fold | Constraint no longer binds |
-| 1000+ | B | 0.05 or lower | ~1.1-fold | Very strong guarantee |
+| 6 | Calibrated, or Prior | 1-2 | ~1.7-2.8-fold | Thin margin; check before spending |
+| 20 | Calibrated | 0.5 | ~1.9-fold | Design centre |
+| 60 | Calibrated | 0.25 | ~1.5-fold | Comfortable |
+| 100 | Calibrated | 0.2 | ~1.4-fold | Comfortable |
+| 300 | Calibrated | 0.1 | ~1.2-fold | Constraint no longer binds |
+| 1000+ | Calibrated | 0.05 or lower | ~1.1-fold | Very strong guarantee |
 
 These epsilons are roughly **an order of magnitude smaller** than a design
 targeting parameter-estimate accuracy would require. That is the direct payoff
@@ -388,7 +420,7 @@ improvement:
 
 `rxode2` is a `Suggests` dependency, needed only at generation time. Generation
 is post-processing, so a heavy dependency there costs nothing privacy-wise and
-does not burden users of Mode A.
+does not burden users of Prior mode.
 
 ```r
 model <- pmx_structural_model(
@@ -404,7 +436,7 @@ without data-independent provenance is a governance failure, not a modeling
 choice.
 
 Where no model is supplied, fall back to the Version 2 grid behavior with its
-worse constant, or to Mode A.
+worse constant, or to Prior mode.
 
 ## What is released: a correction, not a parameter
 
@@ -522,7 +554,7 @@ small early-phase studies have. Sampling richness and cohort size are inversely
 related across development, so the small-N target and the DP-compatible
 estimator want the same designs.
 
-When sampling is too sparse for NCA, fall back to Mode A rather than to a
+When sampling is too sparse for NCA, fall back to Prior mode rather than to a
 population fit.
 
 ## Mechanism: pure-DP Laplace
@@ -532,7 +564,7 @@ epsilon 1, Laplace gives a noise scale of 6 on the sum while a Gaussian at
 delta 1e-6 gives roughly 13. The `sqrt(d)` sensitivity advantage does not
 overcome the `sqrt(2 ln(1.25/delta))` constant until `d` is well above 8.
 
-Gaussian/zCDP remains appropriate for Mode C, where `d` is in the tens.
+Gaussian/zCDP remains appropriate for Empirical mode, where `d` is in the tens.
 
 ## Structure that costs nothing
 
@@ -568,7 +600,7 @@ model states its own. What must still be declared and checkable is whether the
 **NCA estimator** used for the correction factor is appropriate. Trapezoidal AUC
 with a terminal slope assumes adequate sampling through the elimination phase.
 
-Where sampling is too sparse for NCA, fall back to Mode A rather than to a
+Where sampling is too sparse for NCA, fall back to Prior mode rather than to a
 population fit — see the estimator constraint above.
 
 ---
@@ -702,7 +734,7 @@ infeasible configurations (`REV-002`).
 
 ## Public-design-only generation
 
-Mode A needs a first-class entry point that takes no confidential data and no
+Prior mode needs a first-class entry point that takes no confidential data and no
 epsilon. It must not be reachable only as a testing backdoor.
 
 ---
@@ -839,7 +871,7 @@ group, and a new stage-1 range-finding group.
 contribution bounding, event and timing construction, censoring, identifiers and
 schema, accounting, backend discipline, post-processing rules, and validation.
 
-Version 2 remains implemented and supported as Mode C for large pooled corpora.
+Version 2 remains implemented and supported as Empirical mode for large pooled corpora.
 
 ## Version 2 — subject-level DP population generator (implemented)
 
