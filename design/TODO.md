@@ -31,36 +31,31 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 
 ### Core: model in, correction out
 
-- [ ] `pmx_structural_model(rx, typical, source)` accepting an `rxode2` model as
-      a public input. `rxode2` is a Suggests dependency needed only at
-      generation time. Fall back to the v2 grid or Prior mode when absent.
-- [ ] Release a **multiplicative correction** to the model's prediction, not an
-      absolute parameter. Draft vector `d = 3`: cohort size, PK correction, PD
-      correction. The prior on "how wrong is the prediction" is ~8-fold and
-      free; a prior on absolute CL is ~100-fold.
-- [ ] `pmx_prior(range, source)` with required data-independent provenance,
-      recorded in the release ledger. Replaces `pmx_bounds()` as the dominant
-      sensitivity term.
-- [ ] Per-subject NCA (trapezoidal AUC, terminal slope) as the estimator. Each
-      subject's value must depend only on that subject's own rows — this is what
-      makes the sensitivity argument work and why NLME fitting cannot be used.
-- [ ] Sampling schedule from the protocol as a public input. Removes the
-      `endpoint_timing` release group entirely (36 dimensions in the fixture).
-- [ ] Report the released correction as a diagnostic. Already public and
-      accounted, so free, and a correction pressed against the clipping boundary
-      is the one signal that the prior was wrong.
-- [ ] Public-design-only (Prior mode) as a first-class entry point taking no data
-      and no epsilon — not reachable only via the `backend = "public"` backdoor.
-- [ ] `pmx_trial_design()` capturing the complexity level, dose levels, cohort
-      sizes, escalation/titration rules, and occasion semantics, with a `_src`
-      provenance field per realized quantity. See `design/DATA_ELICITATION.md`.
-- [ ] Support levels 3-4 (intra-patient escalation, titration): occasion-varying
-      dose applied to *generated* subjects from the public rule. Never replay a
-      source subject's escalation or titration sequence — unlike trial-level
-      design, an individual's dose path is that individual's outcome.
+- [x] `pmx_structural_model()` — public structural model with built-in analytic
+      1-cmt IV/oral/infusion PK and direct-effect or indirect-response PD.
+      Built-ins need no compiler; `rxode2` is accepted and validated but not yet
+      wired through. `R/structural.R`
+- [x] `pmx_trial_design()` — dose levels, cohort sizes, protocol sampling
+      schedule, dosing interval, infusion duration, visit windows.
+- [x] Multiplicative correction release rather than absolute parameters.
+      `fit_calibrated_pmx()`, `d = 2-3`.
+- [x] `pmx_prior(range, source)` / `pmx_priors()` with mandatory provenance.
+- [x] Per-subject NCA estimator. The correction is the ratio of predicted to
+      observed AUC on the subject's own grid, which avoids needing `F` or an
+      extrapolation to infinity.
+- [x] Sampling schedule from the protocol. The timing release group is gone.
+- [x] `at_prior_boundary` diagnostic, warned on and shown by `print()`.
+- [x] Prior mode is first-class: `pmx_generate(model, design)` takes no data and
+      no epsilon.
+- [ ] Support ladder levels 3-4 (intra-patient escalation, titration):
+      occasion-varying dose applied to *generated* subjects from the public
+      rule. Never replay a source subject's sequence.
 - [ ] `REV-017` Record realized trial-design quantities in `proof_assumptions`
-      with a source field. Formally they are functions of the data; practically
-      they are usually already published. An assumption to disclose, not a leak.
+      with a source field.
+- [ ] Two-compartment PK, and a transit-absorption option.
+- [ ] Covariates. The generator currently emits none, so covariate-handling
+      pipelines are untested by its output.
+- [ ] Schema flexibility. Output is a fixed column set; real datasets are not.
 
 ### Guardrails
 

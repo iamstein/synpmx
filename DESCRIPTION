@@ -17,6 +17,7 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1.0)
 Suggests:
+    rxode2,
     ggplot2,
     knitr,
     nlmixr2data,

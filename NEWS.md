@@ -1,5 +1,34 @@
 # pmxSynthData 0.0.0.9000
 
+## Version 3 calibrated structural generator
+
+* Added a low-dimensional generator built around a *public* structural model.
+  `pmx_structural_model()` declares one-compartment IV, oral, or infusion PK
+  with optional direct-effect or indirect-response PD, using built-in analytic
+  solutions that need no compiler. `pmx_trial_design()` declares dose levels,
+  cohorts, and the protocol sampling schedule. Both require a `source` string
+  recording data-independent provenance.
+* Added `pmx_generate()`, which works in two modes from the same code path.
+  Given a structural model it generates entirely from public inputs, reading no
+  confidential data and making no privacy claim. Given a calibrated model it
+  uses the privately corrected parameters, which is post-processing and
+  consumes no further budget.
+* Added `fit_calibrated_pmx()`, which releases a small multiplicative
+  correction to the model's prediction rather than absolute parameters. Each
+  subject is summarized by non-compartmental analysis on that subject's own
+  rows, so clipping to a public prior bounds the per-subject sensitivity at one.
+  A prior on how wrong a preclinical prediction is spans roughly eight-fold and
+  costs nothing, where a prior on absolute clearance for a new compound spans a
+  hundred-fold.
+* Added `pmx_prior()` and `pmx_priors()`. A prior range is now the dominant
+  sensitivity term, so `source` provenance is mandatory.
+* Added `pmx_preflight()`, which reports `f = d / (epsilon * N)` and a verdict
+  before any budget is spent. `f` is the fraction of the prior's width that
+  survives as noise, so it answers whether a release would beat the prior at
+  all. `fit_calibrated_pmx()` warns when it would not.
+* A released correction pressed against its prior boundary is reported as a
+  diagnostic: the prior was probably wrong and the release is censored.
+
 ## Fixes
 
 * Fixed released presence fields being decoded against a fixed constant as
