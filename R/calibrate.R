@@ -205,12 +205,29 @@ print.pmx_preflight <- function(x, ...) {
       pd_rows <- which(obs & endpoint == "pd" & is.finite(dv))
       if (length(pd_rows) >= 3L) {
         base <- model$typical[["baseline"]]
-        eff_obs <- max(abs(dv[pd_rows] - base))
+        # Signed area between the response and its baseline. Two earlier
+        # choices were wrong for reasons worth recording. A peak is biased
+        # upward by residual noise, and the bias does not shrink with N. An
+        # absolute-deviation area is worse still: it accumulates noise on the
+        # observed side while the prediction carries none, so at a baseline of
+        # 100 with 15% residual error it measures mostly noise. Signed area
+        # lets the noise cancel.
+        eff_obs <- .trapezoid(time[pd_rows], dv[pd_rows] - base)
         pred <- .pd_profile(model, time[pd_rows], doses, dose_times,
                             duration = design$duration)
-        eff_pred <- max(abs(pred - base))
-        if (is.finite(eff_obs) && eff_obs > 0 &&
-            is.finite(eff_pred) && eff_pred > 0) {
+        eff_pred <- .trapezoid(time[pd_rows], pred - base)
+        # Known limitation. This ratio is biased low when the response
+        # deviation is small relative to residual error, because a geometric
+        # mean of noisy per-subject ratios sits below the ratio of their means.
+        # PK does not suffer badly, since concentration decays toward zero and
+        # its AUC is dominated by signal; a PD deviation rides on a large
+        # baseline, so its signal-to-noise is intrinsically worse. Measured with
+        # a 15% residual and a peak effect near 10% of baseline, the correction
+        # recovers about 1.8x against a true 2.5x. With no residual error it is
+        # exact. See design/FEASIBILITY.md.
+        # Same-signed and materially nonzero, or the ratio is meaningless.
+        if (is.finite(eff_obs) && is.finite(eff_pred) &&
+            abs(eff_pred) > 1e-8 && eff_obs / eff_pred > 0) {
           pd <- eff_obs / eff_pred
         }
       }
@@ -224,6 +241,46 @@ print.pmx_preflight <- function(x, ...) {
          call. = FALSE)
   }
   do.call(rbind, out)
+}
+
+# Response magnitude is not proportional to emax: an indirect-response effect
+# saturates as emax approaches one. Multiplying emax by a released effect ratio
+# therefore overshoots badly. Solve instead for the emax that reproduces the
+# corrected effect, which is post-processing on an already-released scalar and
+# costs no further budget.
+.solve_emax <- function(model, design, factor) {
+  reference <- stats::median(design$dose_levels)
+  times <- .design_observation_times(design)
+  dose_times <- .design_dose_times(design)
+  doses <- rep(reference, length(dose_times))
+  base <- model$typical[["baseline"]]
+  effect_for <- function(emax) {
+    p <- model$typical
+    p[["emax"]] <- emax
+    profile <- .pd_profile(model, times, doses, dose_times, p,
+                           duration = design$duration)
+    .trapezoid(times, profile - base)
+  }
+  reference_effect <- effect_for(model$typical[["emax"]])
+  target <- reference_effect * factor
+  lower <- 1e-4
+  upper <- 0.995
+  if (!is.finite(target) || !is.finite(reference_effect) ||
+      abs(reference_effect) < 1e-8) {
+    return(list(emax = unname(model$typical[["emax"]]), saturated = FALSE))
+  }
+  # The effect is monotone in emax, but its sign depends on the PD model, so
+  # compare in the direction the reference effect actually points.
+  direction <- sign(reference_effect)
+  if (direction * effect_for(upper) < direction * target) {
+    return(list(emax = upper, saturated = TRUE))
+  }
+  if (direction * effect_for(lower) > direction * target) {
+    return(list(emax = lower, saturated = TRUE))
+  }
+  root <- stats::uniroot(function(e) effect_for(e) - target,
+                         interval = c(lower, upper), tol = 1e-6)
+  list(emax = unname(root$root), saturated = FALSE)
 }
 
 #' Calibrate a public structural model to confidential data
@@ -311,9 +368,10 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     corrected[["cl"]] <- unname(corrected[["cl"]] * results$pk$factor)
   }
   if (!is.null(results$pd)) {
-    corrected[["emax"]] <- unname(min(
-      corrected[["emax"]] * results$pd$factor, 0.99
-    ))
+    solved <- .solve_emax(model, design, results$pd$factor)
+    corrected[["emax"]] <- solved$emax
+    results$pd$at_prior_boundary <- results$pd$at_prior_boundary ||
+      solved$saturated
   }
 
   accounting <- .finalize_accounting(accountant)

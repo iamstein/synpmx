@@ -52,7 +52,9 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
       rule. Never replay a source subject's sequence.
 - [ ] `REV-017` Record realized trial-design quantities in `proof_assumptions`
       with a source field.
-- [ ] Two-compartment PK, and a transit-absorption option.
+- [x] Two-compartment PK (`2cmt_iv`, `2cmt_oral`), analytic and verified
+      against `Dose/CL`.
+- [ ] Transit-absorption option.
 - [x] Covariates: **out of scope**, stated in `PROTOTYPE_SPEC.md` section 6.
       Users join their own; covariate-handling code is not exercised by this
       package's output.
@@ -86,8 +88,13 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
       executed.
 - [ ] Measure the correction-factor parameterization. The ~1.37-fold estimate at
       N = 20, epsilon 1 is arithmetic from the error law, not a measurement.
-- [ ] Measure the PD correction. Only PK has been confirmed; the PD prior is
-      wider and its per-subject estimate noisier, so expect it to behave worse.
+- [x] Measure the PD correction. Exact without residual error; biased low by
+      about a third with 15% residual on a small deviation. Documented in
+      `design/FEASIBILITY.md`; PD is experimental.
+- [ ] Improve the PD per-subject estimator. Conditioning on the subject's own
+      predose observations should reduce the noise-driven downward bias. The
+      current signed-area statistic is the third attempt; a peak statistic and
+      an absolute-deviation area were both worse.
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 

@@ -15,11 +15,14 @@ pmx_structural_model(
 )
 }
 \arguments{
-\item{pk}{One of \code{"1cmt_iv"}, \code{"1cmt_oral"}, \code{"1cmt_infusion"}.}
+\item{pk}{One of \code{"1cmt_iv"}, \code{"1cmt_oral"}, \code{"1cmt_infusion"},
+\code{"2cmt_iv"}, \code{"2cmt_oral"}.}
 
-\item{typical}{Named numeric vector of typical parameter values. Requires
-\code{cl} and \code{v}, plus \code{ka} for the oral model. Optional \code{f} defaults to 1.
-PD models additionally require \code{baseline}, \code{emax}, \code{ec50}, and \code{kout}.}
+\item{typical}{Named numeric vector of typical parameter values, interpreted
+as the median of a lognormal population. Requires \code{cl} and \code{v} (the central
+volume), plus \code{ka} for oral models and \code{q} and \code{v2} for two-compartment
+models. Optional \code{f} defaults to 1. PD models additionally require
+\code{baseline}, \code{emax}, \code{ec50}, and \code{kout}.}
 
 \item{pd}{One of \code{"none"}, \code{"direct_emax"}, \code{"idr_inhibit_loss"},
 \code{"idr_stimulate_loss"}.}

@@ -7,14 +7,27 @@
 # Built-in analytic solutions cover the common linear cases and need no
 # compiler. An rxode2 model may be supplied instead for anything else.
 
-.pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion")
+.pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
+                "2cmt_oral")
 .pd_models <- c("none", "direct_emax", "idr_inhibit_loss", "idr_stimulate_loss")
 
 .required_pk_params <- list(
   `1cmt_iv`       = c("cl", "v"),
   `1cmt_oral`     = c("cl", "v", "ka"),
-  `1cmt_infusion` = c("cl", "v")
+  `1cmt_infusion` = c("cl", "v"),
+  `2cmt_iv`       = c("cl", "v", "q", "v2"),
+  `2cmt_oral`     = c("cl", "v", "q", "v2", "ka")
 )
+
+# Macro-constants for a two-compartment model. `v` is the central volume.
+.two_cmt_rates <- function(p) {
+  k10 <- p[["cl"]] / p[["v"]]
+  k12 <- p[["q"]] / p[["v"]]
+  k21 <- p[["q"]] / p[["v2"]]
+  sum_k <- k10 + k12 + k21
+  root <- sqrt(max(sum_k^2 - 4 * k10 * k21, 0))
+  list(alpha = (sum_k + root) / 2, beta = (sum_k - root) / 2, k21 = k21)
+}
 
 .required_pd_params <- list(
   none                 = character(),
@@ -54,6 +67,32 @@
       tail_start <- rate / p[["cl"]] * (1 - exp(-ke * duration))
       out[!during] <- tail_start * exp(-ke * (time[!during] - duration))
       out
+    },
+    `2cmt_iv` = {
+      r <- .two_cmt_rates(p)
+      gap <- r$alpha - r$beta
+      if (gap < 1e-10) return(f * dose / p[["v"]] * exp(-r$beta * time))
+      a <- f * dose / p[["v"]] * (r$alpha - r$k21) / gap
+      b <- f * dose / p[["v"]] * (r$k21 - r$beta) / gap
+      a * exp(-r$alpha * time) + b * exp(-r$beta * time)
+    },
+    `2cmt_oral` = {
+      r <- .two_cmt_rates(p)
+      ka <- p[["ka"]]
+      # Nudge off any coincidence of rate constants; the closed form has
+      # removable singularities there and mock data does not need the limits.
+      eps <- 1e-6
+      if (abs(ka - r$alpha) < eps) ka <- ka * (1 + eps)
+      if (abs(ka - r$beta) < eps) ka <- ka * (1 - eps)
+      if (abs(r$alpha - r$beta) < eps) r$alpha <- r$alpha * (1 + eps)
+      coef <- f * dose * ka / p[["v"]]
+      coef * (
+        (r$k21 - r$alpha) / ((ka - r$alpha) * (r$beta - r$alpha)) *
+          exp(-r$alpha * time) +
+        (r$k21 - r$beta) / ((ka - r$beta) * (r$alpha - r$beta)) *
+          exp(-r$beta * time) +
+        (r$k21 - ka) / ((r$alpha - ka) * (r$beta - ka)) * exp(-ka * time)
+      )
     },
     stop("Unknown PK model `", model, "`.", call. = FALSE)
   )
@@ -129,10 +168,13 @@
 #' first-in-human compound they normally come from preclinical allometric
 #' scaling, which is also what selected the starting dose.
 #'
-#' @param pk One of `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`.
-#' @param typical Named numeric vector of typical parameter values. Requires
-#'   `cl` and `v`, plus `ka` for the oral model. Optional `f` defaults to 1.
-#'   PD models additionally require `baseline`, `emax`, `ec50`, and `kout`.
+#' @param pk One of `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`,
+#'   `"2cmt_iv"`, `"2cmt_oral"`.
+#' @param typical Named numeric vector of typical parameter values, interpreted
+#'   as the median of a lognormal population. Requires `cl` and `v` (the central
+#'   volume), plus `ka` for oral models and `q` and `v2` for two-compartment
+#'   models. Optional `f` defaults to 1. PD models additionally require
+#'   `baseline`, `emax`, `ec50`, and `kout`.
 #' @param pd One of `"none"`, `"direct_emax"`, `"idr_inhibit_loss"`,
 #'   `"idr_stimulate_loss"`.
 #' @param source Required provenance string recording where the model and its

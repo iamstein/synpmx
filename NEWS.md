@@ -37,6 +37,18 @@
   Clipping prevents a release from landing outside the prior, so the error
   saturates rather than diverging; the uncapped formula reported absurd values
   in exactly the regime where the release is worthless anyway.
+* Added two-compartment PK, `"2cmt_iv"` and `"2cmt_oral"`, as analytic
+  solutions verified to conserve `Dose/CL`.
+* The PD correction now solves for the `emax` reproducing the released effect
+  rather than multiplying `emax` by it. Response magnitude saturates in `emax`,
+  so multiplying overshoots badly. The per-subject statistic is a signed area
+  between response and baseline; a peak is biased upward by residual noise, and
+  an absolute-deviation area accumulates noise on the observed side while the
+  prediction carries none.
+* The PD correction is experimental. It is exact without residual error but
+  biased low when the response deviation is small relative to residual error,
+  because a geometric mean of noisy per-subject ratios sits below the ratio of
+  their means. PK is largely unaffected. See `design/FEASIBILITY.md`.
 * Covariate columns are explicitly out of scope. Generated output exercises
   event-table, timing, dosing, and censoring code, but not covariate handling.
 
