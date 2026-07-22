@@ -181,7 +181,46 @@ constructor. They form an increasing-data-use axis:
 | **Calibrated** | A few numbers | A structural model corrected by a handful of privately released scalars |
 | **Empirical** | The shape itself | Learn trajectories directly from a dense private grid (Version 2) |
 
-Pick by cohort size and by whether a privacy claim is needed at all.
+## Choosing a mode
+
+The two questions that decide it: **how many patients**, and **how many numbers
+are you willing to learn from them**.
+
+| | Prior | Calibrated | Empirical |
+|---|---|---|---|
+| **Parameters learned from data (`d`)** | **0** | **2-3** | **~100** |
+| Works from | any N, including no dataset at all | N >= ~6 | N >= ~1000 |
+| Privacy budget | none | small | large |
+| DP claim | none needed, none made | yes | yes |
+| Where magnitudes come from | the prior alone | prior corrected by the data | the data |
+| Where structure comes from | protocol + structural model | protocol + structural model | protocol + released grid |
+
+`d` is the whole story. Error goes as `d/(epsilon N)`, so learning 100 numbers
+instead of 3 costs roughly 30x the noise or 30x the epsilon. The Empirical mode
+buys empirical trajectory shape with that; the Calibrated mode decides the shape
+is not worth it and takes it from a structural model instead.
+
+### Quick guide by cohort size
+
+| Patients | Mode | `d` | Starting epsilon |
+|---|---|---:|---:|
+| No data, or 1-5 | Prior | 0 | n/a |
+| 6-20 | Calibrated, or Prior if the margin is too thin | 3 | 0.5-2 |
+| 20-100 | Calibrated | 3 | 0.2-0.5 |
+| 100-1000 | Calibrated | 3 | 0.05-0.2 |
+| 1000+ | Calibrated | 3 | 0.05 or lower |
+| 1000+ **and** empirical shape is specifically needed | Empirical | ~100 | 5 or higher |
+
+A useful rule of thumb for the Calibrated mode is **`epsilon ~ 10/N`**, which
+holds `f` near 0.3 — roughly a 2-fold spread on exposure against an 8-fold
+prior. Treat it as a starting point, then check it with the pre-flight rule in
+section 2 rather than adopting it blindly. Section 4 works through three cohort
+sizes in detail.
+
+Note what the last row costs: the Empirical mode needs an epsilon two orders of
+magnitude weaker than the Calibrated mode at the same cohort size. That is the
+price of learning shape from data instead of asserting it.
+
 
 ```
                  public inputs                     confidential data

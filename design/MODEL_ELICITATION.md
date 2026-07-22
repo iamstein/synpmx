@@ -55,6 +55,9 @@ budget; a narrow dishonest one costs the guarantee.
 | More than ~1000, and you want empirical shape rather than a structural model | **Empirical mode.** Version 2 dense grid. Different document |
 | No privacy claim needed at all | **Prior mode.** Simpler, and honest |
 
+Full selection guide, including how many parameters each mode learns from the
+data, is in `design/PROTOTYPE_SPEC.md` section 3.
+
 Prior mode still needs Q1-Q5. It just never runs a private fit. **Most of this
 interview is about building a good simulator, not about privacy.**
 
