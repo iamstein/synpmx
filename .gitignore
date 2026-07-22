@@ -47,3 +47,16 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Local data, generated output, and private references
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
+references/private/
+
+# Local credentials and editor files
+.env
+.DS_Store
+*.swp
+*~
