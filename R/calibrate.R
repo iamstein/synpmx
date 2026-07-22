@@ -204,31 +204,31 @@ print.pmx_preflight <- function(x, ...) {
     if (model$pd != "none") {
       pd_rows <- which(obs & endpoint == "pd" & is.finite(dv))
       if (length(pd_rows) >= 3L) {
-        base <- model$typical[["baseline"]]
-        # Signed area between the response and its baseline. Two earlier
-        # choices were wrong for reasons worth recording. A peak is biased
-        # upward by residual noise, and the bias does not shrink with N. An
-        # absolute-deviation area is worse still: it accumulates noise on the
-        # observed side while the prediction carries none, so at a baseline of
-        # 100 with 15% residual error it measures mostly noise. Signed area
-        # lets the noise cancel.
-        eff_obs <- .trapezoid(time[pd_rows], dv[pd_rows] - base)
         pred <- .pd_profile(model, time[pd_rows], doses, dose_times,
                             duration = design$duration)
-        eff_pred <- .trapezoid(time[pd_rows], pred - base)
-        # Known limitation. This ratio is biased low when the response
-        # deviation is small relative to residual error, because a geometric
-        # mean of noisy per-subject ratios sits below the ratio of their means.
-        # PK does not suffer badly, since concentration decays toward zero and
-        # its AUC is dominated by signal; a PD deviation rides on a large
-        # baseline, so its signal-to-noise is intrinsically worse. Measured with
-        # a 15% residual and a peak effect near 10% of baseline, the correction
-        # recovers about 1.8x against a true 2.5x. With no residual error it is
-        # exact. See design/FEASIBILITY.md.
-        # Same-signed and materially nonzero, or the ratio is meaningless.
-        if (is.finite(eff_obs) && is.finite(eff_pred) &&
-            abs(eff_pred) > 1e-8 && eff_obs / eff_pred > 0) {
-          pd <- eff_obs / eff_pred
+        if (model$pd %in% .pd_simple) {
+          # Level correction: a ratio of means over the subject's own
+          # observations. Both terms are the response itself rather than a
+          # deviation from it, so the signal-to-noise is excellent and the
+          # estimator is well conditioned even with substantial residual error.
+          observed_level <- mean(dv[pd_rows])
+          predicted_level <- mean(pred)
+          if (is.finite(observed_level) && is.finite(predicted_level) &&
+              abs(predicted_level) > 1e-8 &&
+              observed_level / predicted_level > 0) {
+            pd <- observed_level / predicted_level
+          }
+        } else {
+          # Exposure-driven shapes must work with the deviation from baseline,
+          # which is what makes them badly conditioned. Signed area, so that
+          # residual noise cancels rather than accumulating.
+          base <- model$typical[["baseline"]]
+          eff_obs <- .trapezoid(time[pd_rows], dv[pd_rows] - base)
+          eff_pred <- .trapezoid(time[pd_rows], pred - base)
+          if (is.finite(eff_obs) && is.finite(eff_pred) &&
+              abs(eff_pred) > 1e-8 && eff_obs / eff_pred > 0) {
+            pd <- eff_obs / eff_pred
+          }
         }
       }
     }
@@ -368,10 +368,22 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     corrected[["cl"]] <- unname(corrected[["cl"]] * results$pk$factor)
   }
   if (!is.null(results$pd)) {
-    solved <- .solve_emax(model, design, results$pd$factor)
-    corrected[["emax"]] <- solved$emax
-    results$pd$at_prior_boundary <- results$pd$at_prior_boundary ||
-      solved$saturated
+    if (model$pd %in% .pd_simple) {
+      # Scale the whole curve. Level comes from the data, shape from the prior.
+      for (name in intersect(c("baseline", "plateau"), names(corrected))) {
+        corrected[[name]] <- unname(corrected[[name]] * results$pd$factor)
+      }
+      if ("slope" %in% names(corrected)) {
+        corrected[["slope"]] <- unname(
+          corrected[["slope"]] * results$pd$factor
+        )
+      }
+    } else {
+      solved <- .solve_emax(model, design, results$pd$factor)
+      corrected[["emax"]] <- solved$emax
+      results$pd$at_prior_boundary <- results$pd$at_prior_boundary ||
+        solved$saturated
+    }
   }
 
   accounting <- .finalize_accounting(accountant)

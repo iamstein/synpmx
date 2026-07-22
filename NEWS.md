@@ -39,7 +39,17 @@
   in exactly the regime where the release is worthless anyway.
 * Added two-compartment PK, `"2cmt_iv"` and `"2cmt_oral"`, as analytic
   solutions verified to conserve `Dose/CL`.
-* The PD correction now solves for the `emax` reproducing the released effect
+* Added simple time-course PD shapes: `"constant"`, `"linear"`, and
+  `"exponential"`, the last covering both decay and growth. These carry no
+  exposure dependence and are now the recommended default. They are adequate
+  for exercising longitudinal analysis code, and they calibrate through a level
+  correction — a ratio of mean observed to mean predicted response — which is
+  well conditioned where an exposure-driven deviation statistic is not. With
+  15% residual error the level correction recovers 2.53 against a true 2.5,
+  where the exposure-driven estimator recovers 1.79 against a true 2.8. A PD
+  baseline prior can also be tight, where an Emax prior for a new mechanism
+  cannot.
+* The exposure-driven PD correction now solves for the `emax` reproducing the released effect
   rather than multiplying `emax` by it. Response magnitude saturates in `emax`,
   so multiplying overshoots badly. The per-subject statistic is a signed area
   between response and baseline; a peak is biased upward by residual noise, and

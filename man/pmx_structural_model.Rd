@@ -24,8 +24,13 @@ volume), plus \code{ka} for oral models and \code{q} and \code{v2} for two-compa
 models. Optional \code{f} defaults to 1. PD models additionally require
 \code{baseline}, \code{emax}, \code{ec50}, and \code{kout}.}
 
-\item{pd}{One of \code{"none"}, \code{"direct_emax"}, \code{"idr_inhibit_loss"},
-\code{"idr_stimulate_loss"}.}
+\item{pd}{The PD time course. \code{"none"} for PK only. The simple shapes
+\code{"constant"}, \code{"linear"} (needs \code{slope}), and \code{"exponential"} (needs
+\code{plateau} and \code{rate}, covering both decay and growth) carry no exposure
+dependence and are recommended: they are adequate for mock data and much
+better conditioned to calibrate. The exposure-driven shapes
+\code{"direct_emax"}, \code{"idr_inhibit_loss"}, and \code{"idr_stimulate_loss"} are
+experimental; see \code{design/FEASIBILITY.md}.}
 
 \item{source}{Required provenance string recording where the model and its
 typical values came from. Recorded in the release ledger.}

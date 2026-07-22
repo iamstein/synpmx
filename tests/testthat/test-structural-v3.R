@@ -334,3 +334,85 @@ test_that("the PD correction is exact without residual error", {
   expect_gt(fit$corrected_typical[["emax"]], 0.65)
   expect_lt(fit$corrected_typical[["emax"]], 0.85)
 })
+
+test_that("simple PD shapes are closed-form and go the right way", {
+  spec <- function(pd, extra) pmx_structural_model(
+    "1cmt_oral", c(cl = 10, v = 70, ka = 1, baseline = 100, extra),
+    pd = pd, source = "x"
+  )
+  grid <- c(0, 6, 24, 48, 96, 168)
+
+  flat <- .pd_profile(spec("constant", NULL), grid, 100, 0)
+  expect_true(all(flat == 100))
+
+  up <- .pd_profile(spec("linear", c(slope = 0.3)), grid, 100, 0)
+  expect_true(all(diff(up) > 0))
+  expect_equal(up[1L], 100)
+
+  decay <- .pd_profile(spec("exponential", c(plateau = 40, rate = 0.02)),
+                       grid, 100, 0)
+  expect_true(all(diff(decay) < 0))
+  expect_equal(decay[1L], 100)
+  expect_gt(decay[length(decay)], 40)          # approaches, never crosses
+
+  # The same shape covers growth when the plateau is above the baseline.
+  growth <- .pd_profile(spec("exponential", c(plateau = 300, rate = 0.02)),
+                        grid, 100, 0)
+  expect_true(all(diff(growth) > 0))
+
+  # A simple shape must not depend on dose.
+  low <- .pd_profile(spec("exponential", c(plateau = 40, rate = 0.02)),
+                     grid, 10, 0)
+  expect_equal(low, decay)
+})
+
+test_that("the simple PD level correction survives residual error", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  design <- pmx_trial_design(c(30, 100), c(1, 1), c(0, 6, 24, 48, 96, 168),
+                             source = "x")
+  spec <- function(baseline, cv) pmx_structural_model(
+    "1cmt_oral",
+    c(cl = 10, v = 70, ka = 1, baseline = baseline,
+      plateau = baseline * 0.4, rate = 0.02),
+    pd = "exponential", source = "x", residual_cv = cv,
+    iiv = c(cl = 0.3, v = 0.2, baseline = 0.25)
+  )
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"),
+                       pd = pmx_prior(c(1 / 10, 10), "x"))
+  # A ratio of means, unlike the exposure-driven deviation statistic, is not
+  # meaningfully biased by residual error.
+  for (cv in c(0, 0.15, 0.3)) {
+    data <- pmx_generate(spec(100, cv), design, n_subjects = 200, seed = 6)
+    fit <- suppressWarnings(fit_calibrated_pmx(
+      data, pmx_generated_roles(), spec(40, cv), design, priors,
+      epsilon = 50, backend = "opendp"
+    ))
+    expect_gt(fit$corrections$pd$factor, 2.2)
+    expect_lt(fit$corrections$pd$factor, 2.9)
+  }
+})
+
+test_that("the simple PD correction scales the whole curve", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  design <- pmx_trial_design(100, 10, c(0, 6, 24, 48, 96), source = "x")
+  spec <- function(baseline) pmx_structural_model(
+    "1cmt_oral",
+    c(cl = 10, v = 70, ka = 1, baseline = baseline,
+      plateau = baseline * 0.4, rate = 0.02),
+    pd = "exponential", source = "x"
+  )
+  data <- pmx_generate(spec(100), design, n_subjects = 150, seed = 8)
+  fit <- suppressWarnings(fit_calibrated_pmx(
+    data, pmx_generated_roles(), spec(40), design,
+    pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"),
+               pd = pmx_prior(c(1 / 10, 10), "x")),
+    epsilon = 50, backend = "opendp"
+  ))
+  # Baseline and plateau move together, so the shape is preserved and only the
+  # level is calibrated.
+  ratio <- fit$corrected_typical[["plateau"]] /
+    fit$corrected_typical[["baseline"]]
+  expect_equal(ratio, 0.4, tolerance = 1e-8)
+  expect_gt(fit$corrected_typical[["baseline"]], 80)
+  expect_lt(fit$corrected_typical[["baseline"]], 125)
+})

@@ -521,7 +521,7 @@ These are planning estimates from the error law confirmed in
 |---|---|---|
 | Cohort size | count, sensitivity 1 | n/a |
 | PK correction | `log(CL_observed / CL_predicted)`, per subject by NCA | Allometric scaling accuracy |
-| PD correction | `log(effect_observed / effect_predicted)` | Mechanism, preclinical PD |
+| PD correction | `log(level_observed / level_predicted)`, a ratio of means | Baseline literature, inclusion criteria |
 
 Add a PD baseline correction, or a between-subject variability term, only when a
 workflow specifically needs it. Every addition raises `d` and costs accuracy
@@ -557,16 +557,49 @@ their own public or synthetic source. The consequence is worth stating plainly
 in user documentation: **covariate-handling code is not exercised by this
 package's output.**
 
-## PD is weaker than PK, and the spec should say so
+## PD: prefer a simple time course over an exposure-driven model
+
+The default PD shapes are deliberately **not** exposure-driven: a constant, a
+linear trend, or an exponential approach to a plateau, which covers both decay
+and growth. The response has a plausible time course and a plausible magnitude,
+and it is not mechanistically linked to the generated concentrations.
+
+That looks like a loss and is mostly a gain, for two reasons.
+
+**It is adequate.** The accuracy bar in section 1 asks for a plausible PD column
+so that longitudinal analysis code can be exercised. A pipeline reading a
+biomarker does not check that the biomarker is Emax-consistent with exposure.
+
+**It is far better conditioned to calibrate**, which is the substantive point.
+An exposure-driven correction has to estimate a *deviation from baseline*, and
+a PD deviation rides on a large baseline, so its per-subject signal-to-noise is
+poor. A geometric mean of noisy per-subject ratios sits below the ratio of their
+means, and the resulting downward bias does not shrink with N. A simple shape
+instead takes a **level correction**: the ratio of the mean observed response to
+the mean predicted response, where both terms are the response itself. Measured
+with 15% residual error, the level correction recovers 2.53 against a true 2.5,
+where the exposure-driven estimator recovers 1.79 against a true 2.8.
+
+There is a second, quieter advantage. A prior on a PD *baseline* can be tight,
+because baselines are usually well characterized from healthy-volunteer
+literature or the inclusion criteria. A prior on Emax for a new mechanism cannot
+be. Since the prior span drives everything, that difference is worth more than
+the mechanistic realism given up.
+
+The exposure-driven shapes remain available and remain **experimental**. Use
+them only when a workflow specifically needs exposure-response coupling, and
+expect the bias described above.
+
+## When PD is still weaker than PK
 
 Preclinical-to-clinical translation is less reliable for pharmacodynamics than
 for pharmacokinetics. The correction-factor prior for a PD effect is
 correspondingly wider — perhaps `[1/10, 10]` rather than `[1/4, 4]` — which
 gives back part of the gain.
 
-Plan for PD needing roughly 1.5 to 2 times the budget of PK for the same
-relative accuracy, and prefer releasing a PD *magnitude* correction over a PD
-*shape* parameter. Shape should come from the structural model.
+Plan for PD needing more budget than PK for the same relative accuracy, and
+prefer releasing a PD *level* correction over a PD *shape* parameter. Shape
+should come from the structural model.
 
 ## Model selection is itself a privacy-relevant choice
 

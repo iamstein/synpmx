@@ -9,7 +9,13 @@
 
 .pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
                 "2cmt_oral")
-.pd_models <- c("none", "direct_emax", "idr_inhibit_loss", "idr_stimulate_loss")
+# Simple time-course shapes carry no exposure dependence. They are the default
+# because they are both adequate for mock data and far better conditioned to
+# estimate: a level correction is a ratio of means, where an exposure-driven
+# effect is a small deviation on a large baseline.
+.pd_simple <- c("constant", "linear", "exponential")
+.pd_exposure <- c("direct_emax", "idr_inhibit_loss", "idr_stimulate_loss")
+.pd_models <- c("none", .pd_simple, .pd_exposure)
 
 .required_pk_params <- list(
   `1cmt_iv`       = c("cl", "v"),
@@ -31,6 +37,9 @@
 
 .required_pd_params <- list(
   none                 = character(),
+  constant             = "baseline",
+  linear               = c("baseline", "slope"),
+  exponential          = c("baseline", "plateau", "rate"),
   direct_emax          = c("baseline", "emax", "ec50"),
   idr_inhibit_loss     = c("baseline", "emax", "ec50", "kout"),
   idr_stimulate_loss   = c("baseline", "emax", "ec50", "kout")
@@ -131,6 +140,17 @@
                         duration = 0, steps_per_unit = 4) {
   p <- params %||% model$typical
   if (model$pd == "none") return(rep(NA_real_, length(time)))
+  time_positive <- pmax(as.numeric(time), 0)
+  if (model$pd %in% .pd_simple) {
+    return(switch(
+      model$pd,
+      constant = rep(p[["baseline"]], length(time)),
+      linear = p[["baseline"]] + p[["slope"]] * time_positive,
+      # Covers both decay and growth: the sign is set by plateau vs baseline.
+      exponential = p[["plateau"]] +
+        (p[["baseline"]] - p[["plateau"]]) * exp(-p[["rate"]] * time_positive)
+    ))
+  }
   conc_at <- function(tt) {
     .pk_profile(model, tt, doses, dose_times, p, duration)
   }
@@ -175,8 +195,13 @@
 #'   volume), plus `ka` for oral models and `q` and `v2` for two-compartment
 #'   models. Optional `f` defaults to 1. PD models additionally require
 #'   `baseline`, `emax`, `ec50`, and `kout`.
-#' @param pd One of `"none"`, `"direct_emax"`, `"idr_inhibit_loss"`,
-#'   `"idr_stimulate_loss"`.
+#' @param pd The PD time course. `"none"` for PK only. The simple shapes
+#'   `"constant"`, `"linear"` (needs `slope`), and `"exponential"` (needs
+#'   `plateau` and `rate`, covering both decay and growth) carry no exposure
+#'   dependence and are recommended: they are adequate for mock data and much
+#'   better conditioned to calibrate. The exposure-driven shapes
+#'   `"direct_emax"`, `"idr_inhibit_loss"`, and `"idr_stimulate_loss"` are
+#'   experimental; see `design/FEASIBILITY.md`.
 #' @param source Required provenance string recording where the model and its
 #'   typical values came from. Recorded in the release ledger.
 #' @param rx Optional `rxode2` model used in place of the built-in analytic
