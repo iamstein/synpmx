@@ -1,0 +1,11 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^AGENTS\.md$
+^CLAUDE\.md$
+^PROTOTYPE_SPEC\.md$
+^references$
+^scripts$
+^output$
+^data/\.gitkeep$
+^LICENSE\.md$
+^\.DS_Store$

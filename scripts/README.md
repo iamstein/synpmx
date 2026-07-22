@@ -1,5 +1,4 @@
-# Development scripts
+# Scripts
 
-Place reproducible repository maintenance, benchmarking, and end-to-end
-simulation scripts here. Package functions belong in `R/`; scripts may call
-those functions but should not be required when the package is installed.
+- `demo_nlmixr2data.R` runs the theophylline, warfarin, and WBC examples end to
+  end after `pmxmock` is installed.

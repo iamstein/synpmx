@@ -1,0 +1,21 @@
+Package: pmxmock
+Title: Structurally Faithful Mock Pharmacometric Data
+Version: 0.0.0.9000
+Authors@R:
+    person("Andrew", "Stein", , "andy.stein@gmail.com", role = c("aut", "cre"))
+Description: Generates structurally faithful mock pharmacometric event data
+    from an existing dataset without fitting a pharmacokinetic,
+    pharmacodynamic, or nonlinear mixed-effects model. Event templates are
+    preserved coherently while baseline covariates and endpoint-specific
+    longitudinal measurements are blended from compatible source subjects.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1.0)
+Suggests:
+    ggplot2,
+    nlmixr2data,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
