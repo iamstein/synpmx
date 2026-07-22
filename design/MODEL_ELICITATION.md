@@ -8,7 +8,8 @@ assisting one. The output is an `rxode2` model, a set of prior ranges, and a
 provenance table.
 
 Companion to `design/PROTOTYPE_SPEC.md` sections 5 and 6, which explain why the
-design works this way.
+design works this way. If the `d` and `f` arithmetic in Q7 is unfamiliar, read
+`design/PRIVACY_BACKGROUND.md` first.
 
 ---
 
@@ -49,12 +50,12 @@ budget; a narrow dishonest one costs the guarantee.
 
 | Answer | Route |
 |---|---|
-| Fewer than about 10 subjects | **Either.** Mode B is viable at epsilon 1-2 with a thin margin; Mode A is entirely reasonable. Run the Q7 pre-flight and decide |
-| 10-300 subjects, claim needed | **Mode B.** The main path. Continue |
-| More than ~1000, and you want empirical shape rather than a structural model | **Mode C.** Version 2 dense grid. Different document |
-| No privacy claim needed at all | **Mode A.** Simpler, and honest |
+| Fewer than about 10 subjects | **Either.** Calibrated mode is viable at epsilon 1-2 with a thin margin; Prior mode is entirely reasonable. Run the Q7 pre-flight and decide |
+| 10-300 subjects, claim needed | **Calibrated mode.** The main path. Continue |
+| More than ~1000, and you want empirical shape rather than a structural model | **Empirical mode.** Version 2 dense grid. Different document |
+| No privacy claim needed at all | **Prior mode.** Simpler, and honest |
 
-Mode A still needs Q1-Q5. It just never runs a private fit. **Most of this
+Prior mode still needs Q1-Q5. It just never runs a private fit. **Most of this
 interview is about building a good simulator, not about privacy.**
 
 ---
@@ -172,7 +173,7 @@ dataset.
 
 ---
 
-## Q7. Privacy budget (Mode B only)
+## Q7. Privacy budget (Calibrated mode only)
 
 1. **What epsilon is approved?** This must come from governance, not from
    whichever value makes the plot look best.
@@ -184,7 +185,7 @@ dataset.
 
    | `f` | Verdict |
    |---:|---|
-   | >= 1.0 | The release tells you nothing the prior did not. **Use Mode A** |
+   | >= 1.0 | The release tells you nothing the prior did not. **Use Prior mode** |
    | ~0.5 | Halves the uncertainty. Marginal but real |
    | ~0.25 | Clearly worthwhile |
    | <= 0.1 | **Lower epsilon instead.** You are buying accuracy you do not need |
@@ -267,7 +268,7 @@ from the public inputs or moved inside the privacy budget.
 
 | Question | Answer |
 |---|---|
-| Q0 | 20 subjects, claim needed → **Mode B** |
+| Q0 | 20 subjects, claim needed → **Calibrated mode** |
 | Q1 | FIH, small molecule, oral |
 | Q2 | 1-compartment; CL 10 L/h, V 70 L, F 0.5, ka 1/h; linear; moderate confidence → `[1/4, 4]` |
 | Q3 | `cp` (ng/mL, dose-relative, LLOQ 0.5); `biomarker` (study-time, IDR, baseline 100, falls, `[1/10, 10]`) |

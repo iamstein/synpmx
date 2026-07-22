@@ -8,8 +8,13 @@ How this relates to the other design documents:
 - `design/REVIEW_BACKLOG.md` — **why**, for defects and design findings. `REV-###`.
 - `design/TEST_SIM.md` — **evidence**, for simulation defects and their gates. `SIM-###`.
 - `design/FEASIBILITY.md` — **scope**, what is achievable at which cohort size.
+- `design/PRIVACY_BACKGROUND.md` — **intuition**, where `d`, `f`, and the error
+  law come from. Start here if the arithmetic is unfamiliar.
+- `design/PRIVACY_ARGUMENT.md` — **proof**, the formal mechanism-level argument.
 - `design/MODEL_ELICITATION.md` — **inputs**, the interview that produces a
   public structural model and priors before any data is read.
+- `design/DATA_ELICITATION.md` — **structure**, the trial-design ladder and
+  which parts of a protocol are actually public.
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 Keep items here short and link out. When an item closes, tick it and update the
@@ -28,7 +33,7 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 
 - [ ] `pmx_structural_model(rx, typical, source)` accepting an `rxode2` model as
       a public input. `rxode2` is a Suggests dependency needed only at
-      generation time. Fall back to the v2 grid or Mode A when absent.
+      generation time. Fall back to the v2 grid or Prior mode when absent.
 - [ ] Release a **multiplicative correction** to the model's prediction, not an
       absolute parameter. Draft vector `d = 3`: cohort size, PK correction, PD
       correction. The prior on "how wrong is the prediction" is ~8-fold and
@@ -44,8 +49,19 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 - [ ] Report the released correction as a diagnostic. Already public and
       accounted, so free, and a correction pressed against the clipping boundary
       is the one signal that the prior was wrong.
-- [ ] Public-design-only (Mode A) as a first-class entry point taking no data
+- [ ] Public-design-only (Prior mode) as a first-class entry point taking no data
       and no epsilon — not reachable only via the `backend = "public"` backdoor.
+- [ ] `pmx_trial_design()` capturing the complexity level, dose levels, cohort
+      sizes, escalation/titration rules, and occasion semantics, with a `_src`
+      provenance field per realized quantity. See `design/DATA_ELICITATION.md`.
+- [ ] Support levels 3-4 (intra-patient escalation, titration): occasion-varying
+      dose applied to *generated* subjects from the public rule. Never replay a
+      source subject's escalation or titration sequence — the dose trajectory
+      encodes the response trajectory.
+- [ ] `REV-017` Realized design is not automatically public. Escalation stopping
+      points, expanded cohort sizes, and realized visit patterns depend on the
+      data. Require an explicit assertion with a source, or generate from the
+      planned design instead.
 
 ### Guardrails
 

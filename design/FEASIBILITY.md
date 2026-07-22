@@ -499,28 +499,20 @@ sensitivity to beat the `sqrt(2 ln(1.25/delta))` constant, which is well above
    design in `design/PROTOTYPE_SPEC.md` section 6, where the model states its
    own assumptions and a nonlinear structure can simply be supplied.
 
-### Correction: N = 6 is not a permanent boundary
+### Very small cohorts
 
-An earlier revision of this document, and of the specification, claimed that
-N = 6 "cannot be served by any private release" because one subject is 17% of
-every released statistic. **That conflated utility with the guarantee and was
-wrong.**
-
-The DP guarantee at a given epsilon is independent of N — that is the
-definition, and resistance to an attacker who already knows five of six subjects
-is precisely what DP provides and k-anonymity does not. Cohort size affects only
-how much signal survives the noise, which is a utility question.
+The DP guarantee at a given epsilon is independent of `N` — that is the
+definition, and resisting an attacker who already knows five of six subjects is
+precisely what DP provides and k-anonymity does not. Cohort size affects only
+how much signal survives the noise.
 
 Under the correction-factor design (`d = 3`, 8-fold prior), N = 6 at epsilon 1
-gives `f = 0.5` — the release roughly halves the prior uncertainty, taking
-8-fold to about 2.8-fold. Against the accuracy bar in
-`design/PROTOTYPE_SPEC.md` section 1, that is useful.
-
-Two honest cautions remain, neither of them a mathematical impossibility. The
-margin is thin: at epsilon 0.5 and N = 6, `f = 1.0` and the release conveys
-nothing beyond the prior. And governance may decline to authorize any release
-derived from six patients as a policy matter, which is reasonable but is not a
-claim to make on mathematical grounds.
+gives `f = 0.5`, halving the prior uncertainty and taking 8-fold to about
+2.8-fold. Against the accuracy bar in `design/PROTOTYPE_SPEC.md` section 1 that
+is useful. The margin is thin, though — at epsilon 0.5, `f = 1.0` and the
+release conveys nothing beyond the prior — so run the pre-flight check rather
+than assuming. Governance may separately decline any release derived from six
+patients, which is a reasonable policy position but not a mathematical one.
 
 ### On novelty
 
