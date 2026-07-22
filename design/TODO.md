@@ -22,13 +22,22 @@ requires releasing a handful of parameters against public structural priors
 instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 `design/PROTOTYPE_SPEC.md` "Version 3 scope".
 
-- [ ] Decide and document the released parameter vector. Target `d <= 8`. Draft:
-      cohort size, CL (dose-normalized, log scale), t-half, PD baseline, PD
+- [ ] Decide and document the released parameter vector. Target `d <= 8`. Draft
+      in `PROTOTYPE_SPEC.md` section 6: cohort size, CL, t-half, PD baseline, PD
       effect magnitude, PD onset rate.
-- [ ] Add public structural priors to the configuration: a `pmx_prior()` giving
-      a plausible range per parameter, asserted public and chosen without
-      inspecting the data. This range replaces `pmx_bounds()` as the dominant
-      sensitivity term, so its provenance needs the same governance treatment.
+- [ ] Add public structural priors to the configuration: `pmx_prior(range,
+      source)`, where `source` records data-independent provenance. This range
+      replaces `pmx_bounds()` as the dominant sensitivity term.
+- [ ] Implement two-stage range-finding: a coarse log-scale histogram at
+      `epsilon_0` (~20% of budget, L1 sensitivity 1 regardless of bin count),
+      then clip and release means at `epsilon_1`. Measured worth: 2.44-fold ->
+      1.52-fold at N = 20, epsilon 1.
+- [ ] Guard against the range being set from the data without budget. Mean +/-
+      2 SD is the right target for stage 1 to *discover*, but computing it
+      directly voids the guarantee and nothing downstream detects it.
+- [ ] Measure `t-half`, PD baseline, and PD magnitude. Only CL has been
+      confirmed against the error law; terminal-slope estimates are noisier per
+      subject and may behave worse.
 - [ ] Implement per-subject non-compartmental summaries (trapezoidal AUC,
       terminal slope) as the estimator. Each subject's value must depend only on
       that subject's own rows — this is what makes the sensitivity argument

@@ -300,21 +300,26 @@ the small sizes appear at all.
 
 ### Today's dense-grid design against these sizes
 
-Measured in section 4 and extrapolated on `sensitivity / (epsilon * N)`:
+**Measured**, not extrapolated. Same protocol as section 4; 8 repetitions below
+N = 500, 5 at N = 500-1000, 3 at N = 10000.
 
 | N | epsilon 1 | epsilon 5 | Verdict |
-|---:|---|---|---|
-| 6 | hopeless | hopeless | Tier A only |
-| 20 | hopeless | hopeless | Tier A only |
-| 60 | hopeless | ~1.5 (useless) | Tier A only |
-| 100 | 2.55 | 1.46 | no |
-| 500 | ~1.0 | ~0.25 | marginal at a weak epsilon |
-| 1000 | ~0.5 | ~0.13 | usable at a weak epsilon |
-| 10000 | ~0.05 | ~0.01 | good, and the first size that works at epsilon 1 |
+|---:|---:|---:|---|
+| 6 | 2.43 | 2.71 | Tier A only |
+| 20 | 3.74 | 3.42 | Tier A only |
+| 60 | 3.49 | 1.46 | Tier A only |
+| 100 | 2.69 | 1.06 | no |
+| 500 | 1.08 | 0.26 | marginal, and only at a weak epsilon |
+| 1000 | 0.55 | 0.09 | usable at a weak epsilon |
+| 10000 | 0.08 | 0.02 | good; the first size that works at epsilon 1 |
 
-Only the top two rows of the target list are served, and only at an epsilon that
-is not a real guarantee. **The current architecture does not serve the stated
-scope.**
+Values below N = 100 are non-monotone in both N and epsilon. That is expected
+and is itself the finding: in that regime the output is pure noise, so the
+metric is measuring the normalization rather than any signal.
+
+Only the bottom two rows of the target list are served, and N = 1000 only at an
+epsilon that is not a real guarantee. **The current architecture does not serve
+the stated scope.**
 
 ### The Tier B arithmetic
 
@@ -367,6 +372,62 @@ Taking `f <= 0.10` as the usability bar gives the frontier `epsilon * N >= 60`:
 Tier B it needs about 60. That is a hundredfold reduction in the cohort size at
 which a defensible guarantee becomes possible, and it moves Phase 1 from
 impossible into range.
+
+### Measured confirmation
+
+The arithmetic above was validated against real OpenDP releases. Per-subject CL
+was computed by non-compartmental analysis (`CL = Dose / AUC`, trapezoidal over
+the first occasion) from `pmx_simulated_fixture`, clipped to a public range on
+the log scale, and released as a mean with `d = 5` scalars sharing the budget.
+200 replicate releases per cell. The table reports **median fold-error on CL**;
+1.5 means "within 50%".
+
+| N | 100-fold prior, eps 0.5 | eps 1 | eps 5 | 5-fold prior, eps 0.5 | eps 1 | eps 5 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 9.90 | 9.60 | 1.71 | 2.18 | 2.15 | 1.27 |
+| 20 | 6.05 | 2.44 | 1.26 | 1.98 | 1.52 | 1.07 |
+| 60 | 2.00 | 1.46 | 1.06 | 1.23 | 1.10 | 1.03 |
+| 100 | 1.48 | 1.21 | 1.04 | 1.13 | 1.07 | 1.02 |
+| 300 | 1.14 | 1.07 | 1.01 | 1.05 | 1.03 | 1.00 |
+| 500 | 1.09 | 1.04 | 1.01 | 1.03 | 1.01 | 1.00 |
+| 1000 | 1.03 | 1.02 | 1.00 | 1.01 | 1.01 | 1.00 |
+
+**The error law is confirmed.** For N = 20, epsilon 1, 5-fold prior:
+`f = 5/(1 * 20) = 0.25`, and a 5-fold prior spans `log(5) = 1.61` units, so the
+predicted error is `exp(0.25 * 1.61) = 1.49`-fold. Measured: 1.52.
+
+The formula is mildly conservative at wide priors, because it uses the Laplace
+*scale* while the table reports the *median* absolute error, which is
+`ln(2) = 0.69` times the scale. Treat `f = d/(epsilon N)` as a safe planning
+bound rather than a point prediction.
+
+### The two prior columns are the argument for range-finding
+
+Comparing the two halves of that table at epsilon 1: N = 20 improves from
+2.44-fold to 1.52-fold, and N = 60 from 1.46 to 1.10, purely by narrowing the
+clipping range from 100-fold to 5-fold. That is roughly a 3x effective privacy
+gain — the same accuracy at a third of the epsilon.
+
+A coarse private histogram can buy that narrowing for about 20% of the budget,
+because **a histogram has L1 sensitivity 1 regardless of bin count**: each
+subject falls in exactly one bin. Locating the data is nearly free; estimating
+its mean precisely is what costs `d/(epsilon N)`. Spending a fifth of the budget
+to triple the value of the remainder is clearly correct.
+
+This also answers the objection that a new drug has no published model. See
+`design/PROTOTYPE_SPEC.md` section 5: "public" in the DP sense means
+*independent of this dataset*, not *published*. Preclinical allometric scaling,
+the protocol, the assay validation report, and physiological ceilings are all
+available before the data exist, and a preclinical human PK prediction is
+typically within 3-5 fold — already enough for stage 2 even before
+range-finding.
+
+### Caveat on scope of the measurement
+
+Only CL was measured. `t-half`, PD baseline, and PD magnitude follow the same
+error law but were not confirmed, and `t-half` may be worse: terminal-slope
+estimates are noisier per subject, so the per-subject values are more dispersed
+before clipping. Measure them before relying on the parameter vector as a whole.
 
 ### Why the prior range is the real lever
 
