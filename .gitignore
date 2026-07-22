@@ -62,3 +62,13 @@ references/private/
 *~
 /doc/
 /Meta/
+
+# Private company-data work. Real modeling datasets and any source-derived
+# output must never be committed. Ignore everything under scripts_private/ EXCEPT
+# the template code and docs. A parent-directory ignore would hide the whole
+# tree from git and defeat the re-includes below, so ignore by content instead.
+/scripts_private/**
+!/scripts_private/
+!/scripts_private/.gitignore
+!/scripts_private/README.md
+!/scripts_private/try_calibrated.R
