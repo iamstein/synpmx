@@ -286,3 +286,11 @@ cannot be, a way to make a 20-patient study shareable.
   calculation, not a derived bound. Derive it properly before committing to it.
 - Sensitivity bounds in the current code were checked for soundness and appear
   correct everywhere reviewed. `REV-005` is about tightness, not correctness.
+
+---
+
+## Addendum: findings added after the initial review
+
+| ID | Area | Issue | Suggested direction | Status |
+|---|---|---|---|---|
+| `REV-016` | DP guarantee | The declared adjacency is "add-or-remove one complete subject" and `.bound_subject_contributions()` groups rows by the ID column, which is correct only if one person appears exactly once. Rollover and extension studies, crossovers pooled with parallel-group studies, and re-enrolled subjects all violate it. A person contributing `k` records receives roughly `k * epsilon` by group privacy, and nothing in the accounting, the ledger, or `validate_private_model()` reveals it. This matters more now that pooling is a recommended path. | Require an explicit assertion that IDs are unique persons, or accept a person-level grouping column and bound contributions on that rather than on the study subject ID. | open |
