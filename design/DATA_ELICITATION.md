@@ -10,9 +10,10 @@ a `TIME` axis that resets when the real one does not. Against the accuracy bar
 in `design/PROTOTYPE_SPEC.md` section 1, the second is the more serious failure:
 structure must be exact, numbers need only be close.
 
-This guide also carries a privacy finding that does not appear anywhere else:
-**in escalation and adaptive designs, part of the "protocol" is not public.**
-See section 3.
+Section 3 also settles which parts of a trial design are public. The short
+answer: trial-level design is public and uncontroversial; an *individual's*
+escalation or titration path is that individual's outcome and must never be
+copied.
 
 ---
 
@@ -39,8 +40,8 @@ Subjects are assigned to dose cohorts; each subject receives one dose level.
 - **Generator needs:** the dose levels, cohort sizes, and the dose-group
   assignment as a **subject property** (see `pmx_roles(subject_properties=)`).
   The structural model then gives dose-proportional exposure for free.
-- **Privacy:** the *planned* dose levels are public. **Which levels were
-  actually reached is not** — see section 3.
+- **Privacy:** dose levels and cohort assignment are design facts and are
+  treated as public. See section 3.
 
 ### Level 2 — Repeated dosing (MAD)
 
@@ -64,9 +65,9 @@ A subject's dose changes over time, by protocol-defined rules.
 - **Generator needs:** dose is no longer a subject property — it is
   occasion-varying. The `assigned_dose` role and occasion-conditioned regimen
   handle this, but the escalation *schedule* must be declared.
-- **Privacy:** **whether a given patient escalated depends on that patient's own
-  tolerability.** The escalation path is an outcome, not purely a design
-  variable. See section 3.
+- **Privacy:** **an individual's escalation path is that individual's outcome**,
+  not purely a design variable. Apply the rule to generated subjects; never
+  replay a source subject's sequence. See section 3.
 
 ### Level 4 — Titration to effect, response-driven dosing
 
@@ -103,8 +104,9 @@ accumulating data.
 - **Dataset signature:** irregular cohort sizes; dose levels that are not on the
   prespecified grid; early stopping; expansion cohorts.
 - **Generator needs:** treat the *realized* design as an input, but see below.
-- **Privacy:** **the realized design is a function of the data.** This is the
-  deepest issue on the ladder and section 3 is about it.
+- **Privacy:** the realized design is formally a function of the data, but is
+  treated as public and is usually already disclosed. Recorded as an assumption
+  in section 3, not as a risk to remediate.
 
 ---
 
@@ -116,69 +118,72 @@ accumulating data.
 | 3 | Yes, with a declared escalation schedule | Yes, if the schedule is declared public |
 | 4 | Yes, with a public titration rule | Possible, but the rule must be public and applied to generated responses |
 | 5 | Yes | Yes |
-| 6 | Yes, if the realized design is asserted public | Requires an explicit decision — section 3 |
+| 6 | Yes | Yes, with the realized design recorded as a public input |
 
 ---
 
-## 3. The privacy finding: not all of the protocol is public
+## 3. Which parts of the design are public
 
 Throughout `design/PROTOTYPE_SPEC.md` the protocol is treated as a public input
-costing no budget. **For levels 0, 2, and 5 that is straightforwardly true.**
-For levels 1, 3, 4, and 6 it is only partly true, and the distinction is easy to
-miss because it all arrives in the same document.
+costing no budget. That is right, with one narrow qualification that applies to
+per-subject quantities rather than to trial-level ones.
 
-The rule:
+### Trial-level realized design is public in practice
 
-> **Prespecified design is public. Realized design that depended on the data is
-> not.**
+Realized dose levels, cohort sizes, and stopping points are **not** a meaningful
+disclosure risk, for three independent reasons:
 
-Concretely:
+1. **They are usually already published.** Registry postings, conference
+   presentations, and publications routinely disclose which dose levels were
+   reached and how many subjects were enrolled, typically well before any
+   dataset is shared. Differential privacy has no work to do protecting a fact
+   that is already in the public domain.
+2. **The inference is many-to-one and mostly confounded.** A trial stopping at a
+   given dose could reflect a dose-limiting toxicity, but equally: target
+   exposure or efficacy achieved, a prespecified maximum reached, enrollment
+   difficulty, a data cutoff with later cohorts still ongoing, portfolio
+   reprioritization, or a program halted for reasons unrelated to this study.
+   Reading a stopping point as evidence about any individual is not sound.
+3. **It is a property of the study, not of a person.** Escalation decisions are
+   made by a committee weighing aggregate safety, exposure, and business
+   context. Differential privacy protects the marginal contribution of one
+   individual's record; a committee's decision about a program is not that.
 
-| Quantity | Status |
-|---|---|
-| The planned dose-escalation grid (10, 30, 100, 300 mg) | Public. In the protocol before enrollment |
-| **Which of those levels were actually reached** | **Data-dependent.** Stopping at 100 mg implies a dose-limiting toxicity at 300 |
-| Planned cohort size | Public |
-| **Realized cohort size after a 3+3 expansion** | **Data-dependent.** Six subjects instead of three means a DLT occurred |
-| The titration rule ("escalate if no grade 2 event") | Public. It is an algorithm |
-| **Which subjects escalated, and when** | **Data-dependent.** It is their outcome |
-| Planned visit schedule | Public |
-| **Realized visit times, dropout, discontinuation** | **Data-dependent** |
+Treat trial-level design as public, record its source in the provenance table,
+and move on. Generating from the *planned* grid rather than the realized one is
+a reasonable simplification if it is easier — mock data showing doses that were
+never given is harmless for workflow testing — but it is a convenience, not a
+privacy requirement.
 
-This matters because escalation stopping points are informative about small
-numbers of people. "The trial stopped at 100 mg" can be equivalent to "at least
-one of the six subjects at 300 mg had a serious event" — a statement about a
-handful of individuals, released with no accounting at all.
+### Per-subject escalation paths are individual outcomes
 
-### What to do about it
+The qualification is here, and it is genuinely different in kind.
 
-Three acceptable options, in preference order:
+At levels 3 and 4, **an individual's dose trajectory is that individual's
+outcome.** "This subject escalated at cycle 3, then reduced at cycle 5" is a
+statement about one person's tolerability, with none of the many-to-one
+confounding that makes the trial-level fact uninformative. In a titration design
+the dose sequence is close to a direct encoding of the response sequence — it is
+the variable the protocol adjusts *in order to* track the individual.
 
-1. **Declare the realized design public by assertion.** Often legitimate:
-   escalation outcomes are frequently disclosed at conferences, in press
-   releases, or on ClinicalTrials.gov before any dataset is shared. If the
-   realized dose levels are already in the public domain, say so, record the
-   source in the provenance table, and proceed. **This is usually the right
-   answer and it costs nothing.**
-2. **Generate from the planned design instead of the realized one.** Use the
-   full prespecified escalation grid and planned cohort sizes. The mock data
-   will show doses that were never given, which is harmless for workflow
-   testing and discloses nothing.
-3. **Budget it.** Treat realized cohort sizes as private counts and release them
-   through the mechanism. Correct, but it consumes budget that would be better
-   spent on exposure magnitude, and for a handful of cohorts the noise will
-   dominate anyway.
+So the rule is not about the protocol. It is about what gets copied:
 
-Option 2 is underrated. The generator does not need the trial's actual
-escalation history to produce a dataset that exercises an escalation-aware
-analysis pipeline.
+> **Apply the escalation or titration rule to generated subjects. Never replay a
+> source subject's realized dose sequence.**
 
-### What is never acceptable
+A dataset with entirely synthetic DV values but real per-subject dose
+trajectories still discloses who tolerated treatment and who did not. This costs
+nothing to get right — the rule is public, and applying it to generated
+responses produces a more useful dataset anyway, since it stays coherent with
+the generated exposures.
 
-Replaying a real subject's dose-escalation or titration sequence. At level 4 in
-particular, the dose trajectory encodes the response trajectory. A dataset with
-fully synthetic DV values but real dose sequences can still disclose who
-responded and who did not.
+### Recorded as an assumption, not a defect
+
+Strictly, realized design quantities are functions of the source dataset, so
+treating them as fixed public inputs is an assumption rather than a derivation.
+It belongs in the proof assumptions alongside the other public-input assertions,
+where a reviewer can see it. It is not a leak to remediate. Tracked as
+`REV-017`.
 
 ---
 
@@ -250,7 +255,7 @@ Extend the table in `design/MODEL_ELICITATION.md` with the design rows:
 | Input | Value | Source | Data-independent? |
 |---|---|---|---|
 | Planned dose grid | 10/30/100/300 mg | Protocol v4 §5.1 | Yes |
-| Realized levels reached | 10/30/100 mg | NCT01234567 results posting | Yes — publicly disclosed |
+| Realized levels reached | 10/30/100 mg | NCT01234567 results posting | Yes — publicly posted |
 | Escalation rule | Cycle 3, no grade 2+ | Protocol v4 §5.3 | Yes |
 | Realized per-subject escalation | — | **Not used**; generated from the rule | n/a |
 
@@ -262,8 +267,8 @@ Extend the table in `design/MODEL_ELICITATION.md` with the design rows:
 |---|---|
 | Level | **3.** Between-cohort escalation plus intra-patient escalation at cycle 3 |
 | Planned grid | 10, 30, 100, 300 mg, 3+3 |
-| Realized | Stopped at 100 mg; disclosed on ClinicalTrials.gov → assert public |
-| Cohort sizes | 3, 3, 6 — the 6 implies a DLT, but is publicly posted |
+| Realized | Stopped at 100 mg; posted on ClinicalTrials.gov → public |
+| Cohort sizes | 3, 3, 6 — publicly posted |
 | Escalation rule | Escalate one level at cycle 3 if no grade 2+ event |
 | Occasion | One cycle (21 days) |
 | Time | Continuous from first dose; does not reset |
@@ -281,5 +286,6 @@ automatically.
 platelet-response correction. The entire design structure above is public.
 
 **What must not happen.** Taking each real subject's escalation timing and
-replaying it. That would disclose which patients tolerated treatment, which is
-the primary endpoint of the study.
+replaying it. Unlike the trial-level stopping point, an individual's escalation
+timing is that individual's tolerability outcome, and copying it would disclose
+which patients tolerated treatment — the primary endpoint of the study.
