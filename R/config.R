@@ -168,8 +168,11 @@ pmx_schema <- function(data, exclude = NULL) {
 #'   a list named by positive occasion number; omitted occasions generate no
 #'   observations.
 #' @param endpoint_cmt Named list or vector of public observation compartments.
-#' @param category_levels Named lists of allowed values for character or
-#'   logical covariates. Factor levels come from the public schema.
+#' @param category_levels Named lists of allowed values for categorical
+#'   covariates and subject properties. Supplying levels forces even a numeric
+#'   covariate to be treated categorically. Factor levels may instead come from
+#'   the public schema. These levels are public domains, not values discovered
+#'   by inspecting confidential records outside the private fit.
 #' @param defaults Named values for otherwise unmodeled public columns.
 #' @param time_jitter_sd Nonnegative generation-time jitter scale, expressed as
 #'   a fraction of the closest public grid spacing.

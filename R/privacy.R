@@ -13,6 +13,14 @@
       stop("Invalid values supplied to the OpenDP adapter.", call. = FALSE)
     }
     scale <- sensitivity / epsilon
+    if (scale > 0) {
+      # OpenDP checks the privacy relation with exact rational arithmetic.
+      # A binary floating-point quotient can round infinitesimally below the
+      # required scale and make a mathematically valid fractional allocation
+      # fail closed. Inflate by a negligible amount so rounding can only make
+      # the mechanism more private, never less private.
+      scale <- scale * (1 + sqrt(.Machine$double.eps))
+    }
     if (length(value) == 1L) {
       domain <- get("atom_domain")(nan = FALSE, .T = "f64")
       metric <- get("absolute_distance")(.T = "f64")
@@ -115,12 +123,19 @@ run_dp_backend_tests <- function() {
   backend <- .resolve_backend("opendp", public_source = FALSE)
   scalar <- backend$release(0, sensitivity = 1, epsilon = 1)
   vector <- backend$release(c(0, 1), sensitivity = 2, epsilon = 1)
+  fractional <- backend$release(
+    c(0, 1, 2), sensitivity = 3, epsilon = 0.15
+  )
   structure(list(
     passed = length(scalar) == 1L && length(vector) == 2L &&
-      all(is.finite(c(scalar, vector))),
+      length(fractional) == 3L &&
+      all(is.finite(c(scalar, vector, fractional))),
     backend = backend$name,
     version = backend$version,
-    tests = c("scalar_laplace", "vector_l1_laplace", "privacy_map")
+    tests = c(
+      "scalar_laplace", "vector_l1_laplace", "fractional_budget",
+      "privacy_map"
+    )
   ), class = "pmx_backend_tests")
 }
 

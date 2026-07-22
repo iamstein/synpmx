@@ -20,6 +20,7 @@ A \code{pmx_validation} report with \code{valid}, \code{checks}, and \code{summa
 }
 \description{
 Checks schema usability, chronological event logic, explicit endpoint
-semantics, derived timing fields, censoring conventions, and baseline
-constancy. It does not assess scientific or inferential validity.
+semantics, derived timing fields, censoring conventions, baseline
+constancy, subject properties, and occasion-assigned dose coherence. It does
+not assess scientific or inferential validity.
 }

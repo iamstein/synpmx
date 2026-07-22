@@ -113,7 +113,8 @@
   out
 }
 
-.event_features <- function(subjects, roles, bounds, contribution_limits) {
+.base_event_features <- function(subjects, roles, bounds,
+                                 contribution_limits) {
   names <- c(
     "has_event", "dose_count", "mean_interval", "mean_amount",
     "mean_rate", "has_infusion", "mean_duration", "occasion_count",
@@ -154,7 +155,6 @@
       event_rows <- which(event)
       for (start in dose) {
         later <- event_rows[event_rows > start]
-        if (!length(later)) next
         stop_rows <- later[
           suppressWarnings(as.numeric(data[[roles$rate]][later])) < 0 |
             (!is.null(roles$amt) &
@@ -162,6 +162,13 @@
         ]
         if (length(stop_rows)) {
           durations <- c(durations, time[stop_rows[1L]] - time[start])
+        } else if (!is.null(roles$amt)) {
+          amount_value <- suppressWarnings(as.numeric(data[[roles$amt]][start]))
+          rate_value <- suppressWarnings(as.numeric(data[[roles$rate]][start]))
+          if (is.finite(amount_value) && amount_value > 0 &&
+              is.finite(rate_value) && rate_value > 0) {
+            durations <- c(durations, amount_value / rate_value)
+          }
         }
       }
       durations <- durations[is.finite(durations) & durations >= 0]
@@ -172,6 +179,98 @@
     }
   }
   pmin(pmax(matrix, 0), 1)
+}
+
+.subject_property_spec <- function(roles, public_design) {
+  property_names <- roles$subject_properties
+  if (!length(property_names)) {
+    return(list(names = character(), levels = list(), strata = list()))
+  }
+  levels <- stats::setNames(lapply(property_names, function(name) {
+    column <- .schema_column(public_design$schema, name)
+    values <- if (!is.null(column) && "factor" %in% column$class) {
+      column$levels
+    } else {
+      public_design$category_levels[[name]]
+    }
+    unique(as.character(values))
+  }), property_names)
+  grid <- expand.grid(
+    levels, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE
+  )
+  strata <- lapply(seq_len(nrow(grid)), function(index) {
+    stats::setNames(as.list(as.character(grid[index, , drop = TRUE])),
+                    property_names)
+  })
+  list(names = property_names, levels = levels, strata = strata)
+}
+
+.subject_property_index <- function(data, spec) {
+  if (!length(spec$names)) return(NA_integer_)
+  indices <- vapply(spec$names, function(name) {
+    value <- data[[name]][which(!is.na(data[[name]]))[1L]]
+    match(as.character(value), spec$levels[[name]])
+  }, integer(1))
+  if (anyNA(indices)) {
+    stop(
+      "A subject-property value is outside the declared public category levels.",
+      call. = FALSE
+    )
+  }
+  multiplier <- cumprod(c(1L, utils::head(lengths(spec$levels), -1L)))
+  as.integer(1L + sum((indices - 1L) * multiplier))
+}
+
+.event_features <- function(subjects, roles, bounds, contribution_limits,
+                            public_design) {
+  base <- .base_event_features(
+    subjects, roles, bounds, contribution_limits
+  )
+  property_spec <- .subject_property_spec(roles, public_design)
+  if (!length(property_spec$names)) {
+    return(list(
+      matrix = base,
+      sensitivity = ncol(base),
+      map = list(base_fields = colnames(base), properties = NULL)
+    ))
+  }
+
+  strata <- lapply(seq_along(property_spec$strata), function(index) {
+    prefix <- sprintf("property_stratum_%03d", index)
+    list(
+      values = property_spec$strata[[index]],
+      count_field = paste0(prefix, "__count"),
+      event_fields = stats::setNames(
+        paste(prefix, colnames(base), sep = "__"), colnames(base)
+      )
+    )
+  })
+  columns <- unlist(lapply(strata, function(stratum) {
+    c(stratum$count_field, unname(stratum$event_fields))
+  }), use.names = FALSE)
+  matrix <- matrix(
+    0, nrow = length(subjects), ncol = length(columns),
+    dimnames = list(NULL, columns)
+  )
+  for (index in seq_along(subjects)) {
+    stratum_index <- .subject_property_index(
+      subjects[[index]]$data, property_spec
+    )
+    stratum <- strata[[stratum_index]]
+    matrix[index, stratum$count_field] <- 1
+    matrix[index, unname(stratum$event_fields)] <- base[index, ]
+  }
+  list(
+    matrix = matrix,
+    # One subject contributes to exactly one stratum: one count indicator plus
+    # the bounded base event vector. Dimension grows with declared strata, but
+    # per-subject L1 sensitivity does not.
+    sensitivity = 1 + ncol(base),
+    map = list(
+      base_fields = colnames(base),
+      properties = list(names = property_spec$names, strata = strata)
+    )
+  )
 }
 
 .timing_features <- function(subjects, roles, endpoints,
@@ -297,7 +396,8 @@
   columns <- character()
   for (name in roles$covariates) {
     column <- .schema_column(schema, name)
-    numeric <- !is.null(column) &&
+    forced_categorical <- length(public_design$category_levels[[name]]) > 0L
+    numeric <- !forced_categorical && !is.null(column) &&
       ("numeric" %in% column$class || "integer" %in% column$class) &&
       !("factor" %in% column$class)
     if (numeric) {
@@ -393,11 +493,12 @@
   list(matrix = matrix, map = map)
 }
 
-.release_matrix_sum <- function(accountant, query, matrix, epsilon) {
+.release_matrix_sum <- function(accountant, query, matrix, epsilon,
+                                sensitivity = ncol(matrix)) {
   if (!ncol(matrix)) return(numeric())
   matrix <- pmin(pmax(matrix, 0), 1)
   .private_release(
-    accountant, query, colSums(matrix), sensitivity = ncol(matrix),
+    accountant, query, colSums(matrix), sensitivity = sensitivity,
     epsilon = epsilon
   ) |>
     stats::setNames(colnames(matrix))
@@ -422,6 +523,50 @@
     ))),
     observation_count = mean[["observation_count"]] *
       contribution_limits$max_rows
+  )
+}
+
+.decode_property_events <- function(released, event_map, count, bounds,
+                                    contribution_limits) {
+  properties <- event_map$properties
+  if (is.null(properties)) {
+    return(list(
+      event = .decode_event(
+        released[event_map$base_fields], count, bounds,
+        contribution_limits
+      ),
+      subject_properties = NULL
+    ))
+  }
+
+  global <- stats::setNames(rep(0, length(event_map$base_fields)),
+                            event_map$base_fields)
+  strata <- lapply(properties$strata, function(stratum) {
+    released_count <- max(as.numeric(released[[stratum$count_field]]), 0)
+    event_values <- released[unname(stratum$event_fields)]
+    names(event_values) <- names(stratum$event_fields)
+    global <<- global + event_values
+    list(
+      values = stratum$values,
+      released_count = released_count,
+      probability = released_count,
+      event = .decode_event(
+        event_values, released_count, bounds, contribution_limits
+      )
+    )
+  })
+  probability <- vapply(strata, `[[`, numeric(1), "probability")
+  if (!sum(probability) > 0) probability[] <- 1
+  probability <- probability / sum(probability)
+  for (index in seq_along(strata)) {
+    strata[[index]]$probability <- unname(probability[index])
+  }
+  list(
+    event = .decode_event(global, count, bounds, contribution_limits),
+    subject_properties = list(
+      names = properties$names,
+      strata = strata
+    )
   )
 }
 
@@ -591,11 +736,11 @@
   private_count <- max(as.numeric(count_release), 1)
 
   event_matrix <- .event_features(
-    subjects, roles, bounds, contribution_limits
+    subjects, roles, bounds, contribution_limits, public_design
   )
   event_release <- .release_matrix_sum(
-    accountant, "event_and_regimen", event_matrix,
-    group_epsilon[["event"]]
+    accountant, "event_and_regimen", event_matrix$matrix,
+    group_epsilon[["event"]], sensitivity = event_matrix$sensitivity
   )
   timing_features <- .timing_features(
     subjects, roles, endpoints, contribution_limits
@@ -626,10 +771,14 @@
     )
   } else numeric()
 
+  decoded_event <- .decode_property_events(
+    event_release, event_matrix$map, private_count, bounds,
+    contribution_limits
+  )
   list(
     private_subject_count = private_count,
-    event = .decode_event(event_release, private_count, bounds,
-                          contribution_limits),
+    event = decoded_event$event,
+    subject_properties = decoded_event$subject_properties,
     timing = .decode_timing(timing_release, private_count,
                             timing_features$map),
     trajectories = .decode_trajectories(

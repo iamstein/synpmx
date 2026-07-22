@@ -58,6 +58,27 @@
     stop("Public `rate` bounds are required when a RATE role is declared.",
          call. = FALSE)
   }
+  if (!is.null(roles$assigned_dose) &&
+      (is.null(roles$amt) || is.null(roles$occasion))) {
+    stop(
+      "An `assigned_dose` role requires both AMT and occasion roles.",
+      call. = FALSE
+    )
+  }
+  for (name in roles$subject_properties) {
+    column <- .schema_column(public_design$schema, name)
+    levels <- if (!is.null(column) && "factor" %in% column$class) {
+      column$levels
+    } else {
+      public_design$category_levels[[name]]
+    }
+    if (is.null(levels) || !length(levels)) {
+      stop(
+        "Public category levels are required for subject property `", name,
+        "`.", call. = FALSE
+      )
+    }
+  }
   if (!is.null(roles$cens) && is.null(roles$limit) &&
       !length(bounds$limit) &&
       !any(vapply(endpoints, function(x) !is.null(x$censoring), logical(1)))) {

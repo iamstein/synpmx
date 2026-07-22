@@ -36,7 +36,7 @@ representations:
 | Internal component | Source access | Released form |
 |---|---|---|
 | subject count | number of unique subject IDs | OpenDP scalar Laplace release, sensitivity 1 |
-| event/regimen | bounded dose/event counts, interval, amount, rate, infusion and duration features | OpenDP vector Laplace release |
+| event/regimen | bounded dose/event counts, interval, amount, rate, infusion and duration features; optionally a declared public subject-property stratum | OpenDP vector Laplace release |
 | endpoint timing | per-subject fixed-basis presence indicators | OpenDP vector Laplace release |
 | trajectories | per-subject fixed-basis presence and bounded transformed cell means | OpenDP vector Laplace release |
 | covariates | bounded first/second moments or indicators over public categories | OpenDP vector Laplace release |
@@ -57,7 +57,8 @@ separate approved mechanism is added.
 
 The proof treats these caller declarations as established independently of
 confidential values: column roles and exclusions; schema, classes, and category
-levels; endpoint names, DVIDs, clocks, transforms, units, generic fixed-grid
+levels (including every subject-property domain); endpoint names, DVIDs,
+clocks, transforms, units, generic fixed-grid
 bases (or independently public user-supplied bases), and
 compartments; numeric bounds; contribution limits; approved protocol values;
 generator variability; requested output size; and budget fractions.
@@ -89,6 +90,15 @@ so the add-or-remove L1 sensitivity is at most `p`. The adapter constructs an
 OpenDP vector domain over finite `f64` atoms with the L1 metric and invokes
 `make_laplace(scale = p / epsilon_group)`. Scalar count uses an `f64` atom
 domain, absolute distance, sensitivity 1, and scale `1 / epsilon_count`.
+
+The property-conditioned event release uses a tighter sparse bound. For `K`
+declared public strata it releases `10K` coordinates: one count indicator and
+nine bounded event features per stratum. One subject belongs to exactly one
+stratum, so only one 10-coordinate block can change and its L1 sensitivity is
+at most 10, independent of `K`. The accounting entry records dimension `10K`
+and sensitivity 10. Decoding a stratum probability/regimen, sampling it, and
+reconstructing an occasion-assigned dose from generated positive AMT are
+post-processing.
 
 Before invocation, the adapter asks OpenDP's privacy map to verify the requested
 `d_in`/`d_out` relation. It rejects nonfinite inputs or output and fails closed

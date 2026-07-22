@@ -4,7 +4,9 @@
 if (!requireNamespace("pmxSynthData", quietly = TRUE)) {
   stop("Install pmxSynthData before running this script: R CMD INSTALL .")
 }
-required_api <- c("fit_private_pmx", "sampling_summary")
+required_api <- c(
+  "fit_private_pmx", "sampling_summary", "subject_property_summary"
+)
 missing_api <- setdiff(required_api, getNamespaceExports("pmxSynthData"))
 if (length(missing_api)) {
   stop(
@@ -29,11 +31,41 @@ demo_budget <- function() {
   )
 }
 
-observed_plot_data <- function(data, roles, dataset) {
-  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
-    !is.na(data[[roles$dv]])
+record_kind <- function(data, roles) {
+  event <- !is.na(data[[roles$evid]]) &
+    !as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  observation <- !event & !is.na(data[[roles$dv]])
+  if (!is.null(roles$mdv)) {
+    observation <- observation &
+      as.character(data[[roles$mdv]]) %in% c("0", "0.0")
+  }
+  ifelse(event, "dose/event",
+         ifelse(observation, "observation", "non-observation"))
+}
+
+observed_plot_data <- function(data, roles, dataset,
+                               clock = "study_time") {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  if (!is.null(roles$mdv)) {
+    observed <- observed &
+      as.character(data[[roles$mdv]]) %in% c("0", "0.0")
+  }
+  observed <- observed & !is.na(data[[roles$dv]])
   observation_rows <- which(observed)
   occasion <- rep(1L, length(observation_rows))
+  tad <- rep(NA_real_, length(observation_rows))
+  if (!is.null(roles$occasion)) {
+    declared <- suppressWarnings(as.integer(
+      data[[roles$occasion]][observation_rows]
+    ))
+    valid <- !is.na(declared) & declared >= 1L
+    occasion[valid] <- declared[valid]
+  }
+  if (!is.null(roles$tad)) {
+    declared <- suppressWarnings(as.numeric(data[[roles$tad]][observation_rows]))
+    valid <- is.finite(declared)
+    tad[valid] <- pmax(0, declared[valid])
+  }
   subject_values <- data[[roles$id]]
   for (id in unique(subject_values[observation_rows])) {
     subject_rows <- which(!is.na(subject_values) & subject_values == id)
@@ -42,21 +74,38 @@ observed_plot_data <- function(data, roles, dataset) {
     if (!is.null(roles$amt)) {
       events <- events & as.numeric(data[[roles$amt]][subject_rows]) > 0
     }
-    dose_times <- sort(unique(as.numeric(data[[roles$time]][
-      subject_rows[events]
-    ])))
     positions <- which(subject_values[observation_rows] == id)
-    if (length(dose_times)) {
+    event_rows <- subject_rows[events]
+    if (length(event_rows) && !is.null(roles$occasion)) {
+      event_occasion <- suppressWarnings(as.integer(
+        data[[roles$occasion]][event_rows]
+      ))
+      for (position in positions) {
+        candidates <- event_rows[event_occasion == occasion[position]]
+        if (length(candidates) && !is.finite(tad[position])) {
+          origin <- min(as.numeric(data[[roles$time]][candidates]))
+          tad[position] <-
+            as.numeric(data[[roles$time]][observation_rows[position]]) - origin
+        }
+      }
+    } else if (length(event_rows)) {
+      dose_times <- sort(unique(as.numeric(data[[roles$time]][event_rows])))
       occasion[positions] <- pmax(1L, findInterval(
         as.numeric(data[[roles$time]][observation_rows[positions]]),
         dose_times
       ))
+      occasion[positions] <- pmin(occasion[positions], length(dose_times))
+      tad[positions] <-
+        as.numeric(data[[roles$time]][observation_rows[positions]]) -
+        dose_times[occasion[positions]]
     }
   }
+  plotted_time <- if (identical(clock, "tad")) tad else
+    as.numeric(data[[roles$time]][observation_rows])
   data.frame(
     dataset = factor(dataset, levels = c("Source", "Synthetic")),
     subject = as.character(data[[roles$id]][observation_rows]),
-    time = as.numeric(data[[roles$time]][observation_rows]),
+    time = plotted_time,
     dv = as.numeric(data[[roles$dv]][observation_rows]),
     occasion = occasion,
     endpoint = if (is.null(roles$dvid)) "DV" else
@@ -65,12 +114,15 @@ observed_plot_data <- function(data, roles, dataset) {
   )
 }
 
-demo_design_summary <- function(data, roles, dataset, time_bounds) {
-  plotted <- observed_plot_data(data, roles, dataset)
-  plotted <- plotted[
-    plotted$time >= time_bounds[1L] & plotted$time <= time_bounds[2L],
-    , drop = FALSE
-  ]
+demo_design_summary <- function(data, roles, dataset, time_bounds,
+                                clock = "study_time") {
+  plotted <- observed_plot_data(data, roles, dataset, clock)
+  if (!identical(clock, "tad")) {
+    plotted <- plotted[
+      plotted$time >= time_bounds[1L] & plotted$time <= time_bounds[2L],
+      , drop = FALSE
+    ]
+  }
   cohort_ids <- as.character(unique(data[[roles$id]]))
   pieces <- lapply(sort(unique(plotted$endpoint)), function(endpoint) {
     rows <- plotted[plotted$endpoint == endpoint, , drop = FALSE]
@@ -92,7 +144,7 @@ demo_design_summary <- function(data, roles, dataset, time_bounds) {
 }
 
 check_demo_similarity <- function(source, synthetic, roles, time_bounds,
-                                  label) {
+                                  label, clock = "study_time") {
   source_subjects <- length(unique(source[[roles$id]]))
   synthetic_subjects <- length(unique(synthetic[[roles$id]]))
   if (source_subjects != synthetic_subjects) {
@@ -100,10 +152,10 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
          source_subjects, " versus ", synthetic_subjects, ").")
   }
   source_summary <- demo_design_summary(
-    source, roles, "Source", time_bounds
+    source, roles, "Source", time_bounds, clock
   )
   synthetic_summary <- demo_design_summary(
-    synthetic, roles, "Synthetic", time_bounds
+    synthetic, roles, "Synthetic", time_bounds, clock
   )
   if (!setequal(source_summary$endpoint, synthetic_summary$endpoint)) {
     stop(label, ": source and synthetic endpoint sets differ.")
@@ -141,36 +193,41 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
   summary[order(summary$dataset, summary$endpoint), , drop = FALSE]
 }
 
-overlay_plot <- function(source, mock, roles, name) {
+overlay_plot <- function(source, mock, roles, name, clock = "study_time") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) return(NULL)
   plot_data <- rbind(
-    observed_plot_data(source, roles, "Source"),
-    observed_plot_data(mock, roles, "Synthetic")
+    observed_plot_data(source, roles, "Source", clock),
+    observed_plot_data(mock, roles, "Synthetic", clock)
   )
+  grouping <- if (identical(clock, "tad")) {
+    interaction(
+      plot_data$dataset, plot_data$subject, plot_data$endpoint,
+      plot_data$occasion
+    )
+  } else {
+    interaction(plot_data$dataset, plot_data$subject, plot_data$endpoint)
+  }
   ggplot2::ggplot(
     plot_data,
-    ggplot2::aes(time, dv, colour = dataset,
-                 group = interaction(dataset, subject))
+    ggplot2::aes(time, dv, colour = dataset, group = grouping)
   ) +
     ggplot2::geom_line(alpha = 0.35) +
     ggplot2::geom_point(alpha = 0.65, size = 0.9) +
-    ggplot2::facet_wrap(
-      ggplot2::vars(dataset, endpoint),
-      ncol = max(1L, length(unique(plot_data$endpoint))),
-      scales = "free_y"
-    ) +
+    ggplot2::facet_grid(dataset ~ endpoint, scales = "free_y") +
     ggplot2::scale_colour_manual(
       values = c(Source = "#1B6CA8", Synthetic = "#D95F02")
     ) +
     ggplot2::labs(
-      x = "Study time", y = "DV", colour = "Dataset",
+      x = if (identical(clock, "tad")) "Time after dose" else "Study time",
+      y = "DV", colour = "Dataset",
       title = paste(name, "source and synthetic observations")
     ) +
     ggplot2::theme_minimal()
 }
 
 run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
-                            seed) {
+                            seed, clock = "study_time",
+                            comparison_bounds = NULL) {
   source <- load_dataset(name)
   fit_bounds <- bounds(source)
   model <- pmxSynthData::fit_private_pmx(
@@ -183,9 +240,10 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   mock <- pmxSynthData::generate_pmx(model, seed = seed)
   validation <- pmxSynthData::validate_pmx(mock, roles, endpoints)
   comparison <- pmxSynthData::compare_pmx(source, mock, roles, endpoints)
-  overlay <- overlay_plot(source, mock, roles, name)
+  overlay <- overlay_plot(source, mock, roles, name, clock)
+  if (is.null(comparison_bounds)) comparison_bounds <- fit_bounds$time
   design_checks <- check_demo_similarity(
-    source, mock, roles, fit_bounds$time, name
+    source, mock, roles, comparison_bounds, name, clock
   )
   stopifnot(validation$valid)
 
@@ -195,10 +253,8 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   print(utils::head(source))
   message("Mock data (first six rows):")
   print(utils::head(mock))
-  source_kind <- ifelse(as.character(source[[roles$evid]]) %in% c("0", "0.0"),
-                        "observation", "dose/event")
-  mock_kind <- ifelse(as.character(mock[[roles$evid]]) %in% c("0", "0.0"),
-                      "observation", "dose/event")
+  source_kind <- record_kind(source, roles)
+  mock_kind <- record_kind(mock, roles)
   message("Record counts (dose/event rows are not samples):")
   print(rbind(Source = table(source_kind), Mock = table(mock_kind)))
   message("Cohort and sampling-design checks by endpoint:")
@@ -215,14 +271,14 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
     model = model, mock = mock,
     mock_observations = mock[mock_kind == "observation", , drop = FALSE],
     overlay_plot = overlay, design_checks = design_checks,
-    comparison = comparison
+    comparison = comparison, comparison_clock = clock
   ))
 }
 
 message("Production backend status:")
 print(pmxSynthData::dp_backend_status())
 message(paste(
-  "These three sources are public, so the demonstrations use the guarded",
+  "These five sources are public, so the demonstrations use the guarded",
   "public fixture backend and make no DP claim. For confidential fitting,",
   "install OpenDP and use the default backend."
 ))
@@ -304,3 +360,72 @@ wbc <- run_public_demo(
   limits = pmxSynthData::pmx_contribution_limits(20, 2, 2, 12, 9),
   seed = 303
 )
+
+# NimoData uses DOS as a subject-level treatment-group property. The property
+# conditions the inferred regimen, so generated 50, 100, 200, and 400 mg
+# groups retain matching event amounts. WGT is deliberately excluded because
+# it varies longitudinally in this source and is not a baseline covariate.
+nimo_roles <- pmxSynthData::pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+  covariates = c("BSA", "AGE", "HGT"),
+  subject_properties = "DOS", exclude = "WGT"
+)
+nimo_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
+  alignment = "dose_relative", transform = "identity", shape = "occasion"
+))
+nimo <- run_public_demo(
+  "nimoData", nimo_roles, nimo_endpoints,
+  bounds = function(source) pmxSynthData::pmx_bounds(
+    c(0, 3000), list(cp = c(-1, 10)), amt = c(0, 500),
+    rate = c(-1200, 1200),
+    covariates = list(
+      BSA = c(1, 2.5), AGE = c(18, 100), HGT = c(120, 210)
+    )
+  ),
+  design = function(source) pmxSynthData::pmx_public_design(
+    pmxSynthData::pmx_schema(source, exclude = "WGT"), dose_evid = 1,
+    category_levels = list(DOS = c(50, 100, 200, 400))
+  ),
+  limits = pmxSynthData::pmx_contribution_limits(60, 10, 10, 8, 12),
+  seed = 404, clock = "tad", comparison_bounds = c(0, 3000)
+)
+message("NimoData released treatment groups and conditioned regimens:")
+print(pmxSynthData::subject_property_summary(nimo$model), row.names = FALSE)
+
+# Mavoglurant is a crossover dataset whose TIME clock resets within OCC. DOSE
+# is not sampled as an independent covariate; it is regenerated from the
+# positive AMT event for each generated subject/occasion.
+mav_roles <- pmxSynthData::pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
+  assigned_dose = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
+)
+mav_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
+  alignment = "dose_relative", transform = "log", shape = "occasion",
+  cmt = 2
+))
+mavoglurant_result <- run_public_demo(
+  "mavoglurant", mav_roles, mav_endpoints,
+  bounds = function(source) pmxSynthData::pmx_bounds(
+    c(0, 120), list(cp = c(0, 2000)), amt = c(0, 60),
+    rate = c(-350, 350),
+    covariates = list(
+      AGE = c(18, 90), WT = c(40, 150), HT = c(1.4, 2.1)
+    )
+  ),
+  design = function(source) pmxSynthData::pmx_public_design(
+    pmxSynthData::pmx_schema(source), dose_evid = 1, dose_cmt = 1,
+    endpoint_cmt = list(cp = 2), category_levels = list(SEX = c(1, 2))
+  ),
+  limits = pmxSynthData::pmx_contribution_limits(30, 2, 2, 15, 15),
+  seed = 505, clock = "tad", comparison_bounds = c(0, 120)
+)
+message("Mavoglurant assigned-dose coherence by occasion:")
+with(mavoglurant_result$mock, print(stats::aggregate(
+  cbind(DOSE, AMT) ~ OCC,
+  data = mavoglurant_result$mock[
+    EVID != 0 & AMT > 0, , drop = FALSE
+  ],
+  FUN = function(value) paste(sort(unique(round(value, 4))), collapse = ", ")
+), row.names = FALSE))

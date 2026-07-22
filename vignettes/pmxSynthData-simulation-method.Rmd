@@ -55,7 +55,9 @@ covariate effects, or a source joint distribution.
 
 For the privacy guarantee and its assumptions, see
 `vignette("pmxSynthData-privacy-intro")`. For runnable public examples, see
-`vignette("pmxSynthData-demo")`.
+`vignette("pmxSynthData-demo")`. For formal OpenDP comparisons across three
+illustrative epsilon values, see
+`vignette("pmxSynthData-epsilon-exploration")`.
 
 # Two stages with different jobs
 
@@ -136,7 +138,7 @@ The fitter then constructs six groups of low-dimensional features:
 | Group | Per-subject features |
 |---|---|
 | Cohort size | One subject-count contribution |
-| Event/regimen | Event presence, bounded dose and occasion counts, mean interval, amount, rate, infusion presence/duration, total observation count |
+| Event/regimen | Event presence, bounded dose and occasion counts, mean interval, amount, rate, infusion presence/duration, total observation count; optionally one public subject-property stratum indicator plus the event vector in that stratum |
 | Sampling timing | Endpoint grid-cell presence; occasion presence and normalized count for dose-relative endpoints |
 | Endpoint trajectory | Cell presence and the subject's mean transformed DV in each occupied cell |
 | Covariates | Numeric presence/first/second moment or indicators over public categories |
@@ -146,7 +148,11 @@ Each feature coordinate lies in $[0,1]$. The production fit releases vector
 sums and a subject count through the privacy backend; the public-fixture
 backend used in demonstrations is noiseless and makes no DP claim. The fitted
 model contains decoded population summaries, not these subject vectors or raw
-records.
+records. With declared `subject_properties`, a person contributes to exactly
+one property stratum. The event query's L1 sensitivity is therefore one
+stratum-count coordinate plus the nine-coordinate bounded event vector (10),
+not the total number of public strata, although adding strata still increases
+release dimension and can reduce utility.
 
 # The fixed-grid trajectory model
 
@@ -164,9 +170,11 @@ After release, the cell mean is reconstructed approximately as
 $$\widehat\mu_{ej}=\operatorname{clip}_{[0,1]}
 \left(\frac{\widetilde B_{ej}}{\max(\widetilde A_{ej},10^{-8})}\right).$$
 
-A cell with negligible released presence falls back to the midpoint of the
-public endpoint range. Tildes emphasize that a production model stores
-privacy-mechanism outputs, not exact source sums.
+A cell with negligible released presence is filled by piecewise-linear
+interpolation from released occupied neighbors (and the nearest occupied value
+beyond the endpoints). Only an endpoint with no released occupied cell falls
+back to the midpoint of the public range. Tildes emphasize that a production
+model stores privacy-mechanism outputs, not exact source sums.
 
 ## Smoothing and interpolation: explicitly not a spline
 
@@ -279,7 +287,7 @@ An explicit `n_subjects` is a public post-processing override. IDs are newly
 constructed in a high numeric range or as `mock_...` strings, according to the
 public schema.
 
-## 2. Resolve an inferred generalized regimen
+## 2. Draw a subject property and resolve its inferred regimen
 
 In the recommended workflow, released event summaries provide dose count, mean
 interval, amount, rate, infusion probability, and duration. Dose times are
@@ -289,10 +297,23 @@ quantities. Independently public protocol values may override individual
 quantities, but values calculated by inspecting confidential records are not
 public inputs and must not be passed this way.
 
+When `subject_properties` declares a subject-constant treatment assignment
+such as ACTARM, TRT, or nominal dose group, generation first draws one released
+property stratum and then resolves that stratum's event summary. Property
+values and the associated regimen therefore stay together. The finite property
+levels are public category-domain inputs (or public factor levels), while the
+stratum frequencies and regimen summaries are privacy-accounted. This is
+different from an ordinary categorical covariate, which preserves only a
+marginal category distribution.
+
 Each subject's positive dose amount receives a small public log-normal
-perturbation, $\exp\{N(0,0.08^2)\}$, and is clipped to public bounds. Infusion
-rate scales with the generated amount. An infusion start receives a coherent
-negative amount/rate stop row after the generated duration.
+perturbation, $\exp\{N(0,0.08^2)\}$, and is clipped to public bounds. That
+amount perturbation is disabled for a property-conditioned regimen or an
+`assigned_dose` role so the assignment remains exact. Infusion rate scales
+with the generated amount. An infusion start receives a coherent negative
+amount/rate stop row after the generated duration. If a positive-rate source
+encodes no explicit stop event, the bounded event feature uses AMT/RATE as its
+duration contribution.
 
 ## 3. Build observation rows
 
@@ -306,7 +327,9 @@ public `time_jitter_sd` multiplied by the closest positive nominal-grid
 spacing. Rows sharing one nominal time share one jitter draw. Dose-tied samples
 remain tied; dose-relative rows cannot cross their dose or the next dose; all
 times remain inside public bounds. Occasion and TAD are re-derived from the new
-dose history.
+dose history. An automatic local basis is scaled to stay within the next dose
+for nonterminal occasions. The last occasion has no next-dose boundary and may
+retain its released occupied horizon, allowing a longer terminal washout.
 
 ## 4. Generate endpoint values
 
@@ -351,18 +374,28 @@ Each numeric covariate is sampled independently from a normal distribution
 using its released bounded center and scale, then clipped to public bounds.
 Each categorical covariate is sampled independently from released category
 probabilities. A generated covariate is constant over the subject's rows.
+Supplying public `category_levels` forces categorical handling even when the
+source column is stored as numeric codes.
 
 The current prototype does **not** reproduce correlation among covariates,
 covariate-response relationships, or covariate missingness. Those omissions
 are deliberate limits of the low-dimensional model.
 
+Subject properties are not part of this independent covariate step; they were
+drawn jointly with the regimen in step 2. If `assigned_dose` is declared, the
+generator also reconstructs its value from the positive AMT for each
+subject/occasion and writes it to every row in that occasion. This guarantees
+internal event-table coherence. Without a declared ACTARM/TRT/sequence
+property, it does not promise to reproduce a crossover-sequence distribution.
+Time-varying covariates are not modeled and should be explicitly excluded.
+
 ## 6. Apply censoring and restore schema
 
 Public assay limits, when supplied, determine censoring directly. Otherwise,
 coarse released left/right/interval frequencies and limits are used. DV, CENS,
-and LIMIT are written together. The result is sorted chronologically, internal
-working columns are removed, and public names, order, classes, and factor
-levels are restored.
+and LIMIT are written together. The result is sorted chronologically (within
+declared occasion for a reset occasion clock), internal working columns are
+removed, and public names, order, classes, and factor levels are restored.
 
 # What the four alignments can and cannot represent
 
@@ -396,7 +429,8 @@ draw.
 
 `validate_pmx()` checks schema, role availability, chronological ordering,
 finite observations, event semantics, endpoint declarations, covariate
-constancy, censoring coherence, and direct-identifier names. The demonstration
+constancy, subject-property and assigned-dose coherence, censoring coherence,
+and direct-identifier names. The demonstration
 vignette additionally stops if public source and synthetic examples differ in
 patient count, endpoint set, mean time points per patient, or bounded follow-up
 coverage beyond its declared tolerances.
@@ -409,6 +443,8 @@ coverage beyond its declared tolerances.
 | Broad endpoint magnitude and shape | PK/PD parameter distributions |
 | Coarse early/late sampling coverage | Exact residual distribution |
 | Coarse covariate marginals | Covariate correlations or effects |
+| Treatment property coherent with its regimen | Undeclared crossover sequence distribution |
+| Occasion-assigned dose coherent with AMT | Time-varying covariate trajectories |
 | Censoring conventions | Scientific inferential validity |
 
 # Algorithm summary
@@ -421,13 +457,14 @@ fit_private_pmx(source):
     for each subject:
         truncate rows/doses/occasions/observations
         clip times, values, amounts, rates, limits, and covariates
-        build bounded event, timing, trajectory, covariate, censoring vectors
+        build bounded event/property, timing, trajectory, covariate, censoring vectors
     release subject count and vector sums through the configured backend
     decode constrained population summaries and record privacy accounting
 
 generate_pmx(model, seed):
     choose released cohort size unless explicitly overridden
     for each new subject:
+        draw a subject-property stratum and its generalized regimen
         create new ID and generalized dose/infusion rows
         draw active endpoint occasions and timing cells
         reconcile cells to released observation counts without early truncation
@@ -436,6 +473,7 @@ generate_pmx(model, seed):
         add public subject/occasion/AR(1) variability, restarting by occasion
         stabilize each profile if the released curve is approximately unimodal
         generate independent baseline covariates and censoring
+        reconstruct occasion-assigned dose from generated event AMT
         restore public schema and validate
 ```
 

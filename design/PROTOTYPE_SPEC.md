@@ -60,7 +60,9 @@ Before editing:
 1. Read `AGENTS.md`, `DESCRIPTION`, `NAMESPACE`, `README.md`, `NEWS.md`, the existing prototype specification, all current vignettes, and the test suite.
 2. Inspect Git status and preserve unrelated work.
 3. Run the current tests and package check to establish a baseline.
-4. Inspect the actual `nlmixr2data::theo_md`, `nlmixr2data::warfarin`, and `nlmixr2data::wbcSim` objects at runtime.
+4. Inspect the actual `nlmixr2data::theo_md`, `nlmixr2data::warfarin`,
+   `nlmixr2data::wbcSim`, `nlmixr2data::nimoData`, and
+   `nlmixr2data::mavoglurant` objects at runtime.
 5. Identify and remove or isolate all code paths that use raw anchors, donor subjects, nearest neighbors, nonprivate PCA, or exact source timing.
 6. Inspect any existing `METHODS.md`. Its Version 1 AVATAR/template instructions are superseded by this specification.
 
@@ -153,11 +155,19 @@ roles <- pmx_roles(
   rate = NULL,
   cens = NULL,
   limit = NULL,
-  covariates = "WT"
+  covariates = "WT",
+  subject_properties = "ACTARM",
+  assigned_dose = NULL,
+  exclude = NULL
 )
 ```
 
 Critical roles must be explicit. Do not silently infer column meaning from names.
+Ordinary covariates are baseline attributes generated from marginal summaries.
+Subject properties such as `ACTARM`, `TRT`, or a nominal dose group are
+categorical subject-level assignments whose released strata must condition the
+generated regimen. An occasion-varying nominal assigned-dose column must be
+derived from the generated event amount, not sampled independently.
 
 ## Endpoint behavior specification
 
@@ -276,6 +286,8 @@ Possible components include:
 - endpoint/occasion observation-presence indicators;
 - bounded observation counts conditional on an occasion being sampled;
 - categorical and continuous baseline covariates;
+- categorical subject-property strata jointly represented with regimen
+  summaries;
 - censoring indicators and public/private limits;
 - low-dimensional endpoint trajectory coefficients.
 
@@ -292,6 +304,8 @@ Privately estimate only the coarse information required for plausible workflow d
 - generalized sampling-time cells, occasion-presence probabilities, and
   conditional sample counts;
 - broad covariate centers, scales, or category proportions;
+- coarse frequencies of declared treatment/property strata and their
+  associated generalized regimens;
 - censoring frequency and applicable limit classes.
 
 Do not privately learn high-dimensional joint distributions merely because they are available. Prefer low-order marginals, bounded moments, or a small public basis.
@@ -428,7 +442,8 @@ Support both actual and nominal time when available. If no nominal column exists
 
 Generate chronological actual-like times around the private/generalized nominal design while preserving:
 
-- nondecreasing within-subject time;
+- nondecreasing within-subject time, or within subject and declared occasion
+  when the input clock resets by occasion;
 - correct dose occasion;
 - postdose observations after the qualifying dose;
 - tied collection-time blocks;
@@ -441,6 +456,18 @@ Never copy a subject's complete time vector, missing-visit pattern, or infusion 
 ## Doses and infusions
 
 Learn only generalized, private distributions of dose amounts, intervals, rates, and durations. Generate new coherent regimens.
+
+When a declared categorical subject property describes treatment assignment,
+release its stratum count and bounded event/regimen vector together so one
+subject contributes to only one stratum. Generate the property and regimen as
+one post-processed draw. Public category levels define the finite domain; they
+must not be extracted from confidential records outside the private fit.
+
+When a nominal dose column varies by occasion, regenerate it from that
+occasion's positive generated AMT and require it to be complete and constant
+within subject/occasion. This guarantees internal consistency but does not, by
+itself, recover a crossover-sequence distribution when no sequence/arm
+property is declared.
 
 Rare source regimens must not be reproduced merely because they occurred. A regimen may be generated when it is:
 
@@ -619,6 +646,29 @@ Demonstrate:
 - no exact reproduction of singleton source regimens;
 - generated follow-up times and observation counts.
 
+## `nlmixr2data::nimoData`
+
+Demonstrate:
+
+- four public nominal-dose property levels that condition inferred amount,
+  rate, duration, and ten-dose regimen summaries;
+- declared TAD/OCC sampling and a final washout profile that may extend beyond
+  one dosing interval;
+- coherent generated infusion start/stop records even though source duration
+  is represented by positive AMT/RATE rather than explicit stop rows; and
+- explicit exclusion of longitudinal WGT because the prototype supports only
+  baseline covariates.
+
+## `nlmixr2data::mavoglurant`
+
+Demonstrate:
+
+- TIME reset and validation within subject/occasion;
+- one- and two-occasion dose-relative profiles;
+- an occasion-specific assigned DOSE reconstructed from generated positive
+  AMT and constant within subject/occasion; and
+- numeric-coded SEX treated categorically through a public category domain.
+
 ## Censoring fixture
 
 Add a small fully public fixture demonstrating uncensored, left-censored, right-censored, and interval-censored rows with endpoint-specific limits.
@@ -659,7 +709,8 @@ At minimum test:
     example, intensive first/final profiles with no samples after intervening
     doses), while retaining all required dose events.
 26. Small-study and high-dimensional limitations warn or stop as documented.
-27. `theo_md`, `warfarin`, and `wbcSim` examples run end to end.
+27. `theo_md`, `warfarin`, `wbcSim`, `nimoData`, and `mavoglurant`
+    examples run end to end.
 28. A larger simulated fixture supports privacy-utility evaluation.
 29. Empirical privacy audits detect an intentionally broken test mechanism while documentation states that auditing is not a proof.
 30. The selected DP backend's canonical mechanism tests pass.
@@ -678,11 +729,22 @@ At minimum test:
 35. If a released dose-relative curve is approximately unimodal, generated
     intensive profiles contain at most one directional peak per occasion;
     unoccupied cells and serial noise must not create secondary PK peaks.
+36. Declared subject properties are complete and constant within subject, and
+    their generated regimen is drawn from the same privacy-accounted stratum.
+37. An assigned-dose column is finite, constant within subject/occasion, and
+    equal to the positive generated event amount.
+38. Numeric covariates with declared public category levels are generated as
+    categories rather than continuous values.
+39. Positive-rate infusions without an explicit source stop row use bounded
+    AMT/RATE duration inference and generate coherent start/stop pairs.
+40. Declared occasion clocks may reset; row-order validation remains strict
+    within each subject/occasion.
 
 # Required vignettes
 
-Create exactly three complementary package vignettes. Their purposes must
-remain distinct: practical use, privacy, and simulation mechanics.
+Create exactly four complementary package vignettes. Their purposes must
+remain distinct: practical use, privacy, simulation mechanics, and epsilon
+exploration.
 
 ## 1. `vignettes/pmxSynthData-demo.Rmd`
 
@@ -702,7 +764,8 @@ Include:
    - generate one or more mock datasets;
    - validate and plot them.
 3. A clear warning that illustrative epsilon/delta values are examples, not universal recommendations.
-4. Examples for `theo_md`, `warfarin`, and `wbcSim`.
+4. Examples for `theo_md`, `warfarin`, `wbcSim`, `nimoData`, and
+   `mavoglurant`.
 5. Endpoint-faceted plots showing dose-relative PK versus study-time
    PD/biomarker behavior, with source panels above synthetic panels.
 6. Repeated generation from the same private model with different ordinary generation seeds.
@@ -814,17 +877,46 @@ Explain and document:
 11. Exact public subject, occasion, and AR(1) variability multipliers.
 12. Numeric/categorical covariate generation and the absence of a learned
     covariate-response model.
-13. CENS/LIMIT reconstruction, schema restoration, new IDs, and validation.
-14. Expected structural fidelity versus quantities that are not preserved.
-15. Compact implementation pseudocode and current limitations.
+13. Subject-property/regimen strata, occasion-assigned dose reconstruction,
+    and their public-category requirements and limitations.
+14. CENS/LIMIT reconstruction, schema restoration, new IDs, and validation.
+15. Expected structural fidelity versus quantities that are not preserved.
+16. Compact implementation pseudocode and current limitations.
 
 Include a pipeline diagram, a fixed-grid/interpolation figure, a sampling-time
 example with early and late cells, equations that define all symbols, and a
 table distinguishing expected versus unsupported fidelity.
 
+## 4. `vignettes/pmxSynthData-epsilon-exploration.Rmd`
+
+Title: **“Exploring Epsilon in pmxSynthData”**
+
+Use the production OpenDP adapter to show `theo_md`, `warfarin`, and `wbcSim`
+at three clearly labeled illustrative epsilon values. For every dataset,
+display one epsilon per panel with source facets above synthetic facets,
+endpoint separation, connected observed profiles, consistent colors, and
+linear DV axes. Hold the displayed cohort size fixed as explicit public
+post-processing and separately report the noisy subject-count release.
+
+Explain that:
+
+- the values are relative engineering examples, not recommendations;
+- smaller epsilon gives stronger privacy and generally more distortion;
+- one noise draw need not improve monotonically in every coordinate;
+- privacy-noise fits are deliberately not seedable;
+- all three source datasets are already public;
+- performing and releasing all three fits on one confidential source would
+  compose their privacy losses; and
+- the public-fixture backend cannot be used for epsilon exploration because it
+  is intentionally noiseless and makes no DP claim.
+
+The vignette must remain buildable when optional dependencies are unavailable,
+must fail closed rather than substitute ordinary random noise, and must show an
+explicit empty/failure panel if a valid high-noise fit cannot generate a table.
+
 ## Vignette verification
 
-For all three vignettes:
+For all four vignettes:
 
 - include valid vignette metadata;
 - ensure examples match the implemented API exactly;
@@ -833,7 +925,7 @@ For all three vignettes:
 - check tables, equations, figures, captions, links, and code output;
 - eliminate stale Version 1 claims;
 - avoid unnecessary dependencies;
-- ensure package check builds all three vignettes successfully.
+- ensure package check builds all four vignettes successfully.
 
 # Other documentation
 
@@ -886,7 +978,7 @@ Run:
 - canonical DP-backend tests;
 - private-model serialization and leakage tests;
 - accounting and release-ledger tests;
-- all three vignette renders and visual inspections;
+- all four vignette renders and visual inspections;
 - `R CMD check` or `devtools::check()`.
 
 Do not suppress legitimate warnings merely to obtain a clean check.

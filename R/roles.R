@@ -13,6 +13,15 @@
 #'   interval-boundary columns.
 #' @param addl,ii Optional additional-dose and interdose-interval columns.
 #' @param covariates Baseline covariate column names, or `NULL`.
+#' @param subject_properties Subject-level assignment or grouping columns, such
+#'   as `ACTARM`, `TRT`, or a nominal dose group. These are treated as
+#'   categorical, must be constant and nonmissing within a subject, and are
+#'   modeled jointly with that subject's regimen rather than as independent
+#'   baseline covariates.
+#' @param assigned_dose Optional nominal assigned-dose column. It may vary by
+#'   occasion but must be constant within subject and occasion and agree with
+#'   the positive event amount. Generated values are derived from the generated
+#'   regimen rather than sampled independently.
 #' @param exclude Columns explicitly excluded before private fitting, such as
 #'   direct identifiers. An ID role is still required as the privacy unit.
 #'
@@ -29,15 +38,19 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
-                      covariates = NULL, exclude = NULL) {
+                      covariates = NULL, subject_properties = NULL,
+                      assigned_dose = NULL, exclude = NULL) {
   roles <- list(
     id = id, time = time, nominal_time = nominal_time, tad = tad,
     occasion = occasion, dv = dv, amt = amt, evid = evid, cmt = cmt,
     dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
-    addl = addl, ii = ii, covariates = covariates, exclude = exclude
+    addl = addl, ii = ii, assigned_dose = assigned_dose,
+    covariates = covariates, subject_properties = subject_properties,
+    exclude = exclude
   )
 
-  scalar_roles <- setdiff(names(roles), c("covariates", "exclude"))
+  vector_roles <- c("covariates", "subject_properties", "exclude")
+  scalar_roles <- setdiff(names(roles), vector_roles)
   for (role in scalar_roles) {
     value <- roles[[role]]
     if (!is.null(value) &&
@@ -47,7 +60,7 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
            call. = FALSE)
     }
   }
-  for (role in c("covariates", "exclude")) {
+  for (role in vector_roles) {
     value <- roles[[role]]
     if (!is.null(value) &&
         (!is.character(value) || anyNA(value) || any(!nzchar(value)))) {
@@ -95,7 +108,8 @@ print.pmx_roles <- function(x, ...) {
     stop("Required roles are absent: ",
          paste(absent_required, collapse = ", "), ".", call. = FALSE)
   }
-  columns <- unlist(roles, use.names = FALSE)
+  columns <- unlist(roles[setdiff(names(roles), "exclude")],
+                    use.names = FALSE)
   missing_columns <- setdiff(columns, names(data))
   if (length(missing_columns)) {
     stop("Role columns not found in `data`: ",

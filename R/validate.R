@@ -9,8 +9,9 @@
 #' Validate a pharmacometric event dataset
 #'
 #' Checks schema usability, chronological event logic, explicit endpoint
-#' semantics, derived timing fields, censoring conventions, and baseline
-#' constancy. It does not assess scientific or inferential validity.
+#' semantics, derived timing fields, censoring conventions, baseline
+#' constancy, subject properties, and occasion-assigned dose coherence. It does
+#' not assess scientific or inferential validity.
 #'
 #' @param data A PMX event data frame or tibble.
 #' @param roles Explicit roles from [pmx_roles()].
@@ -68,13 +69,27 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
 
   subjects <- .unique_in_order(id)
   decreasing <- vapply(subjects, function(subject) {
-    rows <- !is.na(id) & id == subject
-    is.numeric(time) && any(diff(time[rows]) < -1e-10, na.rm = TRUE)
+    rows <- which(!is.na(id) & id == subject)
+    if (!is.numeric(time)) return(TRUE)
+    if (is.null(roles$occasion)) {
+      return(any(diff(time[rows]) < -1e-10, na.rm = TRUE))
+    }
+    occasion <- data[[roles$occasion]][rows]
+    groups <- split(rows, occasion, drop = TRUE)
+    any(vapply(groups, function(index) {
+      any(diff(time[index]) < -1e-10, na.rm = TRUE)
+    }, logical(1)))
   }, logical(1))
   add("row_order", if (any(decreasing)) "error" else "pass",
-      if (any(decreasing)) paste("TIME decreases within", sum(decreasing),
-                                 "subject(s).") else
-        "Rows are nondecreasing in actual time within subject.")
+      if (any(decreasing)) paste(
+        "TIME decreases within", sum(decreasing),
+        if (is.null(roles$occasion)) "subject(s)." else
+          "subject/occasion profile(s)."
+      ) else if (is.null(roles$occasion)) {
+        "Rows are nondecreasing in actual time within subject."
+      } else {
+        "Rows are nondecreasing within each subject and occasion."
+      })
 
   allowed <- .observation_rows(data, roles)
   present <- allowed & !is.na(dv)
@@ -160,6 +175,42 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
           "Some observation rows carry nonzero AMT; verify the convention." else
           "Observation rows carry zero or missing AMT.")
   }
+  if (!is.null(roles$assigned_dose)) {
+    assigned <- suppressWarnings(as.numeric(data[[roles$assigned_dose]]))
+    occasion <- suppressWarnings(as.numeric(data[[roles$occasion]]))
+    complete <- is.finite(assigned)
+    add(
+      "assigned_dose_complete",
+      if (all(complete)) "pass" else "error",
+      if (all(complete)) "Assigned dose is present on every row." else
+        paste(sum(!complete), "row(s) have missing assigned dose.")
+    )
+    group <- interaction(id, occasion, drop = TRUE)
+    constant <- vapply(split(assigned, group), function(value) {
+      length(unique(value[is.finite(value)])) == 1L
+    }, logical(1))
+    add(
+      "assigned_dose_constant",
+      if (all(constant)) "pass" else "error",
+      if (all(constant)) {
+        "Assigned dose is constant within subject and occasion."
+      } else {
+        paste("Assigned dose varies within", sum(!constant),
+              "subject/occasion profile(s).")
+      }
+    )
+    positive_event <- event & is.finite(amount) & amount > 0
+    coherent <- !positive_event | (
+      is.finite(assigned) &
+        abs(assigned - amount) <= 1e-8 * pmax(1, abs(amount))
+    )
+    add(
+      "assigned_dose_event",
+      if (all(coherent)) "pass" else "error",
+      if (all(coherent)) "Assigned dose agrees with positive event AMT." else
+        paste(sum(!coherent), "event row(s) disagree with assigned dose.")
+    )
+  }
   if (!is.null(roles$mdv)) {
     mdv <- data[[roles$mdv]]
     inconsistent <- (.is_zero(mdv) != allowed)
@@ -177,6 +228,28 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
         if (all(constant)) "pass" else "error",
         if (all(constant)) paste(covariate, "is constant within subject.") else
           paste(covariate, "varies within", sum(!constant), "subject(s)."))
+  }
+  for (property in roles$subject_properties) {
+    complete <- vapply(subjects, function(subject) {
+      value <- data[[property]][!is.na(id) & id == subject]
+      length(value) > 0L && all(!is.na(value))
+    }, logical(1))
+    constant <- vapply(subjects, function(subject) {
+      value <- data[[property]][!is.na(id) & id == subject]
+      length(unique(value[!is.na(value)])) == 1L
+    }, logical(1))
+    add(
+      paste0("subject_property_", property),
+      if (all(complete & constant)) "pass" else "error",
+      if (all(complete & constant)) {
+        paste(property, "is complete and constant within subject.")
+      } else {
+        paste(
+          property, "is missing or varies within",
+          sum(!(complete & constant)), "subject(s)."
+        )
+      }
+    )
   }
 
   direct <- setdiff(.direct_identifier_names(names(data)), roles$id)

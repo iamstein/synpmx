@@ -9,6 +9,9 @@
 * Added an OpenDP adapter that fails closed when unavailable; privacy noise is
   neither user-seeded nor returned. A guarded public-fixture backend supports
   only data explicitly asserted to be public.
+* Made the OpenDP Laplace scale conservatively robust to floating-point
+  rounding for fractional budget allocations and added a canonical fractional
+  budget backend check.
 * Added fixed-dimensional bounded subject summaries, basic composed accounting,
   machine-readable release ledgers, privacy reports, and private-model leakage
   validation.
@@ -40,8 +43,18 @@
   privacy-utility evaluation.
 * Marked every source-derived comparison component as restricted unless
   separately privatized.
+* Added a shared simulation-evaluation registry, deterministic hard gates, and
+  a multi-seed `scripts/evaluate_simulations.R` report runner covering every
+  demo dataset and the accumulated regression history in `design/TEST_SIM.md`.
+* Added explicit subject-property/regimen strata for treatment-arm fields such
+  as ACTARM, TRT, and nominal dose group, plus occasion-assigned dose
+  reconstruction from generated AMT. Numeric-coded public categories are now
+  modeled categorically when levels are declared.
+* Added `nlmixr2data::nimoData` and `nlmixr2data::mavoglurant` demonstrations
+  and regression gates, including reset occasion clocks, positive-rate
+  duration inference, treatment-group coherence, and terminal washout timing.
 * Rewrote tests, README, and scripts for Version 2. Split the documentation
-  into practical, privacy-introduction, and detailed simulation-method
-  vignettes, including `theo_md`, `warfarin`, `wbcSim`, a public censoring
-  fixture, and empirical bug-finding tests that are explicitly not privacy
-  proofs.
+  into practical, privacy-introduction, detailed simulation-method, and formal
+  epsilon-exploration vignettes, including five practical nlmixr2data demos, a
+  public censoring fixture, and empirical bug-finding tests that are explicitly
+  not privacy proofs.

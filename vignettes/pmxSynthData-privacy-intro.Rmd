@@ -37,7 +37,9 @@ This vignette explains the privacy guarantee, its assumptions, and its
 limitations. See `vignette("pmxSynthData-simulation-method")` for the actual
 patient-simulation algorithm—including the fixed-grid trajectory model,
 sampling-time probabilities, interpolation, and variability—and
-`vignette("pmxSynthData-demo")` for runnable examples.
+`vignette("pmxSynthData-demo")` for runnable examples. The
+`vignette("pmxSynthData-epsilon-exploration")` vignette shows how three
+illustrative epsilon values affect formal OpenDP outputs on public datasets.
 
 ```{r pipeline, echo=FALSE, fig.cap="The Version 2 privacy boundary and post-processing pipeline."}
 old <- par(mar = c(.5, .5, .5, .5), xpd = NA)
@@ -170,7 +172,8 @@ and protocol deviation. Row-level privacy is not substituted.
 # Public configuration is part of the proof
 
 Before confidential values are inspected, the caller declares roles and
-exclusions; schema/classes/levels; endpoint DVID, units, clock and transform;
+exclusions; schema/classes/levels and subject-property category domains;
+endpoint DVID, units, clock and transform;
 plausible numeric bounds; contribution limits; genuinely public protocol
 values and grids; generator variability; and budget fractions.
 
@@ -185,6 +188,7 @@ direct-identifier columns stop fitting unless explicitly excluded.
 | Endpoint | Broad rise then fall | One extreme peak | Bounded grid summary plus DP noise |
 | Timing | Hourly versus weekly | One rare visit vector | Generalized cells; never copy a vector |
 | Covariate | Coarse weight center | One weight | Bounded moment or public category |
+| Treatment property | ACTARM frequency and regimen | One person's assignment | Joint bounded stratum count/event vector plus DP noise; levels are public |
 | Identity | New practical IDs | Source ID | Source IDs never enter the fitted model |
 | Linkage | Outside trial knowledge | Matching a rare schedule | DP limits added participation influence, not outside facts |
 
@@ -215,6 +219,13 @@ variances, smoothing, and constraint repair are post-processing. This
 dimension-dependent sensitivity is conservative and can be noisy; shortening a
 grid is often preferable to learning another fragile relationship from six
 people.
+
+The property-conditioned event query is sparser than its released dimension:
+one subject contributes to exactly one public property stratum. Its current L1
+sensitivity is 10 (one stratum indicator plus nine bounded regimen features),
+even though the output dimension is 10 times the number of declared strata.
+The dimension still matters for utility, but inactive strata do not add to one
+person's sensitivity.
 
 # Six-patient worked privacy example
 
@@ -278,9 +289,10 @@ The noiseless `backend = "public"` is accepted only with
 
 `generate_pmx()` is post-processing: it reads the released summaries and
 public configuration, not source rows. It creates new IDs, event rows,
-observation times, endpoint values, covariates, censoring states, and a restored
-public schema. The privacy argument requires only that this stage consult no
-confidential data; its statistical construction is documented separately in
+observation times, endpoint values, covariates, coherent treatment properties
+and assigned doses, censoring states, and a restored public schema. The privacy
+argument requires only that this stage consult no confidential data; its
+statistical construction is documented separately in
 `vignette("pmxSynthData-simulation-method")`.
 
 # Post-processing and release status
@@ -308,7 +320,9 @@ hide a violation.
 
 The prototype learns low-order bounded marginals: count, generalized regimen,
 timing presence, endpoint grid means, covariate moments/categories, and
-censoring summaries. It does not learn detailed covariance, covariate-response
+censoring summaries, plus an explicitly declared low-dimensional
+subject-property/regimen stratum when requested. It does not learn detailed
+covariance, covariate-response
 relationships, rare regimens, raw residuals, detailed missingness, or a
 high-dimensional joint distribution. Much generated variability is public and
 broad. Mock data must not be interpreted scientifically.

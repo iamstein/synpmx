@@ -55,7 +55,8 @@ claim; it must never process confidential data.
 ## Public API
 
 - `pmx_roles()` declares PMX semantics, including nominal time, TAD, occasion,
-  CENS/LIMIT, ADDL/II, covariates, and explicit exclusions.
+  CENS/LIMIT, ADDL/II, baseline covariates, treatment-like subject properties,
+  occasion-assigned dose, and explicit exclusions.
 - `pmx_endpoint()` declares each DVID's dose-relative, study-time, occasion, or
   hybrid scientific clock.
 - `pmx_bounds()`, `pmx_schema()`, `pmx_public_design()`,
@@ -64,6 +65,8 @@ claim; it must never process confidential data.
 - `fit_private_pmx()` is the only confidential-data stage.
 - `generate_pmx()` constructs new event tables from the fitted model and, by
   default, uses its privacy-accounted subject-count release.
+- `subject_property_summary()` reports released treatment/property strata and
+  their jointly fitted generalized regimens.
 - `privacy_report()` and `validate_private_model()` expose accounting,
   assumptions, the release ledger, and leakage guards.
 - `validate_pmx()` checks generated PMX structure and censoring coherence.
@@ -146,6 +149,13 @@ different public workflow cohort size is intended.
   levels; generated IDs receive a fresh mock-only level set.
 - Dose and infusion fields are created coherently. A generated infusion start
   and negative stop share the generated amount/rate and duration.
+- A declared `subject_properties` field such as ACTARM, TRT, or nominal dose
+  group is generated jointly with its property-conditioned regimen. Its finite
+  category domain must be independently public. A declared `assigned_dose`
+  field is reconstructed from positive AMT and held constant within
+  subject/occasion.
+- Numeric-coded covariates are modeled categorically when their public levels
+  are supplied in `category_levels`.
 - Censoring is applied to a generated latent value, then DV, CENS, and LIMIT are
   reconstructed together under Monolix-style conventions.
 - Source IDs, raw rows, complete profiles, schedules, residuals, and unnoised
@@ -159,10 +169,15 @@ The practical vignette and `scripts/demo_nlmixr2data.R` exercise:
   seven-dose Q24H regimen, dense first/final profiles, sparse occasion-2
   sampling, and no observations after doses 3--6;
 - `nlmixr2data::warfarin`: lower-case schema, factor preservation, separate
-  dose-relative `cp` and global study-time `pca`; and
+  dose-relative `cp` and global study-time `pca`;
 - `nlmixr2data::wbcSim`: coherent infusion starts/stops, generalized follow-up,
   and delayed decline/nadir/recovery without reproducing the singleton
-  multi-thousand-hour regimen.
+  multi-thousand-hour regimen;
+- `nlmixr2data::nimoData`: four nominal-dose subject properties linked to ten
+  inferred weekly infusions, declared OCC/TAD, and terminal washout follow-up;
+  and
+- `nlmixr2data::mavoglurant`: reset occasion clocks, numeric categorical SEX,
+  and an occasion-assigned DOSE kept coherent with generated AMT.
 
 `pmx_censoring_fixture()` supplies a fully simulated public example with
 uncensored, left-censored, right-censored, and interval-censored records.
@@ -176,6 +191,12 @@ study with 60 subjects by default for broader privacy-utility evaluation.
   requested dimensionality imply weak utility.
 - Broad generated variability is intentionally public rather than precisely
   estimated from a small source study.
+- Baseline covariates are marginal and subject-constant. Time-varying
+  covariates, covariate correlations, and covariate-response relationships are
+  not modeled; declare unsupported longitudinal fields in `exclude`.
+- `assigned_dose` guarantees event-table consistency but does not by itself
+  reconstruct a crossover-sequence distribution. Supply a genuine
+  subject-level ACTARM/TRT/sequence property when one exists.
 - Dose-relative AR(1) perturbations restart at each generated occasion. If the
   released coarse curve is already approximately unimodal, source-free
   post-processing prevents residual noise from adding a second PK peak.
@@ -190,7 +211,8 @@ study with 60 subjects by default for broader privacy-utility evaluation.
 See `vignette("pmxSynthData-demo")` for the worked API,
 `vignette("pmxSynthData-privacy-intro")` for the privacy guarantee, and
 `vignette("pmxSynthData-simulation-method")` for the patient-simulation
-algorithm.
+algorithm. `vignette("pmxSynthData-epsilon-exploration")` compares formal
+OpenDP fits at three illustrative epsilon values on the public demo datasets.
 
 ## Development
 

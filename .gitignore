@@ -60,3 +60,5 @@ references/private/
 .DS_Store
 *.swp
 *~
+/doc/
+/Meta/

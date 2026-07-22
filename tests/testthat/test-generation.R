@@ -41,6 +41,68 @@ test_that("schema, classes, factors, new IDs, and covariates are coherent", {
   expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
 })
 
+test_that("subject properties remain coherent with conditioned regimens", {
+  source <- private_fixture(12L)
+  source$ARM <- as.integer(ifelse(source$ID %% 2L, 1L, 2L))
+  event <- source$EVID != 0 & source$AMT > 0
+  source$AMT[event] <- ifelse(source$ARM[event] == 1L, 50, 150)
+  source$DOSE <- ave(
+    source$AMT, interaction(source$ID, source$OCC, drop = TRUE),
+    FUN = function(value) max(value)
+  )
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", nominal_time = "NTIME", tad = "TAD",
+    occasion = "OCC", dv = "DV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", dvid = "DVID", mdv = "MDV", rate = "RATE",
+    cens = "CENS", limit = "LIMIT", assigned_dose = "DOSE",
+    covariates = c("WT", "AGE", "SEX"), subject_properties = "ARM"
+  )
+  design <- pmx_public_design(
+    pmx_schema(source), dose_evid = 1, dose_cmt = 1,
+    endpoint_grids = lapply(private_endpoints(), `[[`, "grid"),
+    endpoint_cmt = list(cp = 2, pd = 3),
+    category_levels = list(ARM = c(1, 2)), time_jitter_sd = .01
+  )
+  model <- suppressWarnings(fit_private_pmx(
+    source, roles, private_endpoints(), 5, 0,
+    pmx_bounds(
+      c(0, 24), list(cp = c(0, 20), pd = c(0, 120)),
+      amt = c(0, 200), rate = c(-200, 200),
+      covariates = list(WT = c(40, 120), AGE = c(18, 90)),
+      limit = list(cp = c(0, 20), pd = c(0, 120))
+    ),
+    design, private_limits(), private_budget(),
+    backend = "public", public_source = TRUE
+  ))
+  summary <- subject_property_summary(model)
+  expect_equal(summary$ARM, 1:2)
+  expect_equal(summary$probability, c(.5, .5))
+  expect_equal(summary$dose_amount, c(50, 150), tolerance = 1e-8)
+  event_entry <- model$privacy$accounting$entries[
+    model$privacy$accounting$entries$query == "event_and_regimen", ]
+  expect_equal(event_entry$sensitivity, 10)
+  expect_equal(event_entry$dimensions, 20)
+
+  mock <- generate_pmx(model, 60, seed = 2201)
+  expect_true(validate_pmx(mock, roles, private_endpoints())$valid)
+  property_by_subject <- vapply(
+    split(mock$ARM, mock$ID), function(value) unique(value)[1L], integer(1)
+  )
+  amount_by_subject <- vapply(split(mock, mock$ID), function(subject) {
+    unique(subject$AMT[subject$EVID != 0 & subject$AMT > 0])[1L]
+  }, numeric(1))
+  expect_equal(
+    amount_by_subject,
+    ifelse(property_by_subject == 1L, 50, 150), tolerance = 1e-8
+  )
+  expect_true(all(mock$DOSE == ave(
+    mock$DOSE, interaction(mock$ID, mock$OCC, drop = TRUE),
+    FUN = function(value) value[1L]
+  )))
+  positive_event <- mock$EVID != 0 & mock$AMT > 0
+  expect_equal(mock$DOSE[positive_event], mock$AMT[positive_event])
+})
+
 test_that("dose-relative PK repeats while study-time PD remains global", {
   mock <- generate_pmx(fit_public_fixture(), 8, seed = 51)
   cp <- mock[mock$EVID == 0 & mock$DVID == "cp", ]

@@ -49,8 +49,11 @@ observations.}
 
 \item{endpoint_cmt}{Named list or vector of public observation compartments.}
 
-\item{category_levels}{Named lists of allowed values for character or
-logical covariates. Factor levels come from the public schema.}
+\item{category_levels}{Named lists of allowed values for categorical
+covariates and subject properties. Supplying levels forces even a numeric
+covariate to be treated categorically. Factor levels may instead come from
+the public schema. These levels are public domains, not values discovered
+by inspecting confidential records outside the private fit.}
 
 \item{defaults}{Named values for otherwise unmodeled public columns.}
 

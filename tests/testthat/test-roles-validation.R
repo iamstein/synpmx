@@ -33,12 +33,27 @@ test_that("validation covers timing, endpoints, and baseline constancy", {
   )
 })
 
+test_that("validation supports reset occasion clocks and coherent properties", {
+  source <- private_fixture()
+  reset <- source
+  reset$TIME[reset$OCC == 2L] <- reset$TIME[reset$OCC == 2L] - 12
+  expect_true(validate_pmx(reset, private_roles(), private_endpoints())$valid)
+
+  source$ARM <- ifelse(source$ID %% 2L, "A", "B")
+  role_args <- unclass(private_roles())
+  role_args$subject_properties <- "ARM"
+  roles <- do.call(pmx_roles, role_args)
+  expect_true(validate_pmx(source, roles, private_endpoints())$valid)
+  source$ARM[2L] <- "B"
+  expect_false(validate_pmx(source, roles, private_endpoints())$valid)
+})
+
 test_that("Version 1 synthesis modes are not public", {
   exports <- getNamespaceExports("pmxSynthData")
   expect_false("mock_pmx" %in% exports)
   expect_false(any(grepl("avatar|blend|template", exports, ignore.case = TRUE)))
   expect_true(all(c(
     "fit_private_pmx", "generate_pmx", "privacy_report",
-    "validate_private_model"
+    "validate_private_model", "subject_property_summary"
   ) %in% exports))
 })

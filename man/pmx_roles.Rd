@@ -22,6 +22,8 @@ pmx_roles(
   addl = NULL,
   ii = NULL,
   covariates = NULL,
+  subject_properties = NULL,
+  assigned_dose = NULL,
   exclude = NULL
 )
 }
@@ -40,6 +42,17 @@ interval-boundary columns.}
 \item{addl, ii}{Optional additional-dose and interdose-interval columns.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
+
+\item{subject_properties}{Subject-level assignment or grouping columns, such
+as \code{ACTARM}, \code{TRT}, or a nominal dose group. These are treated as
+categorical, must be constant and nonmissing within a subject, and are
+modeled jointly with that subject's regimen rather than as independent
+baseline covariates.}
+
+\item{assigned_dose}{Optional nominal assigned-dose column. It may vary by
+occasion but must be constant within subject and occasion and agree with
+the positive event amount. Generated values are derived from the generated
+regimen rather than sampled independently.}
 
 \item{exclude}{Columns explicitly excluded before private fitting, such as
 direct identifiers. An ID role is still required as the privacy unit.}

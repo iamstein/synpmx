@@ -19,7 +19,8 @@ has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 
-observed_plot_data <- function(data, roles, dataset) {
+observed_plot_data <- function(data, roles, dataset,
+                               clock = "study_time") {
   observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
   if (!is.null(roles$mdv)) {
     observed <- observed & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
@@ -27,6 +28,19 @@ observed_plot_data <- function(data, roles, dataset) {
   observed <- observed & !is.na(data[[roles$dv]])
   observation_rows <- which(observed)
   occasion <- rep(1L, length(observation_rows))
+  tad <- rep(NA_real_, length(observation_rows))
+  if (!is.null(roles$occasion)) {
+    declared <- suppressWarnings(as.integer(
+      data[[roles$occasion]][observation_rows]
+    ))
+    valid <- !is.na(declared) & declared >= 1L
+    occasion[valid] <- declared[valid]
+  }
+  if (!is.null(roles$tad)) {
+    declared <- suppressWarnings(as.numeric(data[[roles$tad]][observation_rows]))
+    valid <- is.finite(declared)
+    tad[valid] <- pmax(0, declared[valid])
+  }
   subject_values <- data[[roles$id]]
   for (id in unique(subject_values[observation_rows])) {
     subject_rows <- which(!is.na(subject_values) & subject_values == id)
@@ -35,21 +49,38 @@ observed_plot_data <- function(data, roles, dataset) {
     if (!is.null(roles$amt)) {
       events <- events & as.numeric(data[[roles$amt]][subject_rows]) > 0
     }
-    dose_times <- sort(unique(as.numeric(data[[roles$time]][
-      subject_rows[events]
-    ])))
     positions <- which(subject_values[observation_rows] == id)
-    if (length(dose_times)) {
+    event_rows <- subject_rows[events]
+    if (length(event_rows) && !is.null(roles$occasion)) {
+      event_occasion <- suppressWarnings(as.integer(
+        data[[roles$occasion]][event_rows]
+      ))
+      for (position in positions) {
+        candidates <- event_rows[event_occasion == occasion[position]]
+        if (length(candidates) && !is.finite(tad[position])) {
+          origin <- min(as.numeric(data[[roles$time]][candidates]))
+          tad[position] <-
+            as.numeric(data[[roles$time]][observation_rows[position]]) - origin
+        }
+      }
+    } else if (length(event_rows)) {
+      dose_times <- sort(unique(as.numeric(data[[roles$time]][event_rows])))
       occasion[positions] <- pmax(1L, findInterval(
         as.numeric(data[[roles$time]][observation_rows[positions]]),
         dose_times
       ))
+      occasion[positions] <- pmin(occasion[positions], length(dose_times))
+      tad[positions] <-
+        as.numeric(data[[roles$time]][observation_rows[positions]]) -
+        dose_times[occasion[positions]]
     }
   }
+  plotted_time <- if (identical(clock, "tad")) tad else
+    as.numeric(data[[roles$time]][observation_rows])
   data.frame(
     dataset = factor(dataset, levels = c("Source", "Synthetic")),
     subject = as.character(data[[roles$id]][observation_rows]),
-    time = as.numeric(data[[roles$time]][observation_rows]),
+    time = plotted_time,
     dv = as.numeric(data[[roles$dv]][observation_rows]),
     occasion = occasion,
     endpoint = if (is.null(roles$dvid)) "DV" else
@@ -59,43 +90,20 @@ observed_plot_data <- function(data, roles, dataset) {
 }
 
 tad_plot_data <- function(data, roles, dataset) {
-  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
-    !is.na(data[[roles$dv]])
-  ids <- data[[roles$id]]
-  out <- vector("list", length(unique(ids)))
-  for (i in seq_along(unique(ids))) {
-    id <- unique(ids)[i]
-    subject_rows <- which(ids == id)
-    event <- !(as.character(data[[roles$evid]][subject_rows]) %in%
-                 c("0", "0.0"))
-    if (!is.null(roles$amt)) {
-      event <- event & as.numeric(data[[roles$amt]][subject_rows]) > 0
-    }
-    dose_times <- sort(unique(as.numeric(
-      data[[roles$time]][subject_rows[event]]
-    )))
-    rows <- subject_rows[observed[subject_rows]]
-    occasion <- pmax(1L, findInterval(
-      as.numeric(data[[roles$time]][rows]), dose_times
-    ))
-    occasion <- pmin(occasion, length(dose_times))
-    out[[i]] <- data.frame(
-      dataset = factor(dataset, levels = c("Source", "Synthetic")),
-      subject = as.character(id), occasion = occasion,
-      tad = as.numeric(data[[roles$time]][rows]) - dose_times[occasion],
-      dv = as.numeric(data[[roles$dv]][rows]), endpoint = "DV",
-      stringsAsFactors = FALSE
-    )
-  }
-  do.call(rbind, out)
+  out <- observed_plot_data(data, roles, dataset, clock = "tad")
+  names(out)[names(out) == "time"] <- "tad"
+  out
 }
 
-demo_design_summary <- function(data, roles, dataset, time_bounds) {
-  plotted <- observed_plot_data(data, roles, dataset)
-  plotted <- plotted[
-    plotted$time >= time_bounds[1L] & plotted$time <= time_bounds[2L],
-    , drop = FALSE
-  ]
+demo_design_summary <- function(data, roles, dataset, time_bounds,
+                                clock = "study_time") {
+  plotted <- observed_plot_data(data, roles, dataset, clock)
+  if (!identical(clock, "tad")) {
+    plotted <- plotted[
+      plotted$time >= time_bounds[1L] & plotted$time <= time_bounds[2L],
+      , drop = FALSE
+    ]
+  }
   cohort_ids <- as.character(unique(data[[roles$id]]))
   pieces <- lapply(sort(unique(plotted$endpoint)), function(endpoint) {
     rows <- plotted[plotted$endpoint == endpoint, , drop = FALSE]
@@ -117,7 +125,7 @@ demo_design_summary <- function(data, roles, dataset, time_bounds) {
 }
 
 check_demo_similarity <- function(source, synthetic, roles, time_bounds,
-                                  label) {
+                                  label, clock = "study_time") {
   source_subjects <- length(unique(source[[roles$id]]))
   synthetic_subjects <- length(unique(synthetic[[roles$id]]))
   if (source_subjects != synthetic_subjects) {
@@ -125,10 +133,10 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
          source_subjects, " versus ", synthetic_subjects, ").")
   }
   source_summary <- demo_design_summary(
-    source, roles, "Source", time_bounds
+    source, roles, "Source", time_bounds, clock
   )
   synthetic_summary <- demo_design_summary(
-    synthetic, roles, "Synthetic", time_bounds
+    synthetic, roles, "Synthetic", time_bounds, clock
   )
   if (!setequal(source_summary$endpoint, synthetic_summary$endpoint)) {
     stop(label, ": source and synthetic endpoint sets differ.")
@@ -167,11 +175,18 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
 }
 
 comparison_facets <- function(data) {
-  ggplot2::facet_wrap(
-    ggplot2::vars(dataset, endpoint),
-    ncol = max(1L, length(unique(data$endpoint))),
-    scales = "free_y"
-  )
+  ggplot2::facet_grid(dataset ~ endpoint, scales = "free_y")
+}
+
+source_mock_preview <- function(source, synthetic, n = 6L) {
+  columns <- intersect(names(source), names(synthetic))
+  source_rows <- utils::head(source[, columns, drop = FALSE], n)
+  synthetic_rows <- utils::head(synthetic[, columns, drop = FALSE], n)
+  source_rows$.dataset <- "Source"
+  synthetic_rows$.dataset <- "Synthetic"
+  out <- rbind(source_rows, synthetic_rows)
+  rownames(out) <- NULL
+  out[, c(".dataset", columns), drop = FALSE]
 }
 ```
 
@@ -217,6 +232,16 @@ the endpoint is sampled and a bounded observation count conditional on that
 occasion being sampled. Thus Q24H dose rows can coexist with no concentration
 samples on intervening occasions. `sampling_summary()` displays this fitted
 design without consulting the source again.
+
+Ordinary baseline covariates are generated from private marginal summaries and
+are held constant within each synthetic subject; the prototype does not model
+covariate--trajectory relationships. Treatment-arm fields such as `ACTARM` or
+`TRT` need a stronger declaration: put them in `subject_properties`. The fit
+then releases the property frequency and regimen jointly, and generation draws
+one property/regimen stratum per subject. A nominal dose that changes by
+occasion instead uses `assigned_dose`; its generated value is derived from the
+positive event `AMT` in that subject and occasion. The nimoData and mavoglurant
+examples below demonstrate both cases.
 
 For a dose-relative endpoint, this empirical curve is reused after generated
 doses; a study-time endpoint uses one global curve. Consequently, the mock data
@@ -351,6 +376,10 @@ mock_b <- generate_pmx(private_model, seed = 202)
 identical(mock_a, mock_b)
 validate_pmx(mock_a, roles, endpoints)$valid
 table(mock_a$CENS)
+knitr::kable(
+  source_mock_preview(public_source, mock_a),
+  caption = "Actual public-fixture rows and generated synthetic rows"
+)
 minimal_design_check <- check_demo_similarity(
   public_source, mock_a, roles, bounds$time, "Minimal fixture"
 )
@@ -416,6 +445,10 @@ theo_model <- fit_private_pmx(
 )
 theo_mock <- generate_pmx(theo_model, seed = 303)
 validate_pmx(theo_mock, theo_roles, theo_endpoints)$valid
+knitr::kable(
+  source_mock_preview(theo_md, theo_mock),
+  caption = "Actual Theophylline rows and generated synthetic rows"
+)
 knitr::kable(
   sampling_summary(theo_model), digits = 2,
   caption = "Fitted Theophylline sampling frequency by dose occasion"
@@ -534,6 +567,10 @@ warfarin_model <- fit_private_pmx(
 )
 warfarin_mock <- generate_pmx(warfarin_model, seed = 404)
 c(class(warfarin_mock$id), levels(warfarin_mock$dvid))
+knitr::kable(
+  source_mock_preview(warfarin, warfarin_mock),
+  caption = "Actual Warfarin rows and generated synthetic rows"
+)
 warfarin_design_check <- check_demo_similarity(
   warfarin, warfarin_mock, warfarin_roles, c(0, 144), "Warfarin"
 )
@@ -600,6 +637,10 @@ wbc_model <- fit_private_pmx(
   backend = "public", public_source = TRUE
 )
 wbc_mock <- generate_pmx(wbc_model, seed = 505)
+knitr::kable(
+  source_mock_preview(wbcSim, wbc_mock),
+  caption = "Actual WBC rows and generated synthetic rows"
+)
 utils::head(
   wbc_mock[wbc_mock$EVID != 0,
            c("ID", "TIME", "AMT", "RATE", "CMT", "EVID")],
@@ -633,6 +674,189 @@ ggplot2::ggplot(
     x = "Study time", y = "DV", colour = "Dataset",
     title = "WBC source and synthetic: delayed decline, nadir, and recovery",
     subtitle = "Comparison window is the declared 0-720 hour public design"
+  ) +
+ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+## NimoData: dose-group properties and repeated infusions
+
+`nimoData` contains 12 subjects in four nominal dose groups (`DOS` = 50, 100,
+200, or 400), with ten approximately weekly infusions per subject. `DOS` is
+not treated as an independent numeric covariate. Declaring it as a
+`subject_property` makes the fit release group frequency and regimen together,
+so a generated subject's `DOS` remains coherent with all positive event
+amounts. The public category levels define the allowed treatment groups; they
+must come from protocol/schema knowledge for confidential data.
+
+The source `DV` is already on its analysis scale, so this example uses the
+identity transform. `WGT` changes over time in this particular source. Because
+the current prototype supports baseline covariates rather than time-varying
+covariate trajectories, `WGT` is explicitly excluded instead of being silently
+collapsed to a baseline value.
+
+```{r nimo-fit, eval=has_nlmixr2data}
+data("nimoData", package = "nlmixr2data")
+nimo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+  covariates = c("BSA", "AGE", "HGT"),
+  subject_properties = "DOS", exclude = "WGT"
+)
+nimo_endpoints <- list(cp = pmx_endpoint(
+  alignment = "dose_relative", transform = "identity", shape = "occasion"
+))
+nimo_model <- fit_private_pmx(
+  nimoData, nimo_roles, nimo_endpoints, 5, 0,
+  pmx_bounds(
+    c(0, 3000), list(cp = c(-1, 10)), amt = c(0, 500),
+    rate = c(-1200, 1200),
+    covariates = list(
+      BSA = c(1, 2.5), AGE = c(18, 100), HGT = c(120, 210)
+    )
+  ),
+  pmx_public_design(
+    pmx_schema(nimoData, exclude = "WGT"), dose_evid = 1,
+    category_levels = list(DOS = c(50, 100, 200, 400))
+  ),
+  pmx_contribution_limits(60, 10, 10, 8, 12),
+  pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
+  backend = "public", public_source = TRUE
+)
+nimo_mock <- generate_pmx(nimo_model, seed = 606)
+validate_pmx(nimo_mock, nimo_roles, nimo_endpoints)$valid
+knitr::kable(
+  source_mock_preview(nimoData, nimo_mock),
+  caption = "Actual nimoData rows and generated synthetic rows"
+)
+knitr::kable(
+  subject_property_summary(nimo_model), digits = 2,
+  caption = "Released dose-group frequencies and conditioned regimens"
+)
+nimo_design_check <- check_demo_similarity(
+  nimoData, nimo_mock, nimo_roles, c(0, 3000), "nimoData", clock = "tad"
+)
+knitr::kable(
+  nimo_design_check, digits = 2,
+  caption = "nimoData cohort and dose-relative sampling-design checks"
+)
+```
+
+```{r nimo-plot, eval=has_nlmixr2data && has_ggplot2, fig.height=7}
+nimo_comparison <- rbind(
+  observed_plot_data(nimoData, nimo_roles, "Source", clock = "tad"),
+  observed_plot_data(nimo_mock, nimo_roles, "Synthetic", clock = "tad")
+)
+ggplot2::ggplot(
+  nimo_comparison,
+  ggplot2::aes(
+    time, dv, colour = dataset,
+    group = interaction(dataset, subject, occasion)
+  )
+) +
+  ggplot2::geom_line(alpha = 0.3) +
+  ggplot2::geom_point(alpha = 0.5, size = 0.7) +
+  comparison_facets(nimo_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
+    title = "nimoData source and synthetic dose-relative profiles",
+    subtitle = "Source is above synthetic; lines connect points within each dose occasion"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+## Mavoglurant: occasion-specific assigned dose
+
+`mavoglurant` contains one- and two-period profiles, and its `TIME` clock resets
+within `OCC`. Validation and plotting therefore use subject/occasion order and
+time after dose rather than requiring one globally increasing subject clock.
+`DOSE` can change between crossover occasions. Declaring it as
+`assigned_dose` means the generated value is reconstructed from that
+occasion's positive `AMT`, remains constant on every row in the occasion, and
+cannot drift away from the generated event table.
+
+The source records `SEX` as numeric codes. Its public category declaration
+forces categorical rather than continuous covariate modeling. This example
+does not have an `ACTARM`/`TRT` column, so it learns one generalized regimen;
+`assigned_dose` guarantees internal consistency but does not claim to recover
+the source crossover-sequence distribution. If such a treatment-sequence or
+arm column is present, declare it in `subject_properties` as in the nimoData
+example.
+
+```{r mav-fit, eval=has_nlmixr2data}
+data("mavoglurant", package = "nlmixr2data")
+mav_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
+  assigned_dose = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
+)
+mav_endpoints <- list(cp = pmx_endpoint(
+  alignment = "dose_relative", transform = "log", shape = "occasion",
+  cmt = 2
+))
+mav_model <- fit_private_pmx(
+  mavoglurant, mav_roles, mav_endpoints, 5, 0,
+  pmx_bounds(
+    c(0, 120), list(cp = c(0, 2000)), amt = c(0, 60),
+    rate = c(-350, 350),
+    covariates = list(
+      AGE = c(18, 90), WT = c(40, 150), HT = c(1.4, 2.1)
+    )
+  ),
+  pmx_public_design(
+    pmx_schema(mavoglurant), dose_evid = 1, dose_cmt = 1,
+    endpoint_cmt = list(cp = 2), category_levels = list(SEX = c(1, 2))
+  ),
+  pmx_contribution_limits(30, 2, 2, 15, 15),
+  pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
+  backend = "public", public_source = TRUE
+)
+mav_mock <- generate_pmx(mav_model, seed = 707)
+validate_pmx(mav_mock, mav_roles, mav_endpoints)$valid
+knitr::kable(
+  source_mock_preview(mavoglurant, mav_mock),
+  caption = "Actual mavoglurant rows and generated synthetic rows"
+)
+mav_dose_check <- stats::aggregate(
+  cbind(DOSE, AMT) ~ OCC,
+  data = mav_mock[mav_mock$EVID != 0 & mav_mock$AMT > 0, , drop = FALSE],
+  FUN = function(value) paste(sort(unique(round(value, 4))), collapse = ", ")
+)
+knitr::kable(
+  mav_dose_check,
+  caption = "Generated assigned DOSE and positive event AMT by occasion"
+)
+mav_design_check <- check_demo_similarity(
+  mavoglurant, mav_mock, mav_roles, c(0, 120), "mavoglurant", clock = "tad"
+)
+knitr::kable(
+  mav_design_check, digits = 2,
+  caption = "Mavoglurant cohort and dose-relative sampling-design checks"
+)
+```
+
+```{r mav-plot, eval=has_nlmixr2data && has_ggplot2, fig.height=7}
+mav_comparison <- rbind(
+  observed_plot_data(mavoglurant, mav_roles, "Source", clock = "tad"),
+  observed_plot_data(mav_mock, mav_roles, "Synthetic", clock = "tad")
+)
+ggplot2::ggplot(
+  mav_comparison,
+  ggplot2::aes(
+    time, dv, colour = dataset,
+    group = interaction(dataset, subject, occasion)
+  )
+) +
+  ggplot2::geom_line(alpha = 0.18) +
+  ggplot2::geom_point(alpha = 0.3, size = 0.55) +
+  comparison_facets(mav_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
+    title = "Mavoglurant source and synthetic dose-relative profiles",
+    subtitle = "TIME resets by OCC, so lines connect points within subject and occasion"
   ) +
   ggplot2::theme_minimal() +
   ggplot2::theme(legend.position = "bottom")
@@ -682,4 +906,6 @@ not privatize a new source comparison.
 See `vignette("pmxSynthData-privacy-intro")` for the guarantee, sensitivity,
 composition, and small-study tradeoff. See
 `vignette("pmxSynthData-simulation-method")` for the fixed-grid trajectory,
-sampling-time, event, variability, and censoring algorithms.
+sampling-time, event, variability, and censoring algorithms. See
+`vignette("pmxSynthData-epsilon-exploration")` for side-by-side formal OpenDP
+fits at three illustrative epsilon values.

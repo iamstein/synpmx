@@ -1,6 +1,7 @@
-.resolved_regimen <- function(model) {
+.resolved_regimen <- function(model, event = NULL) {
   design <- model$public$design
-  event <- model$population$event
+  property_conditioned <- !is.null(event)
+  event <- event %||% model$population$event
   bounds <- model$public$bounds
   n_doses <- design$n_doses %||% event$n_doses
   if (!length(n_doses) || !is.finite(n_doses)) n_doses <- 0L
@@ -32,7 +33,11 @@
   list(
     n_doses = n_doses, dose_times = dose_times %||% numeric(),
     interval = interval, amount = amount, rate = rate,
-    duration = duration, infusion = infusion
+    duration = duration, infusion = infusion,
+    observation_count = event$observation_count,
+    amount_jitter_sd = if (
+      property_conditioned || !is.null(model$public$roles$assigned_dose)
+    ) 0 else 0.08
   )
 }
 
@@ -201,7 +206,8 @@
     pmax(0)
 }
 
-.generated_local_grid <- function(endpoint, selected, regimen) {
+.generated_local_grid <- function(endpoint, selected, regimen,
+                                  occasion = NULL, timing = NULL) {
   grid <- endpoint$grid[selected]
   if (!isTRUE(endpoint$grid_automatic) || regimen$n_doses <= 1L ||
       !is.finite(regimen$interval) || regimen$interval <= 0) {
@@ -209,10 +215,16 @@
   }
   horizon <- endpoint$grid_horizon %||% max(endpoint$grid)
   if (!is.finite(horizon) || horizon <= 0) return(grid)
-  # The cell basis is fixed without inspecting source times. At generation,
-  # its local scale is calibrated to the privacy-accounted dose interval so
-  # the inferred regimen—not a disclosed schedule—sets the occasion window.
+  # Nonterminal local profiles must remain before the following dose. The last
+  # occasion has no such boundary, so retain the released occupied horizon;
+  # this supports a terminal washout profile longer than one dose interval
+  # without reading or copying a source visit schedule.
   target <- regimen$interval * (1 - 1e-6)
+  if (!is.null(occasion) && occasion == regimen$n_doses) {
+    probability <- .timing_grid_probability(timing, length(endpoint$grid))
+    occupied <- which(probability > sqrt(.Machine$double.eps))
+    if (length(occupied)) target <- max(endpoint$grid[occupied])
+  }
   grid * target / horizon
 }
 
@@ -236,10 +248,10 @@
   max(inferred[occasion], sqrt(.Machine$double.eps))
 }
 
-.trim_observations_to_private_count <- function(data, model) {
+.trim_observations_to_private_count <- function(data, model, target = NULL) {
   observation <- which(!is.na(data$.endpoint_name))
   if (!length(observation)) return(data)
-  target <- model$population$event$observation_count
+  target <- target %||% model$population$event$observation_count
   if (!is.numeric(target) || length(target) != 1L || !is.finite(target)) {
     return(data)
   }
@@ -336,7 +348,10 @@
       dose_time <- regimen$dose_times[occasion]
       amount <- regimen$amount
       if (!is.null(bounds$amt) && amount > 0) {
-        amount <- .clip(amount * exp(stats::rnorm(1L, sd = 0.08)), bounds$amt)
+        amount <- .clip(
+          amount * exp(stats::rnorm(1L, sd = regimen$amount_jitter_sd)),
+          bounds$amt
+        )
       }
       generated_rate <- if (regimen$infusion && regimen$amount != 0) {
         regimen$rate * amount / regimen$amount
@@ -395,7 +410,10 @@
       for (occasion in seq_along(origins)) {
         if (!occasion %in% active_occasions) next
         local_grid <- if (is.null(occasion_schedule)) {
-          .generated_local_grid(endpoint, selected, regimen)
+          .generated_local_grid(
+            endpoint, selected, regimen, occasion = occasion,
+            timing = timing
+          )
         } else {
           occasion_schedule[[as.character(occasion)]]
         }
@@ -439,7 +457,10 @@
   skeleton <- as.data.frame(do.call(rbind, lapply(rows, function(x) {
     as.data.frame(x, stringsAsFactors = FALSE, optional = TRUE)
   })), stringsAsFactors = FALSE, optional = TRUE)
-  skeleton <- .trim_observations_to_private_count(skeleton, model)
+  skeleton <- .fill_assigned_dose(skeleton, model$public$roles)
+  skeleton <- .trim_observations_to_private_count(
+    skeleton, model, regimen$observation_count
+  )
   .coherent_actual_times(skeleton, model, regimen)
 }
 
@@ -684,6 +705,46 @@
   data
 }
 
+.sample_subject_property <- function(model) {
+  properties <- model$population$subject_properties
+  if (is.null(properties) || !length(properties$strata)) {
+    return(list(values = NULL, event = NULL))
+  }
+  probability <- vapply(
+    properties$strata, `[[`, numeric(1), "probability"
+  )
+  probability <- pmax(probability, 0)
+  if (!sum(probability) > 0) probability[] <- 1
+  stratum <- properties$strata[[sample.int(
+    length(properties$strata), 1L, prob = probability
+  )]]
+  list(values = stratum$values, event = stratum$event)
+}
+
+.generate_subject_properties <- function(data, property) {
+  if (is.null(property$values)) return(data)
+  for (name in names(property$values)) {
+    data[[name]][] <- property$values[[name]]
+  }
+  data
+}
+
+.fill_assigned_dose <- function(data, roles) {
+  if (is.null(roles$assigned_dose)) return(data)
+  occasion <- as.integer(data$.occasion_internal)
+  amount <- suppressWarnings(as.numeric(data[[roles$amt]]))
+  evid <- as.character(data[[roles$evid]])
+  event <- !is.na(evid) & !evid %in% c("0", "0.0") &
+    is.finite(amount) & amount > 0
+  assigned <- rep(NA_real_, nrow(data))
+  for (value in unique(occasion[event])) {
+    nominal <- amount[which(event & occasion == value)[1L]]
+    assigned[occasion == value] <- nominal
+  }
+  data[[roles$assigned_dose]] <- assigned
+  data
+}
+
 .repair_derived_time <- function(data, roles, regimen) {
   if (!length(regimen$dose_times)) return(data)
   time <- as.numeric(data[[roles$time]])
@@ -723,12 +784,14 @@ generate_pmx <- function(private_model, n_subjects = NULL, seed = 123) {
     roles <- model$public$roles
     schema <- model$public$design$schema
     ids <- .new_public_ids(schema, roles$id, n_subjects)
-    regimen <- .resolved_regimen(model)
     generated <- vector("list", n_subjects)
     for (i in seq_len(n_subjects)) {
+      property <- .sample_subject_property(model)
+      regimen <- .resolved_regimen(model, property$event)
       subject <- .build_subject_skeleton(model, regimen)
       subject <- .generate_endpoint_values(subject, model)
       subject <- .generate_covariates(subject, model)
+      subject <- .generate_subject_properties(subject, property)
       subject[[roles$id]] <- rep(ids[i], nrow(subject))
       subject <- .repair_derived_time(subject, roles, regimen)
       order <- order(as.numeric(subject[[roles$time]]), subject$.tie_order)
