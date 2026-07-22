@@ -135,9 +135,13 @@ different public workflow cohort size is intended.
   uncommon dense visit from a sparse visit in every subject, without copying a
   source visit vector. `sampling_summary()` exposes these fitted quantities as
   releasable post-processing.
-- A public `endpoint_occasion_grids` schedule can declare different sampling
-  grids by dose occasion when the protocol is independently public; this is an
-  optional override rather than a requirement.
+- By default, dose count, interval, amount, infusion behavior, occasion
+  activation, conditional sample counts, and timing-cell occupancy are inferred
+  from the input through budgeted summaries. A generic grid is only a
+  discretization basis, not a supplied sampling schedule.
+- A public `endpoint_occasion_grids` schedule remains available only as an
+  exceptional override when the protocol is independently public; the package
+  demonstrations do not use it.
 - Factor-valued ID columns retain the factor class but never retain source ID
   levels; generated IDs receive a fresh mock-only level set.
 - Dose and infusion fields are created coherently. A generated infusion start
@@ -172,6 +176,9 @@ study with 60 subjects by default for broader privacy-utility evaluation.
   requested dimensionality imply weak utility.
 - Broad generated variability is intentionally public rather than precisely
   estimated from a small source study.
+- Dose-relative AR(1) perturbations restart at each generated occasion. If the
+  released coarse curve is already approximately unimodal, source-free
+  post-processing prevents residual noise from adding a second PK peak.
 - The current mechanism uses conservative L1 sensitivity proportional to each
   released vector's dimension and basic sequential composition.
 - OpenDP's mechanism, the R/OpenDP boundary, serialization, public-input
@@ -180,8 +187,10 @@ study with 60 subjects by default for broader privacy-utility evaluation.
 - Empirical attacks can discover bugs but cannot prove differential privacy.
 - Generated data remain inappropriate for scientific analysis.
 
-See `vignette("pmxSynthData-demo")` and
-`vignette("pmxSynthData-method")` for the worked API and full method.
+See `vignette("pmxSynthData-demo")` for the worked API,
+`vignette("pmxSynthData-privacy-intro")` for the privacy guarantee, and
+`vignette("pmxSynthData-simulation-method")` for the patient-simulation
+algorithm.
 
 ## Development
 

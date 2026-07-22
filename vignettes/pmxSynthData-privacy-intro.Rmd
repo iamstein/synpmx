@@ -1,5 +1,5 @@
 ---
-title: "How pmxSynthData Works"
+title: "Privacy in pmxSynthData"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -8,7 +8,7 @@ output:
     fig_width: 10
     fig_height: 5.5
 vignette: >
-  %\VignetteIndexEntry{How pmxSynthData Works}
+  %\VignetteIndexEntry{Privacy in pmxSynthData}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -33,29 +33,40 @@ stage allowed to read confidential rows. `generate_pmx()` receives only the
 released model. There are no raw patient anchors, nearest-neighbor donors,
 copied source event skeletons, or exact-source-timing modes.
 
+This vignette explains the privacy guarantee, its assumptions, and its
+limitations. See `vignette("pmxSynthData-simulation-method")` for the actual
+patient-simulation algorithm—including the fixed-grid trajectory model,
+sampling-time probabilities, interpolation, and variability—and
+`vignette("pmxSynthData-demo")` for runnable examples.
+
 ```{r pipeline, echo=FALSE, fig.cap="The Version 2 privacy boundary and post-processing pipeline."}
 old <- par(mar = c(.5, .5, .5, .5), xpd = NA)
-plot.new(); plot.window(xlim = c(0, 12), ylim = c(0, 7))
-box <- function(x, y, label, fill) {
-  rect(x - 1.25, y - .65, x + 1.25, y + .65,
+plot.new(); plot.window(xlim = c(0, 14), ylim = c(0, 7))
+box <- function(x, y, label, fill, width = 2.7) {
+  rect(x - width / 2, y - .55, x + width / 2, y + .55,
        col = fill, border = "#24445C", lwd = 1.5)
-  text(x, y, label, cex = .82)
+  text(x, y, label, cex = .76)
 }
-pos <- rbind(c(1.5, 5.5), c(4.5, 5.5), c(7.5, 5.5), c(10.5, 5.5),
-             c(10.5, 2), c(7.5, 2), c(4.5, 2), c(1.5, 2))
-lab <- c("Confidential PMX\nrows", "Public domains\n+ limits",
-         "Bound each complete\nsubject", "Fixed-dimensional\nsubject vectors",
-         "OpenDP mechanisms\n+ accounting", "Private model\n+ ledger",
-         "Generate new event\ntables", "Validate, inspect,\nexport")
-fill <- c("#FADBD8", rep("#D6EAF8", 3), "#FCF3CF", rep("#D5F5E3", 3))
-for (i in seq_len(nrow(pos) - 1L)) {
-  arrows(pos[i, 1], pos[i, 2], pos[i + 1L, 1], pos[i + 1L, 2],
+top_x <- c(1.7, 5.2, 8.7, 12.2)
+top_lab <- c("Source + public\nconfiguration", "Bound complete\nsubjects",
+             "Fixed-dimensional\nvectors", "OpenDP release\n+ accounting")
+top_fill <- c("#FADBD8", rep("#D6EAF8", 2), "#FCF3CF")
+for (i in seq_along(top_x)) box(top_x[i], 5.5, top_lab[i], top_fill[i])
+for (i in seq_len(length(top_x) - 1L)) {
+  arrows(top_x[i] + 1.38, 5.5, top_x[i + 1L] - 1.38, 5.5,
          length = .08, col = "#566573", lwd = 1.3)
 }
-for (i in seq_len(nrow(pos))) box(pos[i, 1], pos[i, 2], lab[i], fill[i])
-abline(v = 6, lty = 2, col = "#922B21", lwd = 2)
-text(5.8, 6.65, "restricted fitting", adj = 1, col = "#922B21")
-text(6.2, 6.65, "released model + post-processing", adj = 0, col = "#196F3D")
+abline(h = 3.65, lty = 2, col = "#7F8C8D", lwd = 1.5)
+text(.3, 4.05, "restricted fitting", adj = 0, col = "#922B21")
+text(.3, 3.25, "released model + post-processing", adj = 0,
+     col = "#196F3D")
+bottom_x <- c(11.7, 7.3, 2.9)
+bottom_lab <- c("Private model\n+ ledger", "Generate new\nevent tables",
+                "Validate, inspect,\nand export")
+for (i in seq_along(bottom_x)) box(bottom_x[i], 1.6, bottom_lab[i], "#D5F5E3")
+arrows(12.2, 4.94, 11.7, 2.17, length = .08, col = "#566573", lwd = 1.3)
+arrows(10.32, 1.6, 8.68, 1.6, length = .08, col = "#566573", lwd = 1.3)
+arrows(5.92, 1.6, 4.28, 1.6, length = .08, col = "#566573", lwd = 1.3)
 par(old)
 ```
 
@@ -263,93 +274,14 @@ The noiseless `backend = "public"` is accepted only with
 `public_source = TRUE` for fully public examples. It reports
 `formal_dp = FALSE` and is never an alternative for confidential data.
 
-# Endpoint clocks and trajectories
+# What is generated after the private release?
 
-`transform = "auto"` uses only public bounds: a nonnegative domain selects an
-offset log scale, otherwise identity. Source observations are assigned to a
-small public grid; tied values in one subject/cell are averaged. The release
-contains noisy presence and value sums, not rows. Generation interpolates a
-smoothed noisy curve and adds broad public subject and AR(1) residual
-variability on the working scale.
-
-For `alignment = "dose_relative"`, observations use TAD after the latest
-qualifying dose. A new excursion is generated after every new dose. When the
-private coarse curve supports it, the pattern rises and falls without
-preserving half-life, exposure, accumulation, or individual parameters.
-`alignment = "occasion"` uses that clock with related occasion shifts.
-
-```{r pk-example, echo=FALSE}
-pk <- data.frame(dose = rep(c(0, 24, 48), each = 5),
-                 tad = rep(c(0, .5, 2, 8, 24), 3),
-                 relative = rep(c(.05, .65, 1, .45, .08), 3))
-pk$study_time <- pk$dose + pk$tad
-knitr::kable(pk, caption = "A generalized rise-and-fall excursion after each dose.")
-```
-
-For `alignment = "study_time"`, there is one global curve from treatment
-start. It can express delayed decline, nadir, plateau, and recovery and does not
-restart after doses. `alignment = "hybrid"` adds a centered, low-dimensional
-dose-relative excursion to that global baseline.
-
-```{r wbc-example, echo=FALSE}
-knitr::kable(data.frame(
-  hour = c(0, 72, 120, 192, 240, 336, 504, 672),
-  relative_WBC = c(1, 1.02, .72, .48, .38, .55, .82, .95)
-), caption = "One illustrative long-timescale decline and recovery.")
-```
-
-Multiple DVIDs are summarized and generated separately. Detailed cross-endpoint
-dependence is not learned.
-
-# Event, time, schema, and censoring generation
-
-The generator resolves a generalized regimen from approved public design or
-coarse private summaries. It creates new IDs, dose rows, infusion pairs,
-endpoint observations, and actual-like times around nominal cells. EVID, AMT,
-RATE, CMT, DVID, ADDL, II, MDV, CENS, and LIMIT are set coherently, never
-numerically averaged.
-
-For each dose-relative endpoint, the timing release includes a bounded binary
-presence indicator and bounded observation count for each possible occasion,
-as well as coarse grid-cell presence. `sampling_summary()` reports the released
-occasion probability and the sample count conditional on that occasion being
-active. Generation first draws active occasions and then their sampling
-density. This distinguishes an uncommon dense visit from a sparse visit in
-every subject and prevents a dense grid from being repeated after every dose
-without reproducing a source missing-visit vector.
-
-When the sampling plan is independently public protocol information, an
-`endpoint_occasion_grids` schedule can instead specify grids for individual
-dose occasions. Only the listed occasions receive observations; omitted
-occasions receive none. This optional override changes the sampling rows, not
-the dose regimen, so required Q24H dose events remain in the generated event
-history.
-
-One jitter draw is shared by all endpoint rows in a nominal collection block;
-dose-tied cells stay tied. Actual time stays chronological and inside the public
-domain. TAD and occasion are re-derived from generated doses. Infusion stops
-use the negative generated amount/rate and generated duration. A complete
-source time or missing-visit vector is never copied.
-
-Public schema controls names, order, classes, and factor levels. Unmodeled
-columns receive declared public defaults or typed missing values. New numeric
-IDs use a high mock range; character IDs use `mock_...`, without consulting or
-storing source IDs.
-
-Monolix-style censoring is reconstructed after generating a latent trajectory:
-
-- `CENS = 0`: uncensored DV;
-- `CENS = 1`: left censored, DV is the upper boundary;
-- `CENS = -1`: right censored, DV is the lower boundary; and
-- interval censoring: DV is the reported boundary and LIMIT is the other one.
-
-Private coarse state frequencies/limits or justified public assay limits drive
-the rule. DV, CENS, and LIMIT are written together. Validation checks allowed
-states, finite boundaries, interval direction, EVID/MDV, and endpoint logic.
-
-```{r censor-fixture}
-pmx_censoring_fixture()[, c("TIME", "DV", "CENS", "LIMIT")]
-```
+`generate_pmx()` is post-processing: it reads the released summaries and
+public configuration, not source rows. It creates new IDs, event rows,
+observation times, endpoint values, covariates, censoring states, and a restored
+public schema. The privacy argument requires only that this stage consult no
+confidential data; its statistical construction is documented separately in
+`vignette("pmxSynthData-simulation-method")`.
 
 # Post-processing and release status
 

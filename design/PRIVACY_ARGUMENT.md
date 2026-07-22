@@ -37,8 +37,8 @@ representations:
 |---|---|---|
 | subject count | number of unique subject IDs | OpenDP scalar Laplace release, sensitivity 1 |
 | event/regimen | bounded dose/event counts, interval, amount, rate, infusion and duration features | OpenDP vector Laplace release |
-| endpoint timing | per-subject public-grid presence indicators | OpenDP vector Laplace release |
-| trajectories | per-subject public-grid presence and bounded transformed cell means | OpenDP vector Laplace release |
+| endpoint timing | per-subject fixed-basis presence indicators | OpenDP vector Laplace release |
+| trajectories | per-subject fixed-basis presence and bounded transformed cell means | OpenDP vector Laplace release |
 | covariates | bounded first/second moments or indicators over public categories | OpenDP vector Laplace release |
 | censoring | bounded endpoint-level state frequencies and boundaries | OpenDP vector Laplace release |
 
@@ -57,7 +57,8 @@ separate approved mechanism is added.
 
 The proof treats these caller declarations as established independently of
 confidential values: column roles and exclusions; schema, classes, and category
-levels; endpoint names, DVIDs, clocks, transforms, units, public grids, and
+levels; endpoint names, DVIDs, clocks, transforms, units, generic fixed-grid
+bases (or independently public user-supplied bases), and
 compartments; numeric bounds; contribution limits; approved protocol values;
 generator variability; requested output size; and budget fractions.
 

@@ -233,7 +233,7 @@ theo_roles <- pmxSynthData::pmx_roles(
 )
 theo_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
   alignment = "dose_relative", transform = "log", shape = "occasion",
-  grid = c(0, .25, .5, 1, 2, 4, 5, 7, 9, 12, 23.75), cmt = 2
+  cmt = 2
 ))
 theophylline <- run_public_demo(
   "theo_md", theo_roles, theo_endpoints,
@@ -259,12 +259,10 @@ warfarin_roles <- pmxSynthData::pmx_roles(
 )
 warfarin_endpoints <- list(
   cp = pmxSynthData::pmx_endpoint(
-    "cp", "dose_relative", "log", "occasion",
-    grid = c(.5, 1, 1.5, 2, 3, 6, 9, 12, 24, 48, 72, 120)
+    "cp", "dose_relative", "log", "occasion"
   ),
   pca = pmxSynthData::pmx_endpoint(
-    "pca", "study_time", "identity", "global",
-    grid = c(0, 24, 36, 48, 72, 96, 120, 144)
+    "pca", "study_time", "identity", "global"
   )
 )
 warfarin_result <- run_public_demo(
@@ -275,9 +273,7 @@ warfarin_result <- run_public_demo(
     covariates = list(wt = c(40, 150), age = c(18, 100))
   ),
   design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_times = 0, n_doses = 1,
-    dose_amount = 100, dose_evid = 1,
-    endpoint_grids = lapply(warfarin_endpoints, `[[`, "grid")
+    pmxSynthData::pmx_schema(source), dose_evid = 1
   ),
   limits = pmxSynthData::pmx_contribution_limits(
     30, 2, 2, c(cp = 20, pca = 12), 12
@@ -291,8 +287,7 @@ wbc_roles <- pmxSynthData::pmx_roles(
   covariates = c("V2I", "V1I", "CLI")
 )
 wbc_endpoints <- list(wbc = pmxSynthData::pmx_endpoint(
-  alignment = "study_time", transform = "log", shape = "global",
-  grid = c(0, 72, 120, 168, 192, 240, 336, 504, 672), cmt = 3
+  alignment = "study_time", transform = "log", shape = "global", cmt = 3
 ))
 wbc <- run_public_demo(
   "wbcSim", wbc_roles, wbc_endpoints,
@@ -303,10 +298,7 @@ wbc <- run_public_demo(
                       CLI = c(100, 800))
   ),
   design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_times = 0, n_doses = 1,
-    dose_amount = 120, dose_rate = 120, infusion_duration = 3,
-    dose_evid = 10101, dose_cmt = 1,
-    endpoint_grids = list(wbc = wbc_endpoints$wbc$grid),
+    pmxSynthData::pmx_schema(source), dose_evid = 10101, dose_cmt = 1,
     endpoint_cmt = list(wbc = 3)
   ),
   limits = pmxSynthData::pmx_contribution_limits(20, 2, 2, 12, 9),

@@ -454,6 +454,21 @@
   })
 }
 
+.fill_unoccupied_curve <- function(value_unit, presence, grid,
+                                   threshold = 0.25) {
+  occupied <- which(presence > threshold & is.finite(value_unit))
+  if (!length(occupied)) return(rep(0.5, length(value_unit)))
+  if (length(occupied) == 1L) return(rep(value_unit[occupied], length(value_unit)))
+  # Empty cells mean "no released support here", not a measurement at the
+  # midpoint of the endpoint domain. Interpolation is source-free
+  # post-processing of the released occupied cells and avoids artificial
+  # troughs on wide log-transformed domains.
+  stats::approx(
+    x = grid[occupied], y = value_unit[occupied], xout = grid,
+    rule = 2, ties = mean
+  )$y
+}
+
 .decode_trajectories <- function(released, trajectory_map, endpoints) {
   out <- list()
   for (name in names(endpoints)) {
@@ -461,9 +476,12 @@
     presence <- pmax(released[spec$presence], 0)
     value_sum <- pmax(released[spec$value], 0)
     value_unit <- ifelse(presence > 0.25,
-                         value_sum / pmax(presence, 1e-8), 0.5)
+                         value_sum / pmax(presence, 1e-8), NA_real_)
     value_unit <- pmin(pmax(value_unit, 0), 1)
     endpoint <- endpoints[[name]]
+    value_unit <- .fill_unoccupied_curve(
+      value_unit, presence, endpoint$grid
+    )
     working <- .from_unit(value_unit, .endpoint_working_bounds(endpoint))
     item <- list(
       grid = endpoint$grid,

@@ -14,6 +14,9 @@
 #'   expectation, not a fitted structural model.
 #' @param units Optional public unit label.
 #' @param grid Optional strictly increasing public grid on the declared clock.
+#'   This is a discretization basis, not a sampling schedule. When omitted, a
+#'   generic basis is constructed from public bounds and contribution limits;
+#'   sampling-cell occupancy is then learned from the fitted data.
 #' @param cmt Optional public observation compartment value.
 #' @param subject_sd,residual_sd Public generation variability multipliers.
 #' @param censoring Optional public list with `left`, `right`, or a two-value
@@ -149,17 +152,33 @@ print.pmx_endpoint <- function(x, ...) {
     endpoint <- endpoints[[name]]
     grid <- endpoint$grid
     if (is.null(grid)) grid <- public_design$endpoint_grids[[name]]
+    automatic_grid <- is.null(grid)
     if (is.null(grid)) {
       cells <- contribution_limits$max_timing_cells
       if (endpoint$alignment %in% c("dose_relative", "occasion")) {
-        upper <- min(diff(bounds$time),
-                     public_design$dose_interval %||% diff(bounds$time))
-        grid <- seq(0, upper, length.out = cells)
+        # This is a generic, source-independent basis rather than a disclosed
+        # visit schedule. With no public interval, the public maximum number of
+        # occasions supplies a coarse local horizon. Log spacing gives PK-like
+        # clocks useful early-time resolution without inspecting source times.
+        generic_interval <- diff(bounds$time) /
+          max(contribution_limits$max_occasions - 1L, 1L)
+        upper <- min(
+          diff(bounds$time),
+          public_design$dose_interval %||% generic_interval
+        )
+        grid <- expm1(seq(
+          0, log1p(upper), length.out = cells
+        ))
       } else {
         grid <- seq(bounds$time[1L], bounds$time[2L], length.out = cells)
       }
     }
     endpoint$grid <- unique(as.numeric(grid))
+    endpoint$grid_automatic <- automatic_grid
+    endpoint$grid_horizon <- if (
+      automatic_grid &&
+      endpoint$alignment %in% c("dose_relative", "occasion")
+    ) max(endpoint$grid) else NULL
     if (length(endpoint$grid) > contribution_limits$max_timing_cells) {
       index <- unique(round(seq(1, length(endpoint$grid),
                                 length.out = contribution_limits$max_timing_cells)))

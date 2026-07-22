@@ -15,7 +15,7 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
                      evid = "EVID", cmt = "CMT", covariates = "WT")
   endpoints <- list(cp = pmx_endpoint(
     alignment = "dose_relative", transform = "log", shape = "occasion",
-    grid = c(0, .25, .5, 1, 2, 4, 5, 7, 9, 12, 23.75), cmt = 2
+    cmt = 2
   ))
   model <- fit_private_pmx(
     source, roles, endpoints, 5, 0,
@@ -62,6 +62,18 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
   expect_equal(round(fitted_sampling$observations_if_sampled[1:7]),
                c(10, 1, 0, 0, 0, 0, 11))
   cp <- mock[mock$EVID == 0, ]
+  directional_peaks <- unlist(lapply(split(mock, mock$ID), function(subject) {
+    doses <- sort(subject$TIME[subject$EVID != 0])
+    observations <- subject[subject$EVID == 0, , drop = FALSE]
+    occasion <- pmax(1L, findInterval(observations$TIME, doses))
+    vapply(split(observations, occasion), function(profile) {
+      values <- profile$DV[order(profile$TIME)]
+      direction <- sign(diff(values))
+      direction <- direction[direction != 0]
+      sum(diff(direction) < 0)
+    }, integer(1))
+  }))
+  expect_true(all(directional_peaks <= 1L))
   first <- cp[cp$ID == unique(cp$ID)[1] & cp$TIME < 12, ]
   expect_gt(max(first$DV), first$DV[1L])
   source_vectors <- split(source$TIME, source$ID)
@@ -78,10 +90,8 @@ test_that("warfarin preserves lower-case endpoint-specific schema", {
                      evid = "evid", dvid = "dvid",
                      covariates = c("wt", "age", "sex"))
   endpoints <- list(
-    cp = pmx_endpoint("cp", "dose_relative", "log", "occasion",
-                      grid = c(.5, 1, 1.5, 2, 3, 6, 9, 12, 24, 48, 72, 120)),
-    pca = pmx_endpoint("pca", "study_time", "identity", "global",
-                       grid = c(0, 24, 36, 48, 72, 96, 120, 144))
+    cp = pmx_endpoint("cp", "dose_relative", "log", "occasion"),
+    pca = pmx_endpoint("pca", "study_time", "identity", "global")
   )
   model <- fit_private_pmx(
     source, roles, endpoints, 5, 0,
@@ -89,8 +99,7 @@ test_that("warfarin preserves lower-case endpoint-specific schema", {
                amt = c(0, 200),
                covariates = list(wt = c(40, 150), age = c(18, 100))),
     pmx_public_design(
-      pmx_schema(source), dose_times = 0, n_doses = 1, dose_amount = 100,
-      dose_evid = 1, endpoint_grids = lapply(endpoints, `[[`, "grid")
+      pmx_schema(source), dose_evid = 1
     ),
     pmx_contribution_limits(30, 2, 2, c(cp = 20, pca = 12), 12),
     integration_budget(), backend = "public", public_source = TRUE
@@ -121,8 +130,7 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
                      evid = "EVID", cmt = "CMT", rate = "RATE",
                      covariates = c("V2I", "V1I", "CLI"))
   endpoints <- list(wbc = pmx_endpoint(
-    alignment = "study_time", transform = "log", shape = "global",
-    grid = c(0, 72, 120, 168, 192, 240, 336, 504, 672), cmt = 3
+    alignment = "study_time", transform = "log", shape = "global", cmt = 3
   ))
   model <- fit_private_pmx(
     source, roles, endpoints, 5, 0,
@@ -131,9 +139,7 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
                covariates = list(V2I = c(100, 1500), V1I = c(100, 1200),
                                  CLI = c(100, 800))),
     pmx_public_design(
-      pmx_schema(source), dose_times = 0, n_doses = 1, dose_amount = 120,
-      dose_rate = 120, infusion_duration = 3, dose_evid = 10101,
-      dose_cmt = 1, endpoint_grids = list(wbc = endpoints$wbc$grid),
+      pmx_schema(source), dose_evid = 10101, dose_cmt = 1,
       endpoint_cmt = list(wbc = 3)
     ),
     pmx_contribution_limits(20, 2, 2, 12, 9), integration_budget(),

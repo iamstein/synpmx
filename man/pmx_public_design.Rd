@@ -26,19 +26,26 @@ pmx_public_design(
 \arguments{
 \item{schema}{A schema from \code{\link[=pmx_schema]{pmx_schema()}}. It is required.}
 
-\item{dose_times, dose_interval, n_doses, dose_amount, dose_rate}{Optional
-public regimen values.}
+\item{dose_times, dose_interval, n_doses, dose_amount, dose_rate}{Optional public
+regimen overrides. Normally omit these so the budgeted event summaries
+infer the regimen from the input data. Supply them only when they are
+independently public protocol facts, never by inspecting confidential
+records outside the private fit.}
 
 \item{infusion_duration}{Optional public infusion duration.}
 
 \item{dose_evid, dose_cmt}{Public event and dose-compartment values.}
 
-\item{endpoint_grids}{Named list of public endpoint grids on the endpoint's
-declared scientific clock.}
+\item{endpoint_grids}{Optional named list of fixed discretization bases on
+each endpoint's declared scientific clock. These are not sampling
+schedules. When omitted, the package constructs generic bases from public
+bounds and contribution limits and privately learns their occupancy.}
 
 \item{endpoint_occasion_grids}{Optional named list of endpoint-specific,
-public dose-occasion sampling grids. Each endpoint entry is a list named
-by positive occasion number; omitted occasions generate no observations.}
+public dose-occasion sampling schedules. This exceptional override should
+be used only for an independently public protocol. Each endpoint entry is
+a list named by positive occasion number; omitted occasions generate no
+observations.}
 
 \item{endpoint_cmt}{Named list or vector of public observation compartments.}
 
@@ -50,8 +57,8 @@ logical covariates. Factor levels come from the public schema.}
 \item{time_jitter_sd}{Nonnegative generation-time jitter scale, expressed as
 a fraction of the closest public grid spacing.}
 
-\item{subject_count}{Optional public source subject count. It is used only
-for diagnostics; generation size is always chosen separately.}
+\item{subject_count}{Optional independently public source subject count.
+When omitted, generation uses the privacy-accounted fitted count.}
 }
 \value{
 A \code{pmx_public_design} object.

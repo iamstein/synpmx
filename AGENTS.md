@@ -12,3 +12,10 @@ structurally faithful mock pharmacometric datasets.
 - Treat `data/` and `output/` as local/generated unless told otherwise.
 - Preserve unrelated changes and avoid adding dependencies unnecessarily.
 - Run the full tests and `R CMD check` after behavioral changes.
+
+## Testing
+
+- A description of a simulation testing scirpt should be made available in TEST_SIM.md. 
+- This will use a number of publicly available datasets, starting with the three in the demo.
+- Checks should be written to see if there are issues with the data.
+- This scirpt should be maintained.  Every time you find an issue with teh simulator, add it to the list of issues in the design/TEST_SIM.md file.
