@@ -1,41 +1,43 @@
 #' Declare pharmacometric column roles
 #'
-#' Column roles are always explicit. `pmxSynthData` never guesses critical event or
-#' measurement columns from their names.
+#' Column roles are explicit: `pmxSynthData` does not infer critical PMX
+#' semantics from column names. Columns listed in `exclude` are removed before
+#' fitting and do not appear in generated data.
 #'
-#' @param id,time,dv,evid Single column names for subject ID, time, dependent
-#'   variable, and event ID. These roles are required.
+#' @param id,time,dv,evid Required single column names for subject ID, actual
+#'   time, dependent variable, and event ID.
 #' @param amt,cmt,dvid,mdv,rate Optional single column names for amount,
 #'   compartment, endpoint, missing-DV indicator, and infusion rate.
-#' @param covariates Character vector of baseline covariate column names, or
-#'   `NULL`.
+#' @param nominal_time,tad,occasion Optional time metadata columns.
+#' @param cens,limit Optional Monolix-style censoring indicator and other
+#'   interval-boundary columns.
+#' @param addl,ii Optional additional-dose and interdose-interval columns.
+#' @param covariates Baseline covariate column names, or `NULL`.
+#' @param exclude Columns explicitly excluded before private fitting, such as
+#'   direct identifiers. An ID role is still required as the privacy unit.
 #'
-#' @return A `pmx_roles` object consumed by [mock_pmx()], [validate_pmx()], and
-#'   [compare_pmx()].
+#' @return A `pmx_roles` object used by the fitting, generation, validation, and
+#'   comparison functions.
 #' @export
 #'
 #' @examples
 #' roles <- pmx_roles(
 #'   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-#'   evid = "EVID", cmt = "CMT", covariates = "WT"
+#'   evid = "EVID", cmt = "CMT", tad = "TAD", covariates = "WT"
 #' )
 pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
-                      covariates = NULL) {
+                      nominal_time = NULL, tad = NULL, occasion = NULL,
+                      cens = NULL, limit = NULL, addl = NULL, ii = NULL,
+                      covariates = NULL, exclude = NULL) {
   roles <- list(
-    id = id,
-    time = time,
-    dv = dv,
-    amt = amt,
-    evid = evid,
-    cmt = cmt,
-    dvid = dvid,
-    mdv = mdv,
-    rate = rate,
-    covariates = covariates
+    id = id, time = time, nominal_time = nominal_time, tad = tad,
+    occasion = occasion, dv = dv, amt = amt, evid = evid, cmt = cmt,
+    dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
+    addl = addl, ii = ii, covariates = covariates, exclude = exclude
   )
 
-  scalar_roles <- setdiff(names(roles), "covariates")
+  scalar_roles <- setdiff(names(roles), c("covariates", "exclude"))
   for (role in scalar_roles) {
     value <- roles[[role]]
     if (!is.null(value) &&
@@ -45,24 +47,29 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
            call. = FALSE)
     }
   }
-  if (!is.null(covariates) &&
-      (!is.character(covariates) || anyNA(covariates) ||
-       any(!nzchar(covariates)))) {
-    stop("`covariates` must be a character vector of column names or NULL.",
-         call. = FALSE)
+  for (role in c("covariates", "exclude")) {
+    value <- roles[[role]]
+    if (!is.null(value) &&
+        (!is.character(value) || anyNA(value) || any(!nzchar(value)))) {
+      stop("`", role,
+           "` must be a character vector of column names or NULL.",
+           call. = FALSE)
+    }
+    roles[[role]] <- unique(value)
   }
-  roles$covariates <- unique(covariates)
 
-  used <- unlist(roles, use.names = FALSE)
-  duplicated_roles <- unique(used[duplicated(used)])
+  modeled <- unlist(roles[setdiff(names(roles), "exclude")],
+                    use.names = FALSE)
+  duplicated_roles <- unique(modeled[duplicated(modeled)])
   if (length(duplicated_roles)) {
-    stop(
-      "A column cannot have multiple roles: ",
-      paste(duplicated_roles, collapse = ", "), ".",
-      call. = FALSE
-    )
+    stop("A column cannot have multiple roles: ",
+         paste(duplicated_roles, collapse = ", "), ".", call. = FALSE)
   }
-
+  overlap <- intersect(modeled, roles$exclude)
+  if (length(overlap)) {
+    stop("Modeled role columns cannot also be excluded: ",
+         paste(overlap, collapse = ", "), ".", call. = FALSE)
+  }
   structure(roles, class = "pmx_roles")
 }
 

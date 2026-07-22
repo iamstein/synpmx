@@ -1,70 +1,109 @@
-test_that("small groups and k larger than available donors use warnings and fallbacks", {
-  roles <- fixture_roles()
-  one <- pmx_fixture(n = 1L)
-  expect_warning(
-    mock <- mock_pmx(one, roles, n_subjects = 2, seed = 2, k = 20),
-    "anchor"
+test_that("missing and incomplete public configuration fails clearly", {
+  source <- private_fixture()
+  expect_error(pmx_bounds(c(0, 1), list()), "named list")
+  expect_error(pmx_contribution_limits(1, 1, 1, 1, 1), "at least two")
+  expect_error(pmx_budget_allocation(.5, .5, .5, 0, 0, 0), "sum")
+  expect_error(
+    pmx_budget_allocation(.1, .15, .15, .1, .5, 1e-12), "sum"
   )
-  expect_equal(length(unique(mock$ID)), 2L)
-  expect_true(validate_pmx(mock, roles)$valid)
-
-  two <- pmx_fixture(n = 2L)
-  expect_warning(
-    mock_pmx(two, roles, n_subjects = 2, seed = 2, k = 20),
-    "fewer than two"
-  )
-})
-
-test_that("zero-variance and duplicated profiles are handled safely", {
-  source <- pmx_fixture(duplicated_profiles = TRUE)
-  roles <- fixture_roles()
-  expect_warning(
-    mock <- mock_pmx(
-      source, roles, n_subjects = 3, seed = 72,
-      subject_noise_sd = 0, residual_noise_sd = 0
+  tampered_budget <- private_budget()
+  tampered_budget$endpoints <- 1.5
+  expect_error(
+    fit_private_pmx(
+      source, private_roles(), private_endpoints(), 5, 0, private_bounds(),
+      private_design(source), private_limits(), tampered_budget,
+      backend = "public", public_source = TRUE
     ),
-    "zero neighbor distances"
+    "modified"
   )
-  expect_true(all(is.finite(mock$DV)))
-  expect_true(validate_pmx(mock, roles)$valid)
+  wrong <- private_design(source)
+  wrong$schema$columns <- wrong$schema$columns[-1L]
+  expect_error(
+    fit_private_pmx(
+      source, private_roles(), private_endpoints(), 5, 0, private_bounds(),
+      wrong, private_limits(), private_budget(), backend = "public",
+      public_source = TRUE
+    ), "schema"
+  )
+  expect_error(
+    pmx_public_design(
+      pmx_schema(source),
+      endpoint_occasion_grids = list(cp = list("1.5" = c(0, 1)))
+    ),
+    "positive occasion number"
+  )
+  expect_error(
+    pmx_public_design(
+      pmx_schema(source),
+      endpoint_occasion_grids = list(cp = list("1" = c(1, 0)))
+    ),
+    "strictly increasing"
+  )
 })
 
-test_that("clearly different repeat-dose gaps form separate compatible groups", {
-  source <- pmx_fixture(n = 8L)
-  late_subject <- source$ID > 4L
-  second_occasion <- late_subject & source$TIME >= 12
-  source$TIME[second_occasion] <- source$TIME[second_occasion] + 12
-  roles <- fixture_roles()
-
-  mock <- mock_pmx(source, roles, n_subjects = 2, seed = 5, k = 2)
-  expect_equal(attr(mock, "pmx_settings")$compatible_event_groups, 2L)
-  expect_true(validate_pmx(mock, roles)$valid)
+test_that("small studies and excessive dimension warn without weakening privacy", {
+  source <- private_fixture(2)
+  expect_warning(
+    model <- fit_private_pmx(
+      source, private_roles(), private_endpoints(), 5, 0,
+      private_bounds(), private_design(source), private_limits(),
+      private_budget(), backend = "public", public_source = TRUE
+    ),
+    "below six|dimension"
+  )
+  expect_equal(model$privacy$epsilon, 5)
+  expect_equal(model$privacy$delta, 0)
+  generated <- generate_pmx(model, 2, 3)
+  expect_true(validate_pmx(
+    generated, private_roles(), private_endpoints()
+  )$valid)
 })
 
-test_that("generator options fail clearly", {
-  source <- pmx_fixture()
-  roles <- fixture_roles()
-  expect_error(mock_pmx(source, roles, n_subjects = 0), "positive integer")
-  expect_error(mock_pmx(source, roles, k = 0), "positive integer")
-  expect_error(mock_pmx(source, roles, pca_variance = 2), "in \\(0, 1\\]")
-  expect_error(mock_pmx(source, roles, residual_phi = 1), "strictly between")
-  expect_error(mock_pmx(source, roles, seed = -1), "integer from 0")
-  expect_error(mock_pmx(source, roles, event_method = "pca"), "template")
-  expect_error(mock_pmx(source, roles, dv_method = "gan"), "avatar_blend")
-})
-
-test_that("comparison reports structure and exploratory plots", {
-  source <- pmx_fixture()
-  roles <- fixture_roles()
-  mock <- mock_pmx(source, roles, n_subjects = 3, seed = 90)
-  comparison <- compare_pmx(source, mock, roles)
-
-  expect_s3_class(comparison, "pmx_comparison")
-  expect_equal(comparison$summary$dataset, c("source", "mock"))
-  expect_true(all(comparison$column_classes$matches))
-  expect_true(comparison$validation$mock$valid)
-  if (requireNamespace("ggplot2", quietly = TRUE)) {
-    expect_named(comparison$plots, c("overlay", "faceted"))
-    expect_s3_class(comparison$plots$overlay, "ggplot")
+test_that("six-, twelve-, and larger simulated studies retain broad utility", {
+  for (n in c(6L, 12L)) {
+    source <- private_fixture(n)
+    model <- fit_public_fixture(source)
+    mock <- generate_pmx(model, n_subjects = n, seed = 700 + n)
+    expect_equal(model$population$private_subject_count, n)
+    expect_equal(length(unique(mock$ID)), n)
+    expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
   }
+
+  source <- pmx_simulated_fixture(60L)
+  model <- fit_public_fixture(source)
+  mock <- generate_pmx(model, n_subjects = 60L, seed = 760)
+  source_observed <- source[source$EVID == 0, , drop = FALSE]
+  mock_observed <- mock[mock$EVID == 0, , drop = FALSE]
+  source_center <- tapply(source_observed$DV, source_observed$DVID, mean)
+  mock_center <- tapply(mock_observed$DV, mock_observed$DVID, mean)
+  expect_lt(abs(log1p(mock_center[["cp"]]) -
+                  log1p(source_center[["cp"]])), 1)
+  expect_lt(abs(mock_center[["pd"]] - source_center[["pd"]]), 45)
+  expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
+})
+
+test_that("restricted comparisons label every source-derived component", {
+  source <- private_fixture()
+  mock <- generate_pmx(fit_public_fixture(source), 3, 90)
+  comparison <- compare_pmx(source, mock, private_roles(), private_endpoints())
+  expect_s3_class(comparison, "pmx_comparison")
+  expect_true(all(comparison$release_status$release_status[
+    comparison$release_status$component != "validation.mock"
+  ] == "restricted_not_releasable"))
+  expect_equal(attr(comparison$validation$mock, "release_status"),
+               "releasable_post_processing")
+})
+
+test_that("an empirical audit flags a deliberately broken mechanism", {
+  audit <- function(mechanism, left, right, epsilon, repetitions = 2000L) {
+    x <- replicate(repetitions, mechanism(left))
+    y <- replicate(repetitions, mechanism(right))
+    event <- sort(unique(c(x, y)))[1L]
+    px <- mean(x == event)
+    py <- mean(y == event)
+    px > exp(epsilon) * py + 0.02 || py > exp(epsilon) * px + 0.02
+  }
+  broken <- function(data) length(data)
+  expect_true(audit(broken, 1:5, 1:6, epsilon = 1))
+  # This is only a bug-finding test; passing an audit would not prove DP.
 })

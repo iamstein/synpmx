@@ -4,17 +4,19 @@
 \name{pmxSynthData-package}
 \alias{pmxSynthData}
 \alias{pmxSynthData-package}
-\title{pmxSynthData: Structurally Faithful Mock Pharmacometric Data}
+\title{pmxSynthData: source-calibrated private mock pharmacometric data}
 \description{
-\code{pmxSynthData} creates mock data for model-workflow exploration by combining a
-sampled subject's coherent event template with AVATAR-like blends of
-compatible subjects' covariates and longitudinal measurements. It does not
-fit or call a PK, PD, or NLME model.
+\code{pmxSynthData} fits a low-dimensional, subject-level differentially private
+population model once inside a restricted environment, then generates any
+number of structurally coherent PMX mock datasets by post-processing. It
+constructs new event tables rather than copying patient schedules or
+retaining source-subject records.
 }
 \details{
-The method is an AVATAR-inspired variant adapted to longitudinal PMX event
-data; it is not an exact reproduction of published AVATAR software. The
-output is not anonymous data and carries no formal privacy guarantee.
+The output is intended for model-workflow exploration. It preserves broad
+magnitudes, scientific clocks, event conventions, and coarse variability;
+it deliberately does not preserve parameter estimates, detailed
+distributions, inferential validity, or scientific conclusions.
 }
 \author{
 \strong{Maintainer}: Andrew Stein \email{andy.stein@gmail.com}

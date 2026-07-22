@@ -1,281 +1,689 @@
 ---
-title: "Mock PMX Data: Three Worked Examples"
+title: "Using pmxSynthData"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
     fig_width: 9
     fig_height: 5
-    self_contained: true
 vignette: >
-  %\VignetteIndexEntry{Mock PMX Data: Three Worked Examples}
+  %\VignetteIndexEntry{Using pmxSynthData}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.align = "center",
-  out.width = "100%"
-)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(pmxSynthData)
-```
+has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 
-## Purpose
-
-This vignette applies `pmxSynthData` to three datasets from `nlmixr2data`. The goal
-is to create **mock data for model-workflow exploration** without fitting or
-calling a PK, PD, or NLME model.
-
-The output is not anonymous data and has no formal privacy guarantee. It is
-not appropriate for parameter estimation, scientific inference, model
-selection, or clinical decisions.
-
-The examples illustrate three event structures:
-
-1. repeated oral dosing with one PK endpoint (`theo_md`);
-2. separate PK and PD endpoints (`warfarin`); and
-3. infusion start/stop events with a delayed biomarker trajectory (`wbcSim`).
-
-## Shared workflow
-
-Every example follows the same four steps:
-
-1. declare column roles explicitly with `pmx_roles()`;
-2. generate subjects with `mock_pmx()`;
-3. validate event structure with `validate_pmx()`; and
-4. inspect structural summaries and trajectories with `compare_pmx()`.
-
-The helper below loads a named dataset and labels every plot with the concrete
-source object and generator.
-
-```{r helpers}
-load_nlmixr2_data <- function(name) {
-  environment <- new.env(parent = emptyenv())
-  utils::data(
-    list = name,
-    package = "nlmixr2data",
-    envir = environment
+observed_plot_data <- function(data, roles, dataset) {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  if (!is.null(roles$mdv)) {
+    observed <- observed & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
+  }
+  observed <- observed & !is.na(data[[roles$dv]])
+  observation_rows <- which(observed)
+  occasion <- rep(1L, length(observation_rows))
+  subject_values <- data[[roles$id]]
+  for (id in unique(subject_values[observation_rows])) {
+    subject_rows <- which(!is.na(subject_values) & subject_values == id)
+    events <- !(as.character(data[[roles$evid]][subject_rows]) %in%
+                  c("0", "0.0"))
+    if (!is.null(roles$amt)) {
+      events <- events & as.numeric(data[[roles$amt]][subject_rows]) > 0
+    }
+    dose_times <- sort(unique(as.numeric(data[[roles$time]][
+      subject_rows[events]
+    ])))
+    positions <- which(subject_values[observation_rows] == id)
+    if (length(dose_times)) {
+      occasion[positions] <- pmax(1L, findInterval(
+        as.numeric(data[[roles$time]][observation_rows[positions]]),
+        dose_times
+      ))
+    }
+  }
+  data.frame(
+    dataset = factor(dataset, levels = c("Source", "Synthetic")),
+    subject = as.character(data[[roles$id]][observation_rows]),
+    time = as.numeric(data[[roles$time]][observation_rows]),
+    dv = as.numeric(data[[roles$dv]][observation_rows]),
+    occasion = occasion,
+    endpoint = if (is.null(roles$dvid)) "DV" else
+      as.character(data[[roles$dvid]][observation_rows]),
+    stringsAsFactors = FALSE
   )
-  get(name, envir = environment, inherits = FALSE)
 }
 
-label_comparison <- function(comparison, source_name) {
-  caption <- paste0(
-    "Source: nlmixr2data::", source_name,
-    " | Mock: pmxSynthData::mock_pmx()"
-  )
-  comparison$plots <- lapply(comparison$plots, function(plot) {
-    plot + ggplot2::labs(caption = caption)
+tad_plot_data <- function(data, roles, dataset) {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
+    !is.na(data[[roles$dv]])
+  ids <- data[[roles$id]]
+  out <- vector("list", length(unique(ids)))
+  for (i in seq_along(unique(ids))) {
+    id <- unique(ids)[i]
+    subject_rows <- which(ids == id)
+    event <- !(as.character(data[[roles$evid]][subject_rows]) %in%
+                 c("0", "0.0"))
+    if (!is.null(roles$amt)) {
+      event <- event & as.numeric(data[[roles$amt]][subject_rows]) > 0
+    }
+    dose_times <- sort(unique(as.numeric(
+      data[[roles$time]][subject_rows[event]]
+    )))
+    rows <- subject_rows[observed[subject_rows]]
+    occasion <- pmax(1L, findInterval(
+      as.numeric(data[[roles$time]][rows]), dose_times
+    ))
+    occasion <- pmin(occasion, length(dose_times))
+    out[[i]] <- data.frame(
+      dataset = factor(dataset, levels = c("Source", "Synthetic")),
+      subject = as.character(id), occasion = occasion,
+      tad = as.numeric(data[[roles$time]][rows]) - dose_times[occasion],
+      dv = as.numeric(data[[roles$dv]][rows]), endpoint = "DV",
+      stringsAsFactors = FALSE
+    )
+  }
+  do.call(rbind, out)
+}
+
+demo_design_summary <- function(data, roles, dataset, time_bounds) {
+  plotted <- observed_plot_data(data, roles, dataset)
+  plotted <- plotted[
+    plotted$time >= time_bounds[1L] & plotted$time <= time_bounds[2L],
+    , drop = FALSE
+  ]
+  cohort_ids <- as.character(unique(data[[roles$id]]))
+  pieces <- lapply(sort(unique(plotted$endpoint)), function(endpoint) {
+    rows <- plotted[plotted$endpoint == endpoint, , drop = FALSE]
+    counts <- table(factor(rows$subject, levels = cohort_ids))
+    data.frame(
+      dataset = dataset,
+      endpoint = endpoint,
+      patients = length(cohort_ids),
+      patients_with_endpoint = sum(counts > 0),
+      observations = nrow(rows),
+      mean_time_points_per_patient = mean(counts),
+      median_time_points_per_patient = stats::median(counts),
+      first_time = min(rows$time),
+      last_time = max(rows$time),
+      stringsAsFactors = FALSE
+    )
   })
-  comparison
+  do.call(rbind, pieces)
+}
+
+check_demo_similarity <- function(source, synthetic, roles, time_bounds,
+                                  label) {
+  source_subjects <- length(unique(source[[roles$id]]))
+  synthetic_subjects <- length(unique(synthetic[[roles$id]]))
+  if (source_subjects != synthetic_subjects) {
+    stop(label, ": source and synthetic patient counts differ (",
+         source_subjects, " versus ", synthetic_subjects, ").")
+  }
+  source_summary <- demo_design_summary(
+    source, roles, "Source", time_bounds
+  )
+  synthetic_summary <- demo_design_summary(
+    synthetic, roles, "Synthetic", time_bounds
+  )
+  if (!setequal(source_summary$endpoint, synthetic_summary$endpoint)) {
+    stop(label, ": source and synthetic endpoint sets differ.")
+  }
+  paired <- merge(
+    source_summary, synthetic_summary, by = "endpoint",
+    suffixes = c("_source", "_synthetic")
+  )
+  point_difference <- abs(
+    paired$mean_time_points_per_patient_synthetic -
+      paired$mean_time_points_per_patient_source
+  )
+  point_allowance <- pmax(
+    1, 0.25 * paired$mean_time_points_per_patient_source
+  )
+  if (any(point_difference > point_allowance)) {
+    stop(label, ": mean time points per patient differ materially for ",
+         paste(paired$endpoint[point_difference > point_allowance],
+               collapse = ", "), ".")
+  }
+  coverage_allowance <- 0.20 * diff(time_bounds)
+  bad_coverage <-
+    abs(paired$first_time_synthetic - paired$first_time_source) >
+      coverage_allowance |
+    abs(paired$last_time_synthetic - paired$last_time_source) >
+      coverage_allowance
+  if (any(bad_coverage)) {
+    stop(label, ": source and synthetic time coverage differs materially for ",
+         paste(paired$endpoint[bad_coverage], collapse = ", "), ".")
+  }
+  summary <- rbind(source_summary, synthetic_summary)
+  summary$dataset <- factor(
+    summary$dataset, levels = c("Source", "Synthetic")
+  )
+  summary[order(summary$dataset, summary$endpoint), , drop = FALSE]
+}
+
+comparison_facets <- function(data) {
+  ggplot2::facet_wrap(
+    ggplot2::vars(dataset, endpoint),
+    ncol = max(1L, length(unique(data$endpoint))),
+    scales = "free_y"
+  )
 }
 ```
 
-## Theophylline: repeated dosing
+## What this package is for
 
-`theo_md` uses uppercase column names, has one concentration endpoint, and
-contains seven dose records per subject. Dose and observation records can be
-tied at the same nominal time.
+`pmxSynthData` creates source-calibrated **mock data for model-workflow
+exploration**. Fit once where the source data are permitted, export the fitted
+private population model or data generated solely from it, and generate as
+many workflow datasets as needed without consulting the source again.
 
-```{r theo-generate}
-theo_md <- load_nlmixr2_data("theo_md")
+The goal is broad structural usefulness: PMX joins and derivations, plots,
+control-file plumbing, repeated-dose PK code, longitudinal PD/biomarker code,
+and censoring conventions. The output is deliberately unsuitable for parameter
+estimation, scientific inference, model selection, dose decisions, or claims
+that source distributions were reproduced.
 
-theo_roles <- pmx_roles(
-  id = "ID",
-  time = "TIME",
-  dv = "DV",
-  amt = "AMT",
-  evid = "EVID",
-  cmt = "CMT",
-  covariates = "WT"
-)
+The values of `epsilon` and `delta` below are illustrations, not universal
+recommendations. Epsilon is a one-person influence limit; smaller is stronger.
+Delta is a small additive allowance in the probability bound, not a breach
+probability or a fraction of unprotected patients. Choosing either value is a
+study- and governance-specific decision.
 
-theo_mock <- mock_pmx(
-  theo_md,
-  theo_roles,
-  seed = 101
-)
+## What statistical model describes the trajectories?
 
-theo_validation <- validate_pmx(theo_mock, theo_roles)
-theo_validation$valid
+This package does **not** fit the ODE/NLME model a pharmacometrician might
+normally expect. There are no compartments, clearances, volumes, turnover
+parameters, individual random effects, or likelihood-based estimation. It also
+does not currently fit splines.
+
+Instead, each endpoint uses a deliberately coarse **fixed-grid trajectory
+model**. Within each subject, observations are assigned to the nearest cell on
+a public dose-relative or study-time grid. Bounded subject-level presence and
+cell-mean vectors are released through the configured privacy mechanism. During
+generation, adjacent released cell means receive a short 1-2-1 moving-average
+smoother and `stats::approx()` performs piecewise-linear interpolation. Public
+subject shifts and AR(1) residual perturbations create broad variability.
+
+Sampling is a separate two-part model, not a consequence of the dose regimen.
+For every possible dose occasion, fitting releases a bounded probability that
+the endpoint is sampled and a bounded observation count conditional on that
+occasion being sampled. Thus Q24H dose rows can coexist with no concentration
+samples on intervening occasions. `sampling_summary()` displays this fitted
+design without consulting the source again.
+
+For a dose-relative endpoint, this empirical curve is reused after generated
+doses; a study-time endpoint uses one global curve. Consequently, the mock data
+can exercise an ODE/NLME workflow, but they are not draws from the source ODE or
+NLME model and should not preserve individual PK parameters, accumulation,
+covariate effects, or the exact distribution of profiles.
+
+## Installation and backend check
+
+```{r installation, eval=FALSE}
+install.packages("pmxSynthData")
+# The production fitter also requires the OpenDP R package:
+install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
-The source and mock datasets have the same subject count because
-`n_subjects = NULL` by default. Each generated subject receives a new numeric
-ID.
+```{r backend-status}
+dp_backend_status()
+```
 
-```{r theo-structure}
-theo_comparison <- compare_pmx(theo_md, theo_mock, theo_roles)
-theo_comparison <- label_comparison(theo_comparison, "theo_md")
-knitr::kable(theo_comparison$summary)
+Fitting confidential data fails closed unless the validated OpenDP adapter is
+available. It never substitutes ordinary R random noise. This vignette remains
+runnable in minimal package-check environments by fitting only fully public
+fixtures with `backend = "public", public_source = TRUE`. That explicit mode is
+nonprivate and is rejected for confidential inputs.
 
-c(
-  source_subjects = length(unique(theo_md$ID)),
-  mock_subjects = length(unique(theo_mock$ID)),
-  doses_per_mock_subject = unique(
-    vapply(split(theo_mock$EVID, theo_mock$ID), function(x) sum(x != 0), integer(1))
+## Minimal end-to-end workflow
+
+Start with a fully public censoring fixture and expand it to eight simulated
+subjects. This is demonstration data, not patient data.
+
+```{r minimal-source}
+one <- pmx_censoring_fixture()
+public_source <- do.call(rbind, lapply(1:8, function(id) {
+  subject <- one
+  subject$ID <- as.integer(id)
+  subject$DV[subject$CENS == 0 & subject$EVID == 0] <-
+    subject$DV[subject$CENS == 0 & subject$EVID == 0] + id / 20
+  subject
+}))
+rownames(public_source) <- NULL
+
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  dvid = "DVID", mdv = "MDV", cens = "CENS", limit = "LIMIT"
+)
+
+endpoints <- list(
+  marker = pmx_endpoint(
+    dvid = "marker", alignment = "study_time", transform = "identity",
+    shape = "global", grid = 1:4,
+    censoring = list(left = 1, right = 10, interval = c(2, 4))
   )
 )
 ```
 
-The overlay shows the overall concentration-time envelope. The faceted view
-shows individual trajectories separately for source and mock data.
+Bounds, schema, factor levels, timing grids, and contribution limits are public
+inputs. Establish them from protocol knowledge or an approved public schema,
+not by silently taking confidential minima and maxima.
 
-```{r theo-overlay, echo=FALSE}
-theo_comparison$plots$overlay
+```{r minimal-config}
+bounds <- pmx_bounds(
+  time = c(0, 5), endpoints = list(marker = c(0, 12)),
+  amt = c(0, 200), limit = list(marker = c(0, 12))
+)
+
+public_design <- pmx_public_design(
+  schema = pmx_schema(public_source),
+  dose_times = 0, n_doses = 1, dose_amount = 100, dose_evid = 1,
+  endpoint_grids = list(marker = 1:4)
+)
+
+contribution_limits <- pmx_contribution_limits(
+  max_rows = 8, max_doses = 2, max_occasions = 2,
+  max_observations_per_endpoint = 5, max_timing_cells = 4
+)
+
+budget <- pmx_budget_allocation(
+  subject_count = 0.10, event = 0.10, timing = 0.15,
+  covariates = 0, endpoints = 0.45, censoring = 0.20
+)
 ```
 
-```{r theo-individual, echo=FALSE}
-theo_comparison$plots$faceted
+The confidential-data call has the same shape, but uses OpenDP and must not set
+`public_source = TRUE`:
+
+```{r production-fit-shape, eval=FALSE}
+private_model <- fit_private_pmx(
+  confidential_data, roles, endpoints,
+  epsilon = approved_epsilon,
+  delta = approved_delta,
+  delta_justification = approved_delta_justification,
+  bounds = bounds,
+  public_design = public_design,
+  contribution_limits = contribution_limits,
+  budget_allocation = budget,
+  backend = "opendp"
+)
 ```
 
-The dose records themselves remain sampled templates; only IDs, subject-level
-covariates, and genuine observation DVs are synthesized.
+For this public fixture only:
 
-```{r theo-first-subject}
-first_theo_id <- unique(theo_mock$ID)[1]
-utils::head(theo_mock[theo_mock$ID == first_theo_id, ], 14)
+```{r minimal-fit}
+private_model <- suppressWarnings(fit_private_pmx(
+  public_source, roles, endpoints,
+  epsilon = 3, delta = 0,
+  bounds = bounds,
+  public_design = public_design,
+  contribution_limits = contribution_limits,
+  budget_allocation = budget,
+  backend = "public", public_source = TRUE
+))
+
+privacy_report(private_model)
+validate_private_model(private_model)$valid
 ```
 
-## Warfarin: separate PK and PD endpoints
+The public-fixture report correctly makes no DP claim. A production OpenDP
+report instead states the subject-level `(epsilon, delta)` guarantee, backend
+version, contribution bounds, every composed query, public inputs, proof
+assumptions, and release-ledger ID.
 
-`warfarin` uses lower-case names. `dvid` is a factor with `cp` for plasma
-concentration and `pca` for pharmacodynamic response. The endpoints must never
-be blended together.
+Generate repeatedly from the same fitted model. When `n_subjects` is omitted,
+the generator uses the fitted privacy-accounted cohort count. It is exactly the
+source count for these explicitly public fixtures; a confidential fit uses its
+noisy count release. Only the ordinary generation seeds are user-controlled;
+there is no privacy-noise seed in `fit_private_pmx()`.
 
-```{r warfarin-generate}
-warfarin <- load_nlmixr2_data("warfarin")
+```{r minimal-generate}
+mock_a <- generate_pmx(private_model, seed = 101)
+mock_b <- generate_pmx(private_model, seed = 202)
 
+identical(mock_a, mock_b)
+validate_pmx(mock_a, roles, endpoints)$valid
+table(mock_a$CENS)
+minimal_design_check <- check_demo_similarity(
+  public_source, mock_a, roles, bounds$time, "Minimal fixture"
+)
+knitr::kable(
+  minimal_design_check, digits = 2,
+  caption = "Minimal-fixture cohort and sampling-design checks"
+)
+```
+
+```{r minimal-plot, eval=has_ggplot2}
+minimal_comparison <- rbind(
+  observed_plot_data(public_source, roles, "Source"),
+  observed_plot_data(mock_a, roles, "Synthetic")
+)
+ggplot2::ggplot(
+  minimal_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.6) +
+  ggplot2::geom_point() +
+  comparison_facets(minimal_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "TIME", y = "DV", colour = "Dataset",
+    title = "Source public fixture and generated synthetic data"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+## Theophylline: repeated Q24H dose-relative PK
+
+`theo_md` has 12 subjects and seven Q24H doses. Its source sampling is unusual:
+there is an intensive profile after the first dose, one trough around the
+second dose, and another intensive profile after the seventh dose. This example
+does not declare either the regimen or an occasion-specific sampling schedule.
+The fit learns both from bounded, privacy-accounted population summaries.
+Generated actual-like collection times are jittered around generalized cells.
+
+```{r theo-fit, eval=has_nlmixr2data}
+data("theo_md", package = "nlmixr2data")
+theo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", covariates = "WT"
+)
+theo_endpoints <- list(cp = pmx_endpoint(
+  alignment = "dose_relative", transform = "log", shape = "occasion",
+  grid = c(0, .25, .5, 1, 2, 4, 5, 7, 9, 12, 23.75), cmt = 2
+))
+theo_model <- fit_private_pmx(
+  theo_md, theo_roles, theo_endpoints, epsilon = 5, delta = 0,
+  bounds = pmx_bounds(
+    c(0, 170), list(cp = c(0, 30)), amt = c(0, 500),
+    covariates = list(WT = c(40, 130))
+  ),
+  public_design = pmx_public_design(
+    pmx_schema(theo_md), dose_evid = 101, dose_cmt = 1
+  ),
+  contribution_limits = pmx_contribution_limits(40, 8, 8, 30, 11),
+  budget_allocation = pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
+  backend = "public", public_source = TRUE
+)
+theo_mock <- generate_pmx(theo_model, seed = 303)
+validate_pmx(theo_mock, theo_roles, theo_endpoints)$valid
+knitr::kable(
+  sampling_summary(theo_model), digits = 2,
+  caption = "Fitted Theophylline sampling frequency by dose occasion"
+)
+theo_design_check <- check_demo_similarity(
+  theo_md, theo_mock, theo_roles, c(0, 170), "Theophylline"
+)
+knitr::kable(
+  theo_design_check, digits = 2,
+  caption = "Theophylline cohort and sampling-design checks"
+)
+```
+
+```{r theo-plot, eval=has_nlmixr2data && has_ggplot2}
+theo_comparison <- rbind(
+  observed_plot_data(theo_md, theo_roles, "Source"),
+  observed_plot_data(theo_mock, theo_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  theo_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.35) +
+  ggplot2::geom_point(alpha = 0.55, size = 0.8) +
+  comparison_facets(theo_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "DV", colour = "Dataset",
+    title = "Theophylline source and synthetic data on study time",
+    subtitle = "Dose rows remain Q24H; concentration samples occur only after doses 1, 2, and 7"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+The study-time faceted display distinguishes the Q24H dose regimen from the sampling
+schedule. The fitted timing summary discovers intensive profiles around doses
+1 and 7, an occasional sparse observation around dose 2, and no observations
+around doses 3--6. A dose-relative display makes the coarse curve shape easier
+to see:
+
+```{r theo-tad-plot, eval=has_nlmixr2data && has_ggplot2}
+theo_tad_comparison <- rbind(
+  tad_plot_data(theo_md, theo_roles, "Source"),
+  tad_plot_data(theo_mock, theo_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  theo_tad_comparison,
+  ggplot2::aes(
+    tad, dv, group = interaction(dataset, subject, occasion),
+    colour = dataset
+  )
+) +
+  ggplot2::geom_line(alpha = 0.18) +
+  ggplot2::geom_point(alpha = 0.25, size = 0.7) +
+  ggplot2::stat_summary(
+    ggplot2::aes(x = round(tad * 4) / 4, group = dataset),
+    fun = stats::median,
+    geom = "line", linewidth = 1.2
+  ) +
+  comparison_facets(theo_tad_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
+    title = "Dose-relative source and synthetic profiles",
+    subtitle = "Thick lines are 0.25-hour-bin medians of a coarse workflow model, not an NLME fit"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+The fitted event and timing summaries infer seven Q24H dose events and about 22
+observations per subject, allocated primarily to occasions 1, 2, and 7. Neither
+the regimen nor an occasion-specific sampling schedule is supplied to
+generation. The dose records describe treatment; they are not seven trough
+samples. Remaining profile differences are expected: the same coarse TAD curve
+is reused, accumulation is not modeled, and subject/residual variability is
+deliberately broad and public.
+
+## Warfarin: separate PK and study-time PD clocks
+
+The lower-case schema and factor levels are public declarations. `cp` uses TAD
+after the dose; `pca` uses one global study-time curve and does not restart.
+The synthetic cohort is generated with the same number of subjects as the
+source. The figure separates source and synthetic panels while sharing a
+layout across endpoints, so one cohort cannot hide the other.
+
+```{r warfarin-fit, eval=has_nlmixr2data}
+data("warfarin", package = "nlmixr2data")
 warfarin_roles <- pmx_roles(
-  id = "id",
-  time = "time",
-  dv = "dv",
-  amt = "amt",
-  evid = "evid",
-  dvid = "dvid",
-  covariates = c("wt", "age", "sex")
+  id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
+  dvid = "dvid", covariates = c("wt", "age", "sex")
 )
-
-warfarin_mock <- mock_pmx(
-  warfarin,
-  warfarin_roles,
-  seed = 202
+warfarin_endpoints <- list(
+  cp = pmx_endpoint(
+    "cp", "dose_relative", "log", "occasion",
+    grid = c(.5, 1, 1.5, 2, 3, 6, 9, 12, 24, 48, 72, 120)
+  ),
+  pca = pmx_endpoint(
+    "pca", "study_time", "identity", "global",
+    grid = c(0, 24, 36, 48, 72, 96, 120, 144)
+  )
 )
-
-warfarin_validation <- validate_pmx(warfarin_mock, warfarin_roles)
-warfarin_validation$valid
-levels(warfarin_mock$dvid)
-levels(warfarin_mock$sex)
-```
-
-```{r warfarin-structure}
-warfarin_comparison <- compare_pmx(
-  warfarin,
-  warfarin_mock,
-  warfarin_roles
+warfarin_model <- fit_private_pmx(
+  warfarin, warfarin_roles, warfarin_endpoints, 5, 0,
+  pmx_bounds(
+    c(0, 144), list(cp = c(0, 25), pca = c(0, 120)),
+    amt = c(0, 200),
+    covariates = list(wt = c(40, 150), age = c(18, 100))
+  ),
+  pmx_public_design(
+    pmx_schema(warfarin), dose_times = 0, n_doses = 1,
+    dose_amount = 100, dose_evid = 1,
+    endpoint_grids = lapply(warfarin_endpoints, `[[`, "grid")
+  ),
+  pmx_contribution_limits(30, 2, 2, c(cp = 20, pca = 12), 12),
+  pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
+  backend = "public", public_source = TRUE
 )
-warfarin_comparison <- label_comparison(warfarin_comparison, "warfarin")
-knitr::kable(warfarin_comparison$summary)
+warfarin_mock <- generate_pmx(warfarin_model, seed = 404)
+c(class(warfarin_mock$id), levels(warfarin_mock$dvid))
+warfarin_design_check <- check_demo_similarity(
+  warfarin, warfarin_mock, warfarin_roles, c(0, 144), "Warfarin"
+)
+knitr::kable(
+  warfarin_design_check,
+  digits = 2,
+  caption = "Warfarin cohort and sampling-design checks"
+)
 ```
 
-The endpoint facets make the very different PK and PD scales explicit. Each
-endpoint has its own transformation, interpolation, blend, and noise process,
-while both use the same subject-level donor weights.
-
-```{r warfarin-overlay, echo=FALSE}
-warfarin_comparison$plots$overlay
+```{r warfarin-plot, eval=has_nlmixr2data && has_ggplot2, fig.height=7}
+warfarin_comparison <- rbind(
+  observed_plot_data(warfarin, warfarin_roles, "Source"),
+  observed_plot_data(warfarin_mock, warfarin_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  warfarin_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.35) +
+  ggplot2::geom_point(alpha = 0.45, size = 0.7) +
+  comparison_facets(warfarin_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time", y = "DV", colour = "Dataset",
+    title = "Warfarin source and synthetic, separated for comparison"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
-```{r warfarin-individual, echo=FALSE}
-warfarin_comparison$plots$faceted
-```
+## WBC: generalized infusion and delayed study-time response
 
-The endpoint-specific transformations are recorded with the result.
+The public design deliberately ends at 672 hours. A singleton multi-thousand-
+hour source follow-up cannot be reproduced. Positive and negative infusion
+records are generated as a coherent pair from a generated amount, rate, and
+duration.
 
-```{r warfarin-settings}
-attr(warfarin_mock, "pmx_settings")$endpoint_transforms
-```
-
-## WBC: infusion and delayed response
-
-`wbcSim` uses positive `AMT` and `RATE` records to start an infusion and
-negative records to stop it. Those paired records are copied together from an
-event template rather than synthesized numerically.
-
-```{r wbc-generate}
-wbc_sim <- load_nlmixr2_data("wbcSim")
-
+```{r wbc-fit, eval=has_nlmixr2data}
+data("wbcSim", package = "nlmixr2data")
 wbc_roles <- pmx_roles(
-  id = "ID",
-  time = "TIME",
-  dv = "DV",
-  amt = "AMT",
-  evid = "EVID",
-  cmt = "CMT",
-  rate = "RATE",
-  covariates = c("V2I", "V1I", "CLI")
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", rate = "RATE", covariates = c("V2I", "V1I", "CLI")
 )
-
-wbc_mock <- mock_pmx(
-  wbc_sim,
-  wbc_roles,
-  seed = 303
+wbc_endpoints <- list(wbc = pmx_endpoint(
+  alignment = "study_time", transform = "log", shape = "global",
+  grid = c(0, 72, 120, 168, 192, 240, 336, 504, 672), cmt = 3
+))
+wbc_model <- fit_private_pmx(
+  wbcSim, wbc_roles, wbc_endpoints, 5, 0,
+  pmx_bounds(
+    c(0, 720), list(wbc = c(0, 30)), amt = c(-200, 200),
+    rate = c(-200, 200),
+    covariates = list(
+      V2I = c(100, 1500), V1I = c(100, 1200), CLI = c(100, 800)
+    )
+  ),
+  pmx_public_design(
+    pmx_schema(wbcSim), dose_times = 0, n_doses = 1,
+    dose_amount = 120, dose_rate = 120, infusion_duration = 3,
+    dose_evid = 10101, dose_cmt = 1,
+    endpoint_grids = list(wbc = wbc_endpoints$wbc$grid),
+    endpoint_cmt = list(wbc = 3)
+  ),
+  pmx_contribution_limits(20, 2, 2, 12, 9),
+  pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
+  backend = "public", public_source = TRUE
 )
-
-wbc_validation <- validate_pmx(wbc_mock, wbc_roles)
-wbc_validation$valid
+wbc_mock <- generate_pmx(wbc_model, seed = 505)
+utils::head(
+  wbc_mock[wbc_mock$EVID != 0,
+           c("ID", "TIME", "AMT", "RATE", "CMT", "EVID")],
+  12
+)
+wbc_design_check <- check_demo_similarity(
+  wbcSim, wbc_mock, wbc_roles, c(0, 720), "WBC"
+)
+knitr::kable(
+  wbc_design_check, digits = 2,
+  caption = "WBC cohort and sampling-design checks"
+)
 ```
 
-Some WBC dosing schedules are unique. In that case, `mock_pmx()` emits a
-warning and uses the anchor as the sole measurement donor, with randomized
-trajectory noise providing the perturbation. This avoids silently mixing
-incompatible schedules.
-
-```{r wbc-structure}
-wbc_comparison <- compare_pmx(wbc_sim, wbc_mock, wbc_roles)
-wbc_comparison <- label_comparison(wbc_comparison, "wbcSim")
-knitr::kable(wbc_comparison$summary)
-
-wbc_events <- wbc_mock[wbc_mock$EVID != 0, c(
-  "ID", "TIME", "AMT", "RATE", "CMT", "EVID"
-)]
-utils::head(wbc_events, 8)
+```{r wbc-plot, eval=has_nlmixr2data && has_ggplot2}
+wbc_comparison <- rbind(
+  observed_plot_data(wbcSim, wbc_roles, "Source"),
+  observed_plot_data(wbc_mock, wbc_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  wbc_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.3) +
+  ggplot2::geom_point(alpha = 0.4, size = 0.7) +
+  comparison_facets(wbc_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::coord_cartesian(xlim = c(0, 720)) +
+  ggplot2::labs(
+    x = "Study time", y = "DV", colour = "Dataset",
+    title = "WBC source and synthetic: delayed decline, nadir, and recovery",
+    subtitle = "Comparison window is the declared 0-720 hour public design"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
-The trajectories retain delayed declines, nadirs, and recoveries by blending
-observed WBC paths. The known Friberg model is not called.
+These displays are permissible here because all illustrated sources are public.
+For confidential studies, a source-versus-mock plot is a source-derived
+restricted diagnostic and must not be exported unless separately authorized
+and privatized where necessary.
 
-```{r wbc-individual, echo=FALSE}
-wbc_comparison$plots$faceted
-```
+## Restricted comparison versus releasable validation
 
-```{r wbc-settings}
-settings <- attr(wbc_mock, "pmx_settings")
-settings$alignment
-settings$compatible_event_groups
-settings$warnings
-```
+`validate_pmx(mock, roles, endpoints)` uses only generated data and is
+post-processing. `compare_pmx(source, mock, roles, endpoints)` reads source data
+and is a restricted-environment diagnostic. Its source-derived tables and plots
+are explicitly marked `restricted_not_releasable`; a private mock dataset does
+not privatize a new source comparison.
 
-## What is preserved—and what is not
+## Common errors
 
-The prototype preserves:
+| Error | Why fitting stops | Fix |
+|---|---|---|
+| Missing DV, time, amount, rate, covariate, or limit bounds | Sensitivity is undefined | Establish defensible public domains before source access |
+| Undeclared actual or nominal time | Event and endpoint clocks are ambiguous | Add explicit `time` and optional `nominal_time`, `tad`, and `occasion` roles |
+| Date or POSIX column remains | Exact calendar information is not modeled | Explicitly exclude it and omit it from the public output schema |
+| Too many summaries for a small study | Vector sensitivity and noise overwhelm utility | Shorten public grids, remove unnecessary private relationships, or use public protocol information |
+| Active group has zero budget | The release cannot be accounted | Allocate a positive fraction; keep the total at or below one |
+| Calling the fitter again to get another dataset | Every refit is a new composed release | Reuse the fitted model and call `generate_pmx()` with another ordinary seed |
+| OpenDP is absent | Production mechanism is unavailable | Install and validate OpenDP; never switch confidential data to the public-fixture backend |
 
-- source column names, order, practical classes, and factor levels;
-- complete subject event templates and within-time row ordering;
-- coherent `EVID`, `AMT`, `RATE`, `CMT`, and `DVID` semantics;
-- missing-observation conventions from the sampled template; and
-- subject-level constancy of declared baseline covariates.
+## Before export
 
-It does not attempt to preserve:
+- Confirm `privacy_report(model)$formal_dp` is `TRUE` for confidential-data
+  releases and archive its ledger entry with prior releases.
+- Confirm the reported epsilon, delta, justification, public inputs,
+  contribution bounds, backend/version, and accounting were approved.
+- Run `validate_private_model(model, strict = TRUE)` and
+  `validate_pmx(mock, roles, endpoints, strict = TRUE)`.
+- Inspect new IDs, endpoint facets, repeated-dose timing, infusion pairs,
+  censoring boundaries, factor levels, and finite domains.
+- Export neither source-derived `compare_pmx()` output nor fitting logs unless
+  separately authorized and privatized where necessary.
+- State that output was generated from a subject-level `(epsilon, delta)`-
+  differentially private model without claiming zero risk, legal anonymity,
+  scientific fidelity, or release authorization.
 
-- PK, PD, or NLME parameters;
-- covariate-response relationships;
-- the source distribution exactly;
-- scientific suitability for model selection; or
-- formal anonymity or privacy guarantees.
-
-Use `validate_pmx()` and `compare_pmx()` to inspect structure, then review the
-mock data under the privacy and governance rules that apply to the source.
+See `vignette("pmxSynthData-method")` for the guarantee, mechanism, sensitivity,
+composition, small-study tradeoff, and implementation assumptions.

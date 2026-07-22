@@ -14,30 +14,48 @@ pmx_roles(
   dvid = NULL,
   mdv = NULL,
   rate = NULL,
-  covariates = NULL
+  nominal_time = NULL,
+  tad = NULL,
+  occasion = NULL,
+  cens = NULL,
+  limit = NULL,
+  addl = NULL,
+  ii = NULL,
+  covariates = NULL,
+  exclude = NULL
 )
 }
 \arguments{
-\item{id, time, dv, evid}{Single column names for subject ID, time, dependent
-variable, and event ID. These roles are required.}
+\item{id, time, dv, evid}{Required single column names for subject ID, actual
+time, dependent variable, and event ID.}
 
 \item{amt, cmt, dvid, mdv, rate}{Optional single column names for amount,
 compartment, endpoint, missing-DV indicator, and infusion rate.}
 
-\item{covariates}{Character vector of baseline covariate column names, or
-\code{NULL}.}
+\item{nominal_time, tad, occasion}{Optional time metadata columns.}
+
+\item{cens, limit}{Optional Monolix-style censoring indicator and other
+interval-boundary columns.}
+
+\item{addl, ii}{Optional additional-dose and interdose-interval columns.}
+
+\item{covariates}{Baseline covariate column names, or \code{NULL}.}
+
+\item{exclude}{Columns explicitly excluded before private fitting, such as
+direct identifiers. An ID role is still required as the privacy unit.}
 }
 \value{
-A \code{pmx_roles} object consumed by \code{\link[=mock_pmx]{mock_pmx()}}, \code{\link[=validate_pmx]{validate_pmx()}}, and
-\code{\link[=compare_pmx]{compare_pmx()}}.
+A \code{pmx_roles} object used by the fitting, generation, validation, and
+comparison functions.
 }
 \description{
-Column roles are always explicit. \code{pmxSynthData} never guesses critical event or
-measurement columns from their names.
+Column roles are explicit: \code{pmxSynthData} does not infer critical PMX
+semantics from column names. Columns listed in \code{exclude} are removed before
+fitting and do not appear in generated data.
 }
 \examples{
 roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", covariates = "WT"
+  evid = "EVID", cmt = "CMT", tad = "TAD", covariates = "WT"
 )
 }

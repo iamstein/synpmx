@@ -1,74 +1,104 @@
-pmx_fixture <- function(n = 7L, id_type = c("integer", "character"),
-                        duplicated_profiles = FALSE, missing_dv = FALSE) {
-  id_type <- match.arg(id_type)
+private_fixture <- function(n = 8L) {
   pieces <- lapply(seq_len(n), function(subject) {
-    time <- c(0, 0, 1, 2, 12, 12, 13, 14)
-    evid <- c(1L, 0L, 0L, 0L, 1L, 0L, 0L, 0L)
-    base <- if (duplicated_profiles) 0 else subject * 0.15
-    dv <- c(0, 0.2 + base, 4 + base, 2 + base,
-            0, 0.3 + base, 5 + base, 2.5 + base)
-    mdv <- ifelse(evid == 0L, 0L, 1L)
-    if (missing_dv && subject == 1L) {
-      dv[4L] <- NA_real_
-      mdv[4L] <- 1L
-    }
+    time <- c(0, 0, 0.25, 1, 2, 4, 6, 8, 12, 12, 12.25, 13, 14, 16, 18, 20)
+    endpoint <- c(
+      "cp", "pd", "cp", "cp", "cp", "pd", "cp", "pd",
+      "cp", "pd", "cp", "cp", "cp", "pd", "cp", "pd"
+    )
+    evid <- c(1L, 0L, rep(0L, 6L), 1L, rep(0L, 7L))
+    cp_base <- c(NA, NA, 1, 8, 4, NA, 1.5, NA,
+                 NA, NA, 1.2, 8.5, 4.2, NA, 1.6, NA)
+    pd_base <- c(NA, 80, NA, NA, NA, 70, NA, 55,
+                 NA, 40, NA, NA, NA, 50, NA, 65)
+    dv <- ifelse(endpoint == "cp", cp_base, pd_base)
+    dv[evid != 0] <- 0
+    dv[evid == 0] <- dv[evid == 0] * (1 + (subject - 4.5) * 0.015)
+    dose_times <- c(0, 12)
+    occasion <- pmax(1L, findInterval(time, dose_times))
+    tad <- pmax(0, time - dose_times[pmin(occasion, 2L)])
     data.frame(
-      ID = if (id_type == "integer") as.integer(subject) else
-        paste0("S", subject),
-      TIME = time,
-      DV = dv,
-      AMT = ifelse(evid == 1L, 100 + subject, 0),
-      RATE = 0,
+      ID = as.integer(subject), TIME = time, NTIME = time, TAD = tad,
+      OCC = occasion, DV = dv,
+      AMT = ifelse(evid != 0, 100 + subject, 0), RATE = 0,
       EVID = evid,
-      CMT = ifelse(evid == 1L, 1L, 2L),
-      MDV = mdv,
-      WT = if (duplicated_profiles) 70 else 55 + subject * 4,
-      AGE = if (duplicated_profiles) 40L else as.integer(25 + subject),
-      SEX = if (duplicated_profiles) "female" else
-        ifelse(subject %% 2L, "female", "male"),
+      CMT = ifelse(evid != 0, 1L, ifelse(endpoint == "cp", 2L, 3L)),
+      DVID = factor(endpoint, levels = c("cp", "pd")),
+      MDV = ifelse(evid == 0, 0L, 1L), CENS = 0L, LIMIT = NA_real_,
+      WT = rep(55 + 4 * subject, length(time)),
+      AGE = rep(as.integer(25 + subject), length(time)),
+      SEX = factor(rep(ifelse(subject %% 2L, "female", "male"), length(time)),
+                   levels = c("female", "male")),
       stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, pieces)
-  out$SEX <- factor(out$SEX, levels = c("female", "male"))
   rownames(out) <- NULL
   out
 }
 
-fixture_roles <- function() {
+private_roles <- function() {
   pmx_roles(
-    id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-    evid = "EVID", cmt = "CMT", mdv = "MDV", rate = "RATE",
-    covariates = c("WT", "AGE", "SEX")
+    id = "ID", time = "TIME", nominal_time = "NTIME", tad = "TAD",
+    occasion = "OCC", dv = "DV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", dvid = "DVID", mdv = "MDV", rate = "RATE",
+    cens = "CENS", limit = "LIMIT", covariates = c("WT", "AGE", "SEX")
   )
 }
 
-multidvid_fixture <- function(n = 7L) {
-  pieces <- lapply(seq_len(n), function(subject) {
-    data.frame(
-      id = as.integer(subject),
-      time = c(0, 0, 0, 1, 1, 2, 2, 4, 4),
-      amt = c(100 + subject, rep(0, 8)),
-      dv = c(0, 0.2 + subject / 10, 80 - subject,
-             4 + subject / 10, 60 - subject,
-             2 + subject / 10, 45 - subject,
-             0.8 + subject / 10, 35 - subject),
-      dvid = factor(c("cp", "cp", "pd", "cp", "pd", "cp", "pd", "cp", "pd"),
-                    levels = c("cp", "pd")),
-      evid = c(1L, rep(0L, 8)),
-      wt = rep(55 + 3 * subject, 9),
-      sex = factor(rep(ifelse(subject %% 2L, "female", "male"), 9),
-                   levels = c("female", "male"))
+private_endpoints <- function() {
+  list(
+    cp = pmx_endpoint(
+      dvid = "cp", alignment = "dose_relative", transform = "log",
+      shape = "occasion", grid = c(0.25, 1, 2, 6), cmt = 2
+    ),
+    pd = pmx_endpoint(
+      dvid = "pd", alignment = "study_time", transform = "identity",
+      shape = "global", grid = c(0, 4, 8, 12, 16, 20), cmt = 3
     )
-  })
-  out <- do.call(rbind, pieces)
-  rownames(out) <- NULL
-  out
+  )
 }
 
-multidvid_roles <- function() {
-  pmx_roles(
-    id = "id", time = "time", dv = "dv", amt = "amt",
-    evid = "evid", dvid = "dvid", covariates = c("wt", "sex")
+private_bounds <- function() {
+  pmx_bounds(
+    time = c(0, 24), endpoints = list(cp = c(0, 20), pd = c(0, 120)),
+    amt = c(0, 200), rate = c(-200, 200),
+    covariates = list(WT = c(40, 120), AGE = c(18, 90)),
+    limit = list(cp = c(0, 20), pd = c(0, 120))
   )
+}
+
+private_design <- function(data = private_fixture()) {
+  pmx_public_design(
+    schema = pmx_schema(data), dose_times = c(0, 12), dose_interval = 12,
+    n_doses = 2, dose_amount = 100, dose_rate = 0,
+    dose_evid = 1, dose_cmt = 1,
+    endpoint_grids = lapply(private_endpoints(), `[[`, "grid"),
+    endpoint_cmt = list(cp = 2, pd = 3), time_jitter_sd = 0.01
+  )
+}
+
+private_limits <- function(max_rows = 40L, max_cells = 8L) {
+  pmx_contribution_limits(
+    max_rows = max_rows, max_doses = 4, max_occasions = 4,
+    max_observations_per_endpoint = c(cp = 8, pd = 8),
+    max_timing_cells = max_cells
+  )
+}
+
+private_budget <- function() {
+  pmx_budget_allocation(
+    subject_count = 0.10, event = 0.15, timing = 0.15,
+    covariates = 0.10, endpoints = 0.45, censoring = 0.05
+  )
+}
+
+fit_public_fixture <- function(data = private_fixture(), ...) {
+  suppressWarnings(fit_private_pmx(
+    data = data, roles = private_roles(), endpoints = private_endpoints(),
+    epsilon = 5, delta = 0, bounds = private_bounds(),
+    public_design = private_design(data),
+    contribution_limits = private_limits(),
+    budget_allocation = private_budget(), backend = "public",
+    public_source = TRUE, ...
+  ))
 }
