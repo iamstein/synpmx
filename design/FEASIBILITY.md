@@ -519,11 +519,35 @@ of 100, against 15% residual error — so its per-subject signal-to-noise is
 intrinsically poor.
 
 The practical consequence: **generated PD response is roughly a third too
-small** in that configuration. That is inside a two-fold accuracy bar but is a
-real limitation. Prefer prior-mode PD unless the effect is large relative to
-residual error, and treat the PD correction as experimental. A per-subject
-estimator that conditions on the subject's own predose observations would
-probably improve it, and is not attempted here.
+small** in that configuration.
+
+### The fix was to change the endpoint, not the estimator
+
+Rather than chase the bias, the default PD shapes were changed to simple time
+courses with no exposure dependence — constant, linear, or exponential approach
+to a plateau. That replaces the deviation statistic with a **level correction**,
+the ratio of mean observed to mean predicted response, where both terms are the
+response itself rather than a small deviation from it.
+
+Measured on an exponential-decay endpoint, true baseline 100 against a predicted
+40, so a true correction of 2.5x:
+
+| Residual error | Recovered correction | Recovered baseline |
+|---|---:|---:|
+| 0% | 2.51 | 100.4 |
+| **15%** | **2.53** | **101.3** |
+| 30% | 2.61 | 104.4 |
+
+The bias is gone. Compare the exposure-driven estimator on the same 15%
+residual: 1.79 against a true 2.8.
+
+At realistic budgets, with 15% residual and a 100-fold PD prior at epsilon 0.5,
+the recovered baseline is 155 at N = 20, 106 at N = 60, and 102 at N = 300 —
+the residual error at small N being privacy noise rather than bias, exactly as
+the error law predicts. A tighter baseline prior, which is usually available
+from healthy-volunteer literature, would shrink all three.
+
+Exposure-driven PD remains available and experimental.
 
 Fixing this measurement also removed two earlier estimator choices that were
 simply wrong: a peak statistic, biased upward by noise in a way that does not

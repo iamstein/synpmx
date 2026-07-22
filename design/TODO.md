@@ -91,10 +91,12 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 - [x] Measure the PD correction. Exact without residual error; biased low by
       about a third with 15% residual on a small deviation. Documented in
       `design/FEASIBILITY.md`; PD is experimental.
-- [ ] Improve the PD per-subject estimator. Conditioning on the subject's own
-      predose observations should reduce the noise-driven downward bias. The
-      current signed-area statistic is the third attempt; a peak statistic and
-      an absolute-deviation area were both worse.
+- [x] Improve the PD estimator. Solved by changing the endpoint rather than the
+      statistic: simple time-course shapes take a level correction (ratio of
+      means), which is unbiased under residual error. Exposure-driven PD keeps
+      the signed-area statistic and stays experimental.
+- [ ] Consider retiring the exposure-driven PD shapes if nothing needs them.
+      They carry a known bias and a wide unavoidable prior.
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 
