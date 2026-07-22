@@ -56,12 +56,11 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
       provenance field per realized quantity. See `design/DATA_ELICITATION.md`.
 - [ ] Support levels 3-4 (intra-patient escalation, titration): occasion-varying
       dose applied to *generated* subjects from the public rule. Never replay a
-      source subject's escalation or titration sequence — the dose trajectory
-      encodes the response trajectory.
-- [ ] `REV-017` Realized design is not automatically public. Escalation stopping
-      points, expanded cohort sizes, and realized visit patterns depend on the
-      data. Require an explicit assertion with a source, or generate from the
-      planned design instead.
+      source subject's escalation or titration sequence — unlike trial-level
+      design, an individual's dose path is that individual's outcome.
+- [ ] `REV-017` Record realized trial-design quantities in `proof_assumptions`
+      with a source field. Formally they are functions of the data; practically
+      they are usually already published. An assumption to disclose, not a leak.
 
 ### Guardrails
 
