@@ -375,3 +375,59 @@ test_that("the simple PD correction scales the whole curve", {
   expect_gt(fit$corrected_typical[["baseline"]], 80)
   expect_lt(fit$corrected_typical[["baseline"]], 125)
 })
+
+test_that("within-subject dose escalation increases exposure by occasion", {
+  model <- pmx_structural_model("1cmt_oral", c(cl = 10, v = 70, ka = 1),
+                                source = "x")
+  design <- pmx_trial_design(
+    dose_escalation = c(10, 30, 100), dose_times = c(0, 7, 14),
+    sampling = c(0, 1, 4, 24, 72, 167), source = "x"
+  )
+  expect_equal(.design_dose_times(design), c(0, 7, 14))
+  expect_equal(.design_dose_amounts(design), c(10, 30, 100))
+
+  table <- pmx_generate(model, design, n_subjects = 6, seed = 1)
+  expect_true(validate_pmx(table, pmx_generated_roles())$valid)
+
+  # AMT and the assigned-dose column both follow the escalation by occasion.
+  doses <- table[table$EVID == 1, ]
+  expect_equal(as.numeric(tapply(doses$AMT, doses$OCC, unique)),
+               c(10, 30, 100))
+  obs <- table[table$EVID == 0, ]
+  expect_equal(as.numeric(tapply(obs$DOSE, obs$OCC, unique)), c(10, 30, 100))
+
+  # Exposure rises with dose across occasions.
+  cmax <- tapply(obs$DV, obs$OCC, max)
+  expect_true(all(diff(cmax) > 0))
+})
+
+test_that("escalation and parallel design are mutually exclusive", {
+  expect_error(
+    pmx_trial_design(dose_levels = 10, dose_escalation = c(10, 30),
+                     sampling = c(0, 1), source = "x"),
+    "not both"
+  )
+  expect_error(
+    pmx_trial_design(dose_escalation = c(10, 30), dose_times = c(0, 7, 14),
+                     sampling = c(0, 1), source = "x"),
+    "must give 2"
+  )
+})
+
+test_that("calibration works on an escalating regimen", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  design <- pmx_trial_design(dose_escalation = c(10, 30, 100),
+                             dose_times = c(0, 7, 14),
+                             sampling = c(0, 1, 4, 24, 72, 167), source = "x")
+  truth <- pmx_structural_model("1cmt_oral", c(cl = 22, v = 70, ka = 1),
+                                source = "truth")
+  pred <- pmx_structural_model("1cmt_oral", c(cl = 10, v = 70, ka = 1),
+                               source = "pred")
+  data <- pmx_generate(truth, design, n_subjects = 60, seed = 3)
+  fit <- suppressWarnings(fit_calibrated_pmx(
+    data, pmx_generated_roles(), pred, design,
+    pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")), epsilon = 2, backend = "opendp"
+  ))
+  expect_gt(fit$corrected_typical[["cl"]], 14)
+  expect_lt(fit$corrected_typical[["cl"]], 32)
+})

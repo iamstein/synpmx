@@ -111,8 +111,10 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
 
   pieces <- vector("list", n_subjects)
   for (i in seq_len(n_subjects)) {
-    dose <- design$dose_levels[cohort[i]]
     p <- params[i, ]
+    # Per-occasion dose amounts. Equal for a parallel cohort, increasing for a
+    # within-subject escalation.
+    doses <- .design_dose_amounts(design, cohort[i])
     nominal <- .design_observation_times(design)
     clock <- .structural_clock(nominal, dose_times, design$visit_window)
     # Dropout truncates follow-up; it is a protocol assumption, not learned.
@@ -124,14 +126,16 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
       }
     }
     actual <- clock$actual
-    doses <- rep(dose, length(dose_times))
+    # The assigned dose for an observation is the amount of its qualifying dose,
+    # so it tracks the escalation occasion by occasion.
+    obs_dose <- doses[clock$occasion]
 
     dose_rows <- data.frame(
       ID = i, TIME = dose_times, NTIME = dose_times, TAD = 0,
       OCC = seq_along(dose_times), DV = NA_real_, AMT = doses,
       RATE = if (design$duration > 0) doses / design$duration else 0,
       EVID = 1L, CMT = 1L, DVID = NA_character_, MDV = 1L,
-      CENS = 0L, DOSE = dose, stringsAsFactors = FALSE
+      CENS = 0L, DOSE = doses, stringsAsFactors = FALSE
     )
 
     obs_rows <- list()
@@ -151,7 +155,7 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
         TAD = clock$tad, OCC = clock$occasion,
         DV = value, AMT = 0, RATE = 0, EVID = 0L,
         CMT = if (ep == "cp") 2L else 3L, DVID = ep, MDV = 0L,
-        CENS = 0L, DOSE = dose, stringsAsFactors = FALSE
+        CENS = 0L, DOSE = obs_dose, stringsAsFactors = FALSE
       )
     }
     piece <- rbind(dose_rows, do.call(rbind, obs_rows))

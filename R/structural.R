@@ -237,28 +237,59 @@ print.pmx_structural_model <- function(x, ...) {
 #' budget. See `design/DATA_ELICITATION.md` for which parts of a realized
 #' design need a provenance note.
 #'
-#' @param dose_levels Dose amounts, one per cohort.
+#' Two dosing patterns are supported. A parallel design gives each cohort one
+#' dose level (`dose_levels`) repeated `n_doses` times. A within-subject
+#' escalation gives every subject the same increasing sequence of doses
+#' (`dose_escalation`), one per occasion; this is prespecified design, not an
+#' outcome, when the escalation follows a fixed protocol schedule.
+#'
+#' @param dose_levels Dose amounts, one per cohort. Omit when using
+#'   `dose_escalation`.
 #' @param cohort_sizes Planned subjects per cohort, recycled over `dose_levels`.
+#'   Defaults to equal cohorts.
 #' @param sampling Nominal sampling times after each dose, from the protocol.
-#' @param n_doses Number of doses per subject.
-#' @param dose_interval Time between doses when `n_doses > 1`.
+#' @param n_doses Number of doses per subject in a parallel design.
+#' @param dose_interval Time between doses when doses are equally spaced.
+#' @param dose_escalation Per-occasion dose amounts for a within-subject
+#'   escalation, for example `c(10, 30, 100)`. Applied to every subject.
+#' @param dose_times Explicit dose times, for example `c(0, 7, 14)`. Defaults to
+#'   equally spaced times at `dose_interval`.
 #' @param duration Infusion duration; zero for bolus or oral.
 #' @param visit_window Fractional jitter applied to nominal times.
 #' @param source Required provenance string.
 #'
 #' @return A `pmx_trial_design`.
 #' @export
-pmx_trial_design <- function(dose_levels, cohort_sizes, sampling, n_doses = 1L,
-                             dose_interval = 24, duration = 0,
-                             visit_window = 0.05, source) {
+pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
+                             sampling, n_doses = 1L, dose_interval = 24,
+                             dose_escalation = NULL, dose_times = NULL,
+                             duration = 0, visit_window = 0.05, source) {
   if (missing(source) || !is.character(source) || length(source) != 1L ||
       !nzchar(trimws(source))) {
     stop("`source` is required and must record the protocol this came from.",
          call. = FALSE)
   }
-  if (!is.numeric(dose_levels) || !length(dose_levels) ||
-      any(!is.finite(dose_levels)) || any(dose_levels <= 0)) {
-    stop("`dose_levels` must be finite positive numbers.", call. = FALSE)
+  escalating <- !is.null(dose_escalation)
+  if (escalating) {
+    if (!is.null(dose_levels)) {
+      stop("Supply either `dose_levels` (parallel) or `dose_escalation` ",
+           "(within-subject), not both.", call. = FALSE)
+    }
+    if (!is.numeric(dose_escalation) || length(dose_escalation) < 1L ||
+        any(!is.finite(dose_escalation)) || any(dose_escalation <= 0)) {
+      stop("`dose_escalation` must be finite positive dose amounts.",
+           call. = FALSE)
+    }
+    # A single arm receives the whole escalating sequence.
+    dose_levels <- dose_escalation[1L]
+    cohort_sizes <- 1L
+    n_doses <- length(dose_escalation)
+  } else {
+    if (!is.numeric(dose_levels) || !length(dose_levels) ||
+        any(!is.finite(dose_levels)) || any(dose_levels <= 0)) {
+      stop("`dose_levels` must be finite positive numbers.", call. = FALSE)
+    }
+    if (is.null(cohort_sizes)) cohort_sizes <- 1L
   }
   if (!is.numeric(sampling) || length(sampling) < 2L ||
       any(!is.finite(sampling)) || any(sampling < 0) ||
@@ -270,11 +301,23 @@ pmx_trial_design <- function(dose_levels, cohort_sizes, sampling, n_doses = 1L,
   if (any(!is.finite(cohort_sizes)) || any(cohort_sizes < 1L)) {
     stop("`cohort_sizes` must be positive integers.", call. = FALSE)
   }
+  n_doses <- max(1L, as.integer(n_doses))
+  if (!is.null(dose_times)) {
+    if (!is.numeric(dose_times) || length(dose_times) != n_doses ||
+        any(!is.finite(dose_times)) || any(dose_times < 0) ||
+        is.unsorted(dose_times, strictly = TRUE)) {
+      stop("`dose_times` must give ", n_doses,
+           " increasing nonnegative times.", call. = FALSE)
+    }
+    dose_times <- as.numeric(dose_times)
+  }
   structure(list(
     dose_levels = as.numeric(dose_levels), cohort_sizes = cohort_sizes,
+    escalation = if (escalating) as.numeric(dose_escalation) else NULL,
     sampling = as.numeric(sampling),
-    n_doses = max(1L, as.integer(n_doses)),
+    n_doses = n_doses,
     dose_interval = as.numeric(dose_interval),
+    dose_times = dose_times,
     duration = as.numeric(duration),
     visit_window = as.numeric(visit_window),
     source = source
@@ -283,10 +326,16 @@ pmx_trial_design <- function(dose_levels, cohort_sizes, sampling, n_doses = 1L,
 
 #' @export
 print.pmx_trial_design <- function(x, ...) {
-  cat("Public trial design\n",
-      "  doses: ", paste(x$dose_levels, collapse = ", "),
-      "  (n = ", paste(x$cohort_sizes, collapse = ", "), ")\n",
-      "  ", x$n_doses, " dose(s), interval ", x$dose_interval, "\n",
+  cat("Public trial design\n", sep = "")
+  if (!is.null(x$escalation)) {
+    cat("  within-subject escalation: ",
+        paste(x$escalation, collapse = " -> "), "\n", sep = "")
+  } else {
+    cat("  doses: ", paste(x$dose_levels, collapse = ", "),
+        "  (n = ", paste(x$cohort_sizes, collapse = ", "), ")\n", sep = "")
+  }
+  cat("  dose times: ", paste(signif(.design_dose_times(x), 3),
+                              collapse = ", "), "\n",
       "  sampling: ", paste(signif(x$sampling, 3), collapse = ", "), "\n",
       "  source: ", x$source, "\n", sep = "")
   invisible(x)
@@ -294,7 +343,12 @@ print.pmx_trial_design <- function(x, ...) {
 
 # Dose times for one subject under a design.
 .design_dose_times <- function(design) {
-  (seq_len(design$n_doses) - 1L) * design$dose_interval
+  design$dose_times %||% ((seq_len(design$n_doses) - 1L) * design$dose_interval)
+}
+
+# Per-occasion dose amounts for one subject in a given cohort.
+.design_dose_amounts <- function(design, cohort = 1L) {
+  design$escalation %||% rep(design$dose_levels[cohort], design$n_doses)
 }
 
 # Nominal observation times: the protocol grid repeated after each dose, then

@@ -5,26 +5,36 @@
 \title{Declare a public trial design}
 \usage{
 pmx_trial_design(
-  dose_levels,
-  cohort_sizes,
+  dose_levels = NULL,
+  cohort_sizes = NULL,
   sampling,
   n_doses = 1L,
   dose_interval = 24,
+  dose_escalation = NULL,
+  dose_times = NULL,
   duration = 0,
   visit_window = 0.05,
   source
 )
 }
 \arguments{
-\item{dose_levels}{Dose amounts, one per cohort.}
+\item{dose_levels}{Dose amounts, one per cohort. Omit when using
+\code{dose_escalation}.}
 
-\item{cohort_sizes}{Planned subjects per cohort, recycled over \code{dose_levels}.}
+\item{cohort_sizes}{Planned subjects per cohort, recycled over \code{dose_levels}.
+Defaults to equal cohorts.}
 
 \item{sampling}{Nominal sampling times after each dose, from the protocol.}
 
-\item{n_doses}{Number of doses per subject.}
+\item{n_doses}{Number of doses per subject in a parallel design.}
 
-\item{dose_interval}{Time between doses when \code{n_doses > 1}.}
+\item{dose_interval}{Time between doses when doses are equally spaced.}
+
+\item{dose_escalation}{Per-occasion dose amounts for a within-subject
+escalation, for example \code{c(10, 30, 100)}. Applied to every subject.}
+
+\item{dose_times}{Explicit dose times, for example \code{c(0, 7, 14)}. Defaults to
+equally spaced times at \code{dose_interval}.}
 
 \item{duration}{Infusion duration; zero for bolus or oral.}
 
@@ -39,4 +49,11 @@ A \code{pmx_trial_design}.
 Every field is a design fact from the protocol and consumes no privacy
 budget. See \code{design/DATA_ELICITATION.md} for which parts of a realized
 design need a provenance note.
+}
+\details{
+Two dosing patterns are supported. A parallel design gives each cohort one
+dose level (\code{dose_levels}) repeated \code{n_doses} times. A within-subject
+escalation gives every subject the same increasing sequence of doses
+(\code{dose_escalation}), one per occasion; this is prespecified design, not an
+outcome, when the escalation follows a fixed protocol schedule.
 }
