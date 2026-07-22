@@ -77,6 +77,50 @@ test_that("dose-occasion sampling density is learned in the timing release", {
   expect_equal(summary$observations_if_sampled, c(4, 4))
 })
 
+test_that("unoccupied trajectory cells do not create artificial troughs", {
+  filled <- pmxSynthData:::.fill_unoccupied_curve(
+    value_unit = c(0.9, NA, 0.3), presence = c(1, 0, 1),
+    grid = c(0, 1, 3)
+  )
+  expect_equal(filled, c(0.9, 0.7, 0.3))
+})
+
+test_that("regimen and sampling are inferred when no schedules are supplied", {
+  source <- private_fixture()
+  endpoints <- private_endpoints()
+  endpoints <- lapply(endpoints, function(endpoint) {
+    endpoint$grid <- NULL
+    endpoint
+  })
+  design <- pmx_public_design(
+    schema = pmx_schema(source), dose_evid = 1, dose_cmt = 1,
+    endpoint_cmt = list(cp = 2, pd = 3), time_jitter_sd = 0.01
+  )
+  model <- suppressWarnings(fit_private_pmx(
+    source, private_roles(), endpoints, 5, 0, private_bounds(), design,
+    private_limits(), private_budget(), backend = "public", public_source = TRUE
+  ))
+
+  expect_null(model$public$design$dose_times)
+  expect_null(model$public$design$dose_interval)
+  expect_null(model$public$design$n_doses)
+  expect_length(model$public$design$endpoint_grids, 0L)
+  expect_length(model$public$design$endpoint_occasion_grids, 0L)
+  expect_equal(model$population$event$n_doses, 2L)
+  expect_equal(model$population$event$dose_interval, 12)
+  expect_equal(model$population$event$dose_amount, 104.5)
+  expect_true(model$public$endpoints$cp$grid_automatic)
+  expect_true(model$public$endpoints$pd$grid_automatic)
+  expect_true(all(diff(model$public$endpoints$cp$grid) > 0))
+
+  mock <- generate_pmx(model, seed = 381)
+  expect_equal(length(unique(mock$ID)), length(unique(source$ID)))
+  expect_true(all(vapply(split(mock$EVID, mock$ID), function(x) {
+    sum(x != 0) == 2L
+  }, logical(1))))
+  expect_true(validate_pmx(mock, private_roles(), endpoints)$valid)
+})
+
 test_that("rare dense sampling is not treated as sparse sampling for everyone", {
   source <- private_fixture()
   remove <- source$ID > 2L & source$EVID == 0 &

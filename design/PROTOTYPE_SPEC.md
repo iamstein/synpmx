@@ -323,6 +323,10 @@ For `alignment = "dose_relative"`:
 4. Privately estimate an approximate population magnitude and coarse rise-and-fall shape.
 5. Generate a new within-dose excursion after every generated dose.
 6. Permit broad generated subject variability, residual variability, predose baseline, and accumulation behavior.
+7. Restart serial residual perturbations at each generated occasion. When the
+   released coarse curve is already approximately unimodal, use source-free
+   post-processing to keep each perturbed profile single-peaked; residual noise
+   must not manufacture a second absorption peak.
 
 The resulting mock PK data should plausibly rise and fall after each dose when the privately learned coarse behavior supports that pattern. It need not preserve the source half-life, exposure, accumulation ratio, or parameter distribution.
 
@@ -331,7 +335,7 @@ The resulting mock PK data should plausibly rise and fall after each dose when t
 For `alignment = "study_time"`:
 
 1. Align source observations internally to study or treatment time.
-2. Represent each subject with a small global spline or other public low-dimensional basis.
+2. Represent each subject with the fixed public low-dimensional grid basis.
 3. Privately estimate approximate magnitude and a few coarse trajectory coefficients.
 4. Generate one continuous subject trajectory over the study.
 5. Permit delayed onset, peak/nadir, plateau, and recovery when supported by the private coarse model.
@@ -377,7 +381,14 @@ During generation, first draw whether each endpoint/occasion is active, then
 allocate observations according to the released conditional count and coarse
 timing cells. Preserve the separately generated dose regimen even when an
 occasion has no observations. A public occasion schedule may override this
-model only when its public status is independently justified and recorded.
+model only as an exceptional protocol override when its public status is
+independently justified and recorded. The default workflow and every
+named-data demonstration must omit source-derived dose times, dose counts,
+intervals, amounts, rates, infusion durations, endpoint grids, and occasion
+schedules. The fit must infer regimen quantities and timing occupancy through
+their allocated private summaries. An automatic source-independent fixed grid
+is a discretization basis required for a finite-dimensional release; it is not
+a claimed or disclosed visit schedule.
 When the allocated count is shorter than the timing grid, select cells using
 the released cell-presence probabilities. Never implement count matching by
 taking the first N grid cells, because that systematically erases late PK
@@ -660,10 +671,18 @@ At minimum test:
     late-time cells.
 33. Every demonstration comparison facets source data above synthetic data,
     while retaining consistent dataset colors and endpoint separation.
+34. Named-data demonstrations supply no source-derived regimen or sampling
+    schedule. With automatic generic grid bases, fitting infers dose count,
+    interval, amount, infusion behavior, occasion activation, conditional
+    counts, and timing-cell occupancy from the input through budgeted releases.
+35. If a released dose-relative curve is approximately unimodal, generated
+    intensive profiles contain at most one directional peak per occasion;
+    unoccupied cells and serial noise must not create secondary PK peaks.
 
 # Required vignettes
 
-Create exactly two complementary package vignettes. Their purposes must remain distinct.
+Create exactly three complementary package vignettes. Their purposes must
+remain distinct: practical use, privacy, and simulation mechanics.
 
 ## 1. `vignettes/pmxSynthData-demo.Rmd`
 
@@ -697,13 +716,17 @@ Include:
    - attempting to refit unnecessarily.
 9. A concise checklist before exporting generated data.
 
-Keep mathematical detail light. Link to the methods vignette for the privacy guarantee and algorithm.
+Keep mathematical detail light. Link separately to the privacy introduction
+and simulation-method vignette.
 
-## 2. `vignettes/pmxSynthData-method.Rmd`
+## 2. `vignettes/pmxSynthData-privacy-intro.Rmd`
 
-Title: **“How pmxSynthData Works”**
+Title: **“Privacy in pmxSynthData”**
 
-This is both a rigorous methods document and a beginner-accessible introduction to privacy. Write for pharmacometricians who may know nothing about differential privacy.
+This is a rigorous but beginner-accessible introduction to privacy. Write for
+pharmacometricians who may know nothing about differential privacy. Keep the
+statistical-generation mechanics at overview level and link to the dedicated
+simulation-method vignette.
 
 The explanation must proceed in layers: intuition first, then equations and implementation details.
 
@@ -730,7 +753,7 @@ Include this direct statement:
 
 > Output generated entirely from a valid private model is formally subject-level `(epsilon, delta)`-differentially private. This means one person's complete record has a mathematically bounded influence on the release. It does not mean zero disclosure risk or guaranteed impossibility of re-identification.
 
-### Required technical methods section
+### Required technical privacy section
 
 Explain and document:
 
@@ -742,34 +765,66 @@ Explain and document:
 6. Composition and post-processing.
 7. The validated DP backend and implementation assumptions.
 8. The fixed-dimensional subject representation.
-9. Private estimation of event, dosing, timing, covariate, trajectory, and censoring summaries.
-10. Endpoint alignment:
-    - dose-relative PK;
-    - study-time PD/biomarker;
-    - occasion;
-    - hybrid.
-11. Nominal versus actual time and TAD derivation.
-12. Generation of event skeletons without copying source rows.
-13. Monolix-style CENS/LIMIT reconstruction.
-14. Schema restoration and validation.
-15. Small-sample limitations and deliberately limited statistical fidelity.
-16. Privacy ledger, repeat fits, and releasable versus restricted diagnostics.
+9. The categories of privately estimated population summaries.
+10. Small-sample privacy-utility limitations.
+11. Privacy ledger, repeat fits, and releasable versus restricted diagnostics.
 
 Use equations where they materially clarify the implementation, but define every symbol immediately. Include:
 
 - a full pipeline diagram;
 - a six-patient worked privacy example;
-- a repeated-dose PK example;
-- a long-timescale PD or WBC example;
 - a table distinguishing population information, one-person information, identification, and linkage;
 - a table distinguishing releasable private outputs from restricted diagnostics;
 - a final practical interpretation checklist.
 
 Do not describe the Version 1 AVATAR algorithm except, at most, in a brief historical note explaining why raw anchors and donors were removed.
 
+## 3. `vignettes/pmxSynthData-simulation-method.Rmd`
+
+Title: **“How pmxSynthData Simulates Patients”**
+
+This document describes the implemented statistical generator in enough detail
+for a pharmacometrician to understand exactly where event rows, sample times,
+endpoint values, variability, covariates, and censoring come from. State near
+the top that the prototype fits neither an ODE/NLME model nor splines.
+
+Explain and document:
+
+1. The fit-once/generate-many boundary, with a link to the privacy vignette.
+2. Public roles, bounds, transforms, alignments, and automatic generic grid
+   bases; distinguish those bases from inferred sampling schedules.
+3. Contribution-bounded fixed-dimensional event, timing, trajectory,
+   covariate, and censoring representations.
+4. Nearest-grid assignment and subject-level cell presence/value summaries.
+5. The exact one-pass 1--2--1 smoother and piecewise-linear
+   `stats::approx()` interpolation; explicitly explain why this is not a
+   spline.
+6. Dose-relative, occasion, study-time, and hybrid clocks.
+7. The separate sampling model:
+   - timing-cell presence probability;
+   - dose-occasion activation probability;
+   - sample count conditional on an active occasion;
+   - probability-weighted cell selection when count matching;
+   - exceptional independently public occasion-schedule overrides.
+8. Default cohort size from the privacy-accounted subject-count release and
+   explicit public overrides.
+9. Generalized regimen, dose/event, and infusion-pair generation.
+10. Nominal-time jitter, tied collections, chronological constraints, TAD, and
+    occasion reconstruction.
+11. Exact public subject, occasion, and AR(1) variability multipliers.
+12. Numeric/categorical covariate generation and the absence of a learned
+    covariate-response model.
+13. CENS/LIMIT reconstruction, schema restoration, new IDs, and validation.
+14. Expected structural fidelity versus quantities that are not preserved.
+15. Compact implementation pseudocode and current limitations.
+
+Include a pipeline diagram, a fixed-grid/interpolation figure, a sampling-time
+example with early and late cells, equations that define all symbols, and a
+table distinguishing expected versus unsupported fidelity.
+
 ## Vignette verification
 
-For both vignettes:
+For all three vignettes:
 
 - include valid vignette metadata;
 - ensure examples match the implemented API exactly;
@@ -778,7 +833,7 @@ For both vignettes:
 - check tables, equations, figures, captions, links, and code output;
 - eliminate stale Version 1 claims;
 - avoid unnecessary dependencies;
-- ensure package check builds both vignettes successfully.
+- ensure package check builds all three vignettes successfully.
 
 # Other documentation
 
@@ -831,7 +886,7 @@ Run:
 - canonical DP-backend tests;
 - private-model serialization and leakage tests;
 - accounting and release-ledger tests;
-- both vignette renders and visual inspections;
+- all three vignette renders and visual inspections;
 - `R CMD check` or `devtools::check()`.
 
 Do not suppress legitimate warnings merely to obtain a clean check.

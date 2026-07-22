@@ -201,6 +201,21 @@
     pmax(0)
 }
 
+.generated_local_grid <- function(endpoint, selected, regimen) {
+  grid <- endpoint$grid[selected]
+  if (!isTRUE(endpoint$grid_automatic) || regimen$n_doses <= 1L ||
+      !is.finite(regimen$interval) || regimen$interval <= 0) {
+    return(grid)
+  }
+  horizon <- endpoint$grid_horizon %||% max(endpoint$grid)
+  if (!is.finite(horizon) || horizon <= 0) return(grid)
+  # The cell basis is fixed without inspecting source times. At generation,
+  # its local scale is calibrated to the privacy-accounted dose interval so
+  # the inferred regimen—not a disclosed schedule—sets the occasion window.
+  target <- regimen$interval * (1 - 1e-6)
+  grid * target / horizon
+}
+
 .observation_group_weight <- function(rows, data, model) {
   endpoint_name <- data$.endpoint_name[rows[1L]]
   endpoint <- model$public$endpoints[[endpoint_name]]
@@ -380,7 +395,7 @@
       for (occasion in seq_along(origins)) {
         if (!occasion %in% active_occasions) next
         local_grid <- if (is.null(occasion_schedule)) {
-          endpoint$grid[selected]
+          .generated_local_grid(endpoint, selected, regimen)
         } else {
           occasion_schedule[[as.character(occasion)]]
         }
@@ -446,7 +461,14 @@
       model$public$endpoints[[name]]$alignment %in% c("dose_relative", "occasion")
     }, logical(1))
     actual[local_alignment] <- pmax(actual[local_alignment], origin[local_alignment])
-    actual[local_alignment] <- pmin(actual[local_alignment], next_dose[local_alignment])
+    # Keep a dose-relative observation inside the occasion that generated it.
+    # Equality with the next dose would cause standard interval assignment to
+    # relabel it as an observation from the following occasion.
+    upper <- next_dose
+    finite_next <- is.finite(next_dose)
+    upper[finite_next] <- next_dose[finite_next] -
+      pmax(abs(next_dose[finite_next] - origin[finite_next]), 1) * 1e-8
+    actual[local_alignment] <- pmin(actual[local_alignment], upper[local_alignment])
   }
   actual <- pmin(pmax(actual, bounds[1L]), bounds[2L])
   data[[roles$time]][observation] <- actual
@@ -469,6 +491,66 @@
   out
 }
 
+.project_unimodal_at <- function(x, peak) {
+  n <- length(x)
+  if (n < 3L) return(x)
+  peak <- min(max(as.integer(peak), 1L), n)
+  left_index <- seq_len(peak)
+  right_index <- peak:n
+  left <- stats::isoreg(left_index, x[left_index])$yf
+  right <- -stats::isoreg(seq_along(right_index), -x[right_index])$yf
+  peak_value <- max(left[length(left)], right[1L])
+  left[length(left)] <- peak_value
+  right[1L] <- peak_value
+  c(left[-length(left)], right)
+}
+
+.best_unimodal_projection <- function(x) {
+  if (length(x) < 3L || any(!is.finite(x))) {
+    return(list(values = x, peak = which.max(x), relative_error = 0))
+  }
+  candidates <- lapply(seq_along(x), function(peak) {
+    .project_unimodal_at(x, peak)
+  })
+  error <- vapply(candidates, function(candidate) {
+    sum((candidate - x)^2)
+  }, numeric(1))
+  peak <- which.min(error)
+  values <- candidates[[peak]]
+  scale <- max(diff(range(x)), sqrt(.Machine$double.eps))
+  list(
+    values = values, peak = peak,
+    relative_error = max(abs(values - x)) / scale
+  )
+}
+
+.occasion_ar1_noise <- function(data, rows, endpoint, sd) {
+  if (!length(rows) || sd == 0) return(numeric(length(rows)))
+  if (!endpoint$alignment %in% c("dose_relative", "occasion")) {
+    return(.ar1_noise(length(rows), phi = 0.65, sd = sd))
+  }
+  occasion <- as.integer(data$.occasion_internal[rows])
+  out <- numeric(length(rows))
+  for (value in unique(occasion)) {
+    index <- which(occasion == value)
+    out[index] <- .ar1_noise(length(index), phi = 0.65, sd = sd)
+  }
+  out
+}
+
+.stabilize_unimodal_profiles <- function(latent, mean_working, clock,
+                                          occasion) {
+  out <- latent
+  for (value in unique(occasion)) {
+    index <- which(occasion == value)
+    if (length(index) < 3L) next
+    ordered <- index[order(clock[index])]
+    peak <- which.max(mean_working[ordered])
+    out[ordered] <- .project_unimodal_at(out[ordered], peak)
+  }
+  out
+}
+
 .generate_endpoint_values <- function(data, model) {
   roles <- model$public$roles
   for (name in names(model$public$endpoints)) {
@@ -477,6 +559,11 @@
     endpoint <- model$public$endpoints[[name]]
     trajectory <- model$population$trajectories[[name]]
     curve <- .smooth_private_curve(trajectory$mean_working)
+    curve_shape <- .best_unimodal_projection(curve)
+    stabilize_shape <-
+      endpoint$alignment %in% c("dose_relative", "occasion") &&
+      curve_shape$relative_error <= 0.10
+    if (stabilize_shape) curve <- curve_shape$values
     if (endpoint$alignment %in% c("dose_relative", "occasion")) {
       clock <- as.numeric(data$.tad_internal[rows])
       mean_working <- stats::approx(
@@ -510,12 +597,19 @@
                              sd = endpoint$subject_sd * working_range * 0.08)
       occasion_shift <- shifts[match(occasion, unique(occasion))]
     }
-    residual <- .ar1_noise(
-      length(rows), phi = 0.65,
+    residual <- .occasion_ar1_noise(
+      data, rows, endpoint,
       sd = endpoint$residual_sd * working_range * 0.10
     )
+    latent_working <- mean_working + subject_shift + occasion_shift + residual
+    if (stabilize_shape) {
+      latent_working <- .stabilize_unimodal_profiles(
+        latent_working, mean_working, clock,
+        as.integer(data$.occasion_internal[rows])
+      )
+    }
     latent <- .inverse_endpoint(
-      mean_working + subject_shift + occasion_shift + residual, endpoint
+      latent_working, endpoint
     )
     data[[roles$dv]][rows] <- latent
     data <- .apply_censoring(data, rows, name, latent, model)

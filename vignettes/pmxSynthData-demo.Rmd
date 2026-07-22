@@ -203,7 +203,9 @@ does not currently fit splines.
 
 Instead, each endpoint uses a deliberately coarse **fixed-grid trajectory
 model**. Within each subject, observations are assigned to the nearest cell on
-a public dose-relative or study-time grid. Bounded subject-level presence and
+a fixed dose-relative or study-time basis. When no basis is supplied, as in
+the examples below, the package constructs a generic source-independent basis
+from public bounds and contribution limits. Bounded subject-level presence and
 cell-mean vectors are released through the configured privacy mechanism. During
 generation, adjacent released cell means receive a short 1-2-1 moving-average
 smoother and `stats::approx()` performs piecewise-linear interpolation. Public
@@ -264,15 +266,16 @@ roles <- pmx_roles(
 endpoints <- list(
   marker = pmx_endpoint(
     dvid = "marker", alignment = "study_time", transform = "identity",
-    shape = "global", grid = 1:4,
+    shape = "global",
     censoring = list(left = 1, right = 10, interval = c(2, 4))
   )
 )
 ```
 
-Bounds, schema, factor levels, timing grids, and contribution limits are public
-inputs. Establish them from protocol knowledge or an approved public schema,
-not by silently taking confidential minima and maxima.
+Bounds, schema, factor levels, and contribution limits are public inputs.
+Establish them from protocol knowledge or an approved public schema, not by
+silently taking confidential minima and maxima. No dose regimen or sampling
+schedule is supplied here: both are inferred inside `fit_private_pmx()`.
 
 ```{r minimal-config}
 bounds <- pmx_bounds(
@@ -282,8 +285,7 @@ bounds <- pmx_bounds(
 
 public_design <- pmx_public_design(
   schema = pmx_schema(public_source),
-  dose_times = 0, n_doses = 1, dose_amount = 100, dose_evid = 1,
-  endpoint_grids = list(marker = 1:4)
+  dose_evid = 1
 )
 
 contribution_limits <- pmx_contribution_limits(
@@ -397,7 +399,7 @@ theo_roles <- pmx_roles(
 )
 theo_endpoints <- list(cp = pmx_endpoint(
   alignment = "dose_relative", transform = "log", shape = "occasion",
-  grid = c(0, .25, .5, 1, 2, 4, 5, 7, 9, 12, 23.75), cmt = 2
+  cmt = 2
 ))
 theo_model <- fit_private_pmx(
   theo_md, theo_roles, theo_endpoints, epsilon = 5, delta = 0,
@@ -510,12 +512,10 @@ warfarin_roles <- pmx_roles(
 )
 warfarin_endpoints <- list(
   cp = pmx_endpoint(
-    "cp", "dose_relative", "log", "occasion",
-    grid = c(.5, 1, 1.5, 2, 3, 6, 9, 12, 24, 48, 72, 120)
+    "cp", "dose_relative", "log", "occasion"
   ),
   pca = pmx_endpoint(
-    "pca", "study_time", "identity", "global",
-    grid = c(0, 24, 36, 48, 72, 96, 120, 144)
+    "pca", "study_time", "identity", "global"
   )
 )
 warfarin_model <- fit_private_pmx(
@@ -526,9 +526,7 @@ warfarin_model <- fit_private_pmx(
     covariates = list(wt = c(40, 150), age = c(18, 100))
   ),
   pmx_public_design(
-    pmx_schema(warfarin), dose_times = 0, n_doses = 1,
-    dose_amount = 100, dose_evid = 1,
-    endpoint_grids = lapply(warfarin_endpoints, `[[`, "grid")
+    pmx_schema(warfarin), dose_evid = 1
   ),
   pmx_contribution_limits(30, 2, 2, c(cp = 20, pca = 12), 12),
   pmx_budget_allocation(.1, .15, .15, .1, .5, 0),
@@ -570,10 +568,10 @@ ggplot2::ggplot(
 
 ## WBC: generalized infusion and delayed study-time response
 
-The public design deliberately ends at 672 hours. A singleton multi-thousand-
-hour source follow-up cannot be reproduced. Positive and negative infusion
-records are generated as a coherent pair from a generated amount, rate, and
-duration.
+The declared comparison domain ends at 720 hours. A singleton multi-thousand-
+hour source follow-up cannot be reproduced. Dose count, amount, rate, duration,
+and sampling-cell occupancy are inferred from the fitted data. Positive and
+negative infusion records are generated as a coherent pair.
 
 ```{r wbc-fit, eval=has_nlmixr2data}
 data("wbcSim", package = "nlmixr2data")
@@ -582,8 +580,7 @@ wbc_roles <- pmx_roles(
   cmt = "CMT", rate = "RATE", covariates = c("V2I", "V1I", "CLI")
 )
 wbc_endpoints <- list(wbc = pmx_endpoint(
-  alignment = "study_time", transform = "log", shape = "global",
-  grid = c(0, 72, 120, 168, 192, 240, 336, 504, 672), cmt = 3
+  alignment = "study_time", transform = "log", shape = "global", cmt = 3
 ))
 wbc_model <- fit_private_pmx(
   wbcSim, wbc_roles, wbc_endpoints, 5, 0,
@@ -595,10 +592,7 @@ wbc_model <- fit_private_pmx(
     )
   ),
   pmx_public_design(
-    pmx_schema(wbcSim), dose_times = 0, n_doses = 1,
-    dose_amount = 120, dose_rate = 120, infusion_duration = 3,
-    dose_evid = 10101, dose_cmt = 1,
-    endpoint_grids = list(wbc = wbc_endpoints$wbc$grid),
+    pmx_schema(wbcSim), dose_evid = 10101, dose_cmt = 1,
     endpoint_cmt = list(wbc = 3)
   ),
   pmx_contribution_limits(20, 2, 2, 12, 9),
@@ -664,7 +658,7 @@ not privatize a new source comparison.
 | Missing DV, time, amount, rate, covariate, or limit bounds | Sensitivity is undefined | Establish defensible public domains before source access |
 | Undeclared actual or nominal time | Event and endpoint clocks are ambiguous | Add explicit `time` and optional `nominal_time`, `tad`, and `occasion` roles |
 | Date or POSIX column remains | Exact calendar information is not modeled | Explicitly exclude it and omit it from the public output schema |
-| Too many summaries for a small study | Vector sensitivity and noise overwhelm utility | Shorten public grids, remove unnecessary private relationships, or use public protocol information |
+| Too many summaries for a small study | Vector sensitivity and noise overwhelm utility | Use fewer generic timing cells, remove unnecessary private relationships, or use independently public protocol information |
 | Active group has zero budget | The release cannot be accounted | Allocate a positive fraction; keep the total at or below one |
 | Calling the fitter again to get another dataset | Every refit is a new composed release | Reuse the fitted model and call `generate_pmx()` with another ordinary seed |
 | OpenDP is absent | Production mechanism is unavailable | Install and validate OpenDP; never switch confidential data to the public-fixture backend |
@@ -685,5 +679,7 @@ not privatize a new source comparison.
   differentially private model without claiming zero risk, legal anonymity,
   scientific fidelity, or release authorization.
 
-See `vignette("pmxSynthData-method")` for the guarantee, mechanism, sensitivity,
-composition, small-study tradeoff, and implementation assumptions.
+See `vignette("pmxSynthData-privacy-intro")` for the guarantee, sensitivity,
+composition, and small-study tradeoff. See
+`vignette("pmxSynthData-simulation-method")` for the fixed-grid trajectory,
+sampling-time, event, variability, and censoring algorithms.

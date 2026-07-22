@@ -32,7 +32,10 @@ expectation, not a fitted structural model.}
 
 \item{units}{Optional public unit label.}
 
-\item{grid}{Optional strictly increasing public grid on the declared clock.}
+\item{grid}{Optional strictly increasing public grid on the declared clock.
+This is a discretization basis, not a sampling schedule. When omitted, a
+generic basis is constructed from public bounds and contribution limits;
+sampling-cell occupancy is then learned from the fitted data.}
 
 \item{cmt}{Optional public observation compartment value.}
 
