@@ -236,6 +236,12 @@ around — but that is a different product from the one this package claims to b
 
 ## 6. Recommendation
 
+> **Superseded in part by section 8.** This section was written before the
+> target cohort sizes were fixed. The scope decision of 2026-07-22 prioritizes
+> small trials, which rules out point 2 below as the primary direction and
+> promotes point 3 (Tier B) from research direction to main architecture. Points
+> 1 and 4 stand unchanged.
+
 **Reposition the package around two supported modes, and be explicit that the
 middle ground does not exist.**
 
@@ -277,7 +283,197 @@ The one-sentence scope statement worth putting in the README:
   section 2 with evidence. A nearest-neighbor distance-ratio test and a
   membership-inference test against the `21eb6e2` code would settle how bad it
   actually was, which is worth knowing before reusing any of it.
-- **A real target dataset.** The whole frontier analysis assumes the fixture's
-  release dimension. If the datasets of interest have more endpoints, more
-  occasions, or more covariates, `d` grows and the required N grows with it.
-  What are the actual cohort sizes and structures you need to support?
+- **A real target dataset.** The frontier in section 4 assumes the fixture's
+  release dimension. Section 8 maps it onto typical development-program cohort
+  sizes; confirm which of those rows are the actual targets.
+
+---
+
+## 8. Assessment against the target cohort sizes
+
+Target sizes in scope (2026-07-22): **6, 20, 60, 100, 500, 1000, 10000**.
+Scope preference: prioritize the small end.
+
+That preference rules out the section 6 recommendation, which pointed at pooled
+corpora. It forces the Tier B design, because Tier B is the only column in which
+the small sizes appear at all.
+
+### Today's dense-grid design against these sizes
+
+Measured in section 4 and extrapolated on `sensitivity / (epsilon * N)`:
+
+| N | epsilon 1 | epsilon 5 | Verdict |
+|---:|---|---|---|
+| 6 | hopeless | hopeless | Tier A only |
+| 20 | hopeless | hopeless | Tier A only |
+| 60 | hopeless | ~1.5 (useless) | Tier A only |
+| 100 | 2.55 | 1.46 | no |
+| 500 | ~1.0 | ~0.25 | marginal at a weak epsilon |
+| 1000 | ~0.5 | ~0.13 | usable at a weak epsilon |
+| 10000 | ~0.05 | ~0.01 | good, and the first size that works at epsilon 1 |
+
+Only the top two rows of the target list are served, and only at an epsilon that
+is not a real guarantee. **The current architecture does not serve the stated
+scope.**
+
+### The Tier B arithmetic
+
+Release `d` bounded per-subject scalars instead of a dense grid. Each subject's
+value is clipped to a **public prior range**, and the released quantity is a
+mean. Under Laplace with basic composition the error on each released mean, as a
+fraction of the prior range, is
+
+$$f \;=\; \frac{d}{\varepsilon N}.$$
+
+With a draft `d = 6` (cohort size, CL, t-half, PD baseline, PD magnitude, PD
+onset rate):
+
+| N | eps 1 | eps 3 | eps 5 |
+|---:|---:|---:|---:|
+| 6 | 1.00 | 0.33 | 0.20 |
+| 20 | 0.30 | 0.10 | 0.06 |
+| 60 | 0.10 | 0.033 | 0.020 |
+| 100 | 0.060 | 0.020 | 0.012 |
+| 500 | 0.012 | 0.004 | 0.002 |
+| 1000 | 0.006 | 0.002 | 0.001 |
+| 10000 | 0.0006 | 0.0002 | 0.0001 |
+
+`f` is a fraction of the *prior range*, so it converts to a parameter error only
+once that range is fixed. For a two-fold public prior on CL (0.69 log units),
+relative error is approximately `exp(0.69 f) - 1`:
+
+| `f` | Relative error on CL |
+|---:|---:|
+| 0.30 | 23% |
+| 0.20 | 15% |
+| 0.10 | 7.1% |
+| 0.06 | 4.2% |
+| 0.033 | 2.3% |
+| 0.012 | 0.8% |
+
+Taking `f <= 0.10` as the usability bar gives the frontier `epsilon * N >= 60`:
+
+| N | Minimum epsilon for `f <= 0.10` | Verdict |
+|---:|---:|---|
+| 6 | 10 | **No.** Not a guarantee. Tier A |
+| 20 | 3 | Marginal; defensible only with governance |
+| 60 | 1 | **Works at a real epsilon** |
+| 100 | 0.6 | Works at a strong epsilon |
+| 500 | 0.12 | Very strong |
+| 1000 | 0.06 | Very strong |
+| 10000 | 0.006 | Essentially free |
+
+**This is the innovation.** Today epsilon 1 needs roughly 6,000 subjects. Under
+Tier B it needs about 60. That is a hundredfold reduction in the cohort size at
+which a defensible guarantee becomes possible, and it moves Phase 1 from
+impossible into range.
+
+### Why the prior range is the real lever
+
+The reason this works is worth stating precisely, because it determines where
+the effort should go.
+
+The DP release is not "the PK parameters". It is a **correction to a public
+prior**. Noise matters only relative to the width of that prior. A prior saying
+CL is somewhere in 0.1-100 L/h needs far more budget to locate the truth than
+one saying 3-6 L/h. Halving the prior width halves the required epsilon at fixed
+N.
+
+Pharmacometrics is unusually well placed to exploit this. The field already
+builds informative structural priors as a matter of course — published popPK
+models, allometric scaling, known elimination pathways, established PD
+mechanisms. **The tightest defensible public prior is worth more than any
+mechanism improvement**, and tightening priors is cheaper than any of
+`REV-005`/`REV-006`/`REV-007`.
+
+The corresponding hazard is exact: the prior now does most of the work, so the
+temptation to tune it against the data is much stronger, and the consequence of
+doing so is much worse. A prior fitted to the confidential data voids the
+guarantee entirely and nothing downstream detects it. This needs the same
+provenance discipline as `pmx_bounds()`, applied harder.
+
+### Why non-compartmental analysis, and not popPK fitting
+
+The estimator choice is a privacy constraint, not a modeling preference.
+
+- **NCA is DP-compatible.** Trapezoidal AUC and a terminal slope are computed
+  from one subject's own rows. One subject's data influences only that
+  subject's value, so clipping to a public range bounds the sensitivity
+  directly.
+- **NLME/popPK fitting is not.** Shrinkage couples subjects: every individual
+  post-hoc estimate depends on the population fit, which depends on everyone.
+  One subject perturbs all N estimates by an amount with no simple bound.
+  Making that private requires DP-SGD-style machinery, far more budget, and a
+  much harder proof.
+
+This constraint aligns favorably with the stated scope. NCA needs rich sampling,
+and rich sampling is exactly what small early-phase studies have. Sampling
+richness and cohort size are inversely related across development, so the
+small-N target and the DP-compatible estimator want the same designs.
+
+### Mechanism note: do not use Gaussian here
+
+`REV-006` recommends Gaussian noise under zCDP. That advice is **dimension
+dependent and does not apply to Tier B**. At `d = 6` and `epsilon = 1`, Laplace
+gives a noise scale of 6 on the sum, while a Gaussian at `delta = 1e-6` gives
+roughly 13. Gaussian wins only once `d` is large enough for the `sqrt(d)`
+sensitivity to beat the `sqrt(2 ln(1.25/delta))` constant, which is well above
+`d = 6`. Keep pure-DP Laplace for the low-dimensional path.
+
+### Residual risks in the Tier B design
+
+1. **Prior provenance**, as above. The dominant threat to the claim.
+2. **Confidently wrong output.** Today's noise looks like noise. A tight but
+   incorrect prior produces clean, plausible, wrong data. Failure becomes
+   invisible again — the same property that made v1 dangerous, arriving through
+   a different door.
+3. **Too clean to be useful.** Mock data generated from a smooth structural
+   model lacks the outliers, BLQ runs, missed doses, and protocol deviations
+   that actually break analysis pipelines. This directly undercuts the stated
+   purpose. Mitigate by injecting messiness from public and protocol knowledge
+   rather than learning it — dropout rates, BLQ rules, and visit windows are
+   design facts, not patient data.
+4. **Linear PK is an assumption, not a fact.** Dose-normalization is invalid
+   under TMDD or saturable elimination. It must be declared and checkable.
+5. **N = 6 remains out of scope.** At six subjects one person is 17% of every
+   released statistic. The arithmetic above admits `f = 0.20` at epsilon 5, but
+   epsilon 5 on a six-person cohort is not a meaningful guarantee. Tier A.
+
+### On novelty
+
+The combination — public structural priors from the pharmacometric literature,
+a handful of DP-released scalars, and per-subject NCA as the estimator — is a
+credible methodological contribution and I am not aware of published work doing
+exactly this. But DP under informative priors is not itself new, and I cannot
+verify novelty from inside this repository. Before making a novelty claim in a
+paper or a package abstract, check the literature for DP with non-compartmental
+analysis, DP applied to popPK, and DP synthetic data under strong structural
+priors. The engineering position stands regardless of what that search finds.
+
+### A pooling hazard that matters more now
+
+The recommendation to pool makes an assumption the current code does not check.
+The declared adjacency is **add-or-remove one complete subject**, and
+`.bound_subject_contributions()` groups rows by the ID column. That is correct
+only when one person appears exactly once in the pooled dataset.
+
+Common situations that violate it:
+
+- **Rollover and extension studies.** A patient completing a Phase 2 study and
+  enrolling in its open-label extension appears twice, usually under different
+  subject numbers.
+- **Crossover designs** pooled with the parallel-group studies they accompany.
+- **Re-screened or re-enrolled subjects** within a program.
+- **Any pooling that concatenates studies without a subject-level crosswalk.**
+
+If one person contributes `k` records, the guarantee they actually receive
+degrades to roughly `k * epsilon` by group privacy. At epsilon 5 with a single
+rollover, that person has epsilon 10 — and nothing in the accounting, the
+ledger, or `validate_private_model()` would reveal it.
+
+This is not hypothetical for the recommended use case: pooled submission
+datasets frequently contain rollover subjects. Before pooling is recommended in
+user-facing documentation, the package should either require an assertion that
+IDs are unique persons, or accept a person-level grouping column and bound
+contributions on that instead of on the study subject ID. Tracked as a
+prerequisite for the section 6 recommendation.

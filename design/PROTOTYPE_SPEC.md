@@ -2,6 +2,77 @@
 
 You are a senior R package developer with pharmacometrics, longitudinal-data, and differential-privacy experience. Work directly in the existing package repository and implement a complete working package—not merely a design, plan, or collection of code snippets. Do not commit changes unless asked.  Th
 
+---
+
+## Version 3 scope decision (2026-07-22)
+
+**Read this before implementing anything below.** The Version 2 specification in
+the rest of this document remains an accurate description of the *dense-grid*
+engine that is implemented today, and that engine is retained for pooled
+corpora. But it does not serve the cohort sizes now in scope, and the sections
+listed below are superseded for new work.
+
+### Target cohort sizes
+
+**6, 20, 60, 100, 500, 1000, 10000**, with the small end prioritized.
+
+The Version 2 engine serves only the largest one or two of these, and only at an
+epsilon that is not a meaningful guarantee. The measured frontier and the
+arithmetic behind this decision are in `design/FEASIBILITY.md` section 8.
+
+### The Version 3 architecture
+
+Replace the dense per-cell grid release with a **low-dimensional structural
+release against public priors**:
+
+1. **Take structure from public inputs, not from the data.** The sampling
+   schedule comes from the protocol. PK and PD curve shapes come from published
+   models. Neither consumes privacy budget, because neither is patient data.
+2. **Release a handful of bounded per-subject scalars.** Target `d <= 8`. Draft
+   vector: cohort size; CL, derived by dose-normalizing under an assumed linear
+   PK and computing AUC; terminal half-life; PD baseline; PD effect magnitude;
+   PD onset rate.
+3. **Clip each subject's value to a public prior range.** That range, not the
+   observed data range, is the sensitivity term. It is the dominant driver of
+   required epsilon: halving the prior width halves the required epsilon at
+   fixed N.
+4. **Estimate per subject with non-compartmental analysis.** Trapezoidal AUC and
+   a terminal slope depend only on that subject's own rows. This is a privacy
+   requirement, not a modeling preference — NLME/popPK fitting couples subjects
+   through shrinkage and has no simple sensitivity bound.
+5. **Keep pure-DP Laplace.** Gaussian/zCDP helps only at high dimension and is
+   the wrong choice at `d` around 6. See `design/FEASIBILITY.md` section 8.
+6. **Spend a small budget on messiness.** Dropout rate, missed-dose rate, and
+   BLQ fraction. Mock data that is too clean does not exercise the pipelines
+   this package exists to test.
+
+### What this changes in the sections below
+
+| Section | Status under Version 3 |
+|---|---|
+| Endpoint trajectory generation | Superseded. Trajectory shape comes from public priors, not from a released per-cell grid |
+| Sampling-design inference | Superseded. The schedule is a public protocol input; the `endpoint_timing` release group is removed |
+| Fixed-dimensional subject representation | Superseded. Replaced by the bounded scalar vector above |
+| Privately learned information | Superseded. Replaced by the `d <= 8` parameter release |
+| Budget allocation | Revised. No trajectory group; reallocate to parameters and messiness |
+| Privacy contract, roles, endpoint declarations, censoring, identifiers, accounting, post-processing discipline | Unchanged and still binding |
+
+### What is not in scope at any cohort size
+
+**N = 6 cannot be served by any private release.** One subject is 17% of every
+released statistic. Studies at that size must generate from public design inputs
+alone, spending no budget and making no DP claim. This is a permanent boundary,
+not a gap to close.
+
+### Open questions before implementation
+
+Tracked in `design/TODO.md`. The parameter vector, the prior-elicitation API,
+and the realized frontier are all unresolved; the numbers in
+`design/FEASIBILITY.md` section 8 are arithmetic from the error law and have not
+yet been measured against an implementation.
+
+---
+
 ## Version 2 is a fresh synthesis engine
 
 Version 1 used an AVATAR-like anchor-and-donor blending algorithm. Version 2 is a fresh implementation centered on a subject-level differentially private population generator.

@@ -3,6 +3,21 @@
 This repository contains the `pmxSynthData` R package prototype for simulating
 structurally faithful mock pharmacometric datasets.
 
+## Design documents
+
+Read `design/TODO.md` first. It is the working task queue and it links to the
+document that owns each kind of decision:
+
+- `design/TODO.md` — what to do next.
+- `design/REVIEW_BACKLOG.md` — defects and design findings (`REV-###`).
+- `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
+- `design/FEASIBILITY.md` — what is achievable at which cohort size.
+- `design/PROTOTYPE_SPEC.md` — the specification being implemented.
+
+Keep `design/TODO.md` current: tick items as they close, add newly discovered
+work, and record the reasoning in the registry that owns it rather than in the
+task list itself.
+
 - Put package functions in `R/`, tests in `tests/testthat/`, and runnable
   demonstrations in `scripts/`.
 - Document public functions with roxygen2 and regenerate documentation after
