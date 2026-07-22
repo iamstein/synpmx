@@ -20,6 +20,19 @@ run_demo <- function(name, roles, seed) {
   validation <- pmxmock::validate_pmx(mock, roles)
   comparison <- pmxmock::compare_pmx(source, mock, roles)
   stopifnot(validation$valid)
+
+  # Identify the concrete source object and generated data directly on every
+  # plot. The existing legends/facets continue to distinguish source and mock.
+  if (length(comparison$plots)) {
+    dataset_caption <- paste0(
+      "Source: nlmixr2data::", name,
+      " | Mock: pmxmock::mock_pmx()"
+    )
+    comparison$plots <- lapply(comparison$plots, function(plot) {
+      plot + ggplot2::labs(caption = dataset_caption)
+    })
+  }
+
   print(comparison)
   if (length(comparison$plots) && interactive()) {
     print(comparison$plots$faceted)
