@@ -1,6 +1,6 @@
 # Repository instructions
 
-This repository contains the `pmxmock` R package prototype for simulating
+This repository contains the `pmxSynthData` R package prototype for simulating
 structurally faithful mock pharmacometric datasets.
 
 - Put package functions in `R/`, tests in `tests/testthat/`, and runnable

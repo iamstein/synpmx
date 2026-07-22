@@ -1,6 +1,6 @@
 #' Declare pharmacometric column roles
 #'
-#' Column roles are always explicit. `pmxmock` never guesses critical event or
+#' Column roles are always explicit. `pmxSynthData` never guesses critical event or
 #' measurement columns from their names.
 #'
 #' @param id,time,dv,evid Single column names for subject ID, time, dependent

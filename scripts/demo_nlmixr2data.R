@@ -1,8 +1,8 @@
 # End-to-end demonstrations for the three nlmixr2data integration datasets.
-# Install pmxmock first with: R CMD INSTALL .
+# Install pmxSynthData first with: R CMD INSTALL .
 
-if (!requireNamespace("pmxmock", quietly = TRUE)) {
-  stop("Install pmxmock before running this script: R CMD INSTALL .")
+if (!requireNamespace("pmxSynthData", quietly = TRUE)) {
+  stop("Install pmxSynthData before running this script: R CMD INSTALL .")
 }
 if (!requireNamespace("nlmixr2data", quietly = TRUE)) {
   stop("Install nlmixr2data to run the integration demonstrations.")
@@ -16,9 +16,9 @@ load_dataset <- function(name) {
 
 run_demo <- function(name, roles, seed) {
   source <- load_dataset(name)
-  mock <- pmxmock::mock_pmx(source, roles, seed = seed)
-  validation <- pmxmock::validate_pmx(mock, roles)
-  comparison <- pmxmock::compare_pmx(source, mock, roles)
+  mock <- pmxSynthData::mock_pmx(source, roles, seed = seed)
+  validation <- pmxSynthData::validate_pmx(mock, roles)
+  comparison <- pmxSynthData::compare_pmx(source, mock, roles)
   stopifnot(validation$valid)
 
   # Identify the concrete source object and generated data directly on every
@@ -26,7 +26,7 @@ run_demo <- function(name, roles, seed) {
   if (length(comparison$plots)) {
     dataset_caption <- paste0(
       "Source: nlmixr2data::", name,
-      " | Mock: pmxmock::mock_pmx()"
+      " | Mock: pmxSynthData::mock_pmx()"
     )
     comparison$plots <- lapply(comparison$plots, function(plot) {
       plot + ggplot2::labs(caption = dataset_caption)
@@ -42,7 +42,7 @@ run_demo <- function(name, roles, seed) {
 
 theophylline <- run_demo(
   "theo_md",
-  pmxmock::pmx_roles(
+  pmxSynthData::pmx_roles(
     id = "ID", time = "TIME", dv = "DV", amt = "AMT",
     evid = "EVID", cmt = "CMT", covariates = "WT"
   ),
@@ -51,7 +51,7 @@ theophylline <- run_demo(
 
 warfarin_result <- run_demo(
   "warfarin",
-  pmxmock::pmx_roles(
+  pmxSynthData::pmx_roles(
     id = "id", time = "time", dv = "dv", amt = "amt",
     evid = "evid", dvid = "dvid",
     covariates = c("wt", "age", "sex")
@@ -61,7 +61,7 @@ warfarin_result <- run_demo(
 
 wbc <- run_demo(
   "wbcSim",
-  pmxmock::pmx_roles(
+  pmxSynthData::pmx_roles(
     id = "ID", time = "TIME", dv = "DV", amt = "AMT",
     evid = "EVID", cmt = "CMT", rate = "RATE",
     covariates = c("V2I", "V1I", "CLI")

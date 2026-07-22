@@ -20,12 +20,12 @@ knitr::opts_chunk$set(
   fig.align = "center",
   out.width = "100%"
 )
-library(pmxmock)
+library(pmxSynthData)
 ```
 
 ## Purpose
 
-This vignette applies `pmxmock` to three datasets from `nlmixr2data`. The goal
+This vignette applies `pmxSynthData` to three datasets from `nlmixr2data`. The goal
 is to create **mock data for model-workflow exploration** without fitting or
 calling a PK, PD, or NLME model.
 
@@ -65,7 +65,7 @@ load_nlmixr2_data <- function(name) {
 label_comparison <- function(comparison, source_name) {
   caption <- paste0(
     "Source: nlmixr2data::", source_name,
-    " | Mock: pmxmock::mock_pmx()"
+    " | Mock: pmxSynthData::mock_pmx()"
   )
   comparison$plots <- lapply(comparison$plots, function(plot) {
     plot + ggplot2::labs(caption = caption)

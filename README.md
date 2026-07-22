@@ -1,6 +1,6 @@
-# pmxmock
+# pmxSynthData
 
-`pmxmock` is an R package prototype for generating structurally faithful mock
+`pmxSynthData` is an R package prototype for generating structurally faithful mock
 pharmacometric event datasets from an existing dataset without fitting or
 calling a PK, PD, or nonlinear mixed-effects model.
 
@@ -71,7 +71,7 @@ install.packages(c("testthat", "roxygen2"))
 install.packages(".", repos = NULL, type = "source")
 ```
 
-Open `pmxmock.Rproj` for RStudio development. Run tests with:
+Open `pmxSynthData.Rproj` for RStudio development. Run tests with:
 
 ```r
 testthat::test_local()
@@ -80,7 +80,7 @@ testthat::test_local()
 ## Theophylline repeated dosing
 
 ```r
-library(pmxmock)
+library(pmxSynthData)
 
 data("theo_md", package = "nlmixr2data")
 theo_roles <- pmx_roles(

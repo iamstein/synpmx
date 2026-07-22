@@ -1,6 +1,6 @@
-#' pmxmock: Structurally Faithful Mock Pharmacometric Data
+#' pmxSynthData: Structurally Faithful Mock Pharmacometric Data
 #'
-#' `pmxmock` creates mock data for model-workflow exploration by combining a
+#' `pmxSynthData` creates mock data for model-workflow exploration by combining a
 #' sampled subject's coherent event template with AVATAR-like blends of
 #' compatible subjects' covariates and longitudinal measurements. It does not
 #' fit or call a PK, PD, or NLME model.

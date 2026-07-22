@@ -32,7 +32,7 @@ A \code{pmx_roles} object consumed by \code{\link[=mock_pmx]{mock_pmx()}}, \code
 \code{\link[=compare_pmx]{compare_pmx()}}.
 }
 \description{
-Column roles are always explicit. \code{pmxmock} never guesses critical event or
+Column roles are always explicit. \code{pmxSynthData} never guesses critical event or
 measurement columns from their names.
 }
 \examples{

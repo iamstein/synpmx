@@ -1,4 +1,4 @@
-Package: pmxmock
+Package: pmxSynthData
 Title: Structurally Faithful Mock Pharmacometric Data
 Version: 0.0.0.9000
 Authors@R:

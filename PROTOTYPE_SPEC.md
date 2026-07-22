@@ -1,6 +1,6 @@
 You are a senior R package developer with pharmacometrics experience. Work directly in the current directory and implement a working prototype—not merely a design document or code snippets.
 
-First inspect the repository, including AGENTS.md if present, git status, DESCRIPTION, README, and existing R/package structure. Preserve existing work and conventions. If this is not yet an R package, scaffold one named `pmxmock`. Do not commit changes unless asked.
+First inspect the repository, including AGENTS.md if present, git status, DESCRIPTION, README, and existing R/package structure. Preserve existing work and conventions. If this is not yet an R package, scaffold one named `pmxSynthData`. Do not commit changes unless asked.
 
 ## Objective
 
@@ -366,3 +366,13 @@ At the end, report concisely:
 - exact test and package-check results;
 - important limitations;
 - any decisions where the implementation differs from this specification and why.
+
+## VERSION 2 - additions 2026-07-22
+A few other features should be added to this PROTOTYPE_SPEC.md
+1. Implement Censoring of data.  Follow the general approach of Monolix with a CENS column.
+2. Something better should be done with respect to privacy regarding
+    a. Sampling times.  One, have an option for having Nominal Times as well.
+    b. Do something so that subject cannot
+
+## After completion - methods vignette
+After completion, take make sure to update as well the pmxSynthData-method.Rmd to ensure that it has this update as well.  Rerun the pmxSynthData-method.Rmd.

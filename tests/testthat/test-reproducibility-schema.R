@@ -43,5 +43,5 @@ test_that("schema, classes, factors, and constant covariates are retained", {
                            logical(1))))
   }
   expect_true(is.list(attr(mock, "pmx_settings")))
-  expect_false(inherits(mock, "pmxmock"))
+  expect_false(inherits(mock, "pmxSynthData"))
 })
