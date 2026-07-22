@@ -2,8 +2,12 @@
 
 .v3_model <- function(pd = "none") {
   typical <- c(cl = 10, v = 70, ka = 1)
-  if (pd != "none") {
-    typical <- c(typical, baseline = 100, emax = 0.8, ec50 = 0.5, kout = 0.1)
+  if (pd == "exponential") {
+    typical <- c(typical, baseline = 100, plateau = 40, rate = 0.02)
+  } else if (pd == "linear") {
+    typical <- c(typical, baseline = 100, slope = 0.3)
+  } else if (pd == "constant") {
+    typical <- c(typical, baseline = 100)
   }
   pmx_structural_model("1cmt_oral", typical, pd = pd, source = "unit test")
 }
@@ -97,16 +101,15 @@ test_that("repeated dosing keeps every sample inside its own occasion", {
   expect_setequal(unique(table$OCC), 1:4)
 })
 
-test_that("the PD model responds and returns toward baseline", {
-  model <- .v3_model("idr_inhibit_loss")
+test_that("the PD endpoint produces a coherent time course", {
+  model <- .v3_model("exponential")
   design <- pmx_trial_design(100, 10, c(0, 2, 8, 24, 48, 96),
                              source = "x")
   table <- pmx_generate(model, design, seed = 5)
   pd <- table[table$EVID == 0 & table$DVID == "pd", ]
   expect_true(nrow(pd) > 0)
   expect_true(all(is.finite(pd$DV)))
-  # Inhibiting loss raises the response above its baseline.
-  expect_gt(max(pd$DV), 100)
+  expect_true(all(pd$DV > 0))
 })
 
 test_that("censoring uses the Monolix convention", {
@@ -289,50 +292,6 @@ test_that("two-compartment PK is biphasic and conserves Dose/CL", {
   expect_equal(values[1L], 0)
   expect_true(all(values >= 0))
   expect_gt(max(values), 0)
-})
-
-test_that("PD emax is solved for, not multiplied", {
-  # Effect saturates in emax, so multiplying by an effect ratio overshoots.
-  # Start from a low emax so a 2.76x increase is actually reachable.
-  model <- pmx_structural_model(
-    "1cmt_oral",
-    c(cl = 10, v = 70, ka = 1, baseline = 100, emax = 0.30, ec50 = 0.5,
-      kout = 0.1),
-    pd = "idr_inhibit_loss", source = "x"
-  )
-  design <- pmx_trial_design(100, 10, c(0, 2, 8, 24, 48, 96), source = "x")
-  solved <- .solve_emax(model, design, 2.76)
-  expect_false(solved$saturated)
-  # A 2.76x effect corresponds to roughly emax 0.75, not 0.30 * 2.76 = 0.83.
-  expect_gt(solved$emax, 0.6)
-  expect_lt(solved$emax, 0.85)
-
-  # An unreachable request saturates and says so rather than silently clamping.
-  huge <- .solve_emax(model, design, 100)
-  expect_true(huge$saturated)
-  expect_lte(huge$emax, 0.995)
-})
-
-test_that("the PD correction is exact without residual error", {
-  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
-  design <- pmx_trial_design(c(30, 100), c(1, 1), c(0, 2, 8, 24, 48, 96),
-                             source = "x")
-  spec <- function(emax) pmx_structural_model(
-    "1cmt_oral",
-    c(cl = 10, v = 70, ka = 1, baseline = 100, emax = emax, ec50 = 0.5,
-      kout = 0.1),
-    pd = "idr_inhibit_loss", source = "x", residual_cv = 0
-  )
-  data <- pmx_generate(spec(0.75), design, n_subjects = 200, seed = 6)
-  fit <- suppressWarnings(fit_calibrated_pmx(
-    data, pmx_generated_roles(), spec(0.30), design,
-    pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"),
-               pd = pmx_prior(c(1 / 10, 10), "x")),
-    epsilon = 50, backend = "opendp"
-  ))
-  # Residual error biases this low; without it the estimator is unbiased.
-  expect_gt(fit$corrected_typical[["emax"]], 0.65)
-  expect_lt(fit$corrected_typical[["emax"]], 0.85)
 })
 
 test_that("simple PD shapes are closed-form and go the right way", {

@@ -95,8 +95,8 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
       statistic: simple time-course shapes take a level correction (ratio of
       means), which is unbiased under residual error. Exposure-driven PD keeps
       the signed-area statistic and stays experimental.
-- [ ] Consider retiring the exposure-driven PD shapes if nothing needs them.
-      They carry a known bias and a wide unavoidable prior.
+- [x] Retire the exposure-driven PD shapes. Removed entirely; PD is now a
+      simple exposure-independent time course.
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 

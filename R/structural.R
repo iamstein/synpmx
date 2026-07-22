@@ -9,13 +9,11 @@
 
 .pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
                 "2cmt_oral")
-# Simple time-course shapes carry no exposure dependence. They are the default
-# because they are both adequate for mock data and far better conditioned to
-# estimate: a level correction is a ratio of means, where an exposure-driven
-# effect is a small deviation on a large baseline.
-.pd_simple <- c("constant", "linear", "exponential")
-.pd_exposure <- c("direct_emax", "idr_inhibit_loss", "idr_stimulate_loss")
-.pd_models <- c("none", .pd_simple, .pd_exposure)
+# PD is a simple time course with no exposure dependence. This is both adequate
+# for mock data and far better conditioned to calibrate than an exposure-driven
+# model, whose effect is a small deviation on a large baseline. See
+# design/PROTOTYPE_SPEC.md section 6.
+.pd_models <- c("none", "constant", "linear", "exponential")
 
 .required_pk_params <- list(
   `1cmt_iv`       = c("cl", "v"),
@@ -39,10 +37,7 @@
   none                 = character(),
   constant             = "baseline",
   linear               = c("baseline", "slope"),
-  exponential          = c("baseline", "plateau", "rate"),
-  direct_emax          = c("baseline", "emax", "ec50"),
-  idr_inhibit_loss     = c("baseline", "emax", "ec50", "kout"),
-  idr_stimulate_loss   = c("baseline", "emax", "ec50", "kout")
+  exponential          = c("baseline", "plateau", "rate")
 )
 
 # Concentration from one dose, evaluated at times measured from that dose.
@@ -134,51 +129,26 @@
   out
 }
 
-# Turnover PD needs integration. A fixed-step RK4 on a grid dense relative to
-# the response half-life is ample for mock data and avoids a solver dependency.
+# PD is a simple time course with no exposure dependence. This is deliberate:
+# such a shape is adequate for exercising longitudinal analysis code, and it
+# calibrates through a well-conditioned level correction where an exposure-driven
+# deviation statistic does not. See design/PROTOTYPE_SPEC.md section 6. `doses`
+# and `dose_times` are accepted for a common signature with `.pk_profile()` but
+# are unused.
 .pd_profile <- function(model, time, doses, dose_times, params = NULL,
-                        duration = 0, steps_per_unit = 4) {
+                        duration = 0) {
   p <- params %||% model$typical
   if (model$pd == "none") return(rep(NA_real_, length(time)))
   time_positive <- pmax(as.numeric(time), 0)
-  if (model$pd %in% .pd_simple) {
-    return(switch(
-      model$pd,
-      constant = rep(p[["baseline"]], length(time)),
-      linear = p[["baseline"]] + p[["slope"]] * time_positive,
-      # Covers both decay and growth: the sign is set by plateau vs baseline.
-      exponential = p[["plateau"]] +
-        (p[["baseline"]] - p[["plateau"]]) * exp(-p[["rate"]] * time_positive)
-    ))
-  }
-  conc_at <- function(tt) {
-    .pk_profile(model, tt, doses, dose_times, p, duration)
-  }
-  drive <- function(cp) {
-    p[["emax"]] * cp / (p[["ec50"]] + cp)
-  }
-  if (model$pd == "direct_emax") {
-    return(p[["baseline"]] * (1 - drive(conc_at(time))))
-  }
-  horizon <- max(c(time, dose_times), na.rm = TRUE)
-  n_steps <- max(50L, as.integer(ceiling(horizon * steps_per_unit)))
-  grid <- seq(0, horizon, length.out = n_steps + 1L)
-  h <- grid[2L] - grid[1L]
-  kout <- p[["kout"]]
-  kin <- p[["baseline"]] * kout
-  sign <- if (model$pd == "idr_inhibit_loss") -1 else 1
-  deriv <- function(tt, r) kin - kout * (1 + sign * drive(conc_at(tt))) * r
-  r <- numeric(length(grid))
-  r[1L] <- p[["baseline"]]
-  for (i in seq_len(n_steps)) {
-    tt <- grid[i]; y <- r[i]
-    k1 <- deriv(tt, y)
-    k2 <- deriv(tt + h / 2, y + h / 2 * k1)
-    k3 <- deriv(tt + h / 2, y + h / 2 * k2)
-    k4 <- deriv(tt + h, y + h * k3)
-    r[i + 1L] <- max(y + h / 6 * (k1 + 2 * k2 + 2 * k3 + k4), 0)
-  }
-  stats::approx(grid, r, xout = pmin(pmax(time, 0), horizon), rule = 2)$y
+  switch(
+    model$pd,
+    constant = rep(p[["baseline"]], length(time)),
+    linear = p[["baseline"]] + p[["slope"]] * time_positive,
+    # Covers both decay and growth: the sign is set by plateau vs baseline.
+    exponential = p[["plateau"]] +
+      (p[["baseline"]] - p[["plateau"]]) * exp(-p[["rate"]] * time_positive),
+    stop("Unknown PD model `", model$pd, "`.", call. = FALSE)
+  )
 }
 
 #' Declare a public structural model
@@ -193,15 +163,14 @@
 #' @param typical Named numeric vector of typical parameter values, interpreted
 #'   as the median of a lognormal population. Requires `cl` and `v` (the central
 #'   volume), plus `ka` for oral models and `q` and `v2` for two-compartment
-#'   models. Optional `f` defaults to 1. PD models additionally require
-#'   `baseline`, `emax`, `ec50`, and `kout`.
-#' @param pd The PD time course. `"none"` for PK only. The simple shapes
-#'   `"constant"`, `"linear"` (needs `slope`), and `"exponential"` (needs
-#'   `plateau` and `rate`, covering both decay and growth) carry no exposure
-#'   dependence and are recommended: they are adequate for mock data and much
-#'   better conditioned to calibrate. The exposure-driven shapes
-#'   `"direct_emax"`, `"idr_inhibit_loss"`, and `"idr_stimulate_loss"` are
-#'   experimental; see `design/FEASIBILITY.md`.
+#'   models. Optional `f` defaults to 1. PD shapes additionally require
+#'   `baseline`, plus `slope` for `"linear"` and `plateau` and `rate` for
+#'   `"exponential"`.
+#' @param pd The PD time course, with no exposure dependence. One of `"none"`
+#'   (PK only), `"constant"`, `"linear"` (needs `slope`), or `"exponential"`
+#'   (needs `plateau` and `rate`, covering both decay and growth). A simple
+#'   shape is adequate for exercising longitudinal code and calibrates through a
+#'   well-conditioned level correction; see `design/PROTOTYPE_SPEC.md`.
 #' @param source Required provenance string recording where the model and its
 #'   typical values came from. Recorded in the release ledger.
 #' @param rx Optional `rxode2` model used in place of the built-in analytic

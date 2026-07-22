@@ -557,49 +557,49 @@ their own public or synthetic source. The consequence is worth stating plainly
 in user documentation: **covariate-handling code is not exercised by this
 package's output.**
 
-## PD: prefer a simple time course over an exposure-driven model
+## PD is a simple, exposure-independent time course
 
-The default PD shapes are deliberately **not** exposure-driven: a constant, a
-linear trend, or an exponential approach to a plateau, which covers both decay
-and growth. The response has a plausible time course and a plausible magnitude,
-and it is not mechanistically linked to the generated concentrations.
+The PD endpoint is a constant, a linear trend, or an exponential approach to a
+plateau (covering both decay and growth). It has a plausible time course and a
+plausible magnitude, and it is deliberately **not** linked to the generated
+concentrations. There is no Emax, no indirect-response model, no exposure
+coupling.
 
-That looks like a loss and is mostly a gain, for two reasons.
+This is the right choice for two reasons.
 
 **It is adequate.** The accuracy bar in section 1 asks for a plausible PD column
 so that longitudinal analysis code can be exercised. A pipeline reading a
 biomarker does not check that the biomarker is Emax-consistent with exposure.
 
-**It is far better conditioned to calibrate**, which is the substantive point.
-An exposure-driven correction has to estimate a *deviation from baseline*, and
-a PD deviation rides on a large baseline, so its per-subject signal-to-noise is
-poor. A geometric mean of noisy per-subject ratios sits below the ratio of their
-means, and the resulting downward bias does not shrink with N. A simple shape
-instead takes a **level correction**: the ratio of the mean observed response to
-the mean predicted response, where both terms are the response itself. Measured
-with 15% residual error, the level correction recovers 2.53 against a true 2.5,
-where the exposure-driven estimator recovers 1.79 against a true 2.8.
+**It calibrates cleanly.** An exposure-driven correction would have to estimate a
+*deviation from baseline*, and a PD deviation rides on a large baseline, so its
+per-subject signal-to-noise is poor and the resulting estimator is biased low in
+a way that does not shrink with N. A simple shape instead takes a **level
+correction**: the ratio of the mean observed response to the mean predicted
+response, where both terms are the response itself. Measured with 15% residual
+error, that recovers 2.53 against a true 2.5.
 
-There is a second, quieter advantage. A prior on a PD *baseline* can be tight,
-because baselines are usually well characterized from healthy-volunteer
-literature or the inclusion criteria. A prior on Emax for a new mechanism cannot
-be. Since the prior span drives everything, that difference is worth more than
-the mechanistic realism given up.
+There is a second advantage. A prior on a PD *baseline* can be tight, because
+baselines are usually well characterized from healthy-volunteer literature or
+the inclusion criteria. A prior on Emax for a new mechanism cannot be. Since the
+prior span drives the whole error law, that difference is worth more than the
+mechanistic realism given up.
 
-The exposure-driven shapes remain available and remain **experimental**. Use
-them only when a workflow specifically needs exposure-response coupling, and
-expect the bias described above.
+The cost, stated plainly: a workflow that specifically checks exposure-response
+coupling will not find it in this data. That is out of scope, by the same logic
+that puts covariates out of scope — it is a modeling relationship, not a
+pipeline-plumbing feature.
 
-## When PD is still weaker than PK
+## When PD is still weaker than PK## When PD is still weaker than PK
 
 Preclinical-to-clinical translation is less reliable for pharmacodynamics than
 for pharmacokinetics. The correction-factor prior for a PD effect is
 correspondingly wider — perhaps `[1/10, 10]` rather than `[1/4, 4]` — which
 gives back part of the gain.
 
-Plan for PD needing more budget than PK for the same relative accuracy, and
-prefer releasing a PD *level* correction over a PD *shape* parameter. Shape
-should come from the structural model.
+Plan for PD needing more budget than PK for the same relative accuracy. The
+released quantity is a PD *level* correction; the shape comes from the
+structural model and is never learned.
 
 ## Model selection is itself a privacy-relevant choice
 

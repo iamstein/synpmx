@@ -21,16 +21,15 @@ pmx_structural_model(
 \item{typical}{Named numeric vector of typical parameter values, interpreted
 as the median of a lognormal population. Requires \code{cl} and \code{v} (the central
 volume), plus \code{ka} for oral models and \code{q} and \code{v2} for two-compartment
-models. Optional \code{f} defaults to 1. PD models additionally require
-\code{baseline}, \code{emax}, \code{ec50}, and \code{kout}.}
+models. Optional \code{f} defaults to 1. PD shapes additionally require
+\code{baseline}, plus \code{slope} for \code{"linear"} and \code{plateau} and \code{rate} for
+\code{"exponential"}.}
 
-\item{pd}{The PD time course. \code{"none"} for PK only. The simple shapes
-\code{"constant"}, \code{"linear"} (needs \code{slope}), and \code{"exponential"} (needs
-\code{plateau} and \code{rate}, covering both decay and growth) carry no exposure
-dependence and are recommended: they are adequate for mock data and much
-better conditioned to calibrate. The exposure-driven shapes
-\code{"direct_emax"}, \code{"idr_inhibit_loss"}, and \code{"idr_stimulate_loss"} are
-experimental; see \code{design/FEASIBILITY.md}.}
+\item{pd}{The PD time course, with no exposure dependence. One of \code{"none"}
+(PK only), \code{"constant"}, \code{"linear"} (needs \code{slope}), or \code{"exponential"}
+(needs \code{plateau} and \code{rate}, covering both decay and growth). A simple
+shape is adequate for exercising longitudinal code and calibrates through a
+well-conditioned level correction; see \code{design/PROTOTYPE_SPEC.md}.}
 
 \item{source}{Required provenance string recording where the model and its
 typical values came from. Recorded in the release ledger.}

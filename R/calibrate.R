@@ -206,29 +206,16 @@ print.pmx_preflight <- function(x, ...) {
       if (length(pd_rows) >= 3L) {
         pred <- .pd_profile(model, time[pd_rows], doses, dose_times,
                             duration = design$duration)
-        if (model$pd %in% .pd_simple) {
-          # Level correction: a ratio of means over the subject's own
-          # observations. Both terms are the response itself rather than a
-          # deviation from it, so the signal-to-noise is excellent and the
-          # estimator is well conditioned even with substantial residual error.
-          observed_level <- mean(dv[pd_rows])
-          predicted_level <- mean(pred)
-          if (is.finite(observed_level) && is.finite(predicted_level) &&
-              abs(predicted_level) > 1e-8 &&
-              observed_level / predicted_level > 0) {
-            pd <- observed_level / predicted_level
-          }
-        } else {
-          # Exposure-driven shapes must work with the deviation from baseline,
-          # which is what makes them badly conditioned. Signed area, so that
-          # residual noise cancels rather than accumulating.
-          base <- model$typical[["baseline"]]
-          eff_obs <- .trapezoid(time[pd_rows], dv[pd_rows] - base)
-          eff_pred <- .trapezoid(time[pd_rows], pred - base)
-          if (is.finite(eff_obs) && is.finite(eff_pred) &&
-              abs(eff_pred) > 1e-8 && eff_obs / eff_pred > 0) {
-            pd <- eff_obs / eff_pred
-          }
+        # Level correction: a ratio of means over the subject's own
+        # observations. Both terms are the response itself rather than a
+        # deviation from it, so the signal-to-noise is excellent and the
+        # estimator stays well conditioned even with substantial residual error.
+        observed_level <- mean(dv[pd_rows])
+        predicted_level <- mean(pred)
+        if (is.finite(observed_level) && is.finite(predicted_level) &&
+            abs(predicted_level) > 1e-8 &&
+            observed_level / predicted_level > 0) {
+          pd <- observed_level / predicted_level
         }
       }
     }
@@ -241,46 +228,6 @@ print.pmx_preflight <- function(x, ...) {
          call. = FALSE)
   }
   do.call(rbind, out)
-}
-
-# Response magnitude is not proportional to emax: an indirect-response effect
-# saturates as emax approaches one. Multiplying emax by a released effect ratio
-# therefore overshoots badly. Solve instead for the emax that reproduces the
-# corrected effect, which is post-processing on an already-released scalar and
-# costs no further budget.
-.solve_emax <- function(model, design, factor) {
-  reference <- stats::median(design$dose_levels)
-  times <- .design_observation_times(design)
-  dose_times <- .design_dose_times(design)
-  doses <- rep(reference, length(dose_times))
-  base <- model$typical[["baseline"]]
-  effect_for <- function(emax) {
-    p <- model$typical
-    p[["emax"]] <- emax
-    profile <- .pd_profile(model, times, doses, dose_times, p,
-                           duration = design$duration)
-    .trapezoid(times, profile - base)
-  }
-  reference_effect <- effect_for(model$typical[["emax"]])
-  target <- reference_effect * factor
-  lower <- 1e-4
-  upper <- 0.995
-  if (!is.finite(target) || !is.finite(reference_effect) ||
-      abs(reference_effect) < 1e-8) {
-    return(list(emax = unname(model$typical[["emax"]]), saturated = FALSE))
-  }
-  # The effect is monotone in emax, but its sign depends on the PD model, so
-  # compare in the direction the reference effect actually points.
-  direction <- sign(reference_effect)
-  if (direction * effect_for(upper) < direction * target) {
-    return(list(emax = upper, saturated = TRUE))
-  }
-  if (direction * effect_for(lower) > direction * target) {
-    return(list(emax = lower, saturated = TRUE))
-  }
-  root <- stats::uniroot(function(e) effect_for(e) - target,
-                         interval = c(lower, upper), tol = 1e-6)
-  list(emax = unname(root$root), saturated = FALSE)
 }
 
 #' Calibrate a public structural model to confidential data
@@ -368,21 +315,11 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     corrected[["cl"]] <- unname(corrected[["cl"]] * results$pk$factor)
   }
   if (!is.null(results$pd)) {
-    if (model$pd %in% .pd_simple) {
-      # Scale the whole curve. Level comes from the data, shape from the prior.
-      for (name in intersect(c("baseline", "plateau"), names(corrected))) {
-        corrected[[name]] <- unname(corrected[[name]] * results$pd$factor)
-      }
-      if ("slope" %in% names(corrected)) {
-        corrected[["slope"]] <- unname(
-          corrected[["slope"]] * results$pd$factor
-        )
-      }
-    } else {
-      solved <- .solve_emax(model, design, results$pd$factor)
-      corrected[["emax"]] <- solved$emax
-      results$pd$at_prior_boundary <- results$pd$at_prior_boundary ||
-        solved$saturated
+    # Scale the whole curve. The level comes from the data, the shape from the
+    # prior. baseline, plateau, and slope move together so the shape is kept.
+    for (name in intersect(c("baseline", "plateau", "slope"),
+                           names(corrected))) {
+      corrected[[name]] <- unname(corrected[[name]] * results$pd$factor)
     }
   }
 

@@ -498,36 +498,14 @@ mono-exponential where the truth is biphasic, which is visible in a plot and
 irrelevant to the accuracy bar. This is the design working as intended: shape is
 asserted, magnitude is calibrated.
 
-### The PD correction is biased low, and it is the endpoint's fault
+### PD calibrates cleanly with an exposure-independent endpoint
 
-Measured against a truth with `emax = 0.75` and a public prediction of
-`emax = 0.30`, so a true correction of about 2.8x on effect:
-
-| Configuration | Recovered correction | Recovered emax |
-|---|---:|---:|
-| No residual error, no IIV | 2.74 | **0.75** |
-| No residual error, 30% IIV | 2.78 | 0.76 |
-| **15% residual error, 30% IIV** | **1.79** | **0.51** |
-
-Between-subject variability is harmless. Residual error is the entire problem,
-and the reason is structural rather than a defect. A geometric mean of noisy
-per-subject ratios sits below the ratio of their means, and the size of that
-bias grows with the noise in each subject's estimate. PK escapes it because
-concentration decays toward zero, so its AUC is dominated by signal. A PD
-deviation rides on a large baseline — here a peak effect near 10% of a baseline
-of 100, against 15% residual error — so its per-subject signal-to-noise is
-intrinsically poor.
-
-The practical consequence: **generated PD response is roughly a third too
-small** in that configuration.
-
-### The fix was to change the endpoint, not the estimator
-
-Rather than chase the bias, the default PD shapes were changed to simple time
-courses with no exposure dependence — constant, linear, or exponential approach
-to a plateau. That replaces the deviation statistic with a **level correction**,
-the ratio of mean observed to mean predicted response, where both terms are the
-response itself rather than a small deviation from it.
+PD is a simple time course — constant, linear, or exponential approach to a
+plateau — with no exposure coupling. That is a modeling choice, but it is also
+what makes the correction well conditioned. The released quantity is a **level
+correction**, the ratio of mean observed to mean predicted response, where both
+terms are the response itself rather than a small deviation from a large
+baseline.
 
 Measured on an exponential-decay endpoint, true baseline 100 against a predicted
 40, so a true correction of 2.5x:
@@ -538,23 +516,20 @@ Measured on an exponential-decay endpoint, true baseline 100 against a predicted
 | **15%** | **2.53** | **101.3** |
 | 30% | 2.61 | 104.4 |
 
-The bias is gone. Compare the exposure-driven estimator on the same 15%
-residual: 1.79 against a true 2.8.
+The estimator is essentially unbiased. At realistic budgets, with 15% residual
+and a 100-fold PD prior at epsilon 0.5, the recovered baseline is 155 at N = 20,
+106 at N = 60, and 102 at N = 300 — the error at small N being privacy noise
+rather than bias, exactly as the error law predicts. A tighter baseline prior,
+usually available from healthy-volunteer literature, would shrink all three.
 
-At realistic budgets, with 15% residual and a 100-fold PD prior at epsilon 0.5,
-the recovered baseline is 155 at N = 20, 106 at N = 60, and 102 at N = 300 —
-the residual error at small N being privacy noise rather than bias, exactly as
-the error law predicts. A tighter baseline prior, which is usually available
-from healthy-volunteer literature, would shrink all three.
+An earlier design used an exposure-driven Emax endpoint. Its correction had to
+estimate a deviation from baseline and was biased low by about a third under the
+same residual error, because a geometric mean of noisy per-subject ratios sits
+below the ratio of their means. Rather than chase that bias with a better
+estimator, the endpoint itself was simplified. Exposure-driven PD has been
+removed entirely.
 
-Exposure-driven PD remains available and experimental.
-
-Fixing this measurement also removed two earlier estimator choices that were
-simply wrong: a peak statistic, biased upward by noise in a way that does not
-shrink with N; and an absolute-deviation area, which accumulates noise on the
-observed side while the prediction carries none, and measured mostly noise.
-
-### Caveat on scope of the measurement
+### Caveat on scope of the measurement### Caveat on scope of the measurement
 
 Only the PK correction was measured. The PD correction follows the same error
 law but is unconfirmed, and should be expected to behave worse: its prior is
