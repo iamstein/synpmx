@@ -495,10 +495,32 @@ sensitivity to beat the `sqrt(2 ln(1.25/delta))` constant, which is well above
    rather than learning it — dropout rates, BLQ rules, and visit windows are
    design facts, not patient data.
 4. **Linear PK is an assumption, not a fact.** Dose-normalization is invalid
-   under TMDD or saturable elimination. It must be declared and checkable.
-5. **N = 6 remains out of scope.** At six subjects one person is 17% of every
-   released statistic. The arithmetic above admits `f = 0.20` at epsilon 5, but
-   epsilon 5 on a six-person cohort is not a meaningful guarantee. Tier A.
+   under TMDD or saturable elimination. Superseded by the structural-model
+   design in `design/PROTOTYPE_SPEC.md` section 6, where the model states its
+   own assumptions and a nonlinear structure can simply be supplied.
+
+### Correction: N = 6 is not a permanent boundary
+
+An earlier revision of this document, and of the specification, claimed that
+N = 6 "cannot be served by any private release" because one subject is 17% of
+every released statistic. **That conflated utility with the guarantee and was
+wrong.**
+
+The DP guarantee at a given epsilon is independent of N — that is the
+definition, and resistance to an attacker who already knows five of six subjects
+is precisely what DP provides and k-anonymity does not. Cohort size affects only
+how much signal survives the noise, which is a utility question.
+
+Under the correction-factor design (`d = 3`, 8-fold prior), N = 6 at epsilon 1
+gives `f = 0.5` — the release roughly halves the prior uncertainty, taking
+8-fold to about 2.8-fold. Against the accuracy bar in
+`design/PROTOTYPE_SPEC.md` section 1, that is useful.
+
+Two honest cautions remain, neither of them a mathematical impossibility. The
+margin is thin: at epsilon 0.5 and N = 6, `f = 1.0` and the release conveys
+nothing beyond the prior. And governance may decline to authorize any release
+derived from six patients as a policy matter, which is reasonable but is not a
+claim to make on mathematical grounds.
 
 ### On novelty
 

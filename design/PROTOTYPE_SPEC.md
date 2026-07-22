@@ -46,6 +46,31 @@ unchanged against the real data. They should not be able to draw a scientific
 conclusion from it. The deliberate lack of statistical fidelity is an advantage
 for privacy, not a limitation to be engineered away.
 
+## The accuracy bar, stated explicitly
+
+This is a design input, not a consequence, and it drives every other decision.
+
+**Structure must be right. Numbers need only be in the right region.**
+
+| Aspect | Requirement |
+|---|---|
+| Sampling times | **Exact.** From the protocol. Nominal times, visit windows, and the relationship between doses and samples must be correct |
+| Event-table structure | **Exact.** EVID, CMT, DVID, censoring conventions, ordering, schema |
+| Dose-exposure ordering | **Correct.** Higher dose gives higher exposure |
+| Curve shape | **Approximately correct.** Rises and falls when it should; nadir and recovery where they should be |
+| Parameter magnitudes | **Within a few fold is acceptable.** A 2-3 fold error on CL is fine |
+| Distributions, covariance, parameter estimates | **Not required at all** |
+
+The consequence is important and easy to miss: **the quantities that matter most
+cost no privacy budget.** Sampling times come from the protocol. Structure comes
+from the schema and the event conventions. Shape comes from the structural
+model. All are public inputs.
+
+Privacy budget is spent only on the part the user cares least about — roughly
+where the exposure magnitude sits. That is a fortunate alignment and the design
+should exploit it: **spend the surplus on a smaller epsilon, not on accuracy
+nobody needs.**
+
 ---
 
 # 2. Scope
@@ -71,12 +96,55 @@ fewer released quantities, a narrower clipping range, more subjects. Only the
 first two are under our control at a fixed study size, and **the clipping range
 is the cheaper of the two**.
 
-## The permanent boundary
+## The decision rule: does the release beat the prior?
 
-**N = 6 cannot be served by any private release.** One subject is 17% of every
-released statistic. Measured median fold-error on CL at N = 6 is 2.15 even at
-epsilon 1 with a tight prior. Studies at that size generate from public design
-inputs only, spend no budget, and make no DP claim. This is not a gap to close.
+The right question is **not** "is the error small enough?" It is "is the
+released value more informative than the prior I already had?" Below a
+threshold, the release adds nothing over the prior and paying budget for it is
+strictly worse than not paying — Mode A gives the same output for free.
+
+With `d` releases, epsilon `e`, `N` subjects and a prior spanning `S` log units,
+the released mean has error about `f * S` where `f = d/(e N)`. So `f` *is* the
+fraction of the prior's width that survives as noise:
+
+| `f` | Interpretation | Verdict |
+|---:|---|---|
+| >= 1.0 | Noise equals or exceeds the prior width | **Worthless.** Use Mode A |
+| ~0.5 | Roughly halves the uncertainty | Marginal but real |
+| ~0.25 | Quarters it | Clearly worthwhile |
+| <= 0.1 | Prior contributes almost nothing | Consider lowering epsilon instead |
+
+**When `f` falls below about 0.1, do not bank the accuracy — reduce epsilon.**
+Given the accuracy bar above, a smaller guarantee is worth more than precision
+nobody needs.
+
+## Correction to an earlier claim about N = 6
+
+An earlier draft of this specification, and of `design/FEASIBILITY.md`, asserted
+that N = 6 "cannot be served by any private release" because one subject is 17%
+of every statistic. **That conflated utility with the guarantee and was wrong.**
+
+The differential-privacy guarantee at epsilon 1 is exactly as strong at N = 6 as
+at N = 6000. That is the definition: one subject's influence on the output
+distribution is bounded by `exp(epsilon)` regardless of cohort size. Resistance
+to an attacker who knows five of six subjects is precisely what DP provides and
+k-anonymity does not. Cohort size affects only how much signal survives the
+noise.
+
+The corrected position: at N = 6, with `d = 3` and a correction-factor prior,
+`f = 3/(1 * 6) = 0.5` at epsilon 1 — the release roughly halves the prior
+uncertainty, taking an 8-fold prior to about 2.8-fold. Under the accuracy bar
+above that is genuinely useful, and the guarantee is intact.
+
+Two honest cautions remain, neither of which is the mathematical impossibility
+previously claimed:
+
+- At epsilon 0.5 and N = 6, `f = 1.0` and the release is worthless. The margin
+  is thin, so run the pre-flight check rather than assuming.
+- Governance may decline to authorize any release derived from six patients
+  irrespective of the arithmetic. That is a policy judgment, and a reasonable
+  one, but it is not a claim this specification should make on mathematical
+  grounds.
 
 ---
 
@@ -137,65 +205,80 @@ What to use, at what epsilon, and what to expect. Fold-error figures are measure
 median error on CL from 200 replicate OpenDP releases; see
 `design/FEASIBILITY.md` section 8.
 
+Estimates below assume `d = 3` and a correction-factor prior spanning 8-fold
+(2.08 log units), per section 6. They are arithmetic from the error law
+confirmed in `design/FEASIBILITY.md` section 8, not measurements of an
+implementation.
+
+**In every scenario, sampling times and event structure are exact**, because
+they come from the protocol and the schema. What varies below is only how well
+the exposure magnitude is pinned down.
+
 ## Smallest: N = 6
 
-**Mode A. No private release.**
+**Mode B at epsilon 1-2, or Mode A. Run the pre-flight check and decide.**
 
-At six subjects one person contributes 17% of every statistic. Measured
-fold-error is 2.15 even at epsilon 1 with a 5-fold prior — the released mean is
-barely more informative than the prior it was clipped to, and the guarantee
-needed to do better (epsilon 4+) is not a guarantee.
+| Configuration | `f` | Resulting spread |
+|---|---:|---|
+| epsilon 0.5 | 1.00 | 8-fold — worthless, use Mode A |
+| epsilon 1 | 0.50 | ~2.8-fold — halves the prior |
+| epsilon 2 | 0.25 | ~1.7-fold |
 
-Generate from the protocol, the assay, the preclinical PK prediction, and public
-variability assumptions. The output is fully realistic structurally. It carries
-no information about these six patients, which at N = 6 is the only defensible
-position.
+At epsilon 1 the release is genuinely informative and the guarantee is intact.
+The margin is thin, though: halve the epsilon and it becomes worthless. Mode A
+remains entirely reasonable here, and governance may prefer it regardless of the
+arithmetic.
 
 ## Mid: N = 20
 
-**Mode B, epsilon 1-2, with stage-1 range-finding. This is the design centre.**
+**Mode B at epsilon 0.5. This is the design centre.**
 
-| Configuration | Measured fold-error on CL |
-|---|---:|
-| epsilon 1, 100-fold prior, no range-finding | 2.44 |
-| epsilon 1, 5-fold prior after range-finding | **1.52** |
-| epsilon 5, 5-fold prior | 1.07 |
+| Configuration | `f` | Resulting spread |
+|---|---:|---|
+| epsilon 0.25 | 0.60 | ~2.3-fold |
+| **epsilon 0.5** | **0.30** | **~1.9-fold** |
+| epsilon 1 | 0.15 | ~1.4-fold |
 
-At epsilon 1 with range-finding, CL lands within about 1.5-fold. That is
-"vaguely right" — exposures are the right order of magnitude, dose-proportional,
-and correctly ordered across dose groups. It is not a parameter estimate and must
-never be presented as one.
+At epsilon 0.5 exposures land within about 2-fold, which comfortably meets the
+accuracy bar. Epsilon 1 buys 1.4-fold instead — accuracy the use case does not
+need, at twice the privacy cost. **Prefer epsilon 0.5.**
 
-Range-finding is what makes this work: it converts 2.44-fold into 1.52-fold for
-about 20% of the budget.
+Stage-1 range-finding is not needed here. The correction-factor prior is already
+tight enough.
 
 ## Large for this context: N = 300
 
-**Mode B, epsilon 0.5-1. Strong privacy is essentially free here.**
+**Mode B at epsilon 0.1, or lower.**
 
-| Configuration | Measured fold-error on CL |
-|---|---:|
-| epsilon 0.5, 5-fold prior | 1.05 |
-| epsilon 1, 5-fold prior | 1.03 |
+| Configuration | `f` | Resulting spread |
+|---|---:|---|
+| epsilon 0.1 | 0.10 | ~1.2-fold |
+| epsilon 0.5 | 0.02 | ~1.04-fold |
 
-At N = 300 the constraint stops binding. Prefer a **smaller** epsilon rather than
-better accuracy: 1.05-fold at epsilon 0.5 is already far beyond what mock data
-needs, so spend the surplus on the guarantee.
+At N = 300 the constraint has stopped binding entirely. Epsilon 0.5 gives
+accuracy far beyond anything mock data needs. **Take epsilon 0.1 and bank the
+guarantee**, which is strong by any standard.
 
 Mode C becomes technically viable around N = 1000 at epsilon 5 and N = 10000 at
-epsilon 1. It buys richer empirical shape at a much weaker guarantee. Prefer
-Mode B unless the extra structural detail is specifically needed.
+epsilon 1. Given the accuracy bar, it is hard to justify: it buys empirical
+shape detail that is not required, at an epsilon an order of magnitude weaker.
+Prefer Mode B.
 
 ## Summary
 
-| N | Mode | Epsilon | Expected CL error | Notes |
-|---:|---|---|---|---|
-| 6 | A | n/a | n/a | No private release, ever |
-| 20 | B | 1-2 | ~1.5-fold | Range-finding required |
-| 60 | B | 1 | ~1.1-fold | Comfortable |
-| 100 | B | 0.5-1 | ~1.1-fold | Comfortable |
-| 300 | B | 0.5-1 | ~1.03-fold | Spend surplus on privacy |
-| 1000+ | B, or C | 0.5 or lower | ~1.01-fold | C viable but weaker guarantee |
+| N | Mode | Recommended epsilon | Expected spread | Notes |
+|---:|---|---:|---|---|
+| 6 | B, or A | 1-2 | ~1.7-2.8-fold | Thin margin; check before spending |
+| 20 | B | 0.5 | ~1.9-fold | Design centre |
+| 60 | B | 0.25 | ~1.5-fold | Comfortable |
+| 100 | B | 0.2 | ~1.4-fold | Comfortable |
+| 300 | B | 0.1 | ~1.2-fold | Constraint no longer binds |
+| 1000+ | B | 0.05 or lower | ~1.1-fold | Very strong guarantee |
+
+These epsilons are roughly **an order of magnitude smaller** than a design
+targeting parameter-estimate accuracy would require. That is the direct payoff
+of the accuracy bar in section 1: a modest utility requirement converts into a
+strong privacy guarantee.
 
 ---
 

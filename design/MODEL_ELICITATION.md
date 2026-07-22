@@ -49,7 +49,7 @@ budget; a narrow dishonest one costs the guarantee.
 
 | Answer | Route |
 |---|---|
-| Fewer than about 10 subjects | **Mode A.** Public design only. Answer the questions below; skip everything about privacy budget. No data is read and no claim is made |
+| Fewer than about 10 subjects | **Either.** Mode B is viable at epsilon 1-2 with a thin margin; Mode A is entirely reasonable. Run the Q7 pre-flight and decide |
 | 10-300 subjects, claim needed | **Mode B.** The main path. Continue |
 | More than ~1000, and you want empirical shape rather than a structural model | **Mode C.** Version 2 dense grid. Different document |
 | No privacy claim needed at all | **Mode A.** Simpler, and honest |
@@ -179,10 +179,22 @@ dataset.
 2. **What will you release?** Target three: cohort size, PK correction, PD
    correction. Each addition costs accuracy proportionally.
 3. **Run the pre-flight check** before spending anything. With `d` releases,
-   epsilon `e`, and `N` subjects, expected error as a fraction of the prior
-   range is about `d / (e * N)`. Multiply by the prior's log span to get a
-   fold-error. If that is worse than about 2-fold, do not spend the budget —
-   use Mode A instead and be honest about it.
+   epsilon `e`, and `N` subjects, compute `f = d / (e * N)`. This is the
+   fraction of the prior's width that survives as noise.
+
+   | `f` | Verdict |
+   |---:|---|
+   | >= 1.0 | The release tells you nothing the prior did not. **Use Mode A** |
+   | ~0.5 | Halves the uncertainty. Marginal but real |
+   | ~0.25 | Clearly worthwhile |
+   | <= 0.1 | **Lower epsilon instead.** You are buying accuracy you do not need |
+
+   The question is not "is the error small" but "does this beat the prior".
+
+4. **Start from the smallest epsilon that clears the bar, not the largest one
+   approved.** Because the accuracy requirement is modest, most studies should
+   land an order of magnitude below what a parameter-estimation exercise would
+   need: epsilon 0.5 at N = 20, epsilon 0.1 at N = 300.
 
 ---
 
@@ -264,13 +276,21 @@ from the public inputs or moved inside the privacy budget.
 | Q6 | 40% CV on CL, 30% on V; proportional residual 20% |
 | Q7 | epsilon 1; release cohort size, PK correction, PD correction (`d = 3`) |
 
-Pre-flight: `d / (e * N) = 3 / 20 = 0.15`. PK prior span `log(4/(1/4)) = 2.08`,
-so expected PK error is `exp(0.15 * 2.08) = 1.37`-fold. PD prior span
-`log(100) = 4.6`, so expected PD error is `exp(0.15 * 4.6) = 2.0`-fold.
+Pre-flight at the approved epsilon 1: `f = 3 / (1 * 20) = 0.15`. PK prior span
+`log(4/(1/4)) = 2.08`, so PK error is `exp(0.15 * 2.08) = 1.37`-fold. PD prior
+span `log(100) = 4.6`, so PD error is `exp(0.15 * 4.6) = 2.0`-fold.
 
-**Interpretation.** PK is comfortably usable. PD is borderline at 2-fold, which
-is the honest consequence of a weak PD prior. Options, in preference order:
-tighten the PD prior if any real basis exists for doing so; drop the PD
-correction and generate PD from the public model alone, spending the whole
-budget on PK; or accept 2-fold and document it. Do **not** raise epsilon to make
-the number look better.
+**But epsilon 1 is more than this study needs.** At epsilon 0.5, `f = 0.30`,
+giving PK 1.9-fold and PD 4.0-fold. PK still clears the accuracy bar
+comfortably. PD does not.
+
+**Recommendation:** take **epsilon 0.5** and spend it on PK only, dropping the
+PD correction and generating PD from the public structural model alone. This
+halves the privacy cost, keeps PK within about 2-fold, and avoids a PD release
+that was never going to be informative given a 100-fold prior. `d` falls from 3
+to 2, improving PK further to about 1.6-fold.
+
+The general lesson: when a prior is too wide for the budget to narrow usefully,
+**drop that release rather than funding it**. A release with `f` near 1 costs
+privacy and returns nothing. Do not raise epsilon to make a number look
+better.
