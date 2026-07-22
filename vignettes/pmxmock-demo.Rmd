@@ -1,0 +1,281 @@
+---
+title: "Mock PMX Data: Three Worked Examples"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+    self_contained: true
+vignette: >
+  %\VignetteIndexEntry{Mock PMX Data: Three Worked Examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "100%"
+)
+library(pmxmock)
+```
+
+## Purpose
+
+This vignette applies `pmxmock` to three datasets from `nlmixr2data`. The goal
+is to create **mock data for model-workflow exploration** without fitting or
+calling a PK, PD, or NLME model.
+
+The output is not anonymous data and has no formal privacy guarantee. It is
+not appropriate for parameter estimation, scientific inference, model
+selection, or clinical decisions.
+
+The examples illustrate three event structures:
+
+1. repeated oral dosing with one PK endpoint (`theo_md`);
+2. separate PK and PD endpoints (`warfarin`); and
+3. infusion start/stop events with a delayed biomarker trajectory (`wbcSim`).
+
+## Shared workflow
+
+Every example follows the same four steps:
+
+1. declare column roles explicitly with `pmx_roles()`;
+2. generate subjects with `mock_pmx()`;
+3. validate event structure with `validate_pmx()`; and
+4. inspect structural summaries and trajectories with `compare_pmx()`.
+
+The helper below loads a named dataset and labels every plot with the concrete
+source object and generator.
+
+```{r helpers}
+load_nlmixr2_data <- function(name) {
+  environment <- new.env(parent = emptyenv())
+  utils::data(
+    list = name,
+    package = "nlmixr2data",
+    envir = environment
+  )
+  get(name, envir = environment, inherits = FALSE)
+}
+
+label_comparison <- function(comparison, source_name) {
+  caption <- paste0(
+    "Source: nlmixr2data::", source_name,
+    " | Mock: pmxmock::mock_pmx()"
+  )
+  comparison$plots <- lapply(comparison$plots, function(plot) {
+    plot + ggplot2::labs(caption = caption)
+  })
+  comparison
+}
+```
+
+## Theophylline: repeated dosing
+
+`theo_md` uses uppercase column names, has one concentration endpoint, and
+contains seven dose records per subject. Dose and observation records can be
+tied at the same nominal time.
+
+```{r theo-generate}
+theo_md <- load_nlmixr2_data("theo_md")
+
+theo_roles <- pmx_roles(
+  id = "ID",
+  time = "TIME",
+  dv = "DV",
+  amt = "AMT",
+  evid = "EVID",
+  cmt = "CMT",
+  covariates = "WT"
+)
+
+theo_mock <- mock_pmx(
+  theo_md,
+  theo_roles,
+  seed = 101
+)
+
+theo_validation <- validate_pmx(theo_mock, theo_roles)
+theo_validation$valid
+```
+
+The source and mock datasets have the same subject count because
+`n_subjects = NULL` by default. Each generated subject receives a new numeric
+ID.
+
+```{r theo-structure}
+theo_comparison <- compare_pmx(theo_md, theo_mock, theo_roles)
+theo_comparison <- label_comparison(theo_comparison, "theo_md")
+knitr::kable(theo_comparison$summary)
+
+c(
+  source_subjects = length(unique(theo_md$ID)),
+  mock_subjects = length(unique(theo_mock$ID)),
+  doses_per_mock_subject = unique(
+    vapply(split(theo_mock$EVID, theo_mock$ID), function(x) sum(x != 0), integer(1))
+  )
+)
+```
+
+The overlay shows the overall concentration-time envelope. The faceted view
+shows individual trajectories separately for source and mock data.
+
+```{r theo-overlay, echo=FALSE}
+theo_comparison$plots$overlay
+```
+
+```{r theo-individual, echo=FALSE}
+theo_comparison$plots$faceted
+```
+
+The dose records themselves remain sampled templates; only IDs, subject-level
+covariates, and genuine observation DVs are synthesized.
+
+```{r theo-first-subject}
+first_theo_id <- unique(theo_mock$ID)[1]
+utils::head(theo_mock[theo_mock$ID == first_theo_id, ], 14)
+```
+
+## Warfarin: separate PK and PD endpoints
+
+`warfarin` uses lower-case names. `dvid` is a factor with `cp` for plasma
+concentration and `pca` for pharmacodynamic response. The endpoints must never
+be blended together.
+
+```{r warfarin-generate}
+warfarin <- load_nlmixr2_data("warfarin")
+
+warfarin_roles <- pmx_roles(
+  id = "id",
+  time = "time",
+  dv = "dv",
+  amt = "amt",
+  evid = "evid",
+  dvid = "dvid",
+  covariates = c("wt", "age", "sex")
+)
+
+warfarin_mock <- mock_pmx(
+  warfarin,
+  warfarin_roles,
+  seed = 202
+)
+
+warfarin_validation <- validate_pmx(warfarin_mock, warfarin_roles)
+warfarin_validation$valid
+levels(warfarin_mock$dvid)
+levels(warfarin_mock$sex)
+```
+
+```{r warfarin-structure}
+warfarin_comparison <- compare_pmx(
+  warfarin,
+  warfarin_mock,
+  warfarin_roles
+)
+warfarin_comparison <- label_comparison(warfarin_comparison, "warfarin")
+knitr::kable(warfarin_comparison$summary)
+```
+
+The endpoint facets make the very different PK and PD scales explicit. Each
+endpoint has its own transformation, interpolation, blend, and noise process,
+while both use the same subject-level donor weights.
+
+```{r warfarin-overlay, echo=FALSE}
+warfarin_comparison$plots$overlay
+```
+
+```{r warfarin-individual, echo=FALSE}
+warfarin_comparison$plots$faceted
+```
+
+The endpoint-specific transformations are recorded with the result.
+
+```{r warfarin-settings}
+attr(warfarin_mock, "pmx_settings")$endpoint_transforms
+```
+
+## WBC: infusion and delayed response
+
+`wbcSim` uses positive `AMT` and `RATE` records to start an infusion and
+negative records to stop it. Those paired records are copied together from an
+event template rather than synthesized numerically.
+
+```{r wbc-generate}
+wbc_sim <- load_nlmixr2_data("wbcSim")
+
+wbc_roles <- pmx_roles(
+  id = "ID",
+  time = "TIME",
+  dv = "DV",
+  amt = "AMT",
+  evid = "EVID",
+  cmt = "CMT",
+  rate = "RATE",
+  covariates = c("V2I", "V1I", "CLI")
+)
+
+wbc_mock <- mock_pmx(
+  wbc_sim,
+  wbc_roles,
+  seed = 303
+)
+
+wbc_validation <- validate_pmx(wbc_mock, wbc_roles)
+wbc_validation$valid
+```
+
+Some WBC dosing schedules are unique. In that case, `mock_pmx()` emits a
+warning and uses the anchor as the sole measurement donor, with randomized
+trajectory noise providing the perturbation. This avoids silently mixing
+incompatible schedules.
+
+```{r wbc-structure}
+wbc_comparison <- compare_pmx(wbc_sim, wbc_mock, wbc_roles)
+wbc_comparison <- label_comparison(wbc_comparison, "wbcSim")
+knitr::kable(wbc_comparison$summary)
+
+wbc_events <- wbc_mock[wbc_mock$EVID != 0, c(
+  "ID", "TIME", "AMT", "RATE", "CMT", "EVID"
+)]
+utils::head(wbc_events, 8)
+```
+
+The trajectories retain delayed declines, nadirs, and recoveries by blending
+observed WBC paths. The known Friberg model is not called.
+
+```{r wbc-individual, echo=FALSE}
+wbc_comparison$plots$faceted
+```
+
+```{r wbc-settings}
+settings <- attr(wbc_mock, "pmx_settings")
+settings$alignment
+settings$compatible_event_groups
+settings$warnings
+```
+
+## What is preserved—and what is not
+
+The prototype preserves:
+
+- source column names, order, practical classes, and factor levels;
+- complete subject event templates and within-time row ordering;
+- coherent `EVID`, `AMT`, `RATE`, `CMT`, and `DVID` semantics;
+- missing-observation conventions from the sampled template; and
+- subject-level constancy of declared baseline covariates.
+
+It does not attempt to preserve:
+
+- PK, PD, or NLME parameters;
+- covariate-response relationships;
+- the source distribution exactly;
+- scientific suitability for model selection; or
+- formal anonymity or privacy guarantees.
+
+Use `validate_pmx()` and `compare_pmx()` to inspect structure, then review the
+mock data under the privacy and governance rules that apply to the source.

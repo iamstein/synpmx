@@ -6,3 +6,5 @@
   event-template sampling, AVATAR-like covariate and trajectory blending,
   structural validation, comparison summaries and plots, and demonstrations
   for `theo_md`, `warfarin`, and `wbcSim`.
+* Added a rendered walkthrough vignette applying the prototype to all three
+  `nlmixr2data` demonstration datasets.
