@@ -13,3 +13,5 @@
 ^\.posit$
 ^doc$
 ^Meta$
+^build\.sh$
+^\.claude$

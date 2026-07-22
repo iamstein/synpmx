@@ -11,7 +11,8 @@ structurally faithful mock pharmacometric datasets.
 - Do not commit sensitive, proprietary, or patient-level data.
 - Treat `data/` and `output/` as local/generated unless told otherwise.
 - Preserve unrelated changes and avoid adding dependencies unnecessarily.
-- Run the full tests and `R CMD check` after behavioral changes.
+- Run the full tests and `R CMD check` after behavioral changes. `./build.sh`
+  does both against a clean temporary library.
 
 ## Simulation testing and evaluation
 
@@ -55,11 +56,16 @@ structurally faithful mock pharmacometric datasets.
 - Keep vignette examples executable through the current public API. Avoid
   reimplementing package algorithms in vignette chunks; when practical, turn
   important documentation claims into assertions or regression tests.
-- After documentation-affecting changes, install the current source into a
-  clean temporary library, render every vignette, and visually inspect its
-  tables and plots. A successful knit is necessary but does not prove that the
-  explanation is semantically correct. Do not validate against a previously
-  installed package, an already loaded namespace, or stale rendered HTML.
+- After documentation-affecting changes, update the vignette code and prose to
+  match the new behavior. A full clean-library re-render of every vignette is
+  not required for each change; `./build.sh` rebuilds them once inside
+  `R CMD check`, which is enough to prove they still execute. Use
+  `./build.sh vignettes` when you want inspectable HTML to read the tables and
+  plots. A successful knit is necessary but does not prove that the explanation
+  is semantically correct, so reason about the prose directly rather than
+  treating a clean render as verification. When you do render, never validate
+  against a previously installed package, an already loaded namespace, or stale
+  rendered HTML.
 - Search the repository for renamed functions, old vignette names, removed
   arguments, and obsolete algorithm terms before considering the update
   complete. Report any claim that cannot be verified instead of presenting it

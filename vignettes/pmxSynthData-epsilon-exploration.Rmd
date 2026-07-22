@@ -45,6 +45,11 @@ usually represent weak privacy. An approved epsilon must come from governance,
 threat modeling, and the full release context—not from choosing the most
 attractive plot.
 
+Note also that these datasets have 12 to 45 subjects. Cohort size enters the
+error the same way epsilon does, so a large epsilon here is partly compensating
+for a small $N$; see "Cohort size matters more than epsilon here" below before
+reading any of these panels as a privacy--utility tradeoff.
+
 The practical demo's `epsilon = 3` or `5` is **not a utility comparison at that
 epsilon**: those examples use the deliberately noiseless
 `backend = "public"` because their source datasets are already public. That
@@ -368,6 +373,41 @@ can collapse a sampling probability, saturate a bounded summary, change the
 generalized number of doses, or make generation impossible; those outcomes are
 shown rather than silently replaced. Large epsilon reduces noise but weakens
 the privacy guarantee.
+
+## Cohort size matters more than epsilon here
+
+Epsilon is the knob this vignette varies, but it is not the dominant term. The
+released summaries are subject-count sums, and nearly everything decoded from
+them is a ratio, so the error on a decoded quantity behaves like
+
+$$\text{error} \;\approx\; \frac{\Delta}{\varepsilon_{\text{group}} N},$$
+
+with $\Delta$ the group's L1 sensitivity and $N$ the number of subjects **in
+the fit**. Cohort size sits in the denominator alongside epsilon, and the
+datasets in this vignette are very small:
+
+| Dataset | Subjects |
+|---|---:|
+| `theo_md` | 12 |
+| `warfarin` | 32 |
+| `wbcSim` | 45 |
+
+At those cohort sizes the noise is comparable to or larger than the entire
+quantity being estimated, for every epsilon on this page. Known lower bounds
+for releasing $d$ attribute means put the per-coordinate error at roughly
+$\sqrt{d}/(\varepsilon N)$, so this is a property of differential privacy at
+small $N$ rather than a deficiency of this implementation that a better
+mechanism would remove. The panels below about ten to twenty subjects should be
+read as *demonstrations that the mechanism is running and failing honestly*,
+not as an achievable privacy--utility tradeoff.
+
+The practical consequence is that this package is a pooled-data tool. The
+privacy unit is one subject in the fit, and the generated cohort size is
+independent of it: fitting a large pooled corpus and then calling
+`generate_pmx(n_subjects = 20)` is well supported, whereas fitting twenty
+subjects is not. A study of this size that needs shareable mock data is better
+served by generating from declared public design inputs alone, which reads no
+patient data and needs no privacy budget at all.
 
 For a real evaluation, use `scripts/evaluate_simulations.R` across many public
 generation seeds and, when authorized on public/simulated sources, repeated
