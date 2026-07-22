@@ -12,6 +12,8 @@ document that owns each kind of decision:
 - `design/REVIEW_BACKLOG.md` — defects and design findings (`REV-###`).
 - `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
 - `design/FEASIBILITY.md` — what is achievable at which cohort size.
+- `design/MODEL_ELICITATION.md` — the interview producing the public structural
+  model and priors, and the rules that keep those inputs data-independent.
 - `design/PROTOTYPE_SPEC.md` — the specification being implemented.
 
 Keep `design/TODO.md` current: tick items as they close, add newly discovered
