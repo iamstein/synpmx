@@ -1,5 +1,5 @@
 ---
-title: "How pmxSynthData Simulates Patients"
+title: "How pmxSynthData Works"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,492 +7,1017 @@ output:
     number_sections: true
     fig_width: 9
     fig_height: 5
+    self_contained: true
 vignette: >
-  %\VignetteIndexEntry{How pmxSynthData Simulates Patients}
+  %\VignetteIndexEntry{How pmxSynthData Works}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "100%"
+)
 library(pmxSynthData)
 ```
 
-# The short answer
+## Purpose and scope
 
-`pmxSynthData` does **not** fit an ODE, compartmental PK model, NLME model,
-likelihood, or spline. It is a deliberately coarse **fixed-grid population
-generator** for creating structurally useful mock PMX event tables.
+`pmxSynthData` makes **mock data for model-workflow exploration**. Its job is
+practical: preserve enough of a pharmacometric event table's structure that
+data assembly, diagnostic plots, and model-run plumbing can be developed away
+from the restricted source environment. It does this without fitting or
+calling a PK, PD, or nonlinear mixed-effects model.
 
-The value and sampling models are separate:
+That narrow purpose is important. A generated dataset is not anonymous data,
+has no formal privacy guarantee, and is not evidence that source subjects
+cannot be re-identified. It is also not suitable for estimation, model
+selection, inference, dose selection, or clinical decisions. The method aims
+for structural usefulness, not scientific equivalence.
 
-1. Endpoint observations are assigned to nearby cells on a fixed scientific
-   clock such as time after dose (TAD) or study time. By default this is a
-   generic source-independent basis, not a disclosed sampling schedule.
-2. Bounded subject-level cell summaries are released by the fitted private
-   model.
-3. Released cell means receive one local 1--2--1 moving-average pass.
-4. `stats::approx()` joins those nodes with straight line segments.
-5. Sampling times are generated from separate timing-cell and, for
-   dose-relative endpoints, dose-occasion probabilities.
-6. Publicly configured subject, occasion, and serial residual perturbations
-   create broad variability.
+The central idea is to keep two problems separate:
 
-This is enough to exercise data preparation, plotting, and model code. It is
-not intended to recover individual PK parameters, exposure, accumulation,
-covariate effects, or a source joint distribution.
+1. **Event logic must remain coherent.** A whole subject event template is
+   sampled, so doses, infusion records, compartments, endpoints, tied times,
+   and missing-observation positions stay together.
+2. **Values should not simply be copied.** Baseline covariates and longitudinal
+   measurements are generated from compatible neighboring subjects, with
+   modest stochastic perturbation.
 
-| Question | Current implementation |
-|---|---|
-| Splines? | No; one 1--2--1 smoothing pass followed by piecewise-linear interpolation |
-| ODE or NLME model? | No |
-| Sampling model? | Privately inferred grid-cell presence, occasion activation, and conditional sample count |
-| Subject variability? | Public normal shifts on the endpoint working scale |
-| Serial noise? | Public AR(1) perturbation with correlation 0.65, restarted by dose occasion |
-| Single-peaked PK-like shape? | Enforced only when the released coarse curve is already approximately unimodal |
-| Exact source profiles or times? | Never copied |
-| Covariate-response model? | Not currently learned |
+## Two privacy models: AVATAR blending versus differential privacy
 
-For the privacy guarantee and its assumptions, see
-`vignette("pmxSynthData-privacy-intro")`. For runnable public examples, see
-`vignette("pmxSynthData-demo")`. For formal OpenDP comparisons across three
-illustrative epsilon values, see
-`vignette("pmxSynthData-epsilon-exploration")`.
+`pmxSynthData` contains two families of method, and they answer different
+questions. This vignette documents the default one.
 
-# Two stages with different jobs
+**AVATAR blending** (`synthesize_pmx()`, described below) resamples and blends
+whole source subject trajectories. It works at any cohort size, needs no
+elicitation, and makes **no formal privacy guarantee**. Its safety rests on
+governance: the data is used inside a trusted, access-controlled environment,
+not released across a trust boundary.
 
-`fit_private_pmx()` reads the source once. It bounds each complete subject,
-constructs fixed-dimensional summaries, and releases population quantities
-through the configured privacy backend. `generate_pmx()` reads only that
-released model and public configuration.
+**Differential privacy** (`fit_calibrated_pmx()` and `fit_private_pmx()`, see
+the privacy-introduction vignette) computes a small number of aggregate
+statistics, adds mathematically calibrated noise so that no one subject can move
+any released number by more than a bounded amount, and generates from those
+noised aggregates. It carries a provable `(epsilon, delta)` guarantee that
+survives a determined adversary, at the cost of utility that degrades sharply
+in small cohorts.
 
-```{r simulation-pipeline, echo=FALSE, fig.cap="Fitting releases coarse population summaries; generation builds entirely new subjects from them."}
-old <- par(mar = c(.5, .5, .5, .5), xpd = NA)
-plot.new(); plot.window(xlim = c(0, 14), ylim = c(0, 7))
-draw_box <- function(x, y, label, fill, width = 3.1) {
-  rect(x - width / 2, y - .55, x + width / 2, y + .55,
-       col = fill, border = "#24445C", lwd = 1.4)
-  text(x, y, label, cex = .76)
+The choice between them is a single question: **does the generated data cross a
+trust boundary?** If it stays inside the safe environment, AVATAR is more useful
+and its lack of a formal guarantee costs nothing, because there is no adversary
+to guarantee against. If it is shared externally or published, only the
+differentially private guarantee holds up.
+
+### How AVATAR relates to synadam
+
+Novartis's `synadam` generates synthetic ADaM data by resampling **each column**
+marginally from the real data: a uniform draw over the observed range for
+continuous columns, a proportional resample for categorical ones, with no
+differential privacy. It preserves each column's marginal support and relies on
+governance rather than a mathematical guarantee. That is standard, accepted
+practice.
+
+AVATAR blending is the same governance-based idea applied at a different
+granularity: it resamples and blends **whole subject trajectories** rather than
+individual columns, because a pharmacometric endpoint is a correlated
+time-course that would be destroyed by independent per-column resampling. If
+`synadam`'s privacy model is acceptable for its use, AVATAR's is acceptable for
+the same trusted-environment use.
+
+One honest caveat follows from the difference in granularity. A resampled
+covariate value (a weight of 72 kg) is weakly identifying because many people
+share it. A resampled subject trajectory is more strongly identifying, closer to
+a fingerprint, because a full sampling-and-response pattern is more nearly
+unique. Blending several donors and adding noise mitigates this, but not
+formally. AVATAR therefore depends on the governance context somewhat more than
+`synadam`'s column resampling does. The full argument is in
+`design/METHOD_DISCUSSION.md`.
+
+## The pipeline at a glance
+
+```{r method-flowchart, echo=FALSE, fig.width=10, fig.height=5.8}
+old_par <- par(mar = c(0.5, 0.5, 0.8, 0.5), xpd = NA)
+plot.new()
+plot.window(xlim = c(0, 10), ylim = c(0, 10))
+
+positions <- rbind(
+  c(1.6, 8.4), c(5.0, 8.4), c(8.4, 8.4),
+  c(8.4, 5.0), c(5.0, 5.0), c(1.6, 5.0),
+  c(1.6, 1.6), c(5.0, 1.6), c(8.4, 1.6)
+)
+labels <- c(
+  "Source PMX\nevent data",
+  "Declare roles +\nstrict validation",
+  "Build subject profiles\n+ aligned endpoint grids",
+  "Standardize / PCA\n+ event signatures",
+  "Sample anchor +\ncompatible neighbors",
+  "Copy complete anchor\nevent template",
+  "Blend covariates +\nendpoint trajectories",
+  "Perturb + restore\nsource schema",
+  "Validate output +\nattach settings"
+)
+fills <- c(
+  "#DDEBF7", "#E8F1FB", "#E8F1FB",
+  "#E8F1FB", "#FFF1CC", "#FFF1CC",
+  "#E6F4EA", "#E6F4EA", "#D7EEDC"
+)
+
+for (i in seq_len(nrow(positions) - 1L)) {
+  x1 <- positions[i, 1L]
+  y1 <- positions[i, 2L]
+  x2 <- positions[i + 1L, 1L]
+  y2 <- positions[i + 1L, 2L]
+  if (y1 == y2) {
+    direction <- sign(x2 - x1)
+    arrows(
+      x1 + direction * 1.38, y1,
+      x2 - direction * 1.38, y2,
+      length = 0.09, lwd = 1.4, col = "#4D5966"
+    )
+  } else {
+    direction <- sign(y2 - y1)
+    arrows(
+      x1, y1 + direction * 0.72,
+      x2, y2 - direction * 0.72,
+      length = 0.09, lwd = 1.4, col = "#4D5966"
+    )
+  }
 }
-draw_box(3.3, 5.5, "Bound and summarize\ncomplete subjects", "#FADBD8")
-draw_box(10.7, 5.5, "Release count, regimen, timing,\nand trajectory summaries", "#FCF3CF", 4.2)
-arrows(4.9, 5.5, 8.55, 5.5, length = .08, col = "#566573", lwd = 1.3)
-abline(h = 3.65, lty = 2, col = "#7F8C8D", lwd = 1.5)
-text(.4, 4.05, "source-reading private fit", adj = 0, col = "#922B21")
-text(.4, 3.25, "source-free generation", adj = 0, col = "#196F3D")
-draw_box(2.4, 1.6, "New event +\nsampling skeleton", "#D5F5E3")
-draw_box(7, 1.6, "Linear trajectory +\npublic variability", "#D5F5E3")
-draw_box(11.6, 1.6, "Schema restoration\n+ validation", "#D5F5E3")
-arrows(10.7, 4.94, 3.4, 2.15, length = .08, col = "#566573", lwd = 1.3)
-arrows(3.98, 1.6, 5.42, 1.6, length = .08, col = "#566573", lwd = 1.3)
-arrows(8.58, 1.6, 10.02, 1.6, length = .08, col = "#566573", lwd = 1.3)
-par(old)
+
+for (i in seq_len(nrow(positions))) {
+  x <- positions[i, 1L]
+  y <- positions[i, 2L]
+  rect(
+    x - 1.32, y - 0.68, x + 1.32, y + 0.68,
+    col = fills[i], border = "#324A5F", lwd = 1.5
+  )
+  text(x, y, labels[i], cex = 0.88, col = "#172A3A")
+  text(x - 1.18, y + 0.50, i, cex = 0.72, font = 2, col = "#536878")
+}
+par(old_par)
 ```
 
-Repeated generation with a different ordinary seed is post-processing. It
-does not refit or spend more privacy budget.
+The pipeline has two linked representations. A **subject profile** is a compact
+numeric representation used only to find neighbors. A **subject template** is
+an actual block of source rows that supplies the output event structure. PCA
+coordinates never become output rows; the event template is never averaged.
 
-# Generic clocks; private occupancy
+The table below is the quickest way to orient oneself.
 
-The caller declares column roles, endpoint bounds, and one of four endpoint
-alignments. These are scientific assumptions, not fitted model selection. A
-fixed grid is needed to make the private summary finite-dimensional, but it
-does not need to disclose or reproduce the source visit schedule.
-
-| Alignment | Clock used for the main curve | Generated behavior |
-|---|---|---|
-| `dose_relative` | TAD after the latest qualifying dose | Reuses one coarse excursion after active dose occasions |
-| `occasion` | TAD | As above, plus a new random shift for each occasion |
-| `study_time` | Nominal time when declared, otherwise actual study time | One global curve that does not restart at a dose |
-| `hybrid` | Global study time plus a local TAD grid | Global curve plus a small centered dose-relative excursion |
-
-The recommended workflow omits endpoint grids. For a study-time endpoint, the
-package constructs an evenly spaced basis from public time bounds and the
-maximum number of timing cells. For a dose-relative endpoint, it constructs a
-generic log-spaced local basis for early-time resolution; at generation its
-horizon is scaled to the privacy-accounted dose interval. The private fit—not
-the basis—learns which cells are occupied and how often each occasion is
-sampled. User-supplied grids remain possible as independently justified public
-discretization bases, but are not sampling schedules. Grids longer than the
-public cell limit are thinned evenly. Multiple DVIDs are processed separately.
-
-`transform = "identity"` works directly on the bounded DV scale.
-`transform = "log"` first clips DV to its public bounds and applies
-
-$$z=\log(y+a),$$
-
-where the small positive offset $a$ is determined only from the public bounds.
-`transform = "auto"` chooses the offset-log transform for a nonnegative public
-domain and identity otherwise. Generated values are inverse-transformed and
-clipped back to the public DV domain.
-
-# What is learned from each bounded subject?
-
-Before any source-dependent aggregate, each person's rows and numeric values
-are bounded. The public limits cover total rows, doses, occasions, endpoint
-observations per occasion, timing cells, and numeric domains. A subject cannot
-contribute more than those declared limits.
-
-The fitter then constructs six groups of low-dimensional features:
-
-| Group | Per-subject features |
-|---|---|
-| Cohort size | One subject-count contribution |
-| Event/regimen | Event presence, bounded dose and occasion counts, mean interval, amount, rate, infusion presence/duration, total observation count; optionally one public subject-property stratum indicator plus the event vector in that stratum |
-| Sampling timing | Endpoint grid-cell presence; occasion presence and normalized count for dose-relative endpoints |
-| Endpoint trajectory | Cell presence and the subject's mean transformed DV in each occupied cell |
-| Covariates | Numeric presence/first/second moment or indicators over public categories |
-| Censoring | Coarse left, right, and interval frequencies and bounded limits |
-
-Each feature coordinate lies in $[0,1]$. The production fit releases vector
-sums and a subject count through the privacy backend; the public-fixture
-backend used in demonstrations is noiseless and makes no DP claim. The fitted
-model contains decoded population summaries, not these subject vectors or raw
-records. With declared `subject_properties`, a person contributes to exactly
-one property stratum. The event query's L1 sensitivity is therefore one
-stratum-count coordinate plus the nine-coordinate bounded event vector (10),
-not the total number of public strata, although adding strata still increases
-release dimension and can reduce utility.
-
-# The fixed-grid trajectory model
-
-For endpoint $e$, subject $i$, and grid cell $j$, let $P_{iej}=1$ if that
-subject has at least one retained observation assigned to the cell, and zero
-otherwise. Let $V_{iej}$ be the mean bounded, transformed, unit-scaled DV among
-that subject's observations in the cell; it is zero when the cell is absent.
-
-The fit releases population sums corresponding to
-
-$$A_{ej}=\sum_i P_{iej},\qquad B_{ej}=\sum_i V_{iej}.$$
-
-After release, the cell mean is reconstructed approximately as
-
-$$\widehat\mu_{ej}=\operatorname{clip}_{[0,1]}
-\left(\frac{\widetilde B_{ej}}{\max(\widetilde A_{ej},10^{-8})}\right).$$
-
-A cell counts as occupied only when its released presence $\widetilde A_{ej}$
-exceeds a support threshold
-
-$$\tau=\max\left(0.25,\ \min\left(3b,\ \tfrac{1}{2}\widetilde N\right)\right),
-\qquad b=\frac{\Delta}{\varepsilon_{\text{group}}},$$
-
-where $b$ is the scale of the mechanism that produced the release. The
-threshold is necessary because $\widetilde A_{ej}$ is an unnormalized subject
-count of order $N$, not a probability: a fixed constant would let noise around
-zero pass as evidence of support, after which $\widetilde B_{ej}/\widetilde
-A_{ej}$ collapses to the bottom of the working domain. The $3b$ term leaves
-roughly a 5% chance that an empty cell survives, the $\tfrac{1}{2}\widetilde N$
-cap prevents the threshold from deleting genuinely occupied cells when noise is
-large relative to the cohort, and the $0.25$ floor makes the noiseless
-public-fixture backend behave exactly as before ($b=0$ there).
-
-A cell below the threshold is filled by piecewise-linear interpolation from
-released occupied neighbors (and the nearest occupied value beyond the
-endpoints). Only an endpoint with no released occupied cell falls back to the
-midpoint of the public range. Tildes emphasize that a production model stores
-privacy-mechanism outputs, not exact source sums.
-
-## Smoothing and interpolation: explicitly not a spline
-
-For released working-scale nodes $m_1,\ldots,m_J$, endpoints are unchanged and
-each interior node receives one pass of
-
-$$m_j^*=\frac{m_{j-1}+2m_j+m_{j+1}}{4}.$$
-
-The package then uses straight-line interpolation between $(t_j,m_j^*)$.
-Outside the grid it uses the nearest endpoint value. There is no estimated
-spline basis, smoothing parameter, derivative constraint, or likelihood.
-
-```{r fixed-grid-figure, echo=FALSE, fig.cap="The generator smooths fixed nodes once and connects them linearly; it does not fit a spline."}
-grid <- c(0, .5, 1, 2, 4, 8, 12, 24)
-released <- c(.2, .55, .95, .88, .63, .38, .23, .12)
-smoothed <- released
-smoothed[2:(length(released) - 1L)] <-
-  (released[1:(length(released) - 2L)] +
-     2 * released[2:(length(released) - 1L)] +
-     released[3:length(released)]) / 4
-dense <- seq(min(grid), max(grid), length.out = 400)
-linear <- approx(grid, smoothed, xout = dense, rule = 2)$y
-plot(grid, released, pch = 1, cex = 1.2, col = "#5D6D7E",
-     xlab = "Declared endpoint clock", ylab = "Working-scale mean",
-     ylim = c(0, 1), main = "Fixed nodes and piecewise-linear curve")
-lines(dense, linear, col = "#D95F02", lwd = 2.5)
-points(grid, smoothed, pch = 19, col = "#D95F02")
-legend("topright", c("Released node", "Smoothed node + linear join"),
-       pch = c(1, 19), lty = c(NA, 1),
-       col = c("#5D6D7E", "#D95F02"), bty = "n")
+```{r information-paths, echo=FALSE}
+information_paths <- data.frame(
+  Information = c(
+    "Event structure",
+    "Baseline covariates",
+    "Observation DV",
+    "ID",
+    "MDV",
+    "Unassigned columns",
+    "Schema"
+  ),
+  Treatment = c(
+    "Copied as one complete anchor-subject template",
+    "Blended or sampled from the same selected donors",
+    "Interpolated and blended separately by endpoint, then perturbed",
+    "Replaced with a genuinely new, type-compatible value",
+    "Re-derived only when the source follows the standard EVID/DV rule",
+    "Copied from the anchor template without interpretation",
+    "Names, order, practical classes, and factor levels restored"
+  ),
+  stringsAsFactors = FALSE
+)
+knitr::kable(information_paths, align = c("l", "l"))
 ```
 
-# Sampling times are modeled separately from values
+## Step 1: declare the meaning of the columns
 
-A dose row does not imply a concentration sample. Sampling uses its own
-released summaries.
+The package never guesses critical PMX roles from column names. The user must
+declare them with `pmx_roles()`:
 
-For every endpoint grid cell, fitting records whether each subject occupied
-that cell. For a dose-relative or occasion-aligned endpoint it additionally
-records, for every allowed dose occasion $o$:
+```{r roles-example}
+roles <- pmx_roles(
+  id = "ID",
+  time = "TIME",
+  dv = "DV",
+  amt = "AMT",
+  evid = "EVID",
+  cmt = "CMT",
+  dvid = "DVID",
+  mdv = "MDV",
+  rate = "RATE",
+  covariates = c("WT", "AGE", "SEX")
+)
+roles
+```
 
-- $H_{ieo}$: whether subject $i$ had any endpoint-$e$ sample on occasion $o$;
-- $C_{ieo}=\min(n_{ieo}/L_e,1)$, the sample count divided by the public
-  per-occasion limit $L_e$.
+`id`, `time`, `dv`, and `evid` are required. `amt`, `cmt`, `dvid`, `mdv`, and
+`rate` are optional scalar roles; `covariates` can contain several baseline
+columns. One source column cannot be assigned to multiple roles.
 
-The decoded quantities are
+Immediately before generation, `synthesize_pmx()` calls `validate_pmx(...,
+strict = TRUE)`. Among other checks, validation requires:
 
-$$\widehat p_{eo}=\frac{\widetilde{\sum_i H_{ieo}}}{\widetilde N},$$
+- nonmissing IDs and EVID values;
+- finite numeric TIME values and nondecreasing TIME within subject;
+- numeric DV and finite nonmissing observations;
+- an endpoint value on every eligible observation when DVID is declared; and
+- every declared baseline covariate to be constant within subject.
 
-the probability that the occasion is sampled, and
+Rows are eligible observations when EVID is zero and, if MDV is declared, MDV
+is also zero. A nonmissing DV is additionally required when a value is used to
+build a profile or donor trajectory. In symbols, with bracket notation for a
+logical condition,
 
-$$\widehat n_{eo}=L_e
-\frac{\widetilde{\sum_i C_{ieo}}}
-{\max(\widetilde{\sum_i H_{ieo}},\tau)},$$
+$$
+O_{ij} = [\mathrm{EVID}_{ij}=0]
+         [\mathrm{MDV}_{ij}=0\;\text{if MDV is declared}]
+         [Y_{ij}\;\text{is present}].
+$$
 
-the mean sample count **conditional on that occasion being sampled**.
-`sampling_summary()` exposes these post-processed quantities.
+Rows with EVID equal to zero but missing DV, or with nonzero MDV, remain in the
+sampled template but do not contribute a measurement value.
 
-This two-part construction matters. If 20% of patients have ten samples at an
-occasion, that is not the same design as every patient having two samples.
+## Step 2: split structure from values
 
-## How a new sampling schedule is drawn
+Let subject $i$ have source rows $D_i$. For every requested mock subject, the
+generator samples an **anchor** $a$ with replacement and begins with
 
-For a dose-relative endpoint, generation proceeds in this order:
+$$
+S^{(0)} = D_a.
+$$
 
-1. Draw whether each dose occasion is active using $\widehat p_{eo}$.
-2. Use the conditional count $\widehat n_{eo}$ when allocating the subject's
-   released total observation count across endpoint/occasion groups.
-3. Draw candidate timing cells from their released presence probabilities.
-4. If too many or too few cells were drawn, reconcile to the allocated count
-   with probability-weighted sampling. Cells with probability one are retained
-   whenever the count permits.
-5. Remove cells outside the public time bounds or at/after the next dose.
+Thus $S^{(0)}$ contains the anchor's full row count and row-wise combination of
+TIME, EVID, AMT, RATE, CMT, DVID, and any other source columns. This is the
+event skeleton. By copying these rows together, the method avoids impossible
+records that can result from generating event fields independently.
 
-The fourth step is important: taking the first $n$ grid cells would
-systematically remove late PK follow-up. The implementation instead respects
-the released timing probabilities.
+Only a few parts of this skeleton are subsequently changed:
 
-For a study-time endpoint, candidate cells are drawn from grid-presence
-probabilities with at least three cells retained when the grid allows. Count
-reconciliation preserves broad early, middle, and late coverage. An
-independently justified public `endpoint_occasion_grids` schedule can override
-the inferred local sampling design, but this is an exceptional protocol
-override and is not used by the package demonstrations. Omitted occasions in
-such an override receive no samples.
+- TIME may be jittered if `time_jitter > 0`;
+- declared baseline covariates are replaced for all rows of the mock subject;
+- eligible, originally present observation DVs are synthesized;
+- standard MDV may be re-derived;
+- ID is replaced; and
+- rows are sorted by TIME, retaining original order within ties.
 
-```{r sampling-example, echo=FALSE}
-knitr::kable(data.frame(
-  TAD_hour = c(.5, 1, 2, 6, 12, 24, 48, 72, 120),
-  released_cell_probability = c(.12, .14, .18, .35, .28, 1, 1, 1, .91),
-  interpretation = c(rep("Sometimes retained", 5),
-                     rep("High-probability late follow-up", 4))
-), digits = 2,
-caption = paste(
-  "Illustrative timing release: an eight-sample profile should retain late",
-  "cells rather than truncate the first eight positions."
+Event-row DV values and undeclared columns otherwise remain anchor-template
+values. Consequently, users should not place a semantically important column
+in the input and assume the package understands it merely because it is
+present.
+
+## Step 3: align time without pretending every subject was sampled identically
+
+### First-event-relative time
+
+Neighbor profiles and donor trajectories are constructed on an internal
+aligned time. For subject $i$, the preferred origin is the first nonzero-EVID
+row having a positive AMT:
+
+$$
+t_{0i} = \min\{t_{ij}: \mathrm{EVID}_{ij}\ne0,\ \mathrm{AMT}_{ij}>0\}.
+$$
+
+If no positive-AMT event exists, the first nonzero-EVID row is used. If the
+subject has no event row, TIME is left unchanged. The internal aligned time is
+
+$$
+t^*_{ij}=t_{ij}-t_{0i}.
+$$
+
+This removes a subject-specific calendar or study-time offset. It does **not**
+compute time after each dose.
+
+### TIME is not TAD
+
+A conventional TAD variable resets after every dose. The current package has
+no `tad` role and never reads an existing TAD column for alignment. With
+multiple doses, $t^*$ continues to increase from the first qualifying dose;
+there is no later reset. An input TAD column is an unassigned column and is
+therefore copied from the anchor template.
+
+This has two practical consequences:
+
+1. Use the actual analysis-time column as `time`. Do not expect a TAD column to
+   drive neighbor construction or interpolation.
+2. If `time_jitter > 0`, an undeclared copied TAD column is not recalculated and
+   can become inconsistent with the jittered TIME. Recompute TAD downstream if
+   the workflow requires it.
+
+### Different observation times across subjects
+
+For endpoint $e$, the package pools finite aligned observation times and makes
+a common grid $G_e$. If there are at most 15 unique times, all are retained. If
+there are more, 15 type-8 empirical quantiles are used and duplicate quantiles
+are removed.
+
+Each subject's transformed trajectory is linearly interpolated onto $G_e$.
+There is no extrapolation during profile construction, so grid locations
+outside a subject's observed window become missing profile features. Tied
+times are averaged by `stats::approx(..., ties = mean)`.
+
+During final synthesis, donors are first interpolated directly to the anchor's
+aligned observation times. Suppose target time $t$ lies outside donor $r$'s
+window. Rather than extrapolating indefinitely, the method maps the target's
+relative position in the whole anchor observation window to the donor window:
+
+$$
+q(t)=\frac{t-a_{\mathrm{target}}}
+           {b_{\mathrm{target}}-a_{\mathrm{target}}},
+\qquad
+u_r(t)=a_r+q(t)(b_r-a_r),
+$$
+
+where $[a_{\mathrm{target}},b_{\mathrm{target}}]$ and $[a_r,b_r]$ are the
+target and donor ranges. The donor trajectory is evaluated at $u_r(t)$. This
+normalized-window fallback preserves progress through a trajectory, but it is
+not a mechanistic warping model. A donor with only one unique time supplies its
+mean at every requested target time.
+
+### Optional coherent time jitter
+
+The default `time_jitter = 0` copies template times exactly. Otherwise, one
+normal perturbation is drawn for each unique template time $u_l$,
+
+$$
+u'_l=u_l+\delta_l, \qquad
+\delta_l\sim\mathcal{N}(0,\sigma_t^2),
+$$
+
+and constrained between the midpoints of adjacent nominal times. Nonnegative
+time is enforced at the first time. All rows tied at $u_l$ receive the same
+$u'_l$, so a dose and observation tied at a nominal time remain tied and time
+ordering cannot cross.
+
+## Step 4: choose an endpoint transformation
+
+Transformations are selected separately for each DVID endpoint, or once for
+the implicit endpoint `"DV"` when DVID is absent. After discarding nonfinite
+values, an endpoint is considered positive-like when it has at least one
+positive value, its median is positive, and at most 1% of values are negative.
+
+For a positive-like endpoint, define
+
+$$
+c_e=\max\left\{\frac{1}{2}\min(Y_e[Y_e>0]),\sqrt{\epsilon_{\mathrm{mach}}}\right\}
+$$
+
+and use the offset-log pair
+
+$$
+g_e(y)=\log\{\max(y,0)+c_e\},
+\qquad
+g_e^{-1}(z)=\max\{\exp(z)-c_e,0\}.
+$$
+
+Other endpoints use $g_e(y)=y$. The truncations mean a positive-like endpoint
+cannot generate a negative DV. Transformation choices and offsets are stored
+in `attr(mock, "pmx_settings")$endpoint_transforms`.
+
+## Step 5: build one numeric profile per source subject
+
+A profile concatenates baseline and longitudinal information:
+
+$$
+\mathbf{x}_i=
+\left[
+  \mathbf{c}_i,\
+  \mathbf{y}_{i1}(G_1),\ldots,\
+  \mathbf{y}_{iE}(G_E)
+\right].
+$$
+
+Here $\mathbf{c}_i$ contains the first nonmissing value of each declared
+baseline covariate. Numeric covariates contribute one feature. Factors and
+character covariates contribute one indicator for every factor level or
+observed character value. The vector $\mathbf{y}_{ie}(G_e)$ is subject $i$'s
+transformed endpoint-$e$ trajectory interpolated on its common grid.
+
+This profile is used only for distance calculations. It does not replace the
+source data and is never returned as a mock patient.
+
+### Missing features and scaling
+
+An entirely missing feature is removed. Otherwise, a missing profile entry is
+replaced with its across-subject feature median $m_l$:
+
+$$
+x^{\mathrm{imp}}_{il}=
+\begin{cases}
+x_{il}, & x_{il}\text{ is finite},\\
+m_l, & \text{otherwise}.
+\end{cases}
+$$
+
+This imputation exists only inside neighbor finding. It does not fill source or
+output DV rows. Features whose standard deviation is not greater than
+$\sqrt{\epsilon_{\mathrm{mach}}}$ are removed. The remaining columns are
+standardized as
+
+$$
+z_{il}=\frac{x^{\mathrm{imp}}_{il}-\bar{x}^{\mathrm{imp}}_l}{s_l}.
+$$
+
+### Rank-safe PCA
+
+When there are at least two subjects and two usable features, PCA is applied to
+the standardized matrix with maximum rank
+
+$$
+r_{\max}=\min(n-1,p).
+$$
+
+Let $\lambda_h$ be the variance of principal component $h$. The retained
+dimension $H$ is the smallest value satisfying
+
+$$
+\frac{\sum_{h=1}^{H}\lambda_h}
+     {\sum_{h=1}^{r_{\max}}\lambda_h}
+\ge v,
+$$
+
+where $v$ is `pca_variance` (default 0.90). The subject coordinate is
+$\boldsymbol{\xi}_i=(\mathrm{PC}_{i1},\ldots,\mathrm{PC}_{iH})$. If PCA is not
+available but standardized features exist, those features are used directly.
+If none exist, all subjects receive the same one-dimensional zero coordinate.
+
+The term **rank-safe** means the attempted PCA rank cannot exceed either the
+feature rank or $n-1$. It does not imply that sparse or nearly duplicated
+profiles contain useful separation.
+
+## BLOQ and a Monolix-style CENS column
+
+The current API has no `cens` or lower-limit role. A column named `CENS` has no
+special meaning unless a future API explicitly assigns one. At present:
+
+- `CENS` is copied from the anchor template as an unassigned column;
+- a numeric DV on a row with `CENS = 1` is treated as an ordinary observed
+  number if EVID and MDV make that row eligible;
+- no likelihood-based censoring, interval, LLOQ, substitution, or imputation
+  rule is applied; and
+- after DV synthesis, a copied `CENS` flag may no longer agree with the new DV.
+
+Declaring `CENS` as a baseline covariate is not a workaround: if it changes
+within subject, strict validation correctly rejects it as nonconstant.
+
+For now, a dataset with BLOQ records should be preprocessed under an explicit,
+documented analysis convention before calling `synthesize_pmx()`. Setting DV missing
+and using a nonzero declared MDV can retain an anchor's missingness position,
+but this still does not synthesize a coherent censoring process. Users who need
+mock CENS/LLOQ semantics should treat that as unsupported package behavior,
+not as an implicit feature.
+
+## Step 6: restrict neighbors to compatible event patterns
+
+Similarity in PCA space is not sufficient. A subject receiving a single oral
+dose should not donate a trajectory to an incompatible infusion or repeat-dose
+template. Each source subject therefore receives an event signature containing:
+
+- the ordered EVID values on event rows;
+- optional CMT and DVID values on those rows;
+- the sign (`+`, `-`, `0`, or missing) of optional AMT and RATE;
+- the number of positive-dose starts, or all events if no positive AMT exists;
+- successive start-time gaps rounded to two significant digits; and
+- the set of endpoints on eligible observation rows.
+
+Notice what is not in the signature: exact positive dose magnitudes and the
+observation-time schedule. Exact event values still come from the anchor
+template, while unequal observation times are handled by interpolation.
+
+For anchor $a$, only non-anchor subjects with the same signature are candidate
+donors. Euclidean distance in retained profile coordinates is
+
+$$
+d_{ar}=\left\|\boldsymbol{\xi}_a-
+                   \boldsymbol{\xi}_r\right\|_2
+=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
+$$
+
+The closest `k` candidates are kept. If fewer exist, `k` is reduced and a
+warning is recorded. If none exist, the anchor itself becomes the sole donor;
+only subsequent randomized perturbation can then move its measurements.
+
+## Step 7: randomize and cap donor weights
+
+Suppose $K$ donors have been selected. Let $E_r\sim\mathrm{Exponential}(1)$
+and let $R_r$ be a random permutation of $1,\ldots,K$. Importantly, $R_r$ is a
+randomized rank, not the distance order. The raw donor weight is
+
+$$
+q_r=\frac{E_r}{\max(d_{ar},\varepsilon)}2^{-R_r},
+$$
+
+where
+
+$$
+\varepsilon=
+\begin{cases}
+\max\{10^{-8},10^{-6}\operatorname{median}(d_{ar}:d_{ar}>0)\},
+  & \text{if a positive distance exists},\\
+10^{-8}, & \text{otherwise}.
+\end{cases}
+$$
+
+The first normalization is $w_r=q_r/\sum_s q_s$. If one weight exceeds 0.80,
+the dominant weight is set to 0.80 and all other weights are rescaled
+proportionally to sum to 0.20. A final normalization protects against floating
+point drift. With exactly one donor, its weight is necessarily 1; the cap
+cannot create a second donor. If the raw weights are nonfinite or have a
+nonpositive total, the implementation replaces them with equal raw values
+before normalization.
+
+The same selected subjects and weights are used for every declared covariate
+and endpoint. When donor $r$ lacks a usable value at target location $j$, the
+available weights are renormalized locally:
+
+$$
+w_{rj}^{*}=\frac{w_r I_{rj}}
+                 {\sum_s w_s I_{sj}},
+$$
+
+where $I_{rj}=1$ when the value is finite and zero otherwise.
+
+## Step 8: synthesize baseline covariates
+
+For a numeric covariate, let $c_r$ be donor $r$'s first nonmissing value. When
+all available values are positive and
+
+$$
+\frac{\max_r c_r}{\operatorname{median}_r(c_r)}>3,
+$$
+
+the blend is formed on the log scale; otherwise it is formed on the original
+scale. With working-scale values $h(c_r)$, the donor center is
+
+$$
+\mu_c=\sum_r w_r^* h(c_r).
+$$
+
+Let $s_c$ be the ordinary sample standard deviation of the available
+working-scale donor values. If it is unavailable or zero, the fallback is
+$\max(0.05|\mu_c|,0.01)$. The generated working-scale covariate is
+
+$$
+c^*=\mu_c+\eta_c,
+\qquad
+\eta_c\sim\mathcal{N}(0,(\sigma_{\mathrm{subj}}s_c)^2),
+$$
+
+where `subject_noise_sd` is $\sigma_{\mathrm{subj}}$ (default 0.15). A log-scale
+result is exponentiated, and any all-positive covariate is floored above zero.
+The final value is repeated on every row of that mock subject.
+
+For factor, character, and logical covariates, one available donor category is
+sampled using the locally normalized weights. Categories are not averaged.
+
+## Step 9: synthesize each endpoint trajectory
+
+Only positions that were eligible, nonmissing observations in the anchor
+template receive synthesized values. Thus the anchor supplies the number and
+placement of observations, including its missing-DV pattern.
+
+For endpoint $e$, donor trajectories are transformed with $g_e$ and
+interpolated to the anchor observation times. Let $z_{rj}$ be donor $r$'s
+transformed value at target position $j$. The deterministic blend is
+
+$$
+\bar z_j=\sum_r w_{rj}^{*}z_{rj}.
+$$
+
+If every donor is unavailable at a target, the transformed dataset median for
+that endpoint is used and a warning is stored.
+
+The endpoint noise scale $s_e$ is 1 on the offset-log scale. On the identity
+scale it is the source endpoint standard deviation, with fallback
+$\max(0.1|\operatorname{median}(Y_e)|,0.01)$ when necessary. A single
+subject-level shift is shared across all positions of the endpoint:
+
+$$
+b_e\sim\mathcal{N}(0,(\sigma_{\mathrm{subj}}s_e)^2).
+$$
+
+Within-endpoint residual perturbations follow a stationary-scale AR(1) process
+in **observation order**:
+
+$$
+\begin{aligned}
+\epsilon_{e1} &\sim
+  \mathcal{N}(0,(\sigma_{\mathrm{res}}s_e)^2),\\
+\epsilon_{ej} &= \phi\epsilon_{e,j-1}+\nu_{ej},\\
+\nu_{ej} &\sim
+  \mathcal{N}\left(0,
+    (\sigma_{\mathrm{res}}s_e)^2(1-\phi^2)\right).
+\end{aligned}
+$$
+
+Defaults are `residual_noise_sd = 0.05` and `residual_phi = 0.6`. The generated
+DV is
+
+$$
+Y^*_{ej}=g_e^{-1}(\bar z_j+b_e+\epsilon_{ej}).
+$$
+
+Endpoints are processed separately, so PK and PD values cannot be blended
+with one another. They nevertheless use the same donor subjects and initial
+subject weights, preserving a limited form of cross-endpoint subject
+coherence. This is a synthesis device, not a fitted multivariate residual
+model.
+
+## A transparent worked example
+
+The small dataset below has six subjects, one dose each, one positive endpoint,
+two baseline covariates, and deliberately different observation times. It is
+large enough to have non-anchor neighbors but small enough to inspect.
+
+```{r worked-source}
+make_subject <- function(id, observation_time, wt, sex, peak) {
+  time <- c(0, observation_time)
+  evid <- c(1L, rep(0L, length(observation_time)))
+  data.frame(
+    ID = as.integer(id),
+    TIME = time,
+    DV = c(0, peak * exp(-0.55 * observation_time) + 0.03 * id),
+    AMT = c(100, rep(0, length(observation_time))),
+    EVID = evid,
+    CMT = c(1L, rep(2L, length(observation_time))),
+    MDV = ifelse(evid == 0L, 0L, 1L),
+    WT = rep(c(58, 64, 70, 76, 82, 88)[id], length(time)),
+    SEX = factor(
+      rep(sex, length(time)),
+      levels = c("female", "male")
+    )
+  )
+}
+
+worked_source <- do.call(rbind, list(
+  make_subject(1, c(0.5, 1.0, 2.0, 4.0), 58, "female", 9.0),
+  make_subject(2, c(0.25, 1.5, 3.0, 6.0), 64, "male", 10.0),
+  make_subject(3, c(0.75, 1.25, 2.5, 5.0), 70, "female", 11.0),
+  make_subject(4, c(0.4, 1.8, 3.5, 5.5), 76, "male", 12.0),
+  make_subject(5, c(0.6, 1.4, 2.8, 4.5), 82, "female", 13.0),
+  make_subject(6, c(0.3, 1.1, 3.2, 6.5), 88, "male", 14.0)
 ))
+rownames(worked_source) <- NULL
+
+worked_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", mdv = "MDV",
+  covariates = c("WT", "SEX")
+)
+
+knitr::kable(
+  worked_source[worked_source$ID %in% 1:2, ],
+  digits = 3,
+  caption = "The first two source subjects"
+)
 ```
 
-# Constructing a new subject
+The next chunk uses internal helpers solely to expose a reproducible teaching
+trace. These helpers are not public API. Ordinary analysis code should call
+`synthesize_pmx()` rather than depend on them.
 
-For each generated subject, `generate_pmx()` performs the following steps.
+```{r worked-trace, echo=FALSE}
+worked_seed <- 2026L
+worked_k <- 3L
+worked_profiles <- pmxSynthData:::.build_profiles(
+  worked_source, worked_roles, pca_variance = 0.90
+)
 
-## 1. Choose cohort size and create a new ID
+set.seed(worked_seed)
+anchor_index <- sample.int(
+  length(worked_profiles$subjects), 1L, replace = TRUE
+)
+trace_warnings <- pmxSynthData:::.warning_collector()
+worked_donors <- pmxSynthData:::.select_donors(
+  anchor_index, worked_profiles, worked_k, trace_warnings
+)
 
-When `n_subjects` is omitted, generation rounds the privacy-accounted subject
-count stored in the fitted model. This is the exact count for an explicitly
-public, noiseless fixture fit and a noisy release for confidential fitting.
-An explicit `n_subjects` is a public post-processing override. IDs are newly
-constructed in a high numeric range or as `mock_...` strings, according to the
-public schema.
-
-## 2. Draw a subject property and resolve its inferred regimen
-
-In the recommended workflow, released event summaries provide dose count, mean
-interval, amount, rate, infusion probability, and duration. Dose times are
-generated from that generalized count and interval and restricted to public
-time bounds. The demonstrations deliberately supply none of these regimen
-quantities. Independently public protocol values may override individual
-quantities, but values calculated by inspecting confidential records are not
-public inputs and must not be passed this way.
-
-When `subject_properties` declares a subject-constant treatment assignment
-such as ACTARM, TRT, or nominal dose group, generation first draws one released
-property stratum and then resolves that stratum's event summary. Property
-values and the associated regimen therefore stay together. The finite property
-levels are public category-domain inputs (or public factor levels), while the
-stratum frequencies and regimen summaries are privacy-accounted. This is
-different from an ordinary categorical covariate, which preserves only a
-marginal category distribution.
-
-Each subject's positive dose amount receives a small public log-normal
-perturbation, $\exp\{N(0,0.08^2)\}$, and is clipped to public bounds. That
-amount perturbation is disabled for a property-conditioned regimen or an
-`assigned_dose` role so the assignment remains exact. Infusion rate scales
-with the generated amount. An infusion start receives a coherent negative
-amount/rate stop row after the generated duration. If a positive-rate source
-encodes no explicit stop event, the bounded event feature uses AMT/RATE as its
-duration contribution.
-
-## 3. Build observation rows
-
-Active inferred timing cells become entirely new observation rows with coherent EVID,
-AMT, RATE, CMT, DVID, MDV, ADDL, and II fields. A rounded released total
-observation count controls the approximate number of samples per generated
-subject; group weights allocate that total across endpoints and occasions.
-
-Nominal times are jittered with normal noise whose standard deviation is the
-public `time_jitter_sd` multiplied by the closest positive nominal-grid
-spacing. Rows sharing one nominal time share one jitter draw. Dose-tied samples
-remain tied; dose-relative rows cannot cross their dose or the next dose; all
-times remain inside public bounds. Occasion and TAD are re-derived from the new
-dose history. An automatic local basis is scaled to stay within the next dose
-for nonterminal occasions. The last occasion has no next-dose boundary and may
-retain its released occupied horizon, allowing a longer terminal washout.
-
-## 4. Generate endpoint values
-
-The smoothed fixed-grid mean is evaluated at each generated observation time.
-On the endpoint's working scale, one subject gets
-
-$$z_{iek}=\mu_e(t_{iek})+b_{ie}+u_{ieo}+r_{iek},$$
-
-where:
-
-- $b_{ie}\sim N(0,(0.15\,s_eR_e)^2)$ is an endpoint-specific subject shift;
-- $u_{ieo}\sim N(0,(0.08\,s_eR_e)^2)$ is included only for
-  `alignment = "occasion"`;
-- $r_{iek}$ is AR(1) noise with correlation 0.65 and marginal standard
-  deviation $0.10\,q_eR_e$; for a dose-relative endpoint the process restarts
-  at every generated dose occasion rather than carrying correlation across a
-  long unsampled gap;
-- $s_e$ and $q_e$ are the public `subject_sd` and `residual_sd`; and
-- $R_e$ is the public working-scale endpoint range.
-
-The defaults are `subject_sd = 0.20` and `residual_sd = 0.08`. These are public
-generation choices, not estimated omega or sigma parameters. For a hybrid
-endpoint, the generated local excursion is multiplied by 0.35 of the working
-range before these perturbations are added.
-
-For a dose-relative or occasion-aligned endpoint, the generator also asks
-whether the released smoothed population curve is already approximately
-unimodal. It compares that curve with its closest rise-then-decline isotonic
-projection; if the largest adjustment is no more than 10% of the released
-curve range, each perturbed occasion is projected to rise to the released mean
-peak region and then decline. This is post-processing of released quantities,
-not a PK absorption model. It prevents ordinary serial noise from creating a
-second absorption peak when the fitted population shape supports only one.
-Curves that are materially multi-phasic are not forced through this step.
-
-Finally the value is inverse-transformed and clipped to its public endpoint
-bounds.
-
-## 5. Generate baseline covariates
-
-Each numeric covariate is sampled independently from a normal distribution
-using its released bounded center and scale, then clipped to public bounds.
-Each categorical covariate is sampled independently from released category
-probabilities. A generated covariate is constant over the subject's rows.
-Supplying public `category_levels` forces categorical handling even when the
-source column is stored as numeric codes.
-
-The current prototype does **not** reproduce correlation among covariates,
-covariate-response relationships, or covariate missingness. Those omissions
-are deliberate limits of the low-dimensional model.
-
-Subject properties are not part of this independent covariate step; they were
-drawn jointly with the regimen in step 2. If `assigned_dose` is declared, the
-generator also reconstructs its value from the positive AMT for each
-subject/occasion and writes it to every row in that occasion. This guarantees
-internal event-table coherence. Without a declared ACTARM/TRT/sequence
-property, it does not promise to reproduce a crossover-sequence distribution.
-Time-varying covariates are not modeled and should be explicitly excluded.
-
-## 6. Apply censoring and restore schema
-
-Public assay limits, when supplied, determine censoring directly. Otherwise,
-coarse released left/right/interval frequencies and limits are used. DV, CENS,
-and LIMIT are written together. The result is sorted chronologically (within
-declared occasion for a reset occasion clock), internal working columns are
-removed, and public names, order, classes, and factor levels are restored.
-
-# What the four alignments can and cannot represent
-
-## Dose-relative PK-like endpoints
-
-The same TAD curve is reused after generated active dose occasions. It can
-create a rise, peak, and decline suitable for testing PK workflow code. It does
-not model clearance, volume, absorption rate, half-life, accumulation, or
-between-occasion parameter changes. Long samples are present only when the
-sampling model selects their cells.
-
-## Study-time PD or biomarker endpoints
-
-One curve spans the complete declared study window. It can produce a delayed
-decline, nadir, and recovery without resetting after a dose. It is still an
-empirical fixed-grid curve, not an indirect-response or turnover model.
-
-## Occasion and hybrid endpoints
-
-`occasion` adds an independent random shift to each TAD excursion. `hybrid`
-adds a centered local TAD pattern to a global study-time curve. Neither is a
-hierarchical mixed-effects likelihood.
-
-# Reproducibility, validation, and expected fidelity
-
-The generation seed controls regimen perturbations, timing draws, endpoint
-shifts/noise, covariates, and censoring after fitting. The helper restores the
-caller's previous R random-number state. Identical model and seed give
-identical generated data; a different seed produces a new post-processing
-draw.
-
-`validate_pmx()` checks schema, role availability, chronological ordering,
-finite observations, event semantics, endpoint declarations, covariate
-constancy, subject-property and assigned-dose coherence, censoring coherence,
-and direct-identifier names. The demonstration
-vignette additionally stops if public source and synthetic examples differ in
-patient count, endpoint set, mean time points per patient, or bounded follow-up
-coverage beyond its declared tolerances.
-
-| Expected to be broadly similar | Not promised |
-|---|---|
-| Public schema and factor levels | Source IDs or source rows |
-| Dose/event structure | Exact individual regimens |
-| Approximate samples per subject | Exact visit vectors |
-| Broad endpoint magnitude and shape | PK/PD parameter distributions |
-| Coarse early/late sampling coverage | Exact residual distribution |
-| Coarse covariate marginals | Covariate correlations or effects |
-| Treatment property coherent with its regimen | Undeclared crossover sequence distribution |
-| Occasion-assigned dose coherent with AMT | Time-varying covariate trajectories |
-| Censoring conventions | Scientific inferential validity |
-
-# Algorithm summary
-
-In compact pseudocode, the implementation is:
-
-```text
-fit_private_pmx(source):
-    validate public roles, domains, generic grid bases, and contribution limits
-    for each subject:
-        truncate rows/doses/occasions/observations
-        clip times, values, amounts, rates, limits, and covariates
-        build bounded event/property, timing, trajectory, covariate, censoring vectors
-    release subject count and vector sums through the configured backend
-    decode constrained population summaries and record privacy accounting
-
-generate_pmx(model, seed):
-    choose released cohort size unless explicitly overridden
-    for each new subject:
-        draw a subject-property stratum and its generalized regimen
-        create new ID and generalized dose/infusion rows
-        draw active endpoint occasions and timing cells
-        reconcile cells to released observation counts without early truncation
-        jitter actual times and re-derive TAD/occasion
-        smooth fixed trajectory nodes once and interpolate linearly
-        add public subject/occasion/AR(1) variability, restarting by occasion
-        stabilize each profile if the released curve is approximately unimodal
-        generate independent baseline covariates and censoring
-        reconstruct occasion-assigned dose from generated event AMT
-        restore public schema and validate
+trace_summary <- data.frame(
+  role = c("anchor", rep("donor", length(worked_donors$indices))),
+  source_ID = c(
+    worked_profiles$subjects[anchor_index],
+    worked_profiles$subjects[worked_donors$indices]
+  ),
+  profile_distance = c(NA_real_, worked_donors$distances),
+  weight = c(NA_real_, worked_donors$weights),
+  stringsAsFactors = FALSE
+)
 ```
 
-The central design choice is intentional simplicity: the output should be
-structurally faithful enough to exercise a pharmacometric workflow while
-remaining clearly distinguishable from a fitted scientific PK/PD model.
+With `seed = 2026`, the anchor and its selected compatible donors are:
+
+```{r worked-neighbors, echo=FALSE}
+knitr::kable(trace_summary, digits = 4)
+```
+
+The anchor contributes the event skeleton. Donors contribute transformed DVs
+after interpolation to the anchor times. The following table shows the exact
+pre-noise blend used by the implementation.
+
+```{r worked-blend, echo=FALSE}
+anchor_skeleton <- worked_source[
+  worked_profiles$subject_rows[[anchor_index]], , drop = FALSE
+]
+target_rows <- which(
+  pmxSynthData:::.observation_rows(
+    anchor_skeleton, worked_roles, require_present = TRUE
+  )
+)
+target_time <- pmxSynthData:::.aligned_time(
+  anchor_skeleton, worked_roles
+)[target_rows]
+worked_transform <- worked_profiles$transforms[["DV"]]
+
+worked_donor_matrix <- vapply(worked_donors$indices, function(donor) {
+  trajectory <- pmxSynthData:::.donor_trajectory(
+    worked_source,
+    worked_roles,
+    worked_profiles$subject_rows[[donor]],
+    "DV",
+    worked_transform
+  )
+  pmxSynthData:::.interpolate_trajectory(trajectory, target_time)
+}, numeric(length(target_time)))
+if (is.null(dim(worked_donor_matrix))) {
+  worked_donor_matrix <- matrix(worked_donor_matrix, ncol = 1L)
+}
+colnames(worked_donor_matrix) <- paste0(
+  "donor_", worked_profiles$subjects[worked_donors$indices], "_z"
+)
+worked_blend <- apply(
+  worked_donor_matrix, 1L,
+  pmxSynthData:::.weighted_available,
+  weights = worked_donors$weights
+)
+
+worked_mock <- synthesize_pmx(
+  worked_source,
+  worked_roles,
+  n_subjects = 1,
+  seed = worked_seed,
+  k = worked_k
+)
+worked_mock_rows <- pmxSynthData:::.observation_rows(
+  worked_mock, worked_roles, require_present = TRUE
+)
+
+blend_table <- data.frame(
+  anchor_TIME = target_time,
+  worked_donor_matrix,
+  blended_z = worked_blend,
+  deterministic_DV = pmxSynthData:::.inverse_dv(
+    worked_blend, worked_transform
+  ),
+  final_mock_DV = worked_mock$DV[worked_mock_rows],
+  check.names = FALSE
+)
+knitr::kable(
+  blend_table,
+  digits = 3,
+  caption = paste(
+    "Interpolation and blending for the anchor endpoint; z is the",
+    "endpoint working scale"
+  )
+)
+```
+
+`deterministic_DV` is the back-transformed donor blend. `final_mock_DV` also
+contains the one subject shift and AR(1) residual sequence. The event rows,
+new ID, and subject-constant synthesized covariates can be inspected directly:
+
+```{r worked-result}
+knitr::kable(worked_mock, digits = 3)
+```
+
+The result records enough settings to audit the public generator call:
+
+```{r worked-settings, echo=FALSE}
+worked_settings <- attr(worked_mock, "pmx_settings")
+settings_table <- data.frame(
+  setting = c(
+    "seed", "n_subjects", "k", "pca_variance",
+    "subject_noise_sd", "residual_noise_sd", "residual_phi",
+    "time_jitter", "alignment", "compatible_event_groups",
+    "max_donor_weight", "warnings"
+  ),
+  value = c(
+    worked_settings$seed,
+    worked_settings$n_subjects,
+    worked_settings$k,
+    worked_settings$pca_variance,
+    worked_settings$subject_noise_sd,
+    worked_settings$residual_noise_sd,
+    worked_settings$residual_phi,
+    worked_settings$time_jitter,
+    worked_settings$alignment,
+    worked_settings$compatible_event_groups,
+    worked_settings$max_donor_weight,
+    if (length(worked_settings$warnings)) {
+      paste(worked_settings$warnings, collapse = "; ")
+    } else {
+      "<none>"
+    }
+  ),
+  stringsAsFactors = FALSE
+)
+transform_table <- do.call(rbind, lapply(
+  names(worked_settings$endpoint_transforms),
+  function(endpoint) {
+    transform <- worked_settings$endpoint_transforms[[endpoint]]
+    data.frame(
+      endpoint = endpoint,
+      method = transform$method,
+      offset = transform$offset,
+      positive = transform$positive,
+      stringsAsFactors = FALSE
+    )
+  }
+))
+knitr::kable(settings_table, caption = "Recorded generator settings")
+knitr::kable(
+  transform_table,
+  digits = 5,
+  caption = "Recorded endpoint transformation"
+)
+```
+
+## Step 10: restore PMX schema and deterministic conventions
+
+After all mock subjects are row-bound, the original column order is restored.
+Each result column is converted toward its source class:
+
+- factors recover source levels and ordering; new factor IDs add new levels;
+- integer columns are rounded and converted to integer;
+- double, logical, character, Date, and POSIXct columns are restored; and
+- a non-`data.frame` source class, such as a tibble class vector, is reapplied.
+
+New numeric IDs start above the source maximum. New character and factor IDs
+use labels such as `mock_001`, with a prefix added repeatedly if needed to
+avoid collision.
+
+If MDV is declared and the entire source obeys the standard relationship
+
+$$
+[\mathrm{MDV}=0]=[\mathrm{EVID}=0\ \text{and DV is present}],
+$$
+
+MDV is re-derived from that rule in the mock data and restored to its original
+class. For any nonstandard source-wide MDV convention, anchor values are left
+as copied. Missing observation positions are not invented or removed.
+
+Finally, `validate_pmx(..., strict = TRUE)` is run on the assembled result. A
+generation call cannot silently return an output that fails the package's own
+structural requirements.
+
+## Reproducibility and diagnostics
+
+All random operations occur inside a local seed scope. `seed` must be an
+integer between zero and `.Machine$integer.max`. The caller's RNG kind and
+`.Random.seed` are restored on exit, whether or not `.Random.seed` existed
+before the call. Consequently, identical inputs and arguments produce an
+identical complete result without consuming the surrounding analysis RNG
+stream.
+
+`attr(mock, "pmx_settings")` records arguments, explicit roles, endpoint
+transformations, the alignment description, number of compatible event groups,
+the 0.80 cap, and unique fallback warnings. It does not currently record the
+anchor ID, donor IDs, distances, or realized weights for each mock subject.
+
+Use the public checks for different questions:
+
+- `validate_pmx()` asks whether one dataset is structurally usable under the
+  declared roles.
+- `compare_pmx()` reports source/mock row counts, subjects, event counts,
+  endpoints, column classes, validations, and exploratory trajectories when
+  `ggplot2` is installed.
+
+Neither function establishes distributional equivalence, privacy, or model
+fidelity.
+
+## Edge cases and documented fallbacks
+
+The implementation favors an explicit warning and structurally valid output
+over a silent incompatible blend.
+
+```{r edge-cases-table, echo=FALSE}
+edge_cases <- data.frame(
+  Situation = c(
+    "No compatible non-anchor donor",
+    "Fewer compatible donors than k",
+    "All selected distances essentially zero",
+    "One donor time only",
+    "No donor value at a target",
+    "No variable profile feature",
+    "Identical donors with all noise disabled",
+    "Nonstandard MDV convention"
+  ),
+  Behavior = c(
+    "Use anchor as sole donor; randomized noise is the only trajectory change",
+    "Reduce k and record a warning",
+    "Use epsilon-stabilized randomized weights",
+    "Repeat that donor's mean at every target time",
+    "Use transformed endpoint median and record a warning",
+    "Use a shared zero coordinate; distance cannot separate subjects",
+    "A source-shaped trajectory may be mathematically unavoidable; warn",
+    "Copy anchor MDV values rather than re-derive them"
+  ),
+  stringsAsFactors = FALSE
+)
+knitr::kable(edge_cases, align = c("l", "l"))
+```
+
+Other boundaries are deliberate. The prototype supports only
+`event_method = "template"` and `dv_method = "avatar_blend"`. It does not fit
+a structural model, reconstruct covariate-parameter relationships, simulate
+occasions, enforce a dosing grammar beyond the sampled template, or provide a
+censoring model.
+
+## Relationship to AVATAR
+
+The method is **AVATAR-inspired**, not an implementation of published AVATAR
+software. The shared family resemblance is the use of standardized subject
+features, PCA, local neighbors, inverse-distance influence, exponential
+randomization, and rank attenuation. Destere and colleagues describe a
+modified AVATAR benchmark for longitudinal PopPK data that first widened the
+data by subject and then used PCA, K-nearest neighbors, inverse Euclidean
+distance, exponential stochastic weights, and rank attenuation before reverse
+transformation [1]. The original patient-centric AVATAR method was reported by
+Guillaudeux and colleagues [2].
+
+`pmxSynthData` adapts those ideas to a PMX event table in several material ways:
+
+- it preserves a sampled longitudinal event template rather than generating
+  all fields from a wide vector;
+- compatibility is restricted by event and schedule signatures;
+- endpoints are transformed and interpolated separately;
+- the same donors support covariates and endpoints;
+- a dominant multi-donor weight is capped at 0.80;
+- subject and AR(1) perturbations are added on the endpoint working scale; and
+- there is no inverse-PCA reconstruction of a full synthetic patient vector.
+
+Destere et al. also demonstrate why method labels are not validation: their
+benchmark found materially different PK parameter and residual-error biases
+across synthesis algorithms [1]. That paper is a 2026 medRxiv preprint and was
+not peer reviewed at the version supplied with this package repository. Its
+privacy analyses do not transfer to `pmxSynthData`; this package has undergone
+no corresponding attack-based privacy validation.
+
+## Algorithm summary
+
+For each call to `synthesize_pmx()`:
+
+1. Validate source data, roles, and generator arguments.
+2. Compute first-event-relative time and endpoint-specific transformations.
+3. Assemble baseline covariates and interpolate transformed endpoint
+   trajectories into one profile per source subject.
+4. Median-impute profile features, remove unusable features, standardize, and
+   retain enough PCA components to meet `pca_variance` when possible.
+5. Construct event/schedule signatures.
+6. Sample anchor subjects with replacement.
+7. For each anchor, copy its whole event template.
+8. Find up to `k` closest compatible non-anchor donors and randomize their
+   inverse-distance weights, applying the multi-donor 0.80 cap.
+9. Generate subject-constant covariates from those donors.
+10. For each endpoint, interpolate donor trajectories to anchor times, blend,
+    add a subject shift and AR(1) perturbations, and back-transform.
+11. Re-derive standard MDV when applicable, assign a new ID, preserve tie
+    order, restore the source schema, and validate the assembled result.
+12. Attach `pmx_settings` and emit any collected fallback warnings.
+
+## Practical review checklist
+
+Before using a mock dataset for workflow development, verify all of the
+following:
+
+- [ ] Every critical column has an explicit and correct role.
+- [ ] Units and event conventions are documented outside the generator.
+- [ ] `validate_pmx(source, roles)` and `validate_pmx(mock, roles)` are valid.
+- [ ] Source and mock event counts are credible by EVID, CMT, and DVID.
+- [ ] Dose, infusion start/stop, and tied-time records remain coherent.
+- [ ] Observation-time windows and endpoint trajectories are usable for the
+      intended plotting and model-run code.
+- [ ] Declared covariates are constant within mock subject and retain classes.
+- [ ] `pmx_settings$warnings` and endpoint transformations were reviewed.
+- [ ] Any TAD column was recomputed if TIME was jittered.
+- [ ] BLOQ/CENS data were handled by an explicit external convention; no
+      censoring support was assumed.
+- [ ] No claim of anonymity, privacy, parameter fidelity, or scientific
+      equivalence is being made.
+- [ ] The mock output remains governed according to the source environment's
+      applicable privacy and data-sharing rules.
+
+## References
+
+1. Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome the
+   privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark
+   using a daptomycin population pharmacokinetic model.* medRxiv preprint,
+   posted June 2, 2026. doi:
+   [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+2. Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data
+   generation, no reason to risk re-identification in biomedical data analysis.
+   *npj Digital Medicine.* 2023;6.
+   doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).

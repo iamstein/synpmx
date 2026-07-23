@@ -41,13 +41,15 @@ required, not removed.
       `mock_pmx`), `synthesis.R`, `profiles.R`, plus the ported `utils.R`
       helpers. Exported and working; no name collisions with v2/v3.
 - [x] AVATAR tests, including all five nlmixr2data datasets. `test-avatar.R`
-- [ ] Rebuild the demo and method vignettes around AVATAR (three worked
-      examples; "How pmxSynthData Works").
-- [ ] In the method vignette, explain the (epsilon, delta) vs AVATAR
-      distinction and the synadam parity argument.
-- [ ] Slim the two DP vignettes (epsilon-exploration, privacy-intro) to a short
-      "formal-privacy alternative" aside.
-- [ ] `./build.sh` clean, all vignettes knit, tests pass.
+- [x] Rebuilt the demo vignette around AVATAR, keeping all five nlmixr2data
+      datasets, and the method vignette from the Version 1 "How pmxSynthData
+      Works".
+- [x] Method vignette explains the (epsilon, delta) vs AVATAR distinction and
+      the synadam parity argument.
+- [x] Slimmed the two DP vignettes to short "formal-privacy alternative" asides.
+- [x] `./build.sh` clean, all four vignettes knit, 395 tests pass.
+
+Version 4 is complete.
 
 ## Superseded: v3 low-dimensional structural generator (kept as an alternative)
 

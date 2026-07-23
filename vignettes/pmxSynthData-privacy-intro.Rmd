@@ -4,9 +4,6 @@ author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
-    number_sections: true
-    fig_width: 10
-    fig_height: 5.5
 vignette: >
   %\VignetteIndexEntry{Privacy in pmxSynthData}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,342 +11,78 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(pmxSynthData)
 ```
 
-# Purpose before mathematics
+## The two methods, and when privacy matters
 
-`pmxSynthData` makes source-calibrated **mock data for model-workflow
-exploration**. It learns a few coarse population features and creates new PMX
-event tables for joins, reshaping, plots, control-file plumbing, and early
-model-code debugging. It does not fit a PK, PD, or NLME model. Its
-deliberately limited fidelity is unsuitable for estimation, inference, model
-selection, scientific conclusions, clinical decisions, or claims that a source
-distribution was reproduced.
+`pmxSynthData` offers two families of method. The **default** is AVATAR-style
+blending (`synthesize_pmx()`), documented in the "Using pmxSynthData" and "How
+pmxSynthData Works" vignettes. It resamples and blends whole source subject
+trajectories, works at any cohort size, and makes **no formal privacy
+guarantee**. It is intended for mock data used **inside a trusted computing
+environment**, in the same spirit as Novartis's `synadam`.
 
-There are two sharply separated stages. `fit_private_pmx()` is the only
-stage allowed to read confidential rows. `generate_pmx()` receives only the
-released model. There are no raw patient anchors, nearest-neighbor donors,
-copied source event skeletons, or exact-source-timing modes.
+This vignette describes the **alternative**: the differentially private engines,
+for the case that needs a formal guarantee.
 
-This vignette explains the privacy guarantee, its assumptions, and its
-limitations. See `vignette("pmxSynthData-simulation-method")` for the actual
-patient-simulation algorithm—including the fixed-grid trajectory model,
-sampling-time probabilities, interpolation, and variability—and
-`vignette("pmxSynthData-demo")` for runnable examples. The
-`vignette("pmxSynthData-epsilon-exploration")` vignette shows how three
-illustrative epsilon values affect formal OpenDP outputs on public datasets.
+## The decision rule
 
-```{r pipeline, echo=FALSE, fig.cap="The Version 2 privacy boundary and post-processing pipeline."}
-old <- par(mar = c(.5, .5, .5, .5), xpd = NA)
-plot.new(); plot.window(xlim = c(0, 14), ylim = c(0, 7))
-box <- function(x, y, label, fill, width = 2.7) {
-  rect(x - width / 2, y - .55, x + width / 2, y + .55,
-       col = fill, border = "#24445C", lwd = 1.5)
-  text(x, y, label, cex = .76)
-}
-top_x <- c(1.7, 5.2, 8.7, 12.2)
-top_lab <- c("Source + public\nconfiguration", "Bound complete\nsubjects",
-             "Fixed-dimensional\nvectors", "OpenDP release\n+ accounting")
-top_fill <- c("#FADBD8", rep("#D6EAF8", 2), "#FCF3CF")
-for (i in seq_along(top_x)) box(top_x[i], 5.5, top_lab[i], top_fill[i])
-for (i in seq_len(length(top_x) - 1L)) {
-  arrows(top_x[i] + 1.38, 5.5, top_x[i + 1L] - 1.38, 5.5,
-         length = .08, col = "#566573", lwd = 1.3)
-}
-abline(h = 3.65, lty = 2, col = "#7F8C8D", lwd = 1.5)
-text(.3, 4.05, "restricted fitting", adj = 0, col = "#922B21")
-text(.3, 3.25, "released model + post-processing", adj = 0,
-     col = "#196F3D")
-bottom_x <- c(11.7, 7.3, 2.9)
-bottom_lab <- c("Private model\n+ ledger", "Generate new\nevent tables",
-                "Validate, inspect,\nand export")
-for (i in seq_along(bottom_x)) box(bottom_x[i], 1.6, bottom_lab[i], "#D5F5E3")
-arrows(12.2, 4.94, 11.7, 2.17, length = .08, col = "#566573", lwd = 1.3)
-arrows(10.32, 1.6, 8.68, 1.6, length = .08, col = "#566573", lwd = 1.3)
-arrows(5.92, 1.6, 4.28, 1.6, length = .08, col = "#566573", lwd = 1.3)
-par(old)
+The choice is a single question:
+
+> **Does the generated data cross a trust boundary?**
+
+- **Stays inside** the safe environment — you are the only consumer, governance
+  and access controls apply → use **AVATAR** (`synthesize_pmx()`). Its lack of a
+  formal guarantee costs nothing, because there is no adversary to guarantee
+  against.
+- **Crosses out** — shared with a partner or vendor, published, or moved to a
+  less-controlled system → use a **differentially private** engine. A formal
+  guarantee is the only thing that survives a determined adversary.
+
+Differential privacy is expensive precisely because it defends against someone
+who wants to break it. Buy it when the output will be handed to strangers; skip
+it when nothing can reach the output.
+
+## The differentially private engines
+
+Two are provided, both making a subject-level `(epsilon, delta)` guarantee:
+neighboring datasets differing by one complete subject produce nearly
+indistinguishable output, so no one person's participation can be inferred from
+the release.
+
+- **`fit_calibrated_pmx()`** (structural correction). Asserts curve shape from a
+  public structural model and privately calibrates only the exposure magnitude
+  by a small correction factor. Viable at small cohorts. This is the
+  recommended DP path for early-phase studies.
+- **`fit_private_pmx()`** (dense grid). Releases a larger set of noised
+  population summaries. Retained for large pooled corpora where its cost is
+  affordable.
+
+Both fail closed when the validated OpenDP backend is unavailable and never
+substitute ordinary random noise:
+
+```{r backend, eval=requireNamespace("opendp", quietly = TRUE)}
+dp_backend_status()
 ```
 
-# Privacy for a pharmacometrician starting from zero
+## What the guarantee does and does not mean
 
-## Removing names is not sufficient
+- **Epsilon** is the one-person influence limit: smaller is stronger. It is not
+  a re-identification probability.
+- **Delta** is a small additive slack in the probability bound. It is not the
+  fraction of unprotected patients.
+- Differential privacy bounds the information attributable to one person's
+  participation. It does **not** establish legal anonymity, authorize release,
+  or secure the environment.
 
-A longitudinal record can be recognizable through unusual measurements, a
-rare infusion, an exceptional visit schedule, or a distinctive censoring
-pattern. Removing a name blocks one direct route to identity; it does not stop
-linkage to an outside clinic schedule, publication, or other auxiliary
-information.
+## Where to read more
 
-Revealing that an unusual record existed is not automatically the same as
-identifying its owner. It can become identifying when combined with outside
-information. Even without a name, a release may support an attribute inference
-such as “the linked person probably had a very low biomarker value.”
-
-| Concept | Question | Important distinction |
-|---|---|---|
-| Membership disclosure | Did this person's complete record influence the release? | Not proof of identity by itself |
-| Attribute disclosure | Did an unusual response, schedule, or censoring pattern materially affect output? | Need not reveal a name |
-| Linkage | Can released information be joined to auxiliary information? | Dropping ID does not prevent it |
-| Re-identification | Can information be connected to a person? | DP does not promise impossibility |
-
-## Two worlds and a one-person influence limit
-
-Subject-level differential privacy compares dataset $D$, containing one
-person's complete record, with neighboring dataset $D'$, which removes that
-entire person. The output distributions must remain close even if an attacker
-knows every other record and has auxiliary information.
-
-Epsilon, $\epsilon$, is the **one-person influence limit**. At
-$\epsilon=0$, output cannot depend on patient data at all. Smaller positive
-epsilon permits less influence and is stronger; larger epsilon permits more
-influence and is weaker. A mechanism can technically be DP with a very large
-epsilon while giving weak practical protection. There is no universal safe
-default.
-
-```{r epsilon-table, echo=FALSE}
-eps <- c(0, .1, .5, 1, 3, 10)
-knitr::kable(data.frame(
-  epsilon = eps, exp_epsilon = round(exp(eps), 4),
-  interpretation = c("No source dependence", "Very small allowance",
-                     "Smaller allowance", "Larger allowance",
-                     "Potentially weak", "Very weak")
-), caption = "Epsilon is an influence bound, not a risk percentage.")
-```
-
-Delta, $\delta$, is a very small additive allowance in the probability bound.
-Smaller is stronger, and `delta = 0` is supported. Delta is **not** a
-re-identification probability, the percentage of unprotected patients, or a
-direct breach probability. Positive delta requires explicit justification.
-The current Laplace releases realize pure DP (`delta = 0`), which also satisfies
-any requested larger delta; the ledger records the realized value as zero.
-
-For a numerical example, take $\epsilon=0.5$, $\delta=10^{-6}$, and an output
-event whose probability without one person is 0.02. With that person, its
-probability is bounded by
-
-$$e^{0.5}(0.02)+10^{-6}\approx0.032975.$$
-
-This is a bound on an arbitrary output event in two neighboring worlds, not a
-claim that re-identification has probability 0.032975.
-
-> Output generated entirely from a valid private model is formally subject-level `(epsilon, delta)`-differentially private. This means one person's complete record has a mathematically bounded influence on the release. It does not mean zero disclosure risk or guaranteed impossibility of re-identification.
-
-## Is privacy protected?
-
-Privacy is formally protected only when output is generated entirely from a
-valid subject-level differentially private fitted model, with the reported
-epsilon, delta, contribution bounds, public inputs, cumulative accounting, and
-implementation assumptions. The protection is mathematically bounded rather
-than absolute.
-
-DP does not correct facts already known outside the release, secure a
-compromised environment, prove that declared public inputs really were public,
-or make a release legally anonymous. Privacy, legal, information-security,
-ethics, and data-governance authorization remain separate reviews.
-
-Small Phase 1 studies keep the mathematical guarantee, but utility is harder:
-one of six people is a large part of the study. The package learns only broad
-magnitude, coarse shape, generalized timing, and minimal variability rather
-than weakening the privacy unit or silently increasing epsilon.
-
-# Formal contract and privacy unit
-
-For every neighboring $D,D'$ differing by add-or-remove of one complete
-subject, every set of possible releases $S$, and randomized fitting mechanism
-$M$,
-
-$$\Pr[M(D)\in S]\le e^\epsilon\Pr[M(D')\in S]+\delta.$$
-
-$\Pr$ is probability over private mechanism randomness; $M(D)$ is the released
-model; $S$ is any collection of outputs; $\epsilon$ is the multiplicative
-influence bound; and $\delta$ is the additive allowance. The subject privacy
-unit includes every row, visit, actual and nominal time, dose, infusion,
-occasion, covariate, endpoint value, DVID, missingness state, censoring state,
-and protocol deviation. Row-level privacy is not substituted.
-
-# Public configuration is part of the proof
-
-Before confidential values are inspected, the caller declares roles and
-exclusions; schema/classes/levels and subject-property category domains;
-endpoint DVID, units, clock and transform;
-plausible numeric bounds; contribution limits; genuinely public protocol
-values and grids; generator variability; and budget fractions.
-
-`pmx_schema()` records metadata, but calling it asserts those metadata are
-public. It is not a DP mechanism for discovering confidential columns or factor
-levels. Exact source extrema are never automatic bounds. Date/POSIX and likely
-direct-identifier columns stop fitting unless explicitly excluded.
-
-| Information | Population example | One-person example | Treatment |
-|---|---|---|---|
-| Protocol | Planned Q24H doses | One deviation | Public only if independently established; otherwise private summary |
-| Endpoint | Broad rise then fall | One extreme peak | Bounded grid summary plus DP noise |
-| Timing | Hourly versus weekly | One rare visit vector | Generalized cells; never copy a vector |
-| Covariate | Coarse weight center | One weight | Bounded moment or public category |
-| Treatment property | ACTARM frequency and regimen | One person's assignment | Joint bounded stratum count/event vector plus DP noise; levels are public |
-| Identity | New practical IDs | Source ID | Source IDs never enter the fitted model |
-| Linkage | Outside trial knowledge | Matching a rare schedule | DP limits added participation influence, not outside facts |
-
-# Contribution bounds and fixed-dimensional subjects
-
-The fitter deterministically truncates each subject and clips values to public
-domains. Dose starts, occasions, observations per endpoint/occasion, timing
-cells, and total rows are capped before **every** aggregate. Which people were
-clipped is not released.
-
-Each subject becomes a low-dimensional vector containing generalized regimen
-features; timing-cell presence; endpoint-cell presence and bounded transformed
-means; numeric covariate moments or public-category indicators; and coarse
-censoring frequencies/limits. No vector contains an ID. No vector, raw row,
-profile, event skeleton, or residual is serialized.
-
-For a group with $p$ coordinates, let $\mathbf q_i\in[0,1]^p$ be subject $i$'s
-bounded vector. The sum
-
-$$\mathbf s(D)=\sum_{i\in D}\mathbf q_i$$
-
-has L1 sensitivity at most $p$. With group budget $\epsilon_g$, OpenDP releases
-
-$$\widetilde{\mathbf s}=\mathbf s(D)+\operatorname{Lap}_{p/\epsilon_g}.$$
-
-A separate subject count has sensitivity one. Noisy means, proportions,
-variances, smoothing, and constraint repair are post-processing. This
-dimension-dependent sensitivity is conservative and can be noisy; shortening a
-grid is often preferable to learning another fragile relationship from six
-people.
-
-The property-conditioned event query is sparser than its released dimension:
-one subject contributes to exactly one public property stratum. Its current L1
-sensitivity is 10 (one stratum indicator plus nine bounded regimen features),
-even though the output dimension is 10 times the number of declared strata.
-The dimension still matters for utility, but inactive strata do not add to one
-person's sensitivity.
-
-# Six-patient worked privacy example
-
-Suppose a public protocol declares two doses, four PK cells, four global PD
-cells, weight bounds 40--120 kg, maximum 24 rows, and two occasions. Patient 6
-has 31 rows, three dose starts, and nine PK observations in occasion 1. Before
-aggregation, only the allowed 24 rows, two doses, and per-occasion observations
-remain; weight is clipped and normalized. The model never reports that patient
-6 was clipped.
-
-For requested $\epsilon=2$, $\delta=0$, consider this illustrative allocation:
-
-```{r six-budget, echo=FALSE}
-b <- data.frame(
-  group = c("count", "event/regimen", "timing", "covariates",
-            "endpoint trajectories", "censoring"),
-  fraction = c(.10, .15, .15, .10, .45, .05)
-)
-b$epsilon <- 2 * b$fraction
-knitr::kable(b, caption = "Illustrative allocation, not a recommendation.")
-```
-
-If the endpoint vector has 16 coordinates, sensitivity is 16 and OpenDP scale
-is $16/0.9\approx17.78$ in normalized-sum units. Removing patient 6 changes its
-unnoised vector by at most 16 in L1 distance, so OpenDP's privacy map bounds that
-query by 0.9 epsilon. Basic composition sums all query epsilons to 2. Generating
-one or ten thousand datasets from this model stays at epsilon 2; a second fit
-is a second release that must be composed organizationally.
-
-The noise may exceed a six-subject sum. Public protocol structure and broad
-public generator variability therefore carry much workflow utility without
-spending budget on detailed fidelity.
-
-# Backend and accounting
-
-Production fitting uses the OpenDP R package's Laplace measurement over finite
-64-bit floating-point values. The adapter constructs scalar/vector domains,
-uses absolute or L1 metrics, checks the sensitivity/epsilon relation with
-OpenDP, and invokes the measurement. Ordinary R random numbers are never used
-for fitting noise. If OpenDP is missing or rejects the relation, fitting fails
-closed.
-
-OpenDP exposes the constructor behind its `contrib` feature; the recorded
-backend version and feature status require independent review. The proof
-assumes finite clipped inputs, correct L1 sensitivity and public-input claims,
-correct OpenDP implementation/privacy map, complete basic composition, and no
-confidential side channel. OpenDP's exact-rational handling of float inputs and
-internal discrete sampler avoid a hand-written idealized continuous sampler.
-
-The bounded aggregate exists transiently inside restricted R memory before the
-OpenDP measurement; it is never returned, logged, cached, or serialized. That
-boundary requires mechanism-level security review. Every fit creates a ledger
-entry with release ID, time, unit, adjacency, requested/realized epsilon and
-delta, backend/version, every query/dimension, and a refit warning.
-
-The noiseless `backend = "public"` is accepted only with
-`public_source = TRUE` for fully public examples. It reports
-`formal_dp = FALSE` and is never an alternative for confidential data.
-
-# What is generated after the private release?
-
-`generate_pmx()` is post-processing: it reads the released summaries and
-public configuration, not source rows. It creates new IDs, event rows,
-observation times, endpoint values, covariates, coherent treatment properties
-and assigned doses, censoring states, and a restored public schema. The privacy
-argument requires only that this stage consult no confidential data; its
-statistical construction is documented separately in
-`vignette("pmxSynthData-simulation-method")`.
-
-# Post-processing and release status
-
-Repeated generation, constraint repair, generated-only validation, and plots
-based only on the model consume no new budget. The user seed controls only
-post-processing; fitting has no user privacy-noise seed.
-
-| Object | Release status | Reason |
-|---|---|---|
-| OpenDP fitted model and ledger | DP release, subject to governance | Accounted mechanism output |
-| Data generated solely from it | Releasable post-processing | No source access |
-| Generated-only validation | Releasable post-processing | Uses generated data only |
-| More seeds from the same model | Releasable post-processing | No refit |
-| `compare_pmx(source, mock)` | Restricted, not automatically releasable | New source summaries |
-| Fit logs or unnoised aggregates | Never release | Outside the DP contract |
-| Another fit | New composed DP release | Reads source again |
-
-`compare_pmx()` marks each component. Empirical attacks can find bugs; the
-tests include an intentionally broken mechanism detected by a simple audit.
-Passing an audit is never a proof because rare events and finite samples can
-hide a violation.
-
-# Limitations and independent review
-
-The prototype learns low-order bounded marginals: count, generalized regimen,
-timing presence, endpoint grid means, covariate moments/categories, and
-censoring summaries, plus an explicitly declared low-dimensional
-subject-property/regimen stratum when requested. It does not learn detailed
-covariance, covariate-response
-relationships, rare regimens, raw residuals, detailed missingness, or a
-high-dimensional joint distribution. Much generated variability is public and
-broad. Mock data must not be interpreted scientifically.
-
-The implementation has not received the required independent DP-specialist
-review. Before production, reviewers must inventory all confidential access,
-verify sensitivity/composition, audit serialization/logging, test the exact
-OpenDP version/platform, assess side channels and OpenDP's exact-rational and
-discrete internal sampling assumptions,
-and complete privacy, legal, information-security, and governance review.
-
-Final practical checklist:
-
-- [ ] Unit is one complete subject; adjacency is add-or-remove.
-- [ ] Epsilon is approved as an influence limit; delta is correctly justified.
-- [ ] Every item labeled public was established independently of confidential
-      values.
-- [ ] Rows, doses, occasions, observations, cells, and numeric domains are
-      defensibly bounded.
-- [ ] Every query is in the ledger and composition stays within the request.
-- [ ] OpenDP version, mechanism checks, and assumptions were independently
-      reviewed.
-- [ ] Serialized model has no IDs, rows, profiles, templates, residuals,
-      unnoised aggregates, or confidential levels.
-- [ ] New datasets reuse the existing model instead of refitting.
-- [ ] Source comparisons remain restricted unless separately privatized.
-- [ ] Generated timing, endpoints, infusions, censoring, schema, and domains
-      pass validation.
-- [ ] Formal privacy is described as bounded, not absolute, and not as legal
-      anonymity, organizational authorization, or scientific fidelity.
+- `design/PRIVACY_BACKGROUND.md` — how the arithmetic works: `d`, `f`, epsilon,
+  and the error law, with worked examples.
+- `design/FEASIBILITY.md` — measured utility of the DP engines by cohort size,
+  and why small cohorts are hard for any formal method.
+- `design/METHOD_DISCUSSION.md` — the full AVATAR-versus-DP tradeoff and the
+  `synadam` comparison.
+- The "Exploring Epsilon" vignette — how epsilon trades off against utility.

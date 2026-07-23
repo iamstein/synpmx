@@ -4,9 +4,6 @@ author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
-    number_sections: true
-    fig_width: 12
-    fig_height: 8
 vignette: >
   %\VignetteIndexEntry{Exploring Epsilon in pmxSynthData}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,403 +11,64 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(pmxSynthData)
-has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
-has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
-has_opendp <- isTRUE(dp_backend_status()$available)
-can_explore <- has_nlmixr2data && has_ggplot2 && has_opendp
-epsilon_values <- c(Small = 5, Medium = 50, Large = 500)
-comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 ```
 
-# What this vignette does
+## Scope
 
-This vignette fits the same coarse private population generator at three
-illustrative epsilon values and displays each value in a separate panel. For
-every dataset, source observations appear above synthetic observations and use
-the same colors as the practical demo.
+This vignette is about the **differentially private alternative** engines, not
+the default AVATAR method. Read "Privacy in pmxSynthData" first for when the DP
+engines are the right choice (data that crosses a trust boundary). If your
+synthetic data stays inside a trusted environment, use `synthesize_pmx()` and
+ignore epsilon entirely.
 
-The labels **Small**, **Medium**, and **Large** are relative only to this
-prototype and its conservative high-dimensional vector sensitivity:
+## What epsilon buys
 
-| Label | Epsilon | Interpretation in this vignette |
-|---|---:|---|
-| Small | 5 | Strongest privacy and usually the most distortion among these three fits |
-| Medium | 50 | Less noise, but still visibly affected in small studies |
-| Large | 500 | Weakest privacy and generally closest to the public-fixture fit |
+Epsilon is the one-person influence limit: smaller means stronger privacy and
+more noise, larger means weaker privacy and less noise. There is no universal
+default; an approved value must come from governance and threat modeling, not
+from whichever number makes a plot look best.
 
-These values are not recommendations. In particular, epsilon 50 and 500 would
-usually represent weak privacy. An approved epsilon must come from governance,
-threat modeling, and the full release context—not from choosing the most
-attractive plot.
+For the structural-correction engine (`fit_calibrated_pmx()`), the usable
+accuracy is captured by one quantity:
 
-Note also that these datasets have 12 to 45 subjects. Cohort size enters the
-error the same way epsilon does, so a large epsilon here is partly compensating
-for a small $N$; see "Cohort size matters more than epsilon here" below before
-reading any of these panels as a privacy--utility tradeoff.
+$$f \;=\; \frac{d}{\varepsilon N}$$
 
-The practical demo's `epsilon = 3` or `5` is **not a utility comparison at that
-epsilon**: those examples use the deliberately noiseless
-`backend = "public"` because their source datasets are already public. That
-backend records the illustrative allocation but does not apply DP noise and
-makes no privacy claim. This vignette uses `backend = "opendp"`, so its epsilon
-5 panels can look much worse even though the numeric argument is the same.
+where `d` is the number of released quantities, `N` the number of subjects, and
+`f` the fraction of the prior's width that survives as noise. The `pmx_preflight()`
+helper reports it before any budget is spent:
 
-All source datasets here are already public. Fitting three mechanisms to the
-same confidential dataset would create three releases and compose their
-privacy losses; under the package's basic composition the combined epsilon in
-this illustration would be 555. Do not reproduce this sweep on confidential
-data without explicit authorization and accounting.
-
-The privacy-noise draws are intentionally not seedable. A vignette rebuild may
-therefore look different. Generation from each fitted model uses a fixed
-ordinary seed, and the displayed cohort size is held at the public source count
-to isolate changes in regimen, sampling, and trajectory summaries. The table
-beside each plot still reports the noisy fitted subject-count release.
-
-```{r backend-availability}
-data.frame(
-  dependency = c("nlmixr2data", "ggplot2", "OpenDP production adapter"),
-  available = c(has_nlmixr2data, has_ggplot2, has_opendp)
-)
+```{r preflight}
+priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "example"))
+pmx_preflight(priors, epsilon = 0.5, n_subjects = 60)
 ```
 
-If a dependency is unavailable, the explanatory text and code remain in the
-vignette but formal-noise panels are skipped. The package never substitutes
-ordinary R noise for OpenDP.
+The decision rule is not "is the error small" but "does the release beat the
+prior": when `f` is near or above 1 the release conveys nothing the prior did
+not, and generating from public inputs alone is strictly better.
 
-# Evaluation helpers
+## The measured frontier
 
-The configurations deliberately omit dose times, dose counts, intervals,
-amounts, rates, infusion duration, endpoint grids, and occasion schedules.
-Those quantities are inferred inside each privacy-accounted fit.
+Utility degrades sharply in small cohorts, and this is a property of
+differential privacy, not of the implementation. Measured total fold-error on
+clearance, for the structural engine with a correction-factor prior:
 
-```{r epsilon-helpers, eval=can_explore}
-epsilon_budget <- function() {
-  pmx_budget_allocation(.10, .15, .15, .10, .50, 0)
-}
+| N | epsilon 0.25 | epsilon 1 |
+|---:|---:|---:|
+| 6 | 2.3-fold | 1.7-fold |
+| 20 | 1.6-fold | 1.3-fold |
+| 60 | 1.4-fold | 1.1-fold |
+| 300 | 1.08-fold | 1.06-fold |
 
-load_public_dataset <- function(name) {
-  environment <- new.env(parent = emptyenv())
-  utils::data(list = name, package = "nlmixr2data", envir = environment)
-  get(name, envir = environment, inherits = FALSE)
-}
+From about 60 subjects upward the error is limited by estimator bias rather than
+by the privacy mechanism, so a smaller epsilon is the better buy: it strengthens
+the guarantee at no real cost in accuracy. The full derivation and measurements
+are in `design/FEASIBILITY.md` and `design/PRIVACY_BACKGROUND.md`.
 
-epsilon_case <- function(name) {
-  source <- load_public_dataset(name)
-  if (name == "theo_md") {
-    roles <- pmx_roles(
-      id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-      evid = "EVID", cmt = "CMT", covariates = "WT"
-    )
-    endpoints <- list(cp = pmx_endpoint(
-      alignment = "dose_relative", transform = "log", shape = "occasion",
-      cmt = 2
-    ))
-    bounds <- pmx_bounds(
-      c(0, 170), list(cp = c(0, 30)), amt = c(0, 500),
-      covariates = list(WT = c(40, 130))
-    )
-    design <- pmx_public_design(
-      pmx_schema(source), dose_evid = 101, dose_cmt = 1
-    )
-    limits <- pmx_contribution_limits(40, 8, 8, 30, 11)
-  } else if (name == "warfarin") {
-    roles <- pmx_roles(
-      id = "id", time = "time", dv = "dv", amt = "amt",
-      evid = "evid", dvid = "dvid", covariates = c("wt", "age", "sex")
-    )
-    endpoints <- list(
-      cp = pmx_endpoint("cp", "dose_relative", "log", "occasion"),
-      pca = pmx_endpoint("pca", "study_time", "identity", "global")
-    )
-    bounds <- pmx_bounds(
-      c(0, 144), list(cp = c(0, 25), pca = c(0, 120)),
-      amt = c(0, 200),
-      covariates = list(wt = c(40, 150), age = c(18, 100))
-    )
-    design <- pmx_public_design(pmx_schema(source), dose_evid = 1)
-    limits <- pmx_contribution_limits(
-      30, 2, 2, c(cp = 20, pca = 12), 12
-    )
-  } else if (name == "wbcSim") {
-    roles <- pmx_roles(
-      id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-      evid = "EVID", cmt = "CMT", rate = "RATE",
-      covariates = c("V2I", "V1I", "CLI")
-    )
-    endpoints <- list(wbc = pmx_endpoint(
-      alignment = "study_time", transform = "log", shape = "global", cmt = 3
-    ))
-    bounds <- pmx_bounds(
-      c(0, 720), list(wbc = c(0, 30)), amt = c(-200, 200),
-      rate = c(-200, 200),
-      covariates = list(
-        V2I = c(100, 1500), V1I = c(100, 1200), CLI = c(100, 800)
-      )
-    )
-    design <- pmx_public_design(
-      pmx_schema(source), dose_evid = 10101, dose_cmt = 1,
-      endpoint_cmt = list(wbc = 3)
-    )
-    limits <- pmx_contribution_limits(20, 2, 2, 12, 9)
-  } else stop("Unknown epsilon case.")
-  list(
-    name = name, source = source, roles = roles, endpoints = endpoints,
-    bounds = bounds, design = design, limits = limits
-  )
-}
+## Where to read more
 
-fit_epsilon_case <- function(case, epsilon, generation_seed) {
-  model <- tryCatch(
-    suppressWarnings(fit_private_pmx(
-      case$source, case$roles, case$endpoints,
-      epsilon = epsilon, delta = 0, bounds = case$bounds,
-      public_design = case$design,
-      contribution_limits = case$limits,
-      budget_allocation = epsilon_budget(), backend = "opendp"
-    )),
-    error = function(error) error
-  )
-  if (inherits(model, "error")) {
-    return(list(model = NULL, synthetic = NULL,
-                error = conditionMessage(model)))
-  }
-  cohort_size <- length(unique(case$source[[case$roles$id]]))
-  synthetic <- tryCatch(
-    generate_pmx(
-      model, n_subjects = cohort_size, seed = generation_seed
-    ),
-    error = function(error) error
-  )
-  if (inherits(synthetic, "error")) {
-    return(list(model = model, synthetic = NULL,
-                error = conditionMessage(synthetic)))
-  }
-  list(model = model, synthetic = synthetic, error = NULL)
-}
-
-observed_panel_data <- function(data, case, dataset, epsilon_label) {
-  roles <- case$roles
-  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
-  if (!is.null(roles$mdv)) {
-    observed <- observed & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
-  }
-  observed <- observed & !is.na(data[[roles$dv]])
-  rows <- which(observed)
-  endpoint <- if (is.null(roles$dvid)) {
-    rep(names(case$endpoints)[1L], length(rows))
-  } else {
-    declared <- vapply(
-      case$endpoints, function(x) as.character(x$dvid), character(1)
-    )
-    names(declared) <- names(case$endpoints)
-    names(declared)[match(as.character(data[[roles$dvid]][rows]), declared)]
-  }
-  out <- data.frame(
-    dataset = factor(dataset, levels = c("Source", "Synthetic")),
-    epsilon_label = factor(
-      epsilon_label, levels = paste0(names(epsilon_values), " (", epsilon_values, ")")
-    ),
-    endpoint = factor(endpoint, levels = names(case$endpoints)),
-    subject = as.character(data[[roles$id]][rows]),
-    time = as.numeric(data[[roles$time]][rows]),
-    dv = as.numeric(data[[roles$dv]][rows]), stringsAsFactors = FALSE
-  )
-  out[
-    out$time >= case$bounds$time[1L] & out$time <= case$bounds$time[2L],
-    , drop = FALSE
-  ]
-}
-
-epsilon_status <- function(case, results) {
-  do.call(rbind, lapply(seq_along(results), function(index) {
-    result <- results[[index]]
-    data.frame(
-      setting = names(epsilon_values)[index],
-      epsilon = unname(epsilon_values[index]),
-      noisy_fitted_subject_count = if (is.null(result$model)) NA_real_ else
-        result$model$population$private_subject_count,
-      inferred_doses = if (is.null(result$model)) NA_integer_ else
-        result$model$population$event$n_doses,
-      generated_observations = if (is.null(result$synthetic)) NA_integer_ else
-        sum(as.character(result$synthetic[[case$roles$evid]]) %in% c("0", "0.0")),
-      result = if (is.null(result$error)) "generated" else result$error,
-      stringsAsFactors = FALSE
-    )
-  }))
-}
-
-epsilon_panel <- function(case, results) {
-  labels <- paste0(names(epsilon_values), " (", epsilon_values, ")")
-  pieces <- list()
-  failures <- list()
-  for (index in seq_along(epsilon_values)) {
-    label <- labels[index]
-    pieces[[length(pieces) + 1L]] <- observed_panel_data(
-      case$source, case, "Source", label
-    )
-    result <- results[[index]]
-    if (!is.null(result$synthetic)) {
-      pieces[[length(pieces) + 1L]] <- observed_panel_data(
-        result$synthetic, case, "Synthetic", label
-      )
-    } else {
-      failures[[length(failures) + 1L]] <- data.frame(
-        dataset = factor("Synthetic", levels = c("Source", "Synthetic")),
-        epsilon_label = factor(label, levels = labels),
-        endpoint = factor(names(case$endpoints), levels = names(case$endpoints)),
-        time = mean(case$bounds$time),
-        dv = vapply(names(case$endpoints), function(endpoint) {
-          mean(case$bounds$endpoints[[endpoint]])
-        }, numeric(1)),
-        label = paste("No generated table:\n", result$error),
-        stringsAsFactors = FALSE
-      )
-    }
-  }
-  plotted <- do.call(rbind, pieces)
-  line_group <- interaction(
-    plotted$dataset, plotted$subject, plotted$endpoint,
-    plotted$epsilon_label, drop = TRUE
-  )
-  line_data <- plotted[
-    ave(seq_len(nrow(plotted)), line_group, FUN = length) > 1L,
-    , drop = FALSE
-  ]
-  plot <- ggplot2::ggplot(
-    plotted,
-    ggplot2::aes(
-      x = time, y = dv, colour = dataset,
-      group = interaction(dataset, subject, endpoint, epsilon_label)
-    )
-  ) +
-    ggplot2::geom_line(data = line_data, alpha = .28) +
-    ggplot2::geom_point(alpha = .48, size = .55) +
-    ggplot2::facet_grid(
-      rows = ggplot2::vars(dataset, endpoint),
-      cols = ggplot2::vars(epsilon_label), scales = "free_y", drop = FALSE
-    ) +
-    ggplot2::scale_colour_manual(values = comparison_colours, drop = FALSE) +
-    ggplot2::labs(
-      x = "Study time", y = "DV", colour = "Dataset",
-      title = paste(case$name, "across three epsilon values"),
-      subtitle = "Each column is a separate OpenDP fit; source is above synthetic"
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(legend.position = "bottom")
-  if (length(failures)) {
-    failure_data <- do.call(rbind, failures)
-    plot <- plot + ggplot2::geom_text(
-      data = failure_data,
-      ggplot2::aes(x = time, y = dv, label = label),
-      inherit.aes = FALSE, colour = "#922B21", size = 3
-    )
-  }
-  plot
-}
-```
-
-# Theophylline
-
-The Theophylline panels examine inferred repeated dosing, unusual
-occasion-specific sampling, and a dose-relative PK-like trajectory. Dose rows
-remain excluded from the plotted observations.
-
-```{r theo-epsilon-fit, eval=can_explore}
-theo_case <- epsilon_case("theo_md")
-theo_results <- lapply(seq_along(epsilon_values), function(index) {
-  fit_epsilon_case(theo_case, epsilon_values[index], 3100 + index)
-})
-knitr::kable(epsilon_status(theo_case, theo_results), digits = 2)
-```
-
-```{r theo-epsilon-panel, eval=can_explore, fig.height=7.5}
-epsilon_panel(theo_case, theo_results)
-```
-
-# Warfarin
-
-Warfarin has two clocks: dose-relative concentration (`cp`) and global
-study-time pharmacodynamic response (`pca`). Each epsilon column contains both
-endpoint rows.
-
-```{r warfarin-epsilon-fit, eval=can_explore}
-warfarin_case <- epsilon_case("warfarin")
-warfarin_results <- lapply(seq_along(epsilon_values), function(index) {
-  fit_epsilon_case(warfarin_case, epsilon_values[index], 3200 + index)
-})
-knitr::kable(epsilon_status(warfarin_case, warfarin_results), digits = 2)
-```
-
-```{r warfarin-epsilon-panel, eval=can_explore, fig.height=11}
-epsilon_panel(warfarin_case, warfarin_results)
-```
-
-# WBC
-
-The WBC panels examine a generalized infusion and a delayed study-time decline,
-nadir, and recovery over the declared 0--720 hour comparison window.
-
-```{r wbc-epsilon-fit, eval=can_explore}
-wbc_case <- epsilon_case("wbcSim")
-wbc_results <- lapply(seq_along(epsilon_values), function(index) {
-  fit_epsilon_case(wbc_case, epsilon_values[index], 3300 + index)
-})
-knitr::kable(epsilon_status(wbc_case, wbc_results), digits = 2)
-```
-
-```{r wbc-epsilon-panel, eval=can_explore, fig.height=7.5}
-epsilon_panel(wbc_case, wbc_results)
-```
-
-# How to interpret the panels
-
-The expected tendency is better utility as epsilon increases, but a single
-Laplace draw need not improve monotonically in every coordinate. Small epsilon
-can collapse a sampling probability, saturate a bounded summary, change the
-generalized number of doses, or make generation impossible; those outcomes are
-shown rather than silently replaced. Large epsilon reduces noise but weakens
-the privacy guarantee.
-
-## Cohort size matters more than epsilon here
-
-Epsilon is the knob this vignette varies, but it is not the dominant term. The
-released summaries are subject-count sums, and nearly everything decoded from
-them is a ratio, so the error on a decoded quantity behaves like
-
-$$\text{error} \;\approx\; \frac{\Delta}{\varepsilon_{\text{group}} N},$$
-
-with $\Delta$ the group's L1 sensitivity and $N$ the number of subjects **in
-the fit**. Cohort size sits in the denominator alongside epsilon, and the
-datasets in this vignette are very small:
-
-| Dataset | Subjects |
-|---|---:|
-| `theo_md` | 12 |
-| `warfarin` | 32 |
-| `wbcSim` | 45 |
-
-At those cohort sizes the noise is comparable to or larger than the entire
-quantity being estimated, for every epsilon on this page. Known lower bounds
-for releasing $d$ attribute means put the per-coordinate error at roughly
-$\sqrt{d}/(\varepsilon N)$, so this is a property of differential privacy at
-small $N$ rather than a deficiency of this implementation that a better
-mechanism would remove. The panels below about ten to twenty subjects should be
-read as *demonstrations that the mechanism is running and failing honestly*,
-not as an achievable privacy--utility tradeoff.
-
-The practical consequence is that this package is a pooled-data tool. The
-privacy unit is one subject in the fit, and the generated cohort size is
-independent of it: fitting a large pooled corpus and then calling
-`generate_pmx(n_subjects = 20)` is well supported, whereas fitting twenty
-subjects is not. A study of this size that needs shareable mock data is better
-served by generating from declared public design inputs alone, which reads no
-patient data and needs no privacy budget at all.
-
-For a real evaluation, use `scripts/evaluate_simulations.R` across many public
-generation seeds and, when authorized on public/simulated sources, repeated
-OpenDP fits. Examine distributions of structural metrics rather than selecting
-one favorable privacy-noise draw. The simulation-evaluation design and full
-issue registry are in `design/TEST_SIM.md`.
+- `design/PRIVACY_BACKGROUND.md` — the `d`, `f`, epsilon arithmetic in full.
+- `design/FEASIBILITY.md` — the complete measured frontier by cohort size.
+- `design/METHOD_DISCUSSION.md` — why AVATAR is the default and DP the
+  boundary-crossing alternative.
