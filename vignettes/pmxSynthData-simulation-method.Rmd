@@ -293,8 +293,9 @@ compute time after each dose.
 
 ### TIME is not TAD
 
-A conventional TAD variable resets after every dose. The current package has
-no `tad` role and never reads an existing TAD column for alignment. With
+A conventional TAD variable resets after every dose. AVATAR does not use a
+declared `tad` role for alignment and never recomputes an existing TAD column.
+With
 multiple doses, $t^*$ continues to increase from the first qualifying dose;
 there is no later reset. An input TAD column is an unassigned column and is
 therefore copied from the anchor template.
@@ -450,8 +451,8 @@ profiles contain useful separation.
 
 ## BLOQ and a Monolix-style CENS column
 
-The current API has no `cens` or lower-limit role. A column named `CENS` has no
-special meaning unless a future API explicitly assigns one. At present:
+AVATAR does not synthesize a censoring process. A declared `cens`/`limit` role
+is accepted for schema validation, but at present:
 
 - `CENS` is copied from the anchor template as an unassigned column;
 - a numeric DV on a row with `CENS = 1` is treated as an ordinary observed
@@ -478,14 +479,15 @@ template. Each source subject therefore receives an event signature containing:
 
 - the ordered EVID values on event rows;
 - optional CMT and DVID values on those rows;
-- the sign (`+`, `-`, `0`, or missing) of optional AMT and RATE;
+- the sign and rounded numeric magnitude of optional AMT and RATE;
 - the number of positive-dose starts, or all events if no positive AMT exists;
 - successive start-time gaps rounded to two significant digits; and
 - the set of endpoints on eligible observation rows.
 
-Notice what is not in the signature: exact positive dose magnitudes and the
-observation-time schedule. Exact event values still come from the anchor
-template, while unequal observation times are handled by interpolation.
+Notice what is not in the signature: the observation-time schedule. Event
+values still come from the anchor template, while unequal observation times are
+handled by interpolation. Including dose magnitude prevents profiles from
+being blended across incompatible exposure scales.
 
 For anchor $a$, only non-anchor subjects with the same signature are candidate
 donors. Euclidean distance in retained profile coordinates is
@@ -521,7 +523,8 @@ $$
 \end{cases}
 $$
 
-The first normalization is $w_r=q_r/\sum_s q_s$. If one weight exceeds 0.80,
+The first normalization is $w_r=q_r/\sum_s q_s$. When more than one donor is
+available, if one weight exceeds 0.80,
 the dominant weight is set to 0.80 and all other weights are rescaled
 proportionally to sum to 0.20. A final normalization protects against floating
 point drift. With exactly one donor, its weight is necessarily 1; the cap

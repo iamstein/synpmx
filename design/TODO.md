@@ -51,6 +51,10 @@ required, not removed.
 
 Version 4 is complete.
 
+Hardening completed after review: `REV-018` and `REV-019` are fixed with
+regression tests in `test-structural-v3.R` and `test-avatar.R`. The remaining
+open findings below apply to the superseded formal-DP v2 path.
+
 ## Superseded: v3 low-dimensional structural generator (kept as an alternative)
 
 The scope decision (2026-07-22): prefer small trials over pooled corpora. That

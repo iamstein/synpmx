@@ -1,6 +1,6 @@
 # Scripts
 
-- `demo_nlmixr2data.R` runs Version 2 fit-once/generate-many demonstrations for
+- `demo_nlmixr2data.R` runs the formal-privacy (Version 2) fit-once/generate-many demonstrations for
   the public `theo_md`, `warfarin`, `wbcSim`, `nimoData`, and `mavoglurant`
   datasets after `pmxSynthData` is installed. It deliberately uses the guarded
   public-fixture backend because
@@ -11,3 +11,5 @@
   clock, and use
   endpoint-specific linear DV scales. The script fails if patient counts,
   observations per patient, or endpoint time coverage differ materially.
+- `test-avatar.R` exercises the primary AVATAR-style `synthesize_pmx()` path
+  over the same public datasets as a fast structural smoke test.

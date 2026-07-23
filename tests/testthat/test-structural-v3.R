@@ -181,6 +181,20 @@ test_that("accounting never exceeds the requested budget", {
                          tolower(.recursive_names(fit)))))
 })
 
+test_that("calibrated diagnostics do not retain exact usable-subject counts", {
+  design <- .v3_design()
+  data <- pmx_generate(.v3_model(), design, n_subjects = 20, seed = 9)
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
+  fit <- fit_calibrated_pmx(
+    data, pmx_generated_roles(), .v3_model(), design, priors,
+    epsilon = 1, backend = "public", public_source = TRUE
+  )
+
+  expect_false("n_used" %in% names(fit$corrections$pk))
+  expect_equal(fit$preflight$d, 2)
+  expect_false(any(grepl("n_used", .recursive_names(fit))))
+})
+
 test_that("generation from a calibrated model is post-processing", {
   skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
   design <- .v3_design()

@@ -13,9 +13,12 @@
     }
     for (role in c("amt", "rate")) {
       if (!is.null(roles[[role]])) {
-        value <- subject_data[[roles[[role]]]][event]
+        value <- suppressWarnings(as.numeric(subject_data[[roles[[role]]]][event]))
+        # Keep regimen magnitude in compatibility. Otherwise an anchor dose
+        # can be paired with a donor trajectory from a different dose.
         pieces[[length(pieces) + 1L]] <- ifelse(
-          is.na(value), "NA", ifelse(value > 0, "+", ifelse(value < 0, "-", "0"))
+          is.finite(value), format(signif(value, 8), trim = TRUE,
+                                   scientific = FALSE), "NA"
         )
       }
     }

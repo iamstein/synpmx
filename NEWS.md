@@ -1,5 +1,14 @@
 # pmxSynthData 0.0.0.9000
 
+## Version 4 AVATAR hardening
+
+* AVATAR now omits columns declared in `roles$exclude`, supports factor-valued
+  IDs without introducing missing values, and constrains donor profiles by
+  numeric dose/rate magnitude as well as event sign.
+* Calibrated releases no longer expose exact source-derived subject counts in
+  correction diagnostics; private counts are used consistently for released
+  means and preflight accounting.
+
 ## Version 3 calibrated structural generator
 
 * Added a low-dimensional generator built around a *public* structural model.

@@ -4,13 +4,12 @@
 \name{pmxSynthData-package}
 \alias{pmxSynthData}
 \alias{pmxSynthData-package}
-\title{pmxSynthData: source-calibrated private mock pharmacometric data}
+\title{pmxSynthData: structurally faithful mock pharmacometric data}
 \description{
-\code{pmxSynthData} fits a low-dimensional, subject-level differentially private
-population model once inside a restricted environment, then generates any
-number of structurally coherent PMX mock datasets by post-processing. It
-constructs new event tables rather than copying patient schedules or
-retaining source-subject records.
+\code{pmxSynthData} primarily uses AVATAR-style profile blending to generate
+structurally coherent PMX mock datasets in a trusted environment. The
+package also provides a separate calibrated structural workflow with a
+formal differential-privacy backend when that boundary is required.
 }
 \details{
 The output is intended for model-workflow exploration. It preserves broad

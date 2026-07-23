@@ -153,7 +153,8 @@ print.pmx_covariates <- function(x, ...) {
 # categorical, with a public range or levels) go through the accountant with
 # sensitivity one. Bootstrap covariates are summarized directly from the data,
 # consume no budget, and are not differentially private.
-.covariate_summaries <- function(data, id, covariates, accountant, per_query) {
+.covariate_summaries <- function(data, id, covariates, accountant, per_query,
+                                 denominator = NULL) {
   if (is.null(covariates)) return(NULL)
   summaries <- list()
   for (name in names(covariates)) {
@@ -168,7 +169,8 @@ print.pmx_covariates <- function(x, ...) {
       unit <- .to_unit(per_subject[is.finite(per_subject)], cov$range)
       total <- .private_release(accountant, paste0("covariate_", name),
                                 sum(unit), sensitivity = 1, epsilon = per_query)
-      mean_unit <- min(max(as.numeric(total) / max(length(unit), 1), 0), 1)
+      denominator <- denominator %||% length(unit)
+      mean_unit <- min(max(as.numeric(total) / max(denominator, 1), 0), 1)
       summaries[[name]] <- list(type = "continuous", range = cov$range,
                                 mean = .from_unit(mean_unit, cov$range))
     } else if (cov$type == "categorical") {

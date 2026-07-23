@@ -1,10 +1,13 @@
 # pmxSynthData
 
-`pmxSynthData` generates source-calibrated **mock data for model-workflow
-exploration** from a low-dimensional, subject-level differentially private
-population model.
+`pmxSynthData` generates structurally faithful **mock data for model-workflow
+exploration**. Its primary `synthesize_pmx()` API uses AVATAR-style profile
+blending inside a trusted environment; the calibrated structural/DP workflow
+remains available when formal privacy is required.
 
-The architecture is deliberately fit once, generate many:
+The primary architecture is deliberately simple: blend complete longitudinal
+profiles while preserving event-table structure. For formal privacy, the
+package also supports a fit-once, generate-many workflow:
 
 1. `fit_private_pmx()` runs inside the restricted source environment, bounds
    each complete subject contribution, and releases only OpenDP-noised
