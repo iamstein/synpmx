@@ -91,7 +91,7 @@ test_that("infusion rises to a plateau then declines", {
 })
 
 test_that("prior-mode generation makes a valid PMX table with no budget", {
-  table <- pmx_generate(.v3_model(), .v3_design(), seed = 1)
+  table <- .generate_structural(.v3_model(), .v3_design(), seed = 1)
   expect_identical(attr(table, "pmx_source"), "prior")
   expect_true(validate_pmx(table, pmx_generated_roles())$valid)
   expect_equal(length(unique(table$ID)), 18L)
@@ -110,7 +110,7 @@ test_that("repeated dosing keeps every sample inside its own occasion", {
   design <- pmx_trial_design(100, 8, c(0, 1, 4, 12), n_doses = 4,
                              dose_interval = 24, visit_window = 0.2,
                              source = "x")
-  table <- pmx_generate(.v3_model(), design, seed = 3)
+  table <- .generate_structural(.v3_model(), design, seed = 3)
   expect_true(validate_pmx(table, pmx_generated_roles())$valid)
   expect_true(all(table$TAD >= 0))
   # SIM-005: a dose-relative time must stay strictly before the next dose.
@@ -122,7 +122,7 @@ test_that("the PD endpoint produces a coherent time course", {
   model <- .v3_model("exponential")
   design <- pmx_trial_design(100, 10, c(0, 2, 8, 24, 48, 96),
                              source = "x")
-  table <- pmx_generate(model, design, seed = 5)
+  table <- .generate_structural(model, design, seed = 5)
   pd <- table[table$EVID == 0 & table$DVID == "pd", ]
   expect_true(nrow(pd) > 0)
   expect_true(all(is.finite(pd$DV)))
@@ -130,7 +130,7 @@ test_that("the PD endpoint produces a coherent time course", {
 })
 
 test_that("censoring uses the Monolix convention", {
-  table <- pmx_generate(.v3_model(), .v3_design(), seed = 1, lloq = 0.05)
+  table <- .generate_structural(.v3_model(), .v3_design(), seed = 1, lloq = 0.05)
   censored <- table[table$CENS == 1L, ]
   expect_true(nrow(censored) > 0)
   expect_true(all(censored$DV == 0.05))
@@ -163,11 +163,11 @@ test_that("calibration recovers a known correction", {
   truth <- pmx_structural_model("1cmt_oral", c(cl = 25, v = 70, ka = 1),
                                 source = "simulated truth")
   design <- .v3_design()
-  confidential <- pmx_generate(truth, design, n_subjects = 60, seed = 7)
+  confidential <- .generate_structural(truth, design, n_subjects = 60, seed = 7)
 
   predicted <- .v3_model()                       # says cl = 10, 2.5x wrong
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "scaling literature"))
-  fit <- fit_calibrated_pmx(confidential, pmx_generated_roles(), predicted,
+  fit <- .fit_calibrated(confidential, pmx_generated_roles(), predicted,
                             design, priors, epsilon = 2, backend = "opendp")
 
   expect_s3_class(fit, "pmx_calibrated_model")
@@ -183,9 +183,9 @@ test_that("calibration recovers a known correction", {
 test_that("accounting never exceeds the requested budget", {
   skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
   design <- .v3_design()
-  confidential <- pmx_generate(.v3_model(), design, n_subjects = 30, seed = 9)
+  confidential <- .generate_structural(.v3_model(), design, n_subjects = 30, seed = 9)
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
-  fit <- fit_calibrated_pmx(confidential, pmx_generated_roles(), .v3_model(),
+  fit <- .fit_calibrated(confidential, pmx_generated_roles(), .v3_model(),
                             design, priors, epsilon = 1, backend = "opendp")
   entries <- fit$privacy$accounting$entries
   expect_equal(nrow(entries), 2L)                # count + one correction
@@ -200,9 +200,9 @@ test_that("accounting never exceeds the requested budget", {
 
 test_that("calibrated diagnostics do not retain exact usable-subject counts", {
   design <- .v3_design()
-  data <- pmx_generate(.v3_model(), design, n_subjects = 20, seed = 9)
+  data <- .generate_structural(.v3_model(), design, n_subjects = 20, seed = 9)
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
-  fit <- fit_calibrated_pmx(
+  fit <- .fit_calibrated(
     data, pmx_generated_roles(), .v3_model(), design, priors,
     epsilon = 1, backend = "public", public_source = TRUE
   )
@@ -215,14 +215,14 @@ test_that("calibrated diagnostics do not retain exact usable-subject counts", {
 test_that("generation from a calibrated model is post-processing", {
   skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
   design <- .v3_design()
-  confidential <- pmx_generate(.v3_model(), design, n_subjects = 30, seed = 9)
+  confidential <- .generate_structural(.v3_model(), design, n_subjects = 30, seed = 9)
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
-  fit <- fit_calibrated_pmx(confidential, pmx_generated_roles(), .v3_model(),
+  fit <- .fit_calibrated(confidential, pmx_generated_roles(), .v3_model(),
                             design, priors, epsilon = 1, backend = "opendp")
 
   before <- fit$privacy$accounting$realized_epsilon
-  a <- pmx_generate(fit, seed = 1)
-  b <- pmx_generate(fit, seed = 2)
+  a <- .generate_structural(fit, seed = 1)
+  b <- .generate_structural(fit, seed = 2)
   expect_equal(fit$privacy$accounting$realized_epsilon, before)
   expect_identical(attr(a, "pmx_source"), "calibrated")
   expect_true(validate_pmx(a, pmx_generated_roles())$valid)
@@ -238,14 +238,14 @@ test_that("generation from a calibrated model is post-processing", {
 
 test_that("the public backend is refused for undeclared sources", {
   design <- .v3_design()
-  table <- pmx_generate(.v3_model(), design, n_subjects = 10, seed = 1)
+  table <- .generate_structural(.v3_model(), design, n_subjects = 10, seed = 1)
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
   expect_error(
-    fit_calibrated_pmx(table, pmx_generated_roles(), .v3_model(), design,
+    .fit_calibrated(table, pmx_generated_roles(), .v3_model(), design,
                        priors, epsilon = 1, backend = "public"),
     "public_source"
   )
-  fit <- fit_calibrated_pmx(table, pmx_generated_roles(), .v3_model(), design,
+  fit <- .fit_calibrated(table, pmx_generated_roles(), .v3_model(), design,
                             priors, epsilon = 1, backend = "public",
                             public_source = TRUE)
   expect_false(fit$privacy$formal_dp)
@@ -253,9 +253,9 @@ test_that("the public backend is refused for undeclared sources", {
 
 test_that("a pd prior without a pd model is rejected", {
   design <- .v3_design()
-  table <- pmx_generate(.v3_model(), design, n_subjects = 10, seed = 1)
+  table <- .generate_structural(.v3_model(), design, n_subjects = 10, seed = 1)
   expect_error(
-    fit_calibrated_pmx(
+    .fit_calibrated(
       table, pmx_generated_roles(), .v3_model(), design,
       pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"),
                  pd = pmx_prior(c(1 / 4, 4), "x")),
@@ -273,11 +273,11 @@ test_that("fitting and generating agree on what `typical` means", {
   design <- .v3_design()
   truth <- pmx_structural_model("1cmt_oral", c(cl = 12, v = 70, ka = 1),
                                 source = "round-trip truth")
-  data <- pmx_generate(truth, design, n_subjects = 400, seed = 21)
+  data <- .generate_structural(truth, design, n_subjects = 400, seed = 21)
 
   priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"))
   # Noiseless backend isolates estimator bias from privacy noise.
-  fit <- fit_calibrated_pmx(data, pmx_generated_roles(), .v3_model(), design,
+  fit <- .fit_calibrated(data, pmx_generated_roles(), .v3_model(), design,
                             priors, epsilon = 1, backend = "public",
                             public_source = TRUE)
   recovered <- fit$corrected_typical[["cl"]]
@@ -372,8 +372,8 @@ test_that("the simple PD level correction survives residual error", {
   # A ratio of means, unlike the exposure-driven deviation statistic, is not
   # meaningfully biased by residual error.
   for (cv in c(0, 0.15, 0.3)) {
-    data <- pmx_generate(spec(100, cv), design, n_subjects = 200, seed = 6)
-    fit <- suppressWarnings(fit_calibrated_pmx(
+    data <- .generate_structural(spec(100, cv), design, n_subjects = 200, seed = 6)
+    fit <- suppressWarnings(.fit_calibrated(
       data, pmx_generated_roles(), spec(40, cv), design, priors,
       epsilon = 50, backend = "opendp"
     ))
@@ -391,8 +391,8 @@ test_that("the simple PD correction scales the whole curve", {
       plateau = baseline * 0.4, rate = 0.02),
     pd = "exponential", source = "x"
   )
-  data <- pmx_generate(spec(100), design, n_subjects = 150, seed = 8)
-  fit <- suppressWarnings(fit_calibrated_pmx(
+  data <- .generate_structural(spec(100), design, n_subjects = 150, seed = 8)
+  fit <- suppressWarnings(.fit_calibrated(
     data, pmx_generated_roles(), spec(40), design,
     pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x"),
                pd = pmx_prior(c(1 / 10, 10), "x")),
@@ -417,7 +417,7 @@ test_that("within-subject dose escalation increases exposure by occasion", {
   expect_equal(.design_dose_times(design), c(0, 7, 14))
   expect_equal(.design_dose_amounts(design), c(10, 30, 100))
 
-  table <- pmx_generate(model, design, n_subjects = 6, seed = 1)
+  table <- .generate_structural(model, design, n_subjects = 6, seed = 1)
   expect_true(validate_pmx(table, pmx_generated_roles())$valid)
 
   # AMT and the assigned-dose column both follow the escalation by occasion.
@@ -454,8 +454,8 @@ test_that("calibration works on an escalating regimen", {
                                 source = "truth")
   pred <- pmx_structural_model("1cmt_oral", c(cl = 10, v = 70, ka = 1),
                                source = "pred")
-  data <- pmx_generate(truth, design, n_subjects = 60, seed = 3)
-  fit <- suppressWarnings(fit_calibrated_pmx(
+  data <- .generate_structural(truth, design, n_subjects = 60, seed = 3)
+  fit <- suppressWarnings(.fit_calibrated(
     data, pmx_generated_roles(), pred, design,
     pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")), epsilon = 2, backend = "opendp"
   ))
@@ -473,7 +473,7 @@ test_that("per-cohort escalation gives each cohort its own sequence", {
   )
   expect_length(design$escalation, 3L)
 
-  table <- pmx_generate(model, design, seed = 1)
+  table <- .generate_structural(model, design, seed = 1)
   expect_true(validate_pmx(table, pmx_generated_roles())$valid)
   expect_equal(length(unique(table$ID)), 18L)
 
@@ -508,7 +508,7 @@ test_that("prior-mode covariates appear, constant within subject, in range", {
     WT  = pmx_covariate(range = c(40, 120), source = "x"),
     SEX = pmx_covariate(levels = c("M", "F"), source = "x")
   )
-  table <- pmx_generate(.v3_model(), .v3_design(), seed = 1,
+  table <- .generate_structural(.v3_model(), .v3_design(), seed = 1,
                         covariates = covariates)
   expect_true(all(c("WT", "SEX") %in% names(table)))
   expect_true(validate_pmx(table, pmx_generated_roles())$valid)
@@ -523,7 +523,7 @@ test_that("prior-mode covariates appear, constant within subject, in range", {
 test_that("each covariate adds exactly one budget slice with sensitivity one", {
   skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
   design <- .v3_design()
-  data <- pmx_generate(.v3_model(), design, n_subjects = 60, seed = 3)
+  data <- .generate_structural(.v3_model(), design, n_subjects = 60, seed = 3)
   data$WT <- ave(data$ID, data$ID, FUN = function(i) 70 + i[1L] %% 30)
   data$SEX <- ifelse(data$ID %% 2 == 0, "M", "F")
 
@@ -531,7 +531,7 @@ test_that("each covariate adds exactly one budget slice with sensitivity one", {
     WT  = pmx_covariate(range = c(40, 120), source = "x"),
     SEX = pmx_covariate(levels = c("M", "F"), source = "x")
   )
-  fit <- fit_calibrated_pmx(
+  fit <- .fit_calibrated(
     data, pmx_generated_roles(), .v3_model(), design,
     pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")),
     epsilon = 2, covariates = covariates, backend = "opendp"
@@ -542,7 +542,7 @@ test_that("each covariate adds exactly one budget slice with sensitivity one", {
   expect_lte(fit$privacy$accounting$realized_epsilon, 2)
 
   # Generation from the fit carries the columns without further budget.
-  synthetic <- pmx_generate(fit, seed = 11)
+  synthetic <- .generate_structural(fit, seed = 11)
   expect_true(all(c("WT", "SEX") %in% names(synthetic)))
   expect_true(validate_pmx(synthetic, pmx_generated_roles())$valid)
 })
@@ -563,7 +563,7 @@ test_that("pmx_covariates_auto validates and defaults to 1-99 clipping", {
 test_that("bootstrap covariates resample from data without spending budget", {
   skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
   design <- .v3_design()
-  data <- pmx_generate(.v3_model(), design, n_subjects = 80, seed = 3)
+  data <- .generate_structural(.v3_model(), design, n_subjects = 80, seed = 3)
   # A continuous column with a clear range, and a skewed categorical.
   per_id <- function(f) f(length(unique(data$ID)))[match(data$ID,
                                                          unique(data$ID))]
@@ -575,7 +575,7 @@ test_that("bootstrap covariates resample from data without spending budget", {
   cov <- pmx_covariates_auto(c("EGFR", "RACE"))
   # Bootstrap covariates warn that they are not DP; that is expected here.
   expect_warning(
-    fit <- fit_calibrated_pmx(
+    fit <- .fit_calibrated(
       data, pmx_generated_roles(), .v3_model(), design,
       pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")),
       epsilon = 1, covariates = cov, backend = "opendp"
@@ -586,7 +586,7 @@ test_that("bootstrap covariates resample from data without spending budget", {
   expect_equal(nrow(fit$privacy$accounting$entries), 2L)
   expect_false(fit$privacy$covariates_private)
 
-  synthetic <- pmx_generate(fit, seed = 5)
+  synthetic <- .generate_structural(fit, seed = 5)
   expect_true(all(c("EGFR", "RACE") %in% names(synthetic)))
   expect_true(validate_pmx(synthetic, pmx_generated_roles())$valid)
 
@@ -609,7 +609,7 @@ test_that("clip = NULL exposes the raw min and max, synadam-style", {
 
 test_that("a bootstrap covariate cannot be generated in prior mode", {
   expect_error(
-    pmx_generate(.v3_model(), .v3_design(),
+    .generate_structural(.v3_model(), .v3_design(),
                  covariates = pmx_covariates_auto("WT")),
     "needs the data"
   )

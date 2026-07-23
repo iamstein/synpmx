@@ -14,14 +14,14 @@ it is retained here for that case.
 
 ## 1. The two methods in one paragraph each
 
-**AVATAR blending** (the `synthesize_pmx()` engine). For each generated subject,
+**AVATAR blending** (the `synpmx_avatar()` engine). For each generated subject,
 sample a compatible source subject's event skeleton as a template, then fill its
 covariates and endpoint trajectories with a distance-weighted blend of a handful
 of similar source subjects, plus subject-level and within-trajectory noise. The
 output looks like real data because it is built from real data. There is **no
 formal privacy guarantee**.
 
-**Differential privacy** (the `fit_calibrated_pmx()` and `fit_private_pmx()`
+**Differential privacy** (the `synpmx_calibrated()` and `synpmx_empirical()`
 engines). Compute a small number of aggregate statistics, add mathematically
 calibrated noise so that no single subject can move any released number by more
 than a bounded amount, and generate from those noised aggregates against public
@@ -144,12 +144,12 @@ can match the tool to the boundary.
 
 Both engines remain, deliberately.
 
-- **`synthesize_pmx()`** — AVATAR, the primary and default method. The right
+- **`synpmx_avatar()`** — AVATAR, the primary and default method. The right
   answer for trusted-environment synthetic data, which is the common case.
-- **`fit_calibrated_pmx()`** — the structural-correction DP engine. The right
+- **`synpmx_calibrated()`** — the structural-correction DP engine. The right
   answer when a formal guarantee is needed and the cohort is small; it asserts
   shape from a public model and privately calibrates only the magnitude.
-- **`fit_private_pmx()`** — the dense-grid DP engine. Retained for large pooled
+- **`synpmx_empirical()`** — the dense-grid DP engine. Retained for large pooled
   corpora where its cost is affordable.
 
 Keeping all three is not indecision. It reflects that "synthetic clinical data"

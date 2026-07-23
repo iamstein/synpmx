@@ -3,10 +3,10 @@ test_that("generation is reproducible post-processing and leaves accounting unch
   accounting <- model$privacy$accounting
   set.seed(987)
   state <- .Random.seed
-  first <- generate_pmx(model, 5, seed = 123)
+  first <- .generate_private(model, 5, seed = 123)
   expect_identical(.Random.seed, state)
-  second <- generate_pmx(model, 5, seed = 123)
-  different <- generate_pmx(model, 5, seed = 124)
+  second <- .generate_private(model, 5, seed = 123)
+  different <- .generate_private(model, 5, seed = 124)
   expect_identical(first, second)
   expect_false(identical(first, different))
   expect_identical(model$privacy$accounting, accounting)
@@ -15,7 +15,7 @@ test_that("generation is reproducible post-processing and leaves accounting unch
 test_that("generation defaults to the released fitted cohort size", {
   source <- private_fixture(12L)
   model <- fit_public_fixture(source)
-  synthetic <- generate_pmx(model, seed = 125)
+  synthetic <- .generate_private(model, seed = 125)
   expect_equal(model$population$private_subject_count, 12)
   expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
 })
@@ -26,7 +26,7 @@ test_that("timing-cell selection retains high-probability late cells", {
 
 test_that("schema, classes, factors, new IDs, and covariates are coherent", {
   source <- private_fixture()
-  synthetic <- generate_pmx(fit_public_fixture(source), 6, seed = 22)
+  synthetic <- .generate_private(fit_public_fixture(source), 6, seed = 22)
   expect_identical(names(synthetic), names(source))
   expect_identical(vapply(synthetic, class, character(1)),
                    vapply(source, class, character(1)))
@@ -63,7 +63,7 @@ test_that("subject properties remain coherent with conditioned regimens", {
     endpoint_cmt = list(cp = 2, pd = 3),
     category_levels = list(ARM = c(1, 2)), time_jitter_sd = .01
   )
-  model <- suppressWarnings(fit_private_pmx(
+  model <- suppressWarnings(.fit_private(
     source, roles, private_endpoints(), 5, 0,
     pmx_bounds(
       c(0, 24), list(cp = c(0, 20), pd = c(0, 120)),
@@ -83,7 +83,7 @@ test_that("subject properties remain coherent with conditioned regimens", {
   expect_equal(event_entry$sensitivity, 10)
   expect_equal(event_entry$dimensions, 20)
 
-  synthetic <- generate_pmx(model, 60, seed = 2201)
+  synthetic <- .generate_private(model, 60, seed = 2201)
   expect_true(validate_pmx(synthetic, roles, private_endpoints())$valid)
   property_by_subject <- vapply(
     split(synthetic$ARM, synthetic$ID), function(value) unique(value)[1L], integer(1)
@@ -104,7 +104,7 @@ test_that("subject properties remain coherent with conditioned regimens", {
 })
 
 test_that("dose-relative PK repeats while study-time PD remains global", {
-  synthetic <- generate_pmx(fit_public_fixture(), 8, seed = 51)
+  synthetic <- .generate_private(fit_public_fixture(), 8, seed = 51)
   cp <- synthetic[synthetic$EVID == 0 & synthetic$DVID == "cp", ]
   by_occasion <- split(cp, interaction(cp$ID, cp$OCC, drop = TRUE))
   expect_true(all(vapply(by_occasion, function(x) {
@@ -122,7 +122,7 @@ test_that("dose-relative PK repeats while study-time PD remains global", {
 
 test_that("TAD, occasions, tied ordering, doses, and times are coherent", {
   model <- fit_public_fixture()
-  synthetic <- generate_pmx(model, 4, seed = 91)
+  synthetic <- .generate_private(model, 4, seed = 91)
   expected_observations <- as.integer(round(
     model$population$event$observation_count
   ))
@@ -157,12 +157,12 @@ test_that("occasion and hybrid alignments execute separately", {
   endpoints$cp$alignment <- "occasion"
   endpoints$pd$alignment <- "hybrid"
   source <- private_fixture()
-  model <- suppressWarnings(fit_private_pmx(
+  model <- suppressWarnings(.fit_private(
     source, private_roles(), endpoints, 5, 0, private_bounds(),
     private_design(source), private_limits(), private_budget(),
     backend = "public", public_source = TRUE
   ))
-  synthetic <- generate_pmx(model, 3, 11)
+  synthetic <- .generate_private(model, 3, 11)
   expect_true(validate_pmx(synthetic, private_roles(), endpoints)$valid)
   expect_setequal(unique(as.character(synthetic$DVID[synthetic$EVID == 0])),
                   c("cp", "pd"))

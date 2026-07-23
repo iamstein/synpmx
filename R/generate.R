@@ -761,7 +761,7 @@
 #' This function never reads source data. Repeated calls are post-processing and
 #' do not alter or consume the fitted model's privacy accounting.
 #'
-#' @param private_model A fitted model from [fit_private_pmx()].
+#' @param private_model A fitted model from [.fit_private()].
 #' @param n_subjects Optional positive number of new synthetic subjects. By default,
 #'   generation uses the privacy-accounted subject-count release stored in the
 #'   fitted model (the exact source count for the explicitly public fixture
@@ -770,8 +770,8 @@
 #'
 #' @return An ordinary data frame or tibble with the declared public schema and
 #' a lightweight `pmx_privacy` attribute.
-#' @export
-generate_pmx <- function(private_model, n_subjects = NULL, seed = 123) {
+#' @keywords internal
+.generate_private <- function(private_model, n_subjects = NULL, seed = 123) {
   validate_private_model(private_model, strict = TRUE)
   if (is.null(n_subjects)) {
     n_subjects <- max(

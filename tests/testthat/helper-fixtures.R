@@ -93,7 +93,7 @@ private_budget <- function() {
 }
 
 fit_public_fixture <- function(data = private_fixture(), ...) {
-  suppressWarnings(fit_private_pmx(
+  suppressWarnings(.fit_private(
     data = data, roles = private_roles(), endpoints = private_endpoints(),
     epsilon = 5, delta = 0, bounds = private_bounds(),
     public_design = private_design(data),
@@ -105,7 +105,7 @@ fit_public_fixture <- function(data = private_fixture(), ...) {
 
 # Minimal normalized endpoint plus trajectory field map for decode-level tests
 # (SIM-020 / REV-001). Built through the public constructors so the working
-# bounds, transform, and grid match what `fit_private_pmx()` would produce.
+# bounds, transform, and grid match what `.fit_private()` would produce.
 .threshold_fixture <- function(cells = 5L) {
   bounds <- pmx_bounds(c(0, 24), list(cp = c(0, 200)), amt = c(0, 500))
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",

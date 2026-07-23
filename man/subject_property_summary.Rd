@@ -7,7 +7,7 @@
 subject_property_summary(private_model)
 }
 \arguments{
-\item{private_model}{A fitted model from \code{\link[=fit_private_pmx]{fit_private_pmx()}}.}
+\item{private_model}{A fitted model from \code{\link[=.fit_private]{.fit_private()}}.}
 }
 \value{
 A data frame with one row per declared property stratum. It has zero

@@ -7,7 +7,7 @@
 sampling_summary(private_model)
 }
 \arguments{
-\item{private_model}{A model returned by \code{\link[=fit_private_pmx]{fit_private_pmx()}}.}
+\item{private_model}{A model returned by \code{\link[=.fit_private]{.fit_private()}}.}
 }
 \value{
 A data frame with one row per endpoint and possible dose occasion.

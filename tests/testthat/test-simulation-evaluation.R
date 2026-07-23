@@ -13,7 +13,7 @@ test_that("simulation evaluation registry covers every demonstration dataset", {
 test_that("censoring simulation evaluation passes every hard gate", {
   case <- sim_eval_case("censoring")
   model <- sim_eval_fit(case)
-  synthetic <- generate_pmx(model, seed = 401)
+  synthetic <- .generate_private(model, seed = 401)
   gates <- sim_eval_gate_results(case, model, synthetic)
   expect_true(all(gates$pass), info = paste(
     gates$gate[!gates$pass], gates$detail[!gates$pass], collapse = "; "
@@ -29,7 +29,7 @@ test_that("named-data simulations pass the shared evaluation gates", {
   )) {
     case <- sim_eval_case(id)
     model <- sim_eval_fit(case)
-    synthetic <- generate_pmx(model, seed = 401)
+    synthetic <- .generate_private(model, seed = 401)
     gates <- sim_eval_gate_results(case, model, synthetic)
     expect_true(all(gates$pass), info = paste(
       id, paste(gates$gate[!gates$pass], collapse = ", ")
@@ -42,7 +42,7 @@ test_that("evaluation plot data exclude events and preserve panel semantics", {
   skip_if_not_installed("ggplot2")
   case <- sim_eval_case("censoring")
   model <- sim_eval_fit(case)
-  synthetic <- generate_pmx(model, seed = 402)
+  synthetic <- .generate_private(model, seed = 402)
   plotted <- sim_eval_plot_data(
     synthetic, case$roles, case$endpoints, "Synthetic",
     time_bounds = case$bounds$time

@@ -32,14 +32,14 @@ navbar:
 reference:
 - title: Generating data
   desc: >
-    The four generation modes. `synthesize_pmx()` is the default AVATAR path;
+    The four generation modes. `synpmx_avatar()` is the default AVATAR path;
     the others require a public structural model.
   contents:
-  - synthesize_pmx
-  - pmx_generate
-  - fit_calibrated_pmx
-  - fit_private_pmx
-  - generate_pmx
+  - synpmx_avatar
+  - synpmx_prior
+  - synpmx_calibrated
+  - synpmx_empirical
+  - synpmx_generate
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

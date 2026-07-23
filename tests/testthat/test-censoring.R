@@ -21,12 +21,12 @@ test_that("latent trajectories produce coherent generated censoring", {
   endpoints <- private_endpoints()
   endpoints$cp$censoring <- list(left = 3, right = 15)
   endpoints$pd$censoring <- list(interval = c(45, 55))
-  model <- suppressWarnings(fit_private_pmx(
+  model <- suppressWarnings(.fit_private(
     source, private_roles(), endpoints, 5, 0, private_bounds(),
     private_design(source), private_limits(), private_budget(),
     backend = "public", public_source = TRUE
   ))
-  synthetic <- generate_pmx(model, 10, 202)
+  synthetic <- .generate_private(model, 10, 202)
   observed <- synthetic$EVID == 0
   expect_true(any(synthetic$CENS[observed] != 0))
   expect_true(all(synthetic$CENS %in% c(-1L, 0L, 1L)))

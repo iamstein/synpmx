@@ -48,15 +48,22 @@ test_that("validation supports reset occasion clocks and coherent properties", {
   expect_false(validate_pmx(source, roles, private_endpoints())$valid)
 })
 
-test_that("all engines are exported side by side", {
-  # Version 4 restored the AVATAR engine as the primary method. The DP (v2) and
-  # structural (v3) engines are kept as superseded alternatives, so all three
-  # public entry points coexist.
+test_that("the four generation modes are exported side by side", {
+  # One function per mode, each returning a synthetic dataset. The fit and
+  # generate primitives behind the two confidential modes stay internal; the
+  # only supported way to spend budget is through these four.
   exports <- getNamespaceExports("synpmx")
-  expect_true("synthesize_pmx" %in% exports)             # AVATAR (v4, primary)
-  expect_true("fit_private_pmx" %in% exports)      # DP dense grid (v2)
-  expect_true("fit_calibrated_pmx" %in% exports)   # structural correction (v3)
   expect_true(all(c(
-    "generate_pmx", "privacy_report", "validate_private_model"
+    "synpmx_avatar",       # real templates, blended trajectories; no DP claim
+    "synpmx_prior",        # public model and protocol only; reads no data
+    "synpmx_calibrated",   # public model, magnitude privately corrected
+    "synpmx_empirical"     # dense noised population summaries
+  ) %in% exports))
+  expect_true(all(c(
+    "synpmx_generate", "privacy_report", "validate_private_model"
+  ) %in% exports))
+  expect_false(any(c(
+    ".fit_private", ".fit_calibrated", ".generate_private",
+    ".generate_structural"
   ) %in% exports))
 })

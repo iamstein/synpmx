@@ -5,11 +5,12 @@
 #' probability that an occasion is sampled from the mean number of observations
 #' conditional on sampling. It never consults the source data.
 #'
-#' @param private_model A model returned by [fit_private_pmx()].
+#' @param private_model A model returned by [.fit_private()].
 #'
 #' @return A data frame with one row per endpoint and possible dose occasion.
 #' @export
 sampling_summary <- function(private_model) {
+  private_model <- .release_of(private_model, "private_model")
   validate_private_model(private_model, strict = TRUE)
   regimen <- .resolved_regimen(private_model)
   rows <- list()

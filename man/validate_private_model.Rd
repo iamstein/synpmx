@@ -7,7 +7,7 @@
 validate_private_model(private_model, strict = FALSE)
 }
 \arguments{
-\item{private_model}{An object returned by \code{\link[=fit_private_pmx]{fit_private_pmx()}}.}
+\item{private_model}{An object returned by \code{\link[=.fit_private]{.fit_private()}}.}
 
 \item{strict}{Stop on any failed check when \code{TRUE}.}
 }

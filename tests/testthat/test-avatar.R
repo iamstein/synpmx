@@ -1,11 +1,11 @@
-# Version 4: the AVATAR-style synthesizer, synthesize_pmx().
+# Version 4: the AVATAR-style synthesizer, synpmx_avatar().
 
-test_that("synthesize_pmx preserves schema and produces fresh subjects", {
+test_that("synpmx_avatar preserves schema and produces fresh subjects", {
   source <- pmx_simulated_fixture(40)
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                      evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV",
                      covariates = c("WT", "AGE", "SEX"))
-  synthetic <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 20,
+  synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 20,
                                                seed = 1))
 
   expect_true(validate_pmx(synthetic, roles)$valid)
@@ -24,9 +24,9 @@ test_that("generation is reproducible by seed and varies without it", {
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                      evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV",
                      covariates = "WT")
-  a <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 15, seed = 7))
-  b <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 15, seed = 7))
-  c <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 15, seed = 9))
+  a <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 15, seed = 7))
+  b <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 15, seed = 7))
+  c <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 15, seed = 9))
   expect_equal(a, b)
   expect_false(isTRUE(all.equal(a$DV, c$DV)))
 })
@@ -35,7 +35,7 @@ test_that("the default cohort size matches the source", {
   source <- pmx_simulated_fixture(24)
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                      evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV")
-  synthetic <- suppressWarnings(synthesize_pmx(source, roles, seed = 1))
+  synthetic <- suppressWarnings(synpmx_avatar(source, roles, seed = 1))
   expect_equal(length(unique(synthetic$ID)), 24L)
 })
 
@@ -46,7 +46,7 @@ test_that("excluded columns are omitted and factor IDs are fresh", {
     id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
     dvid = "DVID", cmt = "CMT", mdv = "MDV", exclude = "WGT"
   )
-  synthetic <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 6,
+  synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 6,
                                                 seed = 12))
 
   expect_false("WGT" %in% names(synthetic))
@@ -63,7 +63,7 @@ test_that("dose magnitudes constrain AVATAR donors", {
   )))
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                      evid = "EVID", cmt = "CMT")
-  synthetic <- suppressWarnings(synthesize_pmx(
+  synthetic <- suppressWarnings(synpmx_avatar(
     source, roles, n_subjects = 100, seed = 22,
     subject_noise_sd = 0, residual_noise_sd = 0
   ))
@@ -82,7 +82,7 @@ test_that("the caller's RNG state is left untouched", {
   set.seed(123)
   before <- stats::runif(1)
   set.seed(123)
-  invisible(suppressWarnings(synthesize_pmx(source, roles, seed = 5)))
+  invisible(suppressWarnings(synpmx_avatar(source, roles, seed = 5)))
   after <- stats::runif(1)
   expect_equal(before, after)
 })
@@ -118,7 +118,7 @@ test_that("AVATAR synthesizes every nlmixr2data demonstration", {
     utils::data(list = name, package = "nlmixr2data", envir = env)
     source <- get(name, envir = env)
 
-    synthetic <- suppressWarnings(synthesize_pmx(source, roles, seed = 1))
+    synthetic <- suppressWarnings(synpmx_avatar(source, roles, seed = 1))
     expect_true(validate_pmx(synthetic, roles)$valid,
                 info = paste(name, "should validate"))
     # Cohort size is preserved and identifiers are fresh.

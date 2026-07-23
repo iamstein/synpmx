@@ -148,7 +148,7 @@ for (id in datasets) {
   }
   cohort_size <- length(unique(case$source[[case$roles$id]]))
   for (seed in seeds) {
-    synthetic <- generate_pmx(model, n_subjects = cohort_size, seed = seed)
+    synthetic <- synpmx:::.generate_private(model, n_subjects = cohort_size, seed = seed)
     if (is.null(first_synthetic[[id]])) first_synthetic[[id]] <- synthetic
     gates <- sim_eval_gate_results(case, model, synthetic)
     gates$seed <- seed

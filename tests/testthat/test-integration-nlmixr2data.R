@@ -17,7 +17,7 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
     alignment = "dose_relative", transform = "log", shape = "occasion",
     cmt = 2
   ))
-  model <- fit_private_pmx(
+  model <- .fit_private(
     source, roles, endpoints, 5, 0,
     pmx_bounds(c(0, 170), list(cp = c(0, 30)), amt = c(0, 500),
                covariates = list(WT = c(40, 130))),
@@ -27,7 +27,7 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
     pmx_contribution_limits(40, 8, 8, 30, 11), integration_budget(),
     backend = "public", public_source = TRUE
   )
-  synthetic <- generate_pmx(model, seed = 42)
+  synthetic <- .generate_private(model, seed = 42)
   expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
   expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
   expect_true(all(vapply(split(synthetic$EVID, synthetic$ID),
@@ -93,7 +93,7 @@ test_that("warfarin preserves lower-case endpoint-specific schema", {
     cp = pmx_endpoint("cp", "dose_relative", "log", "occasion"),
     pca = pmx_endpoint("pca", "study_time", "identity", "global")
   )
-  model <- fit_private_pmx(
+  model <- .fit_private(
     source, roles, endpoints, 5, 0,
     pmx_bounds(c(0, 144), list(cp = c(0, 25), pca = c(0, 120)),
                amt = c(0, 200),
@@ -104,7 +104,7 @@ test_that("warfarin preserves lower-case endpoint-specific schema", {
     pmx_contribution_limits(30, 2, 2, c(cp = 20, pca = 12), 12),
     integration_budget(), backend = "public", public_source = TRUE
   )
-  synthetic <- generate_pmx(model, seed = 42)
+  synthetic <- .generate_private(model, seed = 42)
   expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
   expect_equal(length(unique(synthetic$id)), length(unique(source$id)))
   expect_identical(names(synthetic), names(source))
@@ -132,7 +132,7 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
   endpoints <- list(wbc = pmx_endpoint(
     alignment = "study_time", transform = "log", shape = "global", cmt = 3
   ))
-  model <- fit_private_pmx(
+  model <- .fit_private(
     source, roles, endpoints, 5, 0,
     pmx_bounds(c(0, 720), list(wbc = c(0, 30)), amt = c(-200, 200),
                rate = c(-200, 200),
@@ -145,7 +145,7 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
     pmx_contribution_limits(20, 2, 2, 12, 9), integration_budget(),
     backend = "public", public_source = TRUE
   )
-  synthetic <- generate_pmx(model, seed = 42)
+  synthetic <- .generate_private(model, seed = 42)
   event <- synthetic$EVID != 0
   expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
   expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))

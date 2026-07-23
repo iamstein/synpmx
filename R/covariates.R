@@ -237,7 +237,7 @@ print.pmx_covariates <- function(x, ...) {
     if (cov$type == "bootstrap") {
       if (is.null(summary)) {
         stop("Bootstrap covariate `", name, "` needs the data. Declare it in ",
-             "`fit_calibrated_pmx()`, not in prior-mode `pmx_generate()`.",
+             "`synpmx_calibrated()`, not in prior-mode `synpmx_prior()`.",
              call. = FALSE)
       }
       if (summary$type == "bootstrap_continuous") {

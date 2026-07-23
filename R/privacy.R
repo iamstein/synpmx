@@ -206,12 +206,13 @@ run_dp_backend_tests <- function() {
 #' status, and the absence of direct patient records. It cannot independently
 #' prove that runtime configuration or the external backend was honest.
 #'
-#' @param private_model An object returned by [fit_private_pmx()].
+#' @param private_model An object returned by [.fit_private()].
 #' @param strict Stop on any failed check when `TRUE`.
 #'
 #' @return A `pmx_private_validation` report.
 #' @export
 validate_private_model <- function(private_model, strict = FALSE) {
+  private_model <- .release_of(private_model, "private_model")
   checks <- data.frame(check = character(), status = character(),
                        message = character(), stringsAsFactors = FALSE)
   add <- function(check, status, message) {
@@ -298,11 +299,12 @@ validate_private_model <- function(private_model, strict = FALSE) {
 
 #' Summarize a fitted model's privacy contract
 #'
-#' @param private_model A fitted model from [fit_private_pmx()].
+#' @param private_model A fitted model from [.fit_private()].
 #'
 #' @return A machine-readable `pmx_privacy_report` list.
 #' @export
 privacy_report <- function(private_model) {
+  private_model <- .release_of(private_model, "private_model")
   validate_private_model(private_model, strict = TRUE)
   privacy <- private_model$privacy
   structure(list(
@@ -325,7 +327,7 @@ privacy_report <- function(private_model) {
     public_inputs = private_model$public$input_manifest,
     proof_assumptions = privacy$proof_assumptions,
     post_processing = paste(
-      "Additional generate_pmx() calls from this fitted model consume no",
+      "Additional .generate_private() calls from this fitted model consume no",
       "additional privacy budget. Refitting against source data does."
     ),
     qualification = if (isTRUE(privacy$formal_dp)) {

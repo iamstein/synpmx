@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_structural.R
 \name{pmx_generated_roles}
 \alias{pmx_generated_roles}
-\title{Roles for tables produced by \code{\link[=pmx_generate]{pmx_generate()}}}
+\title{Roles for tables produced by \code{\link[=.generate_structural]{.generate_structural()}}}
 \usage{
 pmx_generated_roles()
 }
@@ -10,5 +10,5 @@ pmx_generated_roles()
 A \code{pmx_roles} object matching the generated schema.
 }
 \description{
-Roles for tables produced by \code{\link[=pmx_generate]{pmx_generate()}}
+Roles for tables produced by \code{\link[=.generate_structural]{.generate_structural()}}
 }

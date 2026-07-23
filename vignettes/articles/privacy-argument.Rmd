@@ -35,7 +35,7 @@ privacy.
 
 ## Confidential-data access inventory
 
-`fit_private_pmx()` is the only exported synthesis function that accepts source
+`synpmx_empirical()` is the only exported synthesis function that accepts source
 data. Inside the fit, source data are accessed for the following bounded
 representations:
 
@@ -53,7 +53,7 @@ validation also read the source inside the restricted fit. They must not be
 exposed as public diagnostics or logs. They either validate public assertions
 or stop the restricted process; they are not serialized into the fitted model.
 
-`generate_pmx()`, `validate_private_model()`, `privacy_report()`, and generated-
+`synpmx_generate()`, `validate_private_model()`, `privacy_report()`, and generated-
 data validation do not accept or consult source data. `compare_pmx()` does read
 source data, but every source-derived component is explicitly marked
 `restricted_not_releasable`; it is outside the model's DP release unless a
@@ -139,7 +139,7 @@ The accounting table records query name, mechanism, epsilon, delta,
 sensitivity, and dimension. Finalization stops if composition exceeds the
 request. Every fit creates one release-ledger entry. Refitting the same source
 is a new release whose budget must be composed with all previous releases by
-organizational governance. Repeated `generate_pmx()` calls from one fitted
+organizational governance. Repeated `synpmx_generate()` calls from one fitted
 model consume no additional budget.
 
 ## Serialization audit boundary
