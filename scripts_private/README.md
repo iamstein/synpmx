@@ -26,7 +26,7 @@ privacy budget.
 |---|---|---|---|
 | **Config** | structural model, priors, role mapping, sampling schedule | Public. From protocol + preclinical prediction | A pharmacometrician, or an assisting AI reading the protocol and the dataset headers |
 | **Regimen skeleton** | one row per subject: dose(s), cohort, timing | Design if prespecified; outcome if adaptive | See below |
-| **Observed DV** | the actual concentrations / responses | Confidential | Only `fit_calibrated_pmx()` ever reads it, and only to extract a correction factor |
+| **Observed DV** | the actual concentrations / responses | Confidential | Only `synpmx_calibrated()` ever reads it, and only to extract a correction factor |
 
 The config can be drafted from public documents alone, so an AI that sees only
 the protocol and the column headers (not the data) can produce it. That is the
@@ -63,7 +63,7 @@ correct for fixed cohorts.
 
 Pick by the trust boundary (see `design/METHOD_DISCUSSION.md`):
 
-- **`try_avatar.R`** — the default. AVATAR blending (`synthesize_pmx()`) for data
+- **`try_avatar.R`** — the default. AVATAR blending (`synpmx_avatar()`) for data
   that STAYS INSIDE this trusted environment. Simpler, more faithful, no formal
   privacy guarantee. Fill in only the column roles.
 - **`try_dp_calibrated.R`** — the differentially private structural path, for

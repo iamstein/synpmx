@@ -150,7 +150,7 @@ read_source <- function() {
       "2cmt_oral", c(cl = 22, v = 30, q = 15, v2 = 100, ka = 1),
       source = "dry-run stand-in truth"
     )
-    stand_in <- pmx_generate(truth, DESIGN, n_subjects = 40, seed = 1)
+    stand_in <- synpmx_prior(truth, DESIGN, n_subjects = 40, seed = 1)
     # Attach fake covariate columns matching COVARIATES, so the calibrated fit
     # has something to summarize. Names containing SEX/RACE/SEXN are treated as
     # categorical; everything else as continuous.
@@ -194,11 +194,11 @@ n_subjects <- length(unique(raw[[roles$id]]))
 # covariates with a public range/levels work in both.
 message("\n== PRIOR version (no data, no privacy budget) ==")
 prior_synthetic <- tryCatch(
-  pmx_generate(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED,
+  synpmx_prior(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED,
                covariates = COVARIATES),
   error = function(e) {
     message("  (bootstrap covariates need data; omitting them from PRIOR)")
-    pmx_generate(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED)
+    synpmx_prior(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED)
   }
 )
 stopifnot(validate_pmx(prior_synthetic, pmx_generated_roles())$valid)
@@ -212,18 +212,22 @@ print(pmx_preflight(PRIORS, epsilon = EPSILON, n_subjects = n_subjects,
 
 # ---- CALIBRATED version: the only budget-spending step ---------------------
 message("\n== CALIBRATED version ==")
-fit <- fit_calibrated_pmx(
+calibrated_synthetic <- synpmx_calibrated(
   raw, roles, MODEL, DESIGN, PRIORS,
   epsilon       = EPSILON,
   covariates    = COVARIATES,
+  seed          = SEED,
   backend       = if (DRY_RUN) "public" else "opendp",
   public_source = DRY_RUN          # NEVER TRUE for confidential data
 )
-print(fit)
-message("\nProvenance (for the release record):")
-print(fit$provenance)
 
-calibrated_synthetic <- pmx_generate(fit, seed = SEED)
+# The release travels with the dataset, so the record is always to hand. Draw
+# further datasets with synpmx_generate(calibrated_synthetic, seed = ...);
+# calling synpmx_calibrated() again would spend the budget a second time.
+release <- attr(calibrated_synthetic, "synpmx_release")
+print(release)
+message("\nProvenance (for the release record):")
+print(release$provenance)
 stopifnot(validate_pmx(calibrated_synthetic, pmx_generated_roles())$valid)
 
 # ---- Save outputs (gitignored) ---------------------------------------------

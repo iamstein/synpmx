@@ -5,7 +5,7 @@ if (!requireNamespace("synpmx", quietly = TRUE)) {
   stop("Install synpmx before running this script: R CMD INSTALL .")
 }
 required_api <- c(
-  "fit_private_pmx", "sampling_summary", "subject_property_summary"
+  "synpmx_empirical", "sampling_summary", "subject_property_summary"
 )
 missing_api <- setdiff(required_api, getNamespaceExports("synpmx"))
 if (length(missing_api)) {
@@ -239,14 +239,14 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
                             comparison_bounds = NULL, log_y = FALSE) {
   source <- load_dataset(name)
   fit_bounds <- bounds(source)
-  model <- synpmx::fit_private_pmx(
+  synthetic <- synpmx::synpmx_empirical(
     data = source, roles = roles, endpoints = endpoints,
     epsilon = 5, delta = 0, bounds = fit_bounds,
     public_design = design(source), contribution_limits = limits,
     budget_allocation = demo_budget(),
+    seed = seed,
     backend = "public", public_source = TRUE
   )
-  synthetic <- synpmx::generate_pmx(model, seed = seed)
   validation <- synpmx::validate_pmx(synthetic, roles, endpoints)
   comparison <- synpmx::compare_pmx(source, synthetic, roles, endpoints)
   overlay <- overlay_plot(source, synthetic, roles, name, clock, log_y = log_y)
@@ -268,7 +268,7 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   print(rbind(Source = table(source_kind), Synthetic = table(synthetic_kind)))
   message("Cohort and sampling-design checks by endpoint:")
   print(design_checks, row.names = FALSE)
-  print(synpmx::privacy_report(model))
+  print(synpmx::privacy_report(synthetic))
   print(validation)
   print(comparison$release_status)
   if (interactive() && !is.null(overlay)) {
@@ -277,7 +277,7 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   invisible(list(
     source = source,
     source_observations = source[source_kind == "observation", , drop = FALSE],
-    model = model, synthetic = synthetic,
+    synthetic = synthetic,
     synthetic_observations = synthetic[synthetic_kind == "observation", , drop = FALSE],
     overlay_plot = overlay, design_checks = design_checks,
     comparison = comparison, comparison_clock = clock
@@ -312,7 +312,7 @@ theophylline <- run_public_demo(
   limits = synpmx::pmx_contribution_limits(40, 8, 8, 30, 11),
   seed = 101
 )
-print(synpmx::sampling_summary(theophylline$model))
+print(synpmx::sampling_summary(theophylline$synthetic))
 message(paste(
   "Theophylline interpretation: the fit infers seven Q24H dose events and",
   "sampling concentrated around dose occasions 1, 2, and 7."
@@ -400,7 +400,7 @@ nimo <- run_public_demo(
   seed = 404, clock = "tad", comparison_bounds = c(0, 3000)
 )
 message("NimoData released treatment groups and conditioned regimens:")
-print(synpmx::subject_property_summary(nimo$model), row.names = FALSE)
+print(synpmx::subject_property_summary(nimo$synthetic), row.names = FALSE)
 
 # Mavoglurant is a crossover dataset whose TIME clock resets within OCC. DOSE
 # is not sampled as an independent covariate; it is regenerated from the

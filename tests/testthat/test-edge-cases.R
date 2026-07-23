@@ -9,7 +9,7 @@ test_that("missing and incomplete public configuration fails clearly", {
   tampered_budget <- private_budget()
   tampered_budget$endpoints <- 1.5
   expect_error(
-    fit_private_pmx(
+    .fit_private(
       source, private_roles(), private_endpoints(), 5, 0, private_bounds(),
       private_design(source), private_limits(), tampered_budget,
       backend = "public", public_source = TRUE
@@ -19,7 +19,7 @@ test_that("missing and incomplete public configuration fails clearly", {
   wrong <- private_design(source)
   wrong$schema$columns <- wrong$schema$columns[-1L]
   expect_error(
-    fit_private_pmx(
+    .fit_private(
       source, private_roles(), private_endpoints(), 5, 0, private_bounds(),
       wrong, private_limits(), private_budget(), backend = "public",
       public_source = TRUE
@@ -44,7 +44,7 @@ test_that("missing and incomplete public configuration fails clearly", {
 test_that("small studies and excessive dimension warn without weakening privacy", {
   source <- private_fixture(2)
   expect_warning(
-    model <- fit_private_pmx(
+    model <- .fit_private(
       source, private_roles(), private_endpoints(), 5, 0,
       private_bounds(), private_design(source), private_limits(),
       private_budget(), backend = "public", public_source = TRUE
@@ -53,7 +53,7 @@ test_that("small studies and excessive dimension warn without weakening privacy"
   )
   expect_equal(model$privacy$epsilon, 5)
   expect_equal(model$privacy$delta, 0)
-  generated <- generate_pmx(model, 2, 3)
+  generated <- .generate_private(model, 2, 3)
   expect_true(validate_pmx(
     generated, private_roles(), private_endpoints()
   )$valid)
@@ -63,7 +63,7 @@ test_that("six-, twelve-, and larger simulated studies retain broad utility", {
   for (n in c(6L, 12L)) {
     source <- private_fixture(n)
     model <- fit_public_fixture(source)
-    synthetic <- generate_pmx(model, n_subjects = n, seed = 700 + n)
+    synthetic <- .generate_private(model, n_subjects = n, seed = 700 + n)
     expect_equal(model$population$private_subject_count, n)
     expect_equal(length(unique(synthetic$ID)), n)
     expect_true(validate_pmx(synthetic, private_roles(), private_endpoints())$valid)
@@ -71,7 +71,7 @@ test_that("six-, twelve-, and larger simulated studies retain broad utility", {
 
   source <- pmx_simulated_fixture(60L)
   model <- fit_public_fixture(source)
-  synthetic <- generate_pmx(model, n_subjects = 60L, seed = 760)
+  synthetic <- .generate_private(model, n_subjects = 60L, seed = 760)
   source_observed <- source[source$EVID == 0, , drop = FALSE]
   synthetic_observed <- synthetic[synthetic$EVID == 0, , drop = FALSE]
   source_center <- tapply(source_observed$DV, source_observed$DVID, mean)
@@ -84,7 +84,7 @@ test_that("six-, twelve-, and larger simulated studies retain broad utility", {
 
 test_that("restricted comparisons label every source-derived component", {
   source <- private_fixture()
-  synthetic <- generate_pmx(fit_public_fixture(source), 3, 90)
+  synthetic <- .generate_private(fit_public_fixture(source), 3, 90)
   comparison <- compare_pmx(source, synthetic, private_roles(), private_endpoints())
   expect_s3_class(comparison, "pmx_comparison")
   expect_true(all(comparison$release_status$release_status[

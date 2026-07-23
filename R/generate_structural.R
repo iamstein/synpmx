@@ -58,7 +58,7 @@
 #'
 #' Works in two modes. Supplied a [pmx_structural_model()] it generates purely
 #' from public inputs, reads no confidential data, and makes no privacy claim.
-#' Supplied a [fit_calibrated_pmx()] result it uses the privately corrected
+#' Supplied a [.fit_calibrated()] result it uses the privately corrected
 #' parameters; that is post-processing and consumes no further budget.
 #'
 #' @param x A `pmx_structural_model` or a `pmx_calibrated_model`.
@@ -77,8 +77,8 @@
 #'   summaries.
 #'
 #' @return A data frame in PMX event-table form.
-#' @export
-pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
+#' @keywords internal
+.generate_structural <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
                          dropout = 0, lloq = NULL, covariates = NULL) {
   if (inherits(x, "pmx_calibrated_model")) {
     model <- x$model
@@ -195,7 +195,7 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
   out
 }
 
-#' Roles for tables produced by [pmx_generate()]
+#' Roles for tables produced by [.generate_structural()]
 #'
 #' @return A `pmx_roles` object matching the generated schema.
 #' @export

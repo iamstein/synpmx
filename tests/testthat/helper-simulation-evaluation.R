@@ -186,7 +186,7 @@ sim_eval_registry <- function(include_optional = TRUE) {
 }
 
 sim_eval_fit <- function(case, epsilon = 5, backend = "public") {
-  suppressWarnings(fit_private_pmx(
+  suppressWarnings(synpmx:::.fit_private(
     case$source, case$roles, case$endpoints,
     epsilon = epsilon, delta = 0, bounds = case$bounds,
     public_design = case$design,

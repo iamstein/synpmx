@@ -19,7 +19,7 @@ the edge cases, and a worked example.
 It is the companion to `vignette("synpmx-method")`, which introduces all four
 generation modes at a high level and says which one to reach for. Read that
 first. Come here when you need to defend, debug, or review what
-`synthesize_pmx()` actually did.
+`synpmx_avatar()` actually did.
 
 ## Step 1: declare the meaning of the columns
 
@@ -46,7 +46,7 @@ roles
 `rate` are optional scalar roles; `covariates` can contain several baseline
 columns. One source column cannot be assigned to multiple roles.
 
-Immediately before generation, `synthesize_pmx()` calls `validate_pmx(...,
+Immediately before generation, `synpmx_avatar()` calls `validate_pmx(...,
 strict = TRUE)`. Among other checks, validation requires:
 
 - nonmissing IDs and EVID values;
@@ -293,7 +293,7 @@ Declaring `CENS` as a baseline covariate is not a workaround: if it changes
 within subject, strict validation correctly rejects it as nonconstant.
 
 For now, a dataset with BLOQ records should be preprocessed under an explicit,
-documented analysis convention before calling `synthesize_pmx()`. Setting DV missing
+documented analysis convention before calling `synpmx_avatar()`. Setting DV missing
 and using a nonzero declared MDV can retain an anchor's missingness position,
 but this still does not synthesize a coherent censoring process. Users who need
 synthetic CENS/LLOQ semantics should treat that as unsupported package behavior,
@@ -508,7 +508,7 @@ knitr::kable(
 
 The next chunk uses internal helpers solely to expose a reproducible teaching
 trace. These helpers are not public API. Ordinary analysis code should call
-`synthesize_pmx()` rather than depend on them.
+`synpmx_avatar()` rather than depend on them.
 
 ```{r worked-trace, echo=FALSE}
 worked_seed <- 2026L
@@ -584,7 +584,7 @@ worked_blend <- apply(
   weights = worked_donors$weights
 )
 
-worked_synthetic <- synthesize_pmx(
+worked_synthetic <- synpmx_avatar(
   worked_source,
   worked_roles,
   n_subjects = 1,
@@ -760,12 +760,12 @@ edge_cases <- data.frame(
 knitr::kable(edge_cases, align = c("l", "l"))
 ```
 
-Other boundaries are deliberate. `synthesize_pmx()` supports only
+Other boundaries are deliberate. `synpmx_avatar()` supports only
 `event_method = "template"` and `dv_method = "avatar_blend"`. It does not fit
 a structural model, reconstruct covariate-parameter relationships, simulate
 occasions, enforce a dosing grammar beyond the sampled template, or provide a
 censoring model. Fitting an explicit structural model is the job of
-`fit_calibrated_pmx()`, described below.
+`synpmx_calibrated()`, described below.
 
 ## Relationship to AVATAR
 
@@ -801,7 +801,7 @@ no corresponding attack-based privacy validation.
 
 ## Algorithm summary
 
-For each call to `synthesize_pmx()`:
+For each call to `synpmx_avatar()`:
 
 1. Validate source data, roles, and generator arguments.
 2. Compute first-event-relative time and endpoint-specific transformations.

@@ -257,8 +257,8 @@ print.pmx_preflight <- function(x, ...) {
 #'
 #' @return A `pmx_calibrated_model`, carrying corrected typical parameters,
 #'   accounting, provenance, and a release ledger. It contains no raw records.
-#' @export
-fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
+#' @keywords internal
+.fit_calibrated <- function(data, roles, model, design, priors, epsilon,
                                covariates = NULL, backend = "opendp",
                                public_source = FALSE) {
   if (!is.data.frame(data) || !nrow(data)) {

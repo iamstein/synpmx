@@ -95,7 +95,7 @@ message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 
 # --- Synthesize (AVATAR blending) -------------------------------------------
 message("\n== AVATAR synthesis ==")
-synthetic <- synthesize_pmx(raw, roles, n_subjects = N_SUBJECTS, seed = SEED)
+synthetic <- synpmx_avatar(raw, roles, n_subjects = N_SUBJECTS, seed = SEED)
 stopifnot(validate_pmx(synthetic, roles)$valid)
 message("  generated ", nrow(synthetic), " rows for ",
         length(unique(synthetic[[roles$id]])), " subjects; new identifiers: ",

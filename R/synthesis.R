@@ -355,9 +355,9 @@
 #' )
 #' roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
 #'                    NULL, NULL, "WT")
-#' synthetic <- synthesize_pmx(source, roles, n_subjects = 2, seed = 123)
+#' synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 #' validate_pmx(synthetic, roles)$valid
-synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
+synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      event_method = "template",
                      dv_method = "avatar_blend", k = 5,
                      pca_variance = 0.90, subject_noise_sd = 0.15,

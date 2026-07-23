@@ -7,7 +7,7 @@
 privacy_report(private_model)
 }
 \arguments{
-\item{private_model}{A fitted model from \code{\link[=fit_private_pmx]{fit_private_pmx()}}.}
+\item{private_model}{A fitted model from \code{\link[=.fit_private]{.fit_private()}}.}
 }
 \value{
 A machine-readable \code{pmx_privacy_report} list.

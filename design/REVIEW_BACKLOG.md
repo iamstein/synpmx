@@ -251,13 +251,13 @@ but it is currently reachable only as a testing backdoor.
    of that requires touching patient data. `pmx_public_design()`,
    `pmx_bounds()`, `pmx_endpoint()`, and `.resolved_regimen()`'s fallbacks
    already support generating entirely from declared public inputs. Expose a
-   `generate_pmx()` path that consumes **no** source data and **no** privacy
+   `synpmx_generate()` path that consumes **no** source data and **no** privacy
    budget, and therefore needs no DP claim. Today the only way to get this is
    `backend = "public"`, which is gated behind `public_source = TRUE` and is
    framed as a fixture hack rather than a supported answer.
 2. **Separate the fitting cohort from the generated cohort in the
    documentation.** The privacy unit is one subject in the *fit*; `n_subjects`
-   in `generate_pmx()` is unrelated. A user can fit on 2,000 pooled subjects
+   in `synpmx_generate()` is unrelated. A user can fit on 2,000 pooled subjects
    and generate 20. This already works and is the single most useful thing to
    tell a small-study user, but neither the README nor the demo vignette says
    it. Pooling across studies is the real answer to small N.

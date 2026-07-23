@@ -6,12 +6,13 @@
 #' regimen summaries are source-dependent and therefore part of the fitted
 #' model's privacy accounting.
 #'
-#' @param private_model A fitted model from [fit_private_pmx()].
+#' @param private_model A fitted model from [.fit_private()].
 #'
 #' @return A data frame with one row per declared property stratum. It has zero
 #'   rows when no subject properties were declared.
 #' @export
 subject_property_summary <- function(private_model) {
+  private_model <- .release_of(private_model, "private_model")
   validate_private_model(private_model, strict = TRUE)
   properties <- private_model$population$subject_properties
   metric_names <- c(

@@ -12,7 +12,7 @@ then version history newest-first at the bottom.
 # 0. Current method (Version 4): AVATAR is the default
 
 **Read this first.** As of Version 4 (2026-07-22), the primary and default
-method is **AVATAR-style blending**, exposed as `synthesize_pmx()`. It resamples
+method is **AVATAR-style blending**, exposed as `synpmx_avatar()`. It resamples
 and blends whole source subject trajectories, works at any cohort size, needs no
 elicitation, and makes **no formal privacy guarantee**. It is the right tool for
 **synthetic data that stays inside a trusted computing environment**, which is the
@@ -20,7 +20,7 @@ common case, and it is the trajectory-level analogue of what Novartis's
 `synadam` already does column by column. See `design/METHOD_DISCUSSION.md`.
 
 The differentially private engines described in most of this document —
-`fit_calibrated_pmx()` (structural correction, Version 3) and `fit_private_pmx()`
+`synpmx_calibrated()` (structural correction, Version 3) and `synpmx_empirical()`
 (dense grid, Version 2) — are **retained as alternatives** for the case that
 actually needs a formal guarantee: when the generated data **crosses a trust
 boundary** (shared externally, published, or moved to a less-controlled system).
@@ -670,7 +670,7 @@ Two acceptable procedures:
    set with an exponential mechanism, and account for it.
 
 The API must make procedure 1 the path of least resistance: the structural model
-is constructed **before** `fit_private_pmx()` is called and is passed in as a
+is constructed **before** `synpmx_empirical()` is called and is passed in as a
 public input, so there is no ergonomic route to fitting the data, looking at it,
 and revising the model.
 
@@ -856,15 +856,15 @@ governance failure, not a modeling choice.
 ## Fit once, generate many
 
 ```r
-private_model <- fit_private_pmx(data, roles, endpoints, epsilon, delta,
+private_model <- synpmx_empirical(data, roles, endpoints, epsilon, delta,
                                  priors, public_design, contribution_limits,
                                  budget_allocation)
-synthetic <- generate_pmx(private_model, n_subjects = NULL, seed = 123)
+synthetic <- synpmx_generate(private_model, n_subjects = NULL, seed = 123)
 privacy_report(private_model)
 ```
 
-- `fit_private_pmx()` is the only stage that reads confidential data.
-- `generate_pmx()` reads only the fitted model; repeated generation is
+- `synpmx_empirical()` is the only stage that reads confidential data.
+- `synpmx_generate()` reads only the fitted model; repeated generation is
   post-processing and costs nothing.
 - Refitting against the source composes and costs more budget.
 - Generation defaults to the fitted privacy-accounted subject count.
@@ -1004,7 +1004,7 @@ granularity of a whole subject trajectory rather than a single column, so if
 `synadam`'s model is acceptable, AVATAR's is acceptable for the same
 trusted-environment use.
 
-**Change:** the Version 1 AVATAR engine is restored as `synthesize_pmx()`
+**Change:** the Version 1 AVATAR engine is restored as `synpmx_avatar()`
 (renamed from `mock_pmx`) and made the primary, default method. It resamples a
 source subject's event skeleton as a template and fills it with a
 distance-weighted blend of similar subjects' covariates and trajectories, plus

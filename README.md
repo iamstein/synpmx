@@ -45,7 +45,7 @@ roles <- pmx_roles(
   evid = "EVID", cmt = "CMT", covariates = "WT"
 )
 
-synthetic <- suppressWarnings(synthesize_pmx(theo_md, roles, seed = 101))
+synthetic <- suppressWarnings(synpmx_avatar(theo_md, roles, seed = 101))
 validate_pmx(synthetic, roles)$valid
 #> [1] TRUE
 head(synthetic, 4)
@@ -65,10 +65,10 @@ environment the source data came from.
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|
-| **1. AVATAR blending** | `synthesize_pmx()` | Real subject templates and blended real trajectories | None; governance only | ~12 subjects up |
-| **2. Prior only** | `pmx_generate()` | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
-| **3. Calibration** | `fit_calibrated_pmx()` | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | ~20 subjects up |
-| **4. Empirical** | `fit_private_pmx()` | Dozens of noised population summaries | `(epsilon, delta)` DP | A few hundred up |
+| **1. AVATAR blending** | `synpmx_avatar()` | Real subject templates and blended real trajectories | None; governance only | ~12 subjects up |
+| **2. Prior only** | `synpmx_prior()` | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
+| **3. Calibration** | `synpmx_calibrated()` | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | ~20 subjects up |
+| **4. Empirical** | `synpmx_empirical()` | Dozens of noised population summaries | `(epsilon, delta)` DP | A few hundred up |
 
 Two rules of thumb decide between them:
 

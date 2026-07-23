@@ -163,8 +163,8 @@
 #' @return A `private_pmx_model`. It contains public configuration, noisy
 #'   population summaries, privacy accounting, and one release-ledger entry;
 #'   it contains no raw IDs, rows, profiles, templates, or residuals.
-#' @export
-fit_private_pmx <- function(data, roles, endpoints, epsilon, delta, bounds,
+#' @keywords internal
+.fit_private <- function(data, roles, endpoints, epsilon, delta, bounds,
                             public_design, contribution_limits,
                             budget_allocation, delta_justification = NULL,
                             backend = "opendp", public_source = FALSE) {
@@ -238,7 +238,7 @@ fit_private_pmx <- function(data, roles, endpoints, epsilon, delta, bounds,
     realized_delta = accounting$realized_delta,
     backend = backend_record$name, backend_version = backend_record$version,
     refit_notice = paste(
-      "A new call to fit_private_pmx() against the same confidential data is",
+      "A new call to .fit_private() against the same confidential data is",
       "a new release and composes with this ledger entry."
     )
   )

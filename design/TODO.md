@@ -36,7 +36,7 @@ The `synpmx` rename is complete (2026-07-23), in all three places: the package
 five vignettes by filename, title, and `\%\VignetteIndexEntry`, and every
 mention in prose), the GitHub repository `iamstein/synpmx` with `origin`
 repointed, and the local clone directory `~/git/synpmx`. The exported API kept
-its `pmx_*` / `synthesize_pmx()` names deliberately: `pmx_` says what the data
+its `pmx_*` / `synpmx_avatar()` names deliberately: `pmx_` says what the data
 is, `syn` says what the package does, and `synadam` does not prefix its own
 functions either.
 
@@ -138,7 +138,7 @@ required, not removed.
       trajectory-is-a-fingerprint asymmetry, and the synadam parity argument.
 - [x] `PROTOTYPE_SPEC.md`: Version 4 section (history) plus a section 0 banner
       making AVATAR the default and the trust-boundary the decision rule.
-- [x] Restore the AVATAR engine as `synthesize_pmx()` (renamed from the v1
+- [x] Restore the AVATAR engine as `synpmx_avatar()` (renamed from the v1
       `mock_pmx`), `synthesis.R`, `profiles.R`, plus the ported `utils.R`
       helpers. Exported and working; no name collisions with v2/v3.
 - [x] AVATAR tests, including all five nlmixr2data datasets. `test-avatar.R`
@@ -172,7 +172,7 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
 - [x] `pmx_trial_design()` — dose levels, cohort sizes, protocol sampling
       schedule, dosing interval, infusion duration, visit windows.
 - [x] Multiplicative correction release rather than absolute parameters.
-      `fit_calibrated_pmx()`, `d = 2-3`.
+      `synpmx_calibrated()`, `d = 2-3`.
 - [x] `pmx_prior(range, source)` / `pmx_priors()` with mandatory provenance.
 - [x] Per-subject NCA estimator. The correction is the ratio of predicted to
       observed AUC on the subject's own grid, which avoids needing `F` or an
@@ -197,7 +197,7 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
 ### Guardrails
 
 - [ ] Enforce public model selection ergonomically: the model is built and
-      passed in before `fit_private_pmx()` sees data, so there is no easy route
+      passed in before `synpmx_empirical()` sees data, so there is no easy route
       to fit, look, and revise.
 - [ ] Guard against the prior range being set from the data without budget.
       Mean +/- 2 SD is the right target for a private stage 1 to *discover*;

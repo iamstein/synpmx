@@ -224,7 +224,7 @@
 
 # AVATAR (Version 4) helpers ------------------------------------------------
 #
-# Restored from the Version 1 engine. Used by synthesize_pmx() in synthesis.R and
+# Restored from the Version 1 engine. Used by synpmx_avatar() in synthesis.R and
 # profiles.R for template events, schema restoration, and diagnostics.
 .aligned_time <- function(data, roles) {
   time <- as.numeric(data[[roles$time]])

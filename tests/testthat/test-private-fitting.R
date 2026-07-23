@@ -8,21 +8,21 @@ test_that("privacy configuration fails closed", {
     budget_allocation = private_budget()
   )
   if (dp_backend_status()$available) {
-    production <- suppressWarnings(do.call(fit_private_pmx, args))
+    production <- suppressWarnings(do.call(.fit_private, args))
     expect_true(production$privacy$formal_dp)
     expect_identical(production$privacy$backend$name, "OpenDP")
   } else {
-    expect_error(do.call(fit_private_pmx, args), "backend.*unavailable|OpenDP")
+    expect_error(do.call(.fit_private, args), "backend.*unavailable|OpenDP")
   }
   args$backend <- "public"
-  expect_error(do.call(fit_private_pmx, args), "public_source = TRUE")
+  expect_error(do.call(.fit_private, args), "public_source = TRUE")
   args$public_source <- TRUE
   args$epsilon <- 0
-  expect_error(do.call(fit_private_pmx, args), "epsilon")
+  expect_error(do.call(.fit_private, args), "epsilon")
   args$epsilon <- 5
   args$delta <- 1e-6
-  expect_error(do.call(fit_private_pmx, args), "delta_justification")
-  expect_false("seed" %in% names(formals(fit_private_pmx)))
+  expect_error(do.call(.fit_private, args), "delta_justification")
+  expect_false("seed" %in% names(formals(.fit_private)))
 })
 
 test_that("contributions are bounded before all private aggregate groups", {
@@ -96,7 +96,7 @@ test_that("regimen and sampling are inferred when no schedules are supplied", {
     schema = pmx_schema(source), dose_evid = 1, dose_cmt = 1,
     endpoint_cmt = list(cp = 2, pd = 3), time_jitter_sd = 0.01
   )
-  model <- suppressWarnings(fit_private_pmx(
+  model <- suppressWarnings(.fit_private(
     source, private_roles(), endpoints, 5, 0, private_bounds(), design,
     private_limits(), private_budget(), backend = "public", public_source = TRUE
   ))
@@ -113,7 +113,7 @@ test_that("regimen and sampling are inferred when no schedules are supplied", {
   expect_true(model$public$endpoints$pd$grid_automatic)
   expect_true(all(diff(model$public$endpoints$cp$grid) > 0))
 
-  synthetic <- generate_pmx(model, seed = 381)
+  synthetic <- .generate_private(model, seed = 381)
   expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
   expect_true(all(vapply(split(synthetic$EVID, synthetic$ID), function(x) {
     sum(x != 0) == 2L
@@ -132,7 +132,7 @@ test_that("rare dense sampling is not treated as sparse sampling for everyone", 
   expect_equal(second$observations_if_sampled, 4)
   expect_equal(second$expected_observations, 1)
 
-  synthetic <- generate_pmx(model, 200, seed = 141)
+  synthetic <- .generate_private(model, 200, seed = 141)
   sampled <- vapply(split(synthetic, synthetic$ID), function(subject) {
     any(subject$EVID == 0 & subject$DVID == "cp" & subject$OCC == 2L)
   }, logical(1))
@@ -216,7 +216,7 @@ test_that("serialized models omit source identifier values, including levels", {
   expect_identical(id_schema$levels, character())
   serialized <- rawToChar(serialize(model, NULL, ascii = TRUE))
   expect_false(grepl("source-secret-id-", serialized, fixed = TRUE))
-  synthetic <- generate_pmx(model, 4, 77)
+  synthetic <- .generate_private(model, 4, 77)
   expect_true(is.factor(synthetic$ID))
   expect_true(all(grepl("^syn_", as.character(synthetic$ID))))
 })
@@ -229,7 +229,7 @@ test_that("missing optional event amount or rate values remain bounded", {
   model <- fit_public_fixture(source)
   expect_true(validate_private_model(model)$valid)
   expect_true(validate_pmx(
-    generate_pmx(model, 4, 88), private_roles(), private_endpoints()
+    .generate_private(model, 4, 88), private_roles(), private_endpoints()
   )$valid)
 })
 
@@ -247,7 +247,7 @@ test_that("direct identifiers and unmodeled datetimes fail", {
   source$PATIENT_NAME <- "example"
   design <- private_design(source)
   expect_error(
-    fit_private_pmx(
+    .fit_private(
       source, private_roles(), private_endpoints(), 5, 0,
       private_bounds(), design, private_limits(), private_budget(),
       backend = "public", public_source = TRUE
@@ -259,7 +259,7 @@ test_that("direct identifiers and unmodeled datetimes fail", {
   source$contact_email <- "example@example.invalid"
   design <- private_design(source)
   expect_error(
-    fit_private_pmx(
+    .fit_private(
       source, private_roles(), private_endpoints(), 5, 0,
       private_bounds(), design, private_limits(), private_budget(),
       backend = "public", public_source = TRUE
@@ -272,7 +272,7 @@ test_that("direct identifiers and unmodeled datetimes fail", {
   roles <- private_roles()
   design <- private_design(source)
   expect_error(
-    fit_private_pmx(
+    .fit_private(
       source, roles, private_endpoints(), 5, 0, private_bounds(), design,
       private_limits(), private_budget(), backend = "public",
       public_source = TRUE

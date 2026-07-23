@@ -91,26 +91,25 @@ str(theo_md)
 
 ## Mode 1: AVATAR blending
 
-Start here, because it is the least work. `synthesize_pmx()` needs nothing but
+Start here, because it is the least work. `synpmx_avatar()` needs nothing but
 the data and a declaration of what the columns mean. For each synthetic subject
 it copies a real subject's event skeleton, then fills the covariates and
 concentrations with a distance-weighted blend of that subject's nearest
 compatible neighbors, plus noise.
 
 ```{r avatar, eval=has_nlmixr2data}
-avatar <- suppressWarnings(synthesize_pmx(theo_md, theo_roles, seed = 101))
+avatar <- suppressWarnings(synpmx_avatar(theo_md, theo_roles, seed = 101))
 validate_pmx(avatar, theo_roles)$valid
 ```
 
 Nothing was elicited, nothing was assumed, and the output keeps the source
-schema and cohort size. On a 12-subject dataset `synthesize_pmx()` also emits
+schema and cohort size. On a 12-subject dataset `synpmx_avatar()` also emits
 documented small-group fallback warnings (some event-pattern groups have only
 one usable donor); they are suppressed above and explained in the
 [AVATAR mathematics article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
 
 What you cannot say about this output is that it is anonymous. It is assembled
-from real trajectories, so it belongs inside the trusted environment that the
-source data came from.
+from real trajectories, so it belongs inside the trusted environment.
 
 ## Mode 2: prior only
 
@@ -134,7 +133,7 @@ theo_design <- pmx_trial_design(
   n_doses = 7, dose_interval = 24,
   source = "illustrative protocol"
 )
-prior_only <- pmx_generate(theo_model, theo_design, n_subjects = 12, seed = 202)
+prior_only <- synpmx_prior(theo_model, theo_design, n_subjects = 12, seed = 202)
 head(prior_only, 3)
 ```
 
@@ -164,18 +163,27 @@ pmx_preflight(priors, epsilon = 1, n_subjects = 12)
 worth its budget?" before any budget is spent.
 
 ```{r calibrate, eval=has_nlmixr2data}
-calibrated <- fit_calibrated_pmx(
+calibrated_data <- synpmx_calibrated(
   data = theo_md, roles = theo_roles, model = theo_model,
-  design = theo_design, priors = priors, epsilon = 1,
+  design = theo_design, priors = priors, epsilon = 1, seed = 303,
   backend = "public", public_source = TRUE   # theo_md is public; no DP claim
 )
-calibrated
-calibrated_data <- pmx_generate(calibrated, seed = 303)
 ```
 
-The correction pulled the assumed clearance toward the data. Generation is
-post-processing on the released numbers, so drawing more datasets from one fit
-spends no additional budget.
+The correction pulled the assumed clearance toward the data. The release that
+produced this dataset travels with it, so the accounting is always at hand:
+
+```{r calibrate-report, eval=has_nlmixr2data}
+attr(calibrated_data, "synpmx_release")
+```
+
+Generation from that release is post-processing, so further datasets cost
+nothing. Draw them with `synpmx_generate()` rather than by calling
+`synpmx_calibrated()` again — a second fit would spend the budget a second time.
+
+```{r calibrate-again, eval=has_nlmixr2data}
+another <- synpmx_generate(calibrated_data, seed = 304)   # spends nothing
+```
 
 Two honest notes. First, `backend = "public"` is used here because `theo_md` is
 already public: it makes the release **noiseless** and therefore makes no DP
@@ -183,7 +191,7 @@ claim, which the printed model states. A confidential fit uses the default
 validated backend and fails closed if it is unavailable:
 
 ```{r opendp, eval=FALSE}
-calibrated <- fit_calibrated_pmx(
+calibrated <- synpmx_calibrated(
   data = confidential, roles = theo_roles, model = theo_model,
   design = theo_design, priors = priors, epsilon = 1,
   backend = "opendp"
@@ -212,7 +220,7 @@ It also needs the most declaration: every clipping range, contribution limit,
 and budget share is an explicit public input.
 
 ```{r empirical, eval=has_nlmixr2data}
-empirical <- fit_private_pmx(
+empirical_data <- synpmx_empirical(
   data = theo_md, roles = theo_roles,
   endpoints = list(cp = pmx_endpoint(
     alignment = "dose_relative", transform = "log", shape = "occasion", cmt = 2
@@ -230,10 +238,10 @@ empirical <- fit_private_pmx(
     subject_count = 0.10, event = 0.15, timing = 0.15,
     covariates = 0.10, endpoints = 0.50, censoring = 0
   ),
+  seed = 404,
   backend = "public", public_source = TRUE   # theo_md is public; no DP claim
 )
-empirical_data <- generate_pmx(empirical, seed = 404)
-privacy_report(empirical)
+privacy_report(empirical_data)
 ```
 
 Note the requested `epsilon = 5`, five times the calibrated fit's budget, for a
@@ -297,9 +305,8 @@ visible.
 modes <- data.frame(
   Mode = c("1. AVATAR blending", "2. Prior only", "3. Calibration",
            "4. Empirical"),
-  Function = c("synthesize_pmx()", "pmx_generate(model, design)",
-               "fit_calibrated_pmx() + pmx_generate()",
-               "fit_private_pmx() + generate_pmx()"),
+  Function = c("synpmx_avatar()", "synpmx_prior()",
+               "synpmx_calibrated()", "synpmx_empirical()"),
   `Output built from` = c(
     "Real subject templates and blended real trajectories",
     "A public model and protocol only",
@@ -388,7 +395,7 @@ confidential data only through per-subject contributions clipped to publicly
 declared ranges, release those aggregates with calibrated noise, and generate
 from the noised numbers alone. They differ in what supplies the curve shape.
 
-`fit_calibrated_pmx()` takes shape from a **public structural model** — a
+`synpmx_calibrated()` takes shape from a **public structural model** — a
 closed-form one-compartment or two-compartment PK model, evaluated analytically
 rather than by solving ordinary differential equations (ODEs) — and spends
 budget only on correcting its magnitude. The supported PK shapes are
@@ -405,7 +412,7 @@ error, and covariate relationships come from the public model, so the output is
 only as realistic as that model. It cannot reveal a structural feature the model
 does not contain.
 
-`fit_private_pmx()` instead reconstructs shape from a denser set of noised
+`synpmx_empirical()` instead reconstructs shape from a denser set of noised
 summaries. It asserts less — trajectory shape is measured rather than assumed —
 but it releases far more numbers, so the same epsilon is split many ways.
 Utility therefore collapses below a few hundred subjects.
