@@ -193,7 +193,8 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
   summary[order(summary$dataset, summary$endpoint), , drop = FALSE]
 }
 
-overlay_plot <- function(source, mock, roles, name, clock = "study_time") {
+overlay_plot <- function(source, mock, roles, name, clock = "study_time",
+                         log_y = FALSE) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) return(NULL)
   plot_data <- rbind(
     observed_plot_data(source, roles, "Source", clock),
@@ -207,7 +208,7 @@ overlay_plot <- function(source, mock, roles, name, clock = "study_time") {
   } else {
     interaction(plot_data$dataset, plot_data$subject, plot_data$endpoint)
   }
-  ggplot2::ggplot(
+  plot <- ggplot2::ggplot(
     plot_data,
     ggplot2::aes(time, dv, colour = dataset, group = grouping)
   ) +
@@ -219,15 +220,23 @@ overlay_plot <- function(source, mock, roles, name, clock = "study_time") {
     ) +
     ggplot2::labs(
       x = if (identical(clock, "tad")) "Time after dose" else "Study time",
-      y = "DV", colour = "Dataset",
+      y = if (log_y) "DV (log scale)" else "DV", colour = "Dataset",
       title = paste(name, "source and synthetic observations")
     ) +
     ggplot2::theme_minimal()
+  if (log_y) {
+    plot <- plot + if (requireNamespace("xgxr", quietly = TRUE)) {
+      xgxr::xgx_scale_y_log10()
+    } else {
+      ggplot2::scale_y_log10()
+    }
+  }
+  plot
 }
 
 run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
                             seed, clock = "study_time",
-                            comparison_bounds = NULL) {
+                            comparison_bounds = NULL, log_y = FALSE) {
   source <- load_dataset(name)
   fit_bounds <- bounds(source)
   model <- pmxSynthData::fit_private_pmx(
@@ -240,7 +249,7 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   mock <- pmxSynthData::generate_pmx(model, seed = seed)
   validation <- pmxSynthData::validate_pmx(mock, roles, endpoints)
   comparison <- pmxSynthData::compare_pmx(source, mock, roles, endpoints)
-  overlay <- overlay_plot(source, mock, roles, name, clock)
+  overlay <- overlay_plot(source, mock, roles, name, clock, log_y = log_y)
   if (is.null(comparison_bounds)) comparison_bounds <- fit_bounds$time
   design_checks <- check_demo_similarity(
     source, mock, roles, comparison_bounds, name, clock
@@ -419,7 +428,7 @@ mavoglurant_result <- run_public_demo(
     endpoint_cmt = list(cp = 2), category_levels = list(SEX = c(1, 2))
   ),
   limits = pmxSynthData::pmx_contribution_limits(30, 2, 2, 15, 15),
-  seed = 505, clock = "tad", comparison_bounds = c(0, 120)
+  seed = 505, clock = "tad", comparison_bounds = c(0, 120), log_y = TRUE
 )
 message("Mavoglurant assigned-dose coherence by occasion:")
 with(mavoglurant_result$mock, print(stats::aggregate(
