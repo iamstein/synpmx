@@ -109,6 +109,29 @@
   skeleton
 }
 
+# Some roles only mean something to the differentially private engines: they
+# carry accounting semantics AVATAR has no equivalent for. Rather than silently
+# ignore them -- which is how a user ends up believing a treatment arm was
+# handled when it was not -- reject them and point at the role that does the job.
+.reject_dp_only_roles <- function(roles) {
+  guidance <- c(
+    subject_properties = "carry the column with `keep`",
+    assigned_dose = "carry the column with `keep`",
+    exclude = "simply leave the column undeclared; it is then dropped"
+  )
+  present <- names(guidance)[
+    vapply(names(guidance), function(r) !is.null(roles[[r]]), logical(1))
+  ]
+  if (length(present)) {
+    lines <- vapply(present, function(r) {
+      paste0("  `", r, "` is a differential-privacy role; synpmx_avatar() ",
+             "does not use it. Instead, ", guidance[[r]], ".")
+    }, character(1))
+    stop("Roles that do not apply to AVATAR were declared:\n",
+         paste(lines, collapse = "\n"), call. = FALSE)
+  }
+}
+
 # Censoring -------------------------------------------------------------------
 #
 # AVATAR makes no formal privacy guarantee, so it may read the censoring
@@ -447,13 +470,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
+  .reject_dp_only_roles(roles)
   # Allowlist, not blocklist: keep only what a role names, so a column the user
   # never mentioned -- a secondary identifier, a site, a randomization date --
   # cannot ride out of a real subject into synthetic data by being forgotten.
-  # `exclude` is still honoured for anyone who names a column there explicitly.
-  retained_names <- setdiff(intersect(names(data),
-                                      .retained_role_columns(roles)),
-                            roles$exclude)
+  # There is no `exclude` here by design: not naming a column is how you drop it.
+  retained_names <- intersect(names(data), .retained_role_columns(roles))
   dropped <- setdiff(names(data), retained_names)
   if (length(dropped)) {
     message("synpmx_avatar(): dropped ", length(dropped),

@@ -8,7 +8,7 @@
     for (role in c("cmt", "dvid")) {
       if (!is.null(roles[[role]])) {
         pieces[[length(pieces) + 1L]] <-
-          as.character(subject_data[[roles[[role]]]][event])
+          as.character(subject_data[[roles[[role]][[1L]]]][event])
       }
     }
     for (role in c("amt", "rate")) {

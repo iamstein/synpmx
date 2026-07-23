@@ -32,7 +32,7 @@
 
 .endpoint <- function(data, roles) {
   if (is.null(roles$dvid)) rep("DV", nrow(data)) else {
-    out <- as.character(data[[roles$dvid]])
+    out <- as.character(data[[.dvid_primary(roles)]])
     out[is.na(out)] <- "<missing>"
     out
   }
@@ -186,6 +186,12 @@
   referenced <- unlist(roles[setdiff(names(roles), "exclude")],
                        use.names = FALSE)
   unique(referenced[!is.na(referenced) & nzchar(referenced)])
+}
+
+# The grouping endpoint key. `dvid` may name several equivalent columns; the
+# first is authoritative and the rest ride along, checked for consistency.
+.dvid_primary <- function(roles) {
+  if (is.null(roles$dvid)) NULL else roles$dvid[[1L]]
 }
 
 .direct_identifier_names <- function(names) {

@@ -8,22 +8,26 @@
 #'
 #' @param id,time,dv,evid Required single column names for subject ID, actual
 #'   time, dependent variable, and event ID.
-#' @param amt,cmt,dvid,mdv,rate Optional single column names for amount,
-#'   compartment, endpoint, missing-DV indicator, and infusion rate.
+#' @param amt,cmt,mdv,rate Optional single column names for amount,
+#'   compartment, missing-DV indicator, and infusion rate.
+#' @param dvid Endpoint-key column(s). Usually one column. A dataset that labels
+#'   the same endpoint two ways — a numeric `YTYPE` beside a character `NAME` —
+#'   may declare both, `dvid = c("YTYPE", "NAME")`. The first is the grouping
+#'   key; validation checks the rest are a consistent 1:1 mapping with it and
+#'   errors if they disagree, and [synpmx_avatar()] carries all of them through.
 #' @param nominal_time,tad,occasion Optional time metadata columns.
 #' @param cens,limit Optional Monolix-style censoring indicator and other
 #'   interval-boundary columns.
 #' @param addl,ii Optional additional-dose and interdose-interval columns.
 #' @param covariates Baseline covariate column names, or `NULL`.
-#' @param subject_properties Subject-level assignment or grouping columns, such
-#'   as `ACTARM`, `TRT`, or a nominal dose group. These are treated as
-#'   categorical, must be constant and nonmissing within a subject, and are
-#'   modeled jointly with that subject's regimen rather than as independent
-#'   baseline covariates.
-#' @param assigned_dose Optional nominal assigned-dose column. It may vary by
-#'   occasion but must be constant within subject and occasion and agree with
-#'   the positive event amount. Generated values are derived from the generated
-#'   regimen rather than sampled independently.
+#' @param subject_properties Differential-privacy engines only. Subject-level
+#'   assignment or grouping columns (`ACTARM`, `TRT`, a nominal dose group)
+#'   modeled jointly with the regimen as a released category domain.
+#'   [synpmx_avatar()] does not use this — carry such a column with `keep`, which
+#'   copies it verbatim from the subject that supplied the doses.
+#' @param assigned_dose Differential-privacy engines only. A nominal
+#'   assigned-dose column reconstructed from the generated regimen.
+#'   [synpmx_avatar()] does not use this — carry the column with `keep`.
 #' @param keep Columns to carry into synthetic data verbatim, copied from the
 #'   same source subject that supplied the event skeleton, with no blending or
 #'   synthesis. This is for assigned, subject-defining values you want kept
@@ -33,10 +37,10 @@
 #'   anchor as the doses, it stays coherent with them. Contrast `covariates`,
 #'   which are *blended* into new values across neighbours. A kept value is one
 #'   real subject's real value, so use it only inside a trusted environment.
-#' @param exclude Columns explicitly excluded before private fitting, such as
-#'   direct identifiers. An ID role is still required as the privacy unit. For
-#'   [synpmx_avatar()] this is now redundant: undeclared columns are dropped by
-#'   default, so simply not naming a column drops it.
+#' @param exclude Differential-privacy engines only. Columns removed before
+#'   private fitting, such as direct identifiers. [synpmx_avatar()] does not use
+#'   this — it drops every undeclared column by default, so not naming a column
+#'   is how you drop it.
 #'
 #' @return A `pmx_roles` object used by the fitting, generation, validation, and
 #'   comparison functions.
@@ -46,6 +50,12 @@
 #' roles <- pmx_roles(
 #'   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
 #'   evid = "EVID", cmt = "CMT", tad = "TAD", covariates = "WT"
+#' )
+#'
+#' # Two columns for one endpoint, and a treatment arm carried through verbatim.
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   dvid = c("YTYPE", "NAME"), covariates = "WT", keep = "ARM"
 #' )
 pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
@@ -62,7 +72,8 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
     keep = keep, exclude = exclude
   )
 
-  vector_roles <- c("covariates", "subject_properties", "keep", "exclude")
+  vector_roles <- c("dvid", "covariates", "subject_properties", "keep",
+                    "exclude")
   scalar_roles <- setdiff(names(roles), vector_roles)
   for (role in scalar_roles) {
     value <- roles[[role]]

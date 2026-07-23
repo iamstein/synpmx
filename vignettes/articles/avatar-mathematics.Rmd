@@ -76,10 +76,12 @@ anchor — `keep` is correct, precisely because it never leaves that anchor's
 side. Because a kept value is a real subject's real value, `keep` is for the
 trusted environment only.
 
-A `keep` column also solves redundant endpoint labels. A dataset that carries
-both a numeric `YTYPE` and a character `NAME` for the same endpoint declares one
-as `dvid` and the other as `keep`; both come from the same anchor rows, so they
-stay perfectly aligned in the output.
+Redundant endpoint labels have their own handling. A dataset that carries both a
+numeric `YTYPE` and a character `NAME` for the same endpoint declares **both**
+as `dvid`: `dvid = c("YTYPE", "NAME")`. The first is the grouping key; validation
+checks that the rest are a consistent 1:1 mapping with it — catching a source
+where the two labels disagree, which `keep` would carry through silently — and
+AVATAR carries all of them into the output, aligned.
 
 Immediately before generation, `synpmx_avatar()` calls `validate_pmx(...,
 strict = TRUE)`. Among other checks, validation requires:
