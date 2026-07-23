@@ -459,7 +459,7 @@ mavo_comparison <- rbind(
   tad_plot_data(mavoglurant, mavo_roles, "Source"),
   tad_plot_data(mavo_synth, mavo_roles, "Synthetic")
 )
-ggplot2::ggplot(
+mavo_plot <- ggplot2::ggplot(
   mavo_comparison,
   ggplot2::aes(tad, dv, group = interaction(dataset, subject, occasion),
                colour = dataset)
@@ -469,11 +469,18 @@ ggplot2::ggplot(
   comparison_facets(mavo_comparison) +
   ggplot2::scale_colour_manual(values = comparison_colours) +
   ggplot2::labs(
-    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
+    x = "Time after dose (hours)", y = "DV (log scale)", colour = "Dataset",
     title = "Mavoglurant: dose-relative profiles with occasion reset"
   ) +
   ggplot2::theme_minimal() +
   ggplot2::theme(legend.position = "bottom")
+# Mavoglurant concentrations span orders of magnitude, so a log y axis reads
+# better. Use xgxr's log scale when available, otherwise a plain log10 scale.
+mavo_plot + if (requireNamespace("xgxr", quietly = TRUE)) {
+  xgxr::xgx_scale_y_log10()
+} else {
+  ggplot2::scale_y_log10()
+}
 ```
 
 ## What is preserved, and what is not
