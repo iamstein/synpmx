@@ -459,6 +459,23 @@ The final value is repeated on every row of that synthetic subject.
 For factor, character, and logical covariates, one available donor category is
 sampled using the locally normalized weights. Categories are not averaged.
 
+### A covariate and an endpoint are blended independently
+
+Covariates (this step) and endpoint trajectories (the next) are generated in
+separate passes, each with its own donor weighting and its own perturbation.
+That is fine when they are unrelated, but some datasets carry a **baseline
+covariate that is the same quantity as a longitudinal endpoint** — a `B0`
+baseline B-cell count beside a B-cell kinetic endpoint, a baseline biomarker
+beside its own time course. AVATAR does not know they are linked, so a synthetic
+subject's baseline covariate need not equal the baseline of its own generated
+trajectory. The two are individually plausible but not mutually consistent.
+
+This is a known limitation (`REV-022`). It is usually harmless for
+workflow-development use, where each column need only be realistic on its own.
+If your analysis relies on a covariate agreeing with an endpoint's baseline,
+reconcile them after generation, or do not declare the redundant covariate and
+read the baseline from the trajectory instead.
+
 ## Step 9: synthesize each endpoint trajectory
 
 Only positions that were eligible, nonmissing observations in the anchor
