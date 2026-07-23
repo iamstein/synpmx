@@ -54,6 +54,7 @@
 
 .set_row_role <- function(row, roles, role, value) {
   column <- roles[[role]]
+  if (length(column) > 1L) column <- column[[1L]]
   if (!is.null(column)) row[[column]] <- value
   row
 }

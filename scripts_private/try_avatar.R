@@ -41,13 +41,16 @@ ROLES <- pmx_roles(
   dv       = "DV",
   amt      = "AMT",
   evid     = "EVID",
-  dvid     = "DVID",         # NULL if a single endpoint
+  dvid     = "DVID",         # NULL if a single endpoint; or c("YTYPE","NAME")
+                             #   to declare two consistent endpoint-key columns
   cmt      = "CMT",
   mdv      = "MDV",
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
-  covariates = c("WT", "AGE", "SEX"),
-  exclude  = NULL            # columns to drop before synthesizing
+  covariates = c("WT", "AGE", "SEX"),  # BLENDED into new values across donors
+  keep     = NULL            # copied verbatim from the anchor: treatment arm,
+                             #   dose group, anything kept faithful to its doses
+  # Every column NOT named by a role above is dropped, and the run says which.
 )
 
 # Number of synthetic subjects. NULL keeps the source cohort size.

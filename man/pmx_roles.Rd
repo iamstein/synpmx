@@ -32,8 +32,14 @@ pmx_roles(
 \item{id, time, dv, evid}{Required single column names for subject ID, actual
 time, dependent variable, and event ID.}
 
-\item{amt, cmt, dvid, mdv, rate}{Optional single column names for amount,
-compartment, endpoint, missing-DV indicator, and infusion rate.}
+\item{amt, cmt, mdv, rate}{Optional single column names for amount,
+compartment, missing-DV indicator, and infusion rate.}
+
+\item{dvid}{Endpoint-key column(s). Usually one column. A dataset that labels
+the same endpoint two ways — a numeric \code{YTYPE} beside a character \code{NAME} —
+may declare both, \code{dvid = c("YTYPE", "NAME")}. The first is the grouping
+key; validation checks the rest are a consistent 1:1 mapping with it and
+errors if they disagree, and \code{\link[=synpmx_avatar]{synpmx_avatar()}} carries all of them through.}
 
 \item{nominal_time, tad, occasion}{Optional time metadata columns.}
 
@@ -44,16 +50,15 @@ interval-boundary columns.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 
-\item{subject_properties}{Subject-level assignment or grouping columns, such
-as \code{ACTARM}, \code{TRT}, or a nominal dose group. These are treated as
-categorical, must be constant and nonmissing within a subject, and are
-modeled jointly with that subject's regimen rather than as independent
-baseline covariates.}
+\item{subject_properties}{Differential-privacy engines only. Subject-level
+assignment or grouping columns (\code{ACTARM}, \code{TRT}, a nominal dose group)
+modeled jointly with the regimen as a released category domain.
+\code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use this — carry such a column with \code{keep}, which
+copies it verbatim from the subject that supplied the doses.}
 
-\item{assigned_dose}{Optional nominal assigned-dose column. It may vary by
-occasion but must be constant within subject and occasion and agree with
-the positive event amount. Generated values are derived from the generated
-regimen rather than sampled independently.}
+\item{assigned_dose}{Differential-privacy engines only. A nominal
+assigned-dose column reconstructed from the generated regimen.
+\code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use this — carry the column with \code{keep}.}
 
 \item{keep}{Columns to carry into synthetic data verbatim, copied from the
 same source subject that supplied the event skeleton, with no blending or
@@ -65,10 +70,10 @@ anchor as the doses, it stays coherent with them. Contrast \code{covariates},
 which are \emph{blended} into new values across neighbours. A kept value is one
 real subject's real value, so use it only inside a trusted environment.}
 
-\item{exclude}{Columns explicitly excluded before private fitting, such as
-direct identifiers. An ID role is still required as the privacy unit. For
-\code{\link[=synpmx_avatar]{synpmx_avatar()}} this is now redundant: undeclared columns are dropped by
-default, so simply not naming a column drops it.}
+\item{exclude}{Differential-privacy engines only. Columns removed before
+private fitting, such as direct identifiers. \code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use
+this — it drops every undeclared column by default, so not naming a column
+is how you drop it.}
 }
 \value{
 A \code{pmx_roles} object used by the fitting, generation, validation, and
@@ -85,5 +90,11 @@ copied out of a real subject. Name a column in \code{keep} to carry it through.
 roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", tad = "TAD", covariates = "WT"
+)
+
+# Two columns for one endpoint, and a treatment arm carried through verbatim.
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  dvid = c("YTYPE", "NAME"), covariates = "WT", keep = "ARM"
 )
 }

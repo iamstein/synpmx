@@ -64,21 +64,37 @@ test_that("the default cohort size matches the source", {
   expect_equal(length(unique(synthetic$ID)), 24L)
 })
 
-test_that("excluded columns are omitted and factor IDs are fresh", {
+test_that("factor IDs stay factors and get fresh levels", {
   source <- pmx_simulated_fixture(12)
   source$ID <- factor(source$ID)
   roles <- pmx_roles(
     id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-    dvid = "DVID", cmt = "CMT", mdv = "MDV", exclude = "WGT"
+    dvid = "DVID", cmt = "CMT", mdv = "MDV"
   )
   synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 6,
                                                 seed = 12))
 
-  expect_false("WGT" %in% names(synthetic))
+  expect_true(is.factor(synthetic$ID))
   expect_false(anyNA(synthetic$ID))
   expect_true(all(as.character(synthetic$ID) %in% levels(synthetic$ID)))
   expect_length(intersect(as.character(synthetic$ID),
                           as.character(source$ID)), 0L)
+})
+
+test_that("AVATAR rejects differential-privacy-only roles", {
+  source <- pmx_simulated_fixture(12)
+  base <- list(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+               dvid = "DVID", cmt = "CMT", mdv = "MDV")
+  expect_error(
+    synpmx_avatar(source, do.call(pmx_roles,
+                                  c(base, list(subject_properties = "SEX")))),
+    "does not use it"
+  )
+  expect_error(
+    synpmx_avatar(source, do.call(pmx_roles,
+                                  c(base, list(exclude = "AGE")))),
+    "leave the column undeclared"
+  )
 })
 
 test_that("dose magnitudes constrain AVATAR donors", {
@@ -126,11 +142,10 @@ test_that("the caller's RNG state is left untouched", {
     nimoData = pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                          evid = "EVID", rate = "RATE", mdv = "MDV", tad = "TAD",
                          occasion = "OCC", covariates = c("BSA", "AGE", "HGT"),
-                         subject_properties = "DOS", exclude = "WGT"),
+                         keep = "DOS"),
     mavoglurant = pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                             evid = "EVID", cmt = "CMT", rate = "RATE",
-                            mdv = "MDV", occasion = "OCC",
-                            assigned_dose = "DOSE",
+                            mdv = "MDV", occasion = "OCC", keep = "DOSE",
                             covariates = c("AGE", "SEX", "WT", "HT"))
   )
 }
@@ -157,4 +172,53 @@ test_that("AVATAR synthesizes every nlmixr2data demonstration", {
         unique(source[[roles$dvid]][!is.na(source[[roles$dvid]])]))
     }
   }
+})
+
+# Redundant endpoint labels: a numeric key beside a character one. -----------
+
+.two_label_source <- function(consistent = TRUE) {
+  mk <- function(id) {
+    t <- c(0, 2, 8)
+    name_obs <- if (consistent) "cp" else if (id %% 2 == 0) "cp" else "pca"
+    rbind(
+      data.frame(ID = id, TIME = 0, DV = NA, AMT = 100, EVID = 1L,
+                 YTYPE = 0L, NAME = "dose"),
+      data.frame(ID = id, TIME = t, DV = exp(-0.1 * t), AMT = 0, EVID = 0L,
+                 YTYPE = 1L, NAME = name_obs))
+  }
+  do.call(rbind, lapply(1:6, mk))
+}
+
+test_that("two consistent endpoint-key columns validate and are both kept", {
+  source <- .two_label_source(consistent = TRUE)
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", dvid = c("YTYPE", "NAME"))
+  expect_true(validate_pmx(source, roles)$valid)
+
+  synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 4,
+                                               seed = 1))
+  expect_true(all(c("YTYPE", "NAME") %in% names(synthetic)))
+  # The two labels stay a clean 1:1 mapping in the output.
+  pairs <- unique(synthetic[synthetic$EVID == 0, c("YTYPE", "NAME")])
+  expect_equal(nrow(pairs), length(unique(synthetic$NAME[synthetic$EVID == 0])))
+})
+
+test_that("inconsistent endpoint-key columns fail validation", {
+  source <- .two_label_source(consistent = FALSE)
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", dvid = c("YTYPE", "NAME"))
+  report <- validate_pmx(source, roles)
+  expect_false(report$valid)
+  consistency <- report$checks$status[report$checks$check == "dvid_consistency"]
+  expect_identical(consistency, "error")
+})
+
+test_that("the primary dvid column drives endpoint grouping", {
+  source <- .two_label_source(consistent = TRUE)
+  # YTYPE first: grouping uses the numeric key, NAME rides along.
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", dvid = c("YTYPE", "NAME"))
+  synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 4,
+                                               seed = 1))
+  expect_true(validate_pmx(synthetic, roles)$valid)
 })

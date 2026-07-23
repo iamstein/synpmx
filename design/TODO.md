@@ -77,6 +77,15 @@ functions either.
    that the template sampler has not seen, and whether the generated data is
    actually useful for workflow development. Keep it in `scripts_private/`.
 
+4. **Decide how date/datetime columns should be handled.** Low priority; dates
+   are rarely analysis-relevant. Today `time` must be numeric elapsed time, and
+   a raw `RFSTDTC`-style datetime column is either converted by the user
+   beforehand or dropped as undeclared. Options if this ever matters: accept a
+   datetime `time` and derive elapsed time from the first event per subject; or
+   offer a `keep`-like path that shifts dates to a synthetic origin so they stay
+   internally consistent without carrying a real calendar date. Not needed for
+   PIT565.
+
 ## Done: documentation reorganization (2026-07-23)
 
 Decided and executed. The reasoning, the audience analysis, and the rationale

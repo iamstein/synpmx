@@ -181,7 +181,7 @@ print.pmx_preflight <- function(x, ...) {
 .subject_corrections <- function(data, roles, model, design) {
   id <- data[[roles$id]]
   subjects <- .unique_in_order(id[!is.na(id)])
-  dvid <- if (is.null(roles$dvid)) NULL else data[[roles$dvid]]
+  dvid <- if (is.null(roles$dvid)) NULL else data[[.dvid_primary(roles)]]
   out <- lapply(subjects, function(s) {
     rows <- which(!is.na(id) & id == s)
     piece <- data[rows, , drop = FALSE]
@@ -194,7 +194,7 @@ print.pmx_preflight <- function(x, ...) {
     doses <- amt[dose_rows]; dose_times <- time[dose_rows]
 
     endpoint <- if (is.null(roles$dvid)) rep("cp", nrow(piece)) else
-      as.character(piece[[roles$dvid]])
+      as.character(piece[[.dvid_primary(roles)]])
     obs <- is.finite(evid) & evid == 0
     dv <- suppressWarnings(as.numeric(piece[[roles$dv]]))
 

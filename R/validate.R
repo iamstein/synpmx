@@ -11,7 +11,10 @@
 # reads as: the `time` role (column 'RFSTDTC').
 .role_col <- function(roles, role) {
   column <- roles[[role]]
-  paste0("the `", role, "` role (column '", column, "')")
+  label <- if (length(column) > 1L) {
+    paste0("columns '", paste(column, collapse = "', '"), "'")
+  } else paste0("column '", column, "'")
+  paste0("the `", role, "` role (", label, ")")
 }
 
 # A count of offending rows plus a concrete example: which row, and the value
@@ -157,13 +160,38 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
         "No nonzero-EVID event rows were found.")
 
   if (!is.null(roles$dvid)) {
-    missing <- allowed & is.na(data[[roles$dvid]])
+    missing <- allowed & is.na(data[[.dvid_primary(roles)]])
     add("endpoint", if (any(missing)) "error" else "pass",
         if (any(missing)) paste0(
           "Every observation must name its endpoint, but ",
           .role_col(roles, "dvid"), " is missing on observation rows",
-          .offenders(missing, data[[roles$dvid]]), "."
+          .offenders(missing, data[[.dvid_primary(roles)]]), "."
         ) else "Every observation row has a DVID.")
+  }
+  # When several columns are declared for the same endpoint, they must agree:
+  # each value of the primary key must map to exactly one value of every other,
+  # and vice versa, or they do not encode the same thing and one would corrupt
+  # endpoint grouping.
+  if (!is.null(roles$dvid) && length(roles$dvid) > 1L) {
+    primary <- as.character(data[[roles$dvid[[1L]]]])[allowed]
+    offender <- NULL
+    for (other in roles$dvid[-1L]) {
+      secondary <- as.character(data[[other]])[allowed]
+      pairs <- unique(cbind(primary, secondary))
+      if (nrow(pairs) != length(unique(primary)) ||
+          nrow(pairs) != length(unique(secondary))) {
+        offender <- other
+        break
+      }
+    }
+    add("dvid_consistency", if (is.null(offender)) "pass" else "error",
+        if (is.null(offender))
+          "Endpoint-key columns are a consistent 1:1 mapping." else
+          paste0("Endpoint-key columns disagree: '", roles$dvid[[1L]],
+                 "' and '", offender, "' are not a 1:1 mapping across ",
+                 "observation rows, so they do not encode the same endpoint. ",
+                 "Either they mean different things, or the data is ",
+                 "inconsistent."))
   }
   if (!is.null(endpoints)) {
     endpoint_name <- .endpoint_name_for_rows(data, roles, endpoints)
@@ -351,7 +379,7 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
         "`keep` only if you intend to carry a real subject's value through."
       ) else "No undeclared direct-identifier column names remain.")
   endpoint_summary <- if (is.null(roles$dvid)) "DV" else
-    sort(unique(as.character(data[[roles$dvid]][allowed])))
+    sort(unique(as.character(data[[.dvid_primary(roles)]][allowed])))
   summary <- list(
     rows = nrow(data), subjects = length(unique(id)),
     event_rows = sum(event), observation_rows = sum(allowed),

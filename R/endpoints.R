@@ -213,7 +213,7 @@ print.pmx_endpoint <- function(x, ...) {
 
 .endpoint_name_for_rows <- function(data, roles, endpoints) {
   if (is.null(roles$dvid)) return(rep(names(endpoints)[1L], nrow(data)))
-  values <- as.character(data[[roles$dvid]])
+  values <- as.character(data[[.dvid_primary(roles)]])
   declared <- vapply(endpoints, function(x) as.character(x$dvid), character(1))
   names(declared) <- names(endpoints)
   names(declared)[match(values, declared)]

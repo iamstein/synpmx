@@ -54,18 +54,19 @@ ROLES <- pmx_roles(
   dv       = "LIDV",
   amt      = "AMT",
   evid     = "EVID",
-  dvid     = "YTYPE",         # numeric endpoint key; NULL if a single endpoint
+  # Two columns encode the same endpoint: numeric YTYPE and character NAME.
+  # Declare both. YTYPE (first) is the grouping key; validation checks NAME is a
+  # consistent 1:1 mapping with it and errors if not, and both are carried out.
+  dvid     = c("YTYPE", "NAME"),
   cmt      = "CMT",
   mdv      = "MDV",
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
   covariates = c("WT", "AGE", "SEX"),  # BLENDED into new values across donors
-  # keep = copied verbatim from the same subject that supplied the doses, so it
-  # stays coherent with them. Put assigned, subject-defining values here: the
-  # character endpoint label NAME that is redundant with the numeric YTYPE
-  # above, and any treatment arm / dose group you want kept faithful, e.g.
-  # keep = c("NAME", "ARM"). List only columns your data actually has.
-  keep     = "NAME"
+  # keep = copied verbatim from the subject that supplied the doses, so it stays
+  # coherent with them. Put assigned, subject-defining values here -- treatment
+  # arm, dose group -- e.g. keep = "ARM". List only columns your data has.
+  keep     = NULL
   # Every column NOT named by a role above is dropped. That is deliberate: a
   # secondary identifier you forget cannot leak out of a real subject. The run
   # prints exactly which columns it dropped.
