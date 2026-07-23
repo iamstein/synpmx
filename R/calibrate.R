@@ -188,7 +188,7 @@ print.pmx_preflight <- function(x, ...) {
       suppressWarnings(as.numeric(piece[[roles$amt]]))
     time <- suppressWarnings(as.numeric(piece[[roles$time]]))
     dose_rows <- which(is.finite(evid) & evid != 0 & is.finite(amt) & amt > 0)
-    if (!length(dose_rows)) return(NULL)
+    if (!length(dose_rows)) return(c(pk = NA_real_, pd = NA_real_))
     doses <- amt[dose_rows]; dose_times <- time[dose_rows]
 
     endpoint <- if (is.null(roles$dvid)) rep("cp", nrow(piece)) else
@@ -232,12 +232,6 @@ print.pmx_preflight <- function(x, ...) {
     }
     c(pk = pk, pd = pd)
   })
-  out <- out[!vapply(out, is.null, logical(1))]
-  if (!length(out)) {
-    stop("No subject yielded a usable non-compartmental summary. Check the ",
-         "role declarations and that dose rows carry a positive amount.",
-         call. = FALSE)
-  }
   do.call(rbind, out)
 }
 
@@ -313,7 +307,8 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
   private_count <- max(as.numeric(count), 1)
 
   covariate_summaries <- .covariate_summaries(
-    data, data[[roles$id]], covariates, accountant, per_query
+    data, data[[roles$id]], covariates, accountant, per_query,
+    denominator = private_count
   )
 
   corrected <- model$typical
@@ -336,7 +331,7 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     edge <- min(mean_unit, 1 - mean_unit) < 0.02
     results[[name]] <- list(
       factor = factor, at_prior_boundary = edge,
-      prior = prior, n_used = length(values)
+      prior = prior
     )
   }
 
@@ -353,10 +348,11 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
   }
 
   accounting <- .finalize_accounting(accountant)
-  formal_dp <- isTRUE(resolved$validated) && isTRUE(resolved$production)
+  formal_dp <- isTRUE(resolved$validated) && isTRUE(resolved$production) &&
+    !bootstrap_covariates
 
   warnings <- character()
-  f <- d / (epsilon * n_subjects)
+  f <- d / (epsilon * private_count)
   if (f >= 1) {
     warnings <- c(warnings, paste0(
       "f = ", signif(f, 3), ": the noise is as wide as the prior, so this ",
@@ -389,7 +385,9 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     corrections = results,
     corrected_typical = corrected,
     private_subject_count = private_count,
-    preflight = pmx_preflight(priors, epsilon, n_subjects),
+    preflight = pmx_preflight(
+      priors, epsilon, private_count, covariates = covariates
+    ),
     privacy = list(
       formal_dp = formal_dp,
       covariates_private = !bootstrap_covariates,

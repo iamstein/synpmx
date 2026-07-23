@@ -1,16 +1,14 @@
 Package: pmxSynthData
-Title: Differentially Private Mock Pharmacometric Data
+Title: Structurally Faithful Mock Pharmacometric Data
 Version: 0.0.0.9000
 Authors@R:
     person("Andrew", "Stein", , "andy.stein@gmail.com", role = c("aut", "cre"))
-Description: Fits a low-dimensional subject-level differentially private
-    population generator to pharmacometric event data, then creates
-    structurally coherent mock data for model-workflow exploration by
-    post-processing the fitted model. The generator uses explicit public
-    domains and contribution limits, supports endpoint-specific scientific
-    clocks and censoring conventions, and does not copy source patient event
-    templates or fit a pharmacokinetic, pharmacodynamic, or nonlinear
-    mixed-effects model.
+Description: Generates structurally faithful mock pharmacometric event data
+    by AVATAR-style profile blending for trusted environments. A separate
+    calibrated structural and differentially private workflow is available
+    when formal privacy is required. The package uses explicit roles, units,
+    schemas, and seeds, and does not fit a pharmacokinetic, pharmacodynamic,
+    or nonlinear mixed-effects model.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

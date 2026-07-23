@@ -308,7 +308,8 @@
 #' @details
 #' For selected compatible donors, randomized raw weights are
 #' `Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)`. They are normalized
-#' and a dominant weight is capped at 0.80 with its excess redistributed. The
+#' and, when multiple donors are available, a dominant weight is capped at
+#' 0.80 with its excess redistributed. The
 #' same subject weights are used for covariates and all endpoints; weights are
 #' renormalized locally when a donor lacks a requested endpoint/time value.
 #'
@@ -318,7 +319,8 @@
 #' returned `pmx_settings` attribute.
 #'
 #' @param data A source PMX data frame or tibble.
-#' @param roles Explicit roles from [pmx_roles()].
+#' @param roles Explicit roles from [pmx_roles()]. Columns listed in
+#'   `roles$exclude` are omitted from the generated output.
 #' @param n_subjects Number of mock subjects. `NULL` retains the source count.
 #' @param seed Reproducibility seed. The caller's random-number state is
 #'   restored on exit.
@@ -336,8 +338,8 @@
 #' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
 #'   the default, leaves the event template's times unchanged.
 #'
-#' @return An ordinary data frame or tibble with source columns, order, and
-#'   practical classes. A lightweight `pmx_settings` attribute records the
+#' @return An ordinary data frame or tibble with retained source columns, order,
+#'   and practical classes. A lightweight `pmx_settings` attribute records the
 #'   generator choices and endpoint transformations.
 #' @export
 #'
@@ -364,8 +366,13 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
-  validate_pmx(data, roles, strict = TRUE)
-  subjects <- .unique_in_order(data[[roles$id]])
+  retained_names <- setdiff(names(data), roles$exclude)
+  source <- data[, retained_names, drop = FALSE]
+  source_roles <- roles
+  source_roles$exclude <- NULL
+  class(source_roles) <- "pmx_roles"
+  validate_pmx(source, source_roles, strict = TRUE)
+  subjects <- .unique_in_order(source[[source_roles$id]])
   n_subjects <- .validate_generator_options(
     n_subjects, length(subjects), event_method, dv_method, k, pca_variance,
     subject_noise_sd, residual_noise_sd, residual_phi, time_jitter
@@ -373,35 +380,44 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
 
   .with_local_seed(seed, {
     warnings <- .warning_collector()
-    profiles <- .build_profiles(data, roles, pca_variance)
-    new_ids <- .new_ids(data[[roles$id]], n_subjects)
+    profiles <- .build_profiles(source, source_roles, pca_variance)
+    new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
     anchors <- sample.int(length(subjects), n_subjects, replace = TRUE)
-    standard_mdv <- .source_uses_standard_mdv(data, roles)
+    standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
 
     for (mock_index in seq_len(n_subjects)) {
       anchor <- anchors[mock_index]
-      skeleton <- data[profiles$subject_rows[[anchor]], , drop = FALSE]
+      skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
-      skeleton <- .jitter_skeleton_time(skeleton, roles, time_jitter)
+      skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
       donors <- .select_donors(anchor, profiles, k, warnings)
       skeleton <- .synthesize_covariates(
-        skeleton, data, roles, donors$indices, donors$weights, profiles,
+        skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd
       )
       skeleton <- .synthesize_trajectories(
-        skeleton, data, roles, donors$indices, donors$weights, profiles,
+        skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd, residual_noise_sd, residual_phi, warnings
       )
-      if (standard_mdv) skeleton <- .derive_standard_mdv(skeleton, roles)
-      skeleton[[roles$id]][] <- new_ids[mock_index]
-      row_order <- order(skeleton[[roles$time]], original_order)
+      if (standard_mdv) skeleton <- .derive_standard_mdv(skeleton, source_roles)
+      new_id <- new_ids[mock_index]
+      if (is.factor(skeleton[[source_roles$id]])) {
+        new_label <- as.character(new_id)
+        levels(skeleton[[source_roles$id]]) <- unique(c(
+          levels(skeleton[[source_roles$id]]), new_label
+        ))
+        skeleton[[source_roles$id]][] <- new_label
+      } else {
+        skeleton[[source_roles$id]][] <- new_id
+      }
+      row_order <- order(skeleton[[source_roles$time]], original_order)
       generated[[mock_index]] <- skeleton[row_order, , drop = FALSE]
     }
 
     result <- do.call(rbind, generated)
     rownames(result) <- NULL
-    result <- .restore_schema(result, data, roles)
+    result <- .restore_schema(result, source, source_roles)
     settings <- list(
       seed = as.integer(seed),
       n_subjects = n_subjects,
@@ -413,7 +429,7 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
       residual_noise_sd = residual_noise_sd,
       residual_phi = residual_phi,
       time_jitter = time_jitter,
-      roles = unclass(roles),
+      roles = unclass(source_roles),
       endpoint_transforms = profiles$transforms,
       alignment = paste(
         "time relative to first positive dose within compatible schedules;",
@@ -424,7 +440,7 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
       warnings = warnings$messages
     )
     attr(result, "pmx_settings") <- settings
-    validate_pmx(result, roles, strict = TRUE)
+    validate_pmx(result, source_roles, strict = TRUE)
     if (length(warnings$messages)) {
       warning(
         "Mock generation used documented small-group/profile fallbacks:\n- ",

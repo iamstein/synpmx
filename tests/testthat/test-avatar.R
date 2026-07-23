@@ -39,6 +39,42 @@ test_that("the default cohort size matches the source", {
   expect_equal(length(unique(synthetic$ID)), 24L)
 })
 
+test_that("excluded columns are omitted and factor IDs are fresh", {
+  source <- pmx_simulated_fixture(12)
+  source$ID <- factor(source$ID)
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    dvid = "DVID", cmt = "CMT", mdv = "MDV", exclude = "WGT"
+  )
+  synthetic <- suppressWarnings(synthesize_pmx(source, roles, n_subjects = 6,
+                                                seed = 12))
+
+  expect_false("WGT" %in% names(synthetic))
+  expect_false(anyNA(synthetic$ID))
+  expect_true(all(as.character(synthetic$ID) %in% levels(synthetic$ID)))
+  expect_length(intersect(as.character(synthetic$ID),
+                          as.character(source$ID)), 0L)
+})
+
+test_that("dose magnitudes constrain AVATAR donors", {
+  source <- do.call(rbind, lapply(1:2, function(id) data.frame(
+    ID = as.integer(id), TIME = c(0, 1, 2), DV = c(0, id, id / 2),
+    AMT = c(100 * id, 0, 0), EVID = c(1L, 0L, 0L), CMT = c(1L, 2L, 2L)
+  )))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT")
+  synthetic <- suppressWarnings(synthesize_pmx(
+    source, roles, n_subjects = 100, seed = 22,
+    subject_noise_sd = 0, residual_noise_sd = 0
+  ))
+  per_subject <- lapply(split(synthetic, synthetic$ID), function(x) {
+    data.frame(dose = max(x$AMT), mean_dv = mean(x$DV[x$EVID == 0]))
+  })
+  summary <- aggregate(mean_dv ~ dose, do.call(rbind, per_subject), mean)
+  expect_lt(summary$mean_dv[summary$dose == 100],
+            summary$mean_dv[summary$dose == 200])
+})
+
 test_that("the caller's RNG state is left untouched", {
   source <- pmx_simulated_fixture(20)
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",

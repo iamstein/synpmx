@@ -22,7 +22,8 @@ synthesize_pmx(
 \arguments{
 \item{data}{A source PMX data frame or tibble.}
 
-\item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
+\item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}. Columns listed in
+\code{roles$exclude} are omitted from the generated output.}
 
 \item{n_subjects}{Number of mock subjects. \code{NULL} retains the source count.}
 
@@ -51,8 +52,8 @@ neighborhood distances.}
 the default, leaves the event template's times unchanged.}
 }
 \value{
-An ordinary data frame or tibble with source columns, order, and
-practical classes. A lightweight \code{pmx_settings} attribute records the
+An ordinary data frame or tibble with retained source columns, order,
+and practical classes. A lightweight \code{pmx_settings} attribute records the
 generator choices and endpoint transformations.
 }
 \description{
@@ -69,7 +70,8 @@ parameter or covariate-response relationships.
 
 For selected compatible donors, randomized raw weights are
 \code{Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)}. They are normalized
-and a dominant weight is capped at 0.80 with its excess redistributed. The
+and, when multiple donors are available, a dominant weight is capped at
+0.80 with its excess redistributed. The
 same subject weights are used for covariates and all endpoints; weights are
 renormalized locally when a donor lacks a requested endpoint/time value.
 
