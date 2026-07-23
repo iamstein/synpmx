@@ -29,15 +29,14 @@ models. Optional \code{f} defaults to 1. PD shapes additionally require
 (PK only), \code{"constant"}, \code{"linear"} (needs \code{slope}), or \code{"exponential"}
 (needs \code{plateau} and \code{rate}, covering both decay and growth). A simple
 shape is adequate for exercising longitudinal code and calibrates through a
-well-conditioned level correction; see \code{design/PROTOTYPE_SPEC.md}.}
+well-conditioned level correction.}
 
 \item{source}{Required provenance string recording where the model and its
 typical values came from. Recorded in the release ledger.}
 
 \item{rx}{Reserved for an \code{rxode2} model. \strong{Not yet implemented}: the value
 is stored on the returned object but the generator always evaluates the
-built-in analytic solution, so supplying it warns. See \code{REV-020} in
-\code{design/REVIEW_BACKLOG.md}.}
+built-in analytic solution, so supplying it warns.}
 
 \item{iiv}{Named vector of between-subject variability, as CV on the log
 scale. A public assumption; it consumes no privacy budget.}

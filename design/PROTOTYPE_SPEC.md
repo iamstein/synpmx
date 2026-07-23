@@ -1,7 +1,7 @@
 # synpmx implementation specification
 
 Working specification for the package. Read `design/TODO.md` for the current
-task queue and `design/FEASIBILITY.md` for the evidence behind the scope
+task queue and `vignettes/articles/feasibility.Rmd` for the evidence behind the scope
 decisions here.
 
 **Document order:** objective, scope, architecture, then the detailed contract,
@@ -110,7 +110,7 @@ works at N = 1000 does not serve this package's users.
 
 ## What is achievable
 
-Measured, not assumed. See `design/FEASIBILITY.md` sections 4 and 8.
+Measured, not assumed. See `vignettes/articles/feasibility.Rmd` sections 4 and 8.
 
 The controlling relationship is that the error on any released per-subject mean,
 expressed as a fraction of the range it was clipped to, is approximately
@@ -124,7 +124,7 @@ is the cheaper of the two**.
 
 ## Background: `d`, `f`, and the error law
 
-Full derivation with worked examples in `design/PRIVACY_BACKGROUND.md`. The
+Full derivation with worked examples in `vignettes/articles/privacy-background.Rmd`. The
 short version, because these two symbols appear throughout:
 
 **`d` is how many separate quantities you release.** Privacy budget is spent,
@@ -300,12 +300,12 @@ the population parameters differs.
 
 What to use, at what epsilon, and what to expect. Fold-error figures are measured
 median error on CL from 200 replicate OpenDP releases; see
-`design/FEASIBILITY.md` section 8.
+`vignettes/articles/feasibility.Rmd` section 8.
 
 Figures below are **measured against the implementation** — 40 replicate OpenDP
 releases per cell, `d = 2`, an 8-fold correction-factor prior, reported as the
 total fold-error on clearance including estimator bias. See
-`design/FEASIBILITY.md` section 8.
+`vignettes/articles/feasibility.Rmd` section 8.
 
 **In every scenario, sampling times and event structure are exact**, because
 they come from the protocol and the schema. What varies below is only how well
@@ -539,7 +539,7 @@ N = 20, epsilon 1:
 | Correction factor, no stage 1 | 3 | 2.08 | **~1.37** |
 
 These are planning estimates from the error law confirmed in
-`design/FEASIBILITY.md` section 8, not measurements of an implementation.
+`vignettes/articles/feasibility.Rmd` section 8, not measurements of an implementation.
 
 ### Draft release vector
 
@@ -566,7 +566,7 @@ A correction near 1 confirms the prediction. A correction pressed against the
 clipping boundary means the prior was wrong and the release is censored — the
 generated data is then driven by the boundary, not by the study, and the user
 must be told. This is a real mitigation for the "confidently wrong output" risk
-in `design/FEASIBILITY.md` section 8, and it is the one self-check the design
+in `vignettes/articles/feasibility.Rmd` section 8, and it is the one self-check the design
 gets for free.
 
 ## Baseline covariates
@@ -664,7 +664,7 @@ Two acceptable procedures:
    preclinical data only. A library such as `nlmixr2lib` is a reasonable source
    of candidate structures, and an LLM agent may help navigate it, provided the
    agent is reasoning from the compound's public description and never from the
-   data. See `design/MODEL_ELICITATION.md` for the interview that keeps this
+   data. See `vignettes/articles/model-elicitation.Rmd` for the interview that keeps this
    honest.
 2. **Budgeted selection.** Choose privately from a small prespecified candidate
    set with an exponential mechanism, and account for it.
@@ -1083,7 +1083,7 @@ Abandoned because it offered no formal guarantee and its privacy degraded
 precisely where it was most needed. Copied event skeletons are quasi-identifiers;
 `k` neighbors is a large fraction of a small cohort; and signature grouping
 partitions before blending, so an unusual regimen lands in a near-singleton group
-and is blended with itself. See `design/FEASIBILITY.md` section 2.
+and is blended with itself. See `vignettes/articles/feasibility.Rmd` section 2.
 
 The instructive comparison: Version 1 produced attractive output at N = 12
 *because* it carried individual information through, while Version 3 tells you

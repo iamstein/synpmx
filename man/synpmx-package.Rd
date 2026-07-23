@@ -17,6 +17,15 @@ magnitudes, scientific clocks, event conventions, and coarse variability;
 it deliberately does not preserve parameter estimates, detailed
 distributions, inferential validity, or scientific conclusions.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://iamstein.github.io/synpmx/}
+  \item \url{https://github.com/iamstein/synpmx}
+  \item Report bugs at \url{https://github.com/iamstein/synpmx/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Andrew Stein \email{andy.stein@gmail.com}
 

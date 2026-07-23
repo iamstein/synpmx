@@ -170,13 +170,12 @@
 #'   (PK only), `"constant"`, `"linear"` (needs `slope`), or `"exponential"`
 #'   (needs `plateau` and `rate`, covering both decay and growth). A simple
 #'   shape is adequate for exercising longitudinal code and calibrates through a
-#'   well-conditioned level correction; see `design/PROTOTYPE_SPEC.md`.
+#'   well-conditioned level correction.
 #' @param source Required provenance string recording where the model and its
 #'   typical values came from. Recorded in the release ledger.
 #' @param rx Reserved for an `rxode2` model. **Not yet implemented**: the value
 #'   is stored on the returned object but the generator always evaluates the
-#'   built-in analytic solution, so supplying it warns. See `REV-020` in
-#'   `design/REVIEW_BACKLOG.md`.
+#'   built-in analytic solution, so supplying it warns.
 #' @param iiv Named vector of between-subject variability, as CV on the log
 #'   scale. A public assumption; it consumes no privacy budget.
 #' @param residual_cv Proportional residual error, as a CV.
@@ -247,8 +246,9 @@ print.pmx_structural_model <- function(x, ...) {
 #' Declare a public trial design
 #'
 #' Every field is a design fact from the protocol and consumes no privacy
-#' budget. See `design/DATA_ELICITATION.md` for which parts of a realized
-#' design need a provenance note.
+#' budget. See the data elicitation guide at
+#' <https://iamstein.github.io/synpmx/articles/data-elicitation.html> for which
+#' parts of a realized design need a provenance note.
 #'
 #' Two dosing patterns are supported. A parallel design gives each cohort one
 #' dose level (`dose_levels`) repeated `n_doses` times. A within-subject

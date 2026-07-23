@@ -1,9 +1,13 @@
-# Feasibility assessment: what can be released, and from how many patients
+---
+title: "Feasibility: what can be released, and from how many patients"
+---
 
-Written 2026-07-22, after the `SIM-020` decode fix. Companion to
-`design/REVIEW_BACKLOG.md` (defect-level findings) and
-`design/PRIVACY_ARGUMENT.md` (the formal argument). This document asks a
-scoping question rather than an implementation question:
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Companion to [the mechanism-level privacy argument](privacy-argument.html).
+This article asks a scoping question rather than an implementation question:
 
 > Is the current approach viable for the datasets we actually care about? If
 > formal privacy cannot be delivered at those cohort sizes, what *can* be?
@@ -415,7 +419,7 @@ its mean precisely is what costs `d/(epsilon N)`. Spending a fifth of the budget
 to triple the value of the remainder is clearly correct.
 
 This also answers the objection that a new drug has no published model. See
-`design/PROTOTYPE_SPEC.md` section 5: "public" in the DP sense means
+the package specification: "public" in the DP sense means
 *independent of this dataset*, not *published*. Preclinical allometric scaling,
 the protocol, the assay validation report, and physiological ceilings are all
 available before the data exist, and a preclinical human PK prediction is
@@ -607,7 +611,7 @@ sensitivity to beat the `sqrt(2 ln(1.25/delta))` constant, which is well above
    design facts, not patient data.
 4. **Linear PK is an assumption, not a fact.** Dose-normalization is invalid
    under TMDD or saturable elimination. Superseded by the structural-model
-   design in `design/PROTOTYPE_SPEC.md` section 6, where the model states its
+   design in the package specification, where the model states its
    own assumptions and a nonlinear structure can simply be supplied.
 
 ### Very small cohorts
@@ -619,7 +623,7 @@ how much signal survives the noise.
 
 Under the correction-factor design (`d = 3`, 8-fold prior), N = 6 at epsilon 1
 gives `f = 0.5`, halving the prior uncertainty and taking 8-fold to about
-2.8-fold. Against the accuracy bar in `design/PROTOTYPE_SPEC.md` section 1 that
+2.8-fold. Against the accuracy bar in the package specification that
 is useful. The margin is thin, though — at epsilon 0.5, `f = 1.0` and the
 release conveys nothing beyond the prior — so run the pre-flight check rather
 than assuming. Governance may separately decline any release derived from six

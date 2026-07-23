@@ -10,6 +10,8 @@ Description: Generates structurally faithful synthetic pharmacometric event data
     schemas, and seeds, and does not fit a pharmacokinetic, pharmacodynamic,
     or nonlinear mixed-effects model.
 License: MIT + file LICENSE
+URL: https://iamstein.github.io/synpmx/, https://github.com/iamstein/synpmx
+BugReports: https://github.com/iamstein/synpmx/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:

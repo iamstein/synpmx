@@ -1,5 +1,5 @@
 ---
-title: "Introduction to synpmx"
+title: "The four generation modes"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,7 +7,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{Introduction to synpmx}
+  %\VignetteIndexEntry{The four generation modes}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -44,11 +44,17 @@ behavior as a real study, so that data-assembly code, diagnostic plots, and
 model-run plumbing can be developed outside the restricted environment that
 holds the real data.
 
-The hard part is not making numbers. It is deciding **how much of the real
-data is allowed to survive into the synthetic data**, which is a privacy
-question before it is a technical one. This package therefore offers four
-generation modes that sit at different points on that scale. This vignette
-introduces all four and applies each one to the same public dataset.
+That narrow purpose is important. A generated dataset is not anonymous data and
+is not evidence that source subjects cannot be re-identified. It is also not
+suitable for estimation, model selection, inference, dose selection, or clinical
+decisions. The method aims for structural usefulness, not scientific
+equivalence.
+
+The hard part is not making numbers. It is deciding **how much of the real data
+is allowed to survive into the synthetic data**, which is a privacy question
+before it is a technical one. This package therefore offers four generation
+modes at different points on that scale. This vignette introduces all four and
+applies each one to the same public dataset.
 
 The four modes, from most faithful to most protective:
 
@@ -61,6 +67,11 @@ The four modes, from most faithful to most protective:
 
 Modes 2, 3, and 4 all use differential privacy (DP) accounting, and mode 2 is
 its trivial limit: spending nothing.
+
+This vignette stays at the level of what each mode does and when to use it. The
+full AVATAR algorithm — every step, the mathematics, the edge cases, and a
+worked example — is in the
+[AVATAR mathematics article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
 
 ## The example: theophylline
 
@@ -94,8 +105,8 @@ validate_pmx(avatar, theo_roles)$valid
 Nothing was elicited, nothing was assumed, and the output keeps the source
 schema and cohort size. On a 12-subject dataset `synthesize_pmx()` also emits
 documented small-group fallback warnings (some event-pattern groups have only
-one usable donor); they are suppressed above and explained in the "How
-synpmx Works" vignette.
+one usable donor); they are suppressed above and explained in the
+[AVATAR mathematics article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
 
 What you cannot say about this output is that it is anonymous. It is assembled
 from real trajectories, so it belongs inside the trusted environment that the
@@ -185,8 +196,8 @@ dp_backend_status()
 
 Second, at 12 subjects a genuine DP release of this correction is noisy enough
 that it is often censored at the prior boundary — the package warns when that
-happens, because the generated data then reflects the prior, not the study. The
-"Exploring Epsilon" vignette covers when the release is worth making.
+happens, because the generated data then reflects the prior, not the study.
+`vignette("synpmx-privacy")` covers when the release is worth making.
 
 ## Mode 4: empirical
 
@@ -338,15 +349,114 @@ facing they should be set and justified by whoever owns the data, and recorded:
 every fit carries a release ledger, and `privacy_report()` prints the realized
 accounting.
 
+
+## Why AVATAR is the default
+
+Novartis's `synadam` generates synthetic ADaM (Analysis Data Model) datasets by
+resampling **each column** marginally from the real data: a uniform draw over
+the observed range for continuous columns, a proportional resample for
+categorical ones, with no differential privacy. It preserves each column's
+marginal support and relies on governance rather than a mathematical guarantee.
+That is standard, accepted practice.
+
+AVATAR blending is the same governance-based idea applied at a different
+granularity: it resamples and blends **whole subject trajectories** rather than
+individual columns, because a pharmacometric endpoint is a correlated
+time-course that would be destroyed by independent per-column resampling. If
+`synadam`'s privacy model is acceptable for its use, AVATAR's is acceptable for
+the same trusted-environment use.
+
+One honest caveat follows from the difference in granularity. A resampled
+covariate value (a weight of 72 kg) is weakly identifying because many people
+share it. A resampled subject trajectory is more strongly identifying, closer to
+a fingerprint, because a full sampling-and-response pattern is more nearly
+unique. Blending several donors and adding noise mitigates this, but not
+formally. AVATAR therefore depends on the governance context somewhat more than
+`synadam`'s column resampling does.
+
+## What the model-based modes replace
+
+Modes 2, 3, and 4 do not blend anything. They replace the AVATAR pipeline
+entirely: there is no anchor subject, no donor neighborhood, and no event
+template. The trial structure comes from a **declared public protocol**
+(`pmx_trial_design()` or `pmx_public_design()`) rather than from a source
+subject's rows.
+
+Both differentially private engines are **aggregate-based**: no source
+subject's rows, template, or trajectory reaches the output. They read the
+confidential data only through per-subject contributions clipped to publicly
+declared ranges, release those aggregates with calibrated noise, and generate
+from the noised numbers alone. They differ in what supplies the curve shape.
+
+`fit_calibrated_pmx()` takes shape from a **public structural model** — a
+closed-form one-compartment or two-compartment PK model, evaluated analytically
+rather than by solving ordinary differential equations (ODEs) — and spends
+budget only on correcting its magnitude. The supported PK shapes are
+`"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`, `"2cmt_iv"`, and `"2cmt_oral"`.
+Optional PD shapes are `"constant"`, `"linear"`, and `"exponential"`, with no
+exposure dependence. Between-subject variability (`iiv`) and residual error
+(`residual_cv`) are public assumptions and consume no budget.
+
+Because only a handful of numbers are released (`d = 2` for a single PK
+correction plus the count), the noise per released quantity stays small, which
+is why this engine remains usable at 20 to 60 subjects. The tradeoff is that
+everything not calibrated is *asserted*: curve shape, variability, residual
+error, and covariate relationships come from the public model, so the output is
+only as realistic as that model. It cannot reveal a structural feature the model
+does not contain.
+
+`fit_private_pmx()` instead reconstructs shape from a denser set of noised
+summaries. It asserts less — trajectory shape is measured rather than assumed —
+but it releases far more numbers, so the same epsilon is split many ways.
+Utility therefore collapses below a few hundred subjects.
+
+## Practical review checklist
+
+Before using a synthetic dataset for workflow development, verify all of the
+following:
+
+- [ ] Every critical column has an explicit and correct role.
+- [ ] Units and event conventions are documented outside the generator.
+- [ ] `validate_pmx(source, roles)` and `validate_pmx(synthetic, roles)` are valid.
+- [ ] Source and synthetic event counts are credible by EVID, CMT, and DVID.
+- [ ] Dose, infusion start/stop, and tied-time records remain coherent.
+- [ ] Observation-time windows and endpoint trajectories are usable for the
+      intended plotting and model-run code.
+- [ ] Declared covariates are constant within synthetic subject and retain classes.
+- [ ] `pmx_settings$warnings` and endpoint transformations were reviewed.
+- [ ] Any TAD column was recomputed if TIME was jittered.
+- [ ] BLOQ/CENS data were handled by an explicit external convention; no
+      censoring support was assumed.
+- [ ] No claim of anonymity, privacy, parameter fidelity, or scientific
+      equivalence is being made.
+- [ ] The synthetic output remains governed according to the source
+      environment's applicable privacy and data-sharing rules.
+
 ## Where to go next
 
-- **"Using synpmx"** — the practical workflow across five public
+- `vignette("synpmx-demo")` — the practical workflow across five public
   datasets, with structural checks.
-- **"How synpmx Works"** — the AVATAR algorithm in full, and the
-  model-based alternatives.
-- **"Privacy in synpmx"** — what differential privacy guarantees, what it
-  does not, and the trust-boundary decision rule.
-- **"Exploring Epsilon in synpmx"** — how epsilon trades against utility,
-  and the measured frontier by cohort size.
-- `design/METHOD_DISCUSSION.md` — why AVATAR is the default and DP the
-  boundary-crossing alternative.
+- `vignette("synpmx-privacy")` — what differential privacy guarantees, what it
+  does not, the trust-boundary decision rule, and how epsilon trades against
+  utility.
+- [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html)
+  — the default generator step by step, with the worked example.
+- [Model elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)
+  and
+  [data elicitation](https://iamstein.github.io/synpmx/articles/data-elicitation.html)
+  — how to produce the public model and protocol that modes 2 to 4 need.
+- [Feasibility by cohort size](https://iamstein.github.io/synpmx/articles/feasibility.html)
+  — the measured evidence for what each private mode can deliver at your N.
+
+## References
+
+1. Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome the
+   privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark
+   using a daptomycin population pharmacokinetic model.* medRxiv preprint,
+   posted June 2, 2026. doi:
+   [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+2. Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data
+   generation, no reason to risk re-identification in biomedical data analysis.
+   *npj Digital Medicine.* 2023;6.
+   doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).

@@ -1,42 +1,52 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Edit the .Rmd and run
      rmarkdown::render("README.Rmd"). -->
 
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
 # synpmx
 
-`synpmx` builds **synthetic pharmacometric datasets**: dosing and
-measurement event tables with the same schema, event grammar, and rough
-behavior as a real study, so that data-assembly code, diagnostic plots,
-and model-run plumbing can be developed outside the restricted
-environment that holds the real data.
+`synpmx` builds **synthetic pharmacometric datasets**: dosing and measurement
+event tables with the same schema, event grammar, and rough behavior as a real
+study, so that data-assembly code, diagnostic plots, and model-run plumbing can
+be developed outside the restricted environment that holds the real data.
 
-The hard part is not making numbers. It is deciding **how much of the
-real data is allowed to survive into the synthetic data** — a privacy
-question before it is a technical one. `synpmx` offers four generation
-modes at different points on that scale, and helps you pick one.
+The hard part is not making numbers. It is deciding **how much of the real data
+is allowed to survive into the synthetic data** — a privacy question before it
+is a technical one. `synpmx` offers four generation modes at different points on
+that scale, and helps you pick one.
 
 ## Installation
 
-``` r
+```r
 # install.packages("pak")
 pak::pak("iamstein/synpmx")
 ```
 
-Formal privacy additionally requires the official [OpenDP R
-package](https://docs.opendp.org/en/stable/api/r/). The package fails
-closed if OpenDP is unavailable and never substitutes hand-written
-noise:
+Formal privacy additionally requires the official
+[OpenDP R package](https://docs.opendp.org/en/stable/api/r/). The package fails
+closed if OpenDP is unavailable and never substitutes hand-written noise:
 
-``` r
+```r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
 ## A first synthetic dataset
 
-The default mode needs nothing but the data and a declaration of what
-the columns mean.
+The default mode needs nothing but the data and a declaration of what the
+columns mean.
 
-``` r
+```{r example, eval = requireNamespace("nlmixr2data", quietly = TRUE)}
 library(synpmx)
 data("theo_md", package = "nlmixr2data")
 
@@ -47,24 +57,18 @@ roles <- pmx_roles(
 
 synthetic <- suppressWarnings(synthesize_pmx(theo_md, roles, seed = 101))
 validate_pmx(synthetic, roles)$valid
-#> [1] TRUE
 head(synthetic, 4)
-#>   ID TIME          DV    AMT EVID CMT       WT
-#> 1 13 0.00  0.00000000 267.84  101   1 85.25496
-#> 2 13 0.00  0.02403989   0.00    0   2 85.25496
-#> 3 13 0.30 10.00272146   0.00    0   2 85.25496
-#> 4 13 0.63 11.89216329   0.00    0   2 85.25496
 ```
 
-The output keeps the source schema, the event grammar, and the cohort
-size. What you cannot say about it is that it is anonymous — it is
-assembled from real trajectories, so it belongs inside the same trusted
-environment the source data came from.
+The output keeps the source schema, the event grammar, and the cohort size. What
+you cannot say about it is that it is anonymous — it is assembled from real
+trajectories, so it belongs inside the same trusted environment the source data
+came from.
 
 ## The four modes
 
 | Mode | Function | Output built from | Guarantee | Works at |
-|----|----|----|----|----|
+|---|---|---|---|---|
 | **1. AVATAR blending** | `synthesize_pmx()` | Real subject templates and blended real trajectories | None; governance only | ~12 subjects up |
 | **2. Prior only** | `pmx_generate()` | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
 | **3. Calibration** | `fit_calibrated_pmx()` | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | ~20 subjects up |
@@ -72,23 +76,23 @@ environment the source data came from.
 
 Two rules of thumb decide between them:
 
-- **The trust boundary decides whether you need differential privacy.**
-  Ask whether the generated data can reach anyone the source data could
-  not. If not, AVATAR is more useful and its lack of a formal guarantee
-  costs nothing, because there is no adversary to guarantee against. If
-  so, only an accounted release holds up.
+- **The trust boundary decides whether you need differential privacy.** Ask
+  whether the generated data can reach anyone the source data could not. If not,
+  AVATAR is more useful and its lack of a formal guarantee costs nothing,
+  because there is no adversary to guarantee against. If so, only an accounted
+  release holds up.
 - **The cohort size decides which private mode is usable.** Epsilon buys
-  accuracy in proportion to the number of subjects and in inverse
-  proportion to how many quantities you release. At 12 subjects,
-  releasing two numbers can work and releasing fifty cannot.
+  accuracy in proportion to the number of subjects and in inverse proportion to
+  how many quantities you release. At 12 subjects, releasing two numbers can
+  work and releasing fifty cannot.
 
-`vignette("synpmx-method")` runs all four on the same dataset and shows
-the results side by side.
+`vignette("synpmx-method")` runs all four on the same dataset and shows the
+results side by side.
 
 ## Documentation
 
 | Document | Question it answers |
-|----|----|
+|---|---|
 | [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
 | [Using synpmx](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
 | [Privacy in synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) | What does differential privacy guarantee, does my release need it, and what epsilon? |
@@ -104,21 +108,18 @@ The full function reference is at
 ## What this is not
 
 Generated data exercises cleaning, joins, reshaping, plots, control-file
-plumbing, repeated-dose PK code, longitudinal PD/biomarker code,
-infusion events, and censoring conventions. It aims for broad magnitude
-and shape.
+plumbing, repeated-dose PK code, longitudinal PD/biomarker code, infusion
+events, and censoring conventions. It aims for broad magnitude and shape.
 
-It is **not** appropriate for parameter estimation, inference, model
-selection, dose selection, or clinical conclusions, and it does not
-reproduce source distributions, parameter estimates, or
-covariate-response relationships.
+It is **not** appropriate for parameter estimation, inference, model selection,
+dose selection, or clinical conclusions, and it does not reproduce source
+distributions, parameter estimates, or covariate-response relationships.
 
 Differential privacy, where used, is mathematically bounded rather than
-absolute. It does not guarantee impossibility of linkage or
-re-identification, establish legal anonymity, authorize release, secure
-a compromised environment, or validate public-input claims. Independent
-privacy, legal, information-security, and data-governance review remains
-required.
+absolute. It does not guarantee impossibility of linkage or re-identification,
+establish legal anonymity, authorize release, secure a compromised environment,
+or validate public-input claims. Independent privacy, legal,
+information-security, and data-governance review remains required.
 
 ## License
 

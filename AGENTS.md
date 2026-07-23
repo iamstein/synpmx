@@ -3,23 +3,43 @@
 This repository contains the `synpmx` R package prototype for simulating
 structurally faithful synthetic pharmacometric datasets.
 
-## Design documents
+## Where documentation lives
 
-Read `design/TODO.md` first. It is the working task queue and it links to the
-document that owns each kind of decision:
+Three tiers, and the tier decides both the audience and the maintenance cost.
 
-- `design/TODO.md` — what to do next.
+**`design/` — internal record. Never cited from anything shipped.** A reader who
+installed the package cannot follow a `design/` path, so vignettes, articles,
+and roxygen comments must not reference one.
+
+- `design/TODO.md` — what to do next. Read this first; it is the working queue.
 - `design/REVIEW_BACKLOG.md` — defects and design findings (`REV-###`).
 - `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
-- `design/FEASIBILITY.md` — what is achievable at which cohort size.
-- `design/PRIVACY_BACKGROUND.md` — how the privacy arithmetic works: `d`, `f`,
-  sensitivity, and the error law, with worked examples.
-- `design/PRIVACY_ARGUMENT.md` — the formal mechanism-level argument, for a reviewer.
-- `design/MODEL_ELICITATION.md` — the interview producing the public structural
-  model and priors, and the rules that keep those inputs data-independent.
-- `design/DATA_ELICITATION.md` — the trial-design complexity ladder, and which
-  parts of a protocol are genuinely public.
+- `design/METHOD_DISCUSSION.md` — AVATAR-versus-DP tradeoffs, `synadam` parity.
 - `design/PROTOTYPE_SPEC.md` — the specification being implemented.
+
+**`vignettes/` — shipped, and rebuilt by `R CMD check` on every behavioral
+change.** Keep this set small; each one is a recurring cost, not just a
+document.
+
+- `synpmx-method.Rmd` — the four generation modes at a high level.
+- `synpmx-demo.Rmd` — the worked workflow over the public datasets.
+- `synpmx-privacy.Rmd` — the trust-boundary decision rule and choosing epsilon.
+
+**`vignettes/articles/` — pkgdown only.** Excluded from the build by
+`.Rbuildignore`, so `R CMD check` never touches these and they are not shipped
+in the tarball. Use this tier for teaching and evidence that does not need to be
+rebuilt on every change. Note that pkgdown *executes* article code, so a broken
+article fails the site build.
+
+- `avatar-mathematics.Rmd` — the default generator step by step.
+- `privacy-background.Rmd` — `d`, `f`, sensitivity, the error law.
+- `privacy-argument.Rmd` — the formal mechanism-level argument, for a reviewer.
+- `feasibility.Rmd` — what is achievable at which cohort size.
+- `model-elicitation.Rmd` / `data-elicitation.Rmd` — producing the public
+  structural model, priors, and design without reading data.
+
+`README.Rmd` is the entry point and knits to `README.md`; edit the `.Rmd` and
+run `rmarkdown::render("README.Rmd")`. It is not rebuilt by `R CMD check`.
 
 Keep `design/TODO.md` current: tick items as they close, add newly discovered
 work, and record the reasoning in the registry that owns it rather than in the

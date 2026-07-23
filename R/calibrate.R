@@ -75,7 +75,8 @@ print.pmx_prior <- function(x, ...) {
 #' The fold-error is `exp(f * span)`, capped at the prior's half-width because
 #' clipping prevents a release from landing outside the prior. The uncapped
 #' form is accurate for `f` below roughly 0.25 and increasingly pessimistic
-#' above it; see `design/FEASIBILITY.md` section 8.
+#' above it; see the feasibility article at
+#' <https://iamstein.github.io/synpmx/articles/feasibility.html>.
 #'
 #' @param priors A [pmx_priors()] object.
 #' @param epsilon The privacy budget under consideration.
@@ -83,7 +84,8 @@ print.pmx_prior <- function(x, ...) {
 #' @param covariates Optional [pmx_covariates()], so the reported `d` matches a
 #'   fit that also releases covariate summaries.
 #'
-#' @return A `pmx_preflight` report. See `design/PRIVACY_BACKGROUND.md`.
+#' @return A `pmx_preflight` report. The arithmetic behind it is worked through
+#'   at <https://iamstein.github.io/synpmx/articles/privacy-background.html>.
 #' @export
 pmx_preflight <- function(priors, epsilon, n_subjects, covariates = NULL) {
   if (!inherits(priors, "pmx_priors")) {

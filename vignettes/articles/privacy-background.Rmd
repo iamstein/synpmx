@@ -1,16 +1,25 @@
-# Privacy background: where `d`, `f`, and the error law come from
+---
+title: "Privacy background: where d, f, and the error law come from"
+---
 
-Tutorial background for the quantities used throughout `design/TODO.md`,
-`design/FEASIBILITY.md`, `design/PROTOTYPE_SPEC.md`, and
-`design/MODEL_ELICITATION.md`. Built from first principles, with the arithmetic
-worked out.
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Tutorial background for the quantities used throughout the privacy
+documentation: the release dimension `d`, the noise-to-signal ratio `f`, and the
+error law relating them. Built from first principles, with the arithmetic worked
+out.
 
 Related documents, so you land in the right one:
 
-- **This file** — intuition and derivation. How to think about the tradeoff.
-- `design/PRIVACY_ARGUMENT.md` — the formal mechanism-level argument for the
-  implemented Version 2 engine, written for a reviewer.
-- `design/PROTOTYPE_SPEC.md` section 7 — the privacy contract we commit to.
+- **This article** — intuition and derivation. How to think about the tradeoff.
+- [Mechanism-level privacy argument](privacy-argument.html) — the formal
+  argument for the implemented engine, written for a reviewer.
+- [Feasibility by cohort size](feasibility.html) — the measured evidence for
+  what these quantities cost in practice.
+- `vignette("synpmx-privacy")` — the decision rule: whether your release needs
+  formal privacy at all.
 
 ---
 
@@ -186,7 +195,7 @@ clipped to `[1/4, 4]`, an 8-fold prior.
 **Reading it.** Exposures land within roughly a factor of two. `f = 0.30` means
 the release cut prior uncertainty by about 70%, so it clearly beat the prior and
 the budget was well spent. Against the accuracy bar in
-`design/PROTOTYPE_SPEC.md` section 1, this passes comfortably.
+the package specification, this passes comfortably.
 
 **Now change one thing at a time:**
 
@@ -227,7 +236,7 @@ costs nothing.
 **Composition is pessimistic.** Basic sequential composition simply adds up
 epsilon. Advanced composition and zCDP do better, scaling roughly with `√d`
 instead of `d`. But those gains only appear at large `d` — see
-`design/FEASIBILITY.md` section 8. At `d = 3` pure-DP Laplace is genuinely the
+[the feasibility article](feasibility.html) section 8. At `d = 3` pure-DP Laplace is genuinely the
 better mechanism, so the simple `d/(εN)` law is the right one here.
 
 **Gaussian is not automatically better.** Gaussian noise trades an L2
@@ -237,7 +246,7 @@ about 5 at `δ = 1e-6`. It wins only once `√d · 5 < d`, meaning `d > 25`.
 **The formula is a planning bound, not a prediction.** It uses the Laplace
 scale, while measured tables report medians, which run about 0.69 times smaller.
 Treat `f` as conservative. Measured confirmation is in
-`design/FEASIBILITY.md` section 8: predicted 1.49-fold, measured 1.52.
+[the feasibility article](feasibility.html) section 8: predicted 1.49-fold, measured 1.52.
 
 **Clipping bias is separate from noise.** If the true value lies outside the
 prior range, clipping pulls the release toward the boundary and no amount of
@@ -247,4 +256,5 @@ wrong, and it is not visible in `f`.
 
 **Sensitivity depends on the adjacency definition.** All of the above assumes
 add-or-remove one *complete subject*, and that each person appears exactly once.
-See `design/PROTOTYPE_SPEC.md` section 7 on pooling.
+If a subject can appear in more than one pooled study, sensitivity scales with
+the number of appearances and the arithmetic above must be redone.
