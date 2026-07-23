@@ -439,8 +439,9 @@ following:
 - [ ] Declared covariates are constant within synthetic subject and retain classes.
 - [ ] `pmx_settings$warnings` and endpoint transformations were reviewed.
 - [ ] Any TAD column was recomputed if TIME was jittered.
-- [ ] BLOQ/CENS data were handled by an explicit external convention; no
-      censoring support was assumed.
+- [ ] If the source has below-the-limit-of-quantification (BLOQ) records, a
+      `cens` role was declared so the limit is reconstructed rather than copied,
+      and the generated censored fraction was checked against the source.
 - [ ] No claim of anonymity, privacy, parameter fidelity, or scientific
       equivalence is being made.
 - [ ] The synthetic output remains governed according to the source
