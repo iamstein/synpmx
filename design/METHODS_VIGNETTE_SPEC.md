@@ -4,12 +4,12 @@ The current vignette requirements are part of `design/PROTOTYPE_SPEC.md`; that
 file is the source of truth. Version 2 has four documents with deliberately
 separate jobs:
 
-- `vignettes/pmxSynthData-demo.Rmd`: runnable use and public examples;
-- `vignettes/pmxSynthData-privacy-intro.Rmd`: beginner-to-technical privacy
+- `vignettes/synpmx-demo.Rmd`: runnable use and public examples;
+- `vignettes/synpmx-privacy-intro.Rmd`: beginner-to-technical privacy
   guarantee and assumptions; and
-- `vignettes/pmxSynthData-simulation-method.Rmd`: the implemented patient
+- `vignettes/synpmx-simulation-method.Rmd`: the implemented patient
   simulation algorithm; and
-- `vignettes/pmxSynthData-epsilon-exploration.Rmd`: formal OpenDP comparisons
+- `vignettes/synpmx-epsilon-exploration.Rmd`: formal OpenDP comparisons
   at illustrative small, medium, and large epsilon values for its three named
   benchmark datasets.
 

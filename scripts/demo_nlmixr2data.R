@@ -1,16 +1,16 @@
 # Version 2 end-to-end demonstrations for the public nlmixr2data datasets.
-# Install pmxSynthData first with: R CMD INSTALL .
+# Install synpmx first with: R CMD INSTALL .
 
-if (!requireNamespace("pmxSynthData", quietly = TRUE)) {
-  stop("Install pmxSynthData before running this script: R CMD INSTALL .")
+if (!requireNamespace("synpmx", quietly = TRUE)) {
+  stop("Install synpmx before running this script: R CMD INSTALL .")
 }
 required_api <- c(
   "fit_private_pmx", "sampling_summary", "subject_property_summary"
 )
-missing_api <- setdiff(required_api, getNamespaceExports("pmxSynthData"))
+missing_api <- setdiff(required_api, getNamespaceExports("synpmx"))
 if (length(missing_api)) {
   stop(
-    "The installed pmxSynthData is older than this demo. Reinstall the ",
+    "The installed synpmx is older than this demo. Reinstall the ",
     "package from this repository with `R CMD INSTALL .` before running it."
   )
 }
@@ -25,7 +25,7 @@ load_dataset <- function(name) {
 }
 
 demo_budget <- function() {
-  pmxSynthData::pmx_budget_allocation(
+  synpmx::pmx_budget_allocation(
     subject_count = .10, event = .15, timing = .15,
     covariates = .10, endpoints = .50, censoring = 0
   )
@@ -239,16 +239,16 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
                             comparison_bounds = NULL, log_y = FALSE) {
   source <- load_dataset(name)
   fit_bounds <- bounds(source)
-  model <- pmxSynthData::fit_private_pmx(
+  model <- synpmx::fit_private_pmx(
     data = source, roles = roles, endpoints = endpoints,
     epsilon = 5, delta = 0, bounds = fit_bounds,
     public_design = design(source), contribution_limits = limits,
     budget_allocation = demo_budget(),
     backend = "public", public_source = TRUE
   )
-  synthetic <- pmxSynthData::generate_pmx(model, seed = seed)
-  validation <- pmxSynthData::validate_pmx(synthetic, roles, endpoints)
-  comparison <- pmxSynthData::compare_pmx(source, synthetic, roles, endpoints)
+  synthetic <- synpmx::generate_pmx(model, seed = seed)
+  validation <- synpmx::validate_pmx(synthetic, roles, endpoints)
+  comparison <- synpmx::compare_pmx(source, synthetic, roles, endpoints)
   overlay <- overlay_plot(source, synthetic, roles, name, clock, log_y = log_y)
   if (is.null(comparison_bounds)) comparison_bounds <- fit_bounds$time
   design_checks <- check_demo_similarity(
@@ -268,7 +268,7 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   print(rbind(Source = table(source_kind), Synthetic = table(synthetic_kind)))
   message("Cohort and sampling-design checks by endpoint:")
   print(design_checks, row.names = FALSE)
-  print(pmxSynthData::privacy_report(model))
+  print(synpmx::privacy_report(model))
   print(validation)
   print(comparison$release_status)
   if (interactive() && !is.null(overlay)) {
@@ -285,88 +285,88 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
 }
 
 message("Production backend status:")
-print(pmxSynthData::dp_backend_status())
+print(synpmx::dp_backend_status())
 message(paste(
   "These five sources are public, so the demonstrations use the guarded",
   "public fixture backend and make no DP claim. For confidential fitting,",
   "install OpenDP and use the default backend."
 ))
 
-theo_roles <- pmxSynthData::pmx_roles(
+theo_roles <- synpmx::pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", covariates = "WT"
 )
-theo_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
+theo_endpoints <- list(cp = synpmx::pmx_endpoint(
   alignment = "dose_relative", transform = "log", shape = "occasion",
   cmt = 2
 ))
 theophylline <- run_public_demo(
   "theo_md", theo_roles, theo_endpoints,
-  bounds = function(source) pmxSynthData::pmx_bounds(
+  bounds = function(source) synpmx::pmx_bounds(
     c(0, 170), list(cp = c(0, 30)), amt = c(0, 500),
     covariates = list(WT = c(40, 130))
   ),
-  design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_evid = 101, dose_cmt = 1
+  design = function(source) synpmx::pmx_public_design(
+    synpmx::pmx_schema(source), dose_evid = 101, dose_cmt = 1
   ),
-  limits = pmxSynthData::pmx_contribution_limits(40, 8, 8, 30, 11),
+  limits = synpmx::pmx_contribution_limits(40, 8, 8, 30, 11),
   seed = 101
 )
-print(pmxSynthData::sampling_summary(theophylline$model))
+print(synpmx::sampling_summary(theophylline$model))
 message(paste(
   "Theophylline interpretation: the fit infers seven Q24H dose events and",
   "sampling concentrated around dose occasions 1, 2, and 7."
 ))
 
-warfarin_roles <- pmxSynthData::pmx_roles(
+warfarin_roles <- synpmx::pmx_roles(
   id = "id", time = "time", dv = "dv", amt = "amt",
   evid = "evid", dvid = "dvid", covariates = c("wt", "age", "sex")
 )
 warfarin_endpoints <- list(
-  cp = pmxSynthData::pmx_endpoint(
+  cp = synpmx::pmx_endpoint(
     "cp", "dose_relative", "log", "occasion"
   ),
-  pca = pmxSynthData::pmx_endpoint(
+  pca = synpmx::pmx_endpoint(
     "pca", "study_time", "identity", "global"
   )
 )
 warfarin_result <- run_public_demo(
   "warfarin", warfarin_roles, warfarin_endpoints,
-  bounds = function(source) pmxSynthData::pmx_bounds(
+  bounds = function(source) synpmx::pmx_bounds(
     c(0, 144), list(cp = c(0, 25), pca = c(0, 120)),
     amt = c(0, 200),
     covariates = list(wt = c(40, 150), age = c(18, 100))
   ),
-  design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_evid = 1
+  design = function(source) synpmx::pmx_public_design(
+    synpmx::pmx_schema(source), dose_evid = 1
   ),
-  limits = pmxSynthData::pmx_contribution_limits(
+  limits = synpmx::pmx_contribution_limits(
     30, 2, 2, c(cp = 20, pca = 12), 12
   ),
   seed = 202
 )
 
-wbc_roles <- pmxSynthData::pmx_roles(
+wbc_roles <- synpmx::pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", rate = "RATE",
   covariates = c("V2I", "V1I", "CLI")
 )
-wbc_endpoints <- list(wbc = pmxSynthData::pmx_endpoint(
+wbc_endpoints <- list(wbc = synpmx::pmx_endpoint(
   alignment = "study_time", transform = "log", shape = "global", cmt = 3
 ))
 wbc <- run_public_demo(
   "wbcSim", wbc_roles, wbc_endpoints,
-  bounds = function(source) pmxSynthData::pmx_bounds(
+  bounds = function(source) synpmx::pmx_bounds(
     c(0, 720), list(wbc = c(0, 30)), amt = c(-200, 200),
     rate = c(-200, 200),
     covariates = list(V2I = c(100, 1500), V1I = c(100, 1200),
                       CLI = c(100, 800))
   ),
-  design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_evid = 10101, dose_cmt = 1,
+  design = function(source) synpmx::pmx_public_design(
+    synpmx::pmx_schema(source), dose_evid = 10101, dose_cmt = 1,
     endpoint_cmt = list(wbc = 3)
   ),
-  limits = pmxSynthData::pmx_contribution_limits(20, 2, 2, 12, 9),
+  limits = synpmx::pmx_contribution_limits(20, 2, 2, 12, 9),
   seed = 303
 )
 
@@ -374,60 +374,60 @@ wbc <- run_public_demo(
 # conditions the inferred regimen, so generated 50, 100, 200, and 400 mg
 # groups retain matching event amounts. WGT is deliberately excluded because
 # it varies longitudinally in this source and is not a baseline covariate.
-nimo_roles <- pmxSynthData::pmx_roles(
+nimo_roles <- synpmx::pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
   covariates = c("BSA", "AGE", "HGT"),
   subject_properties = "DOS", exclude = "WGT"
 )
-nimo_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
+nimo_endpoints <- list(cp = synpmx::pmx_endpoint(
   alignment = "dose_relative", transform = "identity", shape = "occasion"
 ))
 nimo <- run_public_demo(
   "nimoData", nimo_roles, nimo_endpoints,
-  bounds = function(source) pmxSynthData::pmx_bounds(
+  bounds = function(source) synpmx::pmx_bounds(
     c(0, 3000), list(cp = c(-1, 10)), amt = c(0, 500),
     rate = c(-1200, 1200),
     covariates = list(
       BSA = c(1, 2.5), AGE = c(18, 100), HGT = c(120, 210)
     )
   ),
-  design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source, exclude = "WGT"), dose_evid = 1,
+  design = function(source) synpmx::pmx_public_design(
+    synpmx::pmx_schema(source, exclude = "WGT"), dose_evid = 1,
     category_levels = list(DOS = c(50, 100, 200, 400))
   ),
-  limits = pmxSynthData::pmx_contribution_limits(60, 10, 10, 8, 12),
+  limits = synpmx::pmx_contribution_limits(60, 10, 10, 8, 12),
   seed = 404, clock = "tad", comparison_bounds = c(0, 3000)
 )
 message("NimoData released treatment groups and conditioned regimens:")
-print(pmxSynthData::subject_property_summary(nimo$model), row.names = FALSE)
+print(synpmx::subject_property_summary(nimo$model), row.names = FALSE)
 
 # Mavoglurant is a crossover dataset whose TIME clock resets within OCC. DOSE
 # is not sampled as an independent covariate; it is regenerated from the
 # positive AMT event for each generated subject/occasion.
-mav_roles <- pmxSynthData::pmx_roles(
+mav_roles <- synpmx::pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
   assigned_dose = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
 )
-mav_endpoints <- list(cp = pmxSynthData::pmx_endpoint(
+mav_endpoints <- list(cp = synpmx::pmx_endpoint(
   alignment = "dose_relative", transform = "log", shape = "occasion",
   cmt = 2
 ))
 mavoglurant_result <- run_public_demo(
   "mavoglurant", mav_roles, mav_endpoints,
-  bounds = function(source) pmxSynthData::pmx_bounds(
+  bounds = function(source) synpmx::pmx_bounds(
     c(0, 120), list(cp = c(0, 2000)), amt = c(0, 60),
     rate = c(-350, 350),
     covariates = list(
       AGE = c(18, 90), WT = c(40, 150), HT = c(1.4, 2.1)
     )
   ),
-  design = function(source) pmxSynthData::pmx_public_design(
-    pmxSynthData::pmx_schema(source), dose_evid = 1, dose_cmt = 1,
+  design = function(source) synpmx::pmx_public_design(
+    synpmx::pmx_schema(source), dose_evid = 1, dose_cmt = 1,
     endpoint_cmt = list(cp = 2), category_levels = list(SEX = c(1, 2))
   ),
-  limits = pmxSynthData::pmx_contribution_limits(30, 2, 2, 15, 15),
+  limits = synpmx::pmx_contribution_limits(30, 2, 2, 15, 15),
   seed = 505, clock = "tad", comparison_bounds = c(0, 120), log_y = TRUE
 )
 message("Mavoglurant assigned-dose coherence by occasion:")

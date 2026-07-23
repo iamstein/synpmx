@@ -1,4 +1,4 @@
-# pmxSynthData implementation specification
+# synpmx implementation specification
 
 Working specification for the package. Read `design/TODO.md` for the current
 task queue and `design/FEASIBILITY.md` for the evidence behind the scope

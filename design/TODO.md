@@ -26,32 +26,18 @@ registry entry it points at rather than deleting the history.
 
 ## Next: three prioritized items (joint, needing a scoping conversation)
 
-1. **Rename the package to `synpmx`, consistently everywhere.** Decision
-   (2026-07-23): match `synadam`'s naming convention, and end the current
-   three-way split between the package name (`pmxSynthData`), the GitHub
-   repository (`pmxSyntheticData`), and the intended name. One name, in the
-   package, the repository, and the local clone directory. What the rename
-   touches:
-   - 149 occurrences of `pmxSynthData` across 30 tracked files, plus 9 files
-     *named* `pmxSynthData*`: `DESCRIPTION`, `NAMESPACE`, the `.Rproj`,
-     `R/pmxSynthData-package.R`, `man/pmxSynthData-package.Rd`, all five
-     vignettes (filename **and** `\%\VignetteIndexEntry`), `README.md`,
-     `AGENTS.md`, `build.sh` (`readonly PKG=`), the design documents, and
-     `scripts/`.
-   - **Open question: does the rename extend to the API?** Exported functions
-     are `pmx_*` / `synthesize_pmx()` today. `synadam` parity would argue for
-     leaving them — `pmx_` says what the data is, `syn` says what the package
-     does — but decide deliberately, once, before there are users.
-   - **The git repository is `iamstein/pmxSyntheticData`** (a third spelling,
-     matching neither the package nor the new name). GitHub redirects the old
-     URL after a repository rename, so this is low risk, but it needs doing in
-     the right order: rename on GitHub, then `git remote set-url`, then rename
-     the local clone directory. Note that the working directory path is baked
-     into this session's scratchpad and into `.claude/` settings.
-   - Do it as one mechanical commit with no content changes, so the diff is
-     reviewable, and run `./build.sh` immediately after.
-   - **Sequencing:** decide the vignette set (item 2) *before* renaming, so the
-     five vignette filenames are churned only once.
+1. **Finish the `synpmx` rename outside the repository.** The package rename
+   itself is done (2026-07-23): `DESCRIPTION`, `NAMESPACE`, `R/synpmx-package.R`,
+   `man/`, `build.sh`, `synpmx.Rproj`, all five vignettes (filename, title, and
+   `\%\VignetteIndexEntry`), and every mention in prose. The exported API kept
+   its `pmx_*` / `synthesize_pmx()` names deliberately: `pmx_` says what the
+   data is, `syn` says what the package does, and `synadam` does not prefix its
+   own functions either. What remains is outside git's reach:
+   - [ ] Rename the GitHub repository `iamstein/pmxSyntheticData` → `synpmx`.
+         GitHub redirects the old URL indefinitely, so nothing breaks.
+   - [ ] `git remote set-url origin` afterwards.
+   - [ ] Rename the local clone directory. Note that the old path is baked into
+         `.claude/` settings and any editor session.
 2. **Review and organize the documentation set.** Five vignettes, a `README.md`,
    and ten design documents now overlap in places and no one has decided what
    each is *for*. Decide the audience and job of each document, what the entry
@@ -73,7 +59,7 @@ Scope decision (2026-07-23): the package has four generation modes (AVATAR,
 prior-only, calibration, empirical) but no document introduced them together,
 and a reader landing on any one vignette could not tell which they were in.
 
-- [x] `vignettes/pmxSynthData-intro.Rmd` — the entry point. Big picture, all
+- [x] `vignettes/synpmx-intro.Rmd` — the entry point. Big picture, all
       four modes applied to `theo_md`, a properties table, and a table mapping
       environments (trusted / partner / published) to acceptable modes.
 - [x] Privacy vignette: explain what AVATAR *is* and what DP *is* before
@@ -85,7 +71,7 @@ and a reader landing on any one vignette could not tell which they were in.
       on theophylline, as `scripts/demo_nlmixr2data.R` does.
 - [x] `README.md`: vignette table of contents explaining how the documentation
       set is organized and which document answers which question. This is a
-      minimal addition only; the full rewrite is item 1 above.
+      minimal addition only; the full rewrite is item 2 above.
 - [x] House style: spell out every acronym on first use in a document
       (`AGENTS.md`). The word "mock" is gone: prose says "synthetic data", the
       `compare_pmx()` argument and outputs are `synthetic`, and generated
@@ -114,7 +100,7 @@ required, not removed.
       helpers. Exported and working; no name collisions with v2/v3.
 - [x] AVATAR tests, including all five nlmixr2data datasets. `test-avatar.R`
 - [x] Rebuilt the demo vignette around AVATAR, keeping all five nlmixr2data
-      datasets, and the method vignette from the Version 1 "How pmxSynthData
+      datasets, and the method vignette from the Version 1 "How synpmx
       Works".
 - [x] Method vignette explains the (epsilon, delta) vs AVATAR distinction and
       the synadam parity argument.

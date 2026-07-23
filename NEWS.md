@@ -1,4 +1,4 @@
-# pmxSynthData 0.0.0.9000
+# synpmx 0.0.0.9000
 
 ## Version 4 AVATAR hardening
 

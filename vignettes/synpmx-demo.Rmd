@@ -1,5 +1,5 @@
 ---
-title: "Using pmxSynthData"
+title: "Using synpmx"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,14 +7,14 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{Using pmxSynthData}
+  %\VignetteIndexEntry{Using synpmx}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
-library(pmxSynthData)
+library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
@@ -193,13 +193,13 @@ source_synthetic_preview <- function(source, synthetic, n = 6L) {
 
 ## What this package is for
 
-`pmxSynthData` creates **synthetic pharmacometric data for model-workflow
+`synpmx` creates **synthetic pharmacometric data for model-workflow
 exploration**: data to develop and debug cleaning, joins, reshaping, plotting,
 control-file plumbing, and repeated-dose or longitudinal analysis code, so that
 a pipeline runs unchanged against the real data later.
 
 The package offers four generation modes, and the "Introduction to
-pmxSynthData" vignette applies all four to one dataset side by side:
+synpmx" vignette applies all four to one dataset side by side:
 
 - **AVATAR blending** (`synthesize_pmx()`) — build each synthetic subject from
   real subjects. No elicitation, no formal privacy guarantee.

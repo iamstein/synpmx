@@ -2,7 +2,7 @@
 
 - `demo_nlmixr2data.R` runs the formal-privacy (Version 2) fit-once/generate-many demonstrations for
   the public `theo_md`, `warfarin`, `wbcSim`, `nimoData`, and `mavoglurant`
-  datasets after `pmxSynthData` is installed. It deliberately uses the guarded
+  datasets after `synpmx` is installed. It deliberately uses the guarded
   public-fixture backend because
   those example sources are already public, and labels the resulting models as
   non-DP. Confidential fitting uses the default OpenDP backend and fails closed

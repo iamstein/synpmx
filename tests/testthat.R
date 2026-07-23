@@ -1,4 +1,4 @@
 library(testthat)
-library(pmxSynthData)
+library(synpmx)
 
-test_check("pmxSynthData")
+test_check("synpmx")

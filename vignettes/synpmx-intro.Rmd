@@ -1,5 +1,5 @@
 ---
-title: "Introduction to pmxSynthData"
+title: "Introduction to synpmx"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,14 +7,14 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{Introduction to pmxSynthData}
+  %\VignetteIndexEntry{Introduction to synpmx}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
-library(pmxSynthData)
+library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 
@@ -38,7 +38,7 @@ observations <- function(data, roles, label) {
 
 ## What this package does
 
-`pmxSynthData` builds synthetic pharmacometric (PMX) datasets: dosing and
+`synpmx` builds synthetic pharmacometric (PMX) datasets: dosing and
 measurement event tables with the same schema, event grammar, and rough
 behavior as a real study, so that data-assembly code, diagnostic plots, and
 model-run plumbing can be developed outside the restricted environment that
@@ -95,7 +95,7 @@ Nothing was elicited, nothing was assumed, and the output keeps the source
 schema and cohort size. On a 12-subject dataset `synthesize_pmx()` also emits
 documented small-group fallback warnings (some event-pattern groups have only
 one usable donor); they are suppressed above and explained in the "How
-pmxSynthData Works" vignette.
+synpmx Works" vignette.
 
 What you cannot say about this output is that it is anonymous. It is assembled
 from real trajectories, so it belongs inside the trusted environment that the
@@ -340,13 +340,13 @@ accounting.
 
 ## Where to go next
 
-- **"Using pmxSynthData"** — the practical workflow across five public
+- **"Using synpmx"** — the practical workflow across five public
   datasets, with structural checks.
-- **"How pmxSynthData Works"** — the AVATAR algorithm in full, and the
+- **"How synpmx Works"** — the AVATAR algorithm in full, and the
   model-based alternatives.
-- **"Privacy in pmxSynthData"** — what differential privacy guarantees, what it
+- **"Privacy in synpmx"** — what differential privacy guarantees, what it
   does not, and the trust-boundary decision rule.
-- **"Exploring Epsilon in pmxSynthData"** — how epsilon trades against utility,
+- **"Exploring Epsilon in synpmx"** — how epsilon trades against utility,
   and the measured frontier by cohort size.
 - `design/METHOD_DISCUSSION.md` — why AVATAR is the default and DP the
   boundary-crossing alternative.

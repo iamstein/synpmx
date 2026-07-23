@@ -1,6 +1,6 @@
 #' Declare pharmacometric column roles
 #'
-#' Column roles are explicit: `pmxSynthData` does not infer critical PMX
+#' Column roles are explicit: `synpmx` does not infer critical PMX
 #' semantics from column names. Columns listed in `exclude` are removed before
 #' fitting and do not appear in generated data.
 #'

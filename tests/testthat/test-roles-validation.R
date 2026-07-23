@@ -52,7 +52,7 @@ test_that("all engines are exported side by side", {
   # Version 4 restored the AVATAR engine as the primary method. The DP (v2) and
   # structural (v3) engines are kept as superseded alternatives, so all three
   # public entry points coexist.
-  exports <- getNamespaceExports("pmxSynthData")
+  exports <- getNamespaceExports("synpmx")
   expect_true("synthesize_pmx" %in% exports)             # AVATAR (v4, primary)
   expect_true("fit_private_pmx" %in% exports)      # DP dense grid (v2)
   expect_true("fit_calibrated_pmx" %in% exports)   # structural correction (v3)

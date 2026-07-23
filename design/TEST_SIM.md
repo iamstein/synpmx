@@ -3,7 +3,7 @@
 ## Purpose
 
 This document defines the continuously maintained evaluation suite for
-`pmxSynthData`. It turns failures found while developing the demonstrations
+`synpmx`. It turns failures found while developing the demonstrations
 into reproducible checks. The suite must answer three separate questions:
 
 1. Is the generated PMX table structurally valid?

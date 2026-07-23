@@ -1,6 +1,6 @@
-#' pmxSynthData: structurally faithful synthetic pharmacometric data
+#' synpmx: structurally faithful synthetic pharmacometric data
 #'
-#' `pmxSynthData` primarily uses AVATAR-style profile blending to generate
+#' `synpmx` primarily uses AVATAR-style profile blending to generate
 #' structurally coherent PMX synthetic datasets in a trusted environment. The
 #' package also provides a separate calibrated structural workflow with a
 #' formal differential-privacy backend when that boundary is required.

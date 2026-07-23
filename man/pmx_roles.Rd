@@ -62,7 +62,7 @@ A \code{pmx_roles} object used by the fitting, generation, validation, and
 comparison functions.
 }
 \description{
-Column roles are explicit: \code{pmxSynthData} does not infer critical PMX
+Column roles are explicit: \code{synpmx} does not infer critical PMX
 semantics from column names. Columns listed in \code{exclude} are removed before
 fitting and do not appear in generated data.
 }

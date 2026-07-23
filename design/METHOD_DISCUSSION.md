@@ -1,6 +1,6 @@
 # Method discussion: AVATAR blending vs formal differential privacy
 
-Why `pmxSynthData` uses AVATAR-style blending as its primary method, when it
+Why `synpmx` uses AVATAR-style blending as its primary method, when it
 also contains a fully differentially private engine. Written after building
 both, measuring both, and comparing to Novartis's `synadam`.
 
@@ -95,7 +95,7 @@ Honesty requires stating where the `synadam` analogy strains.
 A resampled **covariate value** is weakly identifying. A weight of 72 kg is
 shared by thousands of people; releasing it reveals almost nothing about any
 individual. This is why `synadam`'s per-column resampling is low-risk, and why
-`pmxSynthData`'s bootstrap covariates (`pmx_covariates_auto()`) are a reasonable
+`synpmx`'s bootstrap covariates (`pmx_covariates_auto()`) are a reasonable
 default.
 
 A resampled **subject trajectory** is strongly identifying. A full

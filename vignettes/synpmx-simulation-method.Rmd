@@ -1,5 +1,5 @@
 ---
-title: "How pmxSynthData Works"
+title: "How synpmx Works"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -9,7 +9,7 @@ output:
     fig_height: 5
     self_contained: true
 vignette: >
-  %\VignetteIndexEntry{How pmxSynthData Works}
+  %\VignetteIndexEntry{How synpmx Works}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -21,12 +21,12 @@ knitr::opts_chunk$set(
   fig.align = "center",
   out.width = "100%"
 )
-library(pmxSynthData)
+library(synpmx)
 ```
 
 ## Purpose and scope
 
-`pmxSynthData` makes **synthetic data for model-workflow exploration**. Its job is
+`synpmx` makes **synthetic data for model-workflow exploration**. Its job is
 practical: preserve enough of a pharmacometric (PMX) event table's structure
 that data assembly, diagnostic plots, and model-run plumbing can be developed
 away from the restricted source environment. The default generator described
@@ -52,7 +52,7 @@ The central idea is to keep two problems separate:
 
 ## The three generators, and which one this vignette documents
 
-`pmxSynthData` offers three ways to produce a synthetic dataset. They differ in
+`synpmx` offers three ways to produce a synthetic dataset. They differ in
 what the output is built from, and therefore in what can be claimed about it.
 
 | Generator | Output is built from | Privacy claim | Works at small N |
@@ -678,7 +678,7 @@ trace. These helpers are not public API. Ordinary analysis code should call
 ```{r worked-trace, echo=FALSE}
 worked_seed <- 2026L
 worked_k <- 3L
-worked_profiles <- pmxSynthData:::.build_profiles(
+worked_profiles <- synpmx:::.build_profiles(
   worked_source, worked_roles, pca_variance = 0.90
 )
 
@@ -686,8 +686,8 @@ set.seed(worked_seed)
 anchor_index <- sample.int(
   length(worked_profiles$subjects), 1L, replace = TRUE
 )
-trace_warnings <- pmxSynthData:::.warning_collector()
-worked_donors <- pmxSynthData:::.select_donors(
+trace_warnings <- synpmx:::.warning_collector()
+worked_donors <- synpmx:::.select_donors(
   anchor_index, worked_profiles, worked_k, trace_warnings
 )
 
@@ -718,24 +718,24 @@ anchor_skeleton <- worked_source[
   worked_profiles$subject_rows[[anchor_index]], , drop = FALSE
 ]
 target_rows <- which(
-  pmxSynthData:::.observation_rows(
+  synpmx:::.observation_rows(
     anchor_skeleton, worked_roles, require_present = TRUE
   )
 )
-target_time <- pmxSynthData:::.aligned_time(
+target_time <- synpmx:::.aligned_time(
   anchor_skeleton, worked_roles
 )[target_rows]
 worked_transform <- worked_profiles$transforms[["DV"]]
 
 worked_donor_matrix <- vapply(worked_donors$indices, function(donor) {
-  trajectory <- pmxSynthData:::.donor_trajectory(
+  trajectory <- synpmx:::.donor_trajectory(
     worked_source,
     worked_roles,
     worked_profiles$subject_rows[[donor]],
     "DV",
     worked_transform
   )
-  pmxSynthData:::.interpolate_trajectory(trajectory, target_time)
+  synpmx:::.interpolate_trajectory(trajectory, target_time)
 }, numeric(length(target_time)))
 if (is.null(dim(worked_donor_matrix))) {
   worked_donor_matrix <- matrix(worked_donor_matrix, ncol = 1L)
@@ -745,7 +745,7 @@ colnames(worked_donor_matrix) <- paste0(
 )
 worked_blend <- apply(
   worked_donor_matrix, 1L,
-  pmxSynthData:::.weighted_available,
+  synpmx:::.weighted_available,
   weights = worked_donors$weights
 )
 
@@ -756,7 +756,7 @@ worked_synthetic <- synthesize_pmx(
   seed = worked_seed,
   k = worked_k
 )
-worked_synthetic_rows <- pmxSynthData:::.observation_rows(
+worked_synthetic_rows <- synpmx:::.observation_rows(
   worked_synthetic, worked_roles, require_present = TRUE
 )
 
@@ -764,7 +764,7 @@ blend_table <- data.frame(
   anchor_TIME = target_time,
   worked_donor_matrix,
   blended_z = worked_blend,
-  deterministic_DV = pmxSynthData:::.inverse_dv(
+  deterministic_DV = synpmx:::.inverse_dv(
     worked_blend, worked_transform
   ),
   final_synthetic_DV = worked_synthetic$DV[worked_synthetic_rows],
@@ -946,7 +946,7 @@ and then used PCA, K-nearest neighbors, inverse Euclidean distance, exponential
 stochastic weights, and rank attenuation before reverse transformation [1]. The original patient-centric AVATAR method was reported by
 Guillaudeux and colleagues [2].
 
-`pmxSynthData` adapts those ideas to a PMX event table in several material ways:
+`synpmx` adapts those ideas to a PMX event table in several material ways:
 
 - it preserves a sampled longitudinal event template rather than generating
   all fields from a wide vector;
@@ -961,7 +961,7 @@ Destere et al. also demonstrate why method labels are not validation: their
 benchmark found materially different PK parameter and residual-error biases
 across synthesis algorithms [1]. That paper is a 2026 medRxiv preprint and was
 not peer reviewed at the version supplied with this package repository. Its
-privacy analyses do not transfer to `pmxSynthData`; this package has undergone
+privacy analyses do not transfer to `synpmx`; this package has undergone
 no corresponding attack-based privacy validation.
 
 ## Algorithm summary

@@ -1,24 +1,24 @@
 ---
-title: "Exploring Epsilon in pmxSynthData"
+title: "Exploring Epsilon in synpmx"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Exploring Epsilon in pmxSynthData}
+  %\VignetteIndexEntry{Exploring Epsilon in synpmx}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-library(pmxSynthData)
+library(synpmx)
 ```
 
 ## Scope
 
 This vignette is about the **differentially private alternative** engines, not
-the default AVATAR method. Read "Privacy in pmxSynthData" first for when the DP
+the default AVATAR method. Read "Privacy in synpmx" first for when the DP
 engines are the right choice (data that crosses a trust boundary). If your
 synthetic data stays inside a trusted environment, use `synthesize_pmx()` and
 ignore epsilon entirely.

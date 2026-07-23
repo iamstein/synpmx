@@ -1,6 +1,6 @@
-# pmxSynthData
+# synpmx
 
-`pmxSynthData` generates structurally faithful **synthetic data for model-workflow
+`synpmx` generates structurally faithful **synthetic data for model-workflow
 exploration**. Its primary `synthesize_pmx()` API uses AVATAR-style profile
 blending inside a trusted environment; the calibrated structural/DP workflow
 remains available when formal privacy is required.
@@ -28,11 +28,11 @@ one dataset and says which is appropriate where.
 
 | Vignette | Question it answers | Read it when |
 |---|---|---|
-| [`pmxSynthData-intro`](vignettes/pmxSynthData-intro.Rmd) | What are the four generation modes, and which one do I want? | **Start here.** |
-| [`pmxSynthData-demo`](vignettes/pmxSynthData-demo.Rmd) | How do I actually run this on my data? | You have picked a mode and want the worked workflow across five public datasets. |
-| [`pmxSynthData-simulation-method`](vignettes/pmxSynthData-simulation-method.Rmd) | How does the default AVATAR generator work, step by step? | You need to defend or debug what the generator did. |
-| [`pmxSynthData-privacy-intro`](vignettes/pmxSynthData-privacy-intro.Rmd) | What does differential privacy guarantee, and does my release need it? | The generated data might cross a trust boundary. |
-| [`pmxSynthData-epsilon-exploration`](vignettes/pmxSynthData-epsilon-exploration.Rmd) | What does a given epsilon cost me in accuracy? | You are choosing an epsilon and cohort size. |
+| [`synpmx-intro`](vignettes/synpmx-intro.Rmd) | What are the four generation modes, and which one do I want? | **Start here.** |
+| [`synpmx-demo`](vignettes/synpmx-demo.Rmd) | How do I actually run this on my data? | You have picked a mode and want the worked workflow across five public datasets. |
+| [`synpmx-simulation-method`](vignettes/synpmx-simulation-method.Rmd) | How does the default AVATAR generator work, step by step? | You need to defend or debug what the generator did. |
+| [`synpmx-privacy-intro`](vignettes/synpmx-privacy-intro.Rmd) | What does differential privacy guarantee, and does my release need it? | The generated data might cross a trust boundary. |
+| [`synpmx-epsilon-exploration`](vignettes/synpmx-epsilon-exploration.Rmd) | What does a given epsilon cost me in accuracy? | You are choosing an epsilon and cohort size. |
 
 The design documents in `design/` are the internal record behind those
 vignettes: `TODO.md` is the working queue and indexes the rest. `AGENTS.md`
@@ -229,7 +229,7 @@ study with 60 subjects by default for broader privacy-utility evaluation.
 - Generated data remain inappropriate for scientific analysis.
 
 See the documentation map above for which vignette answers which question;
-`vignette("pmxSynthData-intro")` is the entry point.
+`vignette("synpmx-intro")` is the entry point.
 
 ## Development
 

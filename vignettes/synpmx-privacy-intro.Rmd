@@ -1,32 +1,32 @@
 ---
-title: "Privacy in pmxSynthData"
+title: "Privacy in synpmx"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Privacy in pmxSynthData}
+  %\VignetteIndexEntry{Privacy in synpmx}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-library(pmxSynthData)
+library(synpmx)
 ```
 
 ## Scope
 
-`pmxSynthData` generates synthetic pharmacometric (PMX) datasets — dosing and
+`synpmx` generates synthetic pharmacometric (PMX) datasets — dosing and
 measurement event tables of the kind a population pharmacokinetic (PK) or
 pharmacodynamic analysis consumes. It offers two families of method that protect
 patients in fundamentally different ways. This vignette explains what each one
 actually is, what differential privacy does and does not promise, and how to
 choose between them.
 
-The companion vignettes are "Using pmxSynthData" (the workflow), "How
-pmxSynthData Works" (the generator algorithms), and "Exploring Epsilon in
-pmxSynthData" (the privacy-utility tradeoff of the private engines).
+The companion vignettes are "Using synpmx" (the workflow), "How
+synpmx Works" (the generator algorithms), and "Exploring Epsilon in
+synpmx" (the privacy-utility tradeoff of the private engines).
 
 ## The two families in one page
 
@@ -198,5 +198,5 @@ dp_backend_status()
   and why small cohorts are hard for any formal method.
 - `design/METHOD_DISCUSSION.md` — the full AVATAR-versus-DP tradeoff and the
   `synadam` comparison.
-- The "How pmxSynthData Works" vignette — the AVATAR algorithm in detail.
+- The "How synpmx Works" vignette — the AVATAR algorithm in detail.
 - The "Exploring Epsilon" vignette — how epsilon trades off against utility.

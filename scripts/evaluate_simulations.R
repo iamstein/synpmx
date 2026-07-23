@@ -16,13 +16,13 @@ sim_eval_root <- if (length(sim_eval_file_arg)) {
 if (file.exists(file.path(sim_eval_root, "DESCRIPTION")) &&
     requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(sim_eval_root, quiet = TRUE)
-} else if (!requireNamespace("pmxSynthData", quietly = TRUE)) {
+} else if (!requireNamespace("synpmx", quietly = TRUE)) {
   stop(
-    "Install pmxSynthData or run this script from the repository with pkgload installed.",
+    "Install synpmx or run this script from the repository with pkgload installed.",
     call. = FALSE
   )
 } else {
-  library(pmxSynthData)
+  library(synpmx)
 }
 
 helper <- file.path(
@@ -308,7 +308,7 @@ dataset_manifest <- unlist(lapply(datasets, function(id) {
 }), use.names = FALSE)
 manifest <- c(
   paste("timestamp:", format(Sys.time(), tz = "UTC", usetz = TRUE)),
-  paste("package_version:", as.character(utils::packageVersion("pmxSynthData"))),
+  paste("package_version:", as.character(utils::packageVersion("synpmx"))),
   paste("git_commit:", git_value(c("rev-parse", "HEAD"))),
   paste("dirty_worktree:", nzchar(git_value(c("status", "--porcelain")))),
   paste("R_version:", R.version.string),
@@ -371,11 +371,11 @@ for (id in datasets) {
 }
 summary_html <- paste0(
   "<!doctype html><html><head><meta charset=\"utf-8\"><title>",
-  "pmxSynthData simulation evaluation</title><style>",
+  "synpmx simulation evaluation</title><style>",
   "body{font-family:sans-serif;max-width:1200px;margin:auto;padding:2rem}",
   "table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:.35rem}",
   "img{max-width:100%;height:auto}</style></head><body>",
-  "<h1>pmxSynthData simulation evaluation</h1>",
+  "<h1>synpmx simulation evaluation</h1>",
   "<p>Backend: ", html_escape(options$backend), "; epsilon: ", epsilon,
   "; seeds: ", html_escape(paste(seeds, collapse = ", ")), ".</p>",
   "<h2>Gate summary</h2>", html_table(gate_summary),

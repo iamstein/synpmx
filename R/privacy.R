@@ -61,7 +61,7 @@
 .public_fixture_backend <- function() {
   structure(list(
     name = "public-fixture", version = as.character(utils::packageVersion(
-      "pmxSynthData"
+      "synpmx"
     )), mechanism = "no noise; source explicitly asserted public",
     production = FALSE, validated = FALSE,
     release = function(value, sensitivity, epsilon) as.numeric(value),

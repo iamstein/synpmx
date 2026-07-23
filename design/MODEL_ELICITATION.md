@@ -1,7 +1,7 @@
 # Building the structural model: an elicitation guide
 
 A question-by-question procedure for producing the **public structural model and
-priors** that `pmxSynthData` needs before it touches any confidential data.
+priors** that `synpmx` needs before it touches any confidential data.
 
 Written to be worked through by a pharmacometrician, or by an LLM agent
 assisting one. The output is an `rxode2` model, a set of prior ranges, and a

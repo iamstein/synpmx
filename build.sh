@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Full verification for pmxSynthData.
+# Full verification for synpmx.
 #
 #   ./build.sh              regenerate docs, build tarball, R CMD check
 #   ./build.sh check        same as above (explicit)
@@ -9,9 +9,9 @@
 #
 # Everything happens against a temporary library that is created fresh on every
 # run and placed ahead of the user library, so nothing is ever validated
-# against a previously installed pmxSynthData, an already loaded namespace, or
+# against a previously installed synpmx, an already loaded namespace, or
 # stale rendered HTML. Suggested dependencies (ggplot2, opendp, nlmixr2data,
-# ...) still resolve from the user library; only pmxSynthData itself is forced
+# ...) still resolve from the user library; only synpmx itself is forced
 # to be freshly built.
 #
 # R CMD check rebuilds the vignettes once, which is enough to prove they still
@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-readonly PKG="pmxSynthData"
+readonly PKG="synpmx"
 readonly ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly OUT="${ROOT}/output"
 readonly CHECK_DIR="${OUT}/check"

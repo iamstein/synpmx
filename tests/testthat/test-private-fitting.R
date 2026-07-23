@@ -33,11 +33,11 @@ test_that("contributions are bounded before all private aggregate groups", {
   extra$OCC <- extra$OCC + 2L
   source <- rbind(source, extra, extra)
   limits <- private_limits(max_rows = 20, max_cells = 6)
-  endpoints <- pmxSynthData:::.normalize_endpoints(
+  endpoints <- synpmx:::.normalize_endpoints(
     private_endpoints(), private_roles(), private_bounds(),
     private_design(source), limits
   )
-  bounded <- pmxSynthData:::.bound_subject_contributions(
+  bounded <- synpmx:::.bound_subject_contributions(
     source, private_roles(), endpoints, private_bounds(), limits
   )
   expect_true(all(vapply(bounded, function(x) nrow(x$data) <= 20L, logical(1))))
@@ -48,7 +48,7 @@ test_that("contributions are bounded before all private aggregate groups", {
 
   explicit <- private_fixture(1)
   explicit$OCC[3L] <- 99L
-  explicit_bounded <- pmxSynthData:::.bound_subject_contributions(
+  explicit_bounded <- synpmx:::.bound_subject_contributions(
     explicit, private_roles(), endpoints, private_bounds(), limits
   )
   expect_false(3L %in% explicit_bounded[[1L]]$observations$cp)
@@ -78,7 +78,7 @@ test_that("dose-occasion sampling density is learned in the timing release", {
 })
 
 test_that("unoccupied trajectory cells do not create artificial troughs", {
-  filled <- pmxSynthData:::.fill_unoccupied_curve(
+  filled <- synpmx:::.fill_unoccupied_curve(
     value_unit = c(0.9, NA, 0.3), presence = c(1, 0, 1),
     grid = c(0, 1, 3)
   )
@@ -183,11 +183,11 @@ test_that("accounting, ledger, and serialization contain no raw payload", {
   banned <- c("raw_rows", "raw_data", "source_ids", "subject_profiles",
               "event_templates", "raw_residuals", "unnoised_aggregates")
   expect_length(intersect(
-    tolower(pmxSynthData:::.recursive_names(model)), banned
+    tolower(synpmx:::.recursive_names(model)), banned
   ), 0L)
   expect_false(any(grepl(
     "seed|unnoised|privacy_noise",
-    tolower(pmxSynthData:::.recursive_names(model))
+    tolower(synpmx:::.recursive_names(model))
   )))
   expect_null(model$source_ids)
   expect_null(model$raw_data)

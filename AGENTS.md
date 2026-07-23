@@ -1,6 +1,6 @@
 # Repository instructions
 
-This repository contains the `pmxSynthData` R package prototype for simulating
+This repository contains the `synpmx` R package prototype for simulating
 structurally faithful synthetic pharmacometric datasets.
 
 ## Design documents

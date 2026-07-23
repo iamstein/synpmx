@@ -1,4 +1,4 @@
-Package: pmxSynthData
+Package: synpmx
 Title: Structurally Faithful Synthetic Pharmacometric Data
 Version: 0.0.0.9000
 Authors@R:
