@@ -550,15 +550,27 @@ covariate-handling pipeline code has something to run against. Fidelity is
 secondary: the goal is exercising joins, filters, and covariate-model plumbing,
 not reproducing a covariate analysis.
 
-Each covariate is declared through `pmx_covariate()` with a **public** range
+There are two ways to declare them, differing in privacy model.
+
+**DP covariates** (`pmx_covariate()` / `pmx_covariates()`) take a public range
 (continuous) or level set (categorical), chosen without inspecting the data. In
-prior mode the values are drawn from those public declarations at no privacy
-cost. In calibrated mode each covariate is released privately and costs exactly
-**one budget slice**, regardless of its number of levels: a continuous covariate
-releases its clipped mean, and a categorical one releases its level-count
-vector, whose L1 sensitivity is one because adding or removing a subject changes
-exactly one level's count by one. The continuous spread stays a public
-assumption; only the centre is calibrated.
+prior mode the values are drawn from those public declarations at no cost. In
+calibrated mode each is released privately and costs exactly one budget slice,
+regardless of its number of levels: a continuous covariate releases its clipped
+mean, a categorical one its level-count vector, whose L1 sensitivity is one
+because adding or removing a subject changes exactly one count by one. This
+keeps the whole release differentially private.
+
+**Bootstrap covariates** (`pmx_covariates_auto()`) take only a list of column
+names. Values are resampled from the data: a uniform draw over the observed
+range (continuous) or a proportional resample (categorical), the approach used
+by Novartis's `synadam`. This is **not** differentially private -- it exposes
+the data-derived support of each column -- and a model that uses it is marked
+accordingly, with a warning and a `covariates_private = FALSE` flag in the
+privacy record. It spends no budget and does not enter `d`. By default the
+continuous range is clipped to the 1st and 99th percentiles so the two extreme
+subjects are not exposed; `clip = NULL` restores the raw min/max, matching
+`synadam` exactly. Use it only inside a trusted environment.
 
 What remains out of scope is any **covariate-response relationship**. Covariates
 are generated independently of the PK and PD, so a workflow that checks, say, a
