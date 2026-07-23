@@ -460,6 +460,8 @@ wbc_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT"
 )
 wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
+#> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
+#>   Declare a column in `keep` to carry it through verbatim.
 validate_pmx(wbc_synth, wbc_roles)$valid
 #> [1] TRUE
 knitr::kable(
@@ -502,9 +504,11 @@ ggplot2::ggplot(
 
 ## NimoData: infusions, occasions, and a dose group
 
-`nimoData` has ten approximately weekly infusions, declared OCC/TAD, a
-nominal dose group (`DOS`), and a time-varying weight column that is
-excluded. The dose group is carried as a subject property.
+`nimoData` has ten approximately weekly infusions, declared OCC/TAD, and
+a nominal dose group (`DOS`). The dose group is carried through with
+`keep`, which copies it verbatim from the same subject that supplied the
+doses, so it stays coherent with them. The redundant `WGT` column is
+simply left undeclared, so AVATAR drops it.
 
 ``` r
 
@@ -512,10 +516,11 @@ data("nimoData", package = "nlmixr2data")
 nimo_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
-  covariates = c("BSA", "AGE", "HGT"), subject_properties = "DOS",
-  exclude = "WGT"
+  covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
 )
 nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
+#> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
+#>   Declare a column in `keep` to carry it through verbatim.
 validate_pmx(nimo_synth, nimo_roles)$valid
 #> [1] TRUE
 knitr::kable(
@@ -557,12 +562,13 @@ ggplot2::ggplot(
 
 ![](synpmx-demo_files/figure-html/nimo-plot-1.png)
 
-## Mavoglurant: occasion-reset clock and assigned dose
+## Mavoglurant: occasion-reset clock and a carried dose column
 
 `mavoglurant` has one- and two-period profiles, a `TIME` axis that
-resets within occasion, an occasion-varying assigned `DOSE`,
-numeric-coded `SEX`, and infusion rows. The reset clock validates within
-ID and occasion.
+resets within occasion, an occasion-varying `DOSE`, numeric-coded `SEX`,
+and infusion rows. The reset clock validates within ID and occasion.
+AVATAR copies the whole event template from one anchor, so `DOSE` stays
+coherent with the doses when carried through with `keep`.
 
 ``` r
 
@@ -570,7 +576,7 @@ data("mavoglurant", package = "nlmixr2data")
 mavo_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
-  assigned_dose = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
+  keep = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
 )
 mavo_synth <- suppressWarnings(synpmx_avatar(mavoglurant, mavo_roles,
                                               seed = 707))

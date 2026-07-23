@@ -871,6 +871,8 @@ which it reports through a warning.</p>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">wbc_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, seed <span class="op">=</span> <span class="fl">505</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.</span></span>
+<span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -952,18 +954,21 @@ which it reports through a warning.</p>
 <h2 id="nimodata-infusions-occasions-and-a-dose-group">NimoData: infusions, occasions, and a dose group<a class="anchor" aria-label="anchor" href="#nimodata-infusions-occasions-and-a-dose-group"></a>
 </h2>
 <p><code>nimoData</code> has ten approximately weekly infusions,
-declared OCC/TAD, a nominal dose group (<code>DOS</code>), and a
-time-varying weight column that is excluded. The dose group is carried
-as a subject property.</p>
+declared OCC/TAD, and a nominal dose group (<code>DOS</code>). The dose
+group is carried through with <code>keep</code>, which copies it
+verbatim from the same subject that supplied the doses, so it stays
+coherent with them. The redundant <code>WGT</code> column is simply left
+undeclared, so AVATAR drops it.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, tad <span class="op">=</span> <span class="st">"TAD"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
-<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BSA"</span>, <span class="st">"AGE"</span>, <span class="st">"HGT"</span><span class="op">)</span>, subject_properties <span class="op">=</span> <span class="st">"DOS"</span>,</span>
-<span>  exclude <span class="op">=</span> <span class="st">"WGT"</span></span>
+<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BSA"</span>, <span class="st">"AGE"</span>, <span class="st">"HGT"</span><span class="op">)</span>, keep <span class="op">=</span> <span class="st">"DOS"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">nimo_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, seed <span class="op">=</span> <span class="fl">606</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; synpmx_avatar(): dropped 1 undeclared column(s): WGT.</span></span>
+<span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -1043,18 +1048,20 @@ as a subject property.</p>
 <p><img src="synpmx-demo_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
-<h2 id="mavoglurant-occasion-reset-clock-and-assigned-dose">Mavoglurant: occasion-reset clock and assigned dose<a class="anchor" aria-label="anchor" href="#mavoglurant-occasion-reset-clock-and-assigned-dose"></a>
+<h2 id="mavoglurant-occasion-reset-clock-and-a-carried-dose-column">Mavoglurant: occasion-reset clock and a carried dose column<a class="anchor" aria-label="anchor" href="#mavoglurant-occasion-reset-clock-and-a-carried-dose-column"></a>
 </h2>
 <p><code>mavoglurant</code> has one- and two-period profiles, a
 <code>TIME</code> axis that resets within occasion, an occasion-varying
-assigned <code>DOSE</code>, numeric-coded <code>SEX</code>, and infusion
-rows. The reset clock validates within ID and occasion.</p>
+<code>DOSE</code>, numeric-coded <code>SEX</code>, and infusion rows.
+The reset clock validates within ID and occasion. AVATAR copies the
+whole event template from one anchor, so <code>DOSE</code> stays
+coherent with the doses when carried through with <code>keep</code>.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mavoglurant"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">mavo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
-<span>  assigned_dose <span class="op">=</span> <span class="st">"DOSE"</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"SEX"</span>, <span class="st">"WT"</span>, <span class="st">"HT"</span><span class="op">)</span></span>
+<span>  keep <span class="op">=</span> <span class="st">"DOSE"</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"SEX"</span>, <span class="st">"WT"</span>, <span class="st">"HT"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">mavo_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>,</span>
 <span>                                              seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span><span class="op">)</span></span>

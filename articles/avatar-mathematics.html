@@ -125,6 +125,75 @@ user must declare them with <code><a href="../reference/pmx_roles.html">pmx_role
 <code>dvid</code>, <code>mdv</code>, and <code>rate</code> are optional
 scalar roles; <code>covariates</code> can contain several baseline
 columns. One source column cannot be assigned to multiple roles.</p>
+<div class="section level3">
+<h3 id="the-role-declaration-is-the-allowlist">The role declaration is the allowlist<a class="anchor" aria-label="anchor" href="#the-role-declaration-is-the-allowlist"></a>
+</h3>
+<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> keeps only columns a role names, and
+<strong>drops every other column</strong>, reporting which ones. This is
+deliberate. AVATAR builds each synthetic subject from one real
+<em>anchor</em> subject, and any column it retains that it does not
+actively synthesize is copied from that anchor verbatim. A secondary
+identifier — <code>USUBJID</code>, a site number, a randomization date —
+left undeclared would otherwise ride a real subject’s real value
+straight into the synthetic data. Dropping by default means a column you
+forget fails safe, toward removal, rather than leaking.</p>
+<p>That leaves four ways a column is treated, and the difference
+matters:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Declared as</th>
+<th>What AVATAR does to it</th>
+<th>Use for</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>dv</code> (with <code>cens</code>/<code>limit</code>)</td>
+<td>Blended across donors into a new trajectory</td>
+<td>the measurement</td>
+</tr>
+<tr class="even">
+<td><code>covariates</code></td>
+<td>Blended/resampled across donors into a new value</td>
+<td>baselines you want <em>synthesized</em> — weight, age</td>
+</tr>
+<tr class="odd">
+<td><code>keep</code></td>
+<td>Copied verbatim from the one anchor subject</td>
+<td>assigned values you want kept faithful to that subject’s dosing —
+arm, dose group, a redundant endpoint label</td>
+</tr>
+<tr class="even">
+<td><em>(undeclared)</em></td>
+<td>Dropped</td>
+<td>anything you do not need</td>
+</tr>
+</tbody>
+</table>
+<p><code>covariates</code> and <code>keep</code> are opposites, and
+choosing wrongly is the common mistake. A <strong>covariate is
+blended</strong>: the synthetic subject gets a genuinely new value
+interpolated from several neighbours, decoupled from any one person. A
+<strong>kept column is copied</strong>: the synthetic subject gets one
+real subject’s real value, unchanged. For a treatment arm, a dose group,
+or a randomization sequence — anything that must stay consistent with
+the doses AVATAR copied from the same anchor — <code>keep</code> is
+correct, precisely because it never leaves that anchor’s side. Because a
+kept value is a real subject’s real value, <code>keep</code> is for the
+trusted environment only.</p>
+<p>Redundant endpoint labels have their own handling. A dataset that
+carries both a numeric <code>YTYPE</code> and a character
+<code>NAME</code> for the same endpoint declares <strong>both</strong>
+as <code>dvid</code>: <code>dvid = c("YTYPE", "NAME")</code>. The first
+is the grouping key; validation checks that the rest are a consistent
+1:1 mapping with it — catching a source where the two labels disagree,
+which <code>keep</code> would carry through silently — and AVATAR
+carries all of them into the output, aligned.</p>
 <p>Immediately before generation, <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> calls
 <code>validate_pmx(..., strict = TRUE)</code>. Among other checks,
 validation requires:</p>
@@ -150,6 +219,7 @@ O_{ij} = [\mathrm{EVID}_{ij}=0]
 <p>Rows with EVID equal to zero but missing DV, or with nonzero MDV,
 remain in the sampled template but do not contribute a measurement
 value.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-2-split-structure-from-values">Step 2: split structure from values<a class="anchor" aria-label="anchor" href="#step-2-split-structure-from-values"></a>
