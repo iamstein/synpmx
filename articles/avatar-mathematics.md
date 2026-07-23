@@ -1,0 +1,799 @@
+# AVATAR mathematics: the generator step by step
+
+This article is the full specification of the default AVATAR generator:
+every step from role declaration to the restored output schema, with the
+mathematics, the edge cases, and a worked example.
+
+It is the companion to
+[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md),
+which introduces all four generation modes at a high level and says
+which one to reach for. Read that first. Come here when you need to
+defend, debug, or review what
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md)
+actually did.
+
+## Step 1: declare the meaning of the columns
+
+The package never guesses critical PMX roles from column names. The user
+must declare them with
+[`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md):
+
+``` r
+
+roles <- pmx_roles(
+  id = "ID",
+  time = "TIME",
+  dv = "DV",
+  amt = "AMT",
+  evid = "EVID",
+  cmt = "CMT",
+  dvid = "DVID",
+  mdv = "MDV",
+  rate = "RATE",
+  covariates = c("WT", "AGE", "SEX")
+)
+roles
+#> Pharmacometric column roles:
+#>   id: ID
+#>   time: TIME
+#>   nominal_time: <absent>
+#>   tad: <absent>
+#>   occasion: <absent>
+#>   dv: DV
+#>   amt: AMT
+#>   evid: EVID
+#>   cmt: CMT
+#>   dvid: DVID
+#>   mdv: MDV
+#>   rate: RATE
+#>   cens: <absent>
+#>   limit: <absent>
+#>   addl: <absent>
+#>   ii: <absent>
+#>   assigned_dose: <absent>
+#>   covariates: WT, AGE, SEX
+```
+
+`id`, `time`, `dv`, and `evid` are required. `amt`, `cmt`, `dvid`,
+`mdv`, and `rate` are optional scalar roles; `covariates` can contain
+several baseline columns. One source column cannot be assigned to
+multiple roles.
+
+Immediately before generation,
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md)
+calls `validate_pmx(..., strict = TRUE)`. Among other checks, validation
+requires:
+
+- nonmissing IDs and EVID values;
+- finite numeric TIME values and nondecreasing TIME within subject;
+- numeric DV and finite nonmissing observations;
+- an endpoint value on every eligible observation when DVID is declared;
+  and
+- every declared baseline covariate to be constant within subject.
+
+Rows are eligible observations when EVID is zero and, if MDV is
+declared, MDV is also zero. A nonmissing DV is additionally required
+when a value is used to build a profile or donor trajectory. In symbols,
+with bracket notation for a logical condition,
+
+``` math
+O_{ij} = [\mathrm{EVID}_{ij}=0]
+         [\mathrm{MDV}_{ij}=0\;\text{if MDV is declared}]
+         [Y_{ij}\;\text{is present}].
+```
+
+Rows with EVID equal to zero but missing DV, or with nonzero MDV, remain
+in the sampled template but do not contribute a measurement value.
+
+## Step 2: split structure from values
+
+Let subject $`i`$ have source rows $`D_i`$. For every requested
+synthetic subject, the generator samples an **anchor** $`a`$ with
+replacement and begins with
+
+``` math
+S^{(0)} = D_a.
+```
+
+Thus $`S^{(0)}`$ contains the anchor’s full row count and row-wise
+combination of TIME, EVID, AMT, RATE, CMT, DVID, and any other source
+columns. This is the event skeleton. By copying these rows together, the
+method avoids impossible records that can result from generating event
+fields independently.
+
+Only a few parts of this skeleton are subsequently changed:
+
+- TIME may be jittered if `time_jitter > 0`;
+- declared baseline covariates are replaced for all rows of the
+  synthetic subject;
+- eligible, originally present observation DVs are synthesized;
+- standard MDV may be re-derived;
+- ID is replaced; and
+- rows are sorted by TIME, retaining original order within ties.
+
+Event-row DV values and undeclared columns otherwise remain
+anchor-template values. Consequently, users should not place a
+semantically important column in the input and assume the package
+understands it merely because it is present.
+
+## Step 3: align time without pretending every subject was sampled identically
+
+### First-event-relative time
+
+Neighbor profiles and donor trajectories are constructed on an internal
+aligned time. For subject $`i`$, the preferred origin is the first
+nonzero-EVID row having a positive AMT:
+
+``` math
+t_{0i} = \min\{t_{ij}: \mathrm{EVID}_{ij}\ne0,\ \mathrm{AMT}_{ij}>0\}.
+```
+
+If no positive-AMT event exists, the first nonzero-EVID row is used. If
+the subject has no event row, TIME is left unchanged. The internal
+aligned time is
+
+``` math
+t^*_{ij}=t_{ij}-t_{0i}.
+```
+
+This removes a subject-specific calendar or study-time offset. It does
+**not** compute time after each dose.
+
+### TIME is not TAD
+
+A conventional time-after-dose (TAD) variable resets after every dose.
+AVATAR does not use a declared `tad` role for alignment and never
+recomputes an existing TAD column. With multiple doses, $`t^*`$
+continues to increase from the first qualifying dose; there is no later
+reset. An input TAD column is an unassigned column and is therefore
+copied from the anchor template.
+
+This has two practical consequences:
+
+1.  Use the actual analysis-time column as `time`. Do not expect a TAD
+    column to drive neighbor construction or interpolation.
+2.  If `time_jitter > 0`, an undeclared copied TAD column is not
+    recalculated and can become inconsistent with the jittered TIME.
+    Recompute TAD downstream if the workflow requires it.
+
+### Different observation times across subjects
+
+For endpoint $`e`$, the package pools finite aligned observation times
+and makes a common grid $`G_e`$. If there are at most 15 unique times,
+all are retained. If there are more, 15 type-8 empirical quantiles are
+used and duplicate quantiles are removed.
+
+Each subject’s transformed trajectory is linearly interpolated onto
+$`G_e`$. There is no extrapolation during profile construction, so grid
+locations outside a subject’s observed window become missing profile
+features. Tied times are averaged by `stats::approx(..., ties = mean)`.
+
+During final synthesis, donors are first interpolated directly to the
+anchor’s aligned observation times. Suppose target time $`t`$ lies
+outside donor $`r`$’s window. Rather than extrapolating indefinitely,
+the method maps the target’s relative position in the whole anchor
+observation window to the donor window:
+
+``` math
+q(t)=\frac{t-a_{\mathrm{target}}}
+           {b_{\mathrm{target}}-a_{\mathrm{target}}},
+\qquad
+u_r(t)=a_r+q(t)(b_r-a_r),
+```
+
+where $`[a_{\mathrm{target}},b_{\mathrm{target}}]`$ and $`[a_r,b_r]`$
+are the target and donor ranges. The donor trajectory is evaluated at
+$`u_r(t)`$. This normalized-window fallback preserves progress through a
+trajectory, but it is not a mechanistic warping model. A donor with only
+one unique time supplies its mean at every requested target time.
+
+### Optional coherent time jitter
+
+The default `time_jitter = 0` copies template times exactly. Otherwise,
+one normal perturbation is drawn for each unique template time $`u_l`$,
+
+``` math
+u'_l=u_l+\delta_l, \qquad
+\delta_l\sim\mathcal{N}(0,\sigma_t^2),
+```
+
+and constrained between the midpoints of adjacent nominal times.
+Nonnegative time is enforced at the first time. All rows tied at $`u_l`$
+receive the same $`u'_l`$, so a dose and observation tied at a nominal
+time remain tied and time ordering cannot cross.
+
+## Step 4: choose an endpoint transformation
+
+Transformations are selected separately for each DVID endpoint, or once
+for the implicit endpoint `"DV"` when DVID is absent. After discarding
+nonfinite values, an endpoint is considered positive-like when it has at
+least one positive value, its median is positive, and at most 1% of
+values are negative.
+
+For a positive-like endpoint, define
+
+``` math
+c_e=\max\left\{\frac{1}{2}\min(Y_e[Y_e>0]),\sqrt{\epsilon_{\mathrm{mach}}}\right\}
+```
+
+and use the offset-log pair
+
+``` math
+g_e(y)=\log\{\max(y,0)+c_e\},
+\qquad
+g_e^{-1}(z)=\max\{\exp(z)-c_e,0\}.
+```
+
+Other endpoints use $`g_e(y)=y`$. The truncations mean a positive-like
+endpoint cannot generate a negative DV. Transformation choices and
+offsets are stored in
+`attr(synthetic, "pmx_settings")$endpoint_transforms`.
+
+## Step 5: build one numeric profile per source subject
+
+A profile concatenates baseline and longitudinal information:
+
+``` math
+\mathbf{x}_i=
+\left[
+  \mathbf{c}_i,\
+  \mathbf{y}_{i1}(G_1),\ldots,\
+  \mathbf{y}_{iE}(G_E)
+\right].
+```
+
+Here $`\mathbf{c}_i`$ contains the first nonmissing value of each
+declared baseline covariate. Numeric covariates contribute one feature.
+Factors and character covariates contribute one indicator for every
+factor level or observed character value. The vector
+$`\mathbf{y}_{ie}(G_e)`$ is subject $`i`$’s transformed endpoint-$`e`$
+trajectory interpolated on its common grid.
+
+This profile is used only for distance calculations. It does not replace
+the source data and is never returned as a synthetic patient.
+
+### Missing features and scaling
+
+An entirely missing feature is removed. Otherwise, a missing profile
+entry is replaced with its across-subject feature median $`m_l`$:
+
+``` math
+x^{\mathrm{imp}}_{il}=
+\begin{cases}
+x_{il}, & x_{il}\text{ is finite},\\
+m_l, & \text{otherwise}.
+\end{cases}
+```
+
+This imputation exists only inside neighbor finding. It does not fill
+source or output DV rows. Features whose standard deviation is not
+greater than $`\sqrt{\epsilon_{\mathrm{mach}}}`$ are removed. The
+remaining columns are standardized as
+
+``` math
+z_{il}=\frac{x^{\mathrm{imp}}_{il}-\bar{x}^{\mathrm{imp}}_l}{s_l}.
+```
+
+### Rank-safe PCA
+
+When there are at least two subjects and two usable features, PCA is
+applied to the standardized matrix with maximum rank
+
+``` math
+r_{\max}=\min(n-1,p).
+```
+
+Let $`\lambda_h`$ be the variance of principal component $`h`$. The
+retained dimension $`H`$ is the smallest value satisfying
+
+``` math
+\frac{\sum_{h=1}^{H}\lambda_h}
+     {\sum_{h=1}^{r_{\max}}\lambda_h}
+\ge v,
+```
+
+where $`v`$ is `pca_variance` (default 0.90). The subject coordinate is
+$`\boldsymbol{\xi}_i=(\mathrm{PC}_{i1},\ldots,\mathrm{PC}_{iH})`$. If
+PCA is not available but standardized features exist, those features are
+used directly. If none exist, all subjects receive the same
+one-dimensional zero coordinate.
+
+The term **rank-safe** means the attempted PCA rank cannot exceed either
+the feature rank or $`n-1`$. It does not imply that sparse or nearly
+duplicated profiles contain useful separation.
+
+## Below-the-limit-of-quantification (BLOQ) data and a Monolix-style CENS column
+
+AVATAR does not synthesize a censoring process. A declared
+`cens`/`limit` role is accepted for schema validation, but at present:
+
+- `CENS` is copied from the anchor template as an unassigned column;
+- a numeric DV on a row with `CENS = 1` is treated as an ordinary
+  observed number if EVID and MDV make that row eligible;
+- no likelihood-based censoring, interval, lower-limit-of-quantification
+  (LLOQ), substitution, or imputation rule is applied; and
+- after DV synthesis, a copied `CENS` flag may no longer agree with the
+  new DV.
+
+Declaring `CENS` as a baseline covariate is not a workaround: if it
+changes within subject, strict validation correctly rejects it as
+nonconstant.
+
+For now, a dataset with BLOQ records should be preprocessed under an
+explicit, documented analysis convention before calling
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md).
+Setting DV missing and using a nonzero declared MDV can retain an
+anchor’s missingness position, but this still does not synthesize a
+coherent censoring process. Users who need synthetic CENS/LLOQ semantics
+should treat that as unsupported package behavior, not as an implicit
+feature.
+
+## Step 6: restrict neighbors to compatible event patterns
+
+Similarity in PCA space is not sufficient. A subject receiving a single
+oral dose should not donate a trajectory to an incompatible infusion or
+repeat-dose template. Each source subject therefore receives an event
+signature containing:
+
+- the ordered EVID values on event rows;
+- optional CMT and DVID values on those rows;
+- the sign and rounded numeric magnitude of optional AMT and RATE;
+- the number of positive-dose starts, or all events if no positive AMT
+  exists;
+- successive start-time gaps rounded to two significant digits; and
+- the set of endpoints on eligible observation rows.
+
+Notice what is not in the signature: the observation-time schedule.
+Event values still come from the anchor template, while unequal
+observation times are handled by interpolation. Including dose magnitude
+prevents profiles from being blended across incompatible exposure
+scales.
+
+For anchor $`a`$, only non-anchor subjects with the same signature are
+candidate donors. Euclidean distance in retained profile coordinates is
+
+``` math
+d_{ar}=\left\|\boldsymbol{\xi}_a-
+                   \boldsymbol{\xi}_r\right\|_2
+=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
+```
+
+The closest `k` candidates are kept. If fewer exist, `k` is reduced and
+a warning is recorded. If none exist, the anchor itself becomes the sole
+donor; only subsequent randomized perturbation can then move its
+measurements.
+
+## Step 7: randomize and cap donor weights
+
+Suppose $`K`$ donors have been selected. Let
+$`E_r\sim\mathrm{Exponential}(1)`$ and let $`R_r`$ be a random
+permutation of $`1,\ldots,K`$. Importantly, $`R_r`$ is a randomized
+rank, not the distance order. The raw donor weight is
+
+``` math
+q_r=\frac{E_r}{\max(d_{ar},\varepsilon)}2^{-R_r},
+```
+
+where
+
+``` math
+\varepsilon=
+\begin{cases}
+\max\{10^{-8},10^{-6}\operatorname{median}(d_{ar}:d_{ar}>0)\},
+  & \text{if a positive distance exists},\\
+10^{-8}, & \text{otherwise}.
+\end{cases}
+```
+
+The first normalization is $`w_r=q_r/\sum_s q_s`$. When more than one
+donor is available, if one weight exceeds 0.80, the dominant weight is
+set to 0.80 and all other weights are rescaled proportionally to sum to
+0.20. A final normalization protects against floating point drift. With
+exactly one donor, its weight is necessarily 1; the cap cannot create a
+second donor. If the raw weights are nonfinite or have a nonpositive
+total, the implementation replaces them with equal raw values before
+normalization.
+
+The same selected subjects and weights are used for every declared
+covariate and endpoint. When donor $`r`$ lacks a usable value at target
+location $`j`$, the available weights are renormalized locally:
+
+``` math
+w_{rj}^{*}=\frac{w_r I_{rj}}
+                 {\sum_s w_s I_{sj}},
+```
+
+where $`I_{rj}=1`$ when the value is finite and zero otherwise.
+
+## Step 8: synthesize baseline covariates
+
+For a numeric covariate, let $`c_r`$ be donor $`r`$’s first nonmissing
+value. When all available values are positive and
+
+``` math
+\frac{\max_r c_r}{\operatorname{median}_r(c_r)}>3,
+```
+
+the blend is formed on the log scale; otherwise it is formed on the
+original scale. With working-scale values $`h(c_r)`$, the donor center
+is
+
+``` math
+\mu_c=\sum_r w_r^* h(c_r).
+```
+
+Let $`s_c`$ be the ordinary sample standard deviation of the available
+working-scale donor values. If it is unavailable or zero, the fallback
+is $`\max(0.05|\mu_c|,0.01)`$. The generated working-scale covariate is
+
+``` math
+c^*=\mu_c+\eta_c,
+\qquad
+\eta_c\sim\mathcal{N}(0,(\sigma_{\mathrm{subj}}s_c)^2),
+```
+
+where `subject_noise_sd` is $`\sigma_{\mathrm{subj}}`$ (default 0.15). A
+log-scale result is exponentiated, and any all-positive covariate is
+floored above zero. The final value is repeated on every row of that
+synthetic subject.
+
+For factor, character, and logical covariates, one available donor
+category is sampled using the locally normalized weights. Categories are
+not averaged.
+
+## Step 9: synthesize each endpoint trajectory
+
+Only positions that were eligible, nonmissing observations in the anchor
+template receive synthesized values. Thus the anchor supplies the number
+and placement of observations, including its missing-DV pattern.
+
+For endpoint $`e`$, donor trajectories are transformed with $`g_e`$ and
+interpolated to the anchor observation times. Let $`z_{rj}`$ be donor
+$`r`$’s transformed value at target position $`j`$. The deterministic
+blend is
+
+``` math
+\bar z_j=\sum_r w_{rj}^{*}z_{rj}.
+```
+
+If every donor is unavailable at a target, the transformed dataset
+median for that endpoint is used and a warning is stored.
+
+The endpoint noise scale $`s_e`$ is 1 on the offset-log scale. On the
+identity scale it is the source endpoint standard deviation, with
+fallback $`\max(0.1|\operatorname{median}(Y_e)|,0.01)`$ when necessary.
+A single subject-level shift is shared across all positions of the
+endpoint:
+
+``` math
+b_e\sim\mathcal{N}(0,(\sigma_{\mathrm{subj}}s_e)^2).
+```
+
+Within-endpoint residual perturbations follow a stationary-scale
+first-order autoregressive, AR(1), process in **observation order**:
+
+``` math
+\begin{aligned}
+\epsilon_{e1} &\sim
+  \mathcal{N}(0,(\sigma_{\mathrm{res}}s_e)^2),\\
+\epsilon_{ej} &= \phi\epsilon_{e,j-1}+\nu_{ej},\\
+\nu_{ej} &\sim
+  \mathcal{N}\left(0,
+    (\sigma_{\mathrm{res}}s_e)^2(1-\phi^2)\right).
+\end{aligned}
+```
+
+Defaults are `residual_noise_sd = 0.05` and `residual_phi = 0.6`. The
+generated DV is
+
+``` math
+Y^*_{ej}=g_e^{-1}(\bar z_j+b_e+\epsilon_{ej}).
+```
+
+Endpoints are processed separately, so PK and PD values cannot be
+blended with one another. They nevertheless use the same donor subjects
+and initial subject weights, preserving a limited form of cross-endpoint
+subject coherence. This is a synthesis device, not a fitted multivariate
+residual model.
+
+## A transparent worked example
+
+The small dataset below has six subjects, one dose each, one positive
+endpoint, two baseline covariates, and deliberately different
+observation times. It is large enough to have non-anchor neighbors but
+small enough to inspect.
+
+``` r
+
+make_subject <- function(id, observation_time, wt, sex, peak) {
+  time <- c(0, observation_time)
+  evid <- c(1L, rep(0L, length(observation_time)))
+  data.frame(
+    ID = as.integer(id),
+    TIME = time,
+    DV = c(0, peak * exp(-0.55 * observation_time) + 0.03 * id),
+    AMT = c(100, rep(0, length(observation_time))),
+    EVID = evid,
+    CMT = c(1L, rep(2L, length(observation_time))),
+    MDV = ifelse(evid == 0L, 0L, 1L),
+    WT = rep(c(58, 64, 70, 76, 82, 88)[id], length(time)),
+    SEX = factor(
+      rep(sex, length(time)),
+      levels = c("female", "male")
+    )
+  )
+}
+
+worked_source <- do.call(rbind, list(
+  make_subject(1, c(0.5, 1.0, 2.0, 4.0), 58, "female", 9.0),
+  make_subject(2, c(0.25, 1.5, 3.0, 6.0), 64, "male", 10.0),
+  make_subject(3, c(0.75, 1.25, 2.5, 5.0), 70, "female", 11.0),
+  make_subject(4, c(0.4, 1.8, 3.5, 5.5), 76, "male", 12.0),
+  make_subject(5, c(0.6, 1.4, 2.8, 4.5), 82, "female", 13.0),
+  make_subject(6, c(0.3, 1.1, 3.2, 6.5), 88, "male", 14.0)
+))
+rownames(worked_source) <- NULL
+
+worked_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", mdv = "MDV",
+  covariates = c("WT", "SEX")
+)
+
+knitr::kable(
+  worked_source[worked_source$ID %in% 1:2, ],
+  digits = 3,
+  caption = "The first two source subjects"
+)
+```
+
+|  ID | TIME |    DV | AMT | EVID | CMT | MDV |  WT | SEX    |
+|----:|-----:|------:|----:|-----:|----:|----:|----:|:-------|
+|   1 | 0.00 | 0.000 | 100 |    1 |   1 |   1 |  58 | female |
+|   1 | 0.50 | 6.866 |   0 |    0 |   2 |   0 |  58 | female |
+|   1 | 1.00 | 5.223 |   0 |    0 |   2 |   0 |  58 | female |
+|   1 | 2.00 | 3.026 |   0 |    0 |   2 |   0 |  58 | female |
+|   1 | 4.00 | 1.027 |   0 |    0 |   2 |   0 |  58 | female |
+|   2 | 0.00 | 0.000 | 100 |    1 |   1 |   1 |  64 | male   |
+|   2 | 0.25 | 8.775 |   0 |    0 |   2 |   0 |  64 | male   |
+|   2 | 1.50 | 4.442 |   0 |    0 |   2 |   0 |  64 | male   |
+|   2 | 3.00 | 1.980 |   0 |    0 |   2 |   0 |  64 | male   |
+|   2 | 6.00 | 0.429 |   0 |    0 |   2 |   0 |  64 | male   |
+
+The first two source subjects {.table}
+
+The next chunk uses internal helpers solely to expose a reproducible
+teaching trace. These helpers are not public API. Ordinary analysis code
+should call
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md)
+rather than depend on them.
+
+With `seed = 2026`, the anchor and its selected compatible donors are:
+
+|     | role   | source_ID | profile_distance | weight |
+|:----|:-------|----------:|-----------------:|-------:|
+|     | anchor |         5 |               NA |     NA |
+| 4   | donor  |         4 |           1.7462 | 0.1119 |
+| 3   | donor  |         3 |           2.7489 | 0.6540 |
+| 6   | donor  |         6 |           3.2730 | 0.2341 |
+
+The anchor contributes the event skeleton. Donors contribute transformed
+DVs after interpolation to the anchor times. The following table shows
+the exact pre-noise blend used by the implementation.
+
+| anchor_TIME | donor_4_z | donor_3_z | donor_6_z | blended_z | deterministic_DV | final_synthetic_DV |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0.6 | 2.194 | 2.026 | 2.348 | 2.121 | 8.121 | 6.880 |
+| 1.4 | 1.776 | 1.688 | 1.934 | 1.755 | 5.570 | 4.832 |
+| 2.8 | 1.078 | 0.992 | 1.231 | 1.058 | 2.666 | 2.278 |
+| 4.5 | 0.324 | 0.231 | 0.530 | 0.312 | 1.151 | 0.964 |
+
+Interpolation and blending for the anchor endpoint; z is the endpoint
+working scale {.table}
+
+`deterministic_DV` is the back-transformed donor blend.
+`final_synthetic_DV` also contains the one subject shift and AR(1)
+residual sequence. The event rows, new ID, and subject-constant
+synthesized covariates can be inspected directly:
+
+``` r
+
+knitr::kable(worked_synthetic, digits = 3)
+```
+
+|  ID | TIME |    DV | AMT | EVID | CMT | MDV |     WT | SEX  |
+|----:|-----:|------:|----:|-----:|----:|----:|-------:|:-----|
+|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 75.166 | male |
+|   7 |  0.6 | 6.880 |   0 |    0 |   2 |   0 | 75.166 | male |
+|   7 |  1.4 | 4.832 |   0 |    0 |   2 |   0 | 75.166 | male |
+|   7 |  2.8 | 2.278 |   0 |    0 |   2 |   0 | 75.166 | male |
+|   7 |  4.5 | 0.964 |   0 |    0 |   2 |   0 | 75.166 | male |
+
+The result records enough settings to audit the public generator call:
+
+| setting | value |
+|:---|:---|
+| seed | 2026 |
+| n_subjects | 1 |
+| k | 3 |
+| pca_variance | 0.9 |
+| subject_noise_sd | 0.15 |
+| residual_noise_sd | 0.05 |
+| residual_phi | 0.6 |
+| time_jitter | 0 |
+| alignment | time relative to first positive dose within compatible schedules; normalized observation-window fallback |
+| compatible_event_groups | 1 |
+| max_donor_weight | 0.8 |
+| warnings |  |
+
+Recorded generator settings {.table}
+
+| endpoint | method     |  offset | positive |
+|:---------|:-----------|--------:|:---------|
+| DV       | log_offset | 0.21442 | TRUE     |
+
+Recorded endpoint transformation {.table}
+
+## Step 10: restore PMX schema and deterministic conventions
+
+After all synthetic subjects are row-bound, the original column order is
+restored. Each result column is converted toward its source class:
+
+- factors recover source levels and ordering; new factor IDs add new
+  levels;
+- integer columns are rounded and converted to integer;
+- double, logical, character, Date, and POSIXct columns are restored;
+  and
+- a non-`data.frame` source class, such as a tibble class vector, is
+  reapplied.
+
+New numeric IDs start above the source maximum. New character and factor
+IDs use labels such as `syn_001`, with a prefix added repeatedly if
+needed to avoid collision.
+
+If MDV is declared and the entire source obeys the standard relationship
+
+``` math
+[\mathrm{MDV}=0]=[\mathrm{EVID}=0\ \text{and DV is present}],
+```
+
+MDV is re-derived from that rule in the synthetic data and restored to
+its original class. For any nonstandard source-wide MDV convention,
+anchor values are left as copied. Missing observation positions are not
+invented or removed.
+
+Finally, `validate_pmx(..., strict = TRUE)` is run on the assembled
+result. A generation call cannot silently return an output that fails
+the package’s own structural requirements.
+
+## Reproducibility and diagnostics
+
+All random operations occur inside a local seed scope. `seed` must be an
+integer between zero and `.Machine$integer.max`. The caller’s RNG kind
+and `.Random.seed` are restored on exit, whether or not `.Random.seed`
+existed before the call. Consequently, identical inputs and arguments
+produce an identical complete result without consuming the surrounding
+analysis RNG stream.
+
+`attr(synthetic, "pmx_settings")` records arguments, explicit roles,
+endpoint transformations, the alignment description, number of
+compatible event groups, the 0.80 cap, and unique fallback warnings. It
+does not currently record the anchor ID, donor IDs, distances, or
+realized weights for each synthetic subject.
+
+Use the public checks for different questions:
+
+- [`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
+  asks whether one dataset is structurally usable under the declared
+  roles.
+- [`compare_pmx()`](https://iamstein.github.io/synpmx/reference/compare_pmx.md)
+  reports source/synthetic row counts, subjects, event counts,
+  endpoints, column classes, validations, and exploratory trajectories
+  when `ggplot2` is installed.
+
+Neither function establishes distributional equivalence, privacy, or
+model fidelity.
+
+## Edge cases and documented fallbacks
+
+The implementation favors an explicit warning and structurally valid
+output over a silent incompatible blend.
+
+| Situation | Behavior |
+|:---|:---|
+| No compatible non-anchor donor | Use anchor as sole donor; randomized noise is the only trajectory change |
+| Fewer compatible donors than k | Reduce k and record a warning |
+| All selected distances essentially zero | Use epsilon-stabilized randomized weights |
+| One donor time only | Repeat that donor’s mean at every target time |
+| No donor value at a target | Use transformed endpoint median and record a warning |
+| No variable profile feature | Use a shared zero coordinate; distance cannot separate subjects |
+| Identical donors with all noise disabled | A source-shaped trajectory may be mathematically unavoidable; warn |
+| Nonstandard MDV convention | Copy anchor MDV values rather than re-derive them |
+
+Other boundaries are deliberate.
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md)
+supports only `event_method = "template"` and
+`dv_method = "avatar_blend"`. It does not fit a structural model,
+reconstruct covariate-parameter relationships, simulate occasions,
+enforce a dosing grammar beyond the sampled template, or provide a
+censoring model. Fitting an explicit structural model is the job of
+[`fit_calibrated_pmx()`](https://iamstein.github.io/synpmx/reference/fit_calibrated_pmx.md),
+described below.
+
+## Relationship to AVATAR
+
+The method is **AVATAR-inspired**, not an implementation of published
+AVATAR software. “AVATAR” is a method name rather than an initialism,
+from the patient-centric *avatarization* literature in which each
+synthetic record is built from the local neighborhood of real records.
+The shared family resemblance is the use of standardized subject
+features, PCA, local neighbors, inverse-distance influence, exponential
+randomization, and rank attenuation. Destere and colleagues describe a
+modified AVATAR benchmark for longitudinal population pharmacokinetic
+(PopPK) data that first widened the data by subject and then used PCA,
+K-nearest neighbors, inverse Euclidean distance, exponential stochastic
+weights, and rank attenuation before reverse transformation \[1\]. The
+original patient-centric AVATAR method was reported by Guillaudeux and
+colleagues \[2\].
+
+`synpmx` adapts those ideas to a PMX event table in several material
+ways:
+
+- it preserves a sampled longitudinal event template rather than
+  generating all fields from a wide vector;
+- compatibility is restricted by event and schedule signatures;
+- endpoints are transformed and interpolated separately;
+- the same donors support covariates and endpoints;
+- a dominant multi-donor weight is capped at 0.80;
+- subject and AR(1) perturbations are added on the endpoint working
+  scale; and
+- there is no inverse-PCA reconstruction of a full synthetic patient
+  vector.
+
+Destere et al. also demonstrate why method labels are not validation:
+their benchmark found materially different PK parameter and
+residual-error biases across synthesis algorithms \[1\]. That paper is a
+2026 medRxiv preprint and was not peer reviewed at the version supplied
+with this package repository. Its privacy analyses do not transfer to
+`synpmx`; this package has undergone no corresponding attack-based
+privacy validation.
+
+## Algorithm summary
+
+For each call to
+[`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md):
+
+1.  Validate source data, roles, and generator arguments.
+2.  Compute first-event-relative time and endpoint-specific
+    transformations.
+3.  Assemble baseline covariates and interpolate transformed endpoint
+    trajectories into one profile per source subject.
+4.  Median-impute profile features, remove unusable features,
+    standardize, and retain enough PCA components to meet `pca_variance`
+    when possible.
+5.  Construct event/schedule signatures.
+6.  Sample anchor subjects with replacement.
+7.  For each anchor, copy its whole event template.
+8.  Find up to `k` closest compatible non-anchor donors and randomize
+    their inverse-distance weights, applying the multi-donor 0.80 cap.
+9.  Generate subject-constant covariates from those donors.
+10. For each endpoint, interpolate donor trajectories to anchor times,
+    blend, add a subject shift and AR(1) perturbations, and
+    back-transform.
+11. Re-derive standard MDV when applicable, assign a new ID, preserve
+    tie order, restore the source schema, and validate the assembled
+    result.
+12. Attach `pmx_settings` and emit any collected fallback warnings.
+
+## References
+
+1.  Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data
+    overcome the privacy and fidelity bottleneck in Pharmacometrics? A
+    comparative benchmark using a daptomycin population pharmacokinetic
+    model.* medRxiv preprint, posted June 2, 2026. doi:
+    [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+2.  Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+    data generation, no reason to risk re-identification in biomedical
+    data analysis. *npj Digital Medicine.* 2023;6. doi:
+    [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).

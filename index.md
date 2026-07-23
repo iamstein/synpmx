@@ -1,0 +1,124 @@
+# synpmx
+
+`synpmx` builds **synthetic pharmacometric datasets**: dosing and
+measurement event tables with the same schema, event grammar, and rough
+behavior as a real study, so that data-assembly code, diagnostic plots,
+and model-run plumbing can be developed outside the restricted
+environment that holds the real data.
+
+The hard part is not making numbers. It is deciding **how much of the
+real data is allowed to survive into the synthetic data** — a privacy
+question before it is a technical one. `synpmx` offers four generation
+modes at different points on that scale, and helps you pick one.
+
+## Installation
+
+``` r
+
+# install.packages("pak")
+pak::pak("iamstein/synpmx")
+```
+
+Formal privacy additionally requires the official [OpenDP R
+package](https://docs.opendp.org/en/stable/api/r/). The package fails
+closed if OpenDP is unavailable and never substitutes hand-written
+noise:
+
+``` r
+
+install.packages("opendp", repos = "https://opendp.r-universe.dev")
+```
+
+## A first synthetic dataset
+
+The default mode needs nothing but the data and a declaration of what
+the columns mean.
+
+``` r
+
+library(synpmx)
+data("theo_md", package = "nlmixr2data")
+
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", covariates = "WT"
+)
+
+synthetic <- suppressWarnings(synthesize_pmx(theo_md, roles, seed = 101))
+validate_pmx(synthetic, roles)$valid
+#> [1] TRUE
+head(synthetic, 4)
+#>   ID TIME          DV    AMT EVID CMT       WT
+#> 1 13 0.00  0.00000000 267.84  101   1 85.25496
+#> 2 13 0.00  0.02403989   0.00    0   2 85.25496
+#> 3 13 0.30 10.00272146   0.00    0   2 85.25496
+#> 4 13 0.63 11.89216329   0.00    0   2 85.25496
+```
+
+The output keeps the source schema, the event grammar, and the cohort
+size. What you cannot say about it is that it is anonymous — it is
+assembled from real trajectories, so it belongs inside the same trusted
+environment the source data came from.
+
+## The four modes
+
+| Mode | Function | Output built from | Guarantee | Works at |
+|----|----|----|----|----|
+| **1. AVATAR blending** | [`synthesize_pmx()`](https://iamstein.github.io/synpmx/reference/synthesize_pmx.md) | Real subject templates and blended real trajectories | None; governance only | ~12 subjects up |
+| **2. Prior only** | [`pmx_generate()`](https://iamstein.github.io/synpmx/reference/pmx_generate.md) | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
+| **3. Calibration** | [`fit_calibrated_pmx()`](https://iamstein.github.io/synpmx/reference/fit_calibrated_pmx.md) | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | ~20 subjects up |
+| **4. Empirical** | [`fit_private_pmx()`](https://iamstein.github.io/synpmx/reference/fit_private_pmx.md) | Dozens of noised population summaries | `(epsilon, delta)` DP | A few hundred up |
+
+Two rules of thumb decide between them:
+
+- **The trust boundary decides whether you need differential privacy.**
+  Ask whether the generated data can reach anyone the source data could
+  not. If not, AVATAR is more useful and its lack of a formal guarantee
+  costs nothing, because there is no adversary to guarantee against. If
+  so, only an accounted release holds up.
+- **The cohort size decides which private mode is usable.** Epsilon buys
+  accuracy in proportion to the number of subjects and in inverse
+  proportion to how many quantities you release. At 12 subjects,
+  releasing two numbers can work and releasing fifty cannot.
+
+[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+runs all four on the same dataset and shows the results side by side.
+
+## Documentation
+
+| Document | Question it answers |
+|----|----|
+| [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
+| [Using synpmx](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
+| [Privacy in synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) | What does differential privacy guarantee, does my release need it, and what epsilon? |
+| [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html) | How does the default generator work, step by step? |
+| [Privacy background](https://iamstein.github.io/synpmx/articles/privacy-background.html) | Where do `d`, `f`, and the error law come from? |
+| [Feasibility by cohort size](https://iamstein.github.io/synpmx/articles/feasibility.html) | What can actually be released, and from how many patients? |
+| [Mechanism-level privacy argument](https://iamstein.github.io/synpmx/articles/privacy-argument.html) | The formal argument, for a reviewer. |
+| [Model elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html) / [data elicitation](https://iamstein.github.io/synpmx/articles/data-elicitation.html) | How do I produce the public inputs modes 2–4 need? |
+
+The full function reference is at
+<https://iamstein.github.io/synpmx/reference/>.
+
+## What this is not
+
+Generated data exercises cleaning, joins, reshaping, plots, control-file
+plumbing, repeated-dose PK code, longitudinal PD/biomarker code,
+infusion events, and censoring conventions. It aims for broad magnitude
+and shape.
+
+It is **not** appropriate for parameter estimation, inference, model
+selection, dose selection, or clinical conclusions, and it does not
+reproduce source distributions, parameter estimates, or
+covariate-response relationships.
+
+Differential privacy, where used, is mathematically bounded rather than
+absolute. It does not guarantee impossibility of linkage or
+re-identification, establish legal anonymity, authorize release, secure
+a compromised environment, or validate public-input claims. Independent
+privacy, legal, information-security, and data-governance review remains
+required.
+
+## License
+
+[MIT](https://iamstein.github.io/synpmx/LICENSE.md) © 2026 Andrew Stein.

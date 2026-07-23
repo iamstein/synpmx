@@ -1,0 +1,17 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  articles/avatar-mathematics: avatar-mathematics.html
+  articles/data-elicitation: data-elicitation.html
+  articles/feasibility: feasibility.html
+  articles/model-elicitation: model-elicitation.html
+  articles/privacy-argument: privacy-argument.html
+  articles/privacy-background: privacy-background.html
+  synpmx-demo: synpmx-demo.html
+  synpmx-method: synpmx-method.html
+  synpmx-privacy: synpmx-privacy.html
+last_built: 2026-07-23T15:32Z
+urls:
+  reference: https://iamstein.github.io/synpmx/reference
+  article: https://iamstein.github.io/synpmx/articles
