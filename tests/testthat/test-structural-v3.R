@@ -460,3 +460,58 @@ test_that("escalation sequences must share a length", {
     "same number of doses"
   )
 })
+
+test_that("covariate declarations validate their inputs", {
+  expect_error(pmx_covariate(range = c(40, 120)), "source")
+  expect_error(pmx_covariate(source = "x"), "exactly one")
+  expect_error(pmx_covariate(range = c(1, 2), levels = c("a"), source = "x"),
+               "exactly one")
+  expect_error(pmx_covariate(range = c(120, 40), source = "x"), "increasing")
+  expect_error(pmx_covariate(levels = c("a", "a"), source = "x"), "unique")
+  expect_error(pmx_covariates(pmx_covariate(range = c(1, 2), source = "x")),
+               "named")
+})
+
+test_that("prior-mode covariates appear, constant within subject, in range", {
+  covariates <- pmx_covariates(
+    WT  = pmx_covariate(range = c(40, 120), source = "x"),
+    SEX = pmx_covariate(levels = c("M", "F"), source = "x")
+  )
+  table <- pmx_generate(.v3_model(), .v3_design(), seed = 1,
+                        covariates = covariates)
+  expect_true(all(c("WT", "SEX") %in% names(table)))
+  expect_true(validate_pmx(table, pmx_generated_roles())$valid)
+
+  # One value per subject, held across their rows.
+  expect_true(all(tapply(table$WT, table$ID,
+                         function(v) length(unique(v))) == 1L))
+  expect_true(all(table$WT >= 40 & table$WT <= 120))
+  expect_true(all(table$SEX %in% c("M", "F")))
+})
+
+test_that("each covariate adds exactly one budget slice with sensitivity one", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  design <- .v3_design()
+  data <- pmx_generate(.v3_model(), design, n_subjects = 60, seed = 3)
+  data$WT <- ave(data$ID, data$ID, FUN = function(i) 70 + i[1L] %% 30)
+  data$SEX <- ifelse(data$ID %% 2 == 0, "M", "F")
+
+  covariates <- pmx_covariates(
+    WT  = pmx_covariate(range = c(40, 120), source = "x"),
+    SEX = pmx_covariate(levels = c("M", "F"), source = "x")
+  )
+  fit <- fit_calibrated_pmx(
+    data, pmx_generated_roles(), .v3_model(), design,
+    pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")),
+    epsilon = 2, covariates = covariates, backend = "opendp"
+  )
+  entries <- fit$privacy$accounting$entries
+  expect_equal(nrow(entries), 4L)               # count + pk + WT + SEX
+  expect_true(all(entries$sensitivity == 1))
+  expect_lte(fit$privacy$accounting$realized_epsilon, 2)
+
+  # Generation from the fit carries the columns without further budget.
+  mock <- pmx_generate(fit, seed = 11)
+  expect_true(all(c("WT", "SEX") %in% names(mock)))
+  expect_true(validate_pmx(mock, pmx_generated_roles())$valid)
+})

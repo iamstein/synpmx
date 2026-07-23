@@ -4,7 +4,7 @@
 \alias{pmx_preflight}
 \title{Check whether a private release is worth its budget, before spending it}
 \usage{
-pmx_preflight(priors, epsilon, n_subjects)
+pmx_preflight(priors, epsilon, n_subjects, covariates = NULL)
 }
 \arguments{
 \item{priors}{A \code{\link[=pmx_priors]{pmx_priors()}} object.}
@@ -12,6 +12,9 @@ pmx_preflight(priors, epsilon, n_subjects)
 \item{epsilon}{The privacy budget under consideration.}
 
 \item{n_subjects}{Number of subjects in the fit.}
+
+\item{covariates}{Optional \code{\link[=pmx_covariates]{pmx_covariates()}}, so the reported \code{d} matches a
+fit that also releases covariate summaries.}
 }
 \value{
 A \code{pmx_preflight} report. See \code{design/PRIVACY_BACKGROUND.md}.

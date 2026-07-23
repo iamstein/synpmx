@@ -72,10 +72,14 @@
 #' @param lloq Lower limit of quantification. Observations below it are flagged
 #'   `CENS = 1` with `DV` at the limit, following the Monolix convention.
 #'
+#' @param covariates Optional [pmx_covariates()] for prior-mode generation.
+#'   Ignored for a calibrated model, which carries its own released covariate
+#'   summaries.
+#'
 #' @return A data frame in PMX event-table form.
 #' @export
 pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
-                         dropout = 0, lloq = NULL) {
+                         dropout = 0, lloq = NULL, covariates = NULL) {
   if (inherits(x, "pmx_calibrated_model")) {
     model <- x$model
     design <- design %||% x$design
@@ -83,6 +87,8 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
     n_subjects <- n_subjects %||% max(1L, as.integer(round(
       x$private_subject_count
     )))
+    covariates <- x$covariates
+    covariate_summaries <- x$covariate_summaries
   } else if (inherits(x, "pmx_structural_model")) {
     model <- x
     typical <- x$typical
@@ -91,6 +97,10 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
            call. = FALSE)
     }
     n_subjects <- n_subjects %||% sum(design$cohort_sizes)
+    if (!is.null(covariates) && !inherits(covariates, "pmx_covariates")) {
+      stop("`covariates` must come from `pmx_covariates()`.", call. = FALSE)
+    }
+    covariate_summaries <- NULL
   } else {
     stop("`x` must be a `pmx_structural_model` or a `pmx_calibrated_model`.",
          call. = FALSE)
@@ -169,6 +179,14 @@ pmx_generate <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
       is.finite(out$DV) & out$DV < lloq
     out$CENS[below] <- 1L
     out$DV[below] <- lloq
+  }
+  # Baseline covariates: one value per subject, constant across their rows.
+  if (!is.null(covariates)) {
+    cov_table <- .draw_covariate_table(covariates, covariate_summaries,
+                                      n_subjects)
+    cov_table$ID <- seq_len(n_subjects)
+    out <- merge(out, cov_table, by = "ID", sort = FALSE)
+    out <- out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
   }
   rownames(out) <- NULL
   attr(out, "pmx_source") <- if (inherits(x, "pmx_calibrated_model")) {

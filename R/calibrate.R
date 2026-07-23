@@ -80,12 +80,17 @@ print.pmx_prior <- function(x, ...) {
 #' @param priors A [pmx_priors()] object.
 #' @param epsilon The privacy budget under consideration.
 #' @param n_subjects Number of subjects in the fit.
+#' @param covariates Optional [pmx_covariates()], so the reported `d` matches a
+#'   fit that also releases covariate summaries.
 #'
 #' @return A `pmx_preflight` report. See `design/PRIVACY_BACKGROUND.md`.
 #' @export
-pmx_preflight <- function(priors, epsilon, n_subjects) {
+pmx_preflight <- function(priors, epsilon, n_subjects, covariates = NULL) {
   if (!inherits(priors, "pmx_priors")) {
     stop("`priors` must come from `pmx_priors()`.", call. = FALSE)
+  }
+  if (!is.null(covariates) && !inherits(covariates, "pmx_covariates")) {
+    stop("`covariates` must come from `pmx_covariates()`.", call. = FALSE)
   }
   if (!is.numeric(epsilon) || length(epsilon) != 1L || !is.finite(epsilon) ||
       epsilon <= 0) {
@@ -95,7 +100,8 @@ pmx_preflight <- function(priors, epsilon, n_subjects) {
       !is.finite(n_subjects) || n_subjects < 1) {
     stop("`n_subjects` must be one positive number.", call. = FALSE)
   }
-  d <- length(priors) + 1L          # + the subject count release
+  # Subject count, each correction, and each covariate are one release apiece.
+  d <- length(priors) + length(covariates) + 1L
   f <- d / (epsilon * n_subjects)
   rows <- lapply(names(priors), function(name) {
     data.frame(
@@ -243,6 +249,8 @@ print.pmx_preflight <- function(x, ...) {
 #' @param design A public [pmx_trial_design()].
 #' @param priors Public [pmx_priors()] for each released correction.
 #' @param epsilon Requested subject-level privacy budget.
+#' @param covariates Optional public [pmx_covariates()]. Each declared covariate
+#'   is released privately and adds one to the released dimension.
 #' @param backend `"opendp"`, or `"public"` for an explicitly public fixture.
 #' @param public_source Logical assertion that the input is already public.
 #'
@@ -250,7 +258,8 @@ print.pmx_preflight <- function(x, ...) {
 #'   accounting, provenance, and a release ledger. It contains no raw records.
 #' @export
 fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
-                               backend = "opendp", public_source = FALSE) {
+                               covariates = NULL, backend = "opendp",
+                               public_source = FALSE) {
   if (!is.data.frame(data) || !nrow(data)) {
     stop("`data` must be a nonempty data frame.", call. = FALSE)
   }
@@ -263,6 +272,9 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
   }
   if (!inherits(priors, "pmx_priors")) {
     stop("`priors` must come from `pmx_priors()`.", call. = FALSE)
+  }
+  if (!is.null(covariates) && !inherits(covariates, "pmx_covariates")) {
+    stop("`covariates` must come from `pmx_covariates()`.", call. = FALSE)
   }
   if (!is.numeric(epsilon) || length(epsilon) != 1L || !is.finite(epsilon) ||
       epsilon <= 0) {
@@ -280,12 +292,18 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
   accountant <- .new_accountant(epsilon, 0, resolved)
 
   released <- names(priors)
-  d <- length(released) + 1L
+  # One release each for the subject count, every correction, and every
+  # covariate. Each has sensitivity one, so the budget splits d ways.
+  d <- length(released) + length(covariates) + 1L
   per_query <- epsilon / d
 
   count <- .private_release(accountant, "subject_count", n_subjects,
                             sensitivity = 1, epsilon = per_query)
   private_count <- max(as.numeric(count), 1)
+
+  covariate_summaries <- .covariate_summaries(
+    data, data[[roles$id]], covariates, accountant, per_query
+  )
 
   corrected <- model$typical
   results <- list()
@@ -349,6 +367,7 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     version = 3L,
     engine = "calibrated_structural_generator",
     model = model, design = design, priors = priors,
+    covariates = covariates, covariate_summaries = covariate_summaries,
     corrections = results,
     corrected_typical = corrected,
     private_subject_count = private_count,

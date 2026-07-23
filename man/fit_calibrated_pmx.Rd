@@ -11,6 +11,7 @@ fit_calibrated_pmx(
   design,
   priors,
   epsilon,
+  covariates = NULL,
   backend = "opendp",
   public_source = FALSE
 )
@@ -27,6 +28,9 @@ fit_calibrated_pmx(
 \item{priors}{Public \code{\link[=pmx_priors]{pmx_priors()}} for each released correction.}
 
 \item{epsilon}{Requested subject-level privacy budget.}
+
+\item{covariates}{Optional public \code{\link[=pmx_covariates]{pmx_covariates()}}. Each declared covariate
+is released privately and adds one to the released dimension.}
 
 \item{backend}{\code{"opendp"}, or \code{"public"} for an explicitly public fixture.}
 

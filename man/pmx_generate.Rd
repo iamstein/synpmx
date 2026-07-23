@@ -10,7 +10,8 @@ pmx_generate(
   n_subjects = NULL,
   seed = NULL,
   dropout = 0,
-  lloq = NULL
+  lloq = NULL,
+  covariates = NULL
 )
 }
 \arguments{
@@ -29,6 +30,10 @@ assumption from the protocol.}
 
 \item{lloq}{Lower limit of quantification. Observations below it are flagged
 \code{CENS = 1} with \code{DV} at the limit, following the Monolix convention.}
+
+\item{covariates}{Optional \code{\link[=pmx_covariates]{pmx_covariates()}} for prior-mode generation.
+Ignored for a calibrated model, which carries its own released covariate
+summaries.}
 }
 \value{
 A data frame in PMX event-table form.

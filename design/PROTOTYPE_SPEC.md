@@ -543,19 +543,30 @@ must be told. This is a real mitigation for the "confidently wrong output" risk
 in `design/FEASIBILITY.md` section 8, and it is the one self-check the design
 gets for free.
 
-## Out of scope: covariates
+## Baseline covariates
 
-The generator emits no covariate columns, and this is a deliberate boundary
-rather than an unfinished feature. Covariates would need public marginal
-distributions, public structural relationships such as allometric weight
-scaling, and a decision about whether any covariate-response relationship is
-worth privacy budget. None of that serves the stated objective, which is
-exercising a pipeline rather than reproducing a covariate analysis.
+The generator emits declared baseline covariate columns so that
+covariate-handling pipeline code has something to run against. Fidelity is
+secondary: the goal is exercising joins, filters, and covariate-model plumbing,
+not reproducing a covariate analysis.
 
-Users needing covariate columns should join them onto generated output from
-their own public or synthetic source. The consequence is worth stating plainly
-in user documentation: **covariate-handling code is not exercised by this
-package's output.**
+Each covariate is declared through `pmx_covariate()` with a **public** range
+(continuous) or level set (categorical), chosen without inspecting the data. In
+prior mode the values are drawn from those public declarations at no privacy
+cost. In calibrated mode each covariate is released privately and costs exactly
+**one budget slice**, regardless of its number of levels: a continuous covariate
+releases its clipped mean, and a categorical one releases its level-count
+vector, whose L1 sensitivity is one because adding or removing a subject changes
+exactly one level's count by one. The continuous spread stays a public
+assumption; only the centre is calibrated.
+
+What remains out of scope is any **covariate-response relationship**. Covariates
+are generated independently of the PK and PD, so a workflow that checks, say, a
+weight effect on clearance will not find one. That is a modeling relationship,
+not pipeline plumbing, and it is excluded by the same logic that keeps
+exposure-response PD out. Note also that adding covariates raises `d` and so
+dilutes the PK correction; the pre-flight in section 2 accounts for the full
+`d`, including covariates.
 
 ## PD is a simple, exposure-independent time course
 
