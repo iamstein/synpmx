@@ -3,7 +3,7 @@
 # Use this when the synthetic data may CROSS A TRUST BOUNDARY (shared externally,
 # published, moved to a less-controlled system) and needs a formal (epsilon,
 # delta) guarantee. If the data stays inside your safe environment, use
-# try_avatar.R instead -- it is simpler and more faithful. See the
+# try_avatar.qmd instead -- it is simpler and more faithful. See the
 # "synpmx-privacy" vignette for the decision rule (which method when).
 #
 # Runs in the safe computing environment, in a gitignored folder so nothing here

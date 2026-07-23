@@ -59,30 +59,41 @@ This step is being shaped; see the note at the top of `try_dp_calibrated.R` and 
 project TODO. For a first pass the template uses the parametric design, which is
 correct for fixed cohorts.
 
-## Two scripts, one decision
+## Templates, one decision
 
 Pick by the trust boundary (see the `synpmx-privacy` vignette for the decision
 rule):
 
-- **`try_avatar.R`** — the default. AVATAR blending (`synpmx_avatar()`) for data
+- **`try_avatar.qmd`** — start here. AVATAR blending (`synpmx_avatar()`) for data
   that STAYS INSIDE this trusted environment. Simpler, more faithful, no formal
-  privacy guarantee. Fill in only the column roles.
+  privacy guarantee. Fill in the data path and the column roles. Runs
+  chunk-by-chunk like a script, or renders a source-vs-synthetic report. Prefer
+  a plain `.R`? `knitr::purl("try_avatar.qmd")` writes one out — there is a
+  single template and the script is generated from it.
 - **`try_dp_calibrated.R`** — the differentially private structural path, for
   data that may CROSS A TRUST BOUNDARY and needs a formal (epsilon, delta)
-  guarantee. Needs a structural model, priors, and a trial design.
+  guarantee. Needs a structural model, priors, and a trial design. This is the
+  secondary, provided-as-is path (see the package README's maintenance status).
 
-## Running it
+`try_avatar_pit565.qmd` is a filled-in AVATAR example on a real study, kept as a
+reference for what a completed roles block looks like.
 
-Both scripts follow the same pattern:
+## Running the AVATAR template
 
-1. Fill in the `CONFIG` block. For `try_avatar.R` that is just the column roles.
-   For `try_dp_calibrated.R` it is the structural model, priors, and trial
-   design, and nothing in it should come from looking at the data — see the
-   cardinal rule in `vignettes/articles/model-elicitation.Rmd`.
+1. Edit the two configuration chunks: the data path, and the column roles.
+2. Run. Undeclared columns are dropped (the run says which); a failed validation
+   names the role and column to fix.
+3. Inspect the restricted comparison figure before treating anything as usable,
+   or exporting it.
+
+## Running the DP script
+
+1. Fill in the `CONFIG` block: the structural model, priors, and trial design.
+   Nothing in it should come from looking at the data — see the cardinal rule in
+   the model-elicitation article.
 2. Run with `DRY_RUN <- TRUE` first. This exercises the whole pipeline on public
    simulated data and never touches your dataset.
-3. For the DP script, read the pre-flight verdict; if `f >= 1` the release will
-   not beat the prior and you should not spend budget.
+3. Read the pre-flight verdict; if `f >= 1` the release will not beat the prior
+   and you should not spend budget.
 4. Set `DRY_RUN <- FALSE`, point `DATA_PATH` at the real dataset, and run.
-5. Inspect the output and the restricted comparison before treating anything as
-   usable, or exporting it.
+5. Inspect the output and the restricted comparison before exporting anything.

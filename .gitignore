@@ -73,8 +73,7 @@ references/private/
 !/scripts_private/.gitignore
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
-!/scripts_private/try_avatar.R
-!/scripts_private/try_avatar_pit565.R
+!/scripts_private/try_avatar.qmd
 !/scripts_private/try_avatar_pit565.qmd
 
 # Local Claude Code settings
