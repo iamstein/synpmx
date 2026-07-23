@@ -85,9 +85,6 @@ if (!file.exists(DATA_PATH)) {
        "\nEdit DATA_PATH in the configuration chunk.", call. = FALSE)
 }
 raw   <- read.csv(DATA_PATH, stringsAsFactors = FALSE)
-# Optional cleanup here: filter to one study, fix units, recode a column.
-# Pooling two assays with different limits trips the censoring check, so filter
-# to a single study if that applies, e.g. raw <- raw[raw$STUDYID == "X", ].
 roles <- ROLES
 
 report <- validate_pmx(raw, roles, strict = FALSE)
