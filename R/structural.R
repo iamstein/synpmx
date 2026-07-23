@@ -260,7 +260,14 @@ print.pmx_structural_model <- function(x, ...) {
 #'   `dose_escalation`.
 #' @param cohort_sizes Planned subjects per cohort, recycled over `dose_levels`.
 #'   Defaults to equal cohorts.
-#' @param sampling Nominal sampling times after each dose, from the protocol.
+#' @param sampling Nominal sampling times after a dose, from the protocol,
+#'   measured from that dose. A single numeric vector applies the same schedule
+#'   after every dose. Real protocols often do not: to sample richly after some
+#'   doses and sparsely or not at all after others, supply a **list with one
+#'   element per dose**, using `NULL` for a dose with no samples. A seven-dose
+#'   study with full profiles on the first and last days and a single trough in
+#'   between is
+#'   `sampling = list(rich, 0, NULL, NULL, NULL, 0, rich)`.
 #' @param n_doses Number of doses per subject in a parallel design.
 #' @param dose_interval Time between doses when doses are equally spaced.
 #' @param dose_escalation Per-occasion dose amounts for a within-subject
@@ -324,17 +331,12 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
     }
     if (is.null(cohort_sizes)) cohort_sizes <- 1L
   }
-  if (!is.numeric(sampling) || length(sampling) < 2L ||
-      any(!is.finite(sampling)) || any(sampling < 0) ||
-      is.unsorted(sampling, strictly = TRUE)) {
-    stop("`sampling` must be at least two increasing nonnegative times.",
-         call. = FALSE)
-  }
   cohort_sizes <- rep_len(as.integer(cohort_sizes), length(dose_levels))
   if (any(!is.finite(cohort_sizes)) || any(cohort_sizes < 1L)) {
     stop("`cohort_sizes` must be positive integers.", call. = FALSE)
   }
   n_doses <- max(1L, as.integer(n_doses))
+  sampling <- .normalize_sampling(sampling, n_doses)
   if (!is.null(dose_times)) {
     if (!is.numeric(dose_times) || length(dose_times) != n_doses ||
         any(!is.finite(dose_times)) || any(dose_times < 0) ||
@@ -347,7 +349,7 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
   structure(list(
     dose_levels = as.numeric(dose_levels), cohort_sizes = cohort_sizes,
     escalation = escalation_list,
-    sampling = as.numeric(sampling),
+    sampling = sampling,
     n_doses = n_doses,
     dose_interval = as.numeric(dose_interval),
     dose_times = dose_times,
@@ -378,14 +380,66 @@ print.pmx_trial_design <- function(x, ...) {
   }
   cat("  dose times: ", paste(signif(.design_dose_times(x), 3),
                               collapse = ", "), "\n",
-      "  sampling: ", paste(signif(x$sampling, 3), collapse = ", "), "\n",
+      "  sampling: ", .format_sampling(x$sampling), "\n",
       "  source: ", x$source, "\n", sep = "")
   invisible(x)
+}
+
+# One line when every dose shares a schedule, otherwise one line per dose so an
+# uneven protocol is visible rather than flattened into a single long vector.
+.format_sampling <- function(sampling) {
+  show <- function(times) {
+    if (!length(times)) "none" else paste(signif(times, 3), collapse = ", ")
+  }
+  if (length(unique(sampling)) == 1L) {
+    return(show(sampling[[1L]]))
+  }
+  paste0("\n", paste0("    dose ", seq_along(sampling), ": ",
+                      vapply(sampling, show, character(1)),
+                      collapse = "\n"))
 }
 
 # Dose times for one subject under a design.
 .design_dose_times <- function(design) {
   design$dose_times %||% ((seq_len(design$n_doses) - 1L) * design$dose_interval)
+}
+
+# `sampling` is stored as one dose-relative time vector per dose, because real
+# protocols rarely sample identically after every dose: a rich profile on day 1
+# and day 7 with troughs in between is the normal shape, not the exception.
+# A single vector means "the same schedule after every dose", which is what the
+# argument used to mean and remains the common case.
+.normalize_sampling <- function(sampling, n_doses) {
+  if (!is.list(sampling)) {
+    if (!is.numeric(sampling) || length(sampling) < 2L ||
+        any(!is.finite(sampling)) || any(sampling < 0) ||
+        is.unsorted(sampling, strictly = TRUE)) {
+      stop("`sampling` must be at least two increasing nonnegative times, ",
+           "or a list of one such vector per dose.", call. = FALSE)
+    }
+    return(rep(list(as.numeric(sampling)), n_doses))
+  }
+  if (length(sampling) != n_doses) {
+    stop("`sampling` is a list, so it must have one element per dose: ",
+         "expected ", n_doses, ", got ", length(sampling), ".", call. = FALSE)
+  }
+  out <- lapply(seq_along(sampling), function(i) {
+    times <- sampling[[i]]
+    # NULL or numeric(0) is a real protocol statement: no samples after this
+    # dose. theo_md takes nothing at all after doses 3 to 5.
+    if (is.null(times) || !length(times)) return(numeric(0))
+    if (!is.numeric(times) || any(!is.finite(times)) || any(times < 0) ||
+        is.unsorted(times, strictly = TRUE)) {
+      stop("`sampling[[", i, "]]` must be increasing nonnegative times, ",
+           "or NULL for a dose with no samples.", call. = FALSE)
+    }
+    as.numeric(times)
+  })
+  if (sum(lengths(out)) < 2L) {
+    stop("`sampling` must give at least two observation times in total.",
+         call. = FALSE)
+  }
+  out
 }
 
 # Per-occasion dose amounts for one subject in a given cohort. Equal doses for a
@@ -401,7 +455,8 @@ print.pmx_trial_design <- function(x, ...) {
 # Nominal observation times: the protocol grid repeated after each dose, then
 # deduplicated. This is a public schedule, not an inferred one.
 .design_observation_times <- function(design) {
-  times <- unlist(lapply(.design_dose_times(design),
-                         function(d) d + design$sampling), use.names = FALSE)
+  dose_times <- .design_dose_times(design)
+  times <- unlist(Map(function(d, s) d + s, dose_times, design$sampling),
+                  use.names = FALSE)
   sort(unique(round(times, 8)))
 }

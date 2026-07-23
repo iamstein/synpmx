@@ -614,3 +614,77 @@ test_that("a bootstrap covariate cannot be generated in prior mode", {
     "needs the data"
   )
 })
+
+# Per-occasion sampling ------------------------------------------------------
+#
+# A bare `sampling` vector is applied after every dose, which is right for a
+# uniform protocol and wrong for most real ones: repeated-dose studies commonly
+# sample richly on the first and last days and take troughs in between.
+
+test_that("a bare sampling vector still repeats after every dose", {
+  design <- pmx_trial_design(100, 6, c(0, 1, 4), n_doses = 3,
+                             dose_interval = 24, source = "unit test")
+  expect_length(design$sampling, 3L)
+  expect_true(all(vapply(design$sampling, identical, logical(1), c(0, 1, 4))))
+  # 3 doses x 3 times, none coinciding.
+  expect_length(.design_observation_times(design), 9L)
+})
+
+test_that("a sampling list gives one schedule per dose", {
+  rich <- c(0, 1, 2, 4, 12)
+  design <- pmx_trial_design(
+    100, 6, sampling = list(rich, 0, NULL, rich), n_doses = 4,
+    dose_interval = 24, source = "unit test"
+  )
+  times <- .design_observation_times(design)
+  # Dose 1 rich (0..12), dose 2 trough at 24, dose 3 nothing, dose 4 rich
+  # (72..84). Nothing coincides, so every declared time survives.
+  expect_length(times, length(rich) * 2L + 1L)
+  expect_true(all(times[times > 12 & times < 72] == 24))
+  # The gap after dose 3 is real: no observation between 24 and 72.
+  expect_false(any(times > 24 & times < 72))
+})
+
+test_that("NULL and numeric(0) both mean no samples after that dose", {
+  rich <- c(0, 1, 2)
+  a <- pmx_trial_design(100, 6, list(rich, NULL, rich), n_doses = 3,
+                        dose_interval = 24, source = "unit test")
+  b <- pmx_trial_design(100, 6, list(rich, numeric(0), rich), n_doses = 3,
+                        dose_interval = 24, source = "unit test")
+  expect_identical(.design_observation_times(a), .design_observation_times(b))
+})
+
+test_that("a sampling list must match the dose count", {
+  expect_error(
+    pmx_trial_design(100, 6, list(c(0, 1), c(0, 1)), n_doses = 3,
+                     source = "unit test"),
+    "one element per dose"
+  )
+})
+
+test_that("a design with fewer than two observation times is rejected", {
+  expect_error(
+    pmx_trial_design(100, 6, list(0, NULL, NULL), n_doses = 3,
+                     source = "unit test"),
+    "at least two observation times"
+  )
+})
+
+test_that("per-occasion sampling reaches the generated data", {
+  rich <- c(0, 0.5, 1, 2, 4, 9, 24)
+  design <- pmx_trial_design(
+    320, 12, sampling = list(rich, 0, NULL, NULL, NULL, NULL, rich),
+    n_doses = 7, dose_interval = 24, source = "unit test"
+  )
+  model <- pmx_structural_model("1cmt_oral", c(cl = 6, v = 35, ka = 1.5),
+                                source = "unit test")
+  generated <- synpmx_prior(model, design, n_subjects = 6, seed = 1)
+  observed <- generated[generated$EVID == 0, ]
+  per_subject <- nrow(observed) / 6
+  # A bare vector would give 7 profiles; this protocol declares two plus a
+  # trough, so the study is sampled roughly three times less densely.
+  expect_lt(per_subject, 20)
+  # Doses 3 to 6 span (48, 144): the protocol says nothing is collected there.
+  middle <- observed$NTIME > 50 & observed$NTIME < 140
+  expect_false(any(middle))
+})

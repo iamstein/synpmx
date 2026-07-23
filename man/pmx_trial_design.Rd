@@ -24,7 +24,14 @@ pmx_trial_design(
 \item{cohort_sizes}{Planned subjects per cohort, recycled over \code{dose_levels}.
 Defaults to equal cohorts.}
 
-\item{sampling}{Nominal sampling times after each dose, from the protocol.}
+\item{sampling}{Nominal sampling times after a dose, from the protocol,
+measured from that dose. A single numeric vector applies the same schedule
+after every dose. Real protocols often do not: to sample richly after some
+doses and sparsely or not at all after others, supply a \strong{list with one
+element per dose}, using \code{NULL} for a dose with no samples. A seven-dose
+study with full profiles on the first and last days and a single trough in
+between is
+\code{sampling = list(rich, 0, NULL, NULL, NULL, 0, rich)}.}
 
 \item{n_doses}{Number of doses per subject in a parallel design.}
 

@@ -127,12 +127,19 @@ theo_model <- pmx_structural_model(
   typical = c(cl = 6, v = 35, ka = 1.5),          # deliberately imperfect
   source = "illustrative allometric scaling; never fitted to theo_md"
 )
+# theo_md samples richly on the first and last days and takes a single trough
+# in between, which is the usual shape for a repeated-dose study. `sampling`
+# takes one entry per dose so that can be said directly; a bare vector would
+# apply the rich profile after all seven doses and oversample the study
+# three-fold.
+rich <- c(0, 0.25, 0.5, 1, 2, 4, 7, 9, 12, 24)
 theo_design <- pmx_trial_design(
   dose_levels = 320, cohort_sizes = 12,
-  sampling = c(0, 0.25, 0.5, 1, 2, 4, 7, 9, 12, 24),
+  sampling = list(rich, 0, NULL, NULL, NULL, NULL, rich),
   n_doses = 7, dose_interval = 24,
   source = "illustrative protocol"
 )
+theo_design
 prior_only <- synpmx_prior(theo_model, theo_design, n_subjects = 12, seed = 202)
 head(prior_only, 3)
 ```
