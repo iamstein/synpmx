@@ -75,4 +75,4 @@ references/private/
 !/scripts_private/try_avatar.R
 
 # Local Claude Code settings
-.claude/settings.local.json
+.claude/
