@@ -15,6 +15,8 @@ How this relates to the other design documents:
   public structural model and priors before any data is read.
 - `design/DATA_ELICITATION.md` — **structure**, the trial-design ladder and
   which parts of a protocol are actually public.
+- `design/METHOD_DISCUSSION.md` — **tradeoffs**, AVATAR blending vs formal DP,
+  and why AVATAR is the trajectory-level analogue of synadam.
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 Keep items here short and link out. When an item closes, tick it and update the
@@ -22,7 +24,33 @@ registry entry it points at rather than deleting the history.
 
 ---
 
-## Now: v3 low-dimensional structural generator
+## Now: Version 4 — return to AVATAR blending as the primary method
+
+Scope decision (2026-07-22): after comparing to Novartis's `synadam` (which
+resamples each column marginally from the data with no formal guarantee), AVATAR
+is the trajectory-level analogue of the same governance-based approach, and it is
+the right default for trusted-environment mock data. The DP (v2) and structural
+(v3) engines are kept as superseded alternatives for when a formal guarantee is
+required, not removed.
+
+- [ ] `design/METHOD_DISCUSSION.md`: the tradeoff essay — AVATAR vs (epsilon,
+      delta) DP, the trajectory-is-a-fingerprint asymmetry, and the synadam
+      parity argument.
+- [ ] `PROTOTYPE_SPEC.md`: a Version 4 section at the top framing the return to
+      AVATAR, with DP retained as the formal-privacy alternative.
+- [x] Restore the AVATAR engine as `synthesize_pmx()` (renamed from the v1
+      `mock_pmx`), `synthesis.R`, `profiles.R`, plus the ported `utils.R`
+      helpers. Exported and working; no name collisions with v2/v3.
+- [x] AVATAR tests, including all five nlmixr2data datasets. `test-avatar.R`
+- [ ] Rebuild the demo and method vignettes around AVATAR (three worked
+      examples; "How pmxSynthData Works").
+- [ ] In the method vignette, explain the (epsilon, delta) vs AVATAR
+      distinction and the synadam parity argument.
+- [ ] Slim the two DP vignettes (epsilon-exploration, privacy-intro) to a short
+      "formal-privacy alternative" aside.
+- [ ] `./build.sh` clean, all vignettes knit, tests pass.
+
+## Superseded: v3 low-dimensional structural generator (kept as an alternative)
 
 The scope decision (2026-07-22): prefer small trials over pooled corpora. That
 requires releasing a handful of parameters against public structural priors
