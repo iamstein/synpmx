@@ -165,6 +165,34 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
             "Censoring interval boundaries have an invalid direction." else
             "Censoring interval boundaries are ordered consistently.")
     }
+
+    # Coherence between the flag and the value. The checks above accept any CENS
+    # flag with any DV; they never ask whether the two agree. A threshold assay
+    # cannot report a left-censored value (DV at the limit) above an ordinary
+    # measurement of the same endpoint, nor a right-censored value below one, so
+    # a crossing means CENS and DV were produced independently rather than from
+    # one latent value. This is `REV-021`.
+    limit <- if (is.null(roles$limit)) rep(NA_real_, nrow(data)) else
+      suppressWarnings(as.numeric(data[[roles$limit]]))
+    endpoint_id <- .endpoint(data, roles)
+    incoherent <- FALSE
+    for (name in unique(endpoint_id[allowed])) {
+      here <- allowed & endpoint_id == name & is.finite(dv) & is.finite(cens)
+      uncensored <- dv[here & cens == 0]
+      if (!length(uncensored)) next
+      # Point left-censoring reports the limit in DV; an uncensored value of the
+      # same endpoint cannot sit below that limit without itself being censored.
+      left <- dv[here & cens == 1 & !is.finite(limit)]
+      if (length(left) && max(left) > min(uncensored)) incoherent <- TRUE
+      # Right-censoring is the mirror image.
+      right <- dv[here & cens == -1 & !is.finite(limit)]
+      if (length(right) && min(right) < max(uncensored)) incoherent <- TRUE
+    }
+    add("cens_dv_coherence", if (incoherent) "error" else "pass",
+        if (incoherent)
+          paste("Censored and uncensored observations of an endpoint cross the",
+                "censoring boundary: a CENS flag disagrees with its DV.") else
+          "Censoring flags are consistent with reported DV values.")
   }
 
   if (!is.null(roles$amt)) {

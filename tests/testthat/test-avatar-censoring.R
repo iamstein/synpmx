@@ -156,3 +156,57 @@ test_that("interval-censored rows carry both ends of the interval", {
   expect_equal(unique(rows$LIMIT[censored]), lower)
   expect_true(all(is.na(rows$LIMIT[!censored])))
 })
+
+# REV-021: validate_pmx() must reject data whose CENS flag disagrees with DV.
+
+test_that("validate_pmx flags a censored value above an uncensored one", {
+  source <- pmx_simulated_fixture(20)
+  source <- source[source$DVID == "cp", ]
+  observed <- source$EVID == 0 & !is.na(source$DV)
+  # Flag a quarter of rows at random without touching DV: exactly the old
+  # copied-from-anchor behaviour, where CENS and DV were produced independently.
+  source$CENS <- 0L
+  source$LIMIT <- NA_real_
+  flagged <- sample(which(observed), max(1L, floor(sum(observed) * 0.25)))
+  source$CENS[flagged] <- 1L
+
+  report <- validate_pmx(source, cens_roles())
+  expect_false(report$valid)
+  coherence <- report$checks$status[report$checks$check == "cens_dv_coherence"]
+  expect_identical(coherence, "error")
+})
+
+test_that("validate_pmx accepts coherently censored data", {
+  fixture <- left_censored_source()
+  # The source itself is coherent: every censored row sits at the limit, every
+  # uncensored row above it.
+  report <- validate_pmx(fixture$data, cens_roles())
+  coherence <- report$checks$status[report$checks$check == "cens_dv_coherence"]
+  expect_identical(coherence, "pass")
+})
+
+test_that("the coherence check does not fire without a cens role", {
+  source <- pmx_simulated_fixture(15)
+  source <- source[source$DVID == "cp", ]
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV")
+  report <- validate_pmx(source, roles)
+  expect_false("cens_dv_coherence" %in% report$checks$check)
+  expect_true(report$valid)
+})
+
+test_that("right-censoring coherence is checked in the mirror direction", {
+  source <- pmx_simulated_fixture(20)
+  source <- source[source$DVID == "cp", ]
+  observed <- source$EVID == 0 & !is.na(source$DV)
+  source$CENS <- 0L
+  source$LIMIT <- NA_real_
+  # Flag a low-valued row as right-censored: a right-censored value should be an
+  # upper measurement, so one below ordinary values is incoherent.
+  lowest <- which(observed)[which.min(source$DV[observed])]
+  source$CENS[lowest] <- -1L
+
+  report <- validate_pmx(source, cens_roles())
+  coherence <- report$checks$status[report$checks$check == "cens_dv_coherence"]
+  expect_identical(coherence, "error")
+})
