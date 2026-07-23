@@ -18,7 +18,17 @@ library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
+```
 
+This vignette compares five source datasets against their synthetic
+counterparts, so it needs a few helpers to pull observed rows into a common
+shape and plot them. They are ordinary plotting code, not part of the package
+API; expand the block if you want to reuse them.
+
+<details>
+<summary>Plotting helpers used throughout this vignette</summary>
+
+```{r plot-helpers}
 observed_plot_data <- function(data, roles, dataset,
                                clock = "study_time") {
   observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
@@ -190,6 +200,7 @@ source_synthetic_preview <- function(source, synthetic, n = 6L) {
 }
 ```
 
+</details>
 
 ## What this package is for
 
@@ -224,8 +235,8 @@ It is synthetic data for a trusted computing environment, in the same spirit as
 Novartis's `synadam` (which resamples each column marginally from the data). It
 is not appropriate for parameter estimation, inference, model selection, or
 clinical decisions. When the generated data must cross a trust boundary, use one
-of the differentially private modes instead (see the privacy-introduction
-vignette); the tradeoff is discussed in `design/METHOD_DISCUSSION.md`.
+of the differentially private modes instead; `vignette("synpmx-privacy")` works
+through that decision and the tradeoff behind it.
 
 ## Shared workflow
 
@@ -581,7 +592,7 @@ are always freshly generated and never reuse a source value.
 
 Not provided: any formal privacy guarantee. The synthetic data is built by
 blending real subject trajectories, so it is appropriate for a trusted
-environment, not for release across a trust boundary. See the method vignette
-for how the blending works, the introduction vignette for all four modes side by
-side, and the privacy-introduction vignette for what differential privacy does
-and does not promise.
+environment, not for release across a trust boundary. See
+`vignette("synpmx-method")` for all four modes side by side and
+`vignette("synpmx-privacy")` for what differential privacy does and does not
+promise.

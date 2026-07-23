@@ -1,0 +1,90 @@
+url: https://iamstein.github.io/synpmx/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: "Method"
+      - text: AVATAR mathematics
+        href: articles/avatar-mathematics.html
+      - text: -------
+      - text: "Privacy"
+      - text: Privacy background — the arithmetic
+        href: articles/privacy-background.html
+      - text: Formal privacy argument
+        href: articles/privacy-argument.html
+      - text: Feasibility by cohort size
+        href: articles/feasibility.html
+      - text: -------
+      - text: "Preparing public inputs"
+      - text: Model elicitation
+        href: articles/model-elicitation.html
+      - text: Data elicitation
+        href: articles/data-elicitation.html
+
+reference:
+- title: Generating data
+  desc: >
+    The four generation modes. `synthesize_pmx()` is the default AVATAR path;
+    the others require a public structural model.
+  contents:
+  - synthesize_pmx
+  - pmx_generate
+  - fit_calibrated_pmx
+  - fit_private_pmx
+  - generate_pmx
+
+- title: Declaring the data
+  desc: Roles, endpoints, schema, and bounds that describe an event table.
+  contents:
+  - pmx_roles
+  - pmx_endpoint
+  - pmx_schema
+  - pmx_bounds
+  - pmx_generated_roles
+
+- title: Public model and design inputs
+  desc: >
+    Data-independent inputs for the model-based modes. See the model and data
+    elicitation articles for how to produce these without reading data.
+  contents:
+  - pmx_structural_model
+  - pmx_trial_design
+  - pmx_public_design
+  - pmx_prior
+  - pmx_priors
+  - pmx_covariate
+  - pmx_covariates
+  - pmx_covariates_auto
+
+- title: Privacy accounting
+  desc: Contribution limits, budget, preflight, and the release ledger.
+  contents:
+  - pmx_contribution_limits
+  - pmx_budget_allocation
+  - pmx_preflight
+  - privacy_report
+  - validate_private_model
+  - dp_backend_status
+  - run_dp_backend_tests
+
+- title: Validation and diagnostics
+  desc: Structural checks on generated data, and restricted comparisons.
+  contents:
+  - validate_pmx
+  - compare_pmx
+  - sampling_summary
+  - subject_property_summary
+
+- title: Fixtures
+  desc: Fully public example datasets for testing and demonstration.
+  contents:
+  - pmx_censoring_fixture
+  - pmx_simulated_fixture

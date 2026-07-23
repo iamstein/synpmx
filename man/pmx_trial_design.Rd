@@ -51,8 +51,9 @@ A \code{pmx_trial_design}.
 }
 \description{
 Every field is a design fact from the protocol and consumes no privacy
-budget. See \code{design/DATA_ELICITATION.md} for which parts of a realized
-design need a provenance note.
+budget. See the data elicitation guide at
+\url{https://iamstein.github.io/synpmx/articles/data-elicitation.html} for which
+parts of a realized design need a provenance note.
 }
 \details{
 Two dosing patterns are supported. A parallel design gives each cohort one

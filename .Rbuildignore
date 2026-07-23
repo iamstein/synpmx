@@ -16,3 +16,10 @@
 ^build\.sh$
 ^\.claude$
 ^scripts_private$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^vignettes/articles$
+^\.github$
+^README\.Rmd$
+^README\.html$

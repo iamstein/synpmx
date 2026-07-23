@@ -2,22 +2,29 @@
 
 Living task list. One line per actionable item, newest scope at the top.
 
-How this relates to the other design documents:
+How this relates to the other documents. `AGENTS.md` explains the three tiers
+and which one new writing belongs in.
+
+Internal design record (`design/`, cited by nothing shipped):
 
 - `design/TODO.md` (this file) — **what to do next.** The working queue.
 - `design/REVIEW_BACKLOG.md` — **why**, for defects and design findings. `REV-###`.
 - `design/TEST_SIM.md` — **evidence**, for simulation defects and their gates. `SIM-###`.
-- `design/FEASIBILITY.md` — **scope**, what is achievable at which cohort size.
-- `design/PRIVACY_BACKGROUND.md` — **intuition**, where `d`, `f`, and the error
-  law come from. Start here if the arithmetic is unfamiliar.
-- `design/PRIVACY_ARGUMENT.md` — **proof**, the formal mechanism-level argument.
-- `design/MODEL_ELICITATION.md` — **inputs**, the interview that produces a
-  public structural model and priors before any data is read.
-- `design/DATA_ELICITATION.md` — **structure**, the trial-design ladder and
-  which parts of a protocol are actually public.
 - `design/METHOD_DISCUSSION.md` — **tradeoffs**, AVATAR blending vs formal DP,
   and why AVATAR is the trajectory-level analogue of synadam.
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
+
+Published as pkgdown articles (`vignettes/articles/`, no `R CMD check` cost):
+
+- `feasibility.Rmd` — **scope**, what is achievable at which cohort size.
+- `privacy-background.Rmd` — **intuition**, where `d`, `f`, and the error law
+  come from. Start here if the arithmetic is unfamiliar.
+- `privacy-argument.Rmd` — **proof**, the formal mechanism-level argument.
+- `avatar-mathematics.Rmd` — **algorithm**, the default generator step by step.
+- `model-elicitation.Rmd` — **inputs**, the interview that produces a public
+  structural model and priors before any data is read.
+- `data-elicitation.Rmd` — **structure**, the trial-design ladder and which
+  parts of a protocol are actually public.
 
 Keep items here short and link out. When an item closes, tick it and update the
 registry entry it points at rather than deleting the history.
@@ -33,32 +40,43 @@ its `pmx_*` / `synthesize_pmx()` names deliberately: `pmx_` says what the data
 is, `syn` says what the package does, and `synadam` does not prefix its own
 functions either.
 
-## Next: two prioritized items (joint, needing a scoping conversation)
+## Next
 
-1. **Review and organize the documentation set.** Five vignettes, a `README.md`,
-   and ten design documents now overlap in places and no one has decided what
-   each is *for*. Decide the audience and job of each document, what the entry
-   point is, what should merge or be deleted, and how much of `README.md` should
-   be a landing page versus a reference. The `README.md` in particular needs a
-   significant rewrite rather than another patch. **Scope this together before
-   writing**; the inventory and my guessed audiences are in
-   `design/DOCUMENTATION_SCOPE.md`.
-2. **Try the approach on the internal PIT565 data.** The methods have only been
+1. **Try the approach on the internal PIT565 data.** The methods have only been
    exercised on public `nlmixr2data` sources and package fixtures. Running
    AVATAR and the calibrated structural path on a real internal study is the
    test that matters: role declaration against a real schema, event grammar
    that the template sampler has not seen, and whether the generated data is
    actually useful for workflow development. Keep it in `scripts_private/`.
 
-## Now: documentation set — one entry point, four named modes
+## Done: documentation reorganization (2026-07-23)
 
-Scope decision (2026-07-23): the package has four generation modes (AVATAR,
-prior-only, calibration, empirical) but no document introduced them together,
-and a reader landing on any one vignette could not tell which they were in.
+Decided and executed. The reasoning, the audience analysis, and the rationale
+for each call are in `design/DOCUMENTATION_SCOPE.md`; delete that file once
+this section is stale. `AGENTS.md` now records the resulting three-tier rule.
 
-- [x] `vignettes/synpmx-intro.Rmd` — the entry point. Big picture, all
-      four modes applied to `theo_md`, a properties table, and a table mapping
-      environments (trusted / partner / published) to acceptable modes.
+- [x] Adopt pkgdown. `_pkgdown.yml` with a grouped reference index over all 31
+      exports, plus a GitHub Actions workflow deploying to `gh-pages`.
+- [x] `README.Rmd` → `README.md` as the entry point: pitch, one runnable
+      example, the four-mode table, and the documentation map. 247 lines of
+      API reference and limitations came out.
+- [x] Vignette set cut from five to three: `synpmx-method` (all four modes,
+      high level), `synpmx-demo`, `synpmx-privacy`. `synpmx-intro` and
+      `synpmx-epsilon-exploration` were merged away.
+- [x] Deep AVATAR mathematics moved out of the method vignette into
+      `vignettes/articles/avatar-mathematics.Rmd`.
+- [x] Five design documents moved to `vignettes/articles/`: feasibility,
+      privacy background, privacy argument, model and data elicitation.
+- [x] Every citation into `design/` removed from shipped documentation and
+      roxygen comments; roxygen now links to the website.
+- [x] Deleted `design/METHODS_VIGNETTE_SPEC.md` (stale) and `scripts/README.md`
+      (stale). `NEWS.md` reduced to a stub.
+
+### Earlier scope: one entry point, four named modes
+
+- [x] An entry point covering all four modes applied to `theo_md`, a properties
+      table, and a table mapping environments (trusted / partner / published)
+      to acceptable modes. Now the four-mode tour in `synpmx-method`.
 - [x] Privacy vignette: explain what AVATAR *is* and what DP *is* before
       comparing them, with the formal `(epsilon, delta)` definition and the
       kind-not-degree table.
@@ -66,15 +84,15 @@ and a reader landing on any one vignette could not tell which they were in.
       algorithm, then the model-based alternatives at the end.
 - [x] Demo vignette: state the four modes up front and run the model-based path
       on theophylline, as `scripts/demo_nlmixr2data.R` does.
-- [x] `README.md`: vignette table of contents explaining how the documentation
-      set is organized and which document answers which question. This is a
-      minimal addition only; the full rewrite is item 1 above.
+- [x] `README.md`: table of contents explaining how the documentation set is
+      organized and which document answers which question. Superseded by the
+      full `README.Rmd` rewrite above.
 - [x] House style: spell out every acronym on first use in a document
       (`AGENTS.md`). The word "mock" is gone: prose says "synthetic data", the
       `compare_pmx()` argument and outputs are `synthetic`, and generated
       character/factor IDs are `syn_001` rather than `mock_001`.
 - [x] `design/DOCUMENTATION_SCOPE.md` — inventory of all 23 documents with
-      guessed audiences, as input to item 1 above.
+      guessed audiences, since rewritten as the decision record.
 - [ ] `REV-020` — `pmx_structural_model(rx = )` is stored but never used. It now
       warns; either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright.
@@ -114,7 +132,7 @@ open findings below apply to the superseded formal-DP v2 path.
 
 The scope decision (2026-07-22): prefer small trials over pooled corpora. That
 requires releasing a handful of parameters against public structural priors
-instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
+instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
 `design/PROTOTYPE_SPEC.md` "Version 3 scope".
 
 ### Core: model in, correction out
@@ -171,14 +189,14 @@ instead of a dense grid. See `design/FEASIBILITY.md` section 8 and
 
 ### Verification owed
 
-- [ ] Verify the `rxode2` templates in `design/MODEL_ELICITATION.md` compile and
+- [ ] Verify the `rxode2` templates in `vignettes/articles/model-elicitation.Rmd` compile and
       produce sensible profiles. Authored without a working C compiler and never
       executed.
 - [ ] Measure the correction-factor parameterization. The ~1.37-fold estimate at
       N = 20, epsilon 1 is arithmetic from the error law, not a measurement.
 - [x] Measure the PD correction. Exact without residual error; biased low by
       about a third with 15% residual on a small deviation. Documented in
-      `design/FEASIBILITY.md`; PD is experimental.
+      `vignettes/articles/feasibility.Rmd`; PD is experimental.
 - [x] Improve the PD estimator. Solved by changing the endpoint rather than the
       statistic: simple time-course shapes take a level correction (ratio of
       means), which is unbiased under residual error. Exposure-driven PD keeps
@@ -232,4 +250,4 @@ Keep this path for pooled corpora; it is not superseded by v3.
 - [x] `REV-001` / `SIM-020` Scale-aware support threshold in decoding. `44db89f`
 - [x] `REV-014` Land the working tree in reviewable commits.
 - [x] `./build.sh` for `R CMD check` and clean-library vignette rendering. `778848b`
-- [x] `design/FEASIBILITY.md` scoping assessment. `d5b0e30`
+- [x] `vignettes/articles/feasibility.Rmd` scoping assessment. `d5b0e30`

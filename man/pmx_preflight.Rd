@@ -17,7 +17,8 @@ pmx_preflight(priors, epsilon, n_subjects, covariates = NULL)
 fit that also releases covariate summaries.}
 }
 \value{
-A \code{pmx_preflight} report. See \code{design/PRIVACY_BACKGROUND.md}.
+A \code{pmx_preflight} report. The arithmetic behind it is worked through
+at \url{https://iamstein.github.io/synpmx/articles/privacy-background.html}.
 }
 \description{
 Reports \code{f = d / (epsilon * N)}, the fraction of each prior's width that
@@ -28,5 +29,6 @@ budget and reads no data: it depends only on the configuration.
 The fold-error is \code{exp(f * span)}, capped at the prior's half-width because
 clipping prevents a release from landing outside the prior. The uncapped
 form is accurate for \code{f} below roughly 0.25 and increasingly pessimistic
-above it; see \code{design/FEASIBILITY.md} section 8.
+above it; see the feasibility article at
+\url{https://iamstein.github.io/synpmx/articles/feasibility.html}.
 }

@@ -71,7 +71,7 @@ For that purpose, AVATAR is simply better than the DP engine on every axis the
 user cares about:
 
 - **It works at any cohort size.** The DP engine's utility collapses below a few
-  hundred subjects (`design/FEASIBILITY.md`), which is most early-phase work.
+  hundred subjects (`vignettes/articles/feasibility.Rmd`), which is most early-phase work.
   AVATAR produces plausible data from twelve subjects.
 - **It preserves joint structure for free.** Real covariate correlations, real
   trajectory shapes, real timing patterns come through because whole real
@@ -106,7 +106,7 @@ and not formal: push the noise high enough to defeat a nearest-neighbor linkage
 attack and you have destroyed the same signal the DP engine would have
 destroyed, without the accounting to prove it. This is the exact failure mode
 that made the Version 1 design uncomfortable in the first place
-(`design/FEASIBILITY.md` section 2).
+(`vignettes/articles/feasibility.Rmd` section 2).
 
 So AVATAR sits a notch higher on the risk ladder than `synadam`'s column
 resampling, for the same governance model. The conclusion is not that AVATAR is
@@ -163,7 +163,7 @@ tool that fits each, clearly labeled with what it does and does not guarantee.
 
 - `design/PROTOTYPE_SPEC.md` — the specification, with Version 4 (AVATAR) at the
   top and the DP versions retained below as alternatives.
-- `design/FEASIBILITY.md` — the measurements behind "DP utility collapses at
+- `vignettes/articles/feasibility.Rmd` — the measurements behind "DP utility collapses at
   small N" and the Version 1 re-identification analysis.
-- `design/PRIVACY_BACKGROUND.md` — how the DP arithmetic (`d`, `f`, epsilon)
+- `vignettes/articles/privacy-background.Rmd` — how the DP arithmetic (`d`, `f`, epsilon)
   works, for when the DP engine is the right choice.

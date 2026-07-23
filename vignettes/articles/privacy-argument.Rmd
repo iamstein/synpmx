@@ -1,4 +1,10 @@
-# Version 2 mechanism-level privacy argument
+---
+title: "Mechanism-level privacy argument"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
 
 Status: implementation argument for review. It has **not** received independent
 differential-privacy, legal, information-security, or data-governance approval.

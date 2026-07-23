@@ -1,13 +1,19 @@
-# Describing the trial: a data-structure elicitation guide
+---
+title: "Describing the trial: a data-structure elicitation guide"
+---
 
-The companion to `design/MODEL_ELICITATION.md`. That guide asks **what the drug
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+The companion to [the model elicitation guide](model-elicitation.html). That guide asks **what the drug
 does**; this one asks **what the dataset looks like**.
 
 Both are needed, and they fail differently. A wrong PK prior gives you data with
 the wrong numbers. A wrong design description gives you data with the wrong
 *shape* — missing occasion columns, doses that never change when they should,
 a `TIME` axis that resets when the real one does not. Against the accuracy bar
-in `design/PROTOTYPE_SPEC.md` section 1, the second is the more serious failure:
+in the package specification, the second is the more serious failure:
 structure must be exact, numbers need only be close.
 
 Section 3 also settles which parts of a trial design are public. The short
@@ -124,7 +130,7 @@ accumulating data.
 
 ## 3. Which parts of the design are public
 
-Throughout `design/PROTOTYPE_SPEC.md` the protocol is treated as a public input
+Throughout the package specification the protocol is treated as a public input
 costing no budget. That is right, with one narrow qualification that applies to
 per-subject quantities rather than to trial-level ones.
 
@@ -229,7 +235,7 @@ data, and costs nothing.
 ## 5. Output: a design declaration
 
 The result of this interview, alongside the model declaration from
-`design/MODEL_ELICITATION.md`:
+[the model elicitation guide](model-elicitation.html):
 
 ```r
 design <- pmx_trial_design(
@@ -250,7 +256,7 @@ source must move to option 2 or option 3 of section 3.
 
 ### Provenance table addition
 
-Extend the table in `design/MODEL_ELICITATION.md` with the design rows:
+Extend the table in [the model elicitation guide](model-elicitation.html) with the design rows:
 
 | Input | Value | Source | Data-independent? |
 |---|---|---|---|

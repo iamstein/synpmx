@@ -1,4 +1,10 @@
-# Building the structural model: an elicitation guide
+---
+title: "Building the structural model: an elicitation guide"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
 
 A question-by-question procedure for producing the **public structural model and
 priors** that `synpmx` needs before it touches any confidential data.
@@ -7,9 +13,10 @@ Written to be worked through by a pharmacometrician, or by an LLM agent
 assisting one. The output is an `rxode2` model, a set of prior ranges, and a
 provenance table.
 
-Companion to `design/PROTOTYPE_SPEC.md` sections 5 and 6, which explain why the
-design works this way. If the `d` and `f` arithmetic in Q7 is unfamiliar, read
-`design/PRIVACY_BACKGROUND.md` first.
+Companion to [the data elicitation guide](data-elicitation.html), which asks
+what the dataset looks like rather than what the drug does. If the `d` and `f`
+arithmetic in Q7 is unfamiliar, read
+[the privacy background article](privacy-background.html) first.
 
 ---
 
@@ -23,7 +30,7 @@ assay validation report, and an earlier study in the same program all qualify.
 The dataset you are about to analyze does not.
 
 This is not bureaucratic. The prior range is the dominant term in the privacy
-arithmetic (`design/FEASIBILITY.md` section 8). A range set by peeking at the
+arithmetic ([the feasibility article](feasibility.html) section 8). A range set by peeking at the
 data voids the differential-privacy guarantee entirely, and **nothing downstream
 detects it** — the release will look completely normal, the accounting will
 balance, and the guarantee will be false.
@@ -55,8 +62,8 @@ budget; a narrow dishonest one costs the guarantee.
 | More than ~1000, and you want empirical shape rather than a structural model | **Empirical mode.** Version 2 dense grid. Different document |
 | No privacy claim needed at all | **Prior mode.** Simpler, and honest |
 
-Full selection guide, including how many parameters each mode learns from the
-data, is in `design/PROTOTYPE_SPEC.md` section 3.
+`vignette("synpmx-method")` is the full selection guide, including how many
+parameters each mode learns from the data.
 
 Prior mode still needs Q1-Q5. It just never runs a private fit. **Most of this
 interview is about building a good simulator, not about privacy.**

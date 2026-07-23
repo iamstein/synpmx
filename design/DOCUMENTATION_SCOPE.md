@@ -1,250 +1,175 @@
-# Documentation scope
+# Documentation scope — decision record
 
-Working document for the documentation-reorganization decision in
-`design/TODO.md` item 2. Created 2026-07-23.
+Decisions for the documentation reorganization in `design/TODO.md` item 2.
+Inventory created 2026-07-23; decided 2026-07-23 after a scoping conversation.
 
-**Status: an inventory with guessed audiences, not a decision.** The audience
-line under each document is my inference from its content and tone, not
-something anyone has stated. Correct it before we use it to decide anything —
-a wrong guess here produces a wrong merge later.
-
-The package carries 23 documents. Far more of that writing is internal design
-record than user-facing explanation, and that imbalance is the first thing worth
-discussing.
+**Status: decided. Execution in progress.** Delete this document once the
+reorganization is complete and `design/TODO.md` item 2 is ticked.
 
 ---
 
-## 1. User-facing: vignettes
+## 1. The problem this solves
 
-Shipped with the package; visible to anyone who installs it.
+The package carried 23 documents: five vignettes, a `README.md` doing five jobs
+at once, and twelve internal design documents. Far more of the writing was
+internal design record than user-facing explanation, the README and the
+introduction vignette competed to be the entry point, and the vignettes cited
+`design/` by path in 16 places — paths a reader who installed the package
+cannot follow.
 
-### `synpmx-intro.Rmd`
+Three costs drove the decision:
 
-- **Audience:** a pharmacometrician who has just heard of the package and does
-  not yet know what "differentially private" buys them.
-- **Job:** the big picture; all four modes run on `theo_md`; the properties
-  table; the environment-to-mode table.
-- **Concern:** new (2026-07-23). It overlaps `demo` on theophylline and
-  `privacy-intro` on the decision rule. That is deliberate for an entry point,
-  but the boundary needs agreeing.
+- **`R CMD check` rebuilds every vignette.** Each shipped vignette is a
+  maintenance cost paid on every behavioral change, not just a document. The
+  vignette set was 2334 lines, 1119 of them in one document.
+- **`AGENTS.md` requires vignette prose be verified against the code.** Anything
+  kept, we are agreeing to keep true.
+- **Citations into `design/` are dead ends** for anyone who is not standing in
+  a clone of the repository.
 
-### `synpmx-demo.Rmd`
+## 2. Audience
 
-- **Audience:** a pharmacometrician who has chosen a mode and wants to run it on
-  their own study.
-- **Job:** the worked AVATAR workflow over five public datasets with structural
-  checks, plus one model-based example.
-- **Concern:** a large fraction of it is plotting helper functions in the setup
-  chunk that no reader needs to see.
+Three audiences, in the order they arrive:
 
-### `synpmx-simulation-method.Rmd`
+- **You**, and pharmacometrician colleagues inside the company — served by
+  `design/` plus the website.
+- **A privacy or governance reviewer** — will not read R code and is not
+  expected to go through the material in detail. Served by a link to the
+  website. This is the first arrangement that actually reaches them; an `.Rmd`
+  vignette never did.
+- **The open-source R pharmacometrics community**, ultimately — served by the
+  README plus three vignettes.
 
-- **Audience:** someone who must defend, debug, or review the generator — a
-  methods-minded colleague or an internal reviewer.
-- **Job:** the step-by-step AVATAR algorithm with the mathematics, edge cases,
-  and a worked example; the alternatives at the end.
-- **Concern:** the longest document in the package. Is it a vignette or a
-  specification? It currently reads like both.
+## 3. The mechanisms that made this possible
 
-### `synpmx-privacy-intro.Rmd`
+Two standard R facilities do most of the work, both of which sidestep the
+`R CMD check` bottleneck:
 
-- **Audience:** someone deciding whether a release is allowed to leave the
-  environment — possibly not a modeler at all.
-- **Job:** what AVATAR is, what differential privacy is, the formal definition,
-  and the trust-boundary rule.
-- **Concern:** its audience may be the one least likely to open an R vignette.
+- **`README.Rmd` knitted to `README.md`.** Executed R code, tables, and figures
+  on the GitHub landing page, and GitHub renders LaTeX math in markdown. It is
+  knitted deliberately, not rebuilt by `R CMD check`.
+- **`vignettes/articles/`.** Excluded from the build via `.Rbuildignore`, so
+  `R CMD check` never touches these and they are not shipped in the tarball —
+  but pkgdown renders them into the website as Articles. Full `.Rmd`, zero check
+  cost.
 
-### `synpmx-epsilon-exploration.Rmd`
+pkgdown was adopted. The one thing that usually blocks it — an exported
+function with no documented topic fails the reference index — does not apply
+here: 31 exports against 33 man pages. Note that pkgdown *executes* article
+code, so a broken article fails the site build; that is a separate signal from
+`R CMD check`, which is the decoupling that buys the cheap article space.
 
-- **Audience:** someone who has already committed to a private mode and is
-  choosing epsilon.
-- **Job:** `f = d / (epsilon N)`, the measured frontier table, `pmx_preflight()`.
-- **Concern:** the shortest by a wide margin. Is it a vignette, or a section of
-  `privacy-intro`?
+## 4. The decided structure
 
-**Open questions.** Is five the right number? Does the method vignette want to
-become a specification appendix instead? Does `epsilon-exploration` survive as
-its own document now that `intro` carries the decision rule?
+### Entry point
 
----
+**`README.Rmd` → `README.md`.** The pitch, installation, one runnable minimal
+example, a short tour naming the four modes, and the documentation map. High
+level throughout. The API reference and the limitations list come out — they
+were deep internal detail on a page whose first job is to say what this is and
+why to care.
 
-## 2. User-facing: repository front matter
+### Vignettes — shipped, rebuilt by `R CMD check`, kept small
 
-### `README.md`
+| Vignette | Job |
+|---|---|
+| `synpmx-method.Rmd` | All four modes at a high level: what each does and when to use it. Renamed from `synpmx-simulation-method.Rmd`. |
+| `synpmx-demo.Rmd` | The worked workflow over the public datasets. Plot helpers hidden behind code folding. |
+| `synpmx-privacy.Rmd` | What differential privacy guarantees, the trust-boundary decision rule, and choosing epsilon. Absorbs `synpmx-epsilon-exploration.Rmd`. |
 
-- **Audience:** someone browsing the GitHub repository who has not installed
-  anything.
-- **Job:** currently four jobs at once — the pitch, the privacy contract, an API
-  reference, a limitations list, and the documentation map.
-- **Concern:** **this is the one that needs the rewrite.** The API-reference and
-  limitations material is deep internal detail on a page whose first job is to
-  say what this is and why to care.
+### Articles — pkgdown only, no check cost
 
-### `NEWS.md`
+| Article | Source |
+|---|---|
+| `avatar-mathematics.Rmd` | The deep AVATAR algorithm, mathematics, and edge cases, lifted out of the old method vignette. |
+| `privacy-background.Rmd` | `design/PRIVACY_BACKGROUND.md` — `d`, `f`, sensitivity, the error law, worked examples. |
+| `feasibility.Rmd` | `design/FEASIBILITY.md` — measured utility by cohort size. |
+| `privacy-argument.Rmd` | `design/PRIVACY_ARGUMENT.md` — the formal mechanism-level argument, for a reviewer. |
+| `model-elicitation.Rmd` | `design/MODEL_ELICITATION.md` |
+| `data-elicitation.Rmd` | `design/DATA_ELICITATION.md` |
 
-- **Audience:** an existing user upgrading.
-- **Job:** version history by feature.
-- **Concern:** reasonable as-is, though written for users who do not yet exist.
+### `design/` — internal record, cited by nothing shipped
 
-### `scripts/README.md`
+`TODO.md`, `REVIEW_BACKLOG.md`, `TEST_SIM.md`, `PROTOTYPE_SPEC.md`,
+`METHOD_DISCUSSION.md`.
 
-- **Audience:** a developer running the public demonstrations.
-- **Job:** describes `demo_nlmixr2data.R` and `evaluate_simulations.R`.
-- **Concern:** stale. It refers to `test-avatar.R`, which is not in `scripts/`.
+## 5. Rationale for the harder calls
 
-### `scripts_private/README.md`
+**Why the method vignette covers all four modes rather than only AVATAR.**
+The first instinct was to narrow it to AVATAR alone. Covering all four instead
+makes one document the canonical method reference rather than scattering
+prior-only, calibration, and empirical across the privacy and demo vignettes.
+The size problem this would otherwise create is solved by moving the deep
+mathematics to `avatar-mathematics.Rmd`: the vignette stays high level and
+short, and stops reading as half-vignette, half-specification.
 
-- **Audience:** whoever runs this inside the safe environment — realistically
-  you.
-- **Job:** the trust-boundary rules for the private scripts folder and what may
-  be committed.
-- **Concern:** longer than the public scripts README, and probably the most
-  operationally important page in the repository.
+This also absorbs part of the old "alternatives" section. Once the vignette
+compares all four modes, *why AVATAR is the default* is in scope there. What
+stays internal in `METHOD_DISCUSSION.md` is the `synadam` parity argument.
 
-### `references/README.md`
+**Why teaching material is not uniformly moved into vignettes.** There is a
+real line:
 
-- **Audience:** a contributor adding a paper.
-- **Job:** where to put references and what not to commit.
-- **Concern:** none. It is fine.
+- *Teaching required to use the package correctly* → vignette. You cannot
+  choose an epsilon without understanding `f = d / (epsilon N)`. That earns its
+  place and its rebuild cost.
+- *Evidence for the package's claims* → article. `FEASIBILITY.md` is the
+  strongest document in the set, but it is justification, not instruction. A
+  user does not read it to do a task; a reviewer reads it to believe the claims.
 
----
+**Why the elicitation documents moved out of `design/`.** Their stated audience
+is "someone preparing the public inputs for a private fit" — a user doing a
+task, which is the definition of an article, not a design record. The open
+question in the inventory was "would a user ever find it?" Where they sat, no.
 
-## 3. Contributor-facing: repository conventions
+**Why the introduction vignette goes away.** Its job was the four-mode tour on
+`theo_md`. That tour now lives in `synpmx-method.Rmd`, and the README carries
+the pitch and one runnable example. Keeping both meant README and intro
+duplicating each other, which was the original complaint.
 
-### `AGENTS.md`
+**Why `PRIVACY_BACKGROUND.md` became an article rather than folding into the
+privacy vignette.** It is 250 lines of arithmetic and worked examples — deep
+math by the same standard that moved the AVATAR mathematics out. The privacy
+vignette carries the decision rule and enough arithmetic to choose an epsilon,
+and links to the article for the full derivation.
 
-- **Audience:** an AI coding agent, and secondarily a human contributor.
-- **Job:** repository conventions — where code goes, documentation-
-  synchronization rules, the acronym rule, testing discipline.
-- **Concern:** it doubles as the de facto contributor guide. There is no
-  `CONTRIBUTING.md`.
+## 6. Deletions
 
-### `CLAUDE.md`
+- `design/METHODS_VIGNETTE_SPEC.md` — stale. Describes "Version 2 has four
+  documents"; there were five, in a different structure.
+- `scripts/README.md` — stale. Refers to `test-avatar.R`, which is not in
+  `scripts/`.
+- `vignettes/synpmx-intro.Rmd` — superseded by the README and
+  `synpmx-method.Rmd`.
+- `vignettes/synpmx-epsilon-exploration.Rmd` — merged into the privacy vignette.
+- `NEWS.md` — emptied to a stub rather than removed. The package has no users
+  yet, so the version history is written for people who do not exist; the file
+  is kept because recreating it at first release costs more than keeping it.
 
-- **Audience:** Claude Code specifically.
-- **Job:** points at `AGENTS.md`.
-- **Concern:** none. Correct and minimal.
+**`scripts_private/README.md` is kept**, against the initial call to delete it.
+It holds the trust-boundary rules for what may be committed out of the safe
+environment — the thing standing between this repository and committed
+patient-level data. The inventory itself called it "probably the most
+operationally important page in the repository." `.Rbuildignore` already
+excludes `scripts_private`, so it ships to no one. If the goal is that it not be
+public, that is an argument about the git remote, not about deleting the rules.
 
----
+## 7. Execution order
 
-## 4. Internal: design record
+Relocation precedes citation removal, or the 16 `design/` links become dead
+ends mid-flight.
 
-Not shipped with the package. This is where most of the writing lives.
-
-### `PROTOTYPE_SPEC.md`
-
-- **Audience:** future you, and any reviewer asking "what is this supposed to
-  do?"
-- **Job:** the implementation contract, with four versions of scope history
-  newest-first.
-- **Concern:** the longest document in the repository, and it carries three
-  superseded designs alongside the current one.
-
-### `FEASIBILITY.md`
-
-- **Audience:** someone asking "will this work at N = 20?"
-- **Job:** the measured evidence behind every scope decision; private-mode
-  utility by cohort size.
-- **Concern:** the strongest document in the set. It arguably deserves to be
-  user-facing, at least in part.
-
-### `TEST_SIM.md`
-
-- **Audience:** whoever is fixing a simulation defect.
-- **Job:** the living evaluation specification — dataset registry, `SIM-###`
-  issues, metrics, gates.
-- **Concern:** none. A healthy working document.
-
-### `REVIEW_BACKLOG.md`
-
-- **Audience:** whoever is fixing a mechanism or API defect.
-- **Job:** `REV-###` findings from code review, with status.
-- **Concern:** none. A healthy working document.
-
-### `MODEL_ELICITATION.md`
-
-- **Audience:** someone preparing the public inputs for a private fit.
-- **Job:** the interview producing a public structural model and priors without
-  touching data.
-- **Concern:** relevant only to modes 2–4. Would a user ever find it?
-
-### `DATA_ELICITATION.md`
-
-- **Audience:** the same person, for trial design.
-- **Job:** the complexity ladder, and which parts of a protocol are genuinely
-  public.
-- **Concern:** same question as above.
-
-### `PRIVACY_BACKGROUND.md`
-
-- **Audience:** someone who wants the arithmetic to make sense.
-- **Job:** `d`, `f`, sensitivity, the error law, worked examples.
-- **Concern:** tutorial in tone. **This reads like a vignette that ended up in
-  `design/`.**
-
-### `TODO.md`
-
-- **Audience:** you and me, this week.
-- **Job:** the working queue, and the index to every other design document.
-- **Concern:** it is currently the entry point to `design/`, and that works.
-
-### `PRIVACY_ARGUMENT.md`
-
-- **Audience:** a privacy reviewer who will not read R code.
-- **Job:** the formal mechanism-level argument for the v2 engine.
-- **Concern:** explicitly labeled as not independently reviewed, and scoped to
-  the superseded v2 path.
-
-### `METHOD_DISCUSSION.md`
-
-- **Audience:** someone asking "why is AVATAR the default?"
-- **Job:** the AVATAR-versus-DP essay and the `synadam` parity argument.
-- **Concern:** its content is now partly duplicated across three vignettes.
-
-### `METHODS_VIGNETTE_SPEC.md`
-
-- **Audience:** whoever maintains the vignettes.
-- **Job:** vignette maintenance notes.
-- **Concern:** **stale.** It describes "Version 2 has four documents"; there are
-  now five, in a different structure. A deletion candidate.
-
-### `DOCUMENTATION_SCOPE.md`
-
-- **Audience:** you and me.
-- **Job:** this inventory.
-- **Concern:** delete it once the reorganization is decided and executed.
-
----
-
-## 5. What I would want to decide, in order
-
-1. **Who is the actual audience?** Everything above is a guess. The plausible
-   set is: (a) you, (b) pharmacometrician colleagues inside the company, (c) an
-   internal privacy or governance reviewer, (d) the open-source R
-   pharmacometrics community. These want very different documents, and the
-   current set reads as though it is serving (a) and (c) while being formatted
-   for (d).
-2. **Is `design/` shipped, linked, or private?** Right now it is in the public
-   repository but not in the package, and the vignettes cite it by path. If a
-   reader cannot follow those citations, they are noise; if they can, several
-   design documents are effectively user-facing and should be written that way.
-3. **What is the entry point?** `README.md` and `intro` currently compete.
-4. **What gets deleted?** My candidates: `METHODS_VIGNETTE_SPEC.md` (stale), the
-   superseded version history in `PROTOTYPE_SPEC.md` (move to `NEWS.md` or
-   drop), and the duplicated AVATAR-versus-DP argument in at least one of the
-   three places it now appears.
-5. **What moves from `design/` to `vignettes/`?** `PRIVACY_BACKGROUND.md` and
-   parts of `FEASIBILITY.md` are the strongest candidates: both are written to
-   teach, and both answer questions a user will actually ask.
-
----
-
-## 6. Constraints worth remembering
-
-- `R CMD check` rebuilds every vignette, so each one is a maintenance cost paid
-  on every behavioral change, not just a document.
-- `AGENTS.md` requires that vignette prose be verified against the code rather
-  than preserved to minimize a diff. Any document we keep, we are agreeing to
-  keep true.
-- The package rename to `synpmx` is done, so the vignette filenames are settled
-  for now; changing the vignette *set* is the remaining churn.
+1. Set up pkgdown: `_pkgdown.yml`, GitHub Action, `.Rbuildignore` entry for
+   `vignettes/articles`.
+2. Move to articles: feasibility, privacy argument, privacy background, both
+   elicitation documents.
+3. Split the deep AVATAR mathematics out of the method vignette into
+   `avatar-mathematics.Rmd`.
+4. Rename `synpmx-simulation-method.Rmd` → `synpmx-method.Rmd` and restructure
+   to the four modes at a high level.
+5. Merge `synpmx-epsilon-exploration.Rmd` into `synpmx-privacy.Rmd`.
+6. Write `README.Rmd`, knit `README.md`, delete `synpmx-intro.Rmd`.
+7. Repoint every citation at an article; verify nothing shipped points into
+   `design/`.
+8. Apply the deletions in section 6.
+9. `./build.sh`.
