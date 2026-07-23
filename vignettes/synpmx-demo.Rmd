@@ -545,8 +545,18 @@ validate_pmx(theo_private, theo_roles)$valid
 sampling_summary(theo_private)
 ```
 
-The fit reads the data once; generation is post-processing, so any number of
-datasets can be drawn from one release without spending more budget.
+The confidential data is read once, at the moment `synpmx_empirical()` is
+called. The release it produced travels with the returned dataset, so any
+number of further datasets can be drawn from it as post-processing, without
+spending more budget:
+
+```{r empirical-again, eval=has_nlmixr2data}
+theo_private_2 <- synpmx_generate(theo_private, seed = 708)   # spends nothing
+```
+
+Reach for `synpmx_generate()` rather than calling `synpmx_empirical()` a second
+time — a second call is a second release, and its budget has to be composed
+with the first.
 
 ```{r empirical-plot, eval=has_nlmixr2data && has_ggplot2}
 theo_private_comparison <- rbind(
