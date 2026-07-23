@@ -179,6 +179,15 @@
   invisible(TRUE)
 }
 
+# Every column a role points at, other than the ones `exclude` names for
+# removal. This is the allowlist: what AVATAR retains, and what the
+# identifier-name check treats as consciously handled.
+.retained_role_columns <- function(roles) {
+  referenced <- unlist(roles[setdiff(names(roles), "exclude")],
+                       use.names = FALSE)
+  unique(referenced[!is.na(referenced) & nzchar(referenced)])
+}
+
 .direct_identifier_names <- function(names) {
   lowered <- tolower(names)
   normalized <- gsub("[^a-z0-9]", "", lowered)

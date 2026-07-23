@@ -1,9 +1,13 @@
 # Version 4: the AVATAR-style synthesizer, synpmx_avatar().
 
-test_that("synpmx_avatar preserves schema and produces fresh subjects", {
+test_that("synpmx_avatar preserves declared schema and produces fresh subjects", {
   source <- pmx_simulated_fixture(40)
-  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-                     evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV",
+  # Declaring every fixture column is what keeps the whole schema: undeclared
+  # columns are dropped by design.
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     tad = "TAD", occasion = "OCC", dv = "DV", amt = "AMT",
+                     rate = "RATE", evid = "EVID", cmt = "CMT", dvid = "DVID",
+                     mdv = "MDV", cens = "CENS", limit = "LIMIT",
                      covariates = c("WT", "AGE", "SEX"))
   synthetic <- suppressWarnings(synpmx_avatar(source, roles, n_subjects = 20,
                                                seed = 1))
@@ -12,11 +16,32 @@ test_that("synpmx_avatar preserves schema and produces fresh subjects", {
   expect_equal(length(unique(synthetic$ID)), 20L)
   # New IDs: no generated subject reuses a source identifier.
   expect_length(intersect(synthetic$ID, source$ID), 0L)
-  # Schema is restored: same columns and classes.
+  # Every declared column is restored, with its class.
   expect_setequal(names(synthetic), names(source))
   expect_equal(vapply(synthetic[names(source)], class, character(1)),
                vapply(source, class, character(1)))
   expect_true(all(c("WT", "AGE", "SEX") %in% names(synthetic)))
+})
+
+test_that("synpmx_avatar drops undeclared columns and keeps `keep` ones", {
+  source <- pmx_simulated_fixture(20)
+  source$USUBJID <- sprintf("SECRET-%04d", source$ID)   # undeclared identifier
+  source$ARM <- ifelse(source$ID <= 10, "A", "B")        # kept verbatim
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", dvid = "DVID", cmt = "CMT", mdv = "MDV",
+                     covariates = "WT", keep = "ARM")
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, roles, n_subjects = 15, seed = 2)
+  )
+  # The undeclared identifier does not survive; the kept column does.
+  expect_false("USUBJID" %in% names(synthetic))
+  expect_true("ARM" %in% names(synthetic))
+  # A kept value is copied verbatim, so it stays constant within a subject that
+  # came from one anchor, and uses only real source levels.
+  per_subject <- tapply(synthetic$ARM, synthetic$ID,
+                        function(x) length(unique(x)))
+  expect_true(all(per_subject == 1L))
+  expect_true(all(synthetic$ARM %in% c("A", "B")))
 })
 
 test_that("generation is reproducible by seed and varies without it", {

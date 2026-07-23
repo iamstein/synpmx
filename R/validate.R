@@ -6,6 +6,32 @@
   ), class = "pmx_validation")
 }
 
+# Name a role together with the column the user mapped it to, so an error points
+# at their data rather than at an abstract role. `time` mapped to "RFSTDTC"
+# reads as: the `time` role (column 'RFSTDTC').
+.role_col <- function(roles, role) {
+  column <- roles[[role]]
+  paste0("the `", role, "` role (column '", column, "')")
+}
+
+# A count of offending rows plus a concrete example: which row, and the value
+# that failed. This is the difference between "TIME must be finite" and knowing
+# that row 12 holds the string "2025-03-14T08:00".
+.offenders <- function(mask, values, max_examples = 1L) {
+  bad <- which(mask)
+  n <- length(bad)
+  if (!n) return("")
+  examples <- utils::head(bad, max_examples)
+  shown <- vapply(examples, function(i) {
+    value <- values[[i]]
+    rendered <- if (is.na(value)) "NA" else
+      paste0("\"", format(value, trim = TRUE), "\"")
+    paste0("row ", i, " = ", rendered)
+  }, character(1))
+  paste0(" (", n, " of ", length(values), " rows; e.g. ",
+         paste(shown, collapse = ", "), ")")
+}
+
 #' Validate a pharmacometric event dataset
 #'
 #' Checks schema usability, chronological event logic, explicit endpoint
@@ -54,18 +80,38 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   dv <- data[[roles$dv]]
   evid <- data[[roles$evid]]
   add("id_missing", if (anyNA(id)) "error" else "pass",
-      if (anyNA(id)) "ID contains missing values." else
-        "ID has no missing values.")
-  if (!is.numeric(time) || any(!is.finite(time))) {
-    add("time", "error", "Actual time must be numeric and finite.")
+      if (anyNA(id)) paste0(
+        "ID is missing in some rows: ", .role_col(roles, "id"),
+        .offenders(is.na(id), id), ". Every row must belong to a subject."
+      ) else "ID has no missing values.")
+  if (!is.numeric(time)) {
+    add("time", "error", paste0(
+      "TIME must be a numeric column, but ", .role_col(roles, "time"),
+      " is ", class(time)[1L], ". A date/time string such as ",
+      "\"2025-03-14T08:00\" must be converted to elapsed hours or days first."
+    ))
+  } else if (any(!is.finite(time))) {
+    add("time", "error", paste0(
+      "TIME must be finite, but ", .role_col(roles, "time"),
+      " has non-finite values", .offenders(!is.finite(time), time), "."
+    ))
   } else {
     add("time", "pass", "Actual time is numeric and finite.")
   }
-  if (!is.numeric(dv)) add("dv_type", "error", "DV must be numeric.") else
-    add("dv_type", "pass", "DV is numeric.")
+  if (!is.numeric(dv)) {
+    add("dv_type", "error", paste0(
+      "DV must be a numeric column, but ", .role_col(roles, "dv"), " is ",
+      class(dv)[1L], ". Text markers such as \"<LLOQ\", \"BLQ\", or \".\" ",
+      "for missing must be converted to numbers (and, for below-limit rows, ",
+      "handled through the `cens` role) before synthesis."
+    ))
+  } else add("dv_type", "pass", "DV is numeric.")
   add("evid_missing", if (anyNA(evid)) "error" else "pass",
-      if (anyNA(evid)) "EVID contains missing values." else
-        "EVID has no missing values.")
+      if (anyNA(evid)) paste0(
+        "EVID is missing in some rows: ", .role_col(roles, "evid"),
+        .offenders(is.na(evid), evid),
+        ". Every row must be marked an observation (0) or an event (nonzero)."
+      ) else "EVID has no missing values.")
 
   subjects <- .unique_in_order(id)
   decreasing <- vapply(subjects, function(subject) {
@@ -97,7 +143,14 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   if (!any(allowed)) add("observations", "error", "No observation rows found.") else
     add("observations", "pass", paste(sum(present), "observed DVs found."))
   if (is.numeric(dv) && any(!is.finite(dv[present]))) {
-    add("dv_finite", "error", "Observed DV contains non-finite values.")
+    nonfinite <- present & !is.finite(dv)
+    add("dv_finite", "error", paste0(
+      "Observation rows must have a finite DV, but ", .role_col(roles, "dv"),
+      " has non-finite values on observation rows",
+      .offenders(nonfinite, dv),
+      ". Mark rows with no measurement as events or missing (MDV/EVID) ",
+      "rather than leaving DV as Inf or NaN."
+    ))
   } else add("dv_finite", "pass", "Observed DVs are finite.")
   add("events", if (any(event)) "pass" else "warning",
       if (any(event)) paste(sum(event), "event rows found.") else
@@ -106,9 +159,11 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   if (!is.null(roles$dvid)) {
     missing <- allowed & is.na(data[[roles$dvid]])
     add("endpoint", if (any(missing)) "error" else "pass",
-        if (any(missing)) paste(sum(missing),
-                               "observation rows have missing DVID.") else
-          "Every observation row has a DVID.")
+        if (any(missing)) paste0(
+          "Every observation must name its endpoint, but ",
+          .role_col(roles, "dvid"), " is missing on observation rows",
+          .offenders(missing, data[[roles$dvid]]), "."
+        ) else "Every observation row has a DVID.")
   }
   if (!is.null(endpoints)) {
     endpoint_name <- .endpoint_name_for_rows(data, roles, endpoints)
@@ -280,11 +335,21 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
     )
   }
 
-  direct <- setdiff(.direct_identifier_names(names(data)), roles$id)
-  add("direct_identifiers", if (length(direct)) "error" else "pass",
-      if (length(direct)) paste("Possible direct identifiers:",
-                                paste(direct, collapse = ", ")) else
-        "No obvious direct-identifier column names remain.")
+  # An identifier-named column you have given a role to is one you have
+  # consciously handled, so it is not flagged: a character `NAME` declared as
+  # the `dvid` endpoint label is the common case. Only undeclared ones are
+  # reported, and as a warning rather than an error, because `synpmx_avatar()`
+  # drops undeclared columns by default -- the column will not reach the output
+  # unless you also name it in `keep`.
+  direct <- setdiff(.direct_identifier_names(names(data)),
+                    .retained_role_columns(roles))
+  add("direct_identifiers", if (length(direct)) "warning" else "pass",
+      if (length(direct)) paste0(
+        "Column name(s) look like direct identifiers: ",
+        paste(direct, collapse = ", "),
+        ". They are undeclared, so `synpmx_avatar()` drops them; declare one in ",
+        "`keep` only if you intend to carry a real subject's value through."
+      ) else "No undeclared direct-identifier column names remain.")
   endpoint_summary <- if (is.null(roles$dvid)) "DV" else
     sort(unique(as.character(data[[roles$dvid]][allowed])))
   summary <- list(
@@ -298,17 +363,37 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   )
   report <- .finish_validation(checks, summary)
   if (strict && !report$valid) {
-    stop("PMX validation failed: ", paste(
-      report$checks$message[report$checks$status == "error"], collapse = " "
-    ), call. = FALSE)
+    messages <- report$checks$message[report$checks$status == "error"]
+    stop("PMX validation failed with ", length(messages),
+         if (length(messages) == 1L) " problem:\n" else " problems:\n",
+         paste0("  ", seq_along(messages), ". ", messages, collapse = "\n"),
+         "\nEach names the role and the column it maps to; fix the role ",
+         "mapping in `pmx_roles()`, or the data.",
+         call. = FALSE)
   }
   report
 }
 
 #' @export
 print.pmx_validation <- function(x, ...) {
-  cat(if (isTRUE(x$valid)) "Valid PMX structure" else "Invalid PMX structure",
-      "\n")
-  print(x$checks, row.names = FALSE)
+  if (isTRUE(x$valid)) {
+    cat("Valid PMX structure.\n")
+    return(invisible(x))
+  }
+  errors <- x$checks[x$checks$status == "error", , drop = FALSE]
+  warnings <- x$checks[x$checks$status == "warning", , drop = FALSE]
+  cat("Invalid PMX structure:", nrow(errors),
+      if (nrow(errors) == 1L) "problem" else "problems", "to fix.\n\n")
+  for (i in seq_len(nrow(errors))) {
+    cat(i, ". ", errors$message[i], "\n", sep = "")
+  }
+  if (nrow(warnings)) {
+    cat("\nWarnings (not fatal):\n")
+    for (i in seq_len(nrow(warnings))) {
+      cat("- ", warnings$message[i], "\n", sep = "")
+    }
+  }
+  cat("\nEach problem names the role and the column it maps to. Fix the role",
+      "mapping\nin `pmx_roles()`, or the data, and re-run.\n")
   invisible(x)
 }

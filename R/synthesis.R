@@ -447,7 +447,19 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
-  retained_names <- setdiff(names(data), roles$exclude)
+  # Allowlist, not blocklist: keep only what a role names, so a column the user
+  # never mentioned -- a secondary identifier, a site, a randomization date --
+  # cannot ride out of a real subject into synthetic data by being forgotten.
+  # `exclude` is still honoured for anyone who names a column there explicitly.
+  retained_names <- setdiff(intersect(names(data),
+                                      .retained_role_columns(roles)),
+                            roles$exclude)
+  dropped <- setdiff(names(data), retained_names)
+  if (length(dropped)) {
+    message("synpmx_avatar(): dropped ", length(dropped),
+            " undeclared column(s): ", paste(dropped, collapse = ", "),
+            ".\n  Declare a column in `keep` to carry it through verbatim.")
+  }
   source <- data[, retained_names, drop = FALSE]
   source_roles <- roles
   source_roles$exclude <- NULL

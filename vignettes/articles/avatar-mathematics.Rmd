@@ -46,6 +46,41 @@ roles
 `rate` are optional scalar roles; `covariates` can contain several baseline
 columns. One source column cannot be assigned to multiple roles.
 
+### The role declaration is the allowlist
+
+`synpmx_avatar()` keeps only columns a role names, and **drops every other
+column**, reporting which ones. This is deliberate. AVATAR builds each synthetic
+subject from one real *anchor* subject, and any column it retains that it does
+not actively synthesize is copied from that anchor verbatim. A secondary
+identifier — `USUBJID`, a site number, a randomization date — left undeclared
+would otherwise ride a real subject's real value straight into the synthetic
+data. Dropping by default means a column you forget fails safe, toward removal,
+rather than leaking.
+
+That leaves four ways a column is treated, and the difference matters:
+
+| Declared as | What AVATAR does to it | Use for |
+|---|---|---|
+| `dv` (with `cens`/`limit`) | Blended across donors into a new trajectory | the measurement |
+| `covariates` | Blended/resampled across donors into a new value | baselines you want *synthesized* — weight, age |
+| `keep` | Copied verbatim from the one anchor subject | assigned values you want kept faithful to that subject's dosing — arm, dose group, a redundant endpoint label |
+| *(undeclared)* | Dropped | anything you do not need |
+
+`covariates` and `keep` are opposites, and choosing wrongly is the common
+mistake. A **covariate is blended**: the synthetic subject gets a genuinely new
+value interpolated from several neighbours, decoupled from any one person. A
+**kept column is copied**: the synthetic subject gets one real subject's real
+value, unchanged. For a treatment arm, a dose group, or a randomization sequence
+— anything that must stay consistent with the doses AVATAR copied from the same
+anchor — `keep` is correct, precisely because it never leaves that anchor's
+side. Because a kept value is a real subject's real value, `keep` is for the
+trusted environment only.
+
+A `keep` column also solves redundant endpoint labels. A dataset that carries
+both a numeric `YTYPE` and a character `NAME` for the same endpoint declares one
+as `dvid` and the other as `keep`; both come from the same anchor rows, so they
+stay perfectly aligned in the output.
+
 Immediately before generation, `synpmx_avatar()` calls `validate_pmx(...,
 strict = TRUE)`. Among other checks, validation requires:
 

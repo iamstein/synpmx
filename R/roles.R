@@ -1,8 +1,10 @@
 #' Declare pharmacometric column roles
 #'
 #' Column roles are explicit: `synpmx` does not infer critical PMX
-#' semantics from column names. Columns listed in `exclude` are removed before
-#' fitting and do not appear in generated data.
+#' semantics from column names. The declaration is also the complete manifest of
+#' what survives into synthetic data. [synpmx_avatar()] drops every column not
+#' named by some role, so a column you forget is dropped rather than silently
+#' copied out of a real subject. Name a column in `keep` to carry it through.
 #'
 #' @param id,time,dv,evid Required single column names for subject ID, actual
 #'   time, dependent variable, and event ID.
@@ -22,8 +24,19 @@
 #'   occasion but must be constant within subject and occasion and agree with
 #'   the positive event amount. Generated values are derived from the generated
 #'   regimen rather than sampled independently.
+#' @param keep Columns to carry into synthetic data verbatim, copied from the
+#'   same source subject that supplied the event skeleton, with no blending or
+#'   synthesis. This is for assigned, subject-defining values you want kept
+#'   faithful to a subject's dosing — a treatment arm, a dose group, a
+#'   randomization sequence, or a redundant endpoint label such as a character
+#'   `NAME` beside a numeric `dvid`. Because the value comes from the same
+#'   anchor as the doses, it stays coherent with them. Contrast `covariates`,
+#'   which are *blended* into new values across neighbours. A kept value is one
+#'   real subject's real value, so use it only inside a trusted environment.
 #' @param exclude Columns explicitly excluded before private fitting, such as
-#'   direct identifiers. An ID role is still required as the privacy unit.
+#'   direct identifiers. An ID role is still required as the privacy unit. For
+#'   [synpmx_avatar()] this is now redundant: undeclared columns are dropped by
+#'   default, so simply not naming a column drops it.
 #'
 #' @return A `pmx_roles` object used by the fitting, generation, validation, and
 #'   comparison functions.
@@ -39,17 +52,17 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
                       covariates = NULL, subject_properties = NULL,
-                      assigned_dose = NULL, exclude = NULL) {
+                      assigned_dose = NULL, keep = NULL, exclude = NULL) {
   roles <- list(
     id = id, time = time, nominal_time = nominal_time, tad = tad,
     occasion = occasion, dv = dv, amt = amt, evid = evid, cmt = cmt,
     dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
     addl = addl, ii = ii, assigned_dose = assigned_dose,
     covariates = covariates, subject_properties = subject_properties,
-    exclude = exclude
+    keep = keep, exclude = exclude
   )
 
-  vector_roles <- c("covariates", "subject_properties", "exclude")
+  vector_roles <- c("covariates", "subject_properties", "keep", "exclude")
   scalar_roles <- setdiff(names(roles), vector_roles)
   for (role in scalar_roles) {
     value <- roles[[role]]
