@@ -59,15 +59,29 @@ This step is being shaped; see the note at the top of `try_calibrated.R` and the
 project TODO. For a first pass the template uses the parametric design, which is
 correct for fixed cohorts.
 
+## Two scripts, one decision
+
+Pick by the trust boundary (see `design/METHOD_DISCUSSION.md`):
+
+- **`try_avatar.R`** — the default. AVATAR blending (`synthesize_pmx()`) for data
+  that STAYS INSIDE this trusted environment. Simpler, more faithful, no formal
+  privacy guarantee. Fill in only the column roles.
+- **`try_dp_calibrated.R`** — the differentially private structural path, for
+  data that may CROSS A TRUST BOUNDARY and needs a formal (epsilon, delta)
+  guarantee. Needs a structural model, priors, and a trial design.
+
 ## Running it
 
-1. Fill in the `CONFIG` block of `try_calibrated.R` from your protocol and
-   preclinical prediction. Nothing in that block should come from looking at the
-   data — see the cardinal rule in `design/MODEL_ELICITATION.md`.
-2. Run with `USE_FIXTURE <- TRUE` first. This exercises the whole pipeline on
-   public simulated data and never touches your dataset.
-3. Read the pre-flight verdict. If `f >= 1`, the release will not beat the prior
-   and you should not spend budget.
-4. Set `USE_FIXTURE <- FALSE`, point `DATA_PATH` at the real dataset, and run.
-5. Inspect the correction factors and the restricted comparison before treating
-   any output as usable, or exporting anything.
+Both scripts follow the same pattern:
+
+1. Fill in the `CONFIG` block. For `try_avatar.R` that is just the column roles.
+   For `try_dp_calibrated.R` it is the structural model, priors, and trial
+   design, and nothing in it should come from looking at the data — see the
+   cardinal rule in `design/MODEL_ELICITATION.md`.
+2. Run with `DRY_RUN <- TRUE` first. This exercises the whole pipeline on public
+   simulated data and never touches your dataset.
+3. For the DP script, read the pre-flight verdict; if `f >= 1` the release will
+   not beat the prior and you should not spend budget.
+4. Set `DRY_RUN <- FALSE`, point `DATA_PATH` at the real dataset, and run.
+5. Inspect the output and the restricted comparison before treating anything as
+   usable, or exporting it.

@@ -1,8 +1,13 @@
-# Try the structural generator on a real modeling dataset.
+# Try the DIFFERENTIALLY PRIVATE structural generator on a real modeling dataset.
 #
-# Runs in the safe computing environment. This is the ONLY script meant to touch
-# confidential data, and it lives in a gitignored folder so nothing here can be
-# committed. Read README.md first.
+# Use this when the synthetic data may CROSS A TRUST BOUNDARY (shared externally,
+# published, moved to a less-controlled system) and needs a formal (epsilon,
+# delta) guarantee. If the data stays inside your safe environment, use
+# try_avatar.R instead -- it is simpler and more faithful. See README.md and
+# design/METHOD_DISCUSSION.md for the decision rule.
+#
+# Runs in the safe computing environment, in a gitignored folder so nothing here
+# can be committed.
 #
 # It runs TWO versions and shows them side by side:
 #   PRIOR      generated from public inputs alone. No data, no privacy budget.
