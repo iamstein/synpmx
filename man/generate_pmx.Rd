@@ -9,7 +9,7 @@ generate_pmx(private_model, n_subjects = NULL, seed = 123)
 \arguments{
 \item{private_model}{A fitted model from \code{\link[=fit_private_pmx]{fit_private_pmx()}}.}
 
-\item{n_subjects}{Optional positive number of new mock subjects. By default,
+\item{n_subjects}{Optional positive number of new synthetic subjects. By default,
 generation uses the privacy-accounted subject-count release stored in the
 fitted model (the exact source count for the explicitly public fixture
 backend).}

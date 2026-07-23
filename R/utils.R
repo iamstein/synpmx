@@ -145,7 +145,7 @@
   if (is.null(column)) stop("The public schema omits the ID role.", call. = FALSE)
   if ("factor" %in% column$class || "character" %in% column$class) {
     width <- max(3L, nchar(as.character(n)))
-    values <- sprintf(paste0("mock_%0", width, "d"), seq_len(n))
+    values <- sprintf(paste0("syn_%0", width, "d"), seq_len(n))
   } else if ("integer" %in% column$class || column$typeof == "integer") {
     values <- as.integer(100000000L + seq_len(n))
   } else if ("numeric" %in% column$class || column$typeof == "double") {
@@ -270,7 +270,7 @@
   template <- source_ids
   if (is.factor(template)) {
     width <- max(3L, nchar(as.character(n)))
-    labels <- sprintf(paste0("mock_%0", width, "d"), seq_len(n))
+    labels <- sprintf(paste0("syn_%0", width, "d"), seq_len(n))
     return(factor(labels, levels = c(levels(template), labels),
                   ordered = is.ordered(template)))
   }
@@ -284,7 +284,7 @@
   }
   if (is.character(template)) {
     width <- max(3L, nchar(as.character(n)))
-    labels <- sprintf(paste0("mock_%0", width, "d"), seq_len(n))
+    labels <- sprintf(paste0("syn_%0", width, "d"), seq_len(n))
     while (any(labels %in% template)) labels <- paste0("new_", labels)
     return(labels)
   }

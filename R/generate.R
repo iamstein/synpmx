@@ -762,7 +762,7 @@
 #' do not alter or consume the fitted model's privacy accounting.
 #'
 #' @param private_model A fitted model from [fit_private_pmx()].
-#' @param n_subjects Optional positive number of new mock subjects. By default,
+#' @param n_subjects Optional positive number of new synthetic subjects. By default,
 #'   generation uses the privacy-accounted subject-count release stored in the
 #'   fitted model (the exact source count for the explicitly public fixture
 #'   backend).

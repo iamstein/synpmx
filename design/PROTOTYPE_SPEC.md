@@ -15,7 +15,7 @@ then version history newest-first at the bottom.
 method is **AVATAR-style blending**, exposed as `synthesize_pmx()`. It resamples
 and blends whole source subject trajectories, works at any cohort size, needs no
 elicitation, and makes **no formal privacy guarantee**. It is the right tool for
-**mock data that stays inside a trusted computing environment**, which is the
+**synthetic data that stays inside a trusted computing environment**, which is the
 common case, and it is the trajectory-level analogue of what Novartis's
 `synadam` already does column by column. See `design/METHOD_DISCUSSION.md`.
 
@@ -37,10 +37,10 @@ trust boundary?** No → AVATAR. Yes → a DP engine.
 
 # 1. Objective
 
-Build a generator of **mock pharmacometric data for model-workflow
+Build a generator of **synthetic pharmacometric data for model-workflow
 exploration**. It reads a real dataset inside a restricted environment, learns a
 small number of differentially private summaries, and generates structurally
-coherent mock PMX event datasets outside that environment.
+coherent synthetic PMX event datasets outside that environment.
 
 The generated data must be good enough to exercise:
 
@@ -721,7 +721,7 @@ Take from public inputs, never from the data:
 
 ## Injected messiness
 
-Mock data that is too clean does not exercise the pipelines this package exists
+Synthetic data that is too clean does not exercise the pipelines this package exists
 to test. A perfectly smooth model-generated dataset will not surface the bugs
 that a real dataset surfaces.
 
@@ -859,7 +859,7 @@ governance failure, not a modeling choice.
 private_model <- fit_private_pmx(data, roles, endpoints, epsilon, delta,
                                  priors, public_design, contribution_limits,
                                  budget_allocation)
-mock <- generate_pmx(private_model, n_subjects = NULL, seed = 123)
+synthetic <- generate_pmx(private_model, n_subjects = NULL, seed = 123)
 privacy_report(private_model)
 ```
 
@@ -953,14 +953,14 @@ contribution bounds, proof assumptions, and floating-point handling.
 
 Generation, constraint repair, plotting, and validation may use the fitted model
 freely provided they do not consult the source. `compare_pmx()` is not
-releasable merely because `mock` is private; any source-derived diagnostic
+releasable merely because `synthetic` is private; any source-derived diagnostic
 leaving the restricted environment must itself be budgeted.
 
 ## Validation
 
 ```r
 validate_pmx(data, roles); validate_private_model(private_model)
-privacy_report(private_model); compare_pmx(source, mock, roles)
+privacy_report(private_model); compare_pmx(source, synthetic, roles)
 ```
 
 Cover schema and classes, event coherence, chronological and tied-row ordering,
@@ -1011,7 +1011,7 @@ distance-weighted blend of similar subjects' covariates and trajectories, plus
 subject and residual noise. It works at any cohort size, needs no elicitation,
 and makes no formal privacy claim.
 
-**Rationale.** For mock data that stays inside a trusted environment — the
+**Rationale.** For synthetic data that stays inside a trusted environment — the
 common case, and this package's stated purpose — a resampling method is more
 useful than differential privacy on every axis the user cares about, and DP's
 formal guarantee buys nothing when no adversary can reach the output. See

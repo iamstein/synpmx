@@ -73,3 +73,6 @@ references/private/
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
 !/scripts_private/try_avatar.R
+
+# Local Claude Code settings
+.claude/settings.local.json

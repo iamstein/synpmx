@@ -4,12 +4,12 @@
 \alias{compare_pmx}
 \title{Compare source and generated PMX structures inside the restricted environment}
 \usage{
-compare_pmx(source, mock, roles, endpoints = NULL)
+compare_pmx(source, synthetic, roles, endpoints = NULL)
 }
 \arguments{
 \item{source}{Source PMX data.}
 
-\item{mock}{Generated mock PMX data.}
+\item{synthetic}{Generated synthetic PMX data.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
 

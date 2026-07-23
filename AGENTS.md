@@ -1,7 +1,7 @@
 # Repository instructions
 
 This repository contains the `pmxSynthData` R package prototype for simulating
-structurally faithful mock pharmacometric datasets.
+structurally faithful synthetic pharmacometric datasets.
 
 ## Design documents
 
@@ -59,6 +59,12 @@ task list itself.
 - Treat current package code and regression tests as the source of truth for
   behavior. Existing vignette prose is context to audit, not evidence that an
   algorithm, default, formula, or limitation still works as described.
+- In vignettes, design documents, and `README.md`, spell out and briefly explain
+  every acronym and abbreviation at its first use in that document — including
+  ones that feel obvious in context (DP, PMX, PK, PCA, BLOQ, AR(1), ADaM). Write
+  "differential privacy (DP)" once, then use the short form. When a term is a
+  method or product name rather than an initialism (AVATAR, `synadam`), say what
+  it is instead of inventing an expansion.
 - Preserve each vignette's audience, purpose, and broad information structure
   by default, but rewrite or remove any section that no longer matches the
   implementation. Never preserve stale technical detail merely to minimize a

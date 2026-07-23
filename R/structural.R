@@ -10,7 +10,7 @@
 .pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
                 "2cmt_oral")
 # PD is a simple time course with no exposure dependence. This is both adequate
-# for mock data and far better conditioned to calibrate than an exposure-driven
+# for synthetic data and far better conditioned to calibrate than an exposure-driven
 # model, whose effect is a small deviation on a large baseline. See
 # design/PROTOTYPE_SPEC.md section 6.
 .pd_models <- c("none", "constant", "linear", "exponential")
@@ -84,7 +84,7 @@
       r <- .two_cmt_rates(p)
       ka <- p[["ka"]]
       # Nudge off any coincidence of rate constants; the closed form has
-      # removable singularities there and mock data does not need the limits.
+      # removable singularities there and synthetic data does not need the limits.
       eps <- 1e-6
       if (abs(ka - r$alpha) < eps) ka <- ka * (1 + eps)
       if (abs(ka - r$beta) < eps) ka <- ka * (1 - eps)
@@ -173,8 +173,10 @@
 #'   well-conditioned level correction; see `design/PROTOTYPE_SPEC.md`.
 #' @param source Required provenance string recording where the model and its
 #'   typical values came from. Recorded in the release ledger.
-#' @param rx Optional `rxode2` model used in place of the built-in analytic
-#'   solution. Requires the `rxode2` package.
+#' @param rx Reserved for an `rxode2` model. **Not yet implemented**: the value
+#'   is stored on the returned object but the generator always evaluates the
+#'   built-in analytic solution, so supplying it warns. See `REV-020` in
+#'   `design/REVIEW_BACKLOG.md`.
 #' @param iiv Named vector of between-subject variability, as CV on the log
 #'   scale. A public assumption; it consumes no privacy budget.
 #' @param residual_cv Proportional residual error, as a CV.
@@ -205,9 +207,20 @@ pmx_structural_model <- function(pk, typical, pd = "none", source,
     stop("`typical` is missing required parameters: ",
          paste(missing_params, collapse = ", "), ".", call. = FALSE)
   }
-  if (!is.null(rx) && !requireNamespace("rxode2", quietly = TRUE)) {
-    stop("`rx` was supplied but the rxode2 package is not installed.",
-         call. = FALSE)
+  if (!is.null(rx)) {
+    if (!requireNamespace("rxode2", quietly = TRUE)) {
+      stop("`rx` was supplied but the rxode2 package is not installed.",
+           call. = FALSE)
+    }
+    # The generator never reads `model$rx`; every profile comes from the
+    # built-in analytic solution. Silently returning an analytic curve for a
+    # user-supplied ODE model would be a fidelity claim the package cannot
+    # keep. See REV-020 in design/REVIEW_BACKLOG.md.
+    warning(
+      "`rx` is not yet used: profiles are always evaluated from the built-in ",
+      "analytic `", pk, "` solution. Supplying an rxode2 model does not ",
+      "change the generated data.", call. = FALSE
+    )
   }
   if (!is.numeric(residual_cv) || length(residual_cv) != 1L ||
       !is.finite(residual_cv) || residual_cv < 0) {

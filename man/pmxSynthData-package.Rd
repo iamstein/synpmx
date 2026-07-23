@@ -4,10 +4,10 @@
 \name{pmxSynthData-package}
 \alias{pmxSynthData}
 \alias{pmxSynthData-package}
-\title{pmxSynthData: structurally faithful mock pharmacometric data}
+\title{pmxSynthData: structurally faithful synthetic pharmacometric data}
 \description{
 \code{pmxSynthData} primarily uses AVATAR-style profile blending to generate
-structurally coherent PMX mock datasets in a trusted environment. The
+structurally coherent PMX synthetic datasets in a trusted environment. The
 package also provides a separate calibrated structural workflow with a
 formal differential-privacy backend when that boundary is required.
 }

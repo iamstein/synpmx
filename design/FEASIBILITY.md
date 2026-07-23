@@ -599,7 +599,7 @@ sensitivity to beat the `sqrt(2 ln(1.25/delta))` constant, which is well above
    incorrect prior produces clean, plausible, wrong data. Failure becomes
    invisible again — the same property that made v1 dangerous, arriving through
    a different door.
-3. **Too clean to be useful.** Mock data generated from a smooth structural
+3. **Too clean to be useful.** Synthetic data generated from a smooth structural
    model lacks the outliers, BLQ runs, missed doses, and protocol deviations
    that actually break analysis pipelines. This directly undercuts the stated
    purpose. Mitigate by injecting messiness from public and protocol knowledge

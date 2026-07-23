@@ -151,7 +151,7 @@ skeletons, raw residuals, unnoised sums, confidential levels or bounds, or
 source-dependent caches. `validate_private_model()` checks prohibited payload
 names and accounting, and tests serialize and inspect the model structure.
 Factor-valued source ID levels and any public-design default for the ID column
-are removed before release; generation creates a fresh mock-only level set.
+are removed before release; generation creates a fresh synthetic-only level set.
 Name-based checks are defense in depth, not a substitute for independent code
 and binary serialization review.
 

@@ -178,7 +178,7 @@ comparison_facets <- function(data) {
   ggplot2::facet_grid(dataset ~ endpoint, scales = "free_y")
 }
 
-source_mock_preview <- function(source, synthetic, n = 6L) {
+source_synthetic_preview <- function(source, synthetic, n = 6L) {
   columns <- intersect(names(source), names(synthetic))
   source_rows <- utils::head(source[, columns, drop = FALSE], n)
   synthetic_rows <- utils::head(synthetic[, columns, drop = FALSE], n)
@@ -193,25 +193,39 @@ source_mock_preview <- function(source, synthetic, n = 6L) {
 
 ## What this package is for
 
-`pmxSynthData` creates **mock pharmacometric data for model-workflow
+`pmxSynthData` creates **synthetic pharmacometric data for model-workflow
 exploration**: data to develop and debug cleaning, joins, reshaping, plotting,
 control-file plumbing, and repeated-dose or longitudinal analysis code, so that
 a pipeline runs unchanged against the real data later.
 
-This vignette uses the default method, **AVATAR-style blending**
-(`synthesize_pmx()`). For each generated subject it samples a compatible source
-subject's event skeleton as a template, then fills the covariates and endpoint
-trajectories with a distance-weighted blend of similar subjects, plus subject
-and residual noise. The output has the source schema, fresh identifiers, and the
-same cohort size.
+The package offers four generation modes, and the "Introduction to
+pmxSynthData" vignette applies all four to one dataset side by side:
 
-The output is **not** anonymous and carries **no formal privacy guarantee**. It
-is mock data for a trusted computing environment, in the same spirit as
+- **AVATAR blending** (`synthesize_pmx()`) — build each synthetic subject from
+  real subjects. No elicitation, no formal privacy guarantee.
+- **Prior only** (`pmx_generate()` on a public structural model) — read no data
+  at all.
+- **Calibration** (`fit_calibrated_pmx()`) — simulate from a public structural
+  model whose magnitude is corrected by a small differentially private release.
+- **Empirical** (`fit_private_pmx()`) — release a dense set of differentially
+  private summaries and rebuild subjects from them.
+
+**Most of this vignette is about the default, AVATAR blending**, applied to five
+public datasets with different structural challenges. For each generated subject
+it samples a compatible source subject's event skeleton as a template, then
+fills the covariates and endpoint trajectories with a distance-weighted blend of
+similar subjects, plus subject and residual noise. The output has the source
+schema, fresh identifiers, and the same cohort size. The final section runs the
+model-based path on the same theophylline data, as `scripts/demo_nlmixr2data.R`
+does for all five.
+
+AVATAR output is **not** anonymous and carries **no formal privacy guarantee**.
+It is synthetic data for a trusted computing environment, in the same spirit as
 Novartis's `synadam` (which resamples each column marginally from the data). It
 is not appropriate for parameter estimation, inference, model selection, or
-clinical decisions. When the generated data must cross a trust boundary, use the
-differentially private engines instead (see the privacy-introduction vignette);
-the tradeoff is discussed in `design/METHOD_DISCUSSION.md`.
+clinical decisions. When the generated data must cross a trust boundary, use one
+of the differentially private modes instead (see the privacy-introduction
+vignette); the tradeoff is discussed in `design/METHOD_DISCUSSION.md`.
 
 ## Shared workflow
 
@@ -239,7 +253,7 @@ theo_roles <- pmx_roles(
 theo_synth <- synthesize_pmx(theo_md, theo_roles, seed = 303)
 validate_pmx(theo_synth, theo_roles)$valid
 knitr::kable(
-  source_mock_preview(theo_md, theo_synth),
+  source_synthetic_preview(theo_md, theo_synth),
   caption = "Actual Theophylline rows and synthesized rows"
 )
 knitr::kable(
@@ -311,7 +325,7 @@ warfarin_roles <- pmx_roles(
 warfarin_synth <- synthesize_pmx(warfarin, warfarin_roles, seed = 404)
 validate_pmx(warfarin_synth, warfarin_roles)$valid
 knitr::kable(
-  source_mock_preview(warfarin, warfarin_synth),
+  source_synthetic_preview(warfarin, warfarin_synth),
   caption = "Actual Warfarin rows and synthesized rows"
 )
 knitr::kable(
@@ -483,7 +497,79 @@ mavo_plot + if (requireNamespace("xgxr", quietly = TRUE)) {
 }
 ```
 
+## The model-based path on the same data
+
+Everything above blends real subjects. The alternative is to fit a public model
+to the data through an accounted release and simulate from it, which is what
+`scripts/demo_nlmixr2data.R` does for all five datasets. Repeating it here for
+theophylline shows how much more must be declared, and what is bought.
+
+The empirical engine measures the trajectory shape from the data through noised
+summaries. Every clipping range, contribution limit, and budget share is an
+explicit public input:
+
+```{r empirical, eval=has_nlmixr2data}
+theo_empirical <- fit_private_pmx(
+  data = theo_md, roles = theo_roles,
+  endpoints = list(cp = pmx_endpoint(
+    alignment = "dose_relative", transform = "log", shape = "occasion", cmt = 2
+  )),
+  epsilon = 5, delta = 0,
+  bounds = pmx_bounds(
+    time = c(0, 170), endpoints = list(cp = c(0, 30)), amt = c(0, 500),
+    covariates = list(WT = c(40, 130))
+  ),
+  public_design = pmx_public_design(
+    pmx_schema(theo_md), dose_evid = 101, dose_cmt = 1
+  ),
+  contribution_limits = pmx_contribution_limits(40, 8, 8, 30, 11),
+  budget_allocation = pmx_budget_allocation(
+    subject_count = 0.10, event = 0.15, timing = 0.15,
+    covariates = 0.10, endpoints = 0.50, censoring = 0
+  ),
+  backend = "public", public_source = TRUE   # theo_md is public; no DP claim
+)
+theo_private <- generate_pmx(theo_empirical, seed = 707)
+validate_pmx(theo_private, theo_roles)$valid
+sampling_summary(theo_empirical)
+```
+
+The fit reads the data once; generation is post-processing, so any number of
+datasets can be drawn from one release without spending more budget.
+
+```{r empirical-plot, eval=has_nlmixr2data && has_ggplot2}
+theo_private_comparison <- rbind(
+  observed_plot_data(theo_md, theo_roles, "Source"),
+  observed_plot_data(theo_private, theo_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  theo_private_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.35) +
+  ggplot2::geom_point(alpha = 0.55, size = 0.8) +
+  comparison_facets(theo_private_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "DV", colour = "Dataset",
+    title = "Theophylline: model-based private generation"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+Because `theo_md` is already public, this demonstration uses the guarded
+public-fixture backend, which is **noiseless and makes no DP claim** — exactly
+as the demo script does. A confidential fit uses the default OpenDP backend and
+fails closed when it is unavailable. The `fit_calibrated_pmx()` mode, which
+asserts curve shape from a public structural model and privately calibrates only
+the magnitude, is the better choice at this cohort size; the introduction
+vignette runs it on this same dataset.
+
 ## What is preserved, and what is not
+
+This section describes the AVATAR output shown above.
 
 Preserved: schema, column classes, factor levels, cohort size, endpoint set,
 event structure, coarse regimen and sampling timing, and the broad shape and
@@ -496,5 +582,6 @@ are always freshly generated and never reuse a source value.
 Not provided: any formal privacy guarantee. The synthetic data is built by
 blending real subject trajectories, so it is appropriate for a trusted
 environment, not for release across a trust boundary. See the method vignette
-for how the blending works, and the privacy-introduction vignette for the
-differentially private alternative.
+for how the blending works, the introduction vignette for all four modes side by
+side, and the privacy-introduction vignette for what differential privacy does
+and does not promise.

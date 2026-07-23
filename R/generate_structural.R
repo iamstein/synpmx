@@ -54,7 +54,7 @@
   rep(seq_along(design$dose_levels), times = counts)[seq_len(n_subjects)]
 }
 
-#' Generate a mock PMX event table from a structural model
+#' Generate a synthetic PMX event table from a structural model
 #'
 #' Works in two modes. Supplied a [pmx_structural_model()] it generates purely
 #' from public inputs, reads no confidential data, and makes no privacy claim.

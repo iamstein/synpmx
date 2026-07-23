@@ -39,10 +39,10 @@
   )
 }
 
-.comparison_plots <- function(source, mock, roles) {
+.comparison_plots <- function(source, synthetic, roles) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) return(list())
   trajectories <- rbind(.plot_data(source, roles, "source"),
-                        .plot_data(mock, roles, "mock"))
+                        .plot_data(synthetic, roles, "synthetic"))
   overlay <- ggplot2::ggplot(
     trajectories,
     ggplot2::aes(x = time_plot, y = dv_plot,
@@ -53,7 +53,7 @@
     ggplot2::facet_wrap(~endpoint_plot, scales = "free_y") +
     ggplot2::labs(
       x = roles$time, y = roles$dv, colour = "Dataset",
-      title = "Restricted source-versus-mock trajectory diagnostic",
+      title = "Restricted source-versus-synthetic trajectory diagnostic",
       subtitle = "Not releasable unless separately privatized and budgeted"
     ) + ggplot2::theme_minimal()
   faceted <- ggplot2::ggplot(
@@ -81,30 +81,31 @@
 #' separate public justification or budgeted DP mechanism.
 #'
 #' @param source Source PMX data.
-#' @param mock Generated mock PMX data.
+#' @param synthetic Generated synthetic PMX data.
 #' @param roles Explicit roles from [pmx_roles()].
 #' @param endpoints Optional endpoint declarations.
 #'
 #' @return A `pmx_comparison` containing component-level release metadata.
 #' @export
-compare_pmx <- function(source, mock, roles, endpoints = NULL) {
+compare_pmx <- function(source, synthetic, roles, endpoints = NULL) {
   .assert_roles(source, roles)
-  .assert_roles(mock, roles)
+  .assert_roles(synthetic, roles)
   source_validation <- validate_pmx(source, roles, endpoints)
-  mock_validation <- validate_pmx(mock, roles, endpoints)
+  synthetic_validation <- validate_pmx(synthetic, roles, endpoints)
   source_classes <- vapply(source, function(x) paste(class(x), collapse = "/"),
                            character(1))
-  mock_classes <- vapply(mock, function(x) paste(class(x), collapse = "/"),
-                         character(1))
+  synthetic_classes <- vapply(
+    synthetic, function(x) paste(class(x), collapse = "/"), character(1)
+  )
   column_classes <- data.frame(
     column = names(source), source = unname(source_classes),
-    mock = unname(mock_classes[names(source)]),
-    matches = unname(source_classes == mock_classes[names(source)]),
+    synthetic = unname(synthetic_classes[names(source)]),
+    matches = unname(source_classes == synthetic_classes[names(source)]),
     stringsAsFactors = FALSE
   )
   status <- data.frame(
     component = c("summary", "event_counts", "column_classes",
-                  "validation.source", "validation.mock", "plots"),
+                  "validation.source", "validation.synthetic", "plots"),
     release_status = c(
       rep("restricted_not_releasable", 4L), "releasable_post_processing",
       "restricted_not_releasable"
@@ -114,20 +115,21 @@ compare_pmx <- function(source, mock, roles, endpoints = NULL) {
   structure(list(
     summary = .mark_release(rbind(
       .structural_summary(source, roles, "source"),
-      .structural_summary(mock, roles, "mock")
+      .structural_summary(synthetic, roles, "synthetic")
     ), "restricted_not_releasable"),
     event_counts = .mark_release(rbind(
       .event_counts(source, roles, "source"),
-      .event_counts(mock, roles, "mock")
+      .event_counts(synthetic, roles, "synthetic")
     ), "restricted_not_releasable"),
     column_classes = .mark_release(column_classes,
                                    "restricted_not_releasable"),
     validation = list(
       source = .mark_release(source_validation,
                              "restricted_not_releasable"),
-      mock = .mark_release(mock_validation, "releasable_post_processing")
+      synthetic = .mark_release(synthetic_validation,
+                                "releasable_post_processing")
     ),
-    plots = .mark_release(.comparison_plots(source, mock, roles),
+    plots = .mark_release(.comparison_plots(source, synthetic, roles),
                           "restricted_not_releasable"),
     release_status = status
   ), class = "pmx_comparison")
@@ -135,7 +137,7 @@ compare_pmx <- function(source, mock, roles, endpoints = NULL) {
 
 #' @export
 print.pmx_comparison <- function(x, ...) {
-  cat("Restricted PMX source-versus-mock comparison\n")
+  cat("Restricted PMX source-versus-synthetic comparison\n")
   print(x$summary, row.names = FALSE)
   cat("Source-derived components are not releasable unless separately public or privately budgeted.\n")
   invisible(x)

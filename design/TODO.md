@@ -24,12 +24,84 @@ registry entry it points at rather than deleting the history.
 
 ---
 
-## Now: Version 4 — return to AVATAR blending as the primary method
+## Next: three prioritized items (joint, needing a scoping conversation)
+
+1. **Rename the package to `synpmx`, consistently everywhere.** Decision
+   (2026-07-23): match `synadam`'s naming convention, and end the current
+   three-way split between the package name (`pmxSynthData`), the GitHub
+   repository (`pmxSyntheticData`), and the intended name. One name, in the
+   package, the repository, and the local clone directory. What the rename
+   touches:
+   - 149 occurrences of `pmxSynthData` across 30 tracked files, plus 9 files
+     *named* `pmxSynthData*`: `DESCRIPTION`, `NAMESPACE`, the `.Rproj`,
+     `R/pmxSynthData-package.R`, `man/pmxSynthData-package.Rd`, all five
+     vignettes (filename **and** `\%\VignetteIndexEntry`), `README.md`,
+     `AGENTS.md`, `build.sh` (`readonly PKG=`), the design documents, and
+     `scripts/`.
+   - **Open question: does the rename extend to the API?** Exported functions
+     are `pmx_*` / `synthesize_pmx()` today. `synadam` parity would argue for
+     leaving them — `pmx_` says what the data is, `syn` says what the package
+     does — but decide deliberately, once, before there are users.
+   - **The git repository is `iamstein/pmxSyntheticData`** (a third spelling,
+     matching neither the package nor the new name). GitHub redirects the old
+     URL after a repository rename, so this is low risk, but it needs doing in
+     the right order: rename on GitHub, then `git remote set-url`, then rename
+     the local clone directory. Note that the working directory path is baked
+     into this session's scratchpad and into `.claude/` settings.
+   - Do it as one mechanical commit with no content changes, so the diff is
+     reviewable, and run `./build.sh` immediately after.
+   - **Sequencing:** decide the vignette set (item 2) *before* renaming, so the
+     five vignette filenames are churned only once.
+2. **Review and organize the documentation set.** Five vignettes, a `README.md`,
+   and ten design documents now overlap in places and no one has decided what
+   each is *for*. Decide the audience and job of each document, what the entry
+   point is, what should merge or be deleted, and how much of `README.md` should
+   be a landing page versus a reference. The `README.md` in particular needs a
+   significant rewrite rather than another patch. **Scope this together before
+   writing**; the inventory and my guessed audiences are in
+   `design/DOCUMENTATION_SCOPE.md`.
+3. **Try the approach on the internal INTERNAL_STUDY data.** The methods have only been
+   exercised on public `nlmixr2data` sources and package fixtures. Running
+   AVATAR and the calibrated structural path on a real internal study is the
+   test that matters: role declaration against a real schema, event grammar
+   that the template sampler has not seen, and whether the generated data is
+   actually useful for workflow development. Keep it in `scripts_private/`.
+
+## Now: documentation set — one entry point, four named modes
+
+Scope decision (2026-07-23): the package has four generation modes (AVATAR,
+prior-only, calibration, empirical) but no document introduced them together,
+and a reader landing on any one vignette could not tell which they were in.
+
+- [x] `vignettes/pmxSynthData-intro.Rmd` — the entry point. Big picture, all
+      four modes applied to `theo_md`, a properties table, and a table mapping
+      environments (trusted / partner / published) to acceptable modes.
+- [x] Privacy vignette: explain what AVATAR *is* and what DP *is* before
+      comparing them, with the formal `(epsilon, delta)` definition and the
+      kind-not-degree table.
+- [x] Method vignette: all options at the top, then the default AVATAR
+      algorithm, then the model-based alternatives at the end.
+- [x] Demo vignette: state the four modes up front and run the model-based path
+      on theophylline, as `scripts/demo_nlmixr2data.R` does.
+- [x] `README.md`: vignette table of contents explaining how the documentation
+      set is organized and which document answers which question. This is a
+      minimal addition only; the full rewrite is item 1 above.
+- [x] House style: spell out every acronym on first use in a document
+      (`AGENTS.md`). The word "mock" is gone: prose says "synthetic data", the
+      `compare_pmx()` argument and outputs are `synthetic`, and generated
+      character/factor IDs are `syn_001` rather than `mock_001`.
+- [x] `design/DOCUMENTATION_SCOPE.md` — inventory of all 23 documents with
+      guessed audiences, as input to item 2 above.
+- [ ] `REV-020` — `pmx_structural_model(rx = )` is stored but never used. It now
+      warns; either wire it through `rxode2::rxSolve()` with a regression test
+      against the analytic solution, or reject it outright.
+
+## Version 4 — return to AVATAR blending as the primary method
 
 Scope decision (2026-07-22): after comparing to Novartis's `synadam` (which
 resamples each column marginally from the data with no formal guarantee), AVATAR
 is the trajectory-level analogue of the same governance-based approach, and it is
-the right default for trusted-environment mock data. The DP (v2) and structural
+the right default for trusted-environment synthetic data. The DP (v2) and structural
 (v3) engines are kept as superseded alternatives for when a formal guarantee is
 required, not removed.
 

@@ -15,17 +15,123 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(pmxSynthData)
 ```
 
-## The two methods, and when privacy matters
+## Scope
 
-`pmxSynthData` offers two families of method. The **default** is AVATAR-style
-blending (`synthesize_pmx()`), documented in the "Using pmxSynthData" and "How
-pmxSynthData Works" vignettes. It resamples and blends whole source subject
-trajectories, works at any cohort size, and makes **no formal privacy
-guarantee**. It is intended for mock data used **inside a trusted computing
-environment**, in the same spirit as Novartis's `synadam`.
+`pmxSynthData` generates synthetic pharmacometric (PMX) datasets — dosing and
+measurement event tables of the kind a population pharmacokinetic (PK) or
+pharmacodynamic analysis consumes. It offers two families of method that protect
+patients in fundamentally different ways. This vignette explains what each one
+actually is, what differential privacy does and does not promise, and how to
+choose between them.
 
-This vignette describes the **alternative**: the differentially private engines,
-for the case that needs a formal guarantee.
+The companion vignettes are "Using pmxSynthData" (the workflow), "How
+pmxSynthData Works" (the generator algorithms), and "Exploring Epsilon in
+pmxSynthData" (the privacy-utility tradeoff of the private engines).
+
+## The two families in one page
+
+### AVATAR blending: synthetic data built out of real subjects
+
+The **default** method is `synthesize_pmx()`, AVATAR-style blending. "AVATAR" is
+a method name rather than an initialism: it comes from the patient-centric
+*avatarization* literature, in which each synthetic record ("avatar") is
+constructed from the local neighborhood of real records rather than from a
+fitted parametric model. This package implements an AVATAR-*inspired* adaptation
+for longitudinal event tables, not published AVATAR software.
+
+Mechanically, for each synthetic subject it:
+
+1. samples a real source subject as an **anchor** and keeps that subject's event
+   skeleton — dosing rows, observation times, missing-value pattern — so the
+   generated subject is structurally a real trial subject;
+2. finds the **k nearest compatible neighbors** of the anchor in a standardized,
+   principal-component (PCA) profile space (the default is `k = 5`);
+3. fills covariates and endpoint trajectories with a randomized,
+   distance-weighted **blend** of those donors, with no single donor allowed
+   more than 80% of the weight; and
+4. adds subject-level and within-trajectory random noise.
+
+The output looks like trial data because it is assembled from trial data. That
+is the source of both its utility and its risk: it works at any cohort size,
+preserves real covariate correlations and real trajectory shapes for free, needs
+no elicited model or priors — and makes **no formal privacy guarantee**. Its
+safety rests on governance: the data stays inside a trusted, access-controlled
+environment. This is the same footing as Novartis's `synadam`, an ADaM (Analysis
+Data Model) synthetic-data package that resamples each column marginally from
+the real data with no privacy accounting at all.
+
+### Differential privacy: a bound on what any one subject can change
+
+The **alternative** is the differentially private (DP) engines,
+`fit_calibrated_pmx()` and `fit_private_pmx()`. These never copy or blend a
+subject's data into the output. Instead they:
+
+1. compute a small number of **aggregate** statistics from the source data,
+   with every per-subject contribution clipped into a publicly declared range;
+2. add **calibrated random noise** to each aggregate, with the noise scale
+   derived from how much one subject could have moved that number; and
+3. generate the synthetic dataset from the noised aggregates and a public structural
+   model.
+
+Only the noised aggregates ever touch the generated data, so the release carries
+a mathematical guarantee.
+
+## What differential privacy actually is
+
+Differential privacy is a property of the **release procedure**, not of the
+released dataset. You cannot inspect a table and check whether it is
+differentially private; you can only check the mechanism that produced it.
+
+A randomized mechanism `M` is `(epsilon, delta)`-differentially private if, for
+every pair of **neighboring** datasets `D` and `D'` — identical except that one
+complete subject is added or removed — and every set of possible outputs `S`:
+
+$$\Pr[M(D) \in S] \;\le\; e^{\varepsilon} \, \Pr[M(D') \in S] \;+\; \delta$$
+
+Read it as a promise made to one patient: *whatever the analyst concludes from
+this release, they would have concluded almost the same thing had you never
+enrolled.* The bound holds against an adversary with unlimited computing power
+and arbitrary side information, including one who already knows every other
+subject in the study.
+
+Making that true requires two ingredients, both visible in the package:
+
+- **Sensitivity** — the most that adding or removing one subject can move the
+  released quantity. It exists only because per-subject values are clipped into
+  a range declared *without looking at the data*. A data-derived range is itself
+  a leak, and the accounting will not catch it.
+- **A noise scale tied to that sensitivity.** The engines use the Laplace
+  mechanism: noise of scale `sensitivity / epsilon`. Smaller epsilon means a
+  stronger promise and more noise. Budget is spent, not reused: releasing `d`
+  separate quantities splits epsilon `d` ways.
+
+`design/PRIVACY_BACKGROUND.md` works the arithmetic through with examples.
+
+## AVATAR and DP are not two points on one privacy scale
+
+It is tempting to rank the methods as "less private" and "more private." That is
+the wrong axis. The difference is one of **kind**:
+
+| | AVATAR blending | Differentially private engines |
+|---|---|---|
+| What produces the output | Real subject trajectories, blended and perturbed | Noised aggregate statistics plus a public structural model |
+| Privacy claim | None formal; heuristic mitigation by blending and noise | Proven `(epsilon, delta)` bound on one subject's influence |
+| Holds against a determined adversary | Not established | Yes, by construction |
+| Rests on | Governance and access control | Mathematics, plus correct declared ranges |
+| Utility at small N | Good — works from a dozen subjects | Degrades sharply below a few hundred |
+| Elicitation required | None | Public structural model, priors, and clipping ranges |
+| Cost | None | Epsilon budget, and accuracy paid for it |
+
+The honest caveat about AVATAR is one of granularity. A resampled covariate
+value — a body weight of 72 kg — is weakly identifying, because thousands of
+people share it. A resampled subject **trajectory** is much closer to a
+fingerprint: its particular sampling times, missed visits, noise pattern, and
+curve shape can be nearly unique. Blending several donors and adding noise
+mitigates this, but not formally, and pushing the noise high enough to defeat a
+nearest-neighbor linkage attack would destroy the same signal a DP mechanism
+would have destroyed — without the accounting to prove it. AVATAR therefore
+leans on the governance context more heavily than column-wise resampling like
+`synadam` does. This package has undergone no attack-based privacy validation.
 
 ## The decision rule
 
@@ -38,8 +144,8 @@ The choice is a single question:
   formal guarantee costs nothing, because there is no adversary to guarantee
   against.
 - **Crosses out** — shared with a partner or vendor, published, or moved to a
-  less-controlled system → use a **differentially private** engine. A formal
-  guarantee is the only thing that survives a determined adversary.
+  less-controlled system → use a **DP** engine. A formal guarantee is the only
+  thing that survives a determined adversary.
 
 Differential privacy is expensive precisely because it defends against someone
 who wants to break it. Buy it when the output will be handed to strangers; skip
@@ -47,21 +153,24 @@ it when nothing can reach the output.
 
 ## The differentially private engines
 
-Two are provided, both making a subject-level `(epsilon, delta)` guarantee:
-neighboring datasets differing by one complete subject produce nearly
-indistinguishable output, so no one person's participation can be inferred from
-the release.
+Both make a subject-level guarantee: neighboring datasets differing by one
+complete subject produce nearly indistinguishable output, so no one person's
+participation can be inferred from the release.
 
 - **`fit_calibrated_pmx()`** (structural correction). Asserts curve shape from a
   public structural model and privately calibrates only the exposure magnitude
-  by a small correction factor. Viable at small cohorts. This is the
-  recommended DP path for early-phase studies.
+  by a small correction factor. Because it releases very few quantities, it
+  remains viable at small cohorts. This is the recommended DP path for
+  early-phase studies.
 - **`fit_private_pmx()`** (dense grid). Releases a larger set of noised
   population summaries. Retained for large pooled corpora where its cost is
   affordable.
 
-Both fail closed when the validated OpenDP backend is unavailable and never
-substitute ordinary random noise:
+Both are built on Laplace releases, which spend no delta, so the realized
+accounting reports `delta = 0` — a pure epsilon guarantee — even though the
+requested `delta` is carried as slack in the contract. Both fail closed when the
+validated OpenDP backend is unavailable, and neither ever substitutes ordinary
+random noise for a calibrated mechanism:
 
 ```{r backend, eval=requireNamespace("opendp", quietly = TRUE)}
 dp_backend_status()
@@ -76,13 +185,18 @@ dp_backend_status()
 - Differential privacy bounds the information attributable to one person's
   participation. It does **not** establish legal anonymity, authorize release,
   or secure the environment.
+- The guarantee is only as good as the declared clipping ranges. Ranges chosen
+  by looking at the data break it silently.
 
 ## Where to read more
 
 - `design/PRIVACY_BACKGROUND.md` — how the arithmetic works: `d`, `f`, epsilon,
   and the error law, with worked examples.
+- `design/PRIVACY_ARGUMENT.md` — the formal mechanism-level argument, for a
+  reviewer.
 - `design/FEASIBILITY.md` — measured utility of the DP engines by cohort size,
   and why small cohorts are hard for any formal method.
 - `design/METHOD_DISCUSSION.md` — the full AVATAR-versus-DP tradeoff and the
   `synadam` comparison.
+- The "How pmxSynthData Works" vignette — the AVATAR algorithm in detail.
 - The "Exploring Epsilon" vignette — how epsilon trades off against utility.

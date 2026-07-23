@@ -151,7 +151,7 @@ disclosure risk, for three independent reasons:
 
 Treat trial-level design as public, record its source in the provenance table,
 and move on. Generating from the *planned* grid rather than the realized one is
-a reasonable simplification if it is easier — mock data showing doses that were
+a reasonable simplification if it is easier — synthetic data showing doses that were
 never given is harmless for workflow testing — but it is a convenience, not a
 privacy requirement.
 

@@ -193,12 +193,12 @@ check_demo_similarity <- function(source, synthetic, roles, time_bounds,
   summary[order(summary$dataset, summary$endpoint), , drop = FALSE]
 }
 
-overlay_plot <- function(source, mock, roles, name, clock = "study_time",
+overlay_plot <- function(source, synthetic, roles, name, clock = "study_time",
                          log_y = FALSE) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) return(NULL)
   plot_data <- rbind(
     observed_plot_data(source, roles, "Source", clock),
-    observed_plot_data(mock, roles, "Synthetic", clock)
+    observed_plot_data(synthetic, roles, "Synthetic", clock)
   )
   grouping <- if (identical(clock, "tad")) {
     interaction(
@@ -246,26 +246,26 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
     budget_allocation = demo_budget(),
     backend = "public", public_source = TRUE
   )
-  mock <- pmxSynthData::generate_pmx(model, seed = seed)
-  validation <- pmxSynthData::validate_pmx(mock, roles, endpoints)
-  comparison <- pmxSynthData::compare_pmx(source, mock, roles, endpoints)
-  overlay <- overlay_plot(source, mock, roles, name, clock, log_y = log_y)
+  synthetic <- pmxSynthData::generate_pmx(model, seed = seed)
+  validation <- pmxSynthData::validate_pmx(synthetic, roles, endpoints)
+  comparison <- pmxSynthData::compare_pmx(source, synthetic, roles, endpoints)
+  overlay <- overlay_plot(source, synthetic, roles, name, clock, log_y = log_y)
   if (is.null(comparison_bounds)) comparison_bounds <- fit_bounds$time
   design_checks <- check_demo_similarity(
-    source, mock, roles, comparison_bounds, name, clock
+    source, synthetic, roles, comparison_bounds, name, clock
   )
   stopifnot(validation$valid)
 
-  message("\n", name, ": ", nrow(mock), " generated rows; ",
-          length(unique(mock[[roles$id]])), " generated subjects")
+  message("\n", name, ": ", nrow(synthetic), " generated rows; ",
+          length(unique(synthetic[[roles$id]])), " generated subjects")
   message("Source data (first six rows):")
   print(utils::head(source))
-  message("Mock data (first six rows):")
-  print(utils::head(mock))
+  message("Synthetic data (first six rows):")
+  print(utils::head(synthetic))
   source_kind <- record_kind(source, roles)
-  mock_kind <- record_kind(mock, roles)
+  synthetic_kind <- record_kind(synthetic, roles)
   message("Record counts (dose/event rows are not samples):")
-  print(rbind(Source = table(source_kind), Mock = table(mock_kind)))
+  print(rbind(Source = table(source_kind), Synthetic = table(synthetic_kind)))
   message("Cohort and sampling-design checks by endpoint:")
   print(design_checks, row.names = FALSE)
   print(pmxSynthData::privacy_report(model))
@@ -277,8 +277,8 @@ run_public_demo <- function(name, roles, endpoints, bounds, design, limits,
   invisible(list(
     source = source,
     source_observations = source[source_kind == "observation", , drop = FALSE],
-    model = model, mock = mock,
-    mock_observations = mock[mock_kind == "observation", , drop = FALSE],
+    model = model, synthetic = synthetic,
+    synthetic_observations = synthetic[synthetic_kind == "observation", , drop = FALSE],
     overlay_plot = overlay, design_checks = design_checks,
     comparison = comparison, comparison_clock = clock
   ))
@@ -431,9 +431,9 @@ mavoglurant_result <- run_public_demo(
   seed = 505, clock = "tad", comparison_bounds = c(0, 120), log_y = TRUE
 )
 message("Mavoglurant assigned-dose coherence by occasion:")
-with(mavoglurant_result$mock, print(stats::aggregate(
+with(mavoglurant_result$synthetic, print(stats::aggregate(
   cbind(DOSE, AMT) ~ OCC,
-  data = mavoglurant_result$mock[
+  data = mavoglurant_result$synthetic[
     EVID != 0 & AMT > 0, , drop = FALSE
   ],
   FUN = function(value) paste(sort(unique(round(value, 4))), collapse = ", ")

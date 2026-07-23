@@ -25,7 +25,7 @@ synthesize_pmx(
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}. Columns listed in
 \code{roles$exclude} are omitted from the generated output.}
 
-\item{n_subjects}{Number of mock subjects. \code{NULL} retains the source count.}
+\item{n_subjects}{Number of synthetic subjects. \code{NULL} retains the source count.}
 
 \item{seed}{Reproducibility seed. The caller's random-number state is
 restored on exit.}
@@ -64,7 +64,7 @@ CMT, and DVID are never averaged or independently generated.
 }
 \details{
 This is an AVATAR-inspired adaptation, not an exact implementation of
-published AVATAR software. It creates mock data for model-workflow
+published AVATAR software. It creates synthetic data for model-workflow
 exploration. It does not provide formal anonymization or preserve scientific
 parameter or covariate-response relationships.
 

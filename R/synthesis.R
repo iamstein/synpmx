@@ -301,7 +301,7 @@
 #' CMT, and DVID are never averaged or independently generated.
 #'
 #' This is an AVATAR-inspired adaptation, not an exact implementation of
-#' published AVATAR software. It creates mock data for model-workflow
+#' published AVATAR software. It creates synthetic data for model-workflow
 #' exploration. It does not provide formal anonymization or preserve scientific
 #' parameter or covariate-response relationships.
 #'
@@ -321,7 +321,7 @@
 #' @param data A source PMX data frame or tibble.
 #' @param roles Explicit roles from [pmx_roles()]. Columns listed in
 #'   `roles$exclude` are omitted from the generated output.
-#' @param n_subjects Number of mock subjects. `NULL` retains the source count.
+#' @param n_subjects Number of synthetic subjects. `NULL` retains the source count.
 #' @param seed Reproducibility seed. The caller's random-number state is
 #'   restored on exit.
 #' @param event_method Event generation method. The prototype supports
@@ -386,8 +386,8 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
     standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
 
-    for (mock_index in seq_len(n_subjects)) {
-      anchor <- anchors[mock_index]
+    for (synthetic_index in seq_len(n_subjects)) {
+      anchor <- anchors[synthetic_index]
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
@@ -401,7 +401,7 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
         subject_noise_sd, residual_noise_sd, residual_phi, warnings
       )
       if (standard_mdv) skeleton <- .derive_standard_mdv(skeleton, source_roles)
-      new_id <- new_ids[mock_index]
+      new_id <- new_ids[synthetic_index]
       if (is.factor(skeleton[[source_roles$id]])) {
         new_label <- as.character(new_id)
         levels(skeleton[[source_roles$id]]) <- unique(c(
@@ -412,7 +412,7 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
         skeleton[[source_roles$id]][] <- new_id
       }
       row_order <- order(skeleton[[source_roles$time]], original_order)
-      generated[[mock_index]] <- skeleton[row_order, , drop = FALSE]
+      generated[[synthetic_index]] <- skeleton[row_order, , drop = FALSE]
     }
 
     result <- do.call(rbind, generated)
@@ -443,7 +443,7 @@ synthesize_pmx <- function(data, roles, n_subjects = NULL, seed = 123,
     validate_pmx(result, source_roles, strict = TRUE)
     if (length(warnings$messages)) {
       warning(
-        "Mock generation used documented small-group/profile fallbacks:\n- ",
+        "Synthetic generation used documented small-group/profile fallbacks:\n- ",
         paste(warnings$messages, collapse = "\n- "),
         call. = FALSE
       )

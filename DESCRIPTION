@@ -1,9 +1,9 @@
 Package: pmxSynthData
-Title: Structurally Faithful Mock Pharmacometric Data
+Title: Structurally Faithful Synthetic Pharmacometric Data
 Version: 0.0.0.9000
 Authors@R:
     person("Andrew", "Stein", , "andy.stein@gmail.com", role = c("aut", "cre"))
-Description: Generates structurally faithful mock pharmacometric event data
+Description: Generates structurally faithful synthetic pharmacometric event data
     by AVATAR-style profile blending for trusted environments. A separate
     calibrated structural and differentially private workflow is available
     when formal privacy is required. The package uses explicit roles, units,

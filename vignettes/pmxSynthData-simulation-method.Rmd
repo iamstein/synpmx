@@ -26,11 +26,14 @@ library(pmxSynthData)
 
 ## Purpose and scope
 
-`pmxSynthData` makes **mock data for model-workflow exploration**. Its job is
-practical: preserve enough of a pharmacometric event table's structure that
-data assembly, diagnostic plots, and model-run plumbing can be developed away
-from the restricted source environment. It does this without fitting or
-calling a PK, PD, or nonlinear mixed-effects model.
+`pmxSynthData` makes **synthetic data for model-workflow exploration**. Its job is
+practical: preserve enough of a pharmacometric (PMX) event table's structure
+that data assembly, diagnostic plots, and model-run plumbing can be developed
+away from the restricted source environment. The default generator described
+here does this without fitting or calling a pharmacokinetic (PK),
+pharmacodynamic (PD), or nonlinear mixed-effects model; the model-based
+alternatives described at the end do use an explicit, publicly declared PK/PD
+model.
 
 That narrow purpose is important. A generated dataset is not anonymous data,
 has no formal privacy guarantee, and is not evidence that source subjects
@@ -47,55 +50,44 @@ The central idea is to keep two problems separate:
    measurements are generated from compatible neighboring subjects, with
    modest stochastic perturbation.
 
-## Two privacy models: AVATAR blending versus differential privacy
+## The three generators, and which one this vignette documents
 
-`pmxSynthData` contains two families of method, and they answer different
-questions. This vignette documents the default one.
+`pmxSynthData` offers three ways to produce a synthetic dataset. They differ in
+what the output is built from, and therefore in what can be claimed about it.
 
-**AVATAR blending** (`synthesize_pmx()`, described below) resamples and blends
-whole source subject trajectories. It works at any cohort size, needs no
-elicitation, and makes **no formal privacy guarantee**. Its safety rests on
-governance: the data is used inside a trusted, access-controlled environment,
-not released across a trust boundary.
+| Generator | Output is built from | Privacy claim | Works at small N |
+|---|---|---|---|
+| `synthesize_pmx()` — **AVATAR blending, the default** | Real subject event templates and blended real trajectories | None formal; governance-based | Yes, from about a dozen subjects |
+| `fit_calibrated_pmx()` — **structural-model calibration** | A public PK/PD model whose magnitude is privately corrected | `(epsilon, delta)` differential privacy | Yes, this is the small-cohort private path |
+| `fit_private_pmx()` — **dense private grid** | A larger set of noised population summaries | `(epsilon, delta)` differential privacy | No, needs a few hundred subjects |
 
-**Differential privacy** (`fit_calibrated_pmx()` and `fit_private_pmx()`, see
-the privacy-introduction vignette) computes a small number of aggregate
-statistics, adds mathematically calibrated noise so that no one subject can move
-any released number by more than a bounded amount, and generates from those
-noised aggregates. It carries a provable `(epsilon, delta)` guarantee that
-survives a determined adversary, at the cost of utility that degrades sharply
-in small cohorts.
+Both differentially private (DP) engines are **aggregate-based**: no source subject's
+rows, template, or trajectory reaches the output. They read the confidential
+data only through per-subject contributions clipped to publicly declared ranges,
+release those aggregates with calibrated noise, and generate from the noised
+numbers alone. They differ in what supplies the curve shape.
+`fit_calibrated_pmx()` takes it from a **public structural model** — a
+closed-form one-compartment or two-compartment PK model, evaluated analytically
+rather than by solving ordinary differential equations (ODEs) — and spends
+budget only on correcting its magnitude. `fit_private_pmx()` instead
+reconstructs shape from a denser set of noised summaries, which costs far more
+budget.
 
-The choice between them is a single question: **does the generated data cross a
-trust boundary?** If it stays inside the safe environment, AVATAR is more useful
-and its lack of a formal guarantee costs nothing, because there is no adversary
-to guarantee against. If it is shared externally or published, only the
-differentially private guarantee holds up.
+`synthesize_pmx()` is the opposite trade: it needs no model, no priors, and no
+elicitation, and it reproduces real covariate correlations and real curve shapes
+because it is assembled from real subjects — but it makes no formal guarantee.
 
-### How AVATAR relates to synadam
+The choice is a single question: **does the generated data cross a trust
+boundary?** If it stays inside the safe environment, AVATAR is more useful and
+its lack of a formal guarantee costs nothing, because there is no adversary to
+guarantee against. If it is shared externally or published, only a
+differentially private release holds up. The privacy-introduction vignette works
+through that decision; `design/METHOD_DISCUSSION.md` gives the full argument.
 
-Novartis's `synadam` generates synthetic ADaM data by resampling **each column**
-marginally from the real data: a uniform draw over the observed range for
-continuous columns, a proportional resample for categorical ones, with no
-differential privacy. It preserves each column's marginal support and relies on
-governance rather than a mathematical guarantee. That is standard, accepted
-practice.
-
-AVATAR blending is the same governance-based idea applied at a different
-granularity: it resamples and blends **whole subject trajectories** rather than
-individual columns, because a pharmacometric endpoint is a correlated
-time-course that would be destroyed by independent per-column resampling. If
-`synadam`'s privacy model is acceptable for its use, AVATAR's is acceptable for
-the same trusted-environment use.
-
-One honest caveat follows from the difference in granularity. A resampled
-covariate value (a weight of 72 kg) is weakly identifying because many people
-share it. A resampled subject trajectory is more strongly identifying, closer to
-a fingerprint, because a full sampling-and-response pattern is more nearly
-unique. Blending several donors and adding noise mitigates this, but not
-formally. AVATAR therefore depends on the governance context somewhat more than
-`synadam`'s column resampling does. The full argument is in
-`design/METHOD_DISCUSSION.md`.
+**The body of this vignette documents the default AVATAR generator in detail**,
+from role declaration through to the restored output schema. The section "The
+model-based alternatives", near the end, describes the two structural engines
+and when to reach for them.
 
 ## The pipeline at a glance
 
@@ -163,8 +155,9 @@ par(old_par)
 
 The pipeline has two linked representations. A **subject profile** is a compact
 numeric representation used only to find neighbors. A **subject template** is
-an actual block of source rows that supplies the output event structure. PCA
-coordinates never become output rows; the event template is never averaged.
+an actual block of source rows that supplies the output event structure.
+Principal component analysis (PCA) coordinates never become output rows; the
+event template is never averaged.
 
 The table below is the quickest way to orient oneself.
 
@@ -243,7 +236,7 @@ sampled template but do not contribute a measurement value.
 
 ## Step 2: split structure from values
 
-Let subject $i$ have source rows $D_i$. For every requested mock subject, the
+Let subject $i$ have source rows $D_i$. For every requested synthetic subject, the
 generator samples an **anchor** $a$ with replacement and begins with
 
 $$
@@ -258,7 +251,7 @@ records that can result from generating event fields independently.
 Only a few parts of this skeleton are subsequently changed:
 
 - TIME may be jittered if `time_jitter > 0`;
-- declared baseline covariates are replaced for all rows of the mock subject;
+- declared baseline covariates are replaced for all rows of the synthetic subject;
 - eligible, originally present observation DVs are synthesized;
 - standard MDV may be re-derived;
 - ID is replaced; and
@@ -293,7 +286,7 @@ compute time after each dose.
 
 ### TIME is not TAD
 
-A conventional TAD variable resets after every dose. AVATAR does not use a
+A conventional time-after-dose (TAD) variable resets after every dose. AVATAR does not use a
 declared `tad` role for alignment and never recomputes an existing TAD column.
 With
 multiple doses, $t^*$ continues to increase from the first qualifying dose;
@@ -376,7 +369,7 @@ $$
 
 Other endpoints use $g_e(y)=y$. The truncations mean a positive-like endpoint
 cannot generate a negative DV. Transformation choices and offsets are stored
-in `attr(mock, "pmx_settings")$endpoint_transforms`.
+in `attr(synthetic, "pmx_settings")$endpoint_transforms`.
 
 ## Step 5: build one numeric profile per source subject
 
@@ -398,7 +391,7 @@ observed character value. The vector $\mathbf{y}_{ie}(G_e)$ is subject $i$'s
 transformed endpoint-$e$ trajectory interpolated on its common grid.
 
 This profile is used only for distance calculations. It does not replace the
-source data and is never returned as a mock patient.
+source data and is never returned as a synthetic patient.
 
 ### Missing features and scaling
 
@@ -449,7 +442,7 @@ The term **rank-safe** means the attempted PCA rank cannot exceed either the
 feature rank or $n-1$. It does not imply that sparse or nearly duplicated
 profiles contain useful separation.
 
-## BLOQ and a Monolix-style CENS column
+## Below-the-limit-of-quantification (BLOQ) data and a Monolix-style CENS column
 
 AVATAR does not synthesize a censoring process. A declared `cens`/`limit` role
 is accepted for schema validation, but at present:
@@ -457,8 +450,8 @@ is accepted for schema validation, but at present:
 - `CENS` is copied from the anchor template as an unassigned column;
 - a numeric DV on a row with `CENS = 1` is treated as an ordinary observed
   number if EVID and MDV make that row eligible;
-- no likelihood-based censoring, interval, LLOQ, substitution, or imputation
-  rule is applied; and
+- no likelihood-based censoring, interval, lower-limit-of-quantification
+  (LLOQ), substitution, or imputation rule is applied; and
 - after DV synthesis, a copied `CENS` flag may no longer agree with the new DV.
 
 Declaring `CENS` as a baseline covariate is not a workaround: if it changes
@@ -468,7 +461,7 @@ For now, a dataset with BLOQ records should be preprocessed under an explicit,
 documented analysis convention before calling `synthesize_pmx()`. Setting DV missing
 and using a nonzero declared MDV can retain an anchor's missingness position,
 but this still does not synthesize a coherent censoring process. Users who need
-mock CENS/LLOQ semantics should treat that as unsupported package behavior,
+synthetic CENS/LLOQ semantics should treat that as unsupported package behavior,
 not as an implicit feature.
 
 ## Step 6: restrict neighbors to compatible event patterns
@@ -571,7 +564,7 @@ $$
 
 where `subject_noise_sd` is $\sigma_{\mathrm{subj}}$ (default 0.15). A log-scale
 result is exponentiated, and any all-positive covariate is floored above zero.
-The final value is repeated on every row of that mock subject.
+The final value is repeated on every row of that synthetic subject.
 
 For factor, character, and logical covariates, one available donor category is
 sampled using the locally normalized weights. Categories are not averaged.
@@ -602,8 +595,8 @@ $$
 b_e\sim\mathcal{N}(0,(\sigma_{\mathrm{subj}}s_e)^2).
 $$
 
-Within-endpoint residual perturbations follow a stationary-scale AR(1) process
-in **observation order**:
+Within-endpoint residual perturbations follow a stationary-scale first-order
+autoregressive, AR(1), process in **observation order**:
 
 $$
 \begin{aligned}
@@ -756,15 +749,15 @@ worked_blend <- apply(
   weights = worked_donors$weights
 )
 
-worked_mock <- synthesize_pmx(
+worked_synthetic <- synthesize_pmx(
   worked_source,
   worked_roles,
   n_subjects = 1,
   seed = worked_seed,
   k = worked_k
 )
-worked_mock_rows <- pmxSynthData:::.observation_rows(
-  worked_mock, worked_roles, require_present = TRUE
+worked_synthetic_rows <- pmxSynthData:::.observation_rows(
+  worked_synthetic, worked_roles, require_present = TRUE
 )
 
 blend_table <- data.frame(
@@ -774,7 +767,7 @@ blend_table <- data.frame(
   deterministic_DV = pmxSynthData:::.inverse_dv(
     worked_blend, worked_transform
   ),
-  final_mock_DV = worked_mock$DV[worked_mock_rows],
+  final_synthetic_DV = worked_synthetic$DV[worked_synthetic_rows],
   check.names = FALSE
 )
 knitr::kable(
@@ -787,18 +780,18 @@ knitr::kable(
 )
 ```
 
-`deterministic_DV` is the back-transformed donor blend. `final_mock_DV` also
+`deterministic_DV` is the back-transformed donor blend. `final_synthetic_DV` also
 contains the one subject shift and AR(1) residual sequence. The event rows,
 new ID, and subject-constant synthesized covariates can be inspected directly:
 
 ```{r worked-result}
-knitr::kable(worked_mock, digits = 3)
+knitr::kable(worked_synthetic, digits = 3)
 ```
 
 The result records enough settings to audit the public generator call:
 
 ```{r worked-settings, echo=FALSE}
-worked_settings <- attr(worked_mock, "pmx_settings")
+worked_settings <- attr(worked_synthetic, "pmx_settings")
 settings_table <- data.frame(
   setting = c(
     "seed", "n_subjects", "k", "pca_variance",
@@ -849,7 +842,7 @@ knitr::kable(
 
 ## Step 10: restore PMX schema and deterministic conventions
 
-After all mock subjects are row-bound, the original column order is restored.
+After all synthetic subjects are row-bound, the original column order is restored.
 Each result column is converted toward its source class:
 
 - factors recover source levels and ordering; new factor IDs add new levels;
@@ -858,7 +851,7 @@ Each result column is converted toward its source class:
 - a non-`data.frame` source class, such as a tibble class vector, is reapplied.
 
 New numeric IDs start above the source maximum. New character and factor IDs
-use labels such as `mock_001`, with a prefix added repeatedly if needed to
+use labels such as `syn_001`, with a prefix added repeatedly if needed to
 avoid collision.
 
 If MDV is declared and the entire source obeys the standard relationship
@@ -867,7 +860,7 @@ $$
 [\mathrm{MDV}=0]=[\mathrm{EVID}=0\ \text{and DV is present}],
 $$
 
-MDV is re-derived from that rule in the mock data and restored to its original
+MDV is re-derived from that rule in the synthetic data and restored to its original
 class. For any nonstandard source-wide MDV convention, anchor values are left
 as copied. Missing observation positions are not invented or removed.
 
@@ -884,16 +877,16 @@ before the call. Consequently, identical inputs and arguments produce an
 identical complete result without consuming the surrounding analysis RNG
 stream.
 
-`attr(mock, "pmx_settings")` records arguments, explicit roles, endpoint
+`attr(synthetic, "pmx_settings")` records arguments, explicit roles, endpoint
 transformations, the alignment description, number of compatible event groups,
 the 0.80 cap, and unique fallback warnings. It does not currently record the
-anchor ID, donor IDs, distances, or realized weights for each mock subject.
+anchor ID, donor IDs, distances, or realized weights for each synthetic subject.
 
 Use the public checks for different questions:
 
 - `validate_pmx()` asks whether one dataset is structurally usable under the
   declared roles.
-- `compare_pmx()` reports source/mock row counts, subjects, event counts,
+- `compare_pmx()` reports source/synthetic row counts, subjects, event counts,
   endpoints, column classes, validations, and exploratory trajectories when
   `ggplot2` is installed.
 
@@ -932,22 +925,25 @@ edge_cases <- data.frame(
 knitr::kable(edge_cases, align = c("l", "l"))
 ```
 
-Other boundaries are deliberate. The prototype supports only
+Other boundaries are deliberate. `synthesize_pmx()` supports only
 `event_method = "template"` and `dv_method = "avatar_blend"`. It does not fit
 a structural model, reconstruct covariate-parameter relationships, simulate
 occasions, enforce a dosing grammar beyond the sampled template, or provide a
-censoring model.
+censoring model. Fitting an explicit structural model is the job of
+`fit_calibrated_pmx()`, described below.
 
 ## Relationship to AVATAR
 
 The method is **AVATAR-inspired**, not an implementation of published AVATAR
-software. The shared family resemblance is the use of standardized subject
-features, PCA, local neighbors, inverse-distance influence, exponential
-randomization, and rank attenuation. Destere and colleagues describe a
-modified AVATAR benchmark for longitudinal PopPK data that first widened the
-data by subject and then used PCA, K-nearest neighbors, inverse Euclidean
-distance, exponential stochastic weights, and rank attenuation before reverse
-transformation [1]. The original patient-centric AVATAR method was reported by
+software. "AVATAR" is a method name rather than an initialism, from the
+patient-centric *avatarization* literature in which each synthetic record is
+built from the local neighborhood of real records. The shared family resemblance
+is the use of standardized subject features, PCA, local neighbors,
+inverse-distance influence, exponential randomization, and rank attenuation.
+Destere and colleagues describe a modified AVATAR benchmark for longitudinal
+population pharmacokinetic (PopPK) data that first widened the data by subject
+and then used PCA, K-nearest neighbors, inverse Euclidean distance, exponential
+stochastic weights, and rank attenuation before reverse transformation [1]. The original patient-centric AVATAR method was reported by
 Guillaudeux and colleagues [2].
 
 `pmxSynthData` adapts those ideas to a PMX event table in several material ways:
@@ -990,26 +986,123 @@ For each call to `synthesize_pmx()`:
     order, restore the source schema, and validate the assembled result.
 12. Attach `pmx_settings` and emit any collected fallback warnings.
 
+## Why AVATAR is the default
+
+Novartis's `synadam` generates synthetic ADaM (Analysis Data Model) datasets by
+resampling **each column** marginally from the real data: a uniform draw over
+the observed range for continuous columns, a proportional resample for
+categorical ones, with no differential privacy. It preserves each column's
+marginal support and relies on governance rather than a mathematical guarantee.
+That is standard, accepted practice.
+
+AVATAR blending is the same governance-based idea applied at a different
+granularity: it resamples and blends **whole subject trajectories** rather than
+individual columns, because a pharmacometric endpoint is a correlated
+time-course that would be destroyed by independent per-column resampling. If
+`synadam`'s privacy model is acceptable for its use, AVATAR's is acceptable for
+the same trusted-environment use.
+
+One honest caveat follows from the difference in granularity. A resampled
+covariate value (a weight of 72 kg) is weakly identifying because many people
+share it. A resampled subject trajectory is more strongly identifying, closer to
+a fingerprint, because a full sampling-and-response pattern is more nearly
+unique. Blending several donors and adding noise mitigates this, but not
+formally. AVATAR therefore depends on the governance context somewhat more than
+`synadam`'s column resampling does. The full argument is in
+`design/METHOD_DISCUSSION.md`.
+
+## The model-based alternatives
+
+When the generated data must cross a trust boundary, no amount of blending
+noise substitutes for an accounted mechanism. Both alternatives below replace
+the AVATAR pipeline entirely: there is no anchor, no donor neighborhood, and no
+event template. The trial structure comes from a **declared public protocol**
+(`pmx_trial_design()` or `pmx_public_design()`) rather than from a source
+subject's rows.
+
+### Structural calibration: `fit_calibrated_pmx()`
+
+The recommended differentially private path, and the one that works at
+early-phase cohort sizes.
+
+1. Declare a public structural model with `pmx_structural_model()`. The
+   supported PK shapes are `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`,
+   `"2cmt_iv"`, and `"2cmt_oral"`, all evaluated from closed-form solutions and
+   superposition rather than by numerically solving ODEs. Optional PD shapes are
+   `"constant"`, `"linear"`, and `"exponential"`, with no exposure dependence.
+   Between-subject variability (`iiv`) and residual error (`residual_cv`) are
+   public assumptions and consume no budget. (The function also accepts an
+   `rx` argument for an `rxode2` model, but the generator does not currently
+   use it; see `REV-020` in `design/REVIEW_BACKLOG.md`.)
+2. Declare the public trial design with `pmx_trial_design()` — dose levels,
+   cohort sizes, nominal sampling times, dosing interval, infusion duration.
+3. Declare a public prior range per released correction with `pmx_prior()`, for
+   example `c(1/4, 4)` for a prediction believed accurate to about four-fold.
+   This range is the sensitivity bound, so it must be chosen without inspecting
+   the data.
+4. `fit_calibrated_pmx()` reduces each subject to bounded multiplicative
+   corrections of the model's *own prediction*, clips them to the prior range,
+   and releases them — plus a noised subject count — through the validated
+   OpenDP backend.
+5. `pmx_generate()` simulates the dataset from the corrected typical
+   parameters and the public design. Generation is post-processing: it spends
+   no additional budget, so any number of datasets may be drawn from one fit.
+
+Because only a handful of numbers are released (`d = 2` for a single PK
+correction plus the count), the noise per released quantity stays small, which
+is why this engine remains usable at 20 to 60 subjects. `pmx_preflight()`
+reports the expected fold-error before any budget is spent.
+
+The tradeoff is that everything not calibrated is *asserted*: curve shape,
+variability, residual error, and covariate relationships come from the public
+model, so the output is only as realistic as that model. It cannot reveal a
+structural feature the model does not contain.
+
+### Dense private grid: `fit_private_pmx()`
+
+The general-purpose engine, retained for large pooled corpora. It declares
+endpoints (`pmx_endpoint()`), public clipping domains (`pmx_bounds()`), a public
+schema and protocol (`pmx_public_design()`), per-subject contribution limits
+(`pmx_contribution_limits()`), and an explicit split of the budget across
+release groups (`pmx_budget_allocation()`). It then releases noised sums for the
+subject count, event and regimen features, endpoint timing, endpoint
+trajectories, baseline covariates, and censoring, and `generate_pmx()` builds
+subjects from those summaries.
+
+It asserts less than the calibrated engine — trajectory shape is measured rather
+than assumed — but it releases far more numbers, so the same epsilon is split
+many ways. Utility therefore collapses below a few hundred subjects
+(`design/FEASIBILITY.md`).
+
+### Reading order for the alternatives
+
+- The privacy-introduction vignette — what differential privacy guarantees, and
+  the trust-boundary decision rule.
+- The "Exploring Epsilon" vignette — how epsilon trades against utility, and
+  `pmx_preflight()`.
+- `design/PRIVACY_BACKGROUND.md` and `design/PRIVACY_ARGUMENT.md` — the
+  arithmetic and the formal mechanism-level argument.
+
 ## Practical review checklist
 
-Before using a mock dataset for workflow development, verify all of the
+Before using a synthetic dataset for workflow development, verify all of the
 following:
 
 - [ ] Every critical column has an explicit and correct role.
 - [ ] Units and event conventions are documented outside the generator.
-- [ ] `validate_pmx(source, roles)` and `validate_pmx(mock, roles)` are valid.
-- [ ] Source and mock event counts are credible by EVID, CMT, and DVID.
+- [ ] `validate_pmx(source, roles)` and `validate_pmx(synthetic, roles)` are valid.
+- [ ] Source and synthetic event counts are credible by EVID, CMT, and DVID.
 - [ ] Dose, infusion start/stop, and tied-time records remain coherent.
 - [ ] Observation-time windows and endpoint trajectories are usable for the
       intended plotting and model-run code.
-- [ ] Declared covariates are constant within mock subject and retain classes.
+- [ ] Declared covariates are constant within synthetic subject and retain classes.
 - [ ] `pmx_settings$warnings` and endpoint transformations were reviewed.
 - [ ] Any TAD column was recomputed if TIME was jittered.
 - [ ] BLOQ/CENS data were handled by an explicit external convention; no
       censoring support was assumed.
 - [ ] No claim of anonymity, privacy, parameter fidelity, or scientific
       equivalence is being made.
-- [ ] The mock output remains governed according to the source environment's
+- [ ] The synthetic output remains governed according to the source environment's
       applicable privacy and data-sharing rules.
 
 ## References

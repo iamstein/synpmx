@@ -4,7 +4,7 @@ Why `pmxSynthData` uses AVATAR-style blending as its primary method, when it
 also contains a fully differentially private engine. Written after building
 both, measuring both, and comparing to Novartis's `synadam`.
 
-The short version: for **mock data that stays in a trusted environment**, a
+The short version: for **synthetic data that stays in a trusted environment**, a
 resampling method is the right tool, and AVATAR is the trajectory-level version
 of exactly what `synadam` already does column by column. Formal differential
 privacy is the right tool only when the output **crosses a trust boundary**, and
@@ -61,7 +61,7 @@ section 4.
 
 ## 3. Why a resampling method is the right default for this package
 
-The package's stated purpose (`design/PROTOTYPE_SPEC.md` section 1) is **mock
+The package's stated purpose (`design/PROTOTYPE_SPEC.md` section 1) is **synthetic
 data for model-workflow exploration**: exercising cleaning, joins, reshaping,
 plotting, control-file plumbing, and repeated-dose or longitudinal analysis
 code. The accuracy bar is "vaguely right, structurally exact." It is explicitly
@@ -145,7 +145,7 @@ can match the tool to the boundary.
 Both engines remain, deliberately.
 
 - **`synthesize_pmx()`** — AVATAR, the primary and default method. The right
-  answer for trusted-environment mock data, which is the common case.
+  answer for trusted-environment synthetic data, which is the common case.
 - **`fit_calibrated_pmx()`** — the structural-correction DP engine. The right
   answer when a formal guarantee is needed and the cohort is small; it asserts
   shape from a public model and privately calibrates only the magnitude.

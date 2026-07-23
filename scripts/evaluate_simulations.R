@@ -100,7 +100,7 @@ gate_rows <- list()
 sampling_rows <- list()
 regimen_rows <- list()
 property_rows <- list()
-first_mock <- list()
+first_synthetic <- list()
 fitted_models <- list()
 
 for (id in datasets) {
@@ -148,15 +148,15 @@ for (id in datasets) {
   }
   cohort_size <- length(unique(case$source[[case$roles$id]]))
   for (seed in seeds) {
-    mock <- generate_pmx(model, n_subjects = cohort_size, seed = seed)
-    if (is.null(first_mock[[id]])) first_mock[[id]] <- mock
-    gates <- sim_eval_gate_results(case, model, mock)
+    synthetic <- generate_pmx(model, n_subjects = cohort_size, seed = seed)
+    if (is.null(first_synthetic[[id]])) first_synthetic[[id]] <- synthetic
+    gates <- sim_eval_gate_results(case, model, synthetic)
     gates$seed <- seed
     gates$epsilon <- epsilon
     gates$backend <- options$backend
     gate_rows[[paste(id, seed, sep = "_")]] <- gates
     metric_rows[[paste(id, seed, sep = "_")]] <- sim_eval_metric_rows(
-      case, model, mock, seed, epsilon, options$backend
+      case, model, synthetic, seed, epsilon, options$backend
     )
   }
 }
@@ -190,13 +190,13 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     model <- fitted_models[[id]]
     plot_clock <- case$comparison_clock
     plot_suffix <- if (identical(plot_clock, "tad")) "tad" else "study-time"
-    plot <- sim_eval_plot(case, first_mock[[id]], clock = plot_clock)
+    plot <- sim_eval_plot(case, first_synthetic[[id]], clock = plot_clock)
     ggplot2::ggsave(
       file.path(figures, paste0(id, "-", plot_suffix, ".png")), plot,
       width = max(8, 4.5 * length(case$endpoints)), height = 7, dpi = 140
     )
     if (id == "theo_md") {
-      tad_plot <- sim_eval_plot(case, first_mock[[id]], clock = "tad")
+      tad_plot <- sim_eval_plot(case, first_synthetic[[id]], clock = "tad")
       ggplot2::ggsave(
         file.path(figures, "theo_md-tad.png"), tad_plot,
         width = 9, height = 7, dpi = 140

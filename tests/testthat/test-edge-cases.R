@@ -63,34 +63,34 @@ test_that("six-, twelve-, and larger simulated studies retain broad utility", {
   for (n in c(6L, 12L)) {
     source <- private_fixture(n)
     model <- fit_public_fixture(source)
-    mock <- generate_pmx(model, n_subjects = n, seed = 700 + n)
+    synthetic <- generate_pmx(model, n_subjects = n, seed = 700 + n)
     expect_equal(model$population$private_subject_count, n)
-    expect_equal(length(unique(mock$ID)), n)
-    expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
+    expect_equal(length(unique(synthetic$ID)), n)
+    expect_true(validate_pmx(synthetic, private_roles(), private_endpoints())$valid)
   }
 
   source <- pmx_simulated_fixture(60L)
   model <- fit_public_fixture(source)
-  mock <- generate_pmx(model, n_subjects = 60L, seed = 760)
+  synthetic <- generate_pmx(model, n_subjects = 60L, seed = 760)
   source_observed <- source[source$EVID == 0, , drop = FALSE]
-  mock_observed <- mock[mock$EVID == 0, , drop = FALSE]
+  synthetic_observed <- synthetic[synthetic$EVID == 0, , drop = FALSE]
   source_center <- tapply(source_observed$DV, source_observed$DVID, mean)
-  mock_center <- tapply(mock_observed$DV, mock_observed$DVID, mean)
-  expect_lt(abs(log1p(mock_center[["cp"]]) -
+  synthetic_center <- tapply(synthetic_observed$DV, synthetic_observed$DVID, mean)
+  expect_lt(abs(log1p(synthetic_center[["cp"]]) -
                   log1p(source_center[["cp"]])), 1)
-  expect_lt(abs(mock_center[["pd"]] - source_center[["pd"]]), 45)
-  expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
+  expect_lt(abs(synthetic_center[["pd"]] - source_center[["pd"]]), 45)
+  expect_true(validate_pmx(synthetic, private_roles(), private_endpoints())$valid)
 })
 
 test_that("restricted comparisons label every source-derived component", {
   source <- private_fixture()
-  mock <- generate_pmx(fit_public_fixture(source), 3, 90)
-  comparison <- compare_pmx(source, mock, private_roles(), private_endpoints())
+  synthetic <- generate_pmx(fit_public_fixture(source), 3, 90)
+  comparison <- compare_pmx(source, synthetic, private_roles(), private_endpoints())
   expect_s3_class(comparison, "pmx_comparison")
   expect_true(all(comparison$release_status$release_status[
-    comparison$release_status$component != "validation.mock"
+    comparison$release_status$component != "validation.synthetic"
   ] == "restricted_not_releasable"))
-  expect_equal(attr(comparison$validation$mock, "release_status"),
+  expect_equal(attr(comparison$validation$synthetic, "release_status"),
                "releasable_post_processing")
 })
 

@@ -1,0 +1,352 @@
+---
+title: "Introduction to pmxSynthData"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Introduction to pmxSynthData}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(pmxSynthData)
+has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+
+# Observed rows only, in a common shape, so five datasets with different
+# schemas can be plotted and summarized together.
+observations <- function(data, roles, label) {
+  keep <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
+    !is.na(data[[roles$dv]])
+  if (!is.null(roles$mdv)) {
+    keep <- keep & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
+  }
+  data.frame(
+    method = label,
+    subject = as.character(data[[roles$id]][keep]),
+    time = as.numeric(data[[roles$time]][keep]),
+    dv = as.numeric(data[[roles$dv]][keep]),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+## What this package does
+
+`pmxSynthData` builds synthetic pharmacometric (PMX) datasets: dosing and
+measurement event tables with the same schema, event grammar, and rough
+behavior as a real study, so that data-assembly code, diagnostic plots, and
+model-run plumbing can be developed outside the restricted environment that
+holds the real data.
+
+The hard part is not making numbers. It is deciding **how much of the real
+data is allowed to survive into the synthetic data**, which is a privacy
+question before it is a technical one. This package therefore offers four
+generation modes that sit at different points on that scale. This vignette
+introduces all four and applies each one to the same public dataset.
+
+The four modes, from most faithful to most protective:
+
+1. **AVATAR blending** — build each synthetic subject out of real subjects.
+2. **Prior only** — read no data at all; simulate from a public model.
+3. **Calibration** — simulate from a public model whose magnitude is corrected
+   by a small, differentially private release.
+4. **Empirical** — release a dense set of differentially private summaries and
+   rebuild subjects from them.
+
+Modes 2, 3, and 4 all use differential privacy (DP) accounting, and mode 2 is
+its trivial limit: spending nothing.
+
+## The example: theophylline
+
+`theo_md` (from `nlmixr2data`) is a small public dataset — 12 subjects, seven
+daily 320 mg oral doses, one concentration endpoint. Twelve subjects is a
+deliberately hard case: it is typical of early-phase work and it is where the
+differences between the four modes are most visible.
+
+```{r data, eval=has_nlmixr2data}
+data("theo_md", package = "nlmixr2data")
+theo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", covariates = "WT"
+)
+str(theo_md)
+```
+
+## Mode 1: AVATAR blending
+
+Start here, because it is the least work. `synthesize_pmx()` needs nothing but
+the data and a declaration of what the columns mean. For each synthetic subject
+it copies a real subject's event skeleton, then fills the covariates and
+concentrations with a distance-weighted blend of that subject's nearest
+compatible neighbors, plus noise.
+
+```{r avatar, eval=has_nlmixr2data}
+avatar <- suppressWarnings(synthesize_pmx(theo_md, theo_roles, seed = 101))
+validate_pmx(avatar, theo_roles)$valid
+```
+
+Nothing was elicited, nothing was assumed, and the output keeps the source
+schema and cohort size. On a 12-subject dataset `synthesize_pmx()` also emits
+documented small-group fallback warnings (some event-pattern groups have only
+one usable donor); they are suppressed above and explained in the "How
+pmxSynthData Works" vignette.
+
+What you cannot say about this output is that it is anonymous. It is assembled
+from real trajectories, so it belongs inside the trusted environment that the
+source data came from.
+
+## Mode 2: prior only
+
+The opposite extreme. Declare a public structural model and a public protocol,
+and simulate. No confidential data is read, so there is nothing to protect and
+no budget to spend: this is `epsilon = 0`, the strongest possible guarantee.
+
+The typical parameter values must come from somewhere that is not the data —
+allometric scaling from preclinical work, a published model for the compound
+class, or the reasoning that set the starting dose.
+
+```{r prior, eval=has_nlmixr2data}
+theo_model <- pmx_structural_model(
+  pk = "1cmt_oral",
+  typical = c(cl = 6, v = 35, ka = 1.5),          # deliberately imperfect
+  source = "illustrative allometric scaling; never fitted to theo_md"
+)
+theo_design <- pmx_trial_design(
+  dose_levels = 320, cohort_sizes = 12,
+  sampling = c(0, 0.25, 0.5, 1, 2, 4, 7, 9, 12, 24),
+  n_doses = 7, dose_interval = 24,
+  source = "illustrative protocol"
+)
+prior_only <- pmx_generate(theo_model, theo_design, n_subjects = 12, seed = 202)
+head(prior_only, 3)
+```
+
+The generated table uses the package's own generated schema
+(`pmx_generated_roles()`), including nominal time, time after dose, and
+occasion columns. The clearance of 6 L/h assumed above is about twice the truth
+for theophylline, and the output shows it: concentrations run low. That is the
+honest cost of spending no budget — the data is exactly as good as the prior.
+
+## Mode 3: calibration
+
+The middle path, and the recommended one when a formal guarantee is needed and
+the cohort is small. Keep the public model's *shape*, and spend a small privacy
+budget correcting only its *magnitude*.
+
+Each subject is reduced to a bounded multiplicative correction of the model's
+own prediction, clipped to a public prior range, and released with calibrated
+noise. Only two numbers leave the data: the correction and a noised subject
+count.
+
+```{r preflight, eval=has_nlmixr2data}
+priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "scaling literature"))
+pmx_preflight(priors, epsilon = 1, n_subjects = 12)
+```
+
+`pmx_preflight()` costs nothing and reads no data: it answers "is this release
+worth its budget?" before any budget is spent.
+
+```{r calibrate, eval=has_nlmixr2data}
+calibrated <- fit_calibrated_pmx(
+  data = theo_md, roles = theo_roles, model = theo_model,
+  design = theo_design, priors = priors, epsilon = 1,
+  backend = "public", public_source = TRUE   # theo_md is public; no DP claim
+)
+calibrated
+calibrated_data <- pmx_generate(calibrated, seed = 303)
+```
+
+The correction pulled the assumed clearance toward the data. Generation is
+post-processing on the released numbers, so drawing more datasets from one fit
+spends no additional budget.
+
+Two honest notes. First, `backend = "public"` is used here because `theo_md` is
+already public: it makes the release **noiseless** and therefore makes no DP
+claim, which the printed model states. A confidential fit uses the default
+validated backend and fails closed if it is unavailable:
+
+```{r opendp, eval=FALSE}
+calibrated <- fit_calibrated_pmx(
+  data = confidential, roles = theo_roles, model = theo_model,
+  design = theo_design, priors = priors, epsilon = 1,
+  backend = "opendp"
+)
+```
+
+```{r backend, eval=requireNamespace("opendp", quietly = TRUE)}
+dp_backend_status()
+```
+
+Second, at 12 subjects a genuine DP release of this correction is noisy enough
+that it is often censored at the prior boundary — the package warns when that
+happens, because the generated data then reflects the prior, not the study. The
+"Exploring Epsilon" vignette covers when the release is worth making.
+
+## Mode 4: empirical
+
+The general-purpose private engine. Rather than asserting the curve shape, it
+measures it: it releases noised summaries for the subject count, event and
+regimen structure, observation timing, endpoint trajectories, baseline
+covariates, and censoring, then rebuilds subjects from those summaries. This
+buys realism that the public model does not contain, and pays for it by
+splitting one epsilon across many released quantities.
+
+It also needs the most declaration: every clipping range, contribution limit,
+and budget share is an explicit public input.
+
+```{r empirical, eval=has_nlmixr2data}
+empirical <- fit_private_pmx(
+  data = theo_md, roles = theo_roles,
+  endpoints = list(cp = pmx_endpoint(
+    alignment = "dose_relative", transform = "log", shape = "occasion", cmt = 2
+  )),
+  epsilon = 5, delta = 0,
+  bounds = pmx_bounds(
+    time = c(0, 170), endpoints = list(cp = c(0, 30)), amt = c(0, 500),
+    covariates = list(WT = c(40, 130))
+  ),
+  public_design = pmx_public_design(
+    pmx_schema(theo_md), dose_evid = 101, dose_cmt = 1
+  ),
+  contribution_limits = pmx_contribution_limits(40, 8, 8, 30, 11),
+  budget_allocation = pmx_budget_allocation(
+    subject_count = 0.10, event = 0.15, timing = 0.15,
+    covariates = 0.10, endpoints = 0.50, censoring = 0
+  ),
+  backend = "public", public_source = TRUE   # theo_md is public; no DP claim
+)
+empirical_data <- generate_pmx(empirical, seed = 404)
+privacy_report(empirical)
+```
+
+Note the requested `epsilon = 5`, five times the calibrated fit's budget, for a
+worse result at this cohort size. That is not a bug: the same budget is being
+split six ways over dozens of released coordinates. This engine earns its keep
+on large pooled corpora, not on twelve subjects.
+
+## The four side by side
+
+```{r compare, eval=has_nlmixr2data}
+generated_roles <- pmx_generated_roles()
+all_observations <- rbind(
+  observations(theo_md, theo_roles, "Source"),
+  observations(avatar, theo_roles, "1. AVATAR"),
+  observations(prior_only, generated_roles, "2. Prior only"),
+  observations(calibrated_data, generated_roles, "3. Calibration"),
+  # The empirical engine restores the source schema, so it uses source roles.
+  observations(empirical_data, theo_roles, "4. Empirical")
+)
+summaries <- do.call(rbind, lapply(
+  split(all_observations$dv, all_observations$method),
+  function(dv) {
+    data.frame(
+      n_observations = length(dv),
+      median = stats::median(dv),
+      p10 = stats::quantile(dv, 0.10, names = FALSE),
+      p90 = stats::quantile(dv, 0.90, names = FALSE)
+    )
+  }
+))
+knitr::kable(
+  summaries, digits = 2,
+  caption = "Observed concentrations by generation mode"
+)
+```
+
+```{r compare-plot, eval=has_nlmixr2data && has_ggplot2, fig.height=6}
+ggplot2::ggplot(
+  all_observations,
+  ggplot2::aes(time, dv, group = subject)
+) +
+  ggplot2::geom_line(alpha = 0.4, colour = "#1B6CA8") +
+  ggplot2::geom_point(alpha = 0.5, size = 0.7, colour = "#1B6CA8") +
+  ggplot2::facet_wrap(~ method, ncol = 2) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "Concentration",
+    title = "One dataset, four generation modes"
+  ) +
+  ggplot2::theme_minimal()
+```
+
+AVATAR tracks the source most closely, because it is made of it. The
+prior-only data has the right structure and the wrong level. Calibration moves
+the level toward the truth for a small budget. The empirical release recovers
+more of the real timing and spread, but at this cohort size the noise is
+visible.
+
+## Choosing a mode
+
+```{r modes-table, echo=FALSE}
+modes <- data.frame(
+  Mode = c("1. AVATAR blending", "2. Prior only", "3. Calibration",
+           "4. Empirical"),
+  Function = c("synthesize_pmx()", "pmx_generate(model, design)",
+               "fit_calibrated_pmx() + pmx_generate()",
+               "fit_private_pmx() + generate_pmx()"),
+  `Output built from` = c(
+    "Real subject templates and blended real trajectories",
+    "A public model and protocol only",
+    "A public model, magnitude corrected by 2 private releases",
+    "Dozens of noised population summaries"
+  ),
+  Guarantee = c(
+    "None; governance only",
+    "epsilon = 0 (no data read)",
+    "(epsilon, delta) DP",
+    "(epsilon, delta) DP"
+  ),
+  `Cohort size` = c("Any, from ~12", "Any (data-independent)",
+                    "~20 and up", "A few hundred and up"),
+  `Elicitation needed` = c(
+    "None", "Structural model + protocol",
+    "Model, protocol, prior ranges",
+    "Endpoints, bounds, limits, budget split"
+  ),
+  check.names = FALSE, stringsAsFactors = FALSE
+)
+knitr::kable(modes)
+```
+
+Where each mode belongs:
+
+| Environment | Appropriate modes | Why |
+|---|---|---|
+| Inside the validated environment holding the source data; you are the only consumer | **AVATAR**, or any other | Access control and governance already bound the risk. A formal guarantee defends against an adversary who cannot reach the output, so it buys nothing and costs utility. |
+| Shared with a partner, vendor, or contract research organization (CRO) | **Calibration** or **Empirical**, with an approved epsilon | The output leaves your controls. A contract is not a mathematical bound; DP is what survives a determined recipient. |
+| Published, posted to a repository, or shipped inside a package or teaching material | **Prior only**, or **Calibration** with a small approved epsilon | Anyone may inspect it, forever, alongside side information you cannot anticipate. Prior-only data reads no patient record at all and is the safest thing to publish. |
+| Software testing where only schema and event grammar matter | **Prior only** | Fidelity is irrelevant; a data-independent generator removes the question entirely. |
+
+Two rules of thumb behind the table:
+
+- **The trust boundary decides whether you need DP.** Ask whether the generated
+  data can reach anyone the source data could not. If not, AVATAR is more
+  useful and its lack of a formal guarantee costs nothing. If so, only an
+  accounted release holds up.
+- **The cohort size decides which DP mode is usable.** Epsilon buys accuracy in
+  proportion to the number of subjects and in inverse proportion to how many
+  quantities you release. At 12 subjects, releasing two numbers can work and
+  releasing fifty cannot.
+
+Epsilon and delta are governance decisions, not defaults. For anything public
+facing they should be set and justified by whoever owns the data, and recorded:
+every fit carries a release ledger, and `privacy_report()` prints the realized
+accounting.
+
+## Where to go next
+
+- **"Using pmxSynthData"** — the practical workflow across five public
+  datasets, with structural checks.
+- **"How pmxSynthData Works"** — the AVATAR algorithm in full, and the
+  model-based alternatives.
+- **"Privacy in pmxSynthData"** — what differential privacy guarantees, what it
+  does not, and the trust-boundary decision rule.
+- **"Exploring Epsilon in pmxSynthData"** — how epsilon trades against utility,
+  and the measured frontier by cohort size.
+- `design/METHOD_DISCUSSION.md` — why AVATAR is the default and DP the
+  boundary-crossing alternative.

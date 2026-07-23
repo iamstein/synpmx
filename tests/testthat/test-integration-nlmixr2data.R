@@ -27,17 +27,17 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
     pmx_contribution_limits(40, 8, 8, 30, 11), integration_budget(),
     backend = "public", public_source = TRUE
   )
-  mock <- generate_pmx(model, seed = 42)
-  expect_true(validate_pmx(mock, roles, endpoints)$valid)
-  expect_equal(length(unique(mock$ID)), length(unique(source$ID)))
-  expect_true(all(vapply(split(mock$EVID, mock$ID),
+  synthetic <- generate_pmx(model, seed = 42)
+  expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
+  expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
+  expect_true(all(vapply(split(synthetic$EVID, synthetic$ID),
                          function(x) sum(x != 0) == 7L, logical(1))))
   expect_equal(model$population$event$n_doses, 7L)
   expect_equal(model$population$event$dose_interval, 24, tolerance = 0.1)
-  expect_true(all(vapply(split(mock$EVID, mock$ID), function(x) {
+  expect_true(all(vapply(split(synthetic$EVID, synthetic$ID), function(x) {
     sum(x == 0) == as.integer(round(model$population$event$observation_count))
   }, logical(1))))
-  observation_occasions <- lapply(split(mock, mock$ID), function(subject) {
+  observation_occasions <- lapply(split(synthetic, synthetic$ID), function(subject) {
     doses <- sort(subject$TIME[subject$EVID != 0])
     observations <- subject$TIME[subject$EVID == 0]
     pmax(1L, findInterval(observations, doses))
@@ -61,8 +61,8 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
                c(1, 10 / 12, 0, 0, 0, 0, 1))
   expect_equal(round(fitted_sampling$observations_if_sampled[1:7]),
                c(10, 1, 0, 0, 0, 0, 11))
-  cp <- mock[mock$EVID == 0, ]
-  directional_peaks <- unlist(lapply(split(mock, mock$ID), function(subject) {
+  cp <- synthetic[synthetic$EVID == 0, ]
+  directional_peaks <- unlist(lapply(split(synthetic, synthetic$ID), function(subject) {
     doses <- sort(subject$TIME[subject$EVID != 0])
     observations <- subject[subject$EVID == 0, , drop = FALSE]
     occasion <- pmax(1L, findInterval(observations$TIME, doses))
@@ -77,8 +77,8 @@ test_that("theo_md runs end to end with repeated dose-relative PK", {
   first <- cp[cp$ID == unique(cp$ID)[1] & cp$TIME < 12, ]
   expect_gt(max(first$DV), first$DV[1L])
   source_vectors <- split(source$TIME, source$ID)
-  mock_vectors <- split(mock$TIME, mock$ID)
-  expect_false(any(vapply(mock_vectors, function(x) {
+  synthetic_vectors <- split(synthetic$TIME, synthetic$ID)
+  expect_false(any(vapply(synthetic_vectors, function(x) {
     any(vapply(source_vectors, identical, logical(1), y = x))
   }, logical(1))))
 })
@@ -104,23 +104,23 @@ test_that("warfarin preserves lower-case endpoint-specific schema", {
     pmx_contribution_limits(30, 2, 2, c(cp = 20, pca = 12), 12),
     integration_budget(), backend = "public", public_source = TRUE
   )
-  mock <- generate_pmx(model, seed = 42)
-  expect_true(validate_pmx(mock, roles, endpoints)$valid)
-  expect_equal(length(unique(mock$id)), length(unique(source$id)))
-  expect_identical(names(mock), names(source))
-  expect_identical(levels(mock$dvid), c("cp", "pca"))
-  expect_identical(levels(mock$sex), levels(source$sex))
-  expect_setequal(unique(as.character(mock$dvid[mock$evid == 0])),
+  synthetic <- generate_pmx(model, seed = 42)
+  expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
+  expect_equal(length(unique(synthetic$id)), length(unique(source$id)))
+  expect_identical(names(synthetic), names(source))
+  expect_identical(levels(synthetic$dvid), c("cp", "pca"))
+  expect_identical(levels(synthetic$sex), levels(source$sex))
+  expect_setequal(unique(as.character(synthetic$dvid[synthetic$evid == 0])),
                   c("cp", "pca"))
   source_cp <- source[source$evid == 0 & source$dvid == "cp", ]
-  mock_cp <- mock[mock$evid == 0 & mock$dvid == "cp", ]
+  synthetic_cp <- synthetic[synthetic$evid == 0 & synthetic$dvid == "cp", ]
   expect_lte(abs(
-    nrow(mock_cp) / length(unique(mock$id)) -
+    nrow(synthetic_cp) / length(unique(synthetic$id)) -
       nrow(source_cp) / length(unique(source$id))
   ), 1)
-  mock_cp_max <- vapply(split(mock_cp$time, mock_cp$id), max, numeric(1))
-  expect_gte(stats::median(mock_cp_max), 72)
-  expect_true(any(mock_cp$time > 24))
+  synthetic_cp_max <- vapply(split(synthetic_cp$time, synthetic_cp$id), max, numeric(1))
+  expect_gte(stats::median(synthetic_cp_max), 72)
+  expect_true(any(synthetic_cp$time > 24))
 })
 
 test_that("wbcSim creates coherent generalized infusion and recovery", {
@@ -145,14 +145,14 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
     pmx_contribution_limits(20, 2, 2, 12, 9), integration_budget(),
     backend = "public", public_source = TRUE
   )
-  mock <- generate_pmx(model, seed = 42)
-  event <- mock$EVID != 0
-  expect_true(validate_pmx(mock, roles, endpoints)$valid)
-  expect_equal(length(unique(mock$ID)), length(unique(source$ID)))
-  expect_equal(mock$AMT[event], mock$RATE[event], tolerance = 1e-8)
-  expect_true(any(mock$AMT[event] > 0) && any(mock$AMT[event] < 0))
-  expect_false(any(mock$TIME == 4580))
-  first <- mock[mock$ID == unique(mock$ID)[1] & mock$EVID == 0, ]
+  synthetic <- generate_pmx(model, seed = 42)
+  event <- synthetic$EVID != 0
+  expect_true(validate_pmx(synthetic, roles, endpoints)$valid)
+  expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
+  expect_equal(synthetic$AMT[event], synthetic$RATE[event], tolerance = 1e-8)
+  expect_true(any(synthetic$AMT[event] > 0) && any(synthetic$AMT[event] < 0))
+  expect_false(any(synthetic$TIME == 4580))
+  first <- synthetic[synthetic$ID == unique(synthetic$ID)[1] & synthetic$EVID == 0, ]
   expect_lt(min(first$DV), first$DV[1L])
   expect_gt(first$DV[nrow(first)], min(first$DV))
 })

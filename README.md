@@ -1,6 +1,6 @@
 # pmxSynthData
 
-`pmxSynthData` generates structurally faithful **mock data for model-workflow
+`pmxSynthData` generates structurally faithful **synthetic data for model-workflow
 exploration**. Its primary `synthesize_pmx()` API uses AVATAR-style profile
 blending inside a trusted environment; the calibrated structural/DP workflow
 remains available when formal privacy is required.
@@ -20,6 +20,23 @@ plumbing, repeated-dose PK code, longitudinal PD/biomarker code, infusion
 events, and censoring conventions. It aims for broad magnitude and shape—not
 source distributions, parameter estimates, covariate-response relationships,
 scientific fidelity, inference, model selection, or clinical conclusions.
+
+## Documentation map
+
+Start with the introduction vignette; it applies all four generation modes to
+one dataset and says which is appropriate where.
+
+| Vignette | Question it answers | Read it when |
+|---|---|---|
+| [`pmxSynthData-intro`](vignettes/pmxSynthData-intro.Rmd) | What are the four generation modes, and which one do I want? | **Start here.** |
+| [`pmxSynthData-demo`](vignettes/pmxSynthData-demo.Rmd) | How do I actually run this on my data? | You have picked a mode and want the worked workflow across five public datasets. |
+| [`pmxSynthData-simulation-method`](vignettes/pmxSynthData-simulation-method.Rmd) | How does the default AVATAR generator work, step by step? | You need to defend or debug what the generator did. |
+| [`pmxSynthData-privacy-intro`](vignettes/pmxSynthData-privacy-intro.Rmd) | What does differential privacy guarantee, and does my release need it? | The generated data might cross a trust boundary. |
+| [`pmxSynthData-epsilon-exploration`](vignettes/pmxSynthData-epsilon-exploration.Rmd) | What does a given epsilon cost me in accuracy? | You are choosing an epsilon and cohort size. |
+
+The design documents in `design/` are the internal record behind those
+vignettes: `TODO.md` is the working queue and indexes the rest. `AGENTS.md`
+holds the repository conventions.
 
 ## Privacy contract
 
@@ -112,9 +129,9 @@ private_model <- fit_private_pmx(
 )
 
 privacy_report(private_model)
-mock_1 <- generate_pmx(private_model, seed = 101)
-mock_2 <- generate_pmx(private_model, seed = 202)
-validate_pmx(mock_1, roles, endpoints, strict = TRUE)
+synthetic_1 <- generate_pmx(private_model, seed = 101)
+synthetic_2 <- generate_pmx(private_model, seed = 202)
+validate_pmx(synthetic_1, roles, endpoints, strict = TRUE)
 ```
 
 There is intentionally no fitting seed. OpenDP controls private mechanism
@@ -149,7 +166,7 @@ different public workflow cohort size is intended.
   exceptional override when the protocol is independently public; the package
   demonstrations do not use it.
 - Factor-valued ID columns retain the factor class but never retain source ID
-  levels; generated IDs receive a fresh mock-only level set.
+  levels; generated IDs receive a fresh synthetic-only level set.
 - Dose and infusion fields are created coherently. A generated infusion start
   and negative stop share the generated amount/rate and duration.
 - A declared `subject_properties` field such as ACTARM, TRT, or nominal dose
@@ -211,11 +228,8 @@ study with 60 subjects by default for broader privacy-utility evaluation.
 - Empirical attacks can discover bugs but cannot prove differential privacy.
 - Generated data remain inappropriate for scientific analysis.
 
-See `vignette("pmxSynthData-demo")` for the worked API,
-`vignette("pmxSynthData-privacy-intro")` for the privacy guarantee, and
-`vignette("pmxSynthData-simulation-method")` for the patient-simulation
-algorithm. `vignette("pmxSynthData-epsilon-exploration")` compares formal
-OpenDP fits at three illustrative epsilon values on the public demo datasets.
+See the documentation map above for which vignette answers which question;
+`vignette("pmxSynthData-intro")` is the entry point.
 
 ## Development
 

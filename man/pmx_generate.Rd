@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_structural.R
 \name{pmx_generate}
 \alias{pmx_generate}
-\title{Generate a mock PMX event table from a structural model}
+\title{Generate a synthetic PMX event table from a structural model}
 \usage{
 pmx_generate(
   x,

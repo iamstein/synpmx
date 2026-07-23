@@ -34,8 +34,10 @@ well-conditioned level correction; see \code{design/PROTOTYPE_SPEC.md}.}
 \item{source}{Required provenance string recording where the model and its
 typical values came from. Recorded in the release ledger.}
 
-\item{rx}{Optional \code{rxode2} model used in place of the built-in analytic
-solution. Requires the \code{rxode2} package.}
+\item{rx}{Reserved for an \code{rxode2} model. \strong{Not yet implemented}: the value
+is stored on the returned object but the generator always evaluates the
+built-in analytic solution, so supplying it warns. See \code{REV-020} in
+\code{design/REVIEW_BACKLOG.md}.}
 
 \item{iiv}{Named vector of between-subject variability, as CV on the log
 scale. A public assumption; it consumes no privacy budget.}

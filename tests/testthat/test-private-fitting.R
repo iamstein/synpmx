@@ -113,12 +113,12 @@ test_that("regimen and sampling are inferred when no schedules are supplied", {
   expect_true(model$public$endpoints$pd$grid_automatic)
   expect_true(all(diff(model$public$endpoints$cp$grid) > 0))
 
-  mock <- generate_pmx(model, seed = 381)
-  expect_equal(length(unique(mock$ID)), length(unique(source$ID)))
-  expect_true(all(vapply(split(mock$EVID, mock$ID), function(x) {
+  synthetic <- generate_pmx(model, seed = 381)
+  expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
+  expect_true(all(vapply(split(synthetic$EVID, synthetic$ID), function(x) {
     sum(x != 0) == 2L
   }, logical(1))))
-  expect_true(validate_pmx(mock, private_roles(), endpoints)$valid)
+  expect_true(validate_pmx(synthetic, private_roles(), endpoints)$valid)
 })
 
 test_that("rare dense sampling is not treated as sparse sampling for everyone", {
@@ -132,8 +132,8 @@ test_that("rare dense sampling is not treated as sparse sampling for everyone", 
   expect_equal(second$observations_if_sampled, 4)
   expect_equal(second$expected_observations, 1)
 
-  mock <- generate_pmx(model, 200, seed = 141)
-  sampled <- vapply(split(mock, mock$ID), function(subject) {
+  synthetic <- generate_pmx(model, 200, seed = 141)
+  sampled <- vapply(split(synthetic, synthetic$ID), function(subject) {
     any(subject$EVID == 0 & subject$DVID == "cp" & subject$OCC == 2L)
   }, logical(1))
   expect_gt(mean(sampled), 0.15)
@@ -216,9 +216,9 @@ test_that("serialized models omit source identifier values, including levels", {
   expect_identical(id_schema$levels, character())
   serialized <- rawToChar(serialize(model, NULL, ascii = TRUE))
   expect_false(grepl("source-secret-id-", serialized, fixed = TRUE))
-  mock <- generate_pmx(model, 4, 77)
-  expect_true(is.factor(mock$ID))
-  expect_true(all(grepl("^mock_", as.character(mock$ID))))
+  synthetic <- generate_pmx(model, 4, 77)
+  expect_true(is.factor(synthetic$ID))
+  expect_true(all(grepl("^syn_", as.character(synthetic$ID))))
 })
 
 test_that("missing optional event amount or rate values remain bounded", {

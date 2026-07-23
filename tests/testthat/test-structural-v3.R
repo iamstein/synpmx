@@ -35,6 +35,23 @@ test_that("public inputs require provenance", {
   )
 })
 
+test_that("an unused rxode2 model warns instead of silently doing nothing", {
+  skip_if_not_installed("rxode2")
+  # REV-020: `rx` is accepted but never consumed by profile evaluation, so the
+  # curve is the analytic one either way. The warning must say so.
+  expect_warning(
+    model <- pmx_structural_model(
+      "1cmt_oral", c(cl = 10, v = 70, ka = 1), source = "unit test",
+      rx = "d/dt(central) = -ke * central"
+    ),
+    "not yet used"
+  )
+  expect_equal(
+    .pk_profile(model, c(0, 1, 4), 100, 0),
+    .pk_profile(.v3_model(), c(0, 1, 4), 100, 0)
+  )
+})
+
 test_that("analytic PK is dose-proportional and accumulates", {
   model <- .v3_model()
   t <- c(0, 1, 2, 4, 8, 24)
@@ -525,9 +542,9 @@ test_that("each covariate adds exactly one budget slice with sensitivity one", {
   expect_lte(fit$privacy$accounting$realized_epsilon, 2)
 
   # Generation from the fit carries the columns without further budget.
-  mock <- pmx_generate(fit, seed = 11)
-  expect_true(all(c("WT", "SEX") %in% names(mock)))
-  expect_true(validate_pmx(mock, pmx_generated_roles())$valid)
+  synthetic <- pmx_generate(fit, seed = 11)
+  expect_true(all(c("WT", "SEX") %in% names(synthetic)))
+  expect_true(validate_pmx(synthetic, pmx_generated_roles())$valid)
 })
 
 test_that("pmx_covariates_auto validates and defaults to 1-99 clipping", {
@@ -569,18 +586,18 @@ test_that("bootstrap covariates resample from data without spending budget", {
   expect_equal(nrow(fit$privacy$accounting$entries), 2L)
   expect_false(fit$privacy$covariates_private)
 
-  mock <- pmx_generate(fit, seed = 5)
-  expect_true(all(c("EGFR", "RACE") %in% names(mock)))
-  expect_true(validate_pmx(mock, pmx_generated_roles())$valid)
+  synthetic <- pmx_generate(fit, seed = 5)
+  expect_true(all(c("EGFR", "RACE") %in% names(synthetic)))
+  expect_true(validate_pmx(synthetic, pmx_generated_roles())$valid)
 
   # Continuous values stay inside the clipped source range; the extremes are
   # trimmed by the default 1st/99th-percentile clip.
   src_egfr <- tapply(data$EGFR, data$ID, unique)
-  expect_gte(min(mock$EGFR), min(src_egfr))
-  expect_lte(max(mock$EGFR), max(src_egfr))
+  expect_gte(min(synthetic$EGFR), min(src_egfr))
+  expect_lte(max(synthetic$EGFR), max(src_egfr))
 
   # Categorical proportions are broadly preserved (the majority stays majority).
-  expect_equal(names(which.max(table(mock$RACE))), "A")
+  expect_equal(names(which.max(table(synthetic$RACE))), "A")
 })
 
 test_that("clip = NULL exposes the raw min and max, synadam-style", {

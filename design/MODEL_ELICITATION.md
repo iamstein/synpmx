@@ -153,11 +153,11 @@ All of this is a public document. None costs privacy budget.
 2. **Assay precision**, as a CV. Becomes residual error.
 3. **BLQ handling convention** in your datasets: dropped, set to zero, set to
    LLOQ/2, or `CENS` flagged.
-4. **Expected messiness** you want reproduced, so the mock data exercises your
+4. **Expected messiness** you want reproduced, so the synthetic data exercises your
    pipeline: missed doses, out-of-window visits, missing covariates, duplicate
    records, occasional outliers.
 
-Mock data that is too clean does not surface the bugs a real dataset surfaces.
+Synthetic data that is too clean does not surface the bugs a real dataset surfaces.
 Derive these rates from the protocol and from general experience, not from the
 dataset.
 

@@ -26,11 +26,11 @@ test_that("latent trajectories produce coherent generated censoring", {
     private_design(source), private_limits(), private_budget(),
     backend = "public", public_source = TRUE
   ))
-  mock <- generate_pmx(model, 10, 202)
-  observed <- mock$EVID == 0
-  expect_true(any(mock$CENS[observed] != 0))
-  expect_true(all(mock$CENS %in% c(-1L, 0L, 1L)))
-  interval <- observed & mock$CENS == 1L & is.finite(mock$LIMIT)
-  expect_true(all(mock$LIMIT[interval] <= mock$DV[interval]))
-  expect_true(validate_pmx(mock, private_roles(), endpoints)$valid)
+  synthetic <- generate_pmx(model, 10, 202)
+  observed <- synthetic$EVID == 0
+  expect_true(any(synthetic$CENS[observed] != 0))
+  expect_true(all(synthetic$CENS %in% c(-1L, 0L, 1L)))
+  interval <- observed & synthetic$CENS == 1L & is.finite(synthetic$LIMIT)
+  expect_true(all(synthetic$LIMIT[interval] <= synthetic$DV[interval]))
+  expect_true(validate_pmx(synthetic, private_roles(), endpoints)$valid)
 })

@@ -15,9 +15,9 @@ test_that("generation is reproducible post-processing and leaves accounting unch
 test_that("generation defaults to the released fitted cohort size", {
   source <- private_fixture(12L)
   model <- fit_public_fixture(source)
-  mock <- generate_pmx(model, seed = 125)
+  synthetic <- generate_pmx(model, seed = 125)
   expect_equal(model$population$private_subject_count, 12)
-  expect_equal(length(unique(mock$ID)), length(unique(source$ID)))
+  expect_equal(length(unique(synthetic$ID)), length(unique(source$ID)))
 })
 
 test_that("timing-cell selection retains high-probability late cells", {
@@ -26,19 +26,19 @@ test_that("timing-cell selection retains high-probability late cells", {
 
 test_that("schema, classes, factors, new IDs, and covariates are coherent", {
   source <- private_fixture()
-  mock <- generate_pmx(fit_public_fixture(source), 6, seed = 22)
-  expect_identical(names(mock), names(source))
-  expect_identical(vapply(mock, class, character(1)),
+  synthetic <- generate_pmx(fit_public_fixture(source), 6, seed = 22)
+  expect_identical(names(synthetic), names(source))
+  expect_identical(vapply(synthetic, class, character(1)),
                    vapply(source, class, character(1)))
-  expect_identical(levels(mock$DVID), levels(source$DVID))
-  expect_identical(levels(mock$SEX), levels(source$SEX))
-  expect_type(mock$ID, "integer")
-  expect_false(any(unique(mock$ID) %in% source$ID))
+  expect_identical(levels(synthetic$DVID), levels(source$DVID))
+  expect_identical(levels(synthetic$SEX), levels(source$SEX))
+  expect_type(synthetic$ID, "integer")
+  expect_false(any(unique(synthetic$ID) %in% source$ID))
   for (column in private_roles()$covariates) {
-    expect_true(all(vapply(split(mock[[column]], mock$ID),
+    expect_true(all(vapply(split(synthetic[[column]], synthetic$ID),
                            function(x) length(unique(x)) == 1L, logical(1))))
   }
-  expect_true(validate_pmx(mock, private_roles(), private_endpoints())$valid)
+  expect_true(validate_pmx(synthetic, private_roles(), private_endpoints())$valid)
 })
 
 test_that("subject properties remain coherent with conditioned regimens", {
@@ -83,29 +83,29 @@ test_that("subject properties remain coherent with conditioned regimens", {
   expect_equal(event_entry$sensitivity, 10)
   expect_equal(event_entry$dimensions, 20)
 
-  mock <- generate_pmx(model, 60, seed = 2201)
-  expect_true(validate_pmx(mock, roles, private_endpoints())$valid)
+  synthetic <- generate_pmx(model, 60, seed = 2201)
+  expect_true(validate_pmx(synthetic, roles, private_endpoints())$valid)
   property_by_subject <- vapply(
-    split(mock$ARM, mock$ID), function(value) unique(value)[1L], integer(1)
+    split(synthetic$ARM, synthetic$ID), function(value) unique(value)[1L], integer(1)
   )
-  amount_by_subject <- vapply(split(mock, mock$ID), function(subject) {
+  amount_by_subject <- vapply(split(synthetic, synthetic$ID), function(subject) {
     unique(subject$AMT[subject$EVID != 0 & subject$AMT > 0])[1L]
   }, numeric(1))
   expect_equal(
     amount_by_subject,
     ifelse(property_by_subject == 1L, 50, 150), tolerance = 1e-8
   )
-  expect_true(all(mock$DOSE == ave(
-    mock$DOSE, interaction(mock$ID, mock$OCC, drop = TRUE),
+  expect_true(all(synthetic$DOSE == ave(
+    synthetic$DOSE, interaction(synthetic$ID, synthetic$OCC, drop = TRUE),
     FUN = function(value) value[1L]
   )))
-  positive_event <- mock$EVID != 0 & mock$AMT > 0
-  expect_equal(mock$DOSE[positive_event], mock$AMT[positive_event])
+  positive_event <- synthetic$EVID != 0 & synthetic$AMT > 0
+  expect_equal(synthetic$DOSE[positive_event], synthetic$AMT[positive_event])
 })
 
 test_that("dose-relative PK repeats while study-time PD remains global", {
-  mock <- generate_pmx(fit_public_fixture(), 8, seed = 51)
-  cp <- mock[mock$EVID == 0 & mock$DVID == "cp", ]
+  synthetic <- generate_pmx(fit_public_fixture(), 8, seed = 51)
+  cp <- synthetic[synthetic$EVID == 0 & synthetic$DVID == "cp", ]
   by_occasion <- split(cp, interaction(cp$ID, cp$OCC, drop = TRUE))
   expect_true(all(vapply(by_occasion, function(x) {
     peak <- which.max(x$DV)
@@ -113,7 +113,7 @@ test_that("dose-relative PK repeats while study-time PD remains global", {
       x$DV[peak] > x$DV[nrow(x)]
   }, logical(1))))
 
-  pd <- mock[mock$EVID == 0 & mock$DVID == "pd", ]
+  pd <- synthetic[synthetic$EVID == 0 & synthetic$DVID == "pd", ]
   early <- mean(pd$DV[abs(pd$NTIME - 0) < 1e-8])
   mid <- mean(pd$DV[abs(pd$NTIME - 12) < 1e-8])
   expect_lt(mid, early)
@@ -122,15 +122,15 @@ test_that("dose-relative PK repeats while study-time PD remains global", {
 
 test_that("TAD, occasions, tied ordering, doses, and times are coherent", {
   model <- fit_public_fixture()
-  mock <- generate_pmx(model, 4, seed = 91)
+  synthetic <- generate_pmx(model, 4, seed = 91)
   expected_observations <- as.integer(round(
     model$population$event$observation_count
   ))
-  expect_true(all(vapply(split(mock$EVID, mock$ID), function(x) {
+  expect_true(all(vapply(split(synthetic$EVID, synthetic$ID), function(x) {
     sum(x == 0) == expected_observations
   }, logical(1))))
-  for (id in unique(mock$ID)) {
-    subject <- mock[mock$ID == id, ]
+  for (id in unique(synthetic$ID)) {
+    subject <- synthetic[synthetic$ID == id, ]
     expect_true(all(diff(subject$TIME) >= 0))
     expect_true(all(subject$TAD >= 0))
     dose_time <- subject$TIME[subject$EVID != 0 & subject$AMT > 0]
@@ -141,14 +141,14 @@ test_that("TAD, occasions, tied ordering, doses, and times are coherent", {
     at_zero <- which(subject$TIME == 0)
     if (length(at_zero) > 1L) expect_true(subject$EVID[at_zero[1L]] != 0)
   }
-  observations <- mock$EVID == 0
+  observations <- synthetic$EVID == 0
   tied_blocks <- split(
-    mock$TIME[observations],
-    interaction(mock$ID[observations], mock$NTIME[observations], drop = TRUE)
+    synthetic$TIME[observations],
+    interaction(synthetic$ID[observations], synthetic$NTIME[observations], drop = TRUE)
   )
   expect_true(all(vapply(tied_blocks, function(x) length(unique(x)) == 1L,
                          logical(1))))
-  expect_true(any(abs(mock$TIME[observations] - mock$NTIME[observations]) >
+  expect_true(any(abs(synthetic$TIME[observations] - synthetic$NTIME[observations]) >
                     1e-10))
 })
 
@@ -162,18 +162,18 @@ test_that("occasion and hybrid alignments execute separately", {
     private_design(source), private_limits(), private_budget(),
     backend = "public", public_source = TRUE
   ))
-  mock <- generate_pmx(model, 3, 11)
-  expect_true(validate_pmx(mock, private_roles(), endpoints)$valid)
-  expect_setequal(unique(as.character(mock$DVID[mock$EVID == 0])),
+  synthetic <- generate_pmx(model, 3, 11)
+  expect_true(validate_pmx(synthetic, private_roles(), endpoints)$valid)
+  expect_setequal(unique(as.character(synthetic$DVID[synthetic$EVID == 0])),
                   c("cp", "pd"))
-  cp <- mock[mock$EVID == 0 & mock$DVID == "cp", ]
+  cp <- synthetic[synthetic$EVID == 0 & synthetic$DVID == "cp", ]
   expect_true(all(vapply(split(cp, interaction(cp$ID, cp$OCC)), function(x) {
     peak <- which.max(x$DV)
     peak > 1L && peak < nrow(x)
   }, logical(1))))
   expect_true(length(model$population$trajectories$pd$local_grid) > 1L)
   expect_equal(
-    sort(unique(mock$NTIME[mock$EVID == 0 & mock$DVID == "pd"])),
+    sort(unique(synthetic$NTIME[synthetic$EVID == 0 & synthetic$DVID == "pd"])),
     endpoints$pd$grid
   )
 })
