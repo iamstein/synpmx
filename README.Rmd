@@ -89,6 +89,22 @@ Two rules of thumb decide between them:
 `vignette("synpmx-method")` runs all four on the same dataset and shows the
 results side by side.
 
+## Maintenance status
+
+**AVATAR blending is the primary, maintained path.** It has no dependencies
+beyond base R, and is what to reach for inside a trusted environment.
+
+The three differentially private modes (**prior**, **calibration**,
+**empirical**) are a complete, tested, but **secondary** path, kept because
+formal privacy is the right answer when data crosses a trust boundary. They are
+provided as-is: not under active development, carrying known open findings, and
+**not independently privacy-audited**. Treat them as a principled demonstration
+of the privacy/utility tradeoff, not as a production release mechanism. A real
+regulated release needs the specialist review described in the
+[mechanism-level privacy argument](https://iamstein.github.io/synpmx/articles/privacy-argument.html),
+and depends on the external [OpenDP](https://docs.opendp.org/en/stable/api/r/)
+package, which synpmx does not control.
+
 ## Documentation
 
 | Document | Question it answers |
