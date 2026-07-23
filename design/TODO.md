@@ -24,21 +24,18 @@ registry entry it points at rather than deleting the history.
 
 ---
 
-## Next: three prioritized items (joint, needing a scoping conversation)
+The `synpmx` rename is complete (2026-07-23), in all three places: the package
+(`DESCRIPTION`, `R/synpmx-package.R`, `man/`, `build.sh`, `synpmx.Rproj`, all
+five vignettes by filename, title, and `\%\VignetteIndexEntry`, and every
+mention in prose), the GitHub repository `iamstein/synpmx` with `origin`
+repointed, and the local clone directory `~/git/synpmx`. The exported API kept
+its `pmx_*` / `synthesize_pmx()` names deliberately: `pmx_` says what the data
+is, `syn` says what the package does, and `synadam` does not prefix its own
+functions either.
 
-1. **Finish the `synpmx` rename outside the repository.** The package rename
-   itself is done (2026-07-23): `DESCRIPTION`, `NAMESPACE`, `R/synpmx-package.R`,
-   `man/`, `build.sh`, `synpmx.Rproj`, all five vignettes (filename, title, and
-   `\%\VignetteIndexEntry`), and every mention in prose. The exported API kept
-   its `pmx_*` / `synthesize_pmx()` names deliberately: `pmx_` says what the
-   data is, `syn` says what the package does, and `synadam` does not prefix its
-   own functions either. What remains is outside git's reach:
-   - [ ] Rename the GitHub repository `iamstein/pmxSyntheticData` → `synpmx`.
-         GitHub redirects the old URL indefinitely, so nothing breaks.
-   - [ ] `git remote set-url origin` afterwards.
-   - [ ] Rename the local clone directory. Note that the old path is baked into
-         `.claude/` settings and any editor session.
-2. **Review and organize the documentation set.** Five vignettes, a `README.md`,
+## Next: two prioritized items (joint, needing a scoping conversation)
+
+1. **Review and organize the documentation set.** Five vignettes, a `README.md`,
    and ten design documents now overlap in places and no one has decided what
    each is *for*. Decide the audience and job of each document, what the entry
    point is, what should merge or be deleted, and how much of `README.md` should
@@ -46,7 +43,7 @@ registry entry it points at rather than deleting the history.
    significant rewrite rather than another patch. **Scope this together before
    writing**; the inventory and my guessed audiences are in
    `design/DOCUMENTATION_SCOPE.md`.
-3. **Try the approach on the internal INTERNAL_STUDY data.** The methods have only been
+2. **Try the approach on the internal INTERNAL_STUDY data.** The methods have only been
    exercised on public `nlmixr2data` sources and package fixtures. Running
    AVATAR and the calibrated structural path on a real internal study is the
    test that matters: role declaration against a real schema, event grammar
@@ -71,13 +68,13 @@ and a reader landing on any one vignette could not tell which they were in.
       on theophylline, as `scripts/demo_nlmixr2data.R` does.
 - [x] `README.md`: vignette table of contents explaining how the documentation
       set is organized and which document answers which question. This is a
-      minimal addition only; the full rewrite is item 2 above.
+      minimal addition only; the full rewrite is item 1 above.
 - [x] House style: spell out every acronym on first use in a document
       (`AGENTS.md`). The word "mock" is gone: prose says "synthetic data", the
       `compare_pmx()` argument and outputs are `synthetic`, and generated
       character/factor IDs are `syn_001` rather than `mock_001`.
 - [x] `design/DOCUMENTATION_SCOPE.md` — inventory of all 23 documents with
-      guessed audiences, as input to item 2 above.
+      guessed audiences, as input to item 1 above.
 - [ ] `REV-020` — `pmx_structural_model(rx = )` is stored but never used. It now
       warns; either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright.
