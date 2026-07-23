@@ -92,16 +92,27 @@ PRIORS <- pmx_priors(
 # )
 
 # --- 4. Covariate columns (optional) ----------------------------------------
-# Baseline covariates to carry into the output so covariate-handling pipeline
-# code has columns to run against. Each one costs one privacy slice: a
-# continuous covariate releases its clipped mean, a categorical one its level
-# proportions. Ranges and levels are public (inclusion criteria / protocol),
-# chosen without looking at the data. Set COVARIATES <- NULL to skip.
-COVARIATES <- pmx_covariates(
-  WT  = pmx_covariate(range = c(40, 120), source = "FILL IN: inclusion criteria"),
-  AGE = pmx_covariate(range = c(18, 75),  source = "FILL IN: inclusion criteria"),
-  SEX = pmx_covariate(levels = c("M", "F"), source = "FILL IN: protocol")
+# Baseline covariates carried into the output so covariate-handling pipeline
+# code has columns to run against. Set COVARIATES <- NULL to skip.
+#
+# Simplest: just list the column names. Values are resampled from the data --
+# uniform over the (clipped) observed range for continuous columns, proportional
+# resample for categorical -- the same approach as Novartis's synadam. The
+# default 1st/99th-percentile clip keeps the two extreme patients from leaking;
+# pass clip = NULL to expose the raw min/max like synadam does. This is NOT
+# differentially private and is for trusted-environment use only.
+COVARIATES <- pmx_covariates_auto(
+  c("WT", "AGE", "SEX", "RACE", "EGFR")     # every covariate column you want
+  # , clip = NULL                            # uncomment to match synadam exactly
 )
+
+# Alternative, fully DP but you cite a public range/levels per column, and each
+# costs one privacy slice. Prefer this if the covariates may leave the safe
+# environment. Uncomment to use instead:
+# COVARIATES <- pmx_covariates(
+#   WT  = pmx_covariate(range = c(40, 120), source = "inclusion criteria"),
+#   SEX = pmx_covariate(levels = c("M", "F"), source = "protocol")
+# )
 
 # --- 5. Column roles: map YOUR columns onto PMX roles -----------------------
 # Only the roles the real dataset has. Ignored when DRY_RUN = TRUE.
@@ -134,8 +145,23 @@ read_source <- function() {
       "2cmt_oral", c(cl = 22, v = 30, q = 15, v2 = 100, ka = 1),
       source = "dry-run stand-in truth"
     )
-    return(pmx_generate(truth, DESIGN, n_subjects = 40, seed = 1,
-                        covariates = COVARIATES))
+    stand_in <- pmx_generate(truth, DESIGN, n_subjects = 40, seed = 1)
+    # Attach fake covariate columns matching COVARIATES, so the calibrated fit
+    # has something to summarize. Names containing SEX/RACE/SEXN are treated as
+    # categorical; everything else as continuous.
+    if (!is.null(COVARIATES)) {
+      ids <- unique(stand_in$ID)
+      set.seed(99)
+      for (nm in names(COVARIATES)) {
+        per_id <- if (grepl("SEX|RACE|ETHNIC|ARM", nm, ignore.case = TRUE)) {
+          sample(c("A", "B"), length(ids), replace = TRUE)
+        } else {
+          round(stats::rnorm(length(ids), 70, 15))
+        }
+        stand_in[[nm]] <- per_id[match(stand_in$ID, ids)]
+      }
+    }
+    return(stand_in)
   }
   if (!file.exists(DATA_PATH)) {
     stop("DATA_PATH not found: ", normalizePath(DATA_PATH, mustWork = FALSE))
@@ -157,10 +183,19 @@ message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 n_subjects <- length(unique(raw[[roles$id]]))
 
 # ---- PRIOR version: public inputs only, no data, no budget -----------------
-# Matched to the source cohort size so the two versions are comparable.
+# Matched to the source cohort size so the two versions are comparable. Prior
+# mode reads no data, so bootstrap covariates (which resample the data) cannot
+# be generated here; they are added only to the calibrated version below. DP
+# covariates with a public range/levels work in both.
 message("\n== PRIOR version (no data, no privacy budget) ==")
-prior_mock <- pmx_generate(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED,
-                           covariates = COVARIATES)
+prior_mock <- tryCatch(
+  pmx_generate(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED,
+               covariates = COVARIATES),
+  error = function(e) {
+    message("  (bootstrap covariates need data; omitting them from PRIOR)")
+    pmx_generate(MODEL, DESIGN, n_subjects = n_subjects, seed = SEED)
+  }
+)
 stopifnot(validate_pmx(prior_mock, pmx_generated_roles())$valid)
 message("  generated ", nrow(prior_mock), " rows for ",
         length(unique(prior_mock$ID)), " subjects")

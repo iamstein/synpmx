@@ -515,3 +515,71 @@ test_that("each covariate adds exactly one budget slice with sensitivity one", {
   expect_true(all(c("WT", "SEX") %in% names(mock)))
   expect_true(validate_pmx(mock, pmx_generated_roles())$valid)
 })
+
+test_that("pmx_covariates_auto validates and defaults to 1-99 clipping", {
+  cov <- pmx_covariates_auto(c("WT", "SEX"))
+  expect_s3_class(cov, "pmx_covariates")
+  expect_equal(cov$WT$type, "bootstrap")
+  expect_equal(cov$WT$clip, c(0.01, 0.99))
+  expect_true(.covariates_have_bootstrap(cov))
+
+  expect_null(pmx_covariates_auto("WT", clip = NULL)$WT$clip)
+  expect_error(pmx_covariates_auto(character()), "non-empty")
+  expect_error(pmx_covariates_auto(c("a", "a")), "unique")
+  expect_error(pmx_covariates_auto("WT", clip = c(0.9, 0.1)), "increasing")
+})
+
+test_that("bootstrap covariates resample from data without spending budget", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  design <- .v3_design()
+  data <- pmx_generate(.v3_model(), design, n_subjects = 80, seed = 3)
+  # A continuous column with a clear range, and a skewed categorical.
+  per_id <- function(f) f(length(unique(data$ID)))[match(data$ID,
+                                                         unique(data$ID))]
+  set.seed(2)
+  data$EGFR <- per_id(function(k) round(rnorm(k, 90, 20)))
+  data$RACE <- per_id(function(k) sample(c("A", "B", "C"), k, replace = TRUE,
+                                         prob = c(0.7, 0.2, 0.1)))
+
+  cov <- pmx_covariates_auto(c("EGFR", "RACE"))
+  # Bootstrap covariates warn that they are not DP; that is expected here.
+  expect_warning(
+    fit <- fit_calibrated_pmx(
+      data, pmx_generated_roles(), .v3_model(), design,
+      pmx_priors(pk = pmx_prior(c(1 / 4, 4), "x")),
+      epsilon = 1, covariates = cov, backend = "opendp"
+    ),
+    "differentially private"
+  )
+  # Bootstrap covariates are NOT budgeted: only count + pk are released.
+  expect_equal(nrow(fit$privacy$accounting$entries), 2L)
+  expect_false(fit$privacy$covariates_private)
+
+  mock <- pmx_generate(fit, seed = 5)
+  expect_true(all(c("EGFR", "RACE") %in% names(mock)))
+  expect_true(validate_pmx(mock, pmx_generated_roles())$valid)
+
+  # Continuous values stay inside the clipped source range; the extremes are
+  # trimmed by the default 1st/99th-percentile clip.
+  src_egfr <- tapply(data$EGFR, data$ID, unique)
+  expect_gte(min(mock$EGFR), min(src_egfr))
+  expect_lte(max(mock$EGFR), max(src_egfr))
+
+  # Categorical proportions are broadly preserved (the majority stays majority).
+  expect_equal(names(which.max(table(mock$RACE))), "A")
+})
+
+test_that("clip = NULL exposes the raw min and max, synadam-style", {
+  summary <- .bootstrap_summary(c(1, 2, 3, 4, 100), clip = NULL)
+  expect_equal(summary$range, c(1, 100))
+  clipped <- .bootstrap_summary(c(1, 2, 3, 4, 100), clip = c(0.01, 0.99))
+  expect_lt(clipped$range[2L], 100)             # the 100 outlier is trimmed
+})
+
+test_that("a bootstrap covariate cannot be generated in prior mode", {
+  expect_error(
+    pmx_generate(.v3_model(), .v3_design(),
+                 covariates = pmx_covariates_auto("WT")),
+    "needs the data"
+  )
+})

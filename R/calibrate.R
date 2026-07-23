@@ -100,8 +100,13 @@ pmx_preflight <- function(priors, epsilon, n_subjects, covariates = NULL) {
       !is.finite(n_subjects) || n_subjects < 1) {
     stop("`n_subjects` must be one positive number.", call. = FALSE)
   }
-  # Subject count, each correction, and each covariate are one release apiece.
-  d <- length(priors) + length(covariates) + 1L
+  # Subject count, each correction, and each DP-declared covariate are one
+  # release apiece. Bootstrap covariates are not budgeted and do not enter d.
+  n_dp_covariates <- if (is.null(covariates)) 0L else {
+    sum(vapply(covariates, function(c) !identical(c$type, "bootstrap"),
+               logical(1)))
+  }
+  d <- length(priors) + n_dp_covariates + 1L
   f <- d / (epsilon * n_subjects)
   rows <- lapply(names(priors), function(name) {
     data.frame(
@@ -292,10 +297,16 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
   accountant <- .new_accountant(epsilon, 0, resolved)
 
   released <- names(priors)
-  # One release each for the subject count, every correction, and every
-  # covariate. Each has sensitivity one, so the budget splits d ways.
-  d <- length(released) + length(covariates) + 1L
+  # One private release each for the subject count, every correction, and every
+  # DP-declared covariate, each with sensitivity one. Bootstrap covariates are
+  # resampled from the data outside the budget, so they do not enter d.
+  n_dp_covariates <- if (is.null(covariates)) 0L else {
+    sum(vapply(covariates, function(c) !identical(c$type, "bootstrap"),
+               logical(1)))
+  }
+  d <- length(released) + n_dp_covariates + 1L
   per_query <- epsilon / d
+  bootstrap_covariates <- .covariates_have_bootstrap(covariates)
 
   count <- .private_release(accountant, "subject_count", n_subjects,
                             sensitivity = 1, epsilon = per_query)
@@ -362,6 +373,13 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
       ))
     }
   }
+  if (bootstrap_covariates) {
+    warnings <- c(warnings, paste0(
+      "Some covariates are bootstrap-resampled from the data and are NOT ",
+      "differentially private. The PK/PD release remains DP; the covariate ",
+      "columns do not. Use only within a trusted environment."
+    ))
+  }
 
   out <- structure(list(
     version = 3L,
@@ -374,6 +392,7 @@ fit_calibrated_pmx <- function(data, roles, model, design, priors, epsilon,
     preflight = pmx_preflight(priors, epsilon, n_subjects),
     privacy = list(
       formal_dp = formal_dp,
+      covariates_private = !bootstrap_covariates,
       unit = "one subject's complete bounded longitudinal contribution",
       adjacency = "add-or-remove one complete subject",
       epsilon = as.numeric(epsilon), delta = 0,
@@ -432,5 +451,8 @@ print.pmx_calibrated_model <- function(x, ...) {
       "  (formal DP: ", x$privacy$formal_dp, ")\n", sep = "")
   cat("  f = ", signif(x$preflight$f, 3), " (", x$preflight$verdict, ")\n",
       sep = "")
+  if (isFALSE(x$privacy$covariates_private)) {
+    cat("  covariates: bootstrap-resampled, NOT differentially private\n")
+  }
   invisible(x)
 }
