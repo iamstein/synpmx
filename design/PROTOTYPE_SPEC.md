@@ -9,6 +9,32 @@ then version history newest-first at the bottom.
 
 ---
 
+# 0. Current method (Version 4): AVATAR is the default
+
+**Read this first.** As of Version 4 (2026-07-22), the primary and default
+method is **AVATAR-style blending**, exposed as `synthesize_pmx()`. It resamples
+and blends whole source subject trajectories, works at any cohort size, needs no
+elicitation, and makes **no formal privacy guarantee**. It is the right tool for
+**mock data that stays inside a trusted computing environment**, which is the
+common case, and it is the trajectory-level analogue of what Novartis's
+`synadam` already does column by column. See `design/METHOD_DISCUSSION.md`.
+
+The differentially private engines described in most of this document —
+`fit_calibrated_pmx()` (structural correction, Version 3) and `fit_private_pmx()`
+(dense grid, Version 2) — are **retained as alternatives** for the case that
+actually needs a formal guarantee: when the generated data **crosses a trust
+boundary** (shared externally, published, or moved to a less-controlled system).
+They are not removed and not deprecated; they are the right tool for a different
+question.
+
+The rest of this specification (sections 1-10) documents the DP engines in
+detail, because they carry the formal obligations that need specifying. AVATAR's
+method is documented in the method vignette and `design/METHOD_DISCUSSION.md`.
+The decision rule between them is a single question: **does the output cross a
+trust boundary?** No → AVATAR. Yes → a DP engine.
+
+---
+
 # 1. Objective
 
 Build a generator of **mock pharmacometric data for model-workflow
@@ -965,6 +991,43 @@ N = 300 and above.
 # 11. Version history
 
 Newest first.
+
+## Version 4 — return to AVATAR blending as the primary method (2026-07-22)
+
+**Driver:** comparison to Novartis's `synadam`. `synadam` generates synthetic
+ADaM data by resampling each column marginally from the real data — uniform over
+the observed range for continuous columns, proportional resample for categorical
+— with no differential privacy and no formal guarantee, relying on governance
+and the fact that the data stays in a controlled environment. That is accepted
+practice. AVATAR-style blending is the same governance-based idea applied at the
+granularity of a whole subject trajectory rather than a single column, so if
+`synadam`'s model is acceptable, AVATAR's is acceptable for the same
+trusted-environment use.
+
+**Change:** the Version 1 AVATAR engine is restored as `synthesize_pmx()`
+(renamed from `mock_pmx`) and made the primary, default method. It resamples a
+source subject's event skeleton as a template and fills it with a
+distance-weighted blend of similar subjects' covariates and trajectories, plus
+subject and residual noise. It works at any cohort size, needs no elicitation,
+and makes no formal privacy claim.
+
+**Rationale.** For mock data that stays inside a trusted environment — the
+common case, and this package's stated purpose — a resampling method is more
+useful than differential privacy on every axis the user cares about, and DP's
+formal guarantee buys nothing when no adversary can reach the output. See
+`design/METHOD_DISCUSSION.md`.
+
+**The asymmetry, recorded honestly.** A resampled covariate value is weakly
+identifying; a resampled subject trajectory is strongly identifying, close to a
+fingerprint. AVATAR therefore sits a notch higher on the risk ladder than
+`synadam`'s column resampling, and its safety depends more heavily on the
+governance context. This is the same concern that motivated moving away from
+Version 1 originally; Version 4 accepts it deliberately, scoped to
+trusted-environment use, with the DP engines available when the output crosses a
+trust boundary.
+
+**Retains** Versions 2 and 3 as alternatives, not deprecated. The decision rule
+is the trust boundary: inside → AVATAR; crossing out → a DP engine.
 
 ## Version 3 — low-dimensional structural release (2026-07-22, in design)
 

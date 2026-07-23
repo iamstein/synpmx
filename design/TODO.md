@@ -33,11 +33,10 @@ the right default for trusted-environment mock data. The DP (v2) and structural
 (v3) engines are kept as superseded alternatives for when a formal guarantee is
 required, not removed.
 
-- [ ] `design/METHOD_DISCUSSION.md`: the tradeoff essay — AVATAR vs (epsilon,
-      delta) DP, the trajectory-is-a-fingerprint asymmetry, and the synadam
-      parity argument.
-- [ ] `PROTOTYPE_SPEC.md`: a Version 4 section at the top framing the return to
-      AVATAR, with DP retained as the formal-privacy alternative.
+- [x] `design/METHOD_DISCUSSION.md`: the AVATAR vs DP tradeoff essay, the
+      trajectory-is-a-fingerprint asymmetry, and the synadam parity argument.
+- [x] `PROTOTYPE_SPEC.md`: Version 4 section (history) plus a section 0 banner
+      making AVATAR the default and the trust-boundary the decision rule.
 - [x] Restore the AVATAR engine as `synthesize_pmx()` (renamed from the v1
       `mock_pmx`), `synthesis.R`, `profiles.R`, plus the ported `utils.R`
       helpers. Exported and working; no name collisions with v2/v3.
