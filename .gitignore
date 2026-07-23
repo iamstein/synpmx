@@ -65,7 +65,8 @@ references/private/
 
 # Private company-data work. Real modeling datasets and any source-derived
 # output must never be committed. Ignore everything under scripts_private/ EXCEPT
-# the template code and docs. A parent-directory ignore would hide the whole
+# the template code and docs and possible example scripts.
+# A parent-directory ignore would hide the whole
 # tree from git and defeat the re-includes below, so ignore by content instead.
 /scripts_private/**
 !/scripts_private/
@@ -73,6 +74,7 @@ references/private/
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
 !/scripts_private/try_avatar.R
+!/scripts_private/INTERNAL_STUDY.R
 
 # Local Claude Code settings
 .claude/
