@@ -42,19 +42,35 @@ functions either.
 
 ## Next
 
-1. **Enable GitHub Pages for the pkgdown site.** One-time setup, and it must
-   happen on GitHub rather than in the repository. The `pkgdown` workflow runs
-   on every push to `main` and deploys the built site to a `gh-pages` branch,
-   which will not exist until that workflow has run once. After it does, set
-   Settings → Pages → Source to "Deploy from a branch", branch `gh-pages`,
-   folder `/ (root)`. The site then serves at
-   <https://iamstein.github.io/synpmx/>, which is the URL already declared in
-   `DESCRIPTION`, `_pkgdown.yml`, and every roxygen and vignette cross-link —
-   so those links stay broken until this is done. Confirm the first deploy
-   rendered all nine documents and that `AGENTS.html` and `CLAUDE.html` are
-   absent (`pkgdown/prune-site.R` removes them).
+1. **Finish publishing the pkgdown site.** `usethis::use_github_pages()` has
+   been run (2026-07-23): it created the `gh-pages` branch and activated Pages
+   through the API, so no manual Settings step is needed to turn it *on*. Two
+   things still block the site:
 
-2. **Try the approach on the internal PIT565 data.** The methods have only been
+   - **Pages is publishing from the wrong source.** The API reports
+     `source: main /`, but the workflow deploys to `gh-pages`, so nothing the
+     workflow produces is ever served. Repoint it, either in Settings → Pages
+     or with `usethis::use_github_pages(branch = "gh-pages")`.
+   - **The push token needs `workflow` scope.** The credential git uses has
+     only `repo`. GitHub refuses any push that creates or modifies a file
+     under `.github/workflows/`, so pushing `pkgdown.yaml` fails until the
+     scope is added at <https://github.com/settings/tokens>.
+
+   The site serves at <https://iamstein.github.io/synpmx/>, the URL already
+   declared in `DESCRIPTION`, `_pkgdown.yml`, and every roxygen and vignette
+   cross-link — those links stay broken until this is done. Confirm the first
+   deploy rendered all nine documents and that `AGENTS.html` and `CLAUDE.html`
+   are absent (`pkgdown/prune-site.R` removes them).
+
+2. **Decide what to do with `.github/workflows/r.yml`.** Added through the
+   GitHub UI on 2026-07-23 from GitHub's default R template. It will fail on
+   every push as written: it checks against R 3.6.3 and 4.1.1, but
+   `DESCRIPTION` requires R >= 4.1.0, so the 3.6.3 leg cannot even install the
+   package. Either delete it — `./build.sh` already does a stricter check
+   locally — or replace it with `usethis::use_github_action("check-standard")`,
+   which uses the maintained r-lib matrix.
+
+3. **Try the approach on the internal PIT565 data.** The methods have only been
    exercised on public `nlmixr2data` sources and package fixtures. Running
    AVATAR and the calibrated structural path on a real internal study is the
    test that matters: role declaration against a real schema, event grammar
