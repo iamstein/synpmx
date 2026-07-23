@@ -279,25 +279,43 @@ profiles contain useful separation.
 
 ## Below-the-limit-of-quantification (BLOQ) data and a Monolix-style CENS column
 
-AVATAR does not synthesize a censoring process. A declared `cens`/`limit` role
-is accepted for schema validation, but at present:
+Declare `cens` and, if the source uses one, `limit` in `pmx_roles()`, and AVATAR
+reconstructs censoring rather than copying it. The mechanism has three parts.
 
-- `CENS` is copied from the anchor template as an unassigned column;
-- a numeric DV on a row with `CENS = 1` is treated as an ordinary observed
-  number if EVID and MDV make that row eligible;
-- no likelihood-based censoring, interval, lower-limit-of-quantification
-  (LLOQ), substitution, or imputation rule is applied; and
-- after DV synthesis, a copied `CENS` flag may no longer agree with the new DV.
+**The boundary is read from the source.** AVATAR makes no formal privacy claim,
+so it may recover the assay limit from the data itself: under the Monolix
+convention a censored row reports the boundary in `DV`, with `LIMIT` carrying
+the other end of an interval when there is one. Left, right, and interval
+censoring are each recognised. A differentially private engine may *not* do
+this — there the limit must be a declared public input, because a boundary
+inferred from confidential records is itself a release. That asymmetry is the
+reason the two engines derive boundaries differently.
 
-Declaring `CENS` as a baseline covariate is not a workaround: if it changes
-within subject, strict validation correctly rejects it as nonconstant.
+If a study used more than one assay limit, the most conservative boundary is
+taken rather than inventing a per-row rule the source cannot support.
 
-For now, a dataset with BLOQ records should be preprocessed under an explicit,
-documented analysis convention before calling `synpmx_avatar()`. Setting DV missing
-and using a nonzero declared MDV can retain an anchor's missingness position,
-but this still does not synthesize a coherent censoring process. Users who need
-synthetic CENS/LLOQ semantics should treat that as unsupported package behavior,
-not as an implicit feature.
+**Censored donor values are imputed before blending.** Every censored source row
+reports the same substituted number, so blending those values directly would put
+a floor under the synthetic data that the real study does not have. Each
+censored row is instead replaced by a draw inside its censoring region — uniform
+below the limit for a left-censored row, uniform within the interval for an
+interval-censored one — before the trajectory is transformed and blended. A
+uniform draw rather than a fixed LLOQ/2 avoids replacing one artificial spike
+with another.
+
+**`DV`, `CENS`, and `LIMIT` are reconstructed together.** The back-transformed
+blend is treated as a *latent* value: what the subject would have measured with
+no assay limit. The boundary is then applied to that latent, and all three
+columns are written from the result, so they cannot disagree. A generated value
+below the limit produces `CENS = 1` with `DV` exactly at the limit, reproducing
+the spike of identical values that characterises real censored data.
+
+Two honest limitations. The censored *fraction* is reproduced approximately, not
+exactly: blending shrinks variance toward the middle while the imputation draws
+uniformly across the censoring region, so the synthetic rate typically runs
+somewhat above the source's. And if a `cens` role is declared but no boundary
+can be read from it — rows flagged with `DV` missing, for instance — AVATAR
+warns and carries the flag through untouched rather than guessing.
 
 ## Step 6: restrict neighbors to compatible event patterns
 

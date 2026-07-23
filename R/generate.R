@@ -645,7 +645,25 @@
   private <- model$population$censoring[[endpoint_name]] %||%
     list(left = 0, right = 0, interval = 0,
          boundary = NA_real_, other_boundary = NA_real_)
-  public <- endpoint$censoring %||% list()
+  .censor_latent(data, rows, latent, roles,
+                 public = endpoint$censoring %||% list(), private = private)
+}
+
+# Reconstruct DV, CENS, and LIMIT together from a latent value, under
+# Monolix-style conventions: CENS = 1 is left- or interval-censored with DV at
+# the upper boundary, CENS = -1 is right-censored, and LIMIT carries the other
+# end of an interval.
+#
+# `public` gives boundaries that are known and applied deterministically;
+# `private` gives boundaries recovered from a noised release, each applied with
+# the released probability. AVATAR supplies boundaries it derived from the
+# source data, which is the `public` path -- it makes no formal privacy claim,
+# so a data-derived limit is legitimate there and would not be for a DP engine.
+.censor_latent <- function(data, rows, latent, roles, public = list(),
+                           private = list(left = 0, right = 0, interval = 0,
+                                          boundary = NA_real_,
+                                          other_boundary = NA_real_)) {
+  if (is.null(roles$cens)) return(data)
   cens <- rep(0, length(rows))
   limit <- rep(NA_real_, length(rows))
   reported <- latent

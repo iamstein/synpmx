@@ -109,6 +109,78 @@
   skeleton
 }
 
+# Censoring -------------------------------------------------------------------
+#
+# AVATAR makes no formal privacy guarantee, so it may read the censoring
+# boundary straight off the source data. A differentially private engine may
+# not: there the limit is a declared public input, because a boundary inferred
+# from confidential records is itself a release. That asymmetry is why this
+# lives here rather than being shared with `fit_private`'s path.
+
+# One endpoint's censoring boundaries, recovered from how the source reports
+# censored rows under the Monolix convention: DV sits at the boundary, and
+# LIMIT carries the other end of an interval when there is one.
+.source_censoring <- function(data, roles, endpoint_name) {
+  if (is.null(roles$cens)) return(NULL)
+  observed <- .observation_rows(data, roles, require_present = TRUE) &
+    .endpoint(data, roles) == endpoint_name
+  if (!any(observed)) return(NULL)
+  cens <- suppressWarnings(as.numeric(as.character(data[[roles$cens]][observed])))
+  dv <- suppressWarnings(as.numeric(data[[roles$dv]][observed]))
+  limit <- if (is.null(roles$limit)) rep(NA_real_, sum(observed)) else
+    suppressWarnings(as.numeric(data[[roles$limit]][observed]))
+
+  out <- list()
+  left <- is.finite(cens) & cens == 1 & is.finite(dv) & !is.finite(limit)
+  interval <- is.finite(cens) & cens == 1 & is.finite(dv) & is.finite(limit)
+  right <- is.finite(cens) & cens == -1 & is.finite(dv)
+  # A study with more than one assay limit collapses to the most conservative
+  # boundary rather than inventing a per-row rule the source cannot support.
+  if (any(left)) out$left <- max(dv[left])
+  if (any(right)) out$right <- min(dv[right])
+  if (any(interval)) {
+    out$interval <- c(min(limit[interval]), max(dv[interval]))
+  }
+  if (!length(out)) NULL else out
+}
+
+# Replace reported values on censored rows with a latent draw inside the
+# censoring region, so that blending sees plausible values rather than a stack
+# of identical boundary substitutions. Without this every censored donor drags
+# the blend toward the limit, and the synthetic data inherits a floor the real
+# study does not have.
+.impute_censored <- function(data, roles) {
+  if (is.null(roles$cens)) return(data)
+  observed <- .observation_rows(data, roles, require_present = TRUE)
+  if (!any(observed)) return(data)
+  endpoint <- .endpoint(data, roles)
+  cens <- suppressWarnings(as.numeric(as.character(data[[roles$cens]])))
+  dv <- suppressWarnings(as.numeric(data[[roles$dv]]))
+  limit <- if (is.null(roles$limit)) rep(NA_real_, nrow(data)) else
+    suppressWarnings(as.numeric(data[[roles$limit]]))
+
+  for (name in unique(endpoint[observed])) {
+    rows <- which(observed & endpoint == name & is.finite(cens) & cens != 0)
+    if (!length(rows)) next
+    for (i in rows) {
+      if (cens[i] == 1 && is.finite(limit[i])) {
+        # Interval-censored: the value lies between LIMIT and DV.
+        dv[i] <- stats::runif(1L, min(limit[i], dv[i]), max(limit[i], dv[i]))
+      } else if (cens[i] == 1) {
+        # Left-censored: uniform below the limit. A uniform draw rather than a
+        # fixed LLOQ/2 avoids replacing one artificial spike with another.
+        dv[i] <- stats::runif(1L, 0, dv[i])
+      } else if (cens[i] == -1) {
+        # Right-censored: no upper bound is reported, so extend by the same
+        # relative width a left-censored draw would span.
+        dv[i] <- dv[i] * stats::runif(1L, 1, 2)
+      }
+    }
+  }
+  data[[roles$dv]] <- dv
+  data
+}
+
 .donor_trajectory <- function(data, roles, rows, endpoint_name, transform) {
   subject_data <- data[rows, , drop = FALSE]
   observed <- .observation_rows(subject_data, roles, require_present = TRUE)
@@ -159,7 +231,8 @@
 .synthesize_trajectories <- function(skeleton, data, roles, donor_indices,
                                      weights, profiles, subject_noise_sd,
                                      residual_noise_sd, residual_phi,
-                                     warnings) {
+                                     warnings,
+                                     censoring_by_endpoint = list()) {
   allowed <- .observation_rows(skeleton, roles)
   present <- allowed & !is.na(skeleton[[roles$dv]])
   endpoint <- .endpoint(skeleton, roles)
@@ -223,8 +296,16 @@
     residual <- .ar1_noise(
       length(blended), residual_phi, residual_noise_sd * scale
     )
+    # The back-transformed blend is the latent value: what the subject would
+    # have measured with no assay limit. DV, CENS, and LIMIT are then
+    # reconstructed from it together, so the three always agree.
     generated <- .inverse_dv(blended + shift + residual, transform)
     skeleton[[roles$dv]][target_rows] <- generated
+    censoring <- censoring_by_endpoint[[endpoint_name]]
+    if (!is.null(censoring)) {
+      skeleton <- .censor_latent(skeleton, target_rows, generated, roles,
+                                 public = censoring)
+    }
   }
   skeleton
 }
@@ -380,6 +461,31 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
 
   .with_local_seed(seed, {
     warnings <- .warning_collector()
+    # Boundaries come from the reported data, before imputation overwrites the
+    # substituted values they are read from.
+    censoring_by_endpoint <- list()
+    if (!is.null(source_roles$cens)) {
+      endpoint_names <- unique(.endpoint(
+        source, source_roles
+      )[.observation_rows(source, source_roles, require_present = TRUE)])
+      for (name in endpoint_names) {
+        censoring_by_endpoint[[name]] <- .source_censoring(
+          source, source_roles, name
+        )
+      }
+      censored_rows <- sum(suppressWarnings(as.numeric(as.character(
+        source[[source_roles$cens]]
+      ))) != 0, na.rm = TRUE)
+      if (censored_rows && !length(Filter(Negate(is.null),
+                                          censoring_by_endpoint))) {
+        warnings$add(paste0(
+          "A `cens` role is declared and ", censored_rows, " row(s) are ",
+          "flagged, but no censoring boundary could be read from them; ",
+          "CENS was carried through without being reconstructed."
+        ))
+      }
+      source <- .impute_censored(source, source_roles)
+    }
     profiles <- .build_profiles(source, source_roles, pca_variance)
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
     anchors <- sample.int(length(subjects), n_subjects, replace = TRUE)
@@ -398,7 +504,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       )
       skeleton <- .synthesize_trajectories(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
-        subject_noise_sd, residual_noise_sd, residual_phi, warnings
+        subject_noise_sd, residual_noise_sd, residual_phi, warnings,
+        censoring_by_endpoint
       )
       if (standard_mdv) skeleton <- .derive_standard_mdv(skeleton, source_roles)
       new_id <- new_ids[synthetic_index]
