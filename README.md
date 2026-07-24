@@ -24,8 +24,7 @@ pak::pak("iamstein/synpmx")
 ```
 
 AVATAR needs nothing beyond base R. The two differentially private modes
-additionally require the official [OpenDP R
-package](https://docs.opendp.org/en/stable/api/r/):
+additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
@@ -64,7 +63,10 @@ see it, not about which machine holds it: using it on an analyst
 workstation covered by the same access controls is a supported case, and
 much of the point of the package.
 
-## The four modes
+The other three modes for generating synthetic data,  cover the scenarios where formal data privacy requirements are needed.  They are included in the package 
+as part of a conceptual framework to help the modeler think about various
+options that are available, but these methods have not been yet been audited
+for their ability to protect data privacy.  
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|
@@ -77,18 +79,13 @@ Two rules of thumb decide between them:
 
 - **The trust boundary decides whether you need differential privacy.**
   Ask whether the generated data can reach anyone the source data could
-  not — a question about people and obligations, not about machines.
-  Moving output to a workstation under the same access controls reaches
-  no one new; sending it to a vendor does. If no one new, AVATAR is more
+  not.  Moving output to a workstation under the same access controls reaches
+  no one new; sending it to a vendor does. If no one new can access the data, AVATAR is more
   useful and its lack of a formal guarantee costs nothing, because there
-  is no adversary to guarantee against. If someone new, only an
-  accounted release holds up.
-- **The cohort size decides which private mode is usable.** Epsilon buys
-  accuracy in proportion to the number of subjects and in inverse
-  proportion to how many quantities you release. At 12 subjects,
-  releasing two numbers can work and releasing fifty cannot.
+  is no adversary to guarantee against. 
+- **The cohort size decides which private mode is usable if needed.** 
 
-`vignette("synpmx-method")` runs all four on the same dataset and shows
+`vignette("synpmx-method")` runs all four methods on the same dataset and shows
 the results side by side.
 
 ## Maintenance status
@@ -114,8 +111,7 @@ does not control.
 That status is enforced, not just documented: `synpmx_calibrated()` and
 `synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()`
 has been called once in the session, an acknowledgment that does not
-persist across sessions, script runs, or CI jobs. `backend = "public"`
-calls make no DP claim already and are exempt.
+persist across sessions, script runs, or CI jobs. 
 
 ## Documentation
 
