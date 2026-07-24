@@ -1,0 +1,12 @@
+TO DO LIST
+==========
+
+✅ COMPLETED:
+- Apply to INTERNAL_STUDY data
+- Test on real data once
+
+IN PROGRESS:
+- Get others to test and report feedback
+  - Check if it works
+  - Report where/why it breaks
+
