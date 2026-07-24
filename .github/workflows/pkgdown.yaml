@@ -35,6 +35,23 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # The public RSPM binary of stringfish is linked against the TBB ABI that
+      # RcppParallel shipped before 6.0.0, so loading it against RcppParallel
+      # 6.0.0 fails with "undefined symbol: ...concurrent_vector_base_v3...".
+      # stringfish arrives transitively (rxode2 -> qs -> stringfish) and is
+      # loaded during the site build, when downlit resolves the rxode2
+      # references in vignettes/articles/model-elicitation.Rmd. Rebuilding it
+      # from source links it against whichever RcppParallel actually resolved.
+      - name: Rebuild stringfish against the installed RcppParallel
+        run: |
+          if (requireNamespace("stringfish", quietly = TRUE) &&
+              !isTRUE(tryCatch({ loadNamespace("stringfish"); TRUE },
+                               error = function(e) FALSE))) {
+            install.packages("stringfish", type = "source",
+                             repos = "https://cloud.r-project.org")
+          }
+        shell: Rscript {0}
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}

@@ -42,25 +42,26 @@ functions either.
 
 ## Next
 
-1. **Finish publishing the pkgdown site.** `usethis::use_github_pages()` has
-   been run (2026-07-23): it created the `gh-pages` branch and activated Pages
-   through the API, so no manual Settings step is needed to turn it *on*. Two
-   things still block the site:
+1. **Finish publishing the pkgdown site.** Both blockers recorded here earlier
+   are resolved (checked against the API on 2026-07-24): Pages now reports
+   `source: {branch: gh-pages, path: /}` with status `built`, and the push
+   token carries `repo, workflow`, so `pkgdown.yaml` is on `main`. What
+   remained was that **every `pkgdown` run since has failed at "Build site"**,
+   so `gh-pages` still serves the 2026-07-23 deploy.
 
-   - **Pages is publishing from the wrong source.** The API reports
-     `source: main /`, but the workflow deploys to `gh-pages`, so nothing the
-     workflow produces is ever served. Repoint it, either in Settings → Pages
-     or with `usethis::use_github_pages(branch = "gh-pages")`.
-   - **The push token needs `workflow` scope.** The credential git uses has
-     only `repo`. GitHub refuses any push that creates or modifies a file
-     under `.github/workflows/`, so pushing `pkgdown.yaml` fails until the
-     scope is added at <https://github.com/settings/tokens>.
+   The failure is an upstream ABI break, not our code: the public RSPM binary
+   of `stringfish` is linked against the TBB ABI that `RcppParallel` shipped
+   before 6.0.0, and `RcppParallel 6.0.0` removed those symbols. `stringfish`
+   arrives transitively (`rxode2` → `qs` → `stringfish`) and is loaded when
+   `downlit` resolves the `rxode2` references in
+   `vignettes/articles/model-elicitation.Rmd`. The workflow now rebuilds
+   `stringfish` from source when the installed copy will not load.
 
-   The site serves at <https://iamstein.github.io/synpmx/>, the URL already
+   Still to confirm on the next green run: all nine documents rendered, and
+   `AGENTS.html` / `CLAUDE.html` are absent (`pkgdown/prune-site.R` removes
+   them). The site serves at <https://iamstein.github.io/synpmx/>, the URL
    declared in `DESCRIPTION`, `_pkgdown.yml`, and every roxygen and vignette
-   cross-link — those links stay broken until this is done. Confirm the first
-   deploy rendered all nine documents and that `AGENTS.html` and `CLAUDE.html`
-   are absent (`pkgdown/prune-site.R` removes them).
+   cross-link.
 
 2. **Decide what to do with `.github/workflows/r.yml`.** Added through the
    GitHub UI on 2026-07-23 from GitHub's default R template. It will fail on
