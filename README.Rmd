@@ -62,8 +62,7 @@ head(synthetic, 4)
 
 The output keeps the source schema, the event grammar, and the cohort size. What
 you cannot say about it is that it is anonymous — it is assembled from real
-trajectories, so it belongs inside the same trusted environment the source data
-came from.
+trajectories, so it belongs inside a trusted environment.
 
 ## The four modes
 
