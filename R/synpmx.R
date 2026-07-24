@@ -93,6 +93,79 @@
   switch(as.character(n %% 10L), "1" = "st", "2" = "nd", "3" = "rd", "th")
 }
 
+# Session-only opt-in gate for the DP engines --------------------------------
+#
+# The DP engines' unaudited status was documented but not enforced: calling
+# synpmx_calibrated()/synpmx_empirical() was exactly as frictionless as
+# calling the audited synpmx_avatar(). See REV-023 in
+# design/REVIEW_BACKLOG.md. A per-call argument defaulting to off is too easy
+# to flip once and forget; a warning() is too easy to suppress in a script.
+# An in-session flag makes the acknowledgment a deliberate, visible action
+# that must be repeated in every fresh session, script run, or CI job.
+.dp_engines_enabled <- new.env(parent = emptyenv())
+.dp_engines_enabled$on <- FALSE
+
+.dp_audit_status <- paste(
+  "the differentially private engines are complete and tested, but not",
+  "under active development, carry known open findings (see",
+  "design/REVIEW_BACKLOG.md), and have not been independently",
+  "privacy-audited. See vignette(\"synpmx-privacy\") for the trust-boundary",
+  "decision rule and what a production release additionally needs."
+)
+
+#' Acknowledge the DP engines' unaudited status for this session
+#'
+#' [synpmx_calibrated()] and [synpmx_empirical()] refuse to run until this has
+#' been called at least once in the current session. This is a deliberate
+#' speed bump, not a technical safeguard: the differentially private engines
+#' are complete and tested, but not under active development, carry known
+#' open findings (see `design/REVIEW_BACKLOG.md`), and have not been
+#' independently privacy-audited. See `vignette("synpmx-privacy")` for the
+#' trust-boundary decision rule and what a production release additionally
+#' needs. [synpmx_avatar()] and [synpmx_prior()] make no differential-privacy
+#' claim and are unaffected.
+#'
+#' The acknowledgment does not persist. It applies only to the R session it is
+#' called in, so a fresh session, script run, or CI job must call it again.
+#' `backend = "public"` calls make no DP claim either and are exempt from this
+#' gate.
+#'
+#' @return `TRUE`, invisibly.
+#' @seealso [synpmx_disable_dp_engines()]
+#' @export
+#' @examples
+#' synpmx_enable_dp_engines()
+synpmx_enable_dp_engines <- function() {
+  assign("on", TRUE, envir = .dp_engines_enabled)
+  message("DP engines enabled for this session: ", .dp_audit_status)
+  invisible(TRUE)
+}
+
+#' Withdraw the acknowledgment from [synpmx_enable_dp_engines()]
+#'
+#' Mainly useful for tests that exercise the unacknowledged error path without
+#' starting a fresh session.
+#'
+#' @return `TRUE`, invisibly.
+#' @seealso [synpmx_enable_dp_engines()]
+#' @export
+synpmx_disable_dp_engines <- function() {
+  assign("on", FALSE, envir = .dp_engines_enabled)
+  invisible(TRUE)
+}
+
+.require_dp_engines_enabled <- function(fn) {
+  if (isTRUE(get0("on", envir = .dp_engines_enabled, ifnotfound = FALSE))) {
+    return(invisible(NULL))
+  }
+  stop(
+    "`", fn, "()` is one of the differentially private engines: ",
+    .dp_audit_status, " Call `synpmx_enable_dp_engines()` once per session ",
+    "to acknowledge this and proceed.",
+    call. = FALSE
+  )
+}
+
 
 #' Generate a dataset from public inputs only
 #'
@@ -165,7 +238,9 @@ synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
 #' active development, carry known open findings, and have not been independently
 #' privacy-audited. Use them to demonstrate the privacy/utility tradeoff, not as
 #' a production release mechanism; a real regulated release needs specialist
-#' review and the external OpenDP backend.
+#' review and the external OpenDP backend. Requires a session-level
+#' acknowledgment: call [synpmx_enable_dp_engines()] once before this function
+#' will run (unless `backend = "public"`, which makes no DP claim).
 #'
 #' @param data The confidential dataset.
 #' @param roles A [pmx_roles()] declaration for `data`.
@@ -196,6 +271,9 @@ synpmx_calibrated <- function(data, roles, model, design, priors, epsilon,
                               n_subjects = NULL, seed = 123, n_datasets = 1L,
                               covariates = NULL, backend = "opendp",
                               public_source = FALSE) {
+  if (!identical(backend, "public")) {
+    .require_dp_engines_enabled("synpmx_calibrated")
+  }
   .warn_on_repeat_fit(data, epsilon, "calibrated")
   release <- .fit_calibrated(
     data = data, roles = roles, model = model, design = design,
@@ -258,6 +336,9 @@ synpmx_empirical <- function(data, roles, endpoints, epsilon, delta, bounds,
                              budget_allocation, n_subjects = NULL, seed = 123,
                              n_datasets = 1L, delta_justification = NULL,
                              backend = "opendp", public_source = FALSE) {
+  if (!identical(backend, "public")) {
+    .require_dp_engines_enabled("synpmx_empirical")
+  }
   .warn_on_repeat_fit(data, epsilon, "empirical")
   release <- .fit_private(
     data = data, roles = roles, endpoints = endpoints, epsilon = epsilon,

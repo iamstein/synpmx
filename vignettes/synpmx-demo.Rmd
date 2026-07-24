@@ -520,7 +520,14 @@ theophylline shows how much more must be declared, and what is bought.
 
 The empirical engine measures the trajectory shape from the data through noised
 summaries. Every clipping range, contribution limit, and budget share is an
-explicit public input:
+explicit public input. `synpmx_empirical()` (like `synpmx_calibrated()`)
+refuses to run until `synpmx_enable_dp_engines()` has been called once in the
+session, acknowledging the maintenance status covered in
+`vignette("synpmx-privacy")`:
+
+```{r enable-dp, eval=has_nlmixr2data}
+synpmx_enable_dp_engines()
+```
 
 ```{r empirical, eval=has_nlmixr2data}
 theo_private <- synpmx_empirical(

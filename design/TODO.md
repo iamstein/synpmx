@@ -288,3 +288,5 @@ Keep this path for pooled corpora; it is not superseded by v3.
 - [x] `REV-014` Land the working tree in reviewable commits.
 - [x] `./build.sh` for `R CMD check` and clean-library vignette rendering. `778848b`
 - [x] `vignettes/articles/feasibility.Rmd` scoping assessment. `d5b0e30`
+- [x] `REV-023` Session-level `synpmx_enable_dp_engines()` gate on the DP
+      engines' unaudited status, so it is enforced rather than only documented.

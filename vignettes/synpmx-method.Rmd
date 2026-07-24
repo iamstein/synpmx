@@ -156,7 +156,17 @@ honest cost of spending no budget — the data is exactly as good as the prior.
 ## Mode 3: calibration
 
 The middle path, and the recommended one when a formal guarantee is needed and
-the cohort is small. Keep the public model's *shape*, and spend a small privacy
+the cohort is small. Both `synpmx_calibrated()` and `synpmx_empirical()` refuse
+to run until `synpmx_enable_dp_engines()` has been called once in the session —
+a deliberate speed bump, not a technical safeguard, so that the maintenance
+status below cannot be reached by accident. `backend = "public"` calls, like
+the ones in this vignette, make no DP claim and are exempt.
+
+```{r enable-dp, eval=has_nlmixr2data}
+synpmx_enable_dp_engines()
+```
+
+Keep the public model's *shape*, and spend a small privacy
 budget correcting only its *magnitude*.
 
 Each subject is reduced to a bounded multiplicative correction of the model's

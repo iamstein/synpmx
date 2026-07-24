@@ -133,3 +133,44 @@ test_that("the empirical mode returns a dataset carrying its release", {
   # The accounting helpers read straight off the dataset.
   expect_s3_class(privacy_report(syn), "pmx_privacy_report")
 })
+
+# REV-023: the DP engines' unaudited status must be an explicit, session-level
+# acknowledgment, not just documentation, so it cannot be reached by accident.
+
+test_that("the DP engines refuse to run without synpmx_enable_dp_engines()", {
+  synpmx_disable_dp_engines()
+  on.exit(suppressMessages(synpmx_enable_dp_engines()), add = TRUE)
+
+  data <- api_source()
+  expect_error(
+    synpmx_calibrated(
+      data = data, roles = pmx_generated_roles(), model = api_model(),
+      design = api_design(), priors = api_priors(), epsilon = 1
+    ),
+    "synpmx_enable_dp_engines"
+  )
+  expect_error(
+    synpmx_empirical(
+      data = private_fixture(), roles = private_roles(),
+      endpoints = private_endpoints(), epsilon = 5, delta = 0,
+      bounds = private_bounds(), public_design = private_design(private_fixture()),
+      contribution_limits = private_limits(), budget_allocation = private_budget()
+    ),
+    "synpmx_enable_dp_engines"
+  )
+})
+
+test_that("backend = \"public\" is exempt from the DP-engines gate", {
+  synpmx_disable_dp_engines()
+  on.exit(suppressMessages(synpmx_enable_dp_engines()), add = TRUE)
+  expect_s3_class(api_calibrated(), "data.frame")
+})
+
+test_that("synpmx_enable_dp_engines() unlocks the gate for the session", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  synpmx_disable_dp_engines()
+  expect_message(synpmx_enable_dp_engines(), "DP engines enabled")
+  on.exit(suppressMessages(synpmx_enable_dp_engines()), add = TRUE)
+  expect_s3_class(api_calibrated(backend = "opendp",
+                                 public_source = FALSE), "data.frame")
+})
