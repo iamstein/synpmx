@@ -27,11 +27,12 @@ api_source <- function() {
   .generate_structural(api_model(), api_design(), n_subjects = 30, seed = 7)
 }
 
-api_calibrated <- function(data = api_source(), ...) {
+api_calibrated <- function(data = api_source(), backend = "public",
+                           public_source = TRUE, ...) {
   suppressWarnings(synpmx_calibrated(
     data = data, roles = pmx_generated_roles(), model = api_model(),
     design = api_design(), priors = api_priors(), epsilon = 1,
-    backend = "public", public_source = TRUE, ...
+    backend = backend, public_source = public_source, ...
   ))
 }
 
@@ -132,4 +133,52 @@ test_that("the empirical mode returns a dataset carrying its release", {
   expect_s3_class(release, "private_pmx_model")
   # The accounting helpers read straight off the dataset.
   expect_s3_class(privacy_report(syn), "pmx_privacy_report")
+})
+
+# REV-023: the DP engines' unaudited status must be an explicit, session-level
+# acknowledgment, not just documentation, so it cannot be reached by accident.
+
+# Each of these tests locks the gate, so each must put back whatever was there
+# before rather than assume a value. Re-enabling unconditionally would leave
+# the session unlocked for every test that runs afterwards, and the
+# fresh-session default is locked -- a later test is entitled to rely on that.
+test_that("the DP engines refuse to run without synpmx_enable_dp_engines()", {
+  before <- .dp_engines_enabled$on
+  on.exit(assign("on", before, envir = .dp_engines_enabled), add = TRUE)
+  synpmx_disable_dp_engines()
+
+  data <- api_source()
+  expect_error(
+    synpmx_calibrated(
+      data = data, roles = pmx_generated_roles(), model = api_model(),
+      design = api_design(), priors = api_priors(), epsilon = 1
+    ),
+    "synpmx_enable_dp_engines"
+  )
+  expect_error(
+    synpmx_empirical(
+      data = private_fixture(), roles = private_roles(),
+      endpoints = private_endpoints(), epsilon = 5, delta = 0,
+      bounds = private_bounds(), public_design = private_design(private_fixture()),
+      contribution_limits = private_limits(), budget_allocation = private_budget()
+    ),
+    "synpmx_enable_dp_engines"
+  )
+})
+
+test_that("backend = \"public\" is exempt from the DP-engines gate", {
+  before <- .dp_engines_enabled$on
+  on.exit(assign("on", before, envir = .dp_engines_enabled), add = TRUE)
+  synpmx_disable_dp_engines()
+  expect_s3_class(api_calibrated(), "data.frame")
+})
+
+test_that("synpmx_enable_dp_engines() unlocks the gate for the session", {
+  skip_if_not(dp_backend_status()$available, "OpenDP unavailable")
+  before <- .dp_engines_enabled$on
+  on.exit(assign("on", before, envir = .dp_engines_enabled), add = TRUE)
+  synpmx_disable_dp_engines()
+  expect_message(synpmx_enable_dp_engines(), "DP engines enabled")
+  expect_s3_class(api_calibrated(backend = "opendp",
+                                 public_source = FALSE), "data.frame")
 })

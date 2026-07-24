@@ -18,6 +18,14 @@ if (!requireNamespace("nlmixr2data", quietly = TRUE)) {
   stop("Install nlmixr2data to run the integration demonstrations.")
 }
 
+# synpmx_empirical() is one of the DP engines: complete and tested, but not
+# under active development, carrying known open findings, and not
+# independently privacy-audited (design/REVIEW_BACKLOG.md REV-023). This
+# script uses `backend = "public"` throughout, which is exempt from the
+# session-level acknowledgment gate, but the call is here anyway so a reader
+# who copies this pattern onto `backend = "opendp"` sees it demonstrated.
+synpmx::synpmx_enable_dp_engines()
+
 load_dataset <- function(name) {
   environment <- new.env(parent = emptyenv())
   utils::data(list = name, package = "nlmixr2data", envir = environment)

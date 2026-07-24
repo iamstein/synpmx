@@ -74,6 +74,8 @@ reference:
   - validate_private_model
   - dp_backend_status
   - run_dp_backend_tests
+  - synpmx_enable_dp_engines
+  - synpmx_disable_dp_engines
 
 - title: Validation and diagnostics
   desc: Structural checks on generated data, and restricted comparisons.

@@ -104,6 +104,12 @@ regulated release needs the specialist review described in the
 and depends on the external [OpenDP](https://docs.opendp.org/en/stable/api/r/)
 package, which synpmx does not control.
 
+That status is enforced, not just documented: `synpmx_calibrated()` and
+`synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has been
+called once in the session, an acknowledgment that does not persist across
+sessions, script runs, or CI jobs. `backend = "public"` calls make no DP claim
+already and are exempt.
+
 ## Documentation
 
 | Document | Question it answers |

@@ -79,7 +79,9 @@ method. The differentially private modes are complete and tested but not under
 active development, carry known open findings, and have not been independently
 privacy-audited. Use them to demonstrate the privacy/utility tradeoff, not as
 a production release mechanism; a real regulated release needs specialist
-review and the external OpenDP backend.
+review and the external OpenDP backend. Requires a session-level
+acknowledgment: call \code{\link[=synpmx_enable_dp_engines]{synpmx_enable_dp_engines()}} once before this function
+will run (unless \code{backend = "public"}, which makes no DP claim).
 }
 
 \seealso{
