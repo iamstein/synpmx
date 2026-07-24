@@ -258,7 +258,7 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
     limit <- if (is.null(roles$limit)) rep(NA_real_, nrow(data)) else
       suppressWarnings(as.numeric(data[[roles$limit]]))
     endpoint_id <- .endpoint(data, roles)
-    incoherent <- FALSE
+    faults <- character()
     for (name in unique(endpoint_id[allowed])) {
       here <- allowed & endpoint_id == name & is.finite(dv) & is.finite(cens)
       uncensored <- dv[here & cens == 0]
@@ -266,16 +266,37 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
       # Point left-censoring reports the limit in DV; an uncensored value of the
       # same endpoint cannot sit below that limit without itself being censored.
       left <- dv[here & cens == 1 & !is.finite(limit)]
-      if (length(left) && max(left) > min(uncensored)) incoherent <- TRUE
+      crossing_left <- left[left > min(uncensored)]
+      if (length(crossing_left)) {
+        faults <- c(faults, paste0(
+          "endpoint '", name, "': ", length(crossing_left),
+          " left-censored (CENS=1) row(s) report DV as high as ",
+          signif(max(crossing_left), 4), ", above the lowest uncensored DV ",
+          signif(min(uncensored), 4)))
+      }
       # Right-censoring is the mirror image.
       right <- dv[here & cens == -1 & !is.finite(limit)]
-      if (length(right) && min(right) < max(uncensored)) incoherent <- TRUE
+      crossing_right <- right[right < max(uncensored)]
+      if (length(crossing_right)) {
+        faults <- c(faults, paste0(
+          "endpoint '", name, "': ", length(crossing_right),
+          " right-censored (CENS=-1) row(s) report DV as low as ",
+          signif(min(crossing_right), 4), ", below the highest uncensored DV ",
+          signif(max(uncensored), 4)))
+      }
     }
-    add("cens_dv_coherence", if (incoherent) "error" else "pass",
-        if (incoherent)
-          paste("Censored and uncensored observations of an endpoint cross the",
-                "censoring boundary: a CENS flag disagrees with its DV.") else
-          "Censoring flags are consistent with reported DV values.")
+    add("cens_dv_coherence", if (length(faults)) "error" else "pass",
+        if (length(faults)) paste0(
+          "A CENS flag disagrees with its DV. A left-censored value (CENS=1) ",
+          "reports the limit, so it cannot exceed an ordinary measurement of ",
+          "the same endpoint; a right-censored value (CENS=-1) cannot fall ",
+          "below one. Found: ", paste(faults, collapse = "; "),
+          ". Common causes: the censored rows store the raw sub-limit ",
+          "measurement or 0 rather than the limit; the study used more than ",
+          "one assay limit; or CENS is coded with a different convention than ",
+          "-1/0/1. Fix the CENS/DV coding, or drop the `cens` role to skip ",
+          "censoring reconstruction."
+        ) else "Censoring flags are consistent with reported DV values.")
   }
 
   if (!is.null(roles$amt)) {
