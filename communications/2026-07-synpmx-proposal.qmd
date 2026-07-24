@@ -1,0 +1,168 @@
+---
+title: "synpmx"
+subtitle: "Generating structurally faithful synthetic pharmacometric datasets"
+date: 2026-07-23
+format:
+  revealjs:
+    theme: default
+    slide-number: true
+    incremental: false
+    code-line-numbers: false
+execute:
+  eval: false
+  echo: true
+---
+
+## Contents
+
+- Background and context
+- The shared philosophy: `synadam` and `synpmx`
+- How does `synpmx` work?
+- Example output
+- Safeguards against data mix-up
+
+# Background and context
+
+## The problem
+
+- Real pharmacometric (PMX) modeling data can only be accessed in restricted
+  (GxP) environments — for us, GPS-II.
+- Modelers want to build and debug analysis code — cleaning, joins, reshaping,
+  plotting, control-file plumbing, repeated-dose and longitudinal workflows — on
+  their **local machines**, where richer tooling and coding agents are
+  available.
+- A NONMEM-style event table (ID/TIME/DV/AMT/EVID/…) is structurally far richer
+  than a flat analysis dataset: dosing records, observation records, multiple
+  endpoints, censoring, and per-subject timing all have to be *coherent*, not
+  just present.
+- `synpmx` generates synthetic PMX datasets — **structurally exact, vaguely
+  right on the numbers** — that can be **moved out of GPS-II to a local
+  machine**, developed against there, then run unchanged back on the real data.
+
+## The accuracy bar, stated plainly
+
+> **Structure must be right. Numbers need only be in the right region.**
+
+A user should be able to develop and debug an analysis pipeline against the
+synthetic data and have it run **unchanged** against the real data — while being
+unable to draw any scientific conclusion from it.
+
+The deliberate lack of statistical fidelity is a **privacy advantage**, not a
+limitation to be engineered away.
+
+# The shared philosophy
+
+## `synadam` and `synpmx` are the same idea
+
+The package **`synadam`** generates mock ADaM datasets by **resampling each
+*column*** from real data:
+
+- continuous → uniform draw over the observed range;
+- categorical → resample the observed categories;
+- flags → sampled in the observed proportions.
+
+No modeling, no elicitation. It relies on **governance** — ADaM data is
+already analysis-level de-identified and stays inside a controlled environment —
+rather than on a mathematical guarantee. This is standard, accepted practice.
+
+## Same philosophy, different granularity
+
+| | `synadam` | `synpmx` |
+|---|---|---|
+| Unit resampled | a **column** | a **subject trajectory** |
+| Preserves | marginal support | joint structure, timing, shape |
+| Privacy model | governance | governance |
+| Data shape | flat ADaM table | NONMEM-style event table |
+
+**`synpmx` is `synadam`'s philosophy lifted from the column to the whole subject
+trajectory** — because a PMX event table only makes sense as a coherent whole.
+
+# How does synpmx work?
+
+## Blend whole subject trajectories
+
+`synpmx_avatar()`. For each generated subject:
+
+1. **Sample** a compatible source subject's event skeleton as a template
+   (its dosing/observation structure and timing).
+2. **Blend** covariates and endpoint trajectories from a distance-weighted set
+   of a few similar source subjects.
+3. **Perturb** with subject-level and within-trajectory noise.
+
+The output looks like real data because it is **built from real data** — whole
+real subjects come through, blended, so real covariate correlations and
+trajectory shapes are preserved for free.
+
+## Why blend at the trajectory level
+
+A PMX event table only makes sense as a **coherent whole**: dosing records,
+observation records, per-subject timing, and multiple endpoints all have to line
+up. Resampling column by column would break that coherence.
+
+- **Works at any cohort size** — twelve subjects is enough.
+- **No elicitation** — no model, no priors, no protocol declaration. Point it at
+  the data and go.
+- **Structurally exact, vaguely right on the numbers** — exactly the accuracy
+  bar the workflow needs.
+
+## Where the synthetic data goes
+
+The whole point is to **move the synthetic data**: out of the restricted GPS-II
+environment and onto a managed local machine, so modelers can work with modern tooling and coding agents.
+
+And it is **only synthetic data that moves.** Real subject-level data never
+leaves GPS-II.
+
+# Example output
+
+## Configure column roles, then synthesize
+
+```{r}
+library(synpmx)
+
+# Map your columns onto PMX roles (the only thing you edit)
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV",
+  amt = "AMT", evid = "EVID", dvid = "DVID",
+  cmt = "CMT", mdv = "MDV",
+  covariates = c("WT", "AGE", "SEX")
+)
+
+# Validate the source structure, then blend
+report    <- validate_pmx(raw, roles, strict = FALSE)
+synthetic <- synpmx_avatar(raw, roles, n_subjects = NULL, seed = 4127)
+```
+
+No model, no priors — just the column meanings.
+
+## Source vs synthetic (diagnostic)
+
+A concentration-time scatter of source against synthetic shows the synthetic
+cohort reproducing the **shape, timing, and magnitude** of the real profiles
+without reproducing any individual subject.
+
+# Safeguards against data mix-up
+
+## Keeping synthetic and real data apart
+
+- **New identifiers.** Synthetic subject IDs never overlap source IDs
+  (checked: `intersect(synthetic$ID, raw$ID)` is empty).
+- **Separate storage.** Synthetic tables are written to a dedicated `output/`
+  directory, never alongside source datasets.
+- **Only synthetic data leaves GPS-II.** The move to a local machine carries the
+  synthetic table alone; real subject-level data stays in the restricted
+  environment.
+- **Explicit scope labeling.** The synthetic output is marked as structurally
+  faithful but not statistically faithful — for pipeline development, not
+  analysis.
+
+## Summary
+
+- `synpmx` extends the **`synadam` philosophy** — resample real data, rely on
+  governance — from the **column** to the **subject trajectory**, because a PMX
+  event table is only coherent as a whole.
+- It **blends whole real subject trajectories**: structurally exact, works at
+  any N, needs no elicitation.
+- The payoff: **move synthetic PMX data out of GPS-II to a local machine** —
+  still inside Novartis's trusted boundary — and develop against it with modern
+  tooling, then run unchanged on the real data.
