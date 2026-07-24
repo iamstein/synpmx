@@ -14,33 +14,8 @@ Internal design record (`design/`, cited by nothing shipped):
   and why AVATAR is the trajectory-level analogue of synadam.
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
-Published as pkgdown articles (`vignettes/articles/`, no `R CMD check` cost):
 
-- `feasibility.Rmd` — **scope**, what is achievable at which cohort size.
-- `privacy-background.Rmd` — **intuition**, where `d`, `f`, and the error law
-  come from. Start here if the arithmetic is unfamiliar.
-- `privacy-argument.Rmd` — **proof**, the formal mechanism-level argument.
-- `avatar-mathematics.Rmd` — **algorithm**, the default generator step by step.
-- `model-elicitation.Rmd` — **inputs**, the interview that produces a public
-  structural model and priors before any data is read.
-- `data-elicitation.Rmd` — **structure**, the trial-design ladder and which
-  parts of a protocol are actually public.
-
-Keep items here short and link out. When an item closes, tick it and update the
-registry entry it points at rather than deleting the history.
-
----
-
-The `synpmx` rename is complete (2026-07-23), in all three places: the package
-(`DESCRIPTION`, `R/synpmx-package.R`, `man/`, `build.sh`, `synpmx.Rproj`, all
-five vignettes by filename, title, and `\%\VignetteIndexEntry`, and every
-mention in prose), the GitHub repository `iamstein/synpmx` with `origin`
-repointed, and the local clone directory `~/git/synpmx`. The exported API kept
-its `pmx_*` / `synpmx_avatar()` names deliberately: `pmx_` says what the data
-is, `syn` says what the package does, and `synadam` does not prefix its own
-functions either.
-
-## Next: adoption, external validation, and the ACoP poster
+## Next Steps: adoption, external validation, and the ACoP poster
 
 The package, its documentation, and the live site are all in place. The work now
 is to get the method used by others, understood well enough to defend, and
