@@ -2,6 +2,7 @@
 ^\.Rproj\.user$
 ^AGENTS\.md$
 ^CLAUDE\.md$
+^TODO\.txt$
 ^design$
 ^references$
 ^scripts$

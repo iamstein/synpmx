@@ -148,7 +148,8 @@ can match the tool to the boundary.
 Both engines remain, deliberately.
 
 - **`synpmx_avatar()`** — AVATAR, the primary and default method. The right
-  answer for trusted-environment synthetic data, which is the common case.
+  answer when the synthetic data reaches no one the source data could not, which
+  is the common case.
 - **`synpmx_calibrated()`** — the structural-correction DP engine. The right
   answer when a formal guarantee is needed and the cohort is small; it asserts
   shape from a public model and privately calibrates only the magnitude.

@@ -1005,8 +1005,8 @@ the observed range for continuous columns, proportional resample for categorical
 and the fact that the data stays in a controlled environment. That is accepted
 practice. AVATAR-style blending is the same governance-based idea applied at the
 granularity of a whole subject trajectory rather than a single column, so if
-`synadam`'s model is acceptable, AVATAR's is acceptable for the same
-trusted-environment use.
+`synadam`'s model is acceptable, AVATAR's is acceptable for the same use —
+output kept under the source data's own access controls.
 
 **Change:** the Version 1 AVATAR engine is restored as `synpmx_avatar()`
 (renamed from `mock_pmx`) and made the primary, default method. It resamples a

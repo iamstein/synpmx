@@ -109,7 +109,8 @@ this section is stale. `AGENTS.md` now records the resulting three-tier rule.
 Scope decision (2026-07-22): after comparing to Novartis's `synadam` (which
 resamples each column marginally from the data with no formal guarantee), AVATAR
 is the trajectory-level analogue of the same governance-based approach, and it is
-the right default for trusted-environment synthetic data. The DP (v2) and structural
+the right default when the synthetic data reaches no one the source data could
+not. The DP (v2) and structural
 (v3) engines are kept as superseded alternatives for when a formal guarantee is
 required, not removed.
 

@@ -397,7 +397,8 @@ granularity: it resamples and blends **whole subject trajectories** rather than
 individual columns, because a pharmacometric endpoint is a correlated
 time-course that would be destroyed by independent per-column resampling. If
 `synadam`'s privacy model is acceptable for its use, AVATAR's is acceptable for
-the same trusted-environment use.
+the same use — output kept under the source data's own access controls, reaching
+no one the source data could not.
 
 One honest caveat follows from the difference in granularity. A resampled
 covariate value (a weight of 72 kg) is weakly identifying because many people
