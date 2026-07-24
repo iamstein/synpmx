@@ -30,27 +30,31 @@ jobs:
           # dependency cannot be resolved and the whole solve fails.
           extra-repositories: https://opendp.r-universe.dev
 
+      # Install the hard dependencies plus exactly the suggested packages the
+      # documentation actually executes, rather than every Suggests.
+      #
+      # rxode2 is deliberately absent. Nothing in the documentation runs it:
+      # the one rxode2 block, in vignettes/articles/model-elicitation.Rmd, is a
+      # plain ```r fence that the article itself notes was never executed.
+      # Installing it anyway pulled in rxode2 -> qs -> stringfish, whose TBB
+      # symbols do not resolve against RcppParallel 6.0.0 ("undefined symbol:
+      # ...concurrent_vector_base_v3..."), and downlit loaded it while
+      # autolinking that article's rxode2 references. That failed every site
+      # build from 2026-07-23 on. Without rxode2 installed, downlit leaves
+      # those references as plain text and the block still renders.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, local::.
+          dependencies: '"hard"'
+          extra-packages: |
+            any::pkgdown
+            any::ggplot2
+            any::knitr
+            any::nlmixr2data
+            any::opendp
+            any::rmarkdown
+            any::xgxr
+            local::.
           needs: website
-
-      # The public RSPM binary of stringfish is linked against the TBB ABI that
-      # RcppParallel shipped before 6.0.0, so loading it against RcppParallel
-      # 6.0.0 fails with "undefined symbol: ...concurrent_vector_base_v3...".
-      # stringfish arrives transitively (rxode2 -> qs -> stringfish) and is
-      # loaded during the site build, when downlit resolves the rxode2
-      # references in vignettes/articles/model-elicitation.Rmd. Rebuilding it
-      # from source links it against whichever RcppParallel actually resolved.
-      - name: Rebuild stringfish against the installed RcppParallel
-        run: |
-          if (requireNamespace("stringfish", quietly = TRUE) &&
-              !isTRUE(tryCatch({ loadNamespace("stringfish"); TRUE },
-                               error = function(e) FALSE))) {
-            install.packages("stringfish", type = "source",
-                             repos = "https://cloud.r-project.org")
-          }
-        shell: Rscript {0}
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
