@@ -1,0 +1,161 @@
+---
+title: "AVATAR synthesis on your own modeling data"
+format: html
+---
+
+AVATAR blending is the default `synpmx` method. Use it when the synthetic data
+*stays inside* your trusted computing environment (you are the only consumer;
+governance and access controls apply). It resamples and blends whole source
+subject trajectories -- faithful, and far less ceremony than the differentially
+private (DP) path -- but makes **no** formal privacy guarantee. If the data may cross
+a trust boundary (e.g. externally shared data), use `try_dp_calibrated.R` instead or explore
+the other algorithms as well (Prior, Empirical); see the `synpmx-privacy` vignette for the decision rule.
+
+Prefer a plain script? `knitr::purl("try_avatar.qmd")` writes the R chunks out
+as a `.R` file. There is one template; the script is generated from it.
+
+To use: edit the two configuration chunks -- the data path, and the column
+roles -- and run. You should not need to touch anything below them.
+
+```{r}
+#| label: setup
+#| message: false
+library(synpmx)
+library(ggplot2)
+# If synpmx is not installed here: devtools::load_all("/path/to/synpmx")
+```
+
+## Configuration 1 --- where the data is
+
+```{r}
+#| label: config
+DATA_PATH  <- "data/your_modeling_dataset.csv"
+OUT_DIR    <- "output"
+SEED       <- 1234        # reproducibility seed; the caller's RNG is untouched
+N_SUBJECTS <- NULL        # NULL keeps the source cohort size
+```
+
+## Configuration 2 --- what the columns mean
+
+Declare only the roles your dataset has. Every column **not** named by a role is
+dropped -- the run prints which -- so a stray identifier cannot leak out of a
+real subject by being forgotten.
+
+```{r}
+#| label: roles
+ROLES <- pmx_roles(
+  id       = "ID",
+  time     = "TIME",
+  dv       = "DV",
+  amt      = "AMT",
+  evid     = "EVID",
+  dvid     = "DVID",   # one endpoint-key column, or several that agree:
+                       #   dvid = c("YTYPE", "NAME") declares a numeric key and
+                       #   a character label; both are checked and carried out.
+  cmt      = "CMT",
+  mdv      = "MDV",
+  rate     = NULL,     # infusion RATE column, if any
+  occasion = NULL,     # occasion column, if TIME resets by occasion
+  cens     = NULL,     # below-limit indicator (Monolix: 1 below, -1 above), if
+  limit    = NULL,     #   the study has BLQ data; limit is the interval's far end
+
+  # BLENDED into genuinely new values across neighbours -- use for baselines you
+  # want synthesized (weight, age). Do NOT list a baseline that is itself an
+  # endpoint's starting value (e.g. baseline B cells beside a B-cell endpoint):
+  # covariates and endpoints are blended independently, so the two would not
+  # agree (see the AVATAR mathematics article, and REV-022).
+  covariates = c("WT", "AGE", "SEX"),
+
+  # COPIED verbatim from the subject that supplied the doses, so it stays
+  # coherent with them -- treatment arm, dose group, study id, a character
+  # endpoint label. A kept value is one real subject's real value.
+  keep     = NULL
+)
+```
+
+## Read and validate the source
+
+```{r}
+#| label: read-validate
+dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
+
+if (!file.exists(DATA_PATH)) {
+  stop("DATA_PATH does not exist: ",
+       normalizePath(DATA_PATH, mustWork = FALSE),
+       "\nEdit DATA_PATH in the configuration chunk.", call. = FALSE)
+}
+raw   <- read.csv(DATA_PATH, stringsAsFactors = FALSE)
+roles <- ROLES
+
+report <- validate_pmx(raw, roles, strict = FALSE)
+if (!report$valid) {
+  print(report)   # names each problem, the role, and the column it maps to
+  stop("Source failed structural validation. See the numbered problems above; ",
+       "each says which role and column to fix in `pmx_roles()`.", call. = FALSE)
+}
+cat("Source is valid:", length(unique(raw[[roles$id]])), "subjects.\n")
+```
+
+## Synthesize the data
+
+```{r}
+#| label: synthesize
+synthetic <- synpmx_avatar(raw, roles, n_subjects = N_SUBJECTS, seed = SEED)
+stopifnot(validate_pmx(synthetic, roles)$valid)
+
+fresh_ids <- length(intersect(synthetic[[roles$id]], raw[[roles$id]])) == 0L
+cat("Generated", nrow(synthetic), "rows for",
+    length(unique(synthetic[[roles$id]])), "subjects.\n")
+cat("Every synthetic ID is new:", fresh_ids, "\n")
+
+write.csv(synthetic, file.path(OUT_DIR, "avatar_synthetic.csv"),
+          row.names = FALSE)
+```
+
+## Restricted diagnostic: source vs synthetic
+
+Source-derived. Keep it in the safe environment; do not export the figure.
+
+```{r}
+#| label: diagnostic
+#| fig-width: 9
+#| fig-height: 6
+# The plot adapts to however many endpoints there are -- one PK, one PD, two,
+# more -- because faceting by endpoint grows a column per endpoint on its own.
+# You do not have to know the count in advance.
+#
+# Facet strips read best from a character label. If you declared several `dvid`
+# columns, the last one (often a character NAME) is used; otherwise the single
+# dvid column; otherwise a constant.
+label_col <- if (length(roles$dvid) > 1L) {
+  roles$dvid[[length(roles$dvid)]]
+} else if (!is.null(roles$dvid)) roles$dvid[[1L]] else NULL
+
+frame <- function(d, label) {
+  keep <- d[[roles$evid]] == 0 & !is.na(d[[roles$dv]])   # observations only
+  data.frame(
+    dataset  = label,
+    id       = d[[roles$id]][keep],
+    time     = as.numeric(d[[roles$time]][keep]),
+    dv       = as.numeric(d[[roles$dv]][keep]),
+    endpoint = if (is.null(label_col)) "DV" else
+      as.character(d[[label_col]][keep]),
+    stringsAsFactors = FALSE
+  )
+}
+compare <- rbind(frame(raw, "source"), frame(synthetic, "synthetic"))
+
+ggplot(compare, aes(time, dv, group = id)) +
+  geom_line(alpha = 0.3) +
+  geom_point(alpha = 0.4, size = 0.6) +
+  # rows: source vs synthetic. columns: one per endpoint, however many.
+  facet_grid(dataset ~ endpoint, scales = "free_y") +
+  labs(title = "RESTRICTED: source vs AVATAR synthetic",
+       subtitle = "do not export", x = "Time", y = "DV") +
+  theme_bw()
+# Concentrations often read better on a log axis. Add `+ scale_y_log10()` above
+# if every DV is positive; a log scale drops zeros and negatives.
+```
+
+The synthetic table carries no formal privacy guarantee; it is built by blending
+real subject trajectories and is for trusted-environment use only.

@@ -10,8 +10,8 @@ your trusted computing environment (you are the only consumer, governance and
 access controls apply). It resamples and blends whole source subject
 trajectories -- more faithful and far less ceremony than the differentially
 private path -- but makes **no** formal privacy guarantee. If the data may cross
-a trust boundary, use `try_dp_calibrated.R` instead. See `README.md` and
-`design/METHOD_DISCUSSION.md` for the decision rule.
+a trust boundary, use `try_dp_calibrated.R` instead. See the `synpmx-privacy`
+vignette for the decision rule (which method when).
 
 This document runs in the safe computing environment, in a gitignored folder so
 nothing here can be committed.
@@ -88,7 +88,12 @@ ROLES <- pmx_roles(
   # flag that no longer matches the blended DV. Leave NULL if there is no BLQ.
   cens     = "CENS",           # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
   limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
-  covariates = c("WEIGHT0", "AGE0", "SEX", "RACE", "B0"),  # BLENDED into new values across donors
+  # BLENDED into new values across donors. B0 (baseline B cells) is deliberately
+  # left out: it is the same quantity as the Circ B Cells endpoint, and AVATAR
+  # blends covariates and endpoints independently, so a synthetic B0 would not
+  # match its own generated trajectory (REV-022). Read the baseline off the
+  # trajectory instead if you need it.
+  covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
   # keep = copied verbatim from the subject that supplied the doses, so it stays
   # coherent with them. Put assigned, subject-defining values here -- treatment
   # arm, dose group -- e.g. keep = "ARM". List only columns your data has.

@@ -159,6 +159,14 @@ synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
 #' again. To draw further datasets from the release you have already paid for,
 #' use [synpmx_generate()] or ask for several at once with `n_datasets`.
 #'
+#' @section Maintenance status:
+#' A secondary, provided-as-is path. [synpmx_avatar()] is the primary, maintained
+#' method. The differentially private modes are complete and tested but not under
+#' active development, carry known open findings, and have not been independently
+#' privacy-audited. Use them to demonstrate the privacy/utility tradeoff, not as
+#' a production release mechanism; a real regulated release needs specialist
+#' review and the external OpenDP backend.
+#'
 #' @param data The confidential dataset.
 #' @param roles A [pmx_roles()] declaration for `data`.
 #' @param model A public [pmx_structural_model()].
@@ -214,6 +222,8 @@ synpmx_calibrated <- function(data, roles, model, design, priors, epsilon,
 #' **This function spends privacy budget.** Calling it again spends the budget
 #' again. To draw further datasets from the release you have already paid for,
 #' use [synpmx_generate()] or ask for several at once with `n_datasets`.
+#'
+#' @inheritSection synpmx_calibrated Maintenance status
 #'
 #' @param data The confidential dataset.
 #' @param roles A [pmx_roles()] declaration for `data`.

@@ -102,10 +102,13 @@ avatar <- suppressWarnings(synpmx_avatar(theo_md, theo_roles, seed = 101))
 validate_pmx(avatar, theo_roles)$valid
 ```
 
-Nothing was elicited, nothing was assumed, and the output keeps the source
-schema and cohort size. On a 12-subject dataset `synpmx_avatar()` also emits
-documented small-group fallback warnings (some event-pattern groups have only
-one usable donor); they are suppressed above and explained in the
+Nothing was elicited, nothing was assumed, and the output keeps the cohort size
+and every column named in `theo_roles`. `synpmx_avatar()` keeps only role-named
+columns and drops the rest — so a stray identifier cannot leak out of a real
+subject by being forgotten — and here every `theo_md` column has a role, so
+nothing is dropped. On a 12-subject dataset it also emits documented small-group
+fallback warnings (some event-pattern groups have only one usable donor); they
+are suppressed above and explained in the
 [AVATAR mathematics article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
 
 What you cannot say about this output is that it is anonymous. It is assembled

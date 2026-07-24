@@ -72,6 +72,16 @@ model, so the output is only as realistic as that model.
 again. To draw further datasets from the release you have already paid for,
 use \code{\link[=synpmx_generate]{synpmx_generate()}} or ask for several at once with \code{n_datasets}.
 }
+\section{Maintenance status}{
+
+A secondary, provided-as-is path. \code{\link[=synpmx_avatar]{synpmx_avatar()}} is the primary, maintained
+method. The differentially private modes are complete and tested but not under
+active development, carry known open findings, and have not been independently
+privacy-audited. Use them to demonstrate the privacy/utility tradeoff, not as
+a production release mechanism; a real regulated release needs specialist
+review and the external OpenDP backend.
+}
+
 \seealso{
 \code{\link[=synpmx_generate]{synpmx_generate()}} to draw more datasets for free,
 \code{\link[=privacy_report]{privacy_report()}} for the realized accounting.
