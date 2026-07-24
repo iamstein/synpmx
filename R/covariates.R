@@ -78,8 +78,9 @@ pmx_covariates <- function(...) {
 #' This is the approach used by Novartis's `synadam`, and it is **not**
 #' differentially private: it exposes the data-derived support of each column. A
 #' model that uses it is marked as having non-private covariates, and its
-#' privacy report says so. Use it only inside a trusted environment, and never
-#' when the covariate columns may cross a trust boundary.
+#' privacy report says so. Use it only where the source data's own access
+#' controls and confidentiality obligations still apply, and never when the
+#' covariate columns may reach anyone the source data could not.
 #'
 #' @param names Character vector of covariate column names.
 #' @param clip Two probabilities giving the quantiles a continuous column is

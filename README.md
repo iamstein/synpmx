@@ -58,8 +58,11 @@ head(synthetic, 4)
 
 The output keeps the source schema, the event grammar, and the cohort
 size. What you cannot say about it is that it is anonymous — it is
-assembled from real trajectories, so it belongs inside the same trusted
-environment the source data came from.
+assembled from real trajectories, so it inherits the source data’s
+handling obligations wherever it is used. That is a rule about who may
+see it, not about which machine holds it: using it on an analyst
+workstation covered by the same access controls is a supported case, and
+much of the point of the package.
 
 ## The four modes
 
@@ -74,9 +77,12 @@ Two rules of thumb decide between them:
 
 - **The trust boundary decides whether you need differential privacy.**
   Ask whether the generated data can reach anyone the source data could
-  not. If not, AVATAR is more useful and its lack of a formal guarantee
-  costs nothing, because there is no adversary to guarantee against. If
-  so, only an accounted release holds up.
+  not — a question about people and obligations, not about machines.
+  Moving output to a workstation under the same access controls reaches
+  no one new; sending it to a vendor does. If no one new, AVATAR is more
+  useful and its lack of a formal guarantee costs nothing, because there
+  is no adversary to guarantee against. If someone new, only an
+  accounted release holds up.
 - **The cohort size decides which private mode is usable.** Epsilon buys
   accuracy in proportion to the number of subjects and in inverse
   proportion to how many quantities you release. At 12 subjects,
@@ -88,8 +94,8 @@ the results side by side.
 ## Maintenance status
 
 **AVATAR blending is the primary, maintained path.** It has no
-dependencies beyond base R, and is what to reach for inside a trusted
-environment.
+dependencies beyond base R, and is what to reach for when the output
+stays within the source data’s own access controls and obligations.
 
 The three differentially private modes (**prior**, **calibration**,
 **empirical**) are a complete, tested, but **secondary** path, kept
@@ -106,10 +112,10 @@ and depends on the external
 does not control.
 
 That status is enforced, not just documented: `synpmx_calibrated()` and
-`synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has
-been called once in the session, an acknowledgment that does not persist
-across sessions, script runs, or CI jobs. `backend = "public"` calls make
-no DP claim already and are exempt.
+`synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()`
+has been called once in the session, an acknowledgment that does not
+persist across sessions, script runs, or CI jobs. `backend = "public"`
+calls make no DP claim already and are exempt.
 
 ## Documentation
 

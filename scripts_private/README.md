@@ -64,9 +64,10 @@ correct for fixed cohorts.
 Pick by the trust boundary (see the `synpmx-privacy` vignette for the decision
 rule):
 
-- **`try_avatar.qmd`** — start here. AVATAR blending (`synpmx_avatar()`) for data
-  that STAYS INSIDE this trusted environment. Simpler, more faithful, no formal
-  privacy guarantee. Fill in the data path and the column roles. Runs
+- **`try_avatar.qmd`** — start here. AVATAR blending (`synpmx_avatar()`) for
+  output that reaches no one the source data could not — which includes taking
+  it to your own workstation under the same access controls. Simpler, more
+  faithful, no formal privacy guarantee. Fill in the data path and the column roles. Runs
   chunk-by-chunk like a script, or renders a source-vs-synthetic report. Prefer
   a plain `.R`? `knitr::purl("try_avatar.qmd")` writes one out — there is a
   single template and the script is generated from it.

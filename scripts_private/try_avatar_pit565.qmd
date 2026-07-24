@@ -5,12 +5,13 @@ format: pdf
 
 Try the AVATAR blending generator on a real modeling dataset.
 
-This is the **default** method. Use it when the synthetic data *stays inside*
-your trusted computing environment (you are the only consumer, governance and
-access controls apply). It resamples and blends whole source subject
+This is the **default** method. Use it when the synthetic data *reaches no one
+the source data could not* -- the same access controls and confidentiality
+obligations still apply, which includes carrying it to your own workstation for
+model development. It resamples and blends whole source subject
 trajectories -- more faithful and far less ceremony than the differentially
-private path -- but makes **no** formal privacy guarantee. If the data may cross
-a trust boundary, use `try_dp_calibrated.R` instead. See the `synpmx-privacy`
+private path -- but makes **no** formal privacy guarantee. If the data may reach
+someone new, use `try_dp_calibrated.R` instead. See the `synpmx-privacy`
 vignette for the decision rule (which method when).
 
 This document runs in the safe computing environment, in a gitignored folder so

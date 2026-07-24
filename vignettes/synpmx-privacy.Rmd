@@ -137,19 +137,35 @@ leans on the governance context more heavily than column-wise resampling like
 
 The choice is a single question:
 
-> **Does the generated data cross a trust boundary?**
+> **Does the generated data reach anyone the source data could not?**
 
-- **Stays inside** the safe environment — you are the only consumer, governance
-  and access controls apply → use **AVATAR** (`synpmx_avatar()`). Its lack of a
-  formal guarantee costs nothing, because there is no adversary to guarantee
+- **No** — the same organization, under the same access controls and
+  confidentiality obligations → use **AVATAR** (`synpmx_avatar()`). Its lack of
+  a formal guarantee costs nothing, because there is no adversary to guarantee
   against.
-- **Crosses out** — shared with a partner or vendor, published, or moved to a
-  less-controlled system → use a **DP** engine. A formal guarantee is the only
-  thing that survives a determined adversary.
+- **Yes** — shared with a partner or vendor, published, or moved to a system
+  outside those obligations → use a **DP** engine. A formal guarantee is the
+  only thing that survives a determined adversary.
+
+The boundary is drawn by **obligations, not by geography**. It is about who may
+see the data and under what duty, not about which machine holds it. Copying
+AVATAR output from a validated environment onto an analyst workstation does not
+cross it, provided that workstation is covered by the same access controls and
+the same confidentiality obligations as the source data — that is a supported
+use of this package, and is much of why it exists. Emailing the same file to a
+vendor does cross it, no matter which machine it was sent from.
+
+Two things follow, and neither is softened by the reframing. First, AVATAR
+output is assembled from real subject trajectories: it is not anonymous, it
+carries no formal guarantee, and it inherits the source data's handling
+obligations wherever it goes. Second, whether a particular destination sits
+inside your boundary is a determination for your organization's governance, not
+one this package can make for you. What is written here is the rule; applying
+it to your systems is a sponsor decision.
 
 Differential privacy is expensive precisely because it defends against someone
 who wants to break it. Buy it when the output will be handed to strangers; skip
-it when nothing can reach the output.
+it when nothing outside the source data's own obligations can reach the output.
 
 ## The differentially private engines
 
@@ -233,8 +249,8 @@ enforce for you.
 ## Choosing an epsilon
 
 Everything below applies to the **differentially private** modes only. If your
-synthetic data stays inside a trusted environment, use `synpmx_avatar()` and
-ignore epsilon entirely.
+synthetic data stays within the source data's own access controls and
+obligations, use `synpmx_avatar()` and ignore epsilon entirely.
 
 Epsilon is the one-person influence limit: smaller means stronger privacy and
 more noise, larger means weaker privacy and less noise. There is no universal

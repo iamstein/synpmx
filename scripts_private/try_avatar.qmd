@@ -4,11 +4,12 @@ format: html
 ---
 
 AVATAR blending is the default `synpmx` method. Use it when the synthetic data
-*stays inside* your trusted computing environment (you are the only consumer;
-governance and access controls apply). It resamples and blends whole source
+*reaches no one the source data could not* -- the same access controls and
+confidentiality obligations still apply, which includes carrying it to your own
+workstation for model development. It resamples and blends whole source
 subject trajectories -- faithful, and far less ceremony than the differentially
-private (DP) path -- but makes **no** formal privacy guarantee. If the data may cross
-a trust boundary (e.g. externally shared data), use `try_dp_calibrated.R` instead or explore
+private (DP) path -- but makes **no** formal privacy guarantee. If the data may reach
+someone new (e.g. externally shared data), use `try_dp_calibrated.R` instead or explore
 the other algorithms as well (Prior, Empirical); see the `synpmx-privacy` vignette for the decision rule.
 
 Prefer a plain script? `knitr::purl("try_avatar.qmd")` writes the R chunks out

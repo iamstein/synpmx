@@ -36,7 +36,8 @@
 #'   `NAME` beside a numeric `dvid`. Because the value comes from the same
 #'   anchor as the doses, it stays coherent with them. Contrast `covariates`,
 #'   which are *blended* into new values across neighbours. A kept value is one
-#'   real subject's real value, so use it only inside a trusted environment.
+#'   real subject's real value, so use it only where the source data's own
+#'   access controls and confidentiality obligations still apply.
 #' @param exclude Differential-privacy engines only. Columns removed before
 #'   private fitting, such as direct identifiers. [synpmx_avatar()] does not use
 #'   this — it drops every undeclared column by default, so not naming a column

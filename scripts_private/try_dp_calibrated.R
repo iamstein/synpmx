@@ -1,8 +1,9 @@
 # Try the DIFFERENTIALLY PRIVATE structural generator on a real modeling dataset.
 #
-# Use this when the synthetic data may CROSS A TRUST BOUNDARY (shared externally,
-# published, moved to a less-controlled system) and needs a formal (epsilon,
-# delta) guarantee. If the data stays inside your safe environment, use
+# Use this when the synthetic data may REACH SOMEONE THE SOURCE DATA COULD NOT
+# (shared externally, published, moved outside its access controls) and needs a
+# formal (epsilon, delta) guarantee. If it stays under the source data's own
+# controls and obligations -- including on your own workstation -- use
 # try_avatar.qmd instead -- it is simpler and more faithful. See the
 # "synpmx-privacy" vignette for the decision rule (which method when).
 #

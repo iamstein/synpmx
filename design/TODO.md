@@ -254,12 +254,6 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       spent. Either restrict to `delta = 0` or wire it to a real mechanism.
 - [ ] `REV-002` Pre-flight feasibility check, so an infeasible `(N, epsilon, d)`
       is refused before budget is spent rather than discovered in a plot.
-- [ ] `REV-024` Reframe the trust boundary as organizational rather than
-      geographic. As written, the docs say AVATAR output must stay in the
-      validated environment, which forbids the use case the package exists
-      for: taking synthetic data out to a local machine for code development.
-      `REV-024` carries the approved wording, the full site inventory, and the
-      three sites that must *not* change. Own commit, own branch.
 
 ## Then: utility headroom in the existing dense-grid path
 
@@ -296,3 +290,6 @@ Keep this path for pooled corpora; it is not superseded by v3.
 - [x] `vignettes/articles/feasibility.Rmd` scoping assessment. `d5b0e30`
 - [x] `REV-023` Session-level `synpmx_enable_dp_engines()` gate on the DP
       engines' unaudited status, so it is enforced rather than only documented.
+- [x] `REV-024` Trust boundary reframed as organizational rather than
+      geographic, so taking synthetic data to a local machine for code
+      development is a supported use rather than a boundary crossing.

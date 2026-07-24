@@ -80,8 +80,8 @@ value interpolated from several neighbours, decoupled from any one person. A
 value, unchanged. For a treatment arm, a dose group, or a randomization sequence
 — anything that must stay consistent with the doses AVATAR copied from the same
 anchor — `keep` is correct, precisely because it never leaves that anchor's
-side. Because a kept value is a real subject's real value, `keep` is for the
-trusted environment only.
+side. Because a kept value is a real subject's real value, output containing it
+must stay within the source data's own access controls and obligations.
 
 Redundant endpoint labels have their own handling. A dataset that carries both a
 numeric `YTYPE` and a character `NAME` for the same endpoint declares **both**
