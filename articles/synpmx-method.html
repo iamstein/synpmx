@@ -286,7 +286,11 @@ spend the budget a second time.</p>
 because <code>theo_md</code> is already public: it makes the release
 <strong>noiseless</strong> and therefore makes no DP claim, which the
 printed model states. A confidential fit uses the default validated
-backend and fails closed if it is unavailable:</p>
+backend, and <strong>fails closed</strong> if it is unavailable — it
+stops with an error rather than substituting ordinary R random noise. A
+fallback would produce output that looked private and carried an
+epsilon, without the noise ever having been checked against the privacy
+relation:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calibrated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_calibrated.html">synpmx_calibrated</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">confidential</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>

@@ -242,8 +242,11 @@ another <- synpmx_generate(calibrated_data, seed = 304)   # spends nothing
 Two honest notes. First, `backend = "public"` is used here because
 `theo_md` is already public: it makes the release **noiseless** and
 therefore makes no DP claim, which the printed model states. A
-confidential fit uses the default validated backend and fails closed if
-it is unavailable:
+confidential fit uses the default validated backend, and **fails
+closed** if it is unavailable — it stops with an error rather than
+substituting ordinary R random noise. A fallback would produce output
+that looked private and carried an epsilon, without the noise ever
+having been checked against the privacy relation:
 
 ``` r
 

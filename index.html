@@ -66,14 +66,14 @@
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
 <p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong>: dosing and measurement event tables with the same schema, event grammar, and rough behavior as a real study, so that data-assembly code, diagnostic plots, and model-run plumbing can be developed outside the restricted environment that holds the real data.</p>
-<p>The hard part is not making numbers. It is deciding <strong>how much of the real data is allowed to survive into the synthetic data</strong> — a privacy question before it is a technical one. <code>synpmx</code> offers four generation modes at different points on that scale, and helps you pick one.</p>
+<p>The hard part is not generating the synthetic data. It is deciding <strong>how much of the real data is allowed to survive into the synthetic data</strong> — a privacy question before it is a technical one. <code>synpmx</code> offers four generation modes at different points on that scale, and helps you pick one.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span></code></pre></div>
-<p>Formal privacy additionally requires the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>. The package fails closed if OpenDP is unavailable and never substitutes hand-written noise:</p>
+<p>AVATAR needs nothing beyond base R. The two differentially private modes additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
