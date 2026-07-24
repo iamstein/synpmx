@@ -45,9 +45,11 @@ Three audiences, in the order they arrive:
 Two standard R facilities do most of the work, both of which sidestep the
 `R CMD check` bottleneck:
 
-- **`README.Rmd` knitted to `README.md`.** Executed R code, tables, and figures
-  on the GitHub landing page, and GitHub renders LaTeX math in markdown. It is
-  knitted deliberately, not rebuilt by `R CMD check`.
+- **`README.md`, written directly.** Tables and figures on the GitHub landing
+  page, and GitHub renders LaTeX math in markdown. Superseded 2026-07-24: the
+  `README.Rmd` that used to knit this file is gone, so that there is one README
+  and no question which to edit. Its example is now pinned by
+  `tests/testthat/test-readme.R` instead of by re-execution.
 - **`vignettes/articles/`.** Excluded from the build via `.Rbuildignore`, so
   `R CMD check` never touches these and they are not shipped in the tarball —
   but pkgdown renders them into the website as Articles. Full `.Rmd`, zero check
@@ -63,7 +65,7 @@ code, so a broken article fails the site build; that is a separate signal from
 
 ### Entry point
 
-**`README.Rmd` → `README.md`.** The pitch, installation, one runnable minimal
+**`README.md`.** The pitch, installation, one minimal
 example, a short tour naming the four modes, and the documentation map. High
 level throughout. The API reference and the limitations list come out — they
 were deep internal detail on a page whose first job is to say what this is and

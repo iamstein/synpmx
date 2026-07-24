@@ -38,8 +38,12 @@ article fails the site build.
 - `model-elicitation.Rmd` / `data-elicitation.Rmd` — producing the public
   structural model, priors, and design without reading data.
 
-`README.Rmd` is the entry point and knits to `README.md`; edit the `.Rmd` and
-run `rmarkdown::render("README.Rmd")`. It is not rebuilt by `R CMD check`.
+`README.md` is the entry point, and it is the *only* README — there is no
+`README.Rmd`, so edit `README.md` directly. Nothing re-executes its example, so
+the example is pinned by `tests/testthat/test-readme.R`, which runs the same
+code and asserts the same printed output. Change the example and that test in
+the same commit; a failure there means the README is describing behavior the
+package no longer has.
 
 Keep `design/TODO.md` current: tick items as they close, add newly discovered
 work, and record the reasoning in the registry that owns it rather than in the

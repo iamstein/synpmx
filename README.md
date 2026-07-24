@@ -1,6 +1,7 @@
-
-<!-- README.md is generated from README.Rmd. Edit the .Rmd and run
-     rmarkdown::render("README.Rmd"). -->
+<!-- Edit this file directly; it is the only README. The example below is not
+     executed when the file is built, so it is pinned by a regression test:
+     tests/testthat/test-readme.R runs the same code and asserts the same
+     output. If that test fails, the example here is stale — update both. -->
 
 # synpmx
 

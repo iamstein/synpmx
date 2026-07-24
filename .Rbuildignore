@@ -21,6 +21,5 @@
 ^pkgdown$
 ^vignettes/articles$
 ^\.github$
-^README\.Rmd$
 ^README\.html$
 ^communications$
