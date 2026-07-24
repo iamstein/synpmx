@@ -68,7 +68,8 @@ randomization sequence, or a redundant endpoint label such as a character
 \code{NAME} beside a numeric \code{dvid}. Because the value comes from the same
 anchor as the doses, it stays coherent with them. Contrast \code{covariates},
 which are \emph{blended} into new values across neighbours. A kept value is one
-real subject's real value, so use it only inside a trusted environment.}
+real subject's real value, so use it only where the source data's own
+access controls and confidentiality obligations still apply.}
 
 \item{exclude}{Differential-privacy engines only. Columns removed before
 private fitting, such as direct identifiers. \code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use

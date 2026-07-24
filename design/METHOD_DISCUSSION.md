@@ -4,11 +4,14 @@ Why `synpmx` uses AVATAR-style blending as its primary method, when it
 also contains a fully differentially private engine. Written after building
 both, measuring both, and comparing to Novartis's `synadam`.
 
-The short version: for **synthetic data that stays in a trusted environment**, a
-resampling method is the right tool, and AVATAR is the trajectory-level version
-of exactly what `synadam` already does column by column. Formal differential
-privacy is the right tool only when the output **crosses a trust boundary**, and
-it is retained here for that case.
+The short version: for **synthetic data that reaches no one the source data
+could not**, a resampling method is the right tool, and AVATAR is the
+trajectory-level version of exactly what `synadam` already does column by
+column. Formal differential privacy is the right tool only when the output
+**does reach someone new**, and it is retained here for that case. The boundary
+is organizational — who may see the data and under what obligations — not
+geographic, so moving output onto a workstation covered by the same controls
+stays on the AVATAR side of it.
 
 ---
 
@@ -83,8 +86,8 @@ user cares about:
 
 The DP engine, by contrast, spends most of its effort defending against an
 adversary who wants to re-identify a patient from the output. If no such
-adversary can reach the output — because it never leaves the safe environment —
-that effort buys nothing.
+adversary can reach the output — because it never leaves the obligations the
+source data already carries — that effort buys nothing.
 
 ---
 
@@ -121,15 +124,15 @@ matters.
 The choice between the two engines is not about which is "more private" in the
 abstract. It is about a single question:
 
-> **Does the generated data cross a trust boundary?**
+> **Does the generated data reach anyone the source data could not?**
 
-- **Stays inside** the safe computing environment — you are the only consumer,
-  it never leaves, governance and access controls apply → **AVATAR.** It is more
+- **No** — the same organization, the same access controls and confidentiality
+  obligations, wherever the file physically sits → **AVATAR.** It is more
   useful, works at any N, and its lack of a formal guarantee costs nothing
   because there is no adversary to guarantee against. This is `synadam`'s
   situation, and the reasoning is the same.
-- **Crosses out** — shared with a partner, a vendor, a less-controlled system,
-  or published → **the DP engine.** A formal guarantee is the only thing that
+- **Yes** — shared with a partner, a vendor, a system outside those
+  obligations, or published → **the DP engine.** A formal guarantee is the only thing that
   survives a determined adversary, and here there might be one.
 
 Differential privacy is expensive precisely because it defends against someone

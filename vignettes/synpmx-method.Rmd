@@ -112,7 +112,9 @@ are suppressed above and explained in the
 [AVATAR mathematics article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
 
 What you cannot say about this output is that it is anonymous. It is assembled
-from real trajectories, so it belongs inside the trusted environment.
+from real trajectories, so it inherits the source data's handling obligations
+wherever it is used — a constraint on who may see it, not on which machine holds
+it.
 
 ## Mode 2: prior only
 
@@ -363,9 +365,10 @@ Where each mode belongs:
 Two rules of thumb behind the table:
 
 - **The trust boundary decides whether you need DP.** Ask whether the generated
-  data can reach anyone the source data could not. If not, AVATAR is more
-  useful and its lack of a formal guarantee costs nothing. If so, only an
-  accounted release holds up.
+  data can reach anyone the source data could not — people and obligations, not
+  machines. A workstation under the same access controls reaches no one new. If
+  no one new, AVATAR is more useful and its lack of a formal guarantee costs
+  nothing. If someone new, only an accounted release holds up.
 - **The cohort size decides which DP mode is usable.** Epsilon buys accuracy in
   proportion to the number of subjects and in inverse proportion to how many
   quantities you release. At 12 subjects, releasing two numbers can work and

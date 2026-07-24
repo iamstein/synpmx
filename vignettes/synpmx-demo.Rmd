@@ -231,12 +231,15 @@ model-based path on the same theophylline data, as `scripts/demo_nlmixr2data.R`
 does for all five.
 
 AVATAR output is **not** anonymous and carries **no formal privacy guarantee**.
-It is synthetic data for a trusted computing environment, in the same spirit as
-Novartis's `synadam` (which resamples each column marginally from the data). It
-is not appropriate for parameter estimation, inference, model selection, or
-clinical decisions. When the generated data must cross a trust boundary, use one
-of the differentially private modes instead; `vignette("synpmx-privacy")` works
-through that decision and the tradeoff behind it.
+It is synthetic data that stays under the source data's access controls and
+confidentiality obligations, in the same spirit as Novartis's `synadam` (which
+resamples each column marginally from the data). Those obligations follow the
+data rather than the machine, so working with it on a local workstation covered
+by the same controls is a supported use. It is not appropriate for parameter
+estimation, inference, model selection, or clinical decisions. When the
+generated data would reach anyone the source data could not, use one of the
+differentially private modes instead; `vignette("synpmx-privacy")` works through
+that decision and the tradeoff behind it.
 
 ## Shared workflow
 
@@ -611,8 +614,9 @@ covariate-response relationships, and rare individual trajectories. Identifiers
 are always freshly generated and never reuse a source value.
 
 Not provided: any formal privacy guarantee. The synthetic data is built by
-blending real subject trajectories, so it is appropriate for a trusted
-environment, not for release across a trust boundary. See
+blending real subject trajectories, so it is appropriate wherever the source
+data's own obligations still apply — including a local workstation under the
+same access controls — but not for release to anyone outside them. See
 `vignette("synpmx-method")` for all four modes side by side and
 `vignette("synpmx-privacy")` for what differential privacy does and does not
 promise.

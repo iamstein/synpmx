@@ -15,9 +15,11 @@ then version history newest-first at the bottom.
 method is **AVATAR-style blending**, exposed as `synpmx_avatar()`. It resamples
 and blends whole source subject trajectories, works at any cohort size, needs no
 elicitation, and makes **no formal privacy guarantee**. It is the right tool for
-**synthetic data that stays inside a trusted computing environment**, which is the
-common case, and it is the trajectory-level analogue of what Novartis's
-`synadam` already does column by column. See `design/METHOD_DISCUSSION.md`.
+**synthetic data that reaches no one the source data could not** — which is the
+common case, and which explicitly includes carrying the output out of the
+validated environment onto a workstation under the same access controls, the
+use this package was built for — and it is the trajectory-level analogue of what
+Novartis's `synadam` already does column by column. See `design/METHOD_DISCUSSION.md`.
 
 The differentially private engines described in most of this document —
 `synpmx_calibrated()` (structural correction, Version 3) and `synpmx_empirical()`
@@ -30,8 +32,9 @@ question.
 The rest of this specification (sections 1-10) documents the DP engines in
 detail, because they carry the formal obligations that need specifying. AVATAR's
 method is documented in the method vignette and `design/METHOD_DISCUSSION.md`.
-The decision rule between them is a single question: **does the output cross a
-trust boundary?** No → AVATAR. Yes → a DP engine.
+The decision rule between them is a single question: **does the output reach
+anyone the source data could not?** No → AVATAR. Yes → a DP engine. The boundary
+is organizational, not geographic; see `design/METHOD_DISCUSSION.md`.
 
 ---
 
@@ -596,7 +599,8 @@ accordingly, with a warning and a `covariates_private = FALSE` flag in the
 privacy record. It spends no budget and does not enter `d`. By default the
 continuous range is clipped to the 1st and 99th percentiles so the two extreme
 subjects are not exposed; `clip = NULL` restores the raw min/max, matching
-`synadam` exactly. Use it only inside a trusted environment.
+`synadam` exactly. Use it only where the source data's own access controls and
+obligations still apply.
 
 What remains out of scope is any **covariate-response relationship**. Covariates
 are generated independently of the PK and PD, so a workflow that checks, say, a
@@ -1011,11 +1015,13 @@ distance-weighted blend of similar subjects' covariates and trajectories, plus
 subject and residual noise. It works at any cohort size, needs no elicitation,
 and makes no formal privacy claim.
 
-**Rationale.** For synthetic data that stays inside a trusted environment — the
-common case, and this package's stated purpose — a resampling method is more
-useful than differential privacy on every axis the user cares about, and DP's
-formal guarantee buys nothing when no adversary can reach the output. See
-`design/METHOD_DISCUSSION.md`.
+**Rationale.** For synthetic data that reaches no one the source data could
+not — the common case, and this package's stated purpose, which explicitly
+includes taking the output onto a workstation covered by the same access
+controls so that model code can be developed away from the validated
+environment — a resampling method is more useful than differential privacy on
+every axis the user cares about, and DP's formal guarantee buys nothing when no
+adversary can reach the output. See `design/METHOD_DISCUSSION.md`.
 
 **The asymmetry, recorded honestly.** A resampled covariate value is weakly
 identifying; a resampled subject trajectory is strongly identifying, close to a
@@ -1023,11 +1029,11 @@ fingerprint. AVATAR therefore sits a notch higher on the risk ladder than
 `synadam`'s column resampling, and its safety depends more heavily on the
 governance context. This is the same concern that motivated moving away from
 Version 1 originally; Version 4 accepts it deliberately, scoped to
-trusted-environment use, with the DP engines available when the output crosses a
-trust boundary.
+use within the source data's own access controls and obligations, with the DP
+engines available when the output will reach someone new.
 
 **Retains** Versions 2 and 3 as alternatives, not deprecated. The decision rule
-is the trust boundary: inside → AVATAR; crossing out → a DP engine.
+is the trust boundary: no one new reached → AVATAR; someone new → a DP engine.
 
 ## Version 3 — low-dimensional structural release (2026-07-22, in design)
 

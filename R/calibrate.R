@@ -375,7 +375,9 @@ print.pmx_preflight <- function(x, ...) {
     warnings <- c(warnings, paste0(
       "Some covariates are bootstrap-resampled from the data and are NOT ",
       "differentially private. The PK/PD release remains DP; the covariate ",
-      "columns do not. Use only within a trusted environment."
+      "columns do not, so this output is not releasable on the strength of ",
+      "its DP label. Keep it within the source data's own access controls ",
+      "and obligations."
     ))
   }
 
