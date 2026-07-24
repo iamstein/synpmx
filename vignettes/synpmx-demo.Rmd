@@ -277,6 +277,22 @@ knitr::kable(
 )
 ```
 
+`compare_pmx_distributions()` is the numeric counterpart to the structural
+checks: it summarizes the dependent variable per endpoint and each baseline
+covariate, source against synthetic, so you can see at a glance that the ranges
+line up. Expect them to be close in magnitude and shape, not identical — AVATAR
+does not reproduce the source distribution exactly. Like every source-derived
+diagnostic it is marked restricted and stays inside the source data's access
+controls.
+
+```{r theo-distributions, eval=has_nlmixr2data}
+theo_dist <- compare_pmx_distributions(theo_md, theo_synth, theo_roles)
+knitr::kable(theo_dist$endpoints, digits = 2,
+             caption = "Concentration distribution, source versus synthetic")
+knitr::kable(theo_dist$covariates_numeric, digits = 2,
+             caption = "Baseline weight distribution, source versus synthetic")
+```
+
 ```{r theo-plot, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),

@@ -82,6 +82,7 @@ reference:
   contents:
   - validate_pmx
   - compare_pmx
+  - compare_pmx_distributions
   - sampling_summary
   - subject_property_summary
 
