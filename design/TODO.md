@@ -40,52 +40,49 @@ its `pmx_*` / `synpmx_avatar()` names deliberately: `pmx_` says what the data
 is, `syn` says what the package does, and `synadam` does not prefix its own
 functions either.
 
-## Next
+## Next: adoption, external validation, and the ACoP poster
 
-1. **Finish publishing the pkgdown site.** Both blockers recorded here earlier
-   are resolved (checked against the API on 2026-07-24): Pages now reports
-   `source: {branch: gh-pages, path: /}` with status `built`, and the push
-   token carries `repo, workflow`, so `pkgdown.yaml` is on `main`. What
-   remained was that **every `pkgdown` run since has failed at "Build site"**,
-   so `gh-pages` still serves the 2026-07-23 deploy.
+The package, its documentation, and the live site are all in place. The work now
+is to get the method used by others, understood well enough to defend, and
+presented. The ACoP (American Conference on Pharmacometrics) poster is the
+culminating deliverable, and it paces the rest.
 
-   The failure is an upstream ABI break, not our code: the public RSPM binary
-   of `stringfish` is linked against the TBB ABI that `RcppParallel` shipped
-   before 6.0.0, and `RcppParallel 6.0.0` removed those symbols. `stringfish`
-   arrives transitively (`rxode2` → `qs` → `stringfish`) and is loaded when
-   `downlit` resolves the `rxode2` references in
-   `vignettes/articles/model-elicitation.Rmd`. The workflow now rebuilds
-   `stringfish` from source when the installed copy will not load.
+Try it on real data — no mode has run on a real study yet, and that is the test
+that matters: role declaration against a real schema, event grammar the template
+sampler has not seen, and whether the output is actually useful for workflow
+development. Keep all of it in `scripts_private/`.
 
-   Still to confirm on the next green run: all nine documents rendered, and
-   `AGENTS.html` / `CLAUDE.html` are absent (`pkgdown/prune-site.R` removes
-   them). The site serves at <https://iamstein.github.io/synpmx/>, the URL
-   declared in `DESCRIPTION`, `_pkgdown.yml`, and every roxygen and vignette
-   cross-link.
+- [ ] Run AVATAR and the calibrated path on the internal INTERNAL_STUDY data.
+- [ ] Ask Alex to try it on his own dataset.
+- [ ] Consider asking Anwesha or Bambang to try it as well.
+- [ ] Turn tester friction into `REV-###` entries in `REVIEW_BACKLOG.md` as it
+      surfaces, so external use feeds back into the package.
 
-2. **Decide what to do with `.github/workflows/r.yml`.** Added through the
-   GitHub UI on 2026-07-23 from GitHub's default R template. It will fail on
-   every push as written: it checks against R 3.6.3 and 4.1.1, but
-   `DESCRIPTION` requires R >= 4.1.0, so the 3.6.3 leg cannot even install the
-   package. Either delete it — `./build.sh` already does a stricter check
-   locally — or replace it with `usethis::use_github_action("check-standard")`,
-   which uses the maintained r-lib matrix.
+Understand it well enough to defend it.
 
-3. **Try the approach on the internal INTERNAL_STUDY data.** The methods have only been
-   exercised on public `nlmixr2data` sources and package fixtures. Running
-   AVATAR and the calibrated structural path on a real internal study is the
-   test that matters: role declaration against a real schema, event grammar
-   that the template sampler has not seen, and whether the generated data is
-   actually useful for workflow development. Keep it in `scripts_private/`.
+- [ ] Read the original AVATAR paper. Feeds the novelty positioning owed under
+      "Verification owed" below (`references/`).
+- [ ] Write my own mental map of how AVATAR works, checked against
+      `vignettes/articles/avatar-mathematics.Rmd`, to confirm my understanding.
 
-4. **Decide how date/datetime columns should be handled.** Low priority; dates
-   are rarely analysis-relevant. Today `time` must be numeric elapsed time, and
-   a raw `RFSTDTC`-style datetime column is either converted by the user
-   beforehand or dropped as undeclared. Options if this ever matters: accept a
-   datetime `time` and derive elapsed time from the first event per subject; or
-   offer a `keep`-like path that shifts dates to a synthetic origin so they stay
-   internally consistent without carrying a real calendar date. Not needed for
-   INTERNAL_STUDY.
+Present it.
+
+- [ ] Follow up with David Zhang: a presentation following their template. Then
+      potentially with Greg Pinhault.
+- [ ] Confirm the ACoP abstract status and the poster deadline. The abstract is
+      drafted (`communications/2026-acop-abstract.md`) — is it submitted and
+      accepted, and by when is the poster due? This gates everything above.
+- [ ] Make the ACoP poster (`communications/2026-acop-poster-notes.md`). Public
+      or fixture data only, and internal review before submission — see
+      `communications/README.md`; any internal-study figure stays in
+      `scripts_private/` and never on the poster.
+
+Deferred.
+
+- [ ] Decide how date/datetime columns should be handled. Low priority; dates
+      are rarely analysis-relevant. Today `time` must be numeric elapsed time,
+      and a raw `RFSTDTC`-style datetime column is either converted by the user
+      beforehand or dropped as undeclared. Not needed for INTERNAL_STUDY.
 
 ## Done: documentation reorganization (2026-07-23)
 
@@ -131,9 +128,6 @@ this section is stale. `AGENTS.md` now records the resulting three-tier rule.
       character/factor IDs are `syn_001` rather than `mock_001`.
 - [x] `design/DOCUMENTATION_SCOPE.md` — inventory of all 23 documents with
       guessed audiences, since rewritten as the decision record.
-- [ ] `REV-020` — `pmx_structural_model(rx = )` is stored but never used. It now
-      warns; either wire it through `rxode2::rxSolve()` with a regression test
-      against the analytic solution, or reject it outright.
 
 ## Version 4 — return to AVATAR blending as the primary method
 
@@ -255,6 +249,10 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       spent. Either restrict to `delta = 0` or wire it to a real mechanism.
 - [ ] `REV-002` Pre-flight feasibility check, so an infeasible `(N, epsilon, d)`
       is refused before budget is spent rather than discovered in a plot.
+- [ ] `REV-020` `pmx_structural_model(rx = )` is stored but never used; it now
+      warns. Either wire it through `rxode2::rxSolve()` with a regression test
+      against the analytic solution, or reject it outright. (Was stranded in the
+      completed documentation-reorganization list.)
 
 ## Then: utility headroom in the existing dense-grid path
 
@@ -294,3 +292,11 @@ Keep this path for pooled corpora; it is not superseded by v3.
 - [x] `REV-024` Trust boundary reframed as organizational rather than
       geographic, so taking synthetic data to a local machine for code
       development is a supported use rather than a boundary crossing.
+- [x] Publish the pkgdown site. Live and verified 2026-07-24: landing page,
+      articles, and reference all render, and `AGENTS.html` / `CLAUDE.html` are
+      pruned. The stringfish/RcppParallel ABI break that failed every build is
+      fixed by keeping `rxode2` out of the docs job. `f1326fe`
+- [x] Delete `.github/workflows/r.yml`, which could never pass (R 3.6.3 leg
+      against `DESCRIPTION` R >= 4.1.0); `./build.sh` checks locally. `2521f8e`
+- [x] One README. Deleted `README.Rmd`; `README.md` is the only entry point,
+      its example pinned by `tests/testthat/test-readme.R`. `e09011d` `215cf50`
