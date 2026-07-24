@@ -11,7 +11,7 @@ behavior as a real study, so that data-assembly code, diagnostic plots,
 and model-run plumbing can be developed outside the restricted
 environment that holds the real data.
 
-The hard part is not making numbers. It is deciding **how much of the
+The hard part is not generating the synthetic data. It is deciding **how much of the
 real data is allowed to survive into the synthetic data** — a privacy
 question before it is a technical one. `synpmx` offers four generation
 modes at different points on that scale, and helps you pick one.
@@ -23,10 +23,9 @@ modes at different points on that scale, and helps you pick one.
 pak::pak("iamstein/synpmx")
 ```
 
-Formal privacy additionally requires the official [OpenDP R
-package](https://docs.opendp.org/en/stable/api/r/). The package fails
-closed if OpenDP is unavailable and never substitutes hand-written
-noise:
+AVATAR needs nothing beyond base R. The two differentially private modes
+additionally require the official [OpenDP R
+package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
