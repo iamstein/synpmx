@@ -44,10 +44,10 @@ Documentation the owner asked for (2026-07-25). Both are writing tasks that
 depend on inputs not yet in hand, so they are queued, not started:
 
 - [ ] A simplified, made-basic-and-clear explanation of how AVATAR works, from
-      the 2023 paper (`references/Guillaudeux23.pdf`). Blocked on being able to
-      read the PDF — this environment has no `poppler`/PDF text extraction, so
-      the summary must not be written from memory. Likely lives in the method
-      vignette or a new short article.
+      the 2023 paper (`references/Guillaudeux23.pdf`; now readable — poppler
+      installed 2026-07-25). Likely lives in the method vignette or a new short
+      article. Note the paper's k = 20 headline / k = 4 floor when writing the
+      k-choice justification.
 - [ ] A "what synpmx adds to AVATAR" section: the BLOQ/censoring handling, the
       full event-table (dosing + observation grammar) rather than a flat matrix,
       and — once designed and built — the minimum-donor pooling and rare-event
