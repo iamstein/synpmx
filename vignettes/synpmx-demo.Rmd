@@ -391,9 +391,12 @@ ggplot2::ggplot(
 
 `wbcSim` has infusion start/stop events and a study-time white-blood-cell
 response with a delayed decline, nadir, and recovery. Some source dosing
-schedules are unique; when a compatible event-pattern group contains only its
-anchor, `synpmx_avatar()` uses that anchor as the sole donor and randomized
-noise supplies the perturbation, which it reports through a warning.
+schedules are unique, so a subject can be alone in its exact event-pattern
+group. `synpmx_avatar()` still blends each synthetic subject from `k` real
+patients (default 5) by borrowing the nearest donors from other schedule groups
+when a subject's own group is too small — the avatar keeps its anchor's event
+skeleton while its measurements are averaged across several patients, so no one
+source subject is reproduced near-verbatim.
 
 ```{r wbc, eval=has_nlmixr2data}
 data("wbcSim", package = "nlmixr2data")

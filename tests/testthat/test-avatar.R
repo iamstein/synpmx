@@ -97,11 +97,20 @@ test_that("AVATAR rejects differential-privacy-only roles", {
   )
 })
 
-test_that("dose magnitudes constrain AVATAR donors", {
-  source <- do.call(rbind, lapply(1:2, function(id) data.frame(
-    ID = as.integer(id), TIME = c(0, 1, 2), DV = c(0, id, id / 2),
-    AMT = c(100 * id, 0, 0), EVID = c(1L, 0L, 0L), CMT = c(1L, 2L, 2L)
-  )))
+test_that("AVATAR keeps donors dose-matched when the dose group meets the floor", {
+  # Six subjects per dose, so each dose is its own signature group of size >= k
+  # and no cross-dose borrowing is needed: the REV-019 dose-matching guarantee
+  # still holds for well-populated groups. (Small groups deliberately borrow
+  # across doses; see test-avatar-pooling.R.)
+  mk <- function(id, dose) data.frame(
+    ID = as.integer(id), TIME = c(0, 1, 2),
+    DV = c(0, dose / 100, dose / 200),
+    AMT = c(dose, 0, 0), EVID = c(1L, 0L, 0L), CMT = c(1L, 2L, 2L)
+  )
+  source <- do.call(rbind, c(
+    lapply(1:6, mk, dose = 100),
+    lapply(7:12, mk, dose = 200)
+  ))
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
                      evid = "EVID", cmt = "CMT")
   synthetic <- suppressWarnings(synpmx_avatar(

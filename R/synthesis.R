@@ -360,32 +360,65 @@
   skeleton
 }
 
+# A deliberately loud, immediate alert for the one case pooling cannot fix: a
+# source with fewer subjects than the donor floor, so every avatar is blended
+# from too few real patients. Unlike the collected end-of-run warning() (which
+# `suppressWarnings()` removes -- as the demo did, hiding it), the message()
+# banner survives suppressWarnings and prints at once, in red on an interactive
+# console. A real warning condition is also raised so it is catchable and shows
+# in non-interactive logs.
+.loud_warn <- function(msg) {
+  banner <- paste0("SYNPMX ALERT: ", msg)
+  if (interactive()) banner <- paste0("\033[1;31m", banner, "\033[0m")
+  message(banner)
+  warning(msg, call. = FALSE, immediate. = TRUE)
+  invisible(NULL)
+}
+
+# Choose the donors whose trajectories are blended onto the anchor's event
+# skeleton. Same-schedule subjects (identical event signature) are preferred and
+# taken nearest-first; when there are fewer than `k` of them, the nearest
+# subjects from *other* dose/schedule groups are borrowed to reach `k`. Their
+# measurements are mapped onto the anchor's own observation times by
+# interpolation, so the avatar keeps the anchor's regimen while its values are
+# averaged across >= k real patients. Only a source smaller than k + 1 subjects
+# cannot reach the floor; that case is flagged loudly by the caller.
 .select_donors <- function(anchor, profiles, k, warnings) {
-  compatible <- which(profiles$signatures == profiles$signatures[anchor])
-  candidates <- setdiff(compatible, anchor)
-  if (!length(candidates)) {
-    warnings$add(
-      "A compatible event-pattern group contained only its anchor; the anchor was used as the sole measurement donor and randomized noise supplied the only trajectory perturbation."
-    )
+  target <- as.integer(k)
+  others <- setdiff(seq_along(profiles$subjects), anchor)
+  if (!length(others)) {
+    # A source of one subject: nothing to borrow, so the avatar is a noised copy
+    # of that single patient. Unavoidable, and alerted loudly by the caller.
     return(list(indices = anchor, distances = 0, weights = 1))
   }
-  distances <- .neighbor_distances(profiles$coordinates, anchor, candidates)
-  order_index <- order(distances, candidates)
-  keep <- min(as.integer(k), length(candidates))
-  if (keep < k) {
-    warnings$add(paste0(
-      "`k` was reduced to ", keep,
-      " in at least one compatible event-pattern group."
-    ))
+
+  nearest <- function(pool) {
+    if (!length(pool)) return(integer())
+    pool[order(.neighbor_distances(profiles$coordinates, anchor, pool), pool)]
   }
-  chosen <- candidates[order_index[seq_len(keep)]]
-  chosen_distances <- distances[order_index[seq_len(keep)]]
-  if (length(chosen) < 2L) {
-    warnings$add(
-      "A compatible event-pattern group supplied fewer than two non-anchor donors."
-    )
+
+  same_group <- setdiff(which(profiles$signatures == profiles$signatures[anchor]),
+                        anchor)
+  chosen <- nearest(same_group)
+  if (length(chosen) > target) chosen <- chosen[seq_len(target)]
+
+  if (length(chosen) < target) {
+    fill <- nearest(setdiff(others, chosen))
+    need <- target - length(chosen)
+    chosen <- c(chosen, fill[seq_len(min(length(fill), need))])
+    if (length(same_group) < target) {
+      warnings$add(paste0(
+        "Fewer than ", target, " same-schedule donors were available for at ",
+        "least one subject; the nearest donors from other dose/schedule groups ",
+        "were borrowed to reach the floor, so some measurements are blended ",
+        "across doses."
+      ))
+    }
   }
-  if (all(chosen_distances <= sqrt(.Machine$double.eps))) {
+
+  chosen_distances <- .neighbor_distances(profiles$coordinates, anchor, chosen)
+  if (length(chosen_distances) &&
+      all(chosen_distances <= sqrt(.Machine$double.eps))) {
     warnings$add(
       "Duplicated subject profiles produced zero neighbor distances; epsilon-stabilized randomized weights were used."
     )
@@ -432,7 +465,12 @@
 #'   `"template"`.
 #' @param dv_method Measurement method. The prototype supports
 #'   `"avatar_blend"`.
-#' @param k Maximum number of compatible non-anchor donors.
+#' @param k Number of real patients blended into each synthetic subject
+#'   (default 5). Same-schedule donors are used first; when a subject's
+#'   dose/schedule group holds fewer than `k`, the nearest subjects from other
+#'   groups are borrowed to reach `k`, blending measurements across doses. A
+#'   source with fewer than `k + 1` subjects cannot reach the floor and triggers
+#'   a loud alert.
 #' @param pca_variance Fraction of usable profile variance retained for
 #'   neighborhood distances.
 #' @param subject_noise_sd Nonnegative subject perturbation multiplier.
@@ -522,6 +560,21 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     }
     profiles <- .build_profiles(source, source_roles, pca_variance)
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
+    # Donor floor: each avatar should blend `k` real patients, borrowing across
+    # dose/schedule groups to reach it. The only unfixable shortfall is a source
+    # with fewer than k + 1 subjects, so there are not k others to borrow.
+    available_donors <- length(subjects) - 1L
+    if (available_donors < as.integer(k)) {
+      .loud_warn(sprintf(
+        paste0("the source has %d subject%s, so every avatar is blended from ",
+               "at most %d real patient%s -- fewer than the floor of %d. This ",
+               "markedly raises re-identifiability; use a larger source or ",
+               "treat the output as individually identifying."),
+        length(subjects), if (length(subjects) == 1L) "" else "s",
+        max(available_donors, 0L), if (available_donors == 1L) "" else "s",
+        as.integer(k)
+      ))
+    }
     anchors <- sample.int(length(subjects), n_subjects, replace = TRUE)
     standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
