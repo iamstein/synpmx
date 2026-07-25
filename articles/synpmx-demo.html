@@ -734,6 +734,13 @@ or regenerate anything it flags.</p>
 </tr>
 </tbody>
 </table>
+<p><code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> acts on those flags:
+by default it truncates a subject flagged only for an unusually long
+follow-up back to the cohort’s longest ordinary follow-up, and drops a
+subject flagged for any other reason (an extreme value or a rare dose),
+since there is no single value to trim. The lasting fix is to stop
+generating structural outliers at all, by sampling each avatar’s event
+skeleton from the cohort rather than copying one subject’s.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>

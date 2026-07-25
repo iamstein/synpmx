@@ -367,6 +367,15 @@ knitr::kable(head(theo_flags, 5), digits = 2,
 Per-subject outlier screen (most unusual first) {.table
 style="width:100%;"}
 
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+acts on those flags: by default it truncates a subject flagged only for
+an unusually long follow-up back to the cohort’s longest ordinary
+follow-up, and drops a subject flagged for any other reason (an extreme
+value or a rare dose), since there is no single value to trim. The
+lasting fix is to stop generating structural outliers at all, by
+sampling each avatar’s event skeleton from the cohort rather than
+copying one subject’s.
+
 ``` r
 
 theo_comparison <- rbind(
