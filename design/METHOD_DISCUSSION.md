@@ -190,60 +190,104 @@ Sparse groups are usually the extreme dose arms and the off-protocol subjects �
 exactly the individuals most identifiable. `compare_pmx_distributions()` cannot
 catch this because the risk is per-subject, not distributional.
 
-### Requirement
+### Owner decisions (2026-07-25)
 
-Every synthetic subject should mix at least a floor of real donors (owner's
-figure: ~5). Pooling **across dose groups** is acceptable. Two sub-problems:
+The owner settled several open questions; recorded here so implementation does
+not relitigate them.
 
-**A. Reaching the donor floor (REV-025).** Replace signature *equality* with a
-signature *distance*, and expand the donor set outward — nearest dose, then
-nearest schedule, then nearest endpoint set — until `min_donors` is reached.
-Donors pulled from a different dose are on a different exposure scale, so they
-must be **rescaled to the anchor's dose before blending**: dose-normalize each
-donor trajectory (concentration ÷ dose), blend in that space, then multiply back
-by the anchor's dose. This is exact under dose-proportional (linear) PK and a
-defensible approximation near it. The hard cases, which must be handled or
-explicitly excluded, are **nonlinear/saturable PK** (dose-normalization is
-invalid) and **PD endpoints** (often not dose-proportional at all — an indirect
-response saturates). A safe first version might pool across doses only for
-linear PK endpoints and keep exact matching elsewhere, reporting which endpoints
-took which path.
+- **Floor = 5, and it is a hard floor: `stop()` with an error, not a warning.**
+  Loudness is the point — see "Why it was silent" below.
+- **No dose-rescaling.** The goal is structural realism for code development, not
+  statistical fidelity, so donors pulled from a neighbouring dose are blended
+  **raw**, even where that is not physiologically sensible. Optionally a future
+  refinement could dose-normalise only DVIDs flagged as PK, but the default
+  stays simple: nearest dose, blend as-is.
+- **Observations need not be dose-supported.** The earlier draft claimed a
+  synthetic observation cannot sit where no dosing supports it; the owner
+  rejects that — PD and baseline observations routinely exist without a nearby
+  dose. So schedule sampling is freer than first scoped.
+- **Dropping unique subjects is acceptable.** When a subject cannot reach the
+  floor even after pooling (e.g. the single long-followed `wbcSim` subject),
+  dropping it from the source before synthesis is a fine outcome, not only
+  erroring.
 
-**B. How many events a subject should have (REV-026).** A synthetic subject
-currently inherits its anchor's event skeleton verbatim (`R/synthesis.R:531`),
-so the number and timing of observations equals one real person's — the reason a
-unique-schedule subject reappears intact. The count/timing should instead be
-**sampled** from the (relaxed) pool rather than copied: draw a skeleton from the
-donor group independently of the value donors, or draw the number of
-observations/visits from the cohort distribution within clinically plausible
-windows. The constraint that keeps this honest is coherence — an observation
-cannot be placed where no dosing supports it — so schedule sampling couples to
-the structural guarantee AVATAR currently gets for free, and connects to the
-protocol structure in `vignettes/articles/data-elicitation.Rmd`.
+### On the floor value: what the AVATAR paper actually supports
+
+Guillaudeux 2023 (`references/Guillaudeux23.pdf`) does **not** justify 5. Its
+headline setting is **k = 20**; **k = 4 is the lowest value it tested** (range
+4–750 for the AIDS dataset, 4–150 for WBCD). Privacy scales with k: *"lower k
+values indicated … lower local cloaking; higher k values indicated more
+protected individuals."* So 5 sits at the least-private end of the paper's
+range. It is defensible here only because the paper's k is nearest-neighbours
+across the **whole** dataset (hundreds–thousands of cross-sectional records),
+whereas our k is donors **within an event-signature group** in a PMX cohort of
+12–60 — you cannot require 20 donors when a dose arm has 6 patients. So 5 is
+"about the largest floor feasible at PMX cohort sizes", not a privacy-optimal
+choice. The paper names *"dynamic adaptation of k depending on … density"* as
+future work, which is exactly the cross-cohort pooling below. Note also the
+existing `max_donor_weight = 0.80` cap (`R/synthesis.R:580`): even with 5
+donors, one real subject can still be 80% of a synthetic one, so the floor alone
+does not bound individual contribution — the weight cap does, and 0.80 is loose.
+
+### Why it was silent, and how to make it loud
+
+The small-group fallback did emit a real `warning()` (`R/synthesis.R:586`), but
+as a deferred `warn=0` warning printed unobtrusively after the call — easy to
+miss, and trivially removed by `suppressWarnings()`. The shipped demo does
+exactly that (`synpmx-demo.Rmd:403`, wbcSim), so the website never shows it. The
+hard-floor `stop()` is the fix: an error cannot be suppressed by
+`suppressWarnings` and halts execution. Groups that still meet the floor but hit
+lesser fallbacks (e.g. `k` reduced from 5 to 5-available) stay warnings.
+
+### A. Reaching the donor floor (REV-025)
+
+Replace signature *equality* with a signature *distance* and expand the donor
+set outward — nearest dose first, then nearest schedule, then nearest endpoint
+set — until 5 donors are gathered, blending raw (no rescaling, per above). If 5
+cannot be reached even after pooling, the subject is either **dropped** from the
+source or the run **errors**, by an explicit option; both are acceptable, drop
+is the friendlier default for a dataset with a few oddballs like `wbcSim`.
+
+### B. How many events a subject should have (REV-026)
+
+A synthetic subject currently inherits its anchor's event skeleton verbatim
+(`R/synthesis.R:531`), so the number and timing of observations equals one real
+person's — the reason a unique-schedule subject reappears intact. The
+count/timing should instead be **sampled** from the (relaxed) pool: draw a
+skeleton from the donor group independently of the value donors, or draw the
+observation/visit count from the cohort distribution. Since observations need
+not be dose-supported (owner decision), this is less constrained than first
+scoped — the main remaining constraint is that dosing events themselves stay
+coherent with the regimen. Connects to protocol structure in
+`vignettes/articles/data-elicitation.Rmd`.
+
+### C. A post-generation outlier detector (owner request)
+
+A function to run **after** synthesis that flags synthetic subjects at
+elevated re-identification risk — the counterpart to `compare_pmx_distributions()`,
+which checks distributions, not individuals. Candidate signals: subjects whose
+donor group was below the floor (sole-donor / pair), subjects whose event
+signature is unique in the source, and subjects whose nearest-neighbour distance
+to a single real subject is small (a near-copy). Output a per-subject table with
+the risk reason, so a user can drop or regenerate them before the data leaves
+the source's access controls. Buildable independently of the pooling redesign,
+and doubles as the Phase-1 "report" surface.
 
 ### Suggested phasing
 
-1. **Detect and report, now (low risk, high value).** Before any blending
-   redesign, make the risk impossible to miss: count usable donors per group,
-   report exactly which groups, subjects, and dose arms fall below the floor,
-   and make proceeding a deliberate acknowledged act rather than a silent
-   warning — the same shape as the `REV-023` DP-engine gate. This is the
-   "reported and checked" the owner asked for and is independent of the harder
-   work.
-2. **Cross-dose pooling with dose-rescaling (REV-025).** Linear-PK endpoints
-   first; nonlinear PK and PD explicitly scoped or excluded.
-3. **Event-skeleton sampling (REV-026).** Decouple schedule from value donors.
+1. **Hard floor + report, now.** `stop()` when any group is below 5 after the
+   current (exact) matching, listing the offending groups/subjects/dose arms;
+   plus the outlier detector (C) as the reporting surface. Loud, self-contained.
+2. **Cross-dose pooling (A).** Nearest-dose expansion, raw blend, drop-or-error
+   fallback. This is what lets small-arm datasets pass the floor.
+3. **Event-skeleton sampling (B).** Decouple schedule from value donors.
 
-### Open questions for the owner
+### Still open
 
-- The donor floor (5?) and whether it is a hard refusal or an acknowledged
-  override.
-- Whether dose-proportionality is assumable for the compounds in scope, and how
-  PD endpoints should be pooled when it is not.
-- Whether pooling across dose changes what may be claimed about the output — a
-  synthetic subject blended from several doses is *less* like any one real
-  person, which helps privacy but further weakens any distributional fidelity
-  claim (already not claimed; worth stating).
+- Whether the *headline* floor should stay 5 given the paper leans higher — 5 is
+  the feasible minimum, not a privacy recommendation; the owner may want to
+  revisit once cross-dose pooling makes larger floors attainable.
+- Tightening `max_donor_weight` below 0.80.
 
 ---
 
