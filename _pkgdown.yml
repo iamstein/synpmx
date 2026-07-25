@@ -91,6 +91,7 @@ reference:
   - validate_pmx
   - compare_pmx
   - compare_pmx_distributions
+  - flag_identifiable_subjects
   - sampling_summary
   - subject_property_summary
 

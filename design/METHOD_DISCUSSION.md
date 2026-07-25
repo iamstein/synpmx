@@ -261,17 +261,25 @@ scoped — the main remaining constraint is that dosing events themselves stay
 coherent with the regimen. Connects to protocol structure in
 `vignettes/articles/data-elicitation.Rmd`.
 
-### C. A post-generation outlier detector (owner request)
+### C. A post-generation outlier detector (owner request) — DONE (2026-07-25)
 
-A function to run **after** synthesis that flags synthetic subjects at
-elevated re-identification risk — the counterpart to `compare_pmx_distributions()`,
-which checks distributions, not individuals. Candidate signals: subjects whose
-donor group was below the floor (sole-donor / pair), subjects whose event
-signature is unique in the source, and subjects whose nearest-neighbour distance
-to a single real subject is small (a near-copy). Output a per-subject table with
-the risk reason, so a user can drop or regenerate them before the data leaves
-the source's access controls. Buildable independently of the pooling redesign,
-and doubles as the Phase-1 "report" surface.
+`flag_identifiable_subjects(data, roles)` (`R/compare.R`) — the per-subject
+counterpart to `compare_pmx_distributions()`, which checks distributions, not
+individuals. Per the owner's steer, it screens the four **structural** axes that
+make a subject easy to single out, each with a robust median/MAD modified
+z-score (Iglewicz–Hoaglin, cutoff 3.5): **follow-up time** (last observation
+time — the lone long-followed `wbcSim` subject), **number of doses**, **dose
+magnitude**, and **DV value** (peak). A subject is flagged as an outlier on any
+axis, with the offending axes named, riskiest first. This is the right tool for
+the currently-live `REV-026` risk: because each avatar copies one anchor's event
+skeleton, a structurally unique source subject yields a structurally unique
+avatar even after the measurement blending. Run it on the synthetic output (or
+the source) and drop or regenerate the flagged subjects. Tests in
+`test-flag-identifiable.R`.
+
+A near-copy-of-one-real-subject distance metric was prototyped and set aside:
+the borrowing fix (A) now prevents near-copies by construction, so the live
+residual risk is structural uniqueness, which the axis screen targets directly.
 
 ### What was discovered on first implementation
 
@@ -291,9 +299,12 @@ borrowing fix load-bearing for the common case, not an edge-case guard.
    floor, and that raises `.loud_warn()` — a red immediate `message()` (survives
    `suppressWarnings`) plus a warning condition. The owner chose the loud
    warning over a hard `stop()` for now. Tests in `test-avatar-pooling.R`.
-2. **Post-generation outlier detector (C) — TODO.** Still the best per-subject
-   report surface.
+2. **Post-generation outlier detector (C) — DONE (2026-07-25).**
+   `flag_identifiable_subjects()` screens follow-up time, dose count, dose
+   magnitude, and DV with a robust modified z-score.
 3. **Event-skeleton sampling (B) — TODO.** Decouple schedule from value donors.
+   The outlier detector (C) is the interim guard for the structural-uniqueness
+   risk this would remove.
    Note the time-borrowing half already exists: `.interpolate_trajectory()`
    remaps a donor's trajectory onto out-of-range target times by proportional
    position, so a donor observed only early still contributes at later times.

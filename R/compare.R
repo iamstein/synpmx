@@ -316,3 +316,168 @@ print.pmx_distribution_summary <- function(x, ...) {
       "budgeted.\n")
   invisible(x)
 }
+
+# Post-generation outlier / identifiability check -----------------------------
+#
+# compare_pmx_distributions() compares whole distributions; this checks
+# individuals. A subject is easy to single out -- and so to re-identify -- when
+# its event structure or measurements are unlike anyone else's: an unusually
+# long follow-up, an odd number of doses, a rare dose level, or an extreme
+# value. synpmx_avatar() copies each avatar's event skeleton from one anchor, so
+# a structurally unique source subject reappears structurally unique. This
+# screens for exactly those subjects, one axis at a time, with a robust
+# median/MAD outlier score.
+
+.modified_z <- function(x) {
+  z <- rep(NA_real_, length(x))
+  finite <- is.finite(x)
+  if (sum(finite) < 2L) return(z)
+  centre <- stats::median(x[finite])
+  spread <- stats::median(abs(x[finite] - centre))
+  if (!is.finite(spread) || spread == 0) {
+    # No robust spread: nearly everyone shares one value, so any departure from
+    # it is the outlier signal.
+    z[finite] <- ifelse(x[finite] == centre, 0,
+                        sign(x[finite] - centre) * Inf)
+  } else {
+    z[finite] <- 0.6745 * (x[finite] - centre) / spread
+  }
+  z
+}
+
+#' Flag structurally unusual -- and so easily identifiable -- subjects
+#'
+#' A post-generation screen for subjects that stand out from the cohort and are
+#' therefore easy to single out and re-identify: the per-subject counterpart to
+#' [compare_pmx_distributions()], which compares whole distributions. Each
+#' subject is scored, one axis at a time, on a robust median/MAD statistic across
+#' four structural features:
+#'
+#' - **follow-up time** -- the last observation time (catches the lone
+#'   long-followed subject);
+#' - **number of doses** -- an unusual dosing-history length;
+#' - **dose magnitude** -- a rare dose level (needs an `amt` role); and
+#' - **DV value** -- an extreme peak measurement.
+#'
+#' A subject is flagged when it is an outlier on any axis. This matters because
+#' [synpmx_avatar()] copies each avatar's event skeleton from a single anchor, so
+#' a structurally unique source subject yields a structurally unique -- and
+#' identifiable -- avatar even though its measurements are blended. Run it on the
+#' synthetic data before the data leaves the source's access controls and drop or
+#' regenerate the flagged subjects; it can also be run on the source itself to
+#' see which real subjects are hardest to hide. It is a heuristic screen, not a
+#' privacy guarantee, and is marked `"restricted_not_releasable"`.
+#'
+#' @param data A PMX dataset -- typically the synthetic output, or the source.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param threshold Absolute modified-z cutoff above which a subject is an
+#'   outlier on an axis. Default 3.5, the Iglewicz--Hoaglin value.
+#'
+#' @return A `pmx_identifiability` data frame, most-unusual first, one row per
+#'   subject: `subject_id`, the four axis values (`follow_up_time`, `n_doses`,
+#'   `max_dose`, `max_dv`), `outlier_axes` (a comma-separated list of the axes on
+#'   which it is unusual, empty if none), and `flagged`.
+#' @seealso [compare_pmx_distributions()], [compare_pmx()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(30)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' flag_identifiable_subjects(synthetic, roles)
+flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
+  .assert_roles(data, roles)
+  if (!is.numeric(threshold) || length(threshold) != 1L ||
+      is.na(threshold) || threshold <= 0) {
+    stop("`threshold` must be a single positive number.", call. = FALSE)
+  }
+
+  subjects <- .unique_in_order(data[[roles$id]])
+  sub <- factor(as.character(data[[roles$id]]),
+                levels = as.character(subjects))
+  observed <- .observation_rows(data, roles, require_present = TRUE)
+  dosed <- .dose_rows(data, roles)
+  time <- suppressWarnings(as.numeric(data[[roles$time]]))
+  dv <- suppressWarnings(as.numeric(data[[roles$dv]]))
+  amt <- if (!is.null(roles$amt)) {
+    suppressWarnings(as.numeric(data[[roles$amt]]))
+  } else NULL
+
+  safe_max <- function(v) {
+    v <- v[is.finite(v)]
+    if (length(v)) max(v) else NA_real_
+  }
+  by_subject <- function(values, keep) {
+    grouped <- split(values[keep], sub[keep])
+    vapply(grouped, safe_max, numeric(1))[as.character(subjects)]
+  }
+
+  follow_up_time <- by_subject(time, observed)
+  max_dv <- by_subject(dv, observed)
+  n_doses <- as.numeric(tapply(as.integer(dosed), sub, sum)[
+    as.character(subjects)
+  ])
+  n_doses[is.na(n_doses)] <- 0
+  max_dose <- if (!is.null(amt)) by_subject(amt, dosed) else
+    rep(NA_real_, length(subjects))
+
+  axes <- list(time = follow_up_time, doses = n_doses,
+               dose = max_dose, dv = max_dv)
+  axis_label <- c(time = "follow-up time", doses = "number of doses",
+                  dose = "dose magnitude", dv = "DV value")
+  outlier <- lapply(axes, function(v) {
+    if (sum(is.finite(v)) < 2L) return(rep(FALSE, length(v)))
+    z <- .modified_z(v)
+    flagged <- (is.finite(z) & abs(z) > threshold) | is.infinite(z)
+    flagged[is.na(flagged)] <- FALSE
+    flagged
+  })
+
+  outlier_matrix <- do.call(cbind, outlier)
+  outlier_axes <- apply(outlier_matrix, 1L, function(hit) {
+    paste(axis_label[names(axes)[hit]], collapse = ", ")
+  })
+  order_key <- rowSums(outlier_matrix)
+
+  out <- data.frame(
+    subject_id = as.character(subjects),
+    follow_up_time = follow_up_time,
+    n_doses = n_doses,
+    max_dose = max_dose,
+    max_dv = max_dv,
+    outlier_axes = outlier_axes,
+    flagged = order_key > 0L,
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+  out <- out[order(-order_key, out$subject_id), , drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "n_flagged") <- sum(out$flagged)
+  attr(out, "threshold") <- threshold
+  .mark_release(
+    structure(out, class = c("pmx_identifiability", "data.frame")),
+    "restricted_not_releasable"
+  )
+}
+
+#' @export
+print.pmx_identifiability <- function(x, ...) {
+  n <- nrow(x)
+  flagged <- attr(x, "n_flagged") %||% sum(x$flagged)
+  cat(sprintf(
+    "Restricted PMX outlier / identifiability check: %d of %d subject%s flagged\n",
+    flagged, n, if (n == 1L) "" else "s"
+  ))
+  cat("Flag = a robust outlier in follow-up time, dose count, dose magnitude,",
+      "or DV value.\n\n")
+  cat(if (n > 12L) "Twelve most unusual:\n" else "By outlier count:\n")
+  print(.round_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
+  if (n > 12L) {
+    cat(sprintf("... %d more row(s) in the returned table.\n", n - 12L))
+  }
+  cat("\nSource-derived; not releasable unless separately public or privately",
+      "budgeted.\n")
+  invisible(x)
+}

@@ -293,6 +293,19 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight distribution, source versus synthetic")
 ```
 
+Where `compare_pmx_distributions()` checks the cohort as a whole,
+`flag_identifiable_subjects()` checks individuals: it screens each synthetic
+subject for being a structural outlier — an unusual follow-up time, dose count,
+dose magnitude, or peak DV — since a subject unlike anyone else is the one
+easiest to single out. Run it before the synthetic data leaves the source's
+access controls and drop or regenerate anything it flags.
+
+```{r theo-identifiability, eval=has_nlmixr2data}
+theo_flags <- flag_identifiable_subjects(theo_synth, theo_roles)
+knitr::kable(head(theo_flags, 5), digits = 2,
+             caption = "Per-subject outlier screen (most unusual first)")
+```
+
 ```{r theo-plot, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),
