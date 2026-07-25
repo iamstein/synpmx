@@ -52,14 +52,14 @@ reason -- an extreme DV, a rare dose level, or an unusual dose count -- is
 \emph{dropped} entirely.
 }
 \details{
-The split is deliberate. Truncation is offered only on the time axis because
-it is the one structural outlier a value-level edit can genuinely fix:
-shortening a long timeline leaves a shorter but ordinary subject. An
-extreme-DV subject is elevated across its whole trajectory, so removing points
+The split is deliberate. Truncation is offered only for an unusually \emph{long}
+follow-up, the one structural outlier a value-level edit can genuinely fix:
+shortening a long timeline leaves a shorter but ordinary subject. Everything
+else is dropped -- an unusually \emph{short} follow-up has nothing to trim, an
+extreme-DV subject is elevated across its whole trajectory so removing points
 would only mangle it, and a rare dose cannot be trimmed without breaking the
-regimen -- so those subjects are dropped rather than edited. A subject flagged
-for both a long follow-up and another reason is dropped, since truncation
-would not resolve the other reason.
+regimen. A subject flagged for both a long follow-up and another reason is
+also dropped, since truncation would not resolve the other reason.
 
 When \code{source} is supplied, each dropped subject is \strong{replaced}: fresh avatars
 are generated from \code{source}, screened by the same policy, and appended (with
