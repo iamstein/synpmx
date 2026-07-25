@@ -1,20 +1,14 @@
-<!-- Edit this file directly; it is the only README. The example below is not
-     executed when the file is built, so it is pinned by a regression test:
-     tests/testthat/test-readme.R runs the same code and asserts the same
-     output. If that test fails, the example here is stale — update both. -->
-
 # synpmx
 
-`synpmx` builds **synthetic pharmacometric datasets** by using dosing and
-measurement event tables with the same setup as a real study.  The intended use case
-is to provide realistic looking data of a study so that can be shared outside the 
+`synpmx` builds **synthetic pharmacometric datasets** from actual datasets. The intended use case
+is to provide realistic looking data of a study that can be shared outside the 
 GxP computing environment (but stay within the organization) so that data-assembly code, diagnostic plots, and model-run plumbing can be developed outside the restricted
 computing environment that holds the real data, where more advanced coding agents
 can more often be used.
 
 In general, when developing synthetic data, it's important to think carefully about 
 **how much information about the real data is allowed to survive into the synthetic data**.
-This is a privacy question and `synpmx` offers four generation modes at different points on that scale, and helps you pick one, though the main deliverable of the package uses an
+This is a privacy question and `synpmx` offers four options.  The main deliverable of the package uses an
 implementation of the AVATAR method which offers some blinding, but not formal privacy guarantees.
 
 ## Installation
@@ -24,7 +18,7 @@ implementation of the AVATAR method which offers some blinding, but not formal p
 pak::pak("iamstein/synpmx")
 ```
 
-AVATAR needs nothing beyond base R. The two differentially private modes
+AVATAR needs nothing beyond base R. Other 
 additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
@@ -33,8 +27,7 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 ## A first synthetic dataset
 
-The default AVATAR mode needs only the data and a declaration of what
-the columns mean.
+The default AVATAR synthetic data algorithm needs only the data and a declaration of what the columns mean.
 
 ``` r
 library(synpmx)
@@ -56,11 +49,11 @@ head(synthetic, 4)
 #> 4 13 0.63 11.89216329   0.00    0   2 85.25496
 ```
 
-The output keeps the same structure.  
+The output dataset keeps the same structure.  
 
-The other three modes for generating synthetic data,  cover the scenarios where formal data privacy requirements are needed.  They are included in the package 
+The other three modes for generating synthetic data cover the scenarios where formal data privacy requirements are needed.  They are included in the package 
 as part of a conceptual framework to help the modeler think about various
-options that are available, but these methods have not been yet been audited
+options that are available, but these methods have not been audited
 for their ability to protect data privacy.  
 
 | Mode | Function | Output built from | Guarantee | Works at |
@@ -74,9 +67,9 @@ Two rules of thumb decide between them:
 
 - **The trust boundary decides whether you need differential privacy.**
   Ask whether the generated data can reach anyone the source data could
-  not.  Moving the synthetic data to an environment where the same people can access it
-  is different from sending it to external vendors or making it public.  
-  If no one new can access the data, AVATAR is more useful and easy to use.  
+  not.  Moving the synthetic data to a new cmouting environment where the same people can access it
+  is different from sending the data to external vendors or making it public.  
+  If no one new can access the data, AVATAR is much easier to use.  
 
 `vignette("synpmx-method")` runs all four methods on the same dataset and shows
 the results side by side.
@@ -90,7 +83,7 @@ stays within the source data’s own access controls and obligations.
 The three differentially private modes (**prior**, **calibration**,
 **empirical**) are secondary.  They are present in this repository
 because formal privacy is the right answer when data crosses a trust
-boundary. They are provided as-is: not under active development,
+boundary. They are provided as-is: not under active development and
  and **not independently privacy-audited**.
 Treat them as a principled demonstration of the privacy/utility
 tradeoff, not as a production release mechanism. A real regulated
@@ -116,24 +109,6 @@ has been called once in the session.
 The full function reference is at
 <https://iamstein.github.io/synpmx/reference/>.
 
-## What this is not
-
-Generated data exercises cleaning, joins, reshaping, plots, control-file
-plumbing, repeated-dose PK code, longitudinal PD/biomarker code,
-infusion events, and censoring conventions. It aims for broad magnitude
-and shape.
-
-It is **not** appropriate for parameter estimation, inference, model
-selection, dose selection, or clinical conclusions, and it does not
-reproduce source distributions, parameter estimates, or
-covariate-response relationships.
-
-Differential privacy, where used, is mathematically bounded rather than
-absolute. It does not guarantee impossibility of linkage or
-re-identification, establish legal anonymity, authorize release, secure
-a compromised environment, or validate public-input claims. Independent
-privacy, legal, information-security, and data-governance review remains
-required.
 
 ## License
 
