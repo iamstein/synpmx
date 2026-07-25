@@ -163,6 +163,90 @@ tool that fits each, clearly labeled with what it does and does not guarantee.
 
 ---
 
+## 6a. Minimum donor pooling and event-skeleton sampling (design owed)
+
+Raised by the package owner on 2026-07-25, tracked as `REV-025` (privacy) and
+`REV-026` (coherence). This section scopes the problem and the options; nothing
+here is implemented yet.
+
+### The defect
+
+AVATAR groups subjects by an **exact** event signature (`R/profiles.R`:
+`EVID` + `CMT` + `DVID` + dose/rate magnitude, the count and gaps of dose
+starts, and the observed endpoint set), and only blends within a group
+(`.select_donors`, `R/synthesis.R:363`). Exact matching buys a real guarantee —
+a synthetic subject's trajectory is always structurally coherent with its event
+skeleton — but it fragments the cohort:
+
+- A **singleton** group (one subject at a dose, or one unusual schedule such as
+  the single long-followed subject in `wbcSim`) falls back to that subject as
+  the sole donor, with only subject/residual noise (defaults 0.15/0.05) as
+  perturbation. The synthetic subject is a **noised near-copy of one real
+  person** — the fingerprint risk the privacy sections warn about, produced
+  silently with only a warning.
+- A **pair** group blends exactly two real subjects (`k` collapses to 1).
+
+Sparse groups are usually the extreme dose arms and the off-protocol subjects —
+exactly the individuals most identifiable. `compare_pmx_distributions()` cannot
+catch this because the risk is per-subject, not distributional.
+
+### Requirement
+
+Every synthetic subject should mix at least a floor of real donors (owner's
+figure: ~5). Pooling **across dose groups** is acceptable. Two sub-problems:
+
+**A. Reaching the donor floor (REV-025).** Replace signature *equality* with a
+signature *distance*, and expand the donor set outward — nearest dose, then
+nearest schedule, then nearest endpoint set — until `min_donors` is reached.
+Donors pulled from a different dose are on a different exposure scale, so they
+must be **rescaled to the anchor's dose before blending**: dose-normalize each
+donor trajectory (concentration ÷ dose), blend in that space, then multiply back
+by the anchor's dose. This is exact under dose-proportional (linear) PK and a
+defensible approximation near it. The hard cases, which must be handled or
+explicitly excluded, are **nonlinear/saturable PK** (dose-normalization is
+invalid) and **PD endpoints** (often not dose-proportional at all — an indirect
+response saturates). A safe first version might pool across doses only for
+linear PK endpoints and keep exact matching elsewhere, reporting which endpoints
+took which path.
+
+**B. How many events a subject should have (REV-026).** A synthetic subject
+currently inherits its anchor's event skeleton verbatim (`R/synthesis.R:531`),
+so the number and timing of observations equals one real person's — the reason a
+unique-schedule subject reappears intact. The count/timing should instead be
+**sampled** from the (relaxed) pool rather than copied: draw a skeleton from the
+donor group independently of the value donors, or draw the number of
+observations/visits from the cohort distribution within clinically plausible
+windows. The constraint that keeps this honest is coherence — an observation
+cannot be placed where no dosing supports it — so schedule sampling couples to
+the structural guarantee AVATAR currently gets for free, and connects to the
+protocol structure in `vignettes/articles/data-elicitation.Rmd`.
+
+### Suggested phasing
+
+1. **Detect and report, now (low risk, high value).** Before any blending
+   redesign, make the risk impossible to miss: count usable donors per group,
+   report exactly which groups, subjects, and dose arms fall below the floor,
+   and make proceeding a deliberate acknowledged act rather than a silent
+   warning — the same shape as the `REV-023` DP-engine gate. This is the
+   "reported and checked" the owner asked for and is independent of the harder
+   work.
+2. **Cross-dose pooling with dose-rescaling (REV-025).** Linear-PK endpoints
+   first; nonlinear PK and PD explicitly scoped or excluded.
+3. **Event-skeleton sampling (REV-026).** Decouple schedule from value donors.
+
+### Open questions for the owner
+
+- The donor floor (5?) and whether it is a hard refusal or an acknowledged
+  override.
+- Whether dose-proportionality is assumable for the compounds in scope, and how
+  PD endpoints should be pooled when it is not.
+- Whether pooling across dose changes what may be claimed about the output — a
+  synthetic subject blended from several doses is *less* like any one real
+  person, which helps privacy but further weakens any distributional fidelity
+  claim (already not claimed; worth stating).
+
+---
+
 ## 7. Reading guide
 
 - `design/PROTOTYPE_SPEC.md` — the specification, with Version 4 (AVATAR) at the
