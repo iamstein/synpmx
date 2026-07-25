@@ -252,11 +252,25 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       not an edge case. Outlier detector done too:
       `flag_identifiable_subjects()` screens follow-up time, dose count, dose
       magnitude, and DV. Still open: whether the headline floor should exceed 5.
-- [ ] `REV-026` **Owner-flagged, 2026-07-25.** Synthetic subjects copy one
-      anchor's event skeleton verbatim, so unique-schedule patients (e.g. the
-      long-followed `wbcSim` subject) reappear intact. Sample the schedule/event
-      count from the pool instead. Design in `design/METHOD_DISCUSSION.md` §6a;
-      depends on `REV-025` relaxed pooling.
+- [ ] `REV-026` **Consider, not committed (2026-07-25 decision).** "Skeleton
+      sampling." Today each avatar copies one real anchor's *event skeleton* —
+      the number of doses, their sizes, and the observation times — verbatim,
+      and only the DV values are blended. So a source subject with a unique
+      structure (the long-followed `wbcSim` subject, a one-off dose) yields an
+      avatar with that same unique structure, which is identifying even though
+      its values are blended. Skeleton sampling would instead *draw* each
+      avatar's schedule (follow-up length, dose count, observation times) from
+      the cohort distribution, so no avatar carries any one real subject's
+      unique structure and there is nothing to flag. It is the thorough,
+      preventive cure.
+      **Why it is paused:** `flag_identifiable_subjects()` +
+      `remediate_identifiable_subjects()` (with replacement) already remove
+      structural outliers after generation and refill the cohort, which covers
+      the same privacy goal from the other direction. The owner chose the
+      detect-and-remediate path for now; skeleton sampling stays a possible
+      future direction, to weigh against the diversity it would add versus its
+      cost. Design notes in `design/METHOD_DISCUSSION.md` §6a; would build on
+      the `REV-025` relaxed pooling.
 
 ## Then: utility headroom in the existing dense-grid path
 

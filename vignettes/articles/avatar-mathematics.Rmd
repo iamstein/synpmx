@@ -21,6 +21,39 @@ generation modes at a high level and says which one to reach for. Read that
 first. Come here when you need to defend, debug, or review what
 `synpmx_avatar()` actually did.
 
+## The process at a glance
+
+Before the step-by-step detail, here is the whole pipeline in one place. Each
+synthetic subject is built from one real *anchor* subject's event structure,
+filled with measurements blended from several similar real subjects.
+
+1. **Declare the columns** (Step 1). Roles say which column is the id, the time,
+   the dose, the measurement, and so on. Only named columns survive.
+2. **Split structure from values** (Step 2). Each subject's rows divide into a
+   fixed *event skeleton* — when doses and observations happen — and the
+   measured DV values that fill it.
+3. **Put every subject on a comparable footing** (Steps 3–5). Align time to the
+   first event, choose an endpoint transformation, and reduce each subject to one
+   numeric *profile* — baseline covariates plus its trajectory on a common
+   grid — then to a handful of principal-component coordinates for measuring who
+   resembles whom.
+4. **Build each synthetic subject** (Steps 6–9). Copy a real anchor's event
+   skeleton; pick the `k` (default 5) nearest donors, borrowing across
+   dose/schedule groups when the anchor's own group is too small; blend the
+   donors' trajectories onto the skeleton's observation times; add subject-level
+   and within-subject noise; and reconstruct any below-limit (BLOQ) censoring.
+5. **Restore the original shape** (Step 10). Put back the source schema, column
+   types, and conventions, and attach a record of what was done.
+6. **Screen the result** (after generation). Because the event skeleton is
+   copied from one anchor, a structurally unusual source subject yields a
+   structurally unusual — and identifiable — avatar. A per-subject screen flags
+   those, and a remediation step truncates, drops, or replaces them.
+
+The two ideas that carry the most weight are the **anchor** (each avatar keeps
+one real subject's event structure) and the **donor blend** (its measurements
+are averaged from several real subjects, never copied from one). Keep those in
+mind and the rest is detail.
+
 ## Step 1: declare the meaning of the columns
 
 The package never guesses critical PMX roles from column names. The user must
@@ -819,9 +852,65 @@ Use the public checks for different questions:
 - `compare_pmx()` reports source/synthetic row counts, subjects, event counts,
   endpoints, column classes, validations, and exploratory trajectories when
   `ggplot2` is installed.
+- `compare_pmx_distributions()` summarizes the dependent variable per endpoint
+  and each baseline covariate, source against synthetic, so their ranges can be
+  compared at a glance.
 
-Neither function establishes distributional equivalence, privacy, or model
+None of these establishes distributional equivalence, privacy, or model
 fidelity.
+
+## After generation: screening for identifiable subjects
+
+The blending in Steps 6–9 protects the *measurements*: every avatar's DV values
+are averaged from at least `k` real subjects, so no one person's numbers survive
+verbatim. It does **not** protect the *structure*. Step 4 copies the event
+skeleton — the number of doses, their sizes, and the observation times — from a
+single anchor. So a source subject with an unusual structure (a lone
+long-followed patient, a one-off dose level) produces an avatar with that same
+unusual structure, and a structural oddity is enough to single someone out even
+when their values are blended.
+
+Two functions address this after the data is generated.
+
+`flag_identifiable_subjects()` scores every subject, one axis at a time, with a
+robust median/MAD outlier statistic (the Iglewicz–Hoaglin modified z-score,
+default cutoff 3.5) on four structural features:
+
+- **follow-up time** — the last observation time, which catches the lone
+  long-followed subject;
+- **number of doses** — an unusual dosing-history length;
+- **dose magnitude** — a rare dose level; and
+- **DV value** — an extreme peak measurement.
+
+A subject is flagged when it is an outlier on any axis, and the report names the
+axes. Scoring is per subject on one summary per axis, so a single long-followed
+patient is one flag on the time axis — not one flag per late row — and one
+extreme patient is one flag on the DV axis. The screen is a heuristic, not a
+privacy proof: a flag is a candidate to remove, and an empty list is not a
+certificate of anonymity.
+
+`remediate_identifiable_subjects()` acts on those flags. Its default policy
+splits by what a value-level edit can honestly fix:
+
+- a subject flagged **only** for a long follow-up is **truncated** back to the
+  cohort's longest ordinary follow-up — shortening a long timeline leaves a
+  shorter but ordinary subject;
+- a subject flagged for **any other** reason is **dropped**, because an
+  extreme-DV subject is elevated throughout (trimming points only mangles it)
+  and a rare dose cannot be trimmed without breaking the regimen;
+- a subject flagged for both is dropped, since truncation would not resolve the
+  other reason.
+
+When a `source` is supplied, each dropped subject is **replaced**: fresh avatars
+are generated, screened by the same policy, and appended with new ids until the
+cohort is back to its original size — so screening does not shrink the dataset.
+The `time` and `other` arguments expose the policy.
+
+This detect-and-remediate path is a deliberate alternative to preventing
+structural outliers at generation time. A more thorough approach would sample
+each avatar's event skeleton from the cohort, so no avatar carries any one real
+subject's unique structure; that is a possible future direction, not current
+behavior.
 
 ## Edge cases and documented fallbacks
 

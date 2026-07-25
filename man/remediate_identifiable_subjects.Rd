@@ -7,15 +7,22 @@
 remediate_identifiable_subjects(
   data,
   roles,
+  source = NULL,
   time = c("truncate", "drop", "keep"),
   other = c("drop", "keep"),
-  threshold = 3.5
+  threshold = 3.5,
+  seed = NULL,
+  max_tries = 20L
 )
 }
 \arguments{
 \item{data}{A PMX dataset, typically the synthetic output.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
+
+\item{source}{Optional source PMX data. When given, dropped subjects are
+replaced by fresh avatars generated from it, so the cohort size is
+preserved. When \code{NULL} (default), dropped subjects are simply removed.}
 
 \item{time}{Action for a subject whose \emph{only} outlier axis is follow-up time:
 \code{"truncate"} (default) to shorten it to the longest ordinary follow-up,
@@ -25,11 +32,16 @@ remediate_identifiable_subjects(
 (default) or \code{"keep"}.}
 
 \item{threshold}{Passed to \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}}.}
+
+\item{seed}{Reproducibility seed for the replacement generation. The caller's
+random-number state is restored by \code{\link[=synpmx_avatar]{synpmx_avatar()}}.}
+
+\item{max_tries}{Maximum regeneration batches when refilling dropped subjects.}
 }
 \value{
-\code{data} with the policy applied, carrying attributes \code{dropped} and
-\code{truncated} (the affected subject ids) and \code{horizon} (the follow-up time
-truncation used, or \code{NA}).
+\code{data} with the policy applied, carrying attributes \code{dropped},
+\code{truncated} (affected subject ids), \code{replaced} (count refilled), and
+\code{horizon} (the follow-up truncation used, or \code{NA}).
 }
 \description{
 Applies a remediation policy to the outliers found by
@@ -49,9 +61,16 @@ regimen -- so those subjects are dropped rather than edited. A subject flagged
 for both a long follow-up and another reason is dropped, since truncation
 would not resolve the other reason.
 
-This is a stop-gap. The durable fix is to sample each avatar's event skeleton
-from the cohort so structural outliers are not generated in the first place
-(\code{REV-026}); see \code{vignette("synpmx-method")}.
+When \code{source} is supplied, each dropped subject is \strong{replaced}: fresh avatars
+are generated from \code{source}, screened by the same policy, and appended (with
+new ids) until the cohort is back to its original size. So the output keeps
+the same number of subjects, minus any it could not refill within \code{max_tries}.
+Truncation keeps its subject, so it never triggers a replacement.
+
+Detection is per subject, so one long-followed patient is truncated once and
+one extreme patient dropped-and-replaced once -- there is no row-level outlier
+spray. With replacement, this is a self-contained alternative to preventing
+structural outliers at generation time (skeleton sampling, \code{REV-026}).
 }
 \examples{
 data <- pmx_simulated_fixture(30)
@@ -60,7 +79,7 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = "WT"
 )
 synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-cleaned <- remediate_identifiable_subjects(synthetic, roles)
+cleaned <- remediate_identifiable_subjects(synthetic, roles, source = data)
 }
 \seealso{
 \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}}.
