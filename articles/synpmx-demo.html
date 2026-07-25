@@ -1069,17 +1069,15 @@ Both endpoints and all subjects are retained.</p>
 <p><img src="synpmx-demo_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
-<h2 id="wbc-infusion-and-a-delayed-response">WBC: infusion and a delayed response<a class="anchor" aria-label="anchor" href="#wbc-infusion-and-a-delayed-response"></a>
+<h2 id="wbc-infusion-a-delayed-response-and-a-structural-outlier">WBC: infusion, a delayed response, and a structural outlier<a class="anchor" aria-label="anchor" href="#wbc-infusion-a-delayed-response-and-a-structural-outlier"></a>
 </h2>
 <p><code>wbcSim</code> has infusion start/stop events and a study-time
 white-blood-cell response with a delayed decline, nadir, and recovery.
-Some source dosing schedules are unique, so a subject can be alone in
-its exact event-pattern group. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> still blends
-each synthetic subject from <code>k</code> real patients (default 5) by
-borrowing the nearest donors from other schedule groups when a subject’s
-own group is too small — the avatar keeps its anchor’s event skeleton
-while its measurements are averaged across several patients, so no one
-source subject is reproduced near-verbatim.</p>
+It is also genuinely heterogeneous: a few subjects are followed far
+longer than the rest. Because an avatar copies its anchor’s event
+skeleton, that long follow-up carries into the synthetic data even
+though the measurements are blended across several patients — a
+structural feature that can single a subject out.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
@@ -1089,64 +1087,108 @@ source subject is reproduced near-verbatim.</p>
 <span><span class="co">#&gt; synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>  <span class="fu">check_demo_similarity</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">720</span><span class="op">)</span>, <span class="st">"WBC"</span><span class="op">)</span>,</span>
-<span>  digits <span class="op">=</span> <span class="fl">2</span>, caption <span class="op">=</span> <span class="st">"WBC cohort and follow-up checks"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> catches the structurally
+unusual subjects — here, the ones followed far longer than the cohort
+typically is:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">wbc_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span></span>
+<span><span class="va">flagged</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">wbc_flags</span><span class="op">)</span><span class="op">[</span><span class="va">wbc_flags</span><span class="op">$</span><span class="va">flagged</span>, <span class="op">]</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">flagged</span>, <span class="fl">6</span><span class="op">)</span>, digits <span class="op">=</span> <span class="fl">0</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>             caption <span class="op">=</span> <span class="st">"Structurally unusual synthetic WBC subjects"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>WBC cohort and follow-up checks</caption>
+<caption>Structurally unusual synthetic WBC subjects</caption>
 <colgroup>
-<col width="6%">
-<col width="6%">
-<col width="6%">
-<col width="15%">
+<col width="12%">
+<col width="16%">
 <col width="8%">
-<col width="20%">
-<col width="21%">
+<col width="10%">
 <col width="7%">
-<col width="6%">
+<col width="35%">
+<col width="8%">
 </colgroup>
 <thead><tr class="header">
-<th align="left">dataset</th>
-<th align="left">endpoint</th>
-<th align="right">patients</th>
-<th align="right">patients_with_endpoint</th>
-<th align="right">observations</th>
-<th align="right">mean_time_points_per_patient</th>
-<th align="right">median_time_points_per_patient</th>
-<th align="right">first_time</th>
-<th align="right">last_time</th>
+<th align="left">subject_id</th>
+<th align="right">follow_up_time</th>
+<th align="right">n_doses</th>
+<th align="right">max_dose</th>
+<th align="right">max_dv</th>
+<th align="left">outlier_axes</th>
+<th align="left">flagged</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">Source</td>
-<td align="left">DV</td>
-<td align="right">45</td>
-<td align="right">45</td>
-<td align="right">160</td>
-<td align="right">3.56</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">672</td>
+<td align="left">59</td>
+<td align="right">4580</td>
+<td align="right">6</td>
+<td align="right">137</td>
+<td align="right">5</td>
+<td align="left">follow-up time, number of doses</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="even">
-<td align="left">Synthetic</td>
-<td align="left">DV</td>
-<td align="right">45</td>
-<td align="right">45</td>
-<td align="right">152</td>
-<td align="right">3.38</td>
-<td align="right">4</td>
+<td align="left">60</td>
+<td align="right">1130</td>
+<td align="right">2</td>
+<td align="right">137</td>
+<td align="right">10</td>
+<td align="left">follow-up time, number of doses</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">48</td>
 <td align="right">0</td>
-<td align="right">672</td>
+<td align="right">1</td>
+<td align="right">113</td>
+<td align="right">6</td>
+<td align="left">follow-up time</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">51</td>
+<td align="right">144</td>
+<td align="right">1</td>
+<td align="right">115</td>
+<td align="right">7</td>
+<td align="left">follow-up time</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">82</td>
+<td align="right">168</td>
+<td align="right">1</td>
+<td align="right">112</td>
+<td align="right">8</td>
+<td align="left">follow-up time</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">86</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">113</td>
+<td align="right">7</td>
+<td align="left">follow-up time</td>
+<td align="left">TRUE</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> truncates a
+merely-long follow-up and drops the rest, refilling from the source so
+the cohort keeps its size. The plotted data below is the remediated set,
+so the extreme long-follow-up tail is gone. <code>wbcSim</code>’s
+follow-up is genuinely spread, so this screen is a judgement tool, not a
+one-click guarantee: it removes the individually unusual subjects, not
+the cohort’s natural variation.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">wbc_clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects</a></span><span class="op">(</span></span>
+<span>  <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span>, source <span class="op">=</span> <span class="va">wbcSim</span>, seed <span class="op">=</span> <span class="fl">11</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; remediate_identifiable_subjects(): dropped 6, truncated 0, replaced 6.</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">wbc_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">wbc_synth</span>, <span class="va">wbc_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
+<span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">wbc_clean</span>, <span class="va">wbc_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
 <span>  <span class="va">wbc_comparison</span>,</span>
@@ -1174,7 +1216,7 @@ group is carried through with <code>keep</code>, which copies it
 verbatim from the same subject that supplied the doses, so it stays
 coherent with them. The redundant <code>WGT</code> column is simply left
 undeclared, so AVATAR drops it.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1240,7 +1282,7 @@ undeclared, so AVATAR drops it.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">nimo_synth</span>, <span class="va">nimo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -1271,7 +1313,7 @@ undeclared, so AVATAR drops it.</p>
 The reset clock validates within ID and occasion. AVATAR copies the
 whole event template from one anchor, so <code>DOSE</code> stays
 coherent with the doses when carried through with <code>keep</code>.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mavoglurant"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">mavo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1336,7 +1378,7 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mavo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">mavo_synth</span>, <span class="va">mavo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -1380,10 +1422,10 @@ budget share is an explicit public input.
 refuses to run until <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been
 called once in the session, acknowledging the maintenance status covered
 in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
 <span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
@@ -1428,12 +1470,12 @@ in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is called. The release it produced
 travels with the returned dataset, so any number of further datasets can
 be drawn from it as post-processing, without spending more budget:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">theo_private</span>, seed <span class="op">=</span> <span class="fl">708</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
 <p>Reach for <code><a href="../reference/synpmx_generate.html">synpmx_generate()</a></code> rather than calling
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> a second time — a second call is a
 second release, and its budget has to be composed with the first.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_private</span>, <span class="va">theo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>

@@ -514,18 +514,15 @@ ggplot2::ggplot(
 
 ![](synpmx-demo_files/figure-html/warfarin-plot-1.png)
 
-## WBC: infusion and a delayed response
+## WBC: infusion, a delayed response, and a structural outlier
 
 `wbcSim` has infusion start/stop events and a study-time
 white-blood-cell response with a delayed decline, nadir, and recovery.
-Some source dosing schedules are unique, so a subject can be alone in
-its exact event-pattern group.
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-still blends each synthetic subject from `k` real patients (default 5)
-by borrowing the nearest donors from other schedule groups when a
-subject’s own group is too small — the avatar keeps its anchor’s event
-skeleton while its measurements are averaged across several patients, so
-no one source subject is reproduced near-verbatim.
+It is also genuinely heterogeneous: a few subjects are followed far
+longer than the rest. Because an avatar copies its anchor’s event
+skeleton, that long follow-up carries into the synthetic data even
+though the measurements are blended across several patients — a
+structural feature that can single a subject out.
 
 ``` r
 
@@ -538,24 +535,52 @@ wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
 #>   Declare a column in `keep` to carry it through verbatim.
 validate_pmx(wbc_synth, wbc_roles)$valid
 #> [1] TRUE
-knitr::kable(
-  check_demo_similarity(wbcSim, wbc_synth, wbc_roles, c(0, 720), "WBC"),
-  digits = 2, caption = "WBC cohort and follow-up checks"
-)
 ```
 
-| dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 45 | 45 | 160 | 3.56 | 4 | 0 | 672 |
-| Synthetic | DV | 45 | 45 | 152 | 3.38 | 4 | 0 | 672 |
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+catches the structurally unusual subjects — here, the ones followed far
+longer than the cohort typically is:
 
-WBC cohort and follow-up checks {.table}
+``` r
+
+wbc_flags <- flag_identifiable_subjects(wbc_synth, wbc_roles)
+flagged <- as.data.frame(wbc_flags)[wbc_flags$flagged, ]
+knitr::kable(head(flagged, 6), digits = 0, row.names = FALSE,
+             caption = "Structurally unusual synthetic WBC subjects")
+```
+
+| subject_id | follow_up_time | n_doses | max_dose | max_dv | outlier_axes | flagged |
+|:---|---:|---:|---:|---:|:---|:---|
+| 59 | 4580 | 6 | 137 | 5 | follow-up time, number of doses | TRUE |
+| 60 | 1130 | 2 | 137 | 10 | follow-up time, number of doses | TRUE |
+| 48 | 0 | 1 | 113 | 6 | follow-up time | TRUE |
+| 51 | 144 | 1 | 115 | 7 | follow-up time | TRUE |
+| 82 | 168 | 1 | 112 | 8 | follow-up time | TRUE |
+| 86 | 0 | 1 | 113 | 7 | follow-up time | TRUE |
+
+Structurally unusual synthetic WBC subjects {.table}
+
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+truncates a merely-long follow-up and drops the rest, refilling from the
+source so the cohort keeps its size. The plotted data below is the
+remediated set, so the extreme long-follow-up tail is gone. `wbcSim`’s
+follow-up is genuinely spread, so this screen is a judgement tool, not a
+one-click guarantee: it removes the individually unusual subjects, not
+the cohort’s natural variation.
+
+``` r
+
+wbc_clean <- remediate_identifiable_subjects(
+  wbc_synth, wbc_roles, source = wbcSim, seed = 11
+)
+#> remediate_identifiable_subjects(): dropped 6, truncated 0, replaced 6.
+```
 
 ``` r
 
 wbc_comparison <- rbind(
   observed_plot_data(wbcSim, wbc_roles, "Source"),
-  observed_plot_data(wbc_synth, wbc_roles, "Synthetic")
+  observed_plot_data(wbc_clean, wbc_roles, "Synthetic")
 )
 ggplot2::ggplot(
   wbc_comparison,
