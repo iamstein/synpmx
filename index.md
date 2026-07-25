@@ -1,5 +1,7 @@
 # synpmx
 
+📖 **Website and documentation: <https://iamstein.github.io/synpmx/>**
+
 `synpmx` builds **synthetic pharmacometric datasets** from actual
 datasets. The intended use case is to provide realistic looking data of
 a study that can be shared outside the GxP computing environment (but
@@ -117,7 +119,7 @@ has been called once in the session.
 | Document | Question it answers |
 |----|----|
 | [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
-| [Using synpmx](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
+| [Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
 | [Privacy in synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) | What does differential privacy guarantee, does my release need it, and what epsilon? |
 | [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html) | How does the default generator work, step by step? |
 | [Privacy background](https://iamstein.github.io/synpmx/articles/privacy-background.html) | Where do `d`, `f`, and the error law come from? |

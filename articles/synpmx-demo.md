@@ -1,4 +1,4 @@
-# Using synpmx
+# Using synpmx AVATAR with 5 datasets
 
 This vignette compares five source datasets against their synthetic
 counterparts, so it needs a few helpers to pull observed rows into a

@@ -37,14 +37,14 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="articles/synpmx-method.html">The four generation modes</a></li>
-    <li><a class="dropdown-item" href="articles/synpmx-demo.html">Using synpmx</a></li>
+    <li><a class="dropdown-item" href="articles/synpmx-demo.html">Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
     <li><a class="dropdown-item" href="articles/avatar-mathematics.html">AVATAR mathematics</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
-    <li><a class="dropdown-item" href="articles/privacy-background.html">Privacy background — the arithmetic</a></li>
+    <li><a class="dropdown-item" href="articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="articles/feasibility.html">Feasibility by cohort size</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -53,7 +53,6 @@
     <li><a class="dropdown-item" href="articles/data-elicitation.html">Data elicitation</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -70,6 +69,7 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
+<p>📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
 <p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets. The intended use case is to provide realistic looking data of a study that can be shared outside the GxP computing environment (but stay within the organization) so that code for data-assembly code, diagnostic plots, and modeling can be developed outside the restricted computing environment that holds the real data.</p>
 <p>In some cases the GxP computing environment does not allow use of the most advanced agentic coding tools due to risks from misalignment and unintended behavior of the agents. Using synthetic data allows for thr most advanced agentic coding tools to be ised wothout exposing them to parient data.</p>
 <p>In general, when developing synthetic data, it’s important to think carefully about <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. This is a privacy question and <code>synpmx</code> offers four options. The main deliverable of the package uses an implementation of the AVATAR method which offers some blinding, but not formal privacy guarantees.</p>
@@ -190,7 +190,7 @@ If no one new can access the data, AVATAR is much easier to use.</li>
 </td>
 </tr>
 <tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-demo.html">Using synpmx</a></td>
+<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-demo.html">Using synpmx AVATAR with 5 datasets</a></td>
 <td>How do I run this on my own study?</td>
 </tr>
 <tr>
