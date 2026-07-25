@@ -5,7 +5,7 @@ template:
 
 navbar:
   structure:
-    left: [intro, reference, articles, news]
+    left: [intro, reference, articles]
     right: [search, github]
   components:
     articles:
@@ -14,7 +14,7 @@ navbar:
       - text: "Guides"
       - text: The four generation modes
         href: articles/synpmx-method.html
-      - text: Using synpmx
+      - text: Using synpmx AVATAR with 5 datasets
         href: articles/synpmx-demo.html
       - text: Privacy in synpmx
         href: articles/synpmx-privacy.html
@@ -24,7 +24,7 @@ navbar:
         href: articles/avatar-mathematics.html
       - text: -------
       - text: "Privacy"
-      - text: Privacy background — the arithmetic
+      - text: Privacy background
         href: articles/privacy-background.html
       - text: Formal privacy argument
         href: articles/privacy-argument.html
