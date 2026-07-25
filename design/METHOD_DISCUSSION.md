@@ -261,6 +261,26 @@ scoped — the main remaining constraint is that dosing events themselves stay
 coherent with the regimen. Connects to protocol structure in
 `vignettes/articles/data-elicitation.Rmd`.
 
+### D. Default anchor screen — DONE (2026-07-25), the "good enough" guard
+
+The owner's guiding principle is *good enough, not perfect; output must not look
+crazy; simplicity is valuable* (the canonical bad case is the lone 4580-hour
+`wbcSim` avatar). The simplest expression of that is preventive and on by
+default: `synpmx_avatar(screen = TRUE)` does not use a source subject with a
+gross **structural** outlier as an anchor, so no avatar inherits a crazy
+skeleton. Only follow-up length and dose count are screened — the axes that make
+a skeleton look wrong. Dose magnitude is left alone (weight-based dosing makes
+ordinary subjects look like dose outliers, and screening it broke `theo_md`),
+and DV is blended rather than copied. Screening uses no randomness, so a source
+with no such outlier yields byte-identical output to `screen = FALSE`; only
+datasets that actually contain a crazy structure change. This makes not-crazy
+the default with no extra step, and leaves `flag_identifiable_subjects()` /
+`remediate_identifiable_subjects()` as the fuller, tunable manual layer.
+
+Given this, skeleton sampling (B) is firmly a "consider, not do": the default
+screen already removes the crazy structure simply, which is the bar the owner
+set.
+
 ### C. A post-generation outlier detector (owner request) — DONE (2026-07-25)
 
 `flag_identifiable_subjects(data, roles)` (`R/compare.R`) — the per-subject

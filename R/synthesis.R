@@ -479,6 +479,15 @@
 #'   -1 and 1.
 #' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
 #'   the default, leaves the event template's times unchanged.
+#' @param screen When `TRUE` (default), source subjects whose event structure is
+#'   a gross outlier -- an unusually long or short follow-up, or an unusual
+#'   number of doses -- are not used as anchors, so no avatar inherits a
+#'   crazy-looking skeleton. Only these structural axes are screened; dose
+#'   magnitude (which weight-based dosing makes noisy) and DV (which is blended,
+#'   not copied) are not. A source with no such outlier is unaffected. Set
+#'   `FALSE` to anchor on every subject. For a fuller, tunable screen of the
+#'   generated output, see [flag_identifiable_subjects()] and
+#'   [remediate_identifiable_subjects()].
 #'
 #' @return An ordinary data frame or tibble with retained source columns, order,
 #'   and practical classes. A lightweight `pmx_settings` attribute records the
@@ -504,7 +513,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      dv_method = "avatar_blend", k = 5,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
-                     time_jitter = 0) {
+                     time_jitter = 0, screen = TRUE) {
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
@@ -575,7 +584,28 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         as.integer(k)
       ))
     }
-    anchors <- sample.int(length(subjects), n_subjects, replace = TRUE)
+    # Keep the output from looking crazy by default: do not anchor an avatar on
+    # a source subject whose *event structure* is a gross outlier, since the
+    # anchor's skeleton is copied verbatim. Only follow-up length and dose count
+    # are screened -- the two axes that make a skeleton look structurally wrong.
+    # Dose magnitude is left alone (weight-based dosing makes ordinary subjects
+    # look like dose outliers), and DV is blended rather than copied. Screening
+    # uses no randomness, so a source with no such outlier yields byte-identical
+    # output to `screen = FALSE`. Turn it off to keep every structure.
+    allowed <- seq_along(subjects)
+    if (isTRUE(screen)) {
+      flags <- flag_identifiable_subjects(source, source_roles)
+      structural <- flags$flagged &
+        grepl("follow-up time|number of doses", flags$outlier_axes)
+      excluded <- which(as.character(subjects) %in% flags$subject_id[structural])
+      if (length(excluded) && length(excluded) < length(subjects)) {
+        allowed <- setdiff(allowed, excluded)
+      } else if (length(excluded)) {
+        warning("Screening would exclude every source subject as a structural ",
+                "outlier; it was skipped for this call.", call. = FALSE)
+      }
+    }
+    anchors <- allowed[sample.int(length(allowed), n_subjects, replace = TRUE)]
     standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
 
