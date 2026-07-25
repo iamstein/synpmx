@@ -14,9 +14,12 @@ entirely.
 remediate_identifiable_subjects(
   data,
   roles,
+  source = NULL,
   time = c("truncate", "drop", "keep"),
   other = c("drop", "keep"),
-  threshold = 3.5
+  threshold = 3.5,
+  seed = NULL,
+  max_tries = 20L
 )
 ```
 
@@ -30,6 +33,12 @@ remediate_identifiable_subjects(
 
   Explicit roles from
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md).
+
+- source:
+
+  Optional source PMX data. When given, dropped subjects are replaced by
+  fresh avatars generated from it, so the cohort size is preserved. When
+  `NULL` (default), dropped subjects are simply removed.
 
 - time:
 
@@ -47,11 +56,21 @@ remediate_identifiable_subjects(
   Passed to
   [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md).
 
+- seed:
+
+  Reproducibility seed for the replacement generation. The caller's
+  random-number state is restored by
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md).
+
+- max_tries:
+
+  Maximum regeneration batches when refilling dropped subjects.
+
 ## Value
 
-`data` with the policy applied, carrying attributes `dropped` and
-`truncated` (the affected subject ids) and `horizon` (the follow-up time
-truncation used, or `NA`).
+`data` with the policy applied, carrying attributes `dropped`,
+`truncated` (affected subject ids), `replaced` (count refilled), and
+`horizon` (the follow-up truncation used, or `NA`).
 
 ## Details
 
@@ -65,10 +84,18 @@ rather than edited. A subject flagged for both a long follow-up and
 another reason is dropped, since truncation would not resolve the other
 reason.
 
-This is a stop-gap. The durable fix is to sample each avatar's event
-skeleton from the cohort so structural outliers are not generated in the
-first place (`REV-026`); see
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md).
+When `source` is supplied, each dropped subject is **replaced**: fresh
+avatars are generated from `source`, screened by the same policy, and
+appended (with new ids) until the cohort is back to its original size.
+So the output keeps the same number of subjects, minus any it could not
+refill within `max_tries`. Truncation keeps its subject, so it never
+triggers a replacement.
+
+Detection is per subject, so one long-followed patient is truncated once
+and one extreme patient dropped-and-replaced once – there is no
+row-level outlier spray. With replacement, this is a self-contained
+alternative to preventing structural outliers at generation time
+(skeleton sampling, `REV-026`).
 
 ## See also
 
@@ -85,6 +112,6 @@ roles <- pmx_roles(
 synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
-cleaned <- remediate_identifiable_subjects(synthetic, roles)
-#> remediate_identifiable_subjects(): dropped 1 subject(s); truncated 0 subject(s).
+cleaned <- remediate_identifiable_subjects(synthetic, roles, source = data)
+#> remediate_identifiable_subjects(): dropped 1, truncated 0, replaced 1.
 ```

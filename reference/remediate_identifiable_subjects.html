@@ -75,9 +75,12 @@ reason – an extreme DV, a rare dose level, or an unusual dose count – is
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">remediate_identifiable_subjects</span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
 <span>  <span class="va">roles</span>,</span>
+<span>  source <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"truncate"</span>, <span class="st">"drop"</span>, <span class="st">"keep"</span><span class="op">)</span>,</span>
 <span>  other <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"drop"</span>, <span class="st">"keep"</span><span class="op">)</span>,</span>
-<span>  threshold <span class="op">=</span> <span class="fl">3.5</span></span>
+<span>  threshold <span class="op">=</span> <span class="fl">3.5</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_tries <span class="op">=</span> <span class="fl">20L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,6 +94,12 @@ reason – an extreme DV, a rare dose level, or an unusual dose count – is
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
 <dd><p>Explicit roles from <code><a href="pmx_roles.html">pmx_roles()</a></code>.</p></dd>
+
+
+<dt id="arg-source">source<a class="anchor" aria-label="anchor" href="#arg-source"></a></dt>
+<dd><p>Optional source PMX data. When given, dropped subjects are
+replaced by fresh avatars generated from it, so the cohort size is
+preserved. When <code>NULL</code> (default), dropped subjects are simply removed.</p></dd>
 
 
 <dt id="arg-time">time<a class="anchor" aria-label="anchor" href="#arg-time"></a></dt>
@@ -107,12 +116,21 @@ reason – an extreme DV, a rare dose level, or an unusual dose count – is
 <dt id="arg-threshold">threshold<a class="anchor" aria-label="anchor" href="#arg-threshold"></a></dt>
 <dd><p>Passed to <code><a href="flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>.</p></dd>
 
+
+<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
+<dd><p>Reproducibility seed for the replacement generation. The caller's
+random-number state is restored by <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code>.</p></dd>
+
+
+<dt id="arg-max-tries">max_tries<a class="anchor" aria-label="anchor" href="#arg-max-tries"></a></dt>
+<dd><p>Maximum regeneration batches when refilling dropped subjects.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p><code>data</code> with the policy applied, carrying attributes <code>dropped</code> and
-<code>truncated</code> (the affected subject ids) and <code>horizon</code> (the follow-up time
-truncation used, or <code>NA</code>).</p>
+    <p><code>data</code> with the policy applied, carrying attributes <code>dropped</code>,
+<code>truncated</code> (affected subject ids), <code>replaced</code> (count refilled), and
+<code>horizon</code> (the follow-up truncation used, or <code>NA</code>).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -124,9 +142,15 @@ would only mangle it, and a rare dose cannot be trimmed without breaking the
 regimen – so those subjects are dropped rather than edited. A subject flagged
 for both a long follow-up and another reason is dropped, since truncation
 would not resolve the other reason.</p>
-<p>This is a stop-gap. The durable fix is to sample each avatar's event skeleton
-from the cohort so structural outliers are not generated in the first place
-(<code>REV-026</code>); see <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>.</p>
+<p>When <code>source</code> is supplied, each dropped subject is <strong>replaced</strong>: fresh avatars
+are generated from <code>source</code>, screened by the same policy, and appended (with
+new ids) until the cohort is back to its original size. So the output keeps
+the same number of subjects, minus any it could not refill within <code>max_tries</code>.
+Truncation keeps its subject, so it never triggers a replacement.</p>
+<p>Detection is per subject, so one long-followed patient is truncated once and
+one extreme patient dropped-and-replaced once – there is no row-level outlier
+spray. With replacement, this is a self-contained alternative to preventing
+structural outliers at generation time (skeleton sampling, <code>REV-026</code>).</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -143,8 +167,8 @@ from the cohort so structural outliers are not generated in the first place
 <span class="r-in"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Declare a column in `keep` to carry it through verbatim.</span>
-<span class="r-in"><span><span class="va">cleaned</span> <span class="op">&lt;-</span> <span class="fu">remediate_identifiable_subjects</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> remediate_identifiable_subjects(): dropped 1 subject(s); truncated 0 subject(s).</span>
+<span class="r-in"><span><span class="va">cleaned</span> <span class="op">&lt;-</span> <span class="fu">remediate_identifiable_subjects</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, source <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> remediate_identifiable_subjects(): dropped 1, truncated 0, replaced 1.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
