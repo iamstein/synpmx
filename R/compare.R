@@ -482,6 +482,44 @@ print.pmx_identifiability <- function(x, ...) {
   invisible(x)
 }
 
+# Apply the truncate/drop policy to one dataset (no regeneration). Shared by the
+# public remediation function and its replacement loop.
+.apply_remediation_policy <- function(data, roles, time, other, threshold) {
+  report <- flag_identifiable_subjects(data, roles, threshold = threshold)
+  time_only <- report$flagged & report$outlier_axes == "follow-up time"
+  other_flagged <- report$flagged & !time_only
+
+  drop_ids <- character()
+  if (other == "drop") drop_ids <- c(drop_ids, report$subject_id[other_flagged])
+  truncate_ids <- character()
+  if (any(time_only)) {
+    if (time == "drop") {
+      drop_ids <- c(drop_ids, report$subject_id[time_only])
+    } else if (time == "truncate") {
+      truncate_ids <- report$subject_id[time_only]
+    }
+  }
+  drop_ids <- unique(drop_ids)
+
+  time_out <- grepl("follow-up time", report$outlier_axes, fixed = TRUE)
+  ordinary <- report$follow_up_time[!time_out & is.finite(report$follow_up_time)]
+  horizon <- if (length(ordinary)) max(ordinary) else NA_real_
+  if (length(truncate_ids) && !is.finite(horizon)) {
+    drop_ids <- unique(c(drop_ids, truncate_ids))
+    truncate_ids <- character()
+  }
+
+  id <- as.character(data[[roles$id]])
+  keep <- !(id %in% drop_ids)
+  if (length(truncate_ids)) {
+    times <- suppressWarnings(as.numeric(data[[roles$time]]))
+    keep <- keep & !(id %in% truncate_ids & is.finite(times) & times > horizon)
+  }
+  out <- data[keep, , drop = FALSE]
+  rownames(out) <- NULL
+  list(data = out, dropped = drop_ids, truncated = truncate_ids, horizon = horizon)
+}
+
 #' Remove or shorten the subjects `flag_identifiable_subjects()` flags
 #'
 #' Applies a remediation policy to the outliers found by
@@ -500,22 +538,35 @@ print.pmx_identifiability <- function(x, ...) {
 #' for both a long follow-up and another reason is dropped, since truncation
 #' would not resolve the other reason.
 #'
-#' This is a stop-gap. The durable fix is to sample each avatar's event skeleton
-#' from the cohort so structural outliers are not generated in the first place
-#' (`REV-026`); see `vignette("synpmx-method")`.
+#' When `source` is supplied, each dropped subject is **replaced**: fresh avatars
+#' are generated from `source`, screened by the same policy, and appended (with
+#' new ids) until the cohort is back to its original size. So the output keeps
+#' the same number of subjects, minus any it could not refill within `max_tries`.
+#' Truncation keeps its subject, so it never triggers a replacement.
+#'
+#' Detection is per subject, so one long-followed patient is truncated once and
+#' one extreme patient dropped-and-replaced once -- there is no row-level outlier
+#' spray. With replacement, this is a self-contained alternative to preventing
+#' structural outliers at generation time (skeleton sampling, `REV-026`).
 #'
 #' @param data A PMX dataset, typically the synthetic output.
 #' @param roles Explicit roles from [pmx_roles()].
+#' @param source Optional source PMX data. When given, dropped subjects are
+#'   replaced by fresh avatars generated from it, so the cohort size is
+#'   preserved. When `NULL` (default), dropped subjects are simply removed.
 #' @param time Action for a subject whose *only* outlier axis is follow-up time:
 #'   `"truncate"` (default) to shorten it to the longest ordinary follow-up,
 #'   `"drop"` to remove it, or `"keep"` to leave it.
 #' @param other Action for a subject flagged for any non-time reason: `"drop"`
 #'   (default) or `"keep"`.
 #' @param threshold Passed to [flag_identifiable_subjects()].
+#' @param seed Reproducibility seed for the replacement generation. The caller's
+#'   random-number state is restored by [synpmx_avatar()].
+#' @param max_tries Maximum regeneration batches when refilling dropped subjects.
 #'
-#' @return `data` with the policy applied, carrying attributes `dropped` and
-#'   `truncated` (the affected subject ids) and `horizon` (the follow-up time
-#'   truncation used, or `NA`).
+#' @return `data` with the policy applied, carrying attributes `dropped`,
+#'   `truncated` (affected subject ids), `replaced` (count refilled), and
+#'   `horizon` (the follow-up truncation used, or `NA`).
 #' @seealso [flag_identifiable_subjects()].
 #' @export
 #' @examples
@@ -525,55 +576,71 @@ print.pmx_identifiability <- function(x, ...) {
 #'   cmt = "CMT", dvid = "DVID", covariates = "WT"
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-#' cleaned <- remediate_identifiable_subjects(synthetic, roles)
-remediate_identifiable_subjects <- function(data, roles,
+#' cleaned <- remediate_identifiable_subjects(synthetic, roles, source = data)
+remediate_identifiable_subjects <- function(data, roles, source = NULL,
                                             time = c("truncate", "drop", "keep"),
                                             other = c("drop", "keep"),
-                                            threshold = 3.5) {
+                                            threshold = 3.5, seed = NULL,
+                                            max_tries = 20L) {
   time <- match.arg(time)
   other <- match.arg(other)
-  report <- flag_identifiable_subjects(data, roles, threshold = threshold)
+  res <- .apply_remediation_policy(data, roles, time, other, threshold)
+  out <- res$data
+  replaced <- 0L
 
-  time_only <- report$flagged & report$outlier_axes == "follow-up time"
-  other_flagged <- report$flagged & !time_only
-
-  drop_ids <- character()
-  if (other == "drop") drop_ids <- c(drop_ids, report$subject_id[other_flagged])
-  truncate_ids <- character()
-  if (any(time_only)) {
-    if (time == "drop") {
-      drop_ids <- c(drop_ids, report$subject_id[time_only])
-    } else if (time == "truncate") {
-      truncate_ids <- report$subject_id[time_only]
+  if (length(res$dropped) && !is.null(source)) {
+    .assert_roles(source, roles)
+    need <- length(res$dropped)
+    base_seed <- if (is.null(seed)) {
+      sample.int(.Machine$integer.max, 1L)
+    } else as.integer(seed)
+    # New ids must avoid every original id, including the dropped ones, so a
+    # replacement never silently reuses a removed subject's label.
+    avoid <- data[[roles$id]]
+    tries <- 0L
+    while (replaced < need && tries < max_tries) {
+      tries <- tries + 1L
+      batch <- suppressWarnings(suppressMessages(synpmx_avatar(
+        source, roles, n_subjects = need - replaced, seed = base_seed + tries
+      )))
+      if (!setequal(names(batch), names(out))) {
+        stop("Replacement schema does not match `data`; regenerate from the ",
+             "same source and roles.", call. = FALSE)
+      }
+      batch <- batch[, names(out), drop = FALSE]
+      clean <- .apply_remediation_policy(batch, roles, time, other,
+                                         threshold)$data
+      clean_ids <- .unique_in_order(clean[[roles$id]])
+      if (!length(clean_ids)) next
+      take <- clean_ids[seq_len(min(length(clean_ids), need - replaced))]
+      chunk <- clean[as.character(clean[[roles$id]]) %in% as.character(take), ,
+                     drop = FALSE]
+      fresh <- .new_ids(avoid, length(take))
+      avoid <- c(avoid, fresh)
+      id_map <- stats::setNames(fresh, as.character(take))
+      chunk[[roles$id]] <- id_map[as.character(chunk[[roles$id]])]
+      out <- rbind(out, chunk)
+      replaced <- replaced + length(take)
+    }
+    rownames(out) <- NULL
+    if (replaced < need) {
+      warning(sprintf(
+        "Refilled only %d of %d dropped subject(s) in %d tries.",
+        replaced, need, max_tries
+      ), call. = FALSE)
     }
   }
-  drop_ids <- unique(drop_ids)
-
-  # Truncate toward the longest follow-up that is *not* itself a time outlier.
-  time_out <- grepl("follow-up time", report$outlier_axes, fixed = TRUE)
-  ordinary <- report$follow_up_time[!time_out & is.finite(report$follow_up_time)]
-  horizon <- if (length(ordinary)) max(ordinary) else NA_real_
-  if (length(truncate_ids) && !is.finite(horizon)) {
-    drop_ids <- unique(c(drop_ids, truncate_ids))  # nothing to truncate toward
-    truncate_ids <- character()
-  }
-
-  id <- as.character(data[[roles$id]])
-  keep <- !(id %in% drop_ids)
-  if (length(truncate_ids)) {
-    times <- suppressWarnings(as.numeric(data[[roles$time]]))
-    keep <- keep & !(id %in% truncate_ids & is.finite(times) & times > horizon)
-  }
-  out <- data[keep, , drop = FALSE]
-  rownames(out) <- NULL
 
   message(sprintf(
-    "remediate_identifiable_subjects(): dropped %d subject(s); truncated %d subject(s)%s.",
-    length(drop_ids), length(truncate_ids),
-    if (length(truncate_ids)) sprintf(" to follow-up <= %.4g", horizon) else ""
+    "remediate_identifiable_subjects(): dropped %d, truncated %d%s%s.",
+    length(res$dropped), length(res$truncated),
+    if (length(res$truncated)) sprintf(" (to follow-up <= %.4g)", res$horizon)
+      else "",
+    if (replaced) sprintf(", replaced %d", replaced) else ""
   ))
-  attr(out, "dropped") <- drop_ids
-  attr(out, "truncated") <- truncate_ids
-  attr(out, "horizon") <- horizon
+  attr(out, "dropped") <- res$dropped
+  attr(out, "truncated") <- res$truncated
+  attr(out, "replaced") <- replaced
+  attr(out, "horizon") <- res$horizon
   out
 }

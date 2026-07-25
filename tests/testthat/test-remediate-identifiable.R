@@ -77,3 +77,34 @@ test_that("a homogeneous cohort is returned unchanged", {
   expect_length(attr(out, "truncated"), 0L)
   expect_equal(nrow(out), nrow(data))
 })
+
+test_that("dropped subjects are replaced when a source is supplied", {
+  source_data <- do.call(rbind, lapply(1:8, rm_mk))
+  roles <- rm_roles()
+  synth <- suppressWarnings(
+    synpmx_avatar(source_data, roles, n_subjects = 8L, seed = 4)
+  )
+  n0 <- length(unique(synth$ID))
+
+  # Force one synthetic subject to be an extreme-DV outlier.
+  victim <- unique(synth$ID)[1]
+  synth$DV[synth$ID == victim & synth$EVID == 0] <- 500
+
+  out <- suppressMessages(remediate_identifiable_subjects(
+    synth, roles, source = source_data, seed = 99
+  ))
+
+  expect_gte(attr(out, "replaced"), 1L)
+  expect_false(victim %in% out$ID)                    # outlier gone
+  expect_equal(length(unique(out$ID)), n0)            # cohort size restored
+  expect_true(validate_pmx(out, roles)$valid)
+  # the refilled cohort has no remaining flagged subjects
+  expect_equal(sum(flag_identifiable_subjects(out, roles)$flagged), 0L)
+})
+
+test_that("without a source, dropped subjects are not replaced", {
+  data <- rbind(do.call(rbind, lapply(1:6, rm_mk)), rm_mk(7, peak = 50))
+  out <- suppressMessages(remediate_identifiable_subjects(data, rm_roles()))
+  expect_equal(attr(out, "replaced"), 0L)
+  expect_equal(length(unique(out$ID)), 6L)            # 7 dropped, not refilled
+})
