@@ -5,15 +5,15 @@
 `synpmx` builds **synthetic pharmacometric datasets** from actual
 datasets. The intended use case is to provide realistic looking data of
 a study that can be shared outside the GxP computing environment (but
-stay within the organization) so that code for data-assembly code,
-diagnostic plots, and modeling can be developed outside the restricted
-computing environment that holds the real data.
+stay within the organization) so that data-assembly code, diagnostic
+plots, and modeling can be developed outside the restricted computing
+environment that holds the real data.
 
 In some cases the GxP computing environment does not allow use of the
 most advanced agentic coding tools due to risks from misalignment and
-unintended behavior of the agents. Using synthetic data allows for thr
-most advanced agentic coding tools to be ised wothout exposing them to
-parient data.
+unintended behavior of the agents. Using synthetic data allows the most
+advanced agentic coding tools to be used without exposing them to
+patient data.
 
 In general, when developing synthetic data, it’s important to think
 carefully about **how much information about the real data is allowed to
