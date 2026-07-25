@@ -11,6 +11,14 @@ navbar:
     articles:
       text: Articles
       menu:
+      - text: "Guides"
+      - text: The four generation modes
+        href: articles/synpmx-method.html
+      - text: Using synpmx
+        href: articles/synpmx-demo.html
+      - text: Privacy in synpmx
+        href: articles/synpmx-privacy.html
+      - text: -------
       - text: "Method"
       - text: AVATAR mathematics
         href: articles/avatar-mathematics.html
