@@ -249,8 +249,9 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       source has fewer than `k + 1` subjects (`.select_donors()`,
       `.loud_warn()`; `test-avatar-pooling.R`). Discovery: weight-based dosing
       made nearly every subject its own singleton, so this was the common case,
-      not an edge case. Still to do: the post-generation outlier detector
-      (§6a C) and deciding whether the headline floor should exceed 5.
+      not an edge case. Outlier detector done too:
+      `flag_identifiable_subjects()` screens follow-up time, dose count, dose
+      magnitude, and DV. Still open: whether the headline floor should exceed 5.
 - [ ] `REV-026` **Owner-flagged, 2026-07-25.** Synthetic subjects copy one
       anchor's event skeleton verbatim, so unique-schedule patients (e.g. the
       long-followed `wbcSim` subject) reappear intact. Sample the schedule/event
