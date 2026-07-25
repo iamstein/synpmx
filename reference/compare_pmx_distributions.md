@@ -71,28 +71,28 @@ compare_pmx_distributions(data, synthetic, roles)
 #> Restricted PMX source-versus-synthetic distribution summary
 #> 
 #> Endpoints (dependent variable on observation rows):
-#>  variable   dataset   n n_subjects   mean     sd     min    q25 median    q75
-#>        cp    source 160         20  3.750  2.879  0.8800  1.335  2.656  5.288
-#>        pd    source 120         20 60.000 14.280 35.2000 48.640 59.610 71.310
-#>        cp synthetic 160         20  3.723  2.943  0.7074  1.246  2.445  5.671
-#>        pd synthetic 120         20 58.850 18.250 19.9600 44.970 58.290 69.820
+#>  variable   dataset   n n_subjects   mean     sd    min    q25 median    q75
+#>        cp    source 160         20  3.750  2.879  0.880  1.335  2.656  5.288
+#>        pd    source 120         20 60.000 14.280 35.200 48.640 59.610 71.310
+#>        cp synthetic 160         20  3.987  3.091  0.688  1.371  2.596  5.794
+#>        pd synthetic 120         20 62.970 20.450 26.610 47.970 60.350 75.370
 #>     max
 #>    9.52
 #>   89.60
-#>   10.34
-#>  106.90
+#>   10.75
+#>  121.80
 #> 
 #> Continuous covariates (baseline, per subject):
 #>  variable   dataset  n  mean    sd   min   q25 median   q75   max
 #>        WT    source 20 71.42 9.010 58.01 62.59  73.77 79.53 81.97
-#>        WT synthetic 20 73.75 8.143 57.78 65.73  77.02 80.11 82.07
+#>        WT synthetic 20 72.69 7.965 59.87 63.68  75.79 79.42 81.96
 #> 
 #> Categorical covariates (baseline, per subject):
 #>  variable   dataset  level  n proportion
-#>       SEX    source female 10        0.5
-#>       SEX    source   male 10        0.5
-#>       SEX synthetic female 12        0.6
-#>       SEX synthetic   male  8        0.4
+#>       SEX    source female 10       0.50
+#>       SEX    source   male 10       0.50
+#>       SEX synthetic female 13       0.65
+#>       SEX synthetic   male  7       0.35
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.
 ```

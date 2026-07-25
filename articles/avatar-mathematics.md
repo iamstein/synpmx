@@ -422,12 +422,11 @@ signature containing:
 
 Notice what is not in the signature: the observation-time schedule.
 Event values still come from the anchor template, while unequal
-observation times are handled by interpolation. Including dose magnitude
-prevents profiles from being blended across incompatible exposure
-scales.
+observation times are handled by interpolation. Dose magnitude enters
+the signature so that same-dose subjects are preferred as donors, but it
+is no longer an absolute barrier — see the borrowing rule below.
 
-For anchor $`a`$, only non-anchor subjects with the same signature are
-candidate donors. Euclidean distance in retained profile coordinates is
+For anchor $`a`$, Euclidean distance in retained profile coordinates is
 
 ``` math
 d_{ar}=\left\|\boldsymbol{\xi}_a-
@@ -435,10 +434,19 @@ d_{ar}=\left\|\boldsymbol{\xi}_a-
 =\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
 ```
 
-The closest `k` candidates are kept. If fewer exist, `k` is reduced and
-a warning is recorded. If none exist, the anchor itself becomes the sole
-donor; only subsequent randomized perturbation can then move its
-measurements.
+Every synthetic subject blends a floor of `k` real patients (default 5).
+Same-signature subjects are preferred and taken nearest-first; when a
+subject’s own group holds fewer than `k`, the nearest subjects from
+*other* dose/schedule groups are borrowed to reach `k`, and their
+trajectories are mapped onto the anchor’s own observation times by
+interpolation. The avatar therefore keeps its anchor’s regimen while its
+measurements are averaged across at least `k` patients — deliberately
+trading some exposure-scale fidelity for the guarantee that no single
+source subject is reproduced near-verbatim. Only a source with fewer
+than `k + 1` subjects cannot reach the floor; that case raises a loud
+alert. This borrowing matters most for datasets with individualized
+dosing, where an exact dose magnitude can make nearly every subject its
+own group.
 
 ## Step 7: randomize and cap donor weights
 
@@ -797,8 +805,8 @@ output over a silent incompatible blend.
 
 | Situation | Behavior |
 |:---|:---|
-| No compatible non-anchor donor | Use anchor as sole donor; randomized noise is the only trajectory change |
-| Fewer compatible donors than k | Reduce k and record a warning |
+| Fewer than k same-signature donors | Borrow the nearest donors from other dose/schedule groups to reach k |
+| Source smaller than the k-donor floor | Blend all available donors and raise a loud alert |
 | All selected distances essentially zero | Use epsilon-stabilized randomized weights |
 | One donor time only | Repeat that donor’s mean at every target time |
 | No donor value at a target | Use transformed endpoint median and record a warning |

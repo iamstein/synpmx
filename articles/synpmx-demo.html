@@ -333,9 +333,7 @@ a single concentration endpoint.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">theo_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">303</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
-<span><span class="co">#&gt; - `k` was reduced to 1 in at least one compatible event-pattern group.</span></span>
-<span><span class="co">#&gt; - A compatible event-pattern group supplied fewer than two non-anchor donors.</span></span>
-<span><span class="co">#&gt; - A compatible event-pattern group contained only its anchor; the anchor was used as the sole measurement donor and randomized noise supplied the only trajectory perturbation.</span></span>
+<span><span class="co">#&gt; - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -423,57 +421,57 @@ a single concentration endpoint.</p>
 <td align="right">319.365</td>
 <td align="right">101</td>
 <td align="right">1</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 <tr class="even">
 <td align="left">Synthetic</td>
 <td align="right">13</td>
 <td align="right">0.00</td>
-<td align="right">0.0114675</td>
+<td align="right">0.0000000</td>
 <td align="right">0.000</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 <tr class="odd">
 <td align="left">Synthetic</td>
 <td align="right">13</td>
 <td align="right">0.27</td>
-<td align="right">3.5907442</td>
+<td align="right">0.9595556</td>
 <td align="right">0.000</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 <tr class="even">
 <td align="left">Synthetic</td>
 <td align="right">13</td>
 <td align="right">0.58</td>
-<td align="right">4.0689484</td>
+<td align="right">4.1558157</td>
 <td align="right">0.000</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 <tr class="odd">
 <td align="left">Synthetic</td>
 <td align="right">13</td>
 <td align="right">1.02</td>
-<td align="right">8.7113683</td>
+<td align="right">7.6268745</td>
 <td align="right">0.000</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 <tr class="even">
 <td align="left">Synthetic</td>
 <td align="right">13</td>
 <td align="right">2.02</td>
-<td align="right">8.4550748</td>
+<td align="right">7.7644543</td>
 <td align="right">0.000</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">70.37768</td>
+<td align="right">67.60315</td>
 </tr>
 </tbody>
 </table>
@@ -544,7 +542,7 @@ controls.</p>
 <code class="sourceCode R"><span><span class="va">theo_dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">theo_dist</span><span class="op">$</span><span class="va">endpoints</span>, digits <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Concentration distribution, source versus synthetic"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<table style="width:100%;" class="table">
 <caption>Concentration distribution, source versus synthetic</caption>
 <colgroup>
 <col width="12%">
@@ -552,7 +550,7 @@ controls.</p>
 <col width="5%">
 <col width="15%">
 <col width="6%">
-<col width="5%">
+<col width="6%">
 <col width="8%">
 <col width="6%">
 <col width="9%">
@@ -579,7 +577,7 @@ controls.</p>
 <td align="right">264</td>
 <td align="right">12</td>
 <td align="right">5.53</td>
-<td align="right">3.0</td>
+<td align="right">3.00</td>
 <td align="right">-1.13</td>
 <td align="right">3.30</td>
 <td align="right">5.74</td>
@@ -591,13 +589,13 @@ controls.</p>
 <td align="left">synthetic</td>
 <td align="right">264</td>
 <td align="right">12</td>
-<td align="right">5.78</td>
-<td align="right">3.2</td>
+<td align="right">5.88</td>
+<td align="right">3.18</td>
 <td align="right">0.00</td>
-<td align="right">3.32</td>
-<td align="right">5.85</td>
+<td align="right">3.84</td>
+<td align="right">5.98</td>
 <td align="right">8.23</td>
-<td align="right">13.45</td>
+<td align="right">13.46</td>
 </tr>
 </tbody>
 </table>
@@ -607,11 +605,11 @@ controls.</p>
 <table class="table">
 <caption>Baseline weight distribution, source versus synthetic</caption>
 <colgroup>
-<col width="13%">
+<col width="14%">
 <col width="15%">
 <col width="4%">
 <col width="9%">
-<col width="9%">
+<col width="7%">
 <col width="9%">
 <col width="9%">
 <col width="10%">
@@ -639,7 +637,7 @@ controls.</p>
 <td align="right">9.50</td>
 <td align="right">54.60</td>
 <td align="right">63.57</td>
-<td align="right">70.5</td>
+<td align="right">70.50</td>
 <td align="right">74.43</td>
 <td align="right">86.40</td>
 </tr>
@@ -647,13 +645,13 @@ controls.</p>
 <td align="left">WT</td>
 <td align="left">synthetic</td>
 <td align="right">12</td>
-<td align="right">73.47</td>
-<td align="right">10.52</td>
-<td align="right">54.36</td>
-<td align="right">68.72</td>
-<td align="right">72.4</td>
-<td align="right">81.29</td>
-<td align="right">86.63</td>
+<td align="right">68.12</td>
+<td align="right">7.62</td>
+<td align="right">57.85</td>
+<td align="right">63.20</td>
+<td align="right">68.26</td>
+<td align="right">71.75</td>
+<td align="right">83.43</td>
 </tr>
 </tbody>
 </table>
@@ -717,11 +715,7 @@ Both endpoints and all subjects are retained.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">warfarin_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, seed <span class="op">=</span> <span class="fl">404</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
-<span><span class="co">#&gt; - A compatible event-pattern group contained only its anchor; the anchor was used as the sole measurement donor and randomized noise supplied the only trajectory perturbation.</span></span>
-<span><span class="co">#&gt; - `k` was reduced to 1 in at least one compatible event-pattern group.</span></span>
-<span><span class="co">#&gt; - A compatible event-pattern group supplied fewer than two non-anchor donors.</span></span>
-<span><span class="co">#&gt; - `k` was reduced to 3 in at least one compatible event-pattern group.</span></span>
-<span><span class="co">#&gt; - `k` was reduced to 2 in at least one compatible event-pattern group.</span></span>
+<span><span class="co">#&gt; - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -823,8 +817,8 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">0.00000</td>
 <td align="left">cp</td>
 <td align="right">1</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 <tr class="even">
@@ -832,11 +826,11 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">34</td>
 <td align="right">0.0</td>
 <td align="right">0</td>
-<td align="right">136.01276</td>
+<td align="right">101.60770</td>
 <td align="left">pca</td>
 <td align="right">0</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 <tr class="odd">
@@ -844,11 +838,11 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">34</td>
 <td align="right">1.5</td>
 <td align="right">0</td>
-<td align="right">16.53175</td>
+<td align="right">12.45571</td>
 <td align="left">cp</td>
 <td align="right">0</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 <tr class="even">
@@ -856,11 +850,11 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">34</td>
 <td align="right">3.0</td>
 <td align="right">0</td>
-<td align="right">21.84664</td>
+<td align="right">12.74682</td>
 <td align="left">cp</td>
 <td align="right">0</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 <tr class="odd">
@@ -868,11 +862,11 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">34</td>
 <td align="right">6.0</td>
 <td align="right">0</td>
-<td align="right">24.79523</td>
+<td align="right">12.77112</td>
 <td align="left">cp</td>
 <td align="right">0</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 <tr class="even">
@@ -880,11 +874,11 @@ Both endpoints and all subjects are retained.</p>
 <td align="right">34</td>
 <td align="right">12.0</td>
 <td align="right">0</td>
-<td align="right">18.90499</td>
+<td align="right">11.12821</td>
 <td align="left">cp</td>
 <td align="right">0</td>
-<td align="right">82.10065</td>
-<td align="right">31</td>
+<td align="right">75.57957</td>
+<td align="right">29</td>
 <td align="left">male</td>
 </tr>
 </tbody>
@@ -993,10 +987,13 @@ Both endpoints and all subjects are retained.</p>
 </h2>
 <p><code>wbcSim</code> has infusion start/stop events and a study-time
 white-blood-cell response with a delayed decline, nadir, and recovery.
-Some source dosing schedules are unique; when a compatible event-pattern
-group contains only its anchor, <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> uses that
-anchor as the sole donor and randomized noise supplies the perturbation,
-which it reports through a warning.</p>
+Some source dosing schedules are unique, so a subject can be alone in
+its exact event-pattern group. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> still blends
+each synthetic subject from <code>k</code> real patients (default 5) by
+borrowing the nearest donors from other schedule groups when a subject’s
+own group is too small — the avatar keeps its anchor’s event skeleton
+while its measurements are averaged across several patients, so no one
+source subject is reproduced near-verbatim.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>

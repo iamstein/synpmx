@@ -57,7 +57,12 @@ synpmx_avatar(
 
 - k:
 
-  Maximum number of compatible non-anchor donors.
+  Number of real patients blended into each synthetic subject (default
+  5). Same-schedule donors are used first; when a subject's
+  dose/schedule group holds fewer than `k`, the nearest subjects from
+  other groups are borrowed to reach `k`, blending measurements across
+  doses. A source with fewer than `k + 1` subjects cannot reach the
+  floor and triggers a loud alert.
 
 - pca_variance:
 
@@ -121,8 +126,10 @@ source <- data.frame(
 roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
                    NULL, NULL, "WT")
 synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
+#> SYNPMX ALERT: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
+#> Warning: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - `k` was reduced to 2 in at least one compatible event-pattern group.
+#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(synthetic, roles)$valid
 #> [1] TRUE
 ```

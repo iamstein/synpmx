@@ -260,9 +260,7 @@ theo_roles <- pmx_roles(
 )
 theo_synth <- synpmx_avatar(theo_md, theo_roles, seed = 303)
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - `k` was reduced to 1 in at least one compatible event-pattern group.
-#> - A compatible event-pattern group supplied fewer than two non-anchor donors.
-#> - A compatible event-pattern group contained only its anchor; the anchor was used as the sole measurement donor and randomized noise supplied the only trajectory perturbation.
+#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(theo_synth, theo_roles)$valid
 #> [1] TRUE
 knitr::kable(
@@ -279,12 +277,12 @@ knitr::kable(
 | Source    |   1 | 0.57 |  6.5700000 |   0.000 |    0 |   2 | 79.60000 |
 | Source    |   1 | 1.12 | 10.5000000 |   0.000 |    0 |   2 | 79.60000 |
 | Source    |   1 | 2.02 |  9.6600000 |   0.000 |    0 |   2 | 79.60000 |
-| Synthetic |  13 | 0.00 |  0.0000000 | 319.365 |  101 |   1 | 70.37768 |
-| Synthetic |  13 | 0.00 |  0.0114675 |   0.000 |    0 |   2 | 70.37768 |
-| Synthetic |  13 | 0.27 |  3.5907442 |   0.000 |    0 |   2 | 70.37768 |
-| Synthetic |  13 | 0.58 |  4.0689484 |   0.000 |    0 |   2 | 70.37768 |
-| Synthetic |  13 | 1.02 |  8.7113683 |   0.000 |    0 |   2 | 70.37768 |
-| Synthetic |  13 | 2.02 |  8.4550748 |   0.000 |    0 |   2 | 70.37768 |
+| Synthetic |  13 | 0.00 |  0.0000000 | 319.365 |  101 |   1 | 67.60315 |
+| Synthetic |  13 | 0.00 |  0.0000000 |   0.000 |    0 |   2 | 67.60315 |
+| Synthetic |  13 | 0.27 |  0.9595556 |   0.000 |    0 |   2 | 67.60315 |
+| Synthetic |  13 | 0.58 |  4.1558157 |   0.000 |    0 |   2 | 67.60315 |
+| Synthetic |  13 | 1.02 |  7.6268745 |   0.000 |    0 |   2 | 67.60315 |
+| Synthetic |  13 | 2.02 |  7.7644543 |   0.000 |    0 |   2 | 67.60315 |
 
 Actual Theophylline rows and synthesized rows {.table}
 
@@ -320,12 +318,13 @@ knitr::kable(theo_dist$endpoints, digits = 2,
              caption = "Concentration distribution, source versus synthetic")
 ```
 
-| variable | dataset   |   n | n_subjects | mean |  sd |   min |  q25 | median |  q75 |   max |
-|:---------|:----------|----:|-----------:|-----:|----:|------:|-----:|-------:|-----:|------:|
-| DV       | source    | 264 |         12 | 5.53 | 3.0 | -1.13 | 3.30 |   5.74 | 7.80 | 12.66 |
-| DV       | synthetic | 264 |         12 | 5.78 | 3.2 |  0.00 | 3.32 |   5.85 | 8.23 | 13.45 |
+| variable | dataset   |   n | n_subjects | mean |   sd |   min |  q25 | median |  q75 |   max |
+|:---------|:----------|----:|-----------:|-----:|-----:|------:|-----:|-------:|-----:|------:|
+| DV       | source    | 264 |         12 | 5.53 | 3.00 | -1.13 | 3.30 |   5.74 | 7.80 | 12.66 |
+| DV       | synthetic | 264 |         12 | 5.88 | 3.18 |  0.00 | 3.84 |   5.98 | 8.23 | 13.46 |
 
-Concentration distribution, source versus synthetic {.table}
+Concentration distribution, source versus synthetic {.table
+style="width:100%;"}
 
 ``` r
 
@@ -333,10 +332,10 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight distribution, source versus synthetic")
 ```
 
-| variable | dataset   |   n |  mean |    sd |   min |   q25 | median |   q75 |   max |
-|:---------|:----------|----:|------:|------:|------:|------:|-------:|------:|------:|
-| WT       | source    |  12 | 69.58 |  9.50 | 54.60 | 63.57 |   70.5 | 74.43 | 86.40 |
-| WT       | synthetic |  12 | 73.47 | 10.52 | 54.36 | 68.72 |   72.4 | 81.29 | 86.63 |
+| variable | dataset   |   n |  mean |   sd |   min |   q25 | median |   q75 |   max |
+|:---------|:----------|----:|------:|-----:|------:|------:|-------:|------:|------:|
+| WT       | source    |  12 | 69.58 | 9.50 | 54.60 | 63.57 |  70.50 | 74.43 | 86.40 |
+| WT       | synthetic |  12 | 68.12 | 7.62 | 57.85 | 63.20 |  68.26 | 71.75 | 83.43 |
 
 Baseline weight distribution, source versus synthetic {.table}
 
@@ -409,11 +408,7 @@ warfarin_roles <- pmx_roles(
 )
 warfarin_synth <- synpmx_avatar(warfarin, warfarin_roles, seed = 404)
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - A compatible event-pattern group contained only its anchor; the anchor was used as the sole measurement donor and randomized noise supplied the only trajectory perturbation.
-#> - `k` was reduced to 1 in at least one compatible event-pattern group.
-#> - A compatible event-pattern group supplied fewer than two non-anchor donors.
-#> - `k` was reduced to 3 in at least one compatible event-pattern group.
-#> - `k` was reduced to 2 in at least one compatible event-pattern group.
+#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(warfarin_synth, warfarin_roles)$valid
 #> [1] TRUE
 knitr::kable(
@@ -430,12 +425,12 @@ knitr::kable(
 | Source    |   1 |  2.0 |   0 |   3.30000 | cp   |    0 | 66.70000 |  50 | male |
 | Source    |   1 |  3.0 |   0 |   6.60000 | cp   |    0 | 66.70000 |  50 | male |
 | Source    |   1 |  6.0 |   0 |   9.10000 | cp   |    0 | 66.70000 |  50 | male |
-| Synthetic |  34 |  0.0 | 123 |   0.00000 | cp   |    1 | 82.10065 |  31 | male |
-| Synthetic |  34 |  0.0 |   0 | 136.01276 | pca  |    0 | 82.10065 |  31 | male |
-| Synthetic |  34 |  1.5 |   0 |  16.53175 | cp   |    0 | 82.10065 |  31 | male |
-| Synthetic |  34 |  3.0 |   0 |  21.84664 | cp   |    0 | 82.10065 |  31 | male |
-| Synthetic |  34 |  6.0 |   0 |  24.79523 | cp   |    0 | 82.10065 |  31 | male |
-| Synthetic |  34 | 12.0 |   0 |  18.90499 | cp   |    0 | 82.10065 |  31 | male |
+| Synthetic |  34 |  0.0 | 123 |   0.00000 | cp   |    1 | 75.57957 |  29 | male |
+| Synthetic |  34 |  0.0 |   0 | 101.60770 | pca  |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  1.5 |   0 |  12.45571 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  3.0 |   0 |  12.74682 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  6.0 |   0 |  12.77112 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 | 12.0 |   0 |  11.12821 | cp   |    0 | 75.57957 |  29 | male |
 
 Actual Warfarin rows and synthesized rows {.table}
 
@@ -486,11 +481,14 @@ ggplot2::ggplot(
 
 `wbcSim` has infusion start/stop events and a study-time
 white-blood-cell response with a delayed decline, nadir, and recovery.
-Some source dosing schedules are unique; when a compatible event-pattern
-group contains only its anchor,
+Some source dosing schedules are unique, so a subject can be alone in
+its exact event-pattern group.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-uses that anchor as the sole donor and randomized noise supplies the
-perturbation, which it reports through a warning.
+still blends each synthetic subject from `k` real patients (default 5)
+by borrowing the nearest donors from other schedule groups when a
+subject’s own group is too small — the avatar keeps its anchor’s event
+skeleton while its measurements are averaged across several patients, so
+no one source subject is reproduced near-verbatim.
 
 ``` r
 

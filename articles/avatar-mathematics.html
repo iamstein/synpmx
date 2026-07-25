@@ -558,22 +558,31 @@ and</li>
 </ul>
 <p>Notice what is not in the signature: the observation-time schedule.
 Event values still come from the anchor template, while unequal
-observation times are handled by interpolation. Including dose magnitude
-prevents profiles from being blended across incompatible exposure
-scales.</p>
+observation times are handled by interpolation. Dose magnitude enters
+the signature so that same-dose subjects are preferred as donors, but it
+is no longer an absolute barrier — see the borrowing rule below.</p>
 <p>For anchor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math>,
-only non-anchor subjects with the same signature are candidate donors.
 Euclidean distance in retained profile coordinates is</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>a</mi><mi>r</mi></mrow></msub><mo>=</mo><msub><mrow><mo stretchy="true" form="prefix">∥</mo><msub><mi>𝛏</mi><mi>a</mi></msub><mo>−</mo><msub><mi>𝛏</mi><mi>r</mi></msub><mo stretchy="true" form="postfix">∥</mo></mrow><mn>2</mn></msub><mo>=</mo><msqrt><mrow><munderover><mo>∑</mo><mrow><mi>h</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></munderover><mo stretchy="false" form="prefix">(</mo><msub><mi>ξ</mi><mrow><mi>a</mi><mi>h</mi></mrow></msub><mo>−</mo><msub><mi>ξ</mi><mrow><mi>r</mi><mi>h</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mi>.</mi></mrow><annotation encoding="application/x-tex">
 d_{ar}=\left\|\boldsymbol{\xi}_a-
                    \boldsymbol{\xi}_r\right\|_2
 =\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
 </annotation></semantics></math></p>
-<p>The closest <code>k</code> candidates are kept. If fewer exist,
-<code>k</code> is reduced and a warning is recorded. If none exist, the
-anchor itself becomes the sole donor; only subsequent randomized
-perturbation can then move its measurements.</p>
+<p>Every synthetic subject blends a floor of <code>k</code> real
+patients (default 5). Same-signature subjects are preferred and taken
+nearest-first; when a subject’s own group holds fewer than
+<code>k</code>, the nearest subjects from <em>other</em> dose/schedule
+groups are borrowed to reach <code>k</code>, and their trajectories are
+mapped onto the anchor’s own observation times by interpolation. The
+avatar therefore keeps its anchor’s regimen while its measurements are
+averaged across at least <code>k</code> patients — deliberately trading
+some exposure-scale fidelity for the guarantee that no single source
+subject is reproduced near-verbatim. Only a source with fewer than
+<code>k + 1</code> subjects cannot reach the floor; that case raises a
+loud alert. This borrowing matters most for datasets with individualized
+dosing, where an exact dose magnitude can make nearly every subject its
+own group.</p>
 </div>
 <div class="section level2">
 <h2 id="step-7-randomize-and-cap-donor-weights">Step 7: randomize and cap donor weights<a class="anchor" aria-label="anchor" href="#step-7-randomize-and-cap-donor-weights"></a>
@@ -1243,8 +1252,8 @@ model fidelity.</p>
 output over a silent incompatible blend.</p>
 <table class="table">
 <colgroup>
-<col width="35%">
-<col width="64%">
+<col width="37%">
+<col width="62%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Situation</th>
@@ -1252,13 +1261,13 @@ output over a silent incompatible blend.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">No compatible non-anchor donor</td>
-<td align="left">Use anchor as sole donor; randomized noise is the only
-trajectory change</td>
+<td align="left">Fewer than k same-signature donors</td>
+<td align="left">Borrow the nearest donors from other dose/schedule
+groups to reach k</td>
 </tr>
 <tr class="even">
-<td align="left">Fewer compatible donors than k</td>
-<td align="left">Reduce k and record a warning</td>
+<td align="left">Source smaller than the k-donor floor</td>
+<td align="left">Blend all available donors and raise a loud alert</td>
 </tr>
 <tr class="odd">
 <td align="left">All selected distances essentially zero</td>

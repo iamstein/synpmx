@@ -57,11 +57,11 @@ synthetic <- suppressWarnings(synpmx_avatar(theo_md, roles, seed = 101))
 validate_pmx(synthetic, roles)$valid
 #> [1] TRUE
 head(synthetic, 4)
-#>   ID TIME          DV    AMT EVID CMT       WT
-#> 1 13 0.00  0.00000000 267.84  101   1 85.25496
-#> 2 13 0.00  0.02403989   0.00    0   2 85.25496
-#> 3 13 0.30 10.00272146   0.00    0   2 85.25496
-#> 4 13 0.63 11.89216329   0.00    0   2 85.25496
+#>   ID TIME       DV    AMT EVID CMT       WT
+#> 1 13 0.00 0.000000 267.84  101   1 70.31655
+#> 2 13 0.00 0.000000   0.00    0   2 70.31655
+#> 3 13 0.30 2.463685   0.00    0   2 70.31655
+#> 4 13 0.63 3.536395   0.00    0   2 70.31655
 ```
 
 The output dataset keeps the same structure.
