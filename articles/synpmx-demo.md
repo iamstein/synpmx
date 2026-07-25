@@ -339,6 +339,34 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
 
 Baseline weight distribution, source versus synthetic {.table}
 
+Where
+[`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
+checks the cohort as a whole,
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+checks individuals: it screens each synthetic subject for being a
+structural outlier — an unusual follow-up time, dose count, dose
+magnitude, or peak DV — since a subject unlike anyone else is the one
+easiest to single out. Run it before the synthetic data leaves the
+source’s access controls and drop or regenerate anything it flags.
+
+``` r
+
+theo_flags <- flag_identifiable_subjects(theo_synth, theo_roles)
+knitr::kable(head(theo_flags, 5), digits = 2,
+             caption = "Per-subject outlier screen (most unusual first)")
+```
+
+| subject_id | follow_up_time | n_doses | max_dose | max_dv | outlier_axes   | flagged |
+|:-----------|---------------:|--------:|---------:|-------:|:---------------|:--------|
+| 16         |         168.43 |       7 |   267.84 |   7.08 | dose magnitude | TRUE    |
+| 17         |         168.43 |       7 |   267.84 |  10.26 | dose magnitude | TRUE    |
+| 24         |         168.43 |       7 |   267.84 |   9.12 | dose magnitude | TRUE    |
+| 13         |         168.17 |       7 |   319.36 |   9.09 |                | FALSE   |
+| 14         |         168.22 |       7 |   319.77 |  11.94 |                | FALSE   |
+
+Per-subject outlier screen (most unusual first) {.table
+style="width:100%;"}
+
 ``` r
 
 theo_comparison <- rbind(

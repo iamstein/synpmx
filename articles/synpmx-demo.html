@@ -655,7 +655,86 @@ controls.</p>
 </tr>
 </tbody>
 </table>
+<p>Where <code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code> checks the cohort as a
+whole, <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> checks individuals: it
+screens each synthetic subject for being a structural outlier — an
+unusual follow-up time, dose count, dose magnitude, or peak DV — since a
+subject unlike anyone else is the one easiest to single out. Run it
+before the synthetic data leaves the source’s access controls and drop
+or regenerate anything it flags.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">theo_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">theo_flags</span>, <span class="fl">5</span><span class="op">)</span>, digits <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>             caption <span class="op">=</span> <span class="st">"Per-subject outlier screen (most unusual first)"</span><span class="op">)</span></span></code></pre></div>
+<table style="width:100%;" class="table">
+<caption>Per-subject outlier screen (most unusual first)</caption>
+<colgroup>
+<col width="15%">
+<col width="20%">
+<col width="10%">
+<col width="12%">
+<col width="9%">
+<col width="20%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">subject_id</th>
+<th align="right">follow_up_time</th>
+<th align="right">n_doses</th>
+<th align="right">max_dose</th>
+<th align="right">max_dv</th>
+<th align="left">outlier_axes</th>
+<th align="left">flagged</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">16</td>
+<td align="right">168.43</td>
+<td align="right">7</td>
+<td align="right">267.84</td>
+<td align="right">7.08</td>
+<td align="left">dose magnitude</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">17</td>
+<td align="right">168.43</td>
+<td align="right">7</td>
+<td align="right">267.84</td>
+<td align="right">10.26</td>
+<td align="left">dose magnitude</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">24</td>
+<td align="right">168.43</td>
+<td align="right">7</td>
+<td align="right">267.84</td>
+<td align="right">9.12</td>
+<td align="left">dose magnitude</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">13</td>
+<td align="right">168.17</td>
+<td align="right">7</td>
+<td align="right">319.36</td>
+<td align="right">9.09</td>
+<td align="left"></td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">14</td>
+<td align="right">168.22</td>
+<td align="right">7</td>
+<td align="right">319.77</td>
+<td align="right">11.94</td>
+<td align="left"></td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_synth</span>, <span class="va">theo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -679,7 +758,7 @@ controls.</p>
 <p>A dose-relative display makes the coarse curve shape easier to see.
 AVATAR preserves the rise-and-fall because it blends real subject
 profiles rather than inventing a shape.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_tad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">theo_synth</span>, <span class="va">theo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -707,7 +786,7 @@ profiles rather than inventing a shape.</p>
 <p><code>warfarin</code> has a lower-case schema, one dose, and two
 endpoints (<code>cp</code> and <code>pca</code>) with factor covariates.
 Both endpoints and all subjects are retained.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"warfarin"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">warfarin_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>, time <span class="op">=</span> <span class="st">"time"</span>, dv <span class="op">=</span> <span class="st">"dv"</span>, amt <span class="op">=</span> <span class="st">"amt"</span>, evid <span class="op">=</span> <span class="st">"evid"</span>,</span>
@@ -883,7 +962,7 @@ Both endpoints and all subjects are retained.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu">check_demo_similarity</span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">130</span><span class="op">)</span>,</span>
 <span>                        <span class="st">"Warfarin"</span><span class="op">)</span>,</span>
@@ -960,7 +1039,7 @@ Both endpoints and all subjects are retained.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">warfarin_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -994,7 +1073,7 @@ borrowing the nearest donors from other schedule groups when a subject’s
 own group is too small — the avatar keeps its anchor’s event skeleton
 while its measurements are averaged across several patients, so no one
 source subject is reproduced near-verbatim.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span></span>
@@ -1057,7 +1136,7 @@ source subject is reproduced near-verbatim.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">wbc_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">wbc_synth</span>, <span class="va">wbc_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -1088,7 +1167,7 @@ group is carried through with <code>keep</code>, which copies it
 verbatim from the same subject that supplied the doses, so it stays
 coherent with them. The redundant <code>WGT</code> column is simply left
 undeclared, so AVATAR drops it.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1154,7 +1233,7 @@ undeclared, so AVATAR drops it.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">nimo_synth</span>, <span class="va">nimo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -1185,7 +1264,7 @@ undeclared, so AVATAR drops it.</p>
 The reset clock validates within ID and occasion. AVATAR copies the
 whole event template from one anchor, so <code>DOSE</code> stays
 coherent with the doses when carried through with <code>keep</code>.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mavoglurant"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">mavo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1250,7 +1329,7 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mavo_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tad_plot_data</span><span class="op">(</span><span class="va">mavo_synth</span>, <span class="va">mavo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
@@ -1294,10 +1373,10 @@ budget share is an explicit public input.
 refuses to run until <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been
 called once in the session, acknowledging the maintenance status covered
 in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
 <span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
@@ -1342,12 +1421,12 @@ in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is called. The release it produced
 travels with the returned dataset, so any number of further datasets can
 be drawn from it as post-processing, without spending more budget:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">theo_private</span>, seed <span class="op">=</span> <span class="fl">708</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
 <p>Reach for <code><a href="../reference/synpmx_generate.html">synpmx_generate()</a></code> rather than calling
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> a second time — a second call is a
 second release, and its budget has to be composed with the first.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">theo_private</span>, <span class="va">theo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span></span>
