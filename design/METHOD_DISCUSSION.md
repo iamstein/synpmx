@@ -273,14 +273,30 @@ the risk reason, so a user can drop or regenerate them before the data leaves
 the source's access controls. Buildable independently of the pooling redesign,
 and doubles as the Phase-1 "report" surface.
 
-### Suggested phasing
+### What was discovered on first implementation
 
-1. **Hard floor + report, now.** `stop()` when any group is below 5 after the
-   current (exact) matching, listing the offending groups/subjects/dose arms;
-   plus the outlier detector (C) as the reporting surface. Loud, self-contained.
-2. **Cross-dose pooling (A).** Nearest-dose expansion, raw blend, drop-or-error
-   fallback. This is what lets small-arm datasets pass the floor.
-3. **Event-skeleton sampling (B).** Decouple schedule from value donors.
+The problem is far more pervasive than "sparse dose arms". Because the signature
+carries the dose to 8 significant figures, any **weight-based (mg/kg) dosing**
+gives nearly every subject a *distinct* dose and therefore its own singleton
+group: `theo_md` has 11 distinct doses across 12 subjects. So the old code was
+emitting a near-verbatim noised copy of essentially the **entire cohort** of any
+individualized-dosing study, not just a few extreme-arm subjects. This makes the
+borrowing fix load-bearing for the common case, not an edge-case guard.
+
+### Phasing and status
+
+1. **Cross-dose borrowing + loud alert — DONE (2026-07-25).** `.select_donors()`
+   prefers same-signature donors, then borrows the nearest subjects from other
+   groups to reach `k`; only a source smaller than `k + 1` cannot reach the
+   floor, and that raises `.loud_warn()` — a red immediate `message()` (survives
+   `suppressWarnings`) plus a warning condition. The owner chose the loud
+   warning over a hard `stop()` for now. Tests in `test-avatar-pooling.R`.
+2. **Post-generation outlier detector (C) — TODO.** Still the best per-subject
+   report surface.
+3. **Event-skeleton sampling (B) — TODO.** Decouple schedule from value donors.
+   Note the time-borrowing half already exists: `.interpolate_trajectory()`
+   remaps a donor's trajectory onto out-of-range target times by proportional
+   position, so a donor observed only early still contributes at later times.
 
 ### Still open
 

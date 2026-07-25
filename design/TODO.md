@@ -243,13 +243,14 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       warns. Either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright. (Was stranded in the
       completed documentation-reorganization list.)
-- [ ] `REV-025` **Owner-flagged, 2026-07-25.** AVATAR silently degrades to a
-      noised near-copy of one real patient when a compatibility group is a
-      singleton (or two subjects), which sparse dose arms routinely are.
-      Phase 1: detect and report groups below a donor floor (~5) and gate on it.
-      Phase 2: pool across dose groups with dose-rescaling. Design in
-      `design/METHOD_DISCUSSION.md` §6a. Decide the floor and the PD/nonlinear-PK
-      handling with the owner first.
+- [~] `REV-025` **Owner-flagged, 2026-07-25. Core fix landed.** AVATAR now
+      borrows the nearest donors across dose/schedule groups to blend `k` (=5)
+      real patients into every avatar, with a loud red alert only when the
+      source has fewer than `k + 1` subjects (`.select_donors()`,
+      `.loud_warn()`; `test-avatar-pooling.R`). Discovery: weight-based dosing
+      made nearly every subject its own singleton, so this was the common case,
+      not an edge case. Still to do: the post-generation outlier detector
+      (§6a C) and deciding whether the headline floor should exceed 5.
 - [ ] `REV-026` **Owner-flagged, 2026-07-25.** Synthetic subjects copy one
       anchor's event skeleton verbatim, so unique-schedule patients (e.g. the
       long-followed `wbcSim` subject) reappear intact. Sample the schedule/event

@@ -36,7 +36,12 @@ restored on exit.}
 \item{dv_method}{Measurement method. The prototype supports
 \code{"avatar_blend"}.}
 
-\item{k}{Maximum number of compatible non-anchor donors.}
+\item{k}{Number of real patients blended into each synthetic subject
+(default 5). Same-schedule donors are used first; when a subject's
+dose/schedule group holds fewer than \code{k}, the nearest subjects from other
+groups are borrowed to reach \code{k}, blending measurements across doses. A
+source with fewer than \code{k + 1} subjects cannot reach the floor and triggers
+a loud alert.}
 
 \item{pca_variance}{Fraction of usable profile variance retained for
 neighborhood distances.}

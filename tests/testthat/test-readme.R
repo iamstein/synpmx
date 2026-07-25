@@ -29,10 +29,10 @@ test_that("the README example produces the output the README shows", {
   expect_equal(as.character(head4$ID), rep("13", 4))
   expect_equal(head4$TIME, c(0.00, 0.00, 0.30, 0.63), tolerance = 1e-8)
   expect_equal(head4$DV,
-               c(0.00000000, 0.02403989, 10.00272146, 11.89216329),
+               c(0.000000, 0.000000, 2.463685, 3.536395),
                tolerance = 1e-6)
   expect_equal(head4$AMT, c(267.84, 0.00, 0.00, 0.00), tolerance = 1e-6)
   expect_equal(head4$EVID, c(101L, 0L, 0L, 0L))
   expect_equal(head4$CMT, c(1L, 2L, 2L, 2L))
-  expect_equal(head4$WT, rep(85.25496, 4), tolerance = 1e-5)
+  expect_equal(head4$WT, rep(70.31655, 4), tolerance = 1e-5)
 })
