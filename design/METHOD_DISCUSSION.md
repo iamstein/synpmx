@@ -286,8 +286,21 @@ owner's policy (2026-07-25): a subject flagged **only** for a long follow-up is
 *truncated* to the cohort's longest ordinary follow-up (the one axis a
 value-level edit can fix), and a subject flagged for any other reason is
 *dropped*, since an extreme-DV subject is elevated throughout and a rare dose
-cannot be trimmed without breaking the regimen. `time` and `other` options
-expose the policy. This is a stop-gap; skeleton sampling (B) is the cure.
+cannot be trimmed without breaking the regimen. An unusually *short* follow-up
+is also dropped (nothing to truncate). When `source` is supplied, dropped
+subjects are regenerated and refilled so the cohort keeps its size. `time` and
+`other` options expose the policy. This is a stop-gap; skeleton sampling (B) is
+the cure.
+
+**Limitation found on `wbcSim` (2026-07-25).** Outlier screening is *relative*:
+on a genuinely heavy-tailed axis (wbcSim follow-up runs from a few hours to
+4580) the modified-z flags a fraction of subjects, removing the extreme tail
+re-centres the distribution, and one pass does not fully converge. Remediation
+still removes the individually extreme subjects (the 4580-hour avatar), which is
+the identifiability that matters, but it cannot turn a heterogeneous cohort into
+a homogeneous one, nor should it. This is direct evidence that skeleton sampling
+(B) -- drawing follow-up length from the cohort distribution -- is the cleaner
+fix for structural heterogeneity, where detect-and-remediate is a blunt tool.
 
 ### What was discovered on first implementation
 

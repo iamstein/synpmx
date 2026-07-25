@@ -486,28 +486,32 @@ print.pmx_identifiability <- function(x, ...) {
 # public remediation function and its replacement loop.
 .apply_remediation_policy <- function(data, roles, time, other, threshold) {
   report <- flag_identifiable_subjects(data, roles, threshold = threshold)
+  time_flag <- grepl("follow-up time", report$outlier_axes, fixed = TRUE)
   time_only <- report$flagged & report$outlier_axes == "follow-up time"
   other_flagged <- report$flagged & !time_only
 
+  # Truncate toward the longest follow-up that is not itself a time outlier.
+  ordinary <- report$follow_up_time[!time_flag & is.finite(report$follow_up_time)]
+  horizon <- if (length(ordinary)) max(ordinary) else NA_real_
+
   drop_ids <- character()
   if (other == "drop") drop_ids <- c(drop_ids, report$subject_id[other_flagged])
+
   truncate_ids <- character()
   if (any(time_only)) {
     if (time == "drop") {
       drop_ids <- c(drop_ids, report$subject_id[time_only])
     } else if (time == "truncate") {
-      truncate_ids <- report$subject_id[time_only]
+      # Only a follow-up *longer* than the ordinary maximum can be truncated.
+      # A subject flagged for an unusually *short* follow-up has nothing to
+      # trim, so it is dropped instead.
+      long <- time_only & is.finite(report$follow_up_time) &
+        is.finite(horizon) & report$follow_up_time > horizon
+      truncate_ids <- report$subject_id[long]
+      drop_ids <- c(drop_ids, report$subject_id[time_only & !long])
     }
   }
   drop_ids <- unique(drop_ids)
-
-  time_out <- grepl("follow-up time", report$outlier_axes, fixed = TRUE)
-  ordinary <- report$follow_up_time[!time_out & is.finite(report$follow_up_time)]
-  horizon <- if (length(ordinary)) max(ordinary) else NA_real_
-  if (length(truncate_ids) && !is.finite(horizon)) {
-    drop_ids <- unique(c(drop_ids, truncate_ids))
-    truncate_ids <- character()
-  }
 
   id <- as.character(data[[roles$id]])
   keep <- !(id %in% drop_ids)
@@ -529,14 +533,14 @@ print.pmx_identifiability <- function(x, ...) {
 #' reason -- an extreme DV, a rare dose level, or an unusual dose count -- is
 #' *dropped* entirely.
 #'
-#' The split is deliberate. Truncation is offered only on the time axis because
-#' it is the one structural outlier a value-level edit can genuinely fix:
-#' shortening a long timeline leaves a shorter but ordinary subject. An
-#' extreme-DV subject is elevated across its whole trajectory, so removing points
+#' The split is deliberate. Truncation is offered only for an unusually *long*
+#' follow-up, the one structural outlier a value-level edit can genuinely fix:
+#' shortening a long timeline leaves a shorter but ordinary subject. Everything
+#' else is dropped -- an unusually *short* follow-up has nothing to trim, an
+#' extreme-DV subject is elevated across its whole trajectory so removing points
 #' would only mangle it, and a rare dose cannot be trimmed without breaking the
-#' regimen -- so those subjects are dropped rather than edited. A subject flagged
-#' for both a long follow-up and another reason is dropped, since truncation
-#' would not resolve the other reason.
+#' regimen. A subject flagged for both a long follow-up and another reason is
+#' also dropped, since truncation would not resolve the other reason.
 #'
 #' When `source` is supplied, each dropped subject is **replaced**: fresh avatars
 #' are generated from `source`, screened by the same policy, and appended (with
