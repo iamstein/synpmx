@@ -454,20 +454,20 @@ knitr::kable(
 )
 ```
 
-| .dataset  |  id | time | amt |        dv | dvid | evid |       wt | age | sex  |
-|:----------|----:|-----:|----:|----------:|:-----|-----:|---------:|----:|:-----|
-| Source    |   1 |  0.0 | 100 |   0.00000 | cp   |    1 | 66.70000 |  50 | male |
-| Source    |   1 |  0.5 |   0 |   0.00000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  1.0 |   0 |   1.90000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  2.0 |   0 |   3.30000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  3.0 |   0 |   6.60000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  6.0 |   0 |   9.10000 | cp   |    0 | 66.70000 |  50 | male |
-| Synthetic |  34 |  0.0 | 123 |   0.00000 | cp   |    1 | 75.57957 |  29 | male |
-| Synthetic |  34 |  0.0 |   0 | 101.60770 | pca  |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  1.5 |   0 |  12.45571 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  3.0 |   0 |  12.74682 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  6.0 |   0 |  12.77112 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 | 12.0 |   0 |  11.12821 | cp   |    0 | 75.57957 |  29 | male |
+| .dataset  |  id | time | amt |       dv | dvid | evid |       wt | age | sex  |
+|:----------|----:|-----:|----:|---------:|:-----|-----:|---------:|----:|:-----|
+| Source    |   1 |  0.0 | 100 |  0.00000 | cp   |    1 | 66.70000 |  50 | male |
+| Source    |   1 |  0.5 |   0 |  0.00000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  1.0 |   0 |  1.90000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  2.0 |   0 |  3.30000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  3.0 |   0 |  6.60000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  6.0 |   0 |  9.10000 | cp   |    0 | 66.70000 |  50 | male |
+| Synthetic |  34 |  0.0 | 115 |  0.00000 | cp   |    1 | 75.83451 |  23 | male |
+| Synthetic |  34 |  0.0 |   0 | 75.02286 | pca  |    0 | 75.83451 |  23 | male |
+| Synthetic |  34 | 24.0 |   0 | 11.93690 | cp   |    0 | 75.83451 |  23 | male |
+| Synthetic |  34 | 24.0 |   0 | 26.46828 | pca  |    0 | 75.83451 |  23 | male |
+| Synthetic |  34 | 36.0 |   0 | 10.79608 | cp   |    0 | 75.83451 |  23 | male |
+| Synthetic |  34 | 36.0 |   0 | 16.24877 | pca  |    0 | 75.83451 |  23 | male |
 
 Actual Warfarin rows and synthesized rows {.table}
 
@@ -484,8 +484,8 @@ knitr::kable(
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
 | Source | cp | 32 | 32 | 251 | 7.84 | 6 | 0.5 | 120 |
 | Source | pca | 32 | 32 | 219 | 6.84 | 7 | 0.0 | 120 |
-| Synthetic | cp | 32 | 32 | 243 | 7.59 | 6 | 0.5 | 120 |
-| Synthetic | pca | 32 | 32 | 222 | 6.94 | 7 | 0.0 | 120 |
+| Synthetic | cp | 32 | 32 | 204 | 6.38 | 6 | 1.5 | 120 |
+| Synthetic | pca | 32 | 32 | 215 | 6.72 | 7 | 0.0 | 120 |
 
 Warfarin cohort and endpoint checks {.table}
 
@@ -514,15 +514,20 @@ ggplot2::ggplot(
 
 ![](synpmx-demo_files/figure-html/warfarin-plot-1.png)
 
-## WBC: infusion, a delayed response, and a structural outlier
+## WBC: infusion, a delayed response, and structural screening
 
 `wbcSim` has infusion start/stop events and a study-time
 white-blood-cell response with a delayed decline, nadir, and recovery.
 It is also genuinely heterogeneous: a few subjects are followed far
 longer than the rest. Because an avatar copies its anchor’s event
-skeleton, that long follow-up carries into the synthetic data even
-though the measurements are blended across several patients — a
-structural feature that can single a subject out.
+skeleton, a lone very-long follow-up would otherwise carry straight into
+the synthetic data.
+
+By default
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+does not anchor an avatar on such a structural outlier
+(`screen = TRUE`), so the synthetic follow-up stays in the cohort’s
+ordinary range. Turning the screen off shows what it prevents:
 
 ``` r
 
@@ -533,54 +538,32 @@ wbc_roles <- pmx_roles(
 wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
 #> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
 #>   Declare a column in `keep` to carry it through verbatim.
+wbc_raw   <- suppressWarnings(
+  synpmx_avatar(wbcSim, wbc_roles, seed = 505, screen = FALSE)
+)
+#> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
+#>   Declare a column in `keep` to carry it through verbatim.
 validate_pmx(wbc_synth, wbc_roles)$valid
 #> [1] TRUE
+c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
+  screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
+#> default_screen     screen_off 
+#>            576           4580
 ```
 
+The default screen only looks at follow-up length and dose count — the
+axes that make a skeleton look structurally wrong. For a fuller, tunable
+check of a generated dataset, including dose-magnitude and DV outliers,
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-catches the structurally unusual subjects — here, the ones followed far
-longer than the cohort typically is:
-
-``` r
-
-wbc_flags <- flag_identifiable_subjects(wbc_synth, wbc_roles)
-flagged <- as.data.frame(wbc_flags)[wbc_flags$flagged, ]
-knitr::kable(head(flagged, 6), digits = 0, row.names = FALSE,
-             caption = "Structurally unusual synthetic WBC subjects")
-```
-
-| subject_id | follow_up_time | n_doses | max_dose | max_dv | outlier_axes | flagged |
-|:---|---:|---:|---:|---:|:---|:---|
-| 59 | 4580 | 6 | 137 | 5 | follow-up time, number of doses | TRUE |
-| 60 | 1130 | 2 | 137 | 10 | follow-up time, number of doses | TRUE |
-| 48 | 0 | 1 | 113 | 6 | follow-up time | TRUE |
-| 51 | 144 | 1 | 115 | 7 | follow-up time | TRUE |
-| 82 | 168 | 1 | 112 | 8 | follow-up time | TRUE |
-| 86 | 0 | 1 | 113 | 7 | follow-up time | TRUE |
-
-Structurally unusual synthetic WBC subjects {.table}
-
+scores every subject and
 [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-truncates a merely-long follow-up and drops the rest, refilling from the
-source so the cohort keeps its size. The plotted data below is the
-remediated set, so the extreme long-follow-up tail is gone. `wbcSim`’s
-follow-up is genuinely spread, so this screen is a judgement tool, not a
-one-click guarantee: it removes the individually unusual subjects, not
-the cohort’s natural variation.
-
-``` r
-
-wbc_clean <- remediate_identifiable_subjects(
-  wbc_synth, wbc_roles, source = wbcSim, seed = 11
-)
-#> remediate_identifiable_subjects(): dropped 6, truncated 0, replaced 6.
-```
+truncates, drops, or replaces the ones it flags.
 
 ``` r
 
 wbc_comparison <- rbind(
   observed_plot_data(wbcSim, wbc_roles, "Source"),
-  observed_plot_data(wbc_clean, wbc_roles, "Synthetic")
+  observed_plot_data(wbc_synth, wbc_roles, "Synthetic")
 )
 ggplot2::ggplot(
   wbc_comparison,
@@ -631,8 +614,8 @@ knitr::kable(
 
 | dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 12 | 12 | 321 | 26.75 | 27 | 0 | 623.03 |
-| Synthetic | DV | 12 | 12 | 325 | 27.08 | 27 | 0 | 623.03 |
+| Source | DV | 12 | 12 | 321 | 26.75 | 27.0 | 0 | 623.03 |
+| Synthetic | DV | 12 | 12 | 330 | 27.50 | 27.5 | 0 | 623.03 |
 
 NimoData cohort and infusion checks {.table}
 
@@ -691,7 +674,7 @@ knitr::kable(
 | dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
 | Source | DV | 120 | 120 | 2427 | 20.23 | 24 | 0.2 | 48.17 |
-| Synthetic | DV | 120 | 120 | 2312 | 19.27 | 24 | 0.2 | 48.17 |
+| Synthetic | DV | 120 | 120 | 2872 | 23.93 | 24 | 0.2 | 24.20 |
 
 Mavoglurant cohort and occasion checks {.table}
 

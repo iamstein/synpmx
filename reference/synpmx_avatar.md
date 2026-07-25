@@ -21,7 +21,8 @@ synpmx_avatar(
   subject_noise_sd = 0.15,
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
-  time_jitter = 0
+  time_jitter = 0,
+  screen = TRUE
 )
 ```
 
@@ -85,6 +86,20 @@ synpmx_avatar(
 
   Standard deviation for coherent tied-time jitter. Zero, the default,
   leaves the event template's times unchanged.
+
+- screen:
+
+  When `TRUE` (default), source subjects whose event structure is a
+  gross outlier – an unusually long or short follow-up, or an unusual
+  number of doses – are not used as anchors, so no avatar inherits a
+  crazy-looking skeleton. Only these structural axes are screened; dose
+  magnitude (which weight-based dosing makes noisy) and DV (which is
+  blended, not copied) are not. A source with no such outlier is
+  unaffected. Set `FALSE` to anchor on every subject. For a fuller,
+  tunable screen of the generated output, see
+  [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+  and
+  [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md).
 
 ## Value
 

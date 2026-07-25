@@ -31,11 +31,14 @@ subjects.
     plus its trajectory on a common grid — then to a handful of
     principal-component coordinates for measuring who resembles whom.
 4.  **Build each synthetic subject** (Steps 6–9). Copy a real anchor’s
-    event skeleton; pick the `k` (default 5) nearest donors, borrowing
-    across dose/schedule groups when the anchor’s own group is too
-    small; blend the donors’ trajectories onto the skeleton’s
-    observation times; add subject-level and within-subject noise; and
-    reconstruct any below-limit (BLOQ) censoring.
+    event skeleton — but by default do not anchor on a source subject
+    whose structure is a gross outlier (a lone very long follow-up), so
+    no avatar looks structurally crazy (`screen = TRUE`). Then pick the
+    `k` (default 5) nearest donors, borrowing across dose/schedule
+    groups when the anchor’s own group is too small; blend the donors’
+    trajectories onto the skeleton’s observation times; add
+    subject-level and within-subject noise; and reconstruct any
+    below-limit (BLOQ) censoring.
 5.  **Restore the original shape** (Step 10). Put back the source
     schema, column types, and conventions, and attach a record of what
     was done.
