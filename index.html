@@ -65,22 +65,22 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
-<p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> by using dosing and measurement event tables with the same setup as a real study. The intended use case is to provide realistic looking data of a study so that can be shared outside the GxP computing environment (but stay within the organization) so that data-assembly code, diagnostic plots, and model-run plumbing can be developed outside the restricted computing environment that holds the real data, where more advanced coding agents can more often be used.</p>
-<p>In general, when developing synthetic data, it’s important to think carefully about <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. This is a privacy question and <code>synpmx</code> offers four generation modes at different points on that scale, and helps you pick one, though the main deliverable of the package uses an implementation of the AVATAR method which offers some blinding, but not formal privacy guarantees.</p>
+<p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets. The intended use case is to provide realistic looking data of a study that can be shared outside the GxP computing environment (but stay within the organization) so that data-assembly code, diagnostic plots, and model-run plumbing can be developed outside the restricted computing environment that holds the real data, where more advanced coding agents can more often be used.</p>
+<p>In general, when developing synthetic data, it’s important to think carefully about <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. This is a privacy question and <code>synpmx</code> offers four options. The main deliverable of the package uses an implementation of the AVATAR method which offers some blinding, but not formal privacy guarantees.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span></code></pre></div>
-<p>AVATAR needs nothing beyond base R. The two differentially private modes additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<p>AVATAR needs nothing beyond base R. Other additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="a-first-synthetic-dataset">A first synthetic dataset<a class="anchor" aria-label="anchor" href="#a-first-synthetic-dataset"></a>
 </h2>
-<p>The default AVATAR mode needs only the data and a declaration of what the columns mean.</p>
+<p>The default AVATAR synthetic data algorithm needs only the data and a declaration of what the columns mean.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
@@ -99,8 +99,8 @@
 <span><span class="co">#&gt; 2 13 0.00  0.02403989   0.00    0   2 85.25496</span></span>
 <span><span class="co">#&gt; 3 13 0.30 10.00272146   0.00    0   2 85.25496</span></span>
 <span><span class="co">#&gt; 4 13 0.63 11.89216329   0.00    0   2 85.25496</span></span></code></pre></div>
-<p>The output keeps the same structure.</p>
-<p>The other three modes for generating synthetic data, cover the scenarios where formal data privacy requirements are needed. They are included in the package as part of a conceptual framework to help the modeler think about various options that are available, but these methods have not been yet been audited for their ability to protect data privacy.</p>
+<p>The output dataset keeps the same structure.</p>
+<p>The other three modes for generating synthetic data cover the scenarios where formal data privacy requirements are needed. They are included in the package as part of a conceptual framework to help the modeler think about various options that are available, but these methods have not been audited for their ability to protect data privacy.</p>
 <table class="table">
 <colgroup>
 <col width="20%">
@@ -153,8 +153,8 @@
 <p>Two rules of thumb decide between them:</p>
 <ul>
 <li>
-<strong>The trust boundary decides whether you need differential privacy.</strong> Ask whether the generated data can reach anyone the source data could not. Moving the synthetic data to an environment where the same people can access it is different from sending it to external vendors or making it public.<br>
-If no one new can access the data, AVATAR is more useful and easy to use.</li>
+<strong>The trust boundary decides whether you need differential privacy.</strong> Ask whether the generated data can reach anyone the source data could not. Moving the synthetic data to a new cmouting environment where the same people can access it is different from sending the data to external vendors or making it public.<br>
+If no one new can access the data, AVATAR is much easier to use.</li>
 </ul>
 <p><code><a href="articles/synpmx-method.html">vignette("synpmx-method")</a></code> runs all four methods on the same dataset and shows the results side by side.</p>
 </div>
@@ -162,7 +162,7 @@ If no one new can access the data, AVATAR is more useful and easy to use.</li>
 <h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
 </h2>
 <p><strong>AVATAR blending is the primary, maintained code.</strong> It has no dependencies beyond base R, and is what to reach for when the output stays within the source data’s own access controls and obligations.</p>
-<p>The three differentially private modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary. They are present in this repository because formal privacy is the right answer when data crosses a trust boundary. They are provided as-is: not under active development, and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production release mechanism. A real regulated release needs the specialist review.</p>
+<p>The three differentially private modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary. They are present in this repository because formal privacy is the right answer when data crosses a trust boundary. They are provided as-is: not under active development and and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production release mechanism. A real regulated release needs the specialist review.</p>
 <p>That status is enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
 <div class="section level2">
@@ -216,13 +216,6 @@ If no one new can access the data, AVATAR is more useful and easy to use.</li>
 </tbody>
 </table>
 <p>The full function reference is at <a href="https://iamstein.github.io/synpmx/reference/" class="uri">https://iamstein.github.io/synpmx/reference/</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="what-this-is-not">What this is not<a class="anchor" aria-label="anchor" href="#what-this-is-not"></a>
-</h2>
-<p>Generated data exercises cleaning, joins, reshaping, plots, control-file plumbing, repeated-dose PK code, longitudinal PD/biomarker code, infusion events, and censoring conventions. It aims for broad magnitude and shape.</p>
-<p>It is <strong>not</strong> appropriate for parameter estimation, inference, model selection, dose selection, or clinical conclusions, and it does not reproduce source distributions, parameter estimates, or covariate-response relationships.</p>
-<p>Differential privacy, where used, is mathematically bounded rather than absolute. It does not guarantee impossibility of linkage or re-identification, establish legal anonymity, authorize release, secure a compromised environment, or validate public-input claims. Independent privacy, legal, information-security, and data-governance review remains required.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
