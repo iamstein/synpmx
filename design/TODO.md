@@ -35,10 +35,24 @@ development. Keep all of it in `scripts_private/`.
 
 Understand it well enough to defend it.
 
-- [ ] Read the original AVATAR paper. Feeds the novelty positioning owed under
-      "Verification owed" below (`references/`).
+- [ ] Read the original AVATAR paper (`references/Guillaudeux23.pdf`). Feeds the
+      novelty positioning owed under "Verification owed" below.
 - [ ] Write my own mental map of how AVATAR works, checked against
       `vignettes/articles/avatar-mathematics.Rmd`, to confirm my understanding.
+
+Documentation the owner asked for (2026-07-25). Both are writing tasks that
+depend on inputs not yet in hand, so they are queued, not started:
+
+- [ ] A simplified, made-basic-and-clear explanation of how AVATAR works, from
+      the 2023 paper (`references/Guillaudeux23.pdf`). Blocked on being able to
+      read the PDF — this environment has no `poppler`/PDF text extraction, so
+      the summary must not be written from memory. Likely lives in the method
+      vignette or a new short article.
+- [ ] A "what synpmx adds to AVATAR" section: the BLOQ/censoring handling, the
+      full event-table (dosing + observation grammar) rather than a flat matrix,
+      and — once designed and built — the minimum-donor pooling and rare-event
+      pooling from `REV-025`/`REV-026`. Do not document the pooling as a feature
+      until it exists.
 
 Present it.
 
@@ -229,6 +243,18 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       warns. Either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright. (Was stranded in the
       completed documentation-reorganization list.)
+- [ ] `REV-025` **Owner-flagged, 2026-07-25.** AVATAR silently degrades to a
+      noised near-copy of one real patient when a compatibility group is a
+      singleton (or two subjects), which sparse dose arms routinely are.
+      Phase 1: detect and report groups below a donor floor (~5) and gate on it.
+      Phase 2: pool across dose groups with dose-rescaling. Design in
+      `design/METHOD_DISCUSSION.md` §6a. Decide the floor and the PD/nonlinear-PK
+      handling with the owner first.
+- [ ] `REV-026` **Owner-flagged, 2026-07-25.** Synthetic subjects copy one
+      anchor's event skeleton verbatim, so unique-schedule patients (e.g. the
+      long-followed `wbcSim` subject) reappear intact. Sample the schedule/event
+      count from the pool instead. Design in `design/METHOD_DISCUSSION.md` §6a;
+      depends on `REV-025` relaxed pooling.
 
 ## Then: utility headroom in the existing dense-grid path
 
