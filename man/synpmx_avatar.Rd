@@ -16,7 +16,8 @@ synpmx_avatar(
   subject_noise_sd = 0.15,
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
-  time_jitter = 0
+  time_jitter = 0,
+  screen = TRUE
 )
 }
 \arguments{
@@ -55,6 +56,16 @@ neighborhood distances.}
 
 \item{time_jitter}{Standard deviation for coherent tied-time jitter. Zero,
 the default, leaves the event template's times unchanged.}
+
+\item{screen}{When \code{TRUE} (default), source subjects whose event structure is
+a gross outlier -- an unusually long or short follow-up, or an unusual
+number of doses -- are not used as anchors, so no avatar inherits a
+crazy-looking skeleton. Only these structural axes are screened; dose
+magnitude (which weight-based dosing makes noisy) and DV (which is blended,
+not copied) are not. A source with no such outlier is unaffected. Set
+\code{FALSE} to anchor on every subject. For a fuller, tunable screen of the
+generated output, see \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}} and
+\code{\link[=remediate_identifiable_subjects]{remediate_identifiable_subjects()}}.}
 }
 \value{
 An ordinary data frame or tibble with retained source columns, order,

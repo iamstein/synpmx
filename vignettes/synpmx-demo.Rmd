@@ -407,14 +407,17 @@ ggplot2::ggplot(
   ggplot2::theme(legend.position = "bottom")
 ```
 
-## WBC: infusion, a delayed response, and a structural outlier
+## WBC: infusion, a delayed response, and structural screening
 
 `wbcSim` has infusion start/stop events and a study-time white-blood-cell
 response with a delayed decline, nadir, and recovery. It is also genuinely
 heterogeneous: a few subjects are followed far longer than the rest. Because an
-avatar copies its anchor's event skeleton, that long follow-up carries into the
-synthetic data even though the measurements are blended across several
-patients — a structural feature that can single a subject out.
+avatar copies its anchor's event skeleton, a lone very-long follow-up would
+otherwise carry straight into the synthetic data.
+
+By default `synpmx_avatar()` does not anchor an avatar on such a structural
+outlier (`screen = TRUE`), so the synthetic follow-up stays in the cohort's
+ordinary range. Turning the screen off shows what it prevents:
 
 ```{r wbc, eval=has_nlmixr2data}
 data("wbcSim", package = "nlmixr2data")
@@ -422,36 +425,25 @@ wbc_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT"
 )
 wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
-validate_pmx(wbc_synth, wbc_roles)$valid
-```
-
-`flag_identifiable_subjects()` catches the structurally unusual subjects — here,
-the ones followed far longer than the cohort typically is:
-
-```{r wbc-flags, eval=has_nlmixr2data}
-wbc_flags <- flag_identifiable_subjects(wbc_synth, wbc_roles)
-flagged <- as.data.frame(wbc_flags)[wbc_flags$flagged, ]
-knitr::kable(head(flagged, 6), digits = 0, row.names = FALSE,
-             caption = "Structurally unusual synthetic WBC subjects")
-```
-
-`remediate_identifiable_subjects()` truncates a merely-long follow-up and drops
-the rest, refilling from the source so the cohort keeps its size. The plotted
-data below is the remediated set, so the extreme long-follow-up tail is gone.
-`wbcSim`'s follow-up is genuinely spread, so this screen is a judgement tool, not
-a one-click guarantee: it removes the individually unusual subjects, not the
-cohort's natural variation.
-
-```{r wbc-remediate, eval=has_nlmixr2data}
-wbc_clean <- remediate_identifiable_subjects(
-  wbc_synth, wbc_roles, source = wbcSim, seed = 11
+wbc_raw   <- suppressWarnings(
+  synpmx_avatar(wbcSim, wbc_roles, seed = 505, screen = FALSE)
 )
+validate_pmx(wbc_synth, wbc_roles)$valid
+c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
+  screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
 ```
+
+The default screen only looks at follow-up length and dose count — the axes that
+make a skeleton look structurally wrong. For a fuller, tunable check of a
+generated dataset, including dose-magnitude and DV outliers,
+`flag_identifiable_subjects()` scores every subject and
+`remediate_identifiable_subjects()` truncates, drops, or replaces the ones it
+flags.
 
 ```{r wbc-plot, eval=has_nlmixr2data && has_ggplot2}
 wbc_comparison <- rbind(
   observed_plot_data(wbcSim, wbc_roles, "Source"),
-  observed_plot_data(wbc_clean, wbc_roles, "Synthetic")
+  observed_plot_data(wbc_synth, wbc_roles, "Synthetic")
 )
 ggplot2::ggplot(
   wbc_comparison,
