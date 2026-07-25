@@ -306,6 +306,13 @@ knitr::kable(head(theo_flags, 5), digits = 2,
              caption = "Per-subject outlier screen (most unusual first)")
 ```
 
+`remediate_identifiable_subjects()` acts on those flags: by default it truncates
+a subject flagged only for an unusually long follow-up back to the cohort's
+longest ordinary follow-up, and drops a subject flagged for any other reason (an
+extreme value or a rare dose), since there is no single value to trim. The
+lasting fix is to stop generating structural outliers at all, by sampling each
+avatar's event skeleton from the cohort rather than copying one subject's.
+
 ```{r theo-plot, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),

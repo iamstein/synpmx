@@ -281,6 +281,14 @@ A near-copy-of-one-real-subject distance metric was prototyped and set aside:
 the borrowing fix (A) now prevents near-copies by construction, so the live
 residual risk is structural uniqueness, which the axis screen targets directly.
 
+`remediate_identifiable_subjects()` (`R/compare.R`) acts on the flags with the
+owner's policy (2026-07-25): a subject flagged **only** for a long follow-up is
+*truncated* to the cohort's longest ordinary follow-up (the one axis a
+value-level edit can fix), and a subject flagged for any other reason is
+*dropped*, since an extreme-DV subject is elevated throughout and a rare dose
+cannot be trimmed without breaking the regimen. `time` and `other` options
+expose the policy. This is a stop-gap; skeleton sampling (B) is the cure.
+
 ### What was discovered on first implementation
 
 The problem is far more pervasive than "sparse dose arms". Because the signature
