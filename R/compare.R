@@ -481,3 +481,99 @@ print.pmx_identifiability <- function(x, ...) {
       "budgeted.\n")
   invisible(x)
 }
+
+#' Remove or shorten the subjects `flag_identifiable_subjects()` flags
+#'
+#' Applies a remediation policy to the outliers found by
+#' [flag_identifiable_subjects()]. By default a subject flagged **only** for an
+#' unusually long follow-up is *truncated* back to the cohort's longest ordinary
+#' follow-up (its late rows dropped), and a subject flagged for **any other**
+#' reason -- an extreme DV, a rare dose level, or an unusual dose count -- is
+#' *dropped* entirely.
+#'
+#' The split is deliberate. Truncation is offered only on the time axis because
+#' it is the one structural outlier a value-level edit can genuinely fix:
+#' shortening a long timeline leaves a shorter but ordinary subject. An
+#' extreme-DV subject is elevated across its whole trajectory, so removing points
+#' would only mangle it, and a rare dose cannot be trimmed without breaking the
+#' regimen -- so those subjects are dropped rather than edited. A subject flagged
+#' for both a long follow-up and another reason is dropped, since truncation
+#' would not resolve the other reason.
+#'
+#' This is a stop-gap. The durable fix is to sample each avatar's event skeleton
+#' from the cohort so structural outliers are not generated in the first place
+#' (`REV-026`); see `vignette("synpmx-method")`.
+#'
+#' @param data A PMX dataset, typically the synthetic output.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param time Action for a subject whose *only* outlier axis is follow-up time:
+#'   `"truncate"` (default) to shorten it to the longest ordinary follow-up,
+#'   `"drop"` to remove it, or `"keep"` to leave it.
+#' @param other Action for a subject flagged for any non-time reason: `"drop"`
+#'   (default) or `"keep"`.
+#' @param threshold Passed to [flag_identifiable_subjects()].
+#'
+#' @return `data` with the policy applied, carrying attributes `dropped` and
+#'   `truncated` (the affected subject ids) and `horizon` (the follow-up time
+#'   truncation used, or `NA`).
+#' @seealso [flag_identifiable_subjects()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(30)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' cleaned <- remediate_identifiable_subjects(synthetic, roles)
+remediate_identifiable_subjects <- function(data, roles,
+                                            time = c("truncate", "drop", "keep"),
+                                            other = c("drop", "keep"),
+                                            threshold = 3.5) {
+  time <- match.arg(time)
+  other <- match.arg(other)
+  report <- flag_identifiable_subjects(data, roles, threshold = threshold)
+
+  time_only <- report$flagged & report$outlier_axes == "follow-up time"
+  other_flagged <- report$flagged & !time_only
+
+  drop_ids <- character()
+  if (other == "drop") drop_ids <- c(drop_ids, report$subject_id[other_flagged])
+  truncate_ids <- character()
+  if (any(time_only)) {
+    if (time == "drop") {
+      drop_ids <- c(drop_ids, report$subject_id[time_only])
+    } else if (time == "truncate") {
+      truncate_ids <- report$subject_id[time_only]
+    }
+  }
+  drop_ids <- unique(drop_ids)
+
+  # Truncate toward the longest follow-up that is *not* itself a time outlier.
+  time_out <- grepl("follow-up time", report$outlier_axes, fixed = TRUE)
+  ordinary <- report$follow_up_time[!time_out & is.finite(report$follow_up_time)]
+  horizon <- if (length(ordinary)) max(ordinary) else NA_real_
+  if (length(truncate_ids) && !is.finite(horizon)) {
+    drop_ids <- unique(c(drop_ids, truncate_ids))  # nothing to truncate toward
+    truncate_ids <- character()
+  }
+
+  id <- as.character(data[[roles$id]])
+  keep <- !(id %in% drop_ids)
+  if (length(truncate_ids)) {
+    times <- suppressWarnings(as.numeric(data[[roles$time]]))
+    keep <- keep & !(id %in% truncate_ids & is.finite(times) & times > horizon)
+  }
+  out <- data[keep, , drop = FALSE]
+  rownames(out) <- NULL
+
+  message(sprintf(
+    "remediate_identifiable_subjects(): dropped %d subject(s); truncated %d subject(s)%s.",
+    length(drop_ids), length(truncate_ids),
+    if (length(truncate_ids)) sprintf(" to follow-up <= %.4g", horizon) else ""
+  ))
+  attr(out, "dropped") <- drop_ids
+  attr(out, "truncated") <- truncate_ids
+  attr(out, "horizon") <- horizon
+  out
+}
