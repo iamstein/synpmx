@@ -454,20 +454,20 @@ knitr::kable(
 )
 ```
 
-| .dataset  |  id | time | amt |       dv | dvid | evid |       wt | age | sex  |
-|:----------|----:|-----:|----:|---------:|:-----|-----:|---------:|----:|:-----|
-| Source    |   1 |  0.0 | 100 |  0.00000 | cp   |    1 | 66.70000 |  50 | male |
-| Source    |   1 |  0.5 |   0 |  0.00000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  1.0 |   0 |  1.90000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  2.0 |   0 |  3.30000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  3.0 |   0 |  6.60000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  6.0 |   0 |  9.10000 | cp   |    0 | 66.70000 |  50 | male |
-| Synthetic |  34 |  0.0 | 115 |  0.00000 | cp   |    1 | 75.83451 |  23 | male |
-| Synthetic |  34 |  0.0 |   0 | 75.02286 | pca  |    0 | 75.83451 |  23 | male |
-| Synthetic |  34 | 24.0 |   0 | 11.93690 | cp   |    0 | 75.83451 |  23 | male |
-| Synthetic |  34 | 24.0 |   0 | 26.46828 | pca  |    0 | 75.83451 |  23 | male |
-| Synthetic |  34 | 36.0 |   0 | 10.79608 | cp   |    0 | 75.83451 |  23 | male |
-| Synthetic |  34 | 36.0 |   0 | 16.24877 | pca  |    0 | 75.83451 |  23 | male |
+| .dataset  |  id | time | amt |        dv | dvid | evid |       wt | age | sex  |
+|:----------|----:|-----:|----:|----------:|:-----|-----:|---------:|----:|:-----|
+| Source    |   1 |  0.0 | 100 |   0.00000 | cp   |    1 | 66.70000 |  50 | male |
+| Source    |   1 |  0.5 |   0 |   0.00000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  1.0 |   0 |   1.90000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  2.0 |   0 |   3.30000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  3.0 |   0 |   6.60000 | cp   |    0 | 66.70000 |  50 | male |
+| Source    |   1 |  6.0 |   0 |   9.10000 | cp   |    0 | 66.70000 |  50 | male |
+| Synthetic |  34 |  0.0 | 123 |   0.00000 | cp   |    1 | 75.57957 |  29 | male |
+| Synthetic |  34 |  0.0 |   0 | 101.60770 | pca  |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  1.5 |   0 |  12.45571 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  3.0 |   0 |  12.74682 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 |  6.0 |   0 |  12.77112 | cp   |    0 | 75.57957 |  29 | male |
+| Synthetic |  34 | 12.0 |   0 |  11.12821 | cp   |    0 | 75.57957 |  29 | male |
 
 Actual Warfarin rows and synthesized rows {.table}
 
@@ -484,8 +484,8 @@ knitr::kable(
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
 | Source | cp | 32 | 32 | 251 | 7.84 | 6 | 0.5 | 120 |
 | Source | pca | 32 | 32 | 219 | 6.84 | 7 | 0.0 | 120 |
-| Synthetic | cp | 32 | 32 | 204 | 6.38 | 6 | 1.5 | 120 |
-| Synthetic | pca | 32 | 32 | 215 | 6.72 | 7 | 0.0 | 120 |
+| Synthetic | cp | 32 | 32 | 243 | 7.59 | 6 | 0.5 | 120 |
+| Synthetic | pca | 32 | 32 | 222 | 6.94 | 7 | 0.0 | 120 |
 
 Warfarin cohort and endpoint checks {.table}
 
@@ -548,7 +548,7 @@ validate_pmx(wbc_synth, wbc_roles)$valid
 c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
   screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
 #> default_screen     screen_off 
-#>            576           4580
+#>            648           4580
 ```
 
 The default screen only looks at follow-up length and dose count — the
@@ -614,8 +614,8 @@ knitr::kable(
 
 | dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 12 | 12 | 321 | 26.75 | 27.0 | 0 | 623.03 |
-| Synthetic | DV | 12 | 12 | 330 | 27.50 | 27.5 | 0 | 623.03 |
+| Source | DV | 12 | 12 | 321 | 26.75 | 27 | 0 | 623.03 |
+| Synthetic | DV | 12 | 12 | 325 | 27.08 | 27 | 0 | 623.03 |
 
 NimoData cohort and infusion checks {.table}
 
@@ -674,7 +674,7 @@ knitr::kable(
 | dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
 | Source | DV | 120 | 120 | 2427 | 20.23 | 24 | 0.2 | 48.17 |
-| Synthetic | DV | 120 | 120 | 2872 | 23.93 | 24 | 0.2 | 24.20 |
+| Synthetic | DV | 120 | 120 | 2312 | 19.27 | 24 | 0.2 | 48.17 |
 
 Mavoglurant cohort and occasion checks {.table}
 
