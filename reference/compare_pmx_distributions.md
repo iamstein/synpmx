@@ -73,13 +73,13 @@ compare_pmx_distributions(data, synthetic, roles)
 #> Endpoints (dependent variable on observation rows):
 #>  variable   dataset   n n_subjects   mean     sd    min    q25 median    q75
 #>        cp    source 160         20  3.750  2.879  0.880  1.335  2.656  5.288
-#>        pd    source 120         20 60.000 14.280 35.200 48.640 59.610 71.310
 #>        cp synthetic 160         20  3.987  3.091  0.688  1.371  2.596  5.794
+#>        pd    source 120         20 60.000 14.280 35.200 48.640 59.610 71.310
 #>        pd synthetic 120         20 62.970 20.450 26.610 47.970 60.350 75.370
 #>     max
 #>    9.52
-#>   89.60
 #>   10.75
+#>   89.60
 #>  121.80
 #> 
 #> Continuous covariates (baseline, per subject):
