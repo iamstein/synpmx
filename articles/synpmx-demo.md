@@ -525,9 +525,11 @@ the synthetic data.
 
 By default
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-does not anchor an avatar on such a structural outlier
-(`screen = TRUE`), so the synthetic follow-up stays in the cohort’s
-ordinary range. Turning the screen off shows what it prevents:
+does not anchor an avatar on a subject whose follow-up is more than
+twice the cohort’s 90th percentile (`screen = TRUE`), so the most
+extreme follow-up does not carry into the synthetic data — while
+ordinary long follow-ups are kept. Turning the screen off shows what it
+prevents:
 
 ``` r
 
@@ -548,7 +550,7 @@ validate_pmx(wbc_synth, wbc_roles)$valid
 c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
   screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
 #> default_screen     screen_off 
-#>            648           4580
+#>           1130           4580
 ```
 
 The default screen only looks at follow-up length and dose count — the

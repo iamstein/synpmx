@@ -1078,9 +1078,10 @@ longer than the rest. Because an avatar copies its anchor’s event
 skeleton, a lone very-long follow-up would otherwise carry straight into
 the synthetic data.</p>
 <p>By default <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does not anchor an avatar on
-such a structural outlier (<code>screen = TRUE</code>), so the synthetic
-follow-up stays in the cohort’s ordinary range. Turning the screen off
-shows what it prevents:</p>
+a subject whose follow-up is more than twice the cohort’s 90th
+percentile (<code>screen = TRUE</code>), so the most extreme follow-up
+does not carry into the synthetic data — while ordinary long follow-ups
+are kept. Turning the screen off shows what it prevents:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
@@ -1099,7 +1100,7 @@ shows what it prevents:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>default_screen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">wbc_synth</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">wbc_synth</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>  screen_off     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">wbc_raw</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">wbc_raw</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; default_screen     screen_off </span></span>
-<span><span class="co">#&gt;            648           4580</span></span></code></pre></div>
+<span><span class="co">#&gt;           1130           4580</span></span></code></pre></div>
 <p>The default screen only looks at follow-up length and dose count —
 the axes that make a skeleton look structurally wrong. For a fuller,
 tunable check of a generated dataset, including dose-magnitude and DV
