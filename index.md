@@ -114,21 +114,17 @@ refuse to run until
 [`synpmx_enable_dp_engines()`](https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.md)
 has been called once in the session.
 
-## Documentation
+## Key Documentation
 
 | Document | Question it answers |
 |----|----|
 | [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
 | [Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
-| [Privacy in synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) | What does differential privacy guarantee, does my release need it, and what epsilon? |
 | [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html) | How does the default generator work, step by step? |
-| [Privacy background](https://iamstein.github.io/synpmx/articles/privacy-background.html) | Where do `d`, `f`, and the error law come from? |
-| [Feasibility by cohort size](https://iamstein.github.io/synpmx/articles/feasibility.html) | What can actually be released, and from how many patients? |
-| [Mechanism-level privacy argument](https://iamstein.github.io/synpmx/articles/privacy-argument.html) | The formal argument, for a reviewer. |
-| [Model elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html) / [data elicitation](https://iamstein.github.io/synpmx/articles/data-elicitation.html) | How do I produce the public inputs modes 2–4 need? |
 
-The full function reference is at
-<https://iamstein.github.io/synpmx/reference/>.
+The full set of articles (privacy, feasibility, elicitation) and the
+function reference are on the [package
+website](https://iamstein.github.io/synpmx/).
 
 ## License
 

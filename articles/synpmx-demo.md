@@ -286,30 +286,13 @@ knitr::kable(
 
 Actual Theophylline rows and synthesized rows {.table}
 
-``` r
-
-knitr::kable(
-  check_demo_similarity(theo_md, theo_synth, theo_roles, c(0, 170),
-                        "Theophylline"),
-  digits = 2, caption = "Theophylline cohort and sampling-design checks"
-)
-```
-
-| dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 12 | 12 | 264 | 22 | 22 | 0 | 168.65 |
-| Synthetic | DV | 12 | 12 | 264 | 22 | 22 | 0 | 168.65 |
-
-Theophylline cohort and sampling-design checks {.table}
-
 [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
-is the numeric counterpart to the structural checks: it summarizes the
-dependent variable per endpoint and each baseline covariate, source
-against synthetic, so you can see at a glance that the ranges line up.
-Expect them to be close in magnitude and shape, not identical — AVATAR
-does not reproduce the source distribution exactly. Like every
-source-derived diagnostic it is marked restricted and stays inside the
-source data’s access controls.
+summarizes the dependent variable per endpoint and each baseline
+covariate, source against synthetic, so you can see at a glance that the
+ranges line up. Expect them to be close in magnitude and shape, not
+identical — AVATAR does not reproduce the source distribution exactly.
+Like every source-derived diagnostic it is marked restricted and stays
+inside the source data’s access controls.
 
 ``` r
 
@@ -339,94 +322,17 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
 
 Baseline weight distribution, source versus synthetic {.table}
 
-Where
-[`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
-checks the cohort as a whole,
+For a per-subject re-identification check,
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-checks individuals: it screens each synthetic subject for being a
-structural outlier — an unusual follow-up time, dose count, dose
-magnitude, or peak DV — since a subject unlike anyone else is the one
-easiest to single out. Run it before the synthetic data leaves the
-source’s access controls and drop or regenerate anything it flags.
-
-``` r
-
-theo_flags <- flag_identifiable_subjects(theo_synth, theo_roles)
-knitr::kable(head(theo_flags, 5), digits = 2,
-             caption = "Per-subject outlier screen (most unusual first)")
-```
-
-| subject_id | follow_up_time | n_doses | max_dose | max_dv | outlier_axes   | flagged |
-|:-----------|---------------:|--------:|---------:|-------:|:---------------|:--------|
-| 16         |         168.43 |       7 |   267.84 |   7.08 | dose magnitude | TRUE    |
-| 17         |         168.43 |       7 |   267.84 |  10.26 | dose magnitude | TRUE    |
-| 24         |         168.43 |       7 |   267.84 |   9.12 | dose magnitude | TRUE    |
-| 13         |         168.17 |       7 |   319.36 |   9.09 |                | FALSE   |
-| 14         |         168.22 |       7 |   319.77 |  11.94 |                | FALSE   |
-
-Per-subject outlier screen (most unusual first) {.table
-style="width:100%;"}
-
+scores each synthetic subject for being a structural outlier, and
 [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-acts on those flags: by default it truncates a subject flagged only for
-an unusually long follow-up back to the cohort’s longest ordinary
-follow-up, and drops a subject flagged for any other reason (an extreme
-value or a rare dose), since there is no single value to trim. The
-lasting fix is to stop generating structural outliers at all, by
-sampling each avatar’s event skeleton from the cohort rather than
-copying one subject’s.
-
-``` r
-
-theo_comparison <- rbind(
-  observed_plot_data(theo_md, theo_roles, "Source"),
-  observed_plot_data(theo_synth, theo_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  theo_comparison,
-  ggplot2::aes(time, dv, group = interaction(dataset, subject),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.35) +
-  ggplot2::geom_point(alpha = 0.55, size = 0.8) +
-  comparison_facets(theo_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Study time (hours)", y = "DV", colour = "Dataset",
-    title = "Theophylline: source and synthetic data"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
+removes or shortens the ones it flags.
 
 ![](synpmx-demo_files/figure-html/theo-plot-1.png)
 
 A dose-relative display makes the coarse curve shape easier to see.
 AVATAR preserves the rise-and-fall because it blends real subject
 profiles rather than inventing a shape.
-
-``` r
-
-theo_tad <- rbind(
-  tad_plot_data(theo_md, theo_roles, "Source"),
-  tad_plot_data(theo_synth, theo_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  theo_tad,
-  ggplot2::aes(tad, dv, group = interaction(dataset, subject, occasion),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.18) +
-  ggplot2::geom_point(alpha = 0.25, size = 0.7) +
-  comparison_facets(theo_tad) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
-    title = "Theophylline: dose-relative profiles"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
 
 ![](synpmx-demo_files/figure-html/theo-tad-1.png)
 
@@ -436,153 +342,29 @@ ggplot2::ggplot(
 and `pca`) with factor covariates. Both endpoints and all subjects are
 retained.
 
-``` r
-
-data("warfarin", package = "nlmixr2data")
-warfarin_roles <- pmx_roles(
-  id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
-  dvid = "dvid", covariates = c("wt", "age", "sex")
-)
-warfarin_synth <- synpmx_avatar(warfarin, warfarin_roles, seed = 404)
-#> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
-validate_pmx(warfarin_synth, warfarin_roles)$valid
-#> [1] TRUE
-knitr::kable(
-  source_synthetic_preview(warfarin, warfarin_synth),
-  caption = "Actual Warfarin rows and synthesized rows"
-)
-```
-
-| .dataset  |  id | time | amt |        dv | dvid | evid |       wt | age | sex  |
-|:----------|----:|-----:|----:|----------:|:-----|-----:|---------:|----:|:-----|
-| Source    |   1 |  0.0 | 100 |   0.00000 | cp   |    1 | 66.70000 |  50 | male |
-| Source    |   1 |  0.5 |   0 |   0.00000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  1.0 |   0 |   1.90000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  2.0 |   0 |   3.30000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  3.0 |   0 |   6.60000 | cp   |    0 | 66.70000 |  50 | male |
-| Source    |   1 |  6.0 |   0 |   9.10000 | cp   |    0 | 66.70000 |  50 | male |
-| Synthetic |  34 |  0.0 | 123 |   0.00000 | cp   |    1 | 75.57957 |  29 | male |
-| Synthetic |  34 |  0.0 |   0 | 101.60770 | pca  |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  1.5 |   0 |  12.45571 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  3.0 |   0 |  12.74682 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 |  6.0 |   0 |  12.77112 | cp   |    0 | 75.57957 |  29 | male |
-| Synthetic |  34 | 12.0 |   0 |  11.12821 | cp   |    0 | 75.57957 |  29 | male |
-
-Actual Warfarin rows and synthesized rows {.table}
-
-``` r
-
-knitr::kable(
-  check_demo_similarity(warfarin, warfarin_synth, warfarin_roles, c(0, 130),
-                        "Warfarin"),
-  digits = 2, caption = "Warfarin cohort and endpoint checks"
-)
-```
-
-| dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | cp | 32 | 32 | 251 | 7.84 | 6 | 0.5 | 120 |
-| Source | pca | 32 | 32 | 219 | 6.84 | 7 | 0.0 | 120 |
-| Synthetic | cp | 32 | 32 | 243 | 7.59 | 6 | 0.5 | 120 |
-| Synthetic | pca | 32 | 32 | 222 | 6.94 | 7 | 0.0 | 120 |
-
-Warfarin cohort and endpoint checks {.table}
-
-``` r
-
-warfarin_comparison <- rbind(
-  observed_plot_data(warfarin, warfarin_roles, "Source"),
-  observed_plot_data(warfarin_synth, warfarin_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  warfarin_comparison,
-  ggplot2::aes(time, dv, group = interaction(dataset, subject),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.3) +
-  ggplot2::geom_point(alpha = 0.5, size = 0.8) +
-  comparison_facets(warfarin_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Time (hours)", y = "DV", colour = "Dataset",
-    title = "Warfarin: PK (cp) and PD (pca) endpoints"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
+    #> Warning: Synthetic generation used documented small-group/profile fallbacks:
+    #> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
 
 ![](synpmx-demo_files/figure-html/warfarin-plot-1.png)
 
 ## WBC: infusion, a delayed response, and structural screening
 
 `wbcSim` has infusion start/stop events and a study-time
-white-blood-cell response with a delayed decline, nadir, and recovery.
-It is also genuinely heterogeneous: a few subjects are followed far
-longer than the rest. Because an avatar copies its anchor’s event
-skeleton, a lone very-long follow-up would otherwise carry straight into
-the synthetic data.
+white-blood-cell response with a delayed decline, nadir, and recovery. A
+few subjects are followed far longer than the rest.
 
-By default
+A patient followed much longer than everyone else stands out, so a
+synthetic copy built from them could point back to the real person. To
+lower that risk,
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-does not anchor an avatar on a subject whose follow-up is more than
-twice the cohort’s 90th percentile (`screen = TRUE`), so the most
-extreme follow-up does not carry into the synthetic data — while
-ordinary long follow-ups are kept. Turning the screen off shows what it
-prevents:
+by default does not build an avatar from such an extreme subject,
+quietly leaving the very-long follow-ups out of the synthetic data
+(`screen = TRUE`). This is an informal safeguard against singling
+someone out, not a formal privacy guarantee; ordinary long follow-ups
+are kept, and `screen = FALSE` keeps every subject.
 
-``` r
-
-data("wbcSim", package = "nlmixr2data")
-wbc_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT"
-)
-wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
-#> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
-#>   Declare a column in `keep` to carry it through verbatim.
-wbc_raw   <- suppressWarnings(
-  synpmx_avatar(wbcSim, wbc_roles, seed = 505, screen = FALSE)
-)
-#> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
-#>   Declare a column in `keep` to carry it through verbatim.
-validate_pmx(wbc_synth, wbc_roles)$valid
-#> [1] TRUE
-c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
-  screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
-#> default_screen     screen_off 
-#>           1130           4580
-```
-
-The default screen only looks at follow-up length and dose count — the
-axes that make a skeleton look structurally wrong. For a fuller, tunable
-check of a generated dataset, including dose-magnitude and DV outliers,
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-scores every subject and
-[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-truncates, drops, or replaces the ones it flags.
-
-``` r
-
-wbc_comparison <- rbind(
-  observed_plot_data(wbcSim, wbc_roles, "Source"),
-  observed_plot_data(wbc_synth, wbc_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  wbc_comparison,
-  ggplot2::aes(time, dv, group = interaction(dataset, subject),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.3) +
-  ggplot2::geom_point(alpha = 0.4, size = 0.7) +
-  comparison_facets(wbc_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Study time (hours)", y = "WBC", colour = "Dataset",
-    title = "WBC: delayed decline, nadir, and recovery"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
+    #> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
+    #>   Declare a column in `keep` to carry it through verbatim.
 
 ![](synpmx-demo_files/figure-html/wbc-plot-1.png)
 
@@ -594,55 +376,8 @@ a nominal dose group (`DOS`). The dose group is carried through with
 doses, so it stays coherent with them. The redundant `WGT` column is
 simply left undeclared, so AVATAR drops it.
 
-``` r
-
-data("nimoData", package = "nlmixr2data")
-nimo_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-  rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
-  covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
-)
-nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
-#> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
-#>   Declare a column in `keep` to carry it through verbatim.
-validate_pmx(nimo_synth, nimo_roles)$valid
-#> [1] TRUE
-knitr::kable(
-  check_demo_similarity(nimoData, nimo_synth, nimo_roles, c(0, 3000),
-                        "NimoData", clock = "tad"),
-  digits = 2, caption = "NimoData cohort and infusion checks"
-)
-```
-
-| dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 12 | 12 | 321 | 26.75 | 27 | 0 | 623.03 |
-| Synthetic | DV | 12 | 12 | 325 | 27.08 | 27 | 0 | 623.03 |
-
-NimoData cohort and infusion checks {.table}
-
-``` r
-
-nimo_comparison <- rbind(
-  tad_plot_data(nimoData, nimo_roles, "Source"),
-  tad_plot_data(nimo_synth, nimo_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  nimo_comparison,
-  ggplot2::aes(tad, dv, group = interaction(dataset, subject, occasion),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.2) +
-  ggplot2::geom_point(alpha = 0.35, size = 0.7) +
-  comparison_facets(nimo_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Time after dose (hours)", y = "DV", colour = "Dataset",
-    title = "NimoData: dose-relative profiles across ten infusions"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
+    #> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
+    #>   Declare a column in `keep` to carry it through verbatim.
 
 ![](synpmx-demo_files/figure-html/nimo-plot-1.png)
 
@@ -653,62 +388,6 @@ resets within occasion, an occasion-varying `DOSE`, numeric-coded `SEX`,
 and infusion rows. The reset clock validates within ID and occasion.
 AVATAR copies the whole event template from one anchor, so `DOSE` stays
 coherent with the doses when carried through with `keep`.
-
-``` r
-
-data("mavoglurant", package = "nlmixr2data")
-mavo_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
-  keep = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
-)
-mavo_synth <- suppressWarnings(synpmx_avatar(mavoglurant, mavo_roles,
-                                              seed = 707))
-validate_pmx(mavo_synth, mavo_roles)$valid
-#> [1] TRUE
-knitr::kable(
-  check_demo_similarity(mavoglurant, mavo_synth, mavo_roles, c(0, 120),
-                        "Mavoglurant", clock = "tad"),
-  digits = 2, caption = "Mavoglurant cohort and occasion checks"
-)
-```
-
-| dataset | endpoint | patients | patients_with_endpoint | observations | mean_time_points_per_patient | median_time_points_per_patient | first_time | last_time |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|
-| Source | DV | 120 | 120 | 2427 | 20.23 | 24 | 0.2 | 48.17 |
-| Synthetic | DV | 120 | 120 | 2312 | 19.27 | 24 | 0.2 | 48.17 |
-
-Mavoglurant cohort and occasion checks {.table}
-
-``` r
-
-mavo_comparison <- rbind(
-  tad_plot_data(mavoglurant, mavo_roles, "Source"),
-  tad_plot_data(mavo_synth, mavo_roles, "Synthetic")
-)
-mavo_plot <- ggplot2::ggplot(
-  mavo_comparison,
-  ggplot2::aes(tad, dv, group = interaction(dataset, subject, occasion),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.2) +
-  ggplot2::geom_point(alpha = 0.35, size = 0.7) +
-  comparison_facets(mavo_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Time after dose (hours)", y = "DV (log scale)", colour = "Dataset",
-    title = "Mavoglurant: dose-relative profiles with occasion reset"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-# Mavoglurant concentrations span orders of magnitude, so a log y axis reads
-# better. Use xgxr's log scale when available, otherwise a plain log10 scale.
-mavo_plot + if (requireNamespace("xgxr", quietly = TRUE)) {
-  xgxr::xgx_scale_y_log10()
-} else {
-  ggplot2::scale_y_log10()
-}
-```
 
 ![](synpmx-demo_files/figure-html/mavo-plot-1.png)
 
@@ -799,29 +478,6 @@ rather than calling
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
 a second time — a second call is a second release, and its budget has to
 be composed with the first.
-
-``` r
-
-theo_private_comparison <- rbind(
-  observed_plot_data(theo_md, theo_roles, "Source"),
-  observed_plot_data(theo_private, theo_roles, "Synthetic")
-)
-ggplot2::ggplot(
-  theo_private_comparison,
-  ggplot2::aes(time, dv, group = interaction(dataset, subject),
-               colour = dataset)
-) +
-  ggplot2::geom_line(alpha = 0.35) +
-  ggplot2::geom_point(alpha = 0.55, size = 0.8) +
-  comparison_facets(theo_private_comparison) +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
-  ggplot2::labs(
-    x = "Study time (hours)", y = "DV", colour = "Dataset",
-    title = "Theophylline: model-based private generation"
-  ) +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(legend.position = "bottom")
-```
 
 ![](synpmx-demo_files/figure-html/empirical-plot-1.png)
 
