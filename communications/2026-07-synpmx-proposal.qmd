@@ -137,8 +137,7 @@ No model, no priors — just the column meanings.
 
 A concentration-time scatter of source against synthetic shows the synthetic
 cohort reproducing the **shape, timing, and magnitude** of the real profiles
-without copying any individual subject's data. This is a governance-based
-safeguard, not a formal privacy guarantee.
+without copying any individual subject's data. 
 
 # Safeguards
 
@@ -149,13 +148,8 @@ safeguard, not a formal privacy guarantee.
 - **Extreme subjects are dropped** — a patient who stands out, for example one
   followed far longer than the rest, is not used as a template, so an unusual
   individual is never copied.
-- For this reason `synpmx` **requires at least five patients**; below that it
-  says so loudly rather than generate thin blends.
-- Optional per-subject checks find and remove any avatar that still stands out
-  before the data moves.
+- For this reason `synpmx` **requires at least five patients**
 
-A **governance-based** safeguard on top of the trust boundary, in the same
-spirit as `synadam` — not a formal privacy guarantee.
 
 ## Keeping synthetic and real data apart
 
@@ -166,17 +160,10 @@ spirit as `synadam` — not a formal privacy guarantee.
 - **Only synthetic data leaves GPS-II.** The move to a local machine carries the
   synthetic table alone; real subject-level data stays in the restricted
   environment.
-- **Explicit scope labeling.** The synthetic output is marked as structurally
-  faithful but not statistically faithful — for pipeline development, not
-  analysis.
 
 ## Summary
 
-- `synpmx` extends the **`synadam` philosophy** — resample real data, rely on
-  governance — from the **column** to the **subject trajectory**, because a PMX
-  event table is only coherent as a whole.
-- It **blends whole real subject trajectories** — at least five per avatar, so
-  no one patient is copied: structurally exact, needs no elicitation.
-- The payoff: **move synthetic PMX data out of GPS-II to a local machine** —
-  still inside Novartis's trusted boundary — and develop against it with modern
-  tooling, then run unchanged on the real data.
+- `synpmx` extends the **`synadam` philosophy** to PMX datasets. 
+- It **blends whole real subject trajectories** — at least five per avatar, so no one patient is copied
+- The purpose: **move synthetic PMX data out of GPS-II to a local machine** —
+  still inside Novartis's trusted boundary — and develop code for this data using modern agentic coding tools. 
