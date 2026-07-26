@@ -384,12 +384,13 @@
 # averaged across >= k real patients. Only a source smaller than k + 1 subjects
 # cannot reach the floor; that case is flagged loudly by the caller.
 # Source subjects whose event structure is extreme on the high side -- a
-# follow-up or dose count more than `mult` times the cohort median. These are
-# the anchors that would give an avatar a structurally extreme skeleton (the
-# long tail a reader notices); the default screen keeps them out of the anchor
-# pool. A median multiple, not a MAD z-score, so a tight core with a heavy tail
-# (e.g. wbcSim follow-up: most subjects near 480 h, a few far beyond) does not
-# drag ordinary high-end subjects in with the genuinely extreme ones.
+# follow-up or dose count more than `mult` times the cohort's 90th percentile.
+# These are the anchors that would give an avatar a structurally extreme
+# skeleton (the long tail a reader notices); the default screen keeps them out
+# of the anchor pool. Anchoring on the 90th percentile, not the median, means
+# ordinary spread does not trip it: only a subject well beyond the high end of
+# normal is excluded. (wbcSim follow-up: 90th percentile ~648 h, so the cut sits
+# near 1300 h and drops only the 1730/4580 h subjects, not the ordinary ~650 h.)
 .structural_outlier_anchors <- function(source, roles, mult = 2) {
   subjects <- .unique_in_order(source[[roles$id]])
   key <- factor(as.character(source[[roles$id]]),
@@ -405,9 +406,11 @@
     as.character(subjects)
   ])
   high <- function(x) {
-    centre <- stats::median(x[is.finite(x)])
-    if (!is.finite(centre) || centre <= 0) return(rep(FALSE, length(x)))
-    is.finite(x) & x > mult * centre
+    finite <- x[is.finite(x)]
+    if (!length(finite)) return(rep(FALSE, length(x)))
+    reference <- stats::quantile(finite, 0.90, names = FALSE)
+    if (!is.finite(reference) || reference <= 0) return(rep(FALSE, length(x)))
+    is.finite(x) & x > mult * reference
   }
   which(high(follow_up) | high(n_doses))
 }
@@ -509,15 +512,15 @@
 #' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
 #'   the default, leaves the event template's times unchanged.
 #' @param screen When `TRUE` (default), a source subject whose follow-up length
-#'   or dose count is more than twice the cohort median is not used as an anchor,
-#'   so no avatar inherits an extreme skeleton (the long tail a reader notices).
-#'   Only these structural axes are screened; dose magnitude (which weight-based
-#'   dosing makes noisy) and DV (which is blended, not copied) are not. The rule
-#'   is a median multiple, so an ordinary high-end subject is kept while a
-#'   genuinely extreme one is dropped, and a source with no extreme subject is
-#'   unaffected. Set `FALSE` to anchor on every subject. For a fuller, tunable
-#'   screen of the generated output, see [flag_identifiable_subjects()] and
-#'   [remediate_identifiable_subjects()].
+#'   or dose count is more than twice the cohort's 90th percentile is not used as
+#'   an anchor, so no avatar inherits an extreme skeleton (the long tail a reader
+#'   notices). Anchoring the cut on the 90th percentile, not the median, means
+#'   ordinary spread is kept: only a subject well beyond the high end of normal
+#'   is dropped. Only these structural axes are screened; dose magnitude (which
+#'   weight-based dosing makes noisy) and DV (which is blended, not copied) are
+#'   not. A source with no extreme subject is unaffected. Set `FALSE` to anchor
+#'   on every subject. For a fuller, tunable screen of the generated output, see
+#'   [flag_identifiable_subjects()] and [remediate_identifiable_subjects()].
 #'
 #' @return An ordinary data frame or tibble with retained source columns, order,
 #'   and practical classes. A lightweight `pmx_settings` attribute records the
