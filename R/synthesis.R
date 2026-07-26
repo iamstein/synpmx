@@ -383,6 +383,35 @@
 # interpolation, so the avatar keeps the anchor's regimen while its values are
 # averaged across >= k real patients. Only a source smaller than k + 1 subjects
 # cannot reach the floor; that case is flagged loudly by the caller.
+# Source subjects whose event structure is extreme on the high side -- a
+# follow-up or dose count more than `mult` times the cohort median. These are
+# the anchors that would give an avatar a structurally extreme skeleton (the
+# long tail a reader notices); the default screen keeps them out of the anchor
+# pool. A median multiple, not a MAD z-score, so a tight core with a heavy tail
+# (e.g. wbcSim follow-up: most subjects near 480 h, a few far beyond) does not
+# drag ordinary high-end subjects in with the genuinely extreme ones.
+.structural_outlier_anchors <- function(source, roles, mult = 2) {
+  subjects <- .unique_in_order(source[[roles$id]])
+  key <- factor(as.character(source[[roles$id]]),
+                levels = as.character(subjects))
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  dosed <- .dose_rows(source, roles)
+  time <- suppressWarnings(as.numeric(source[[roles$time]]))
+  follow_up <- vapply(split(ifelse(observed, time, NA_real_), key), function(v) {
+    v <- v[is.finite(v)]
+    if (length(v)) max(v) else NA_real_
+  }, numeric(1))[as.character(subjects)]
+  n_doses <- as.numeric(tapply(as.integer(dosed), key, sum)[
+    as.character(subjects)
+  ])
+  high <- function(x) {
+    centre <- stats::median(x[is.finite(x)])
+    if (!is.finite(centre) || centre <= 0) return(rep(FALSE, length(x)))
+    is.finite(x) & x > mult * centre
+  }
+  which(high(follow_up) | high(n_doses))
+}
+
 .select_donors <- function(anchor, profiles, k, warnings) {
   target <- as.integer(k)
   others <- setdiff(seq_along(profiles$subjects), anchor)
@@ -479,14 +508,15 @@
 #'   -1 and 1.
 #' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
 #'   the default, leaves the event template's times unchanged.
-#' @param screen When `TRUE` (default), source subjects whose event structure is
-#'   a gross outlier -- an unusually long or short follow-up, or an unusual
-#'   number of doses -- are not used as anchors, so no avatar inherits a
-#'   crazy-looking skeleton. Only these structural axes are screened; dose
-#'   magnitude (which weight-based dosing makes noisy) and DV (which is blended,
-#'   not copied) are not. A source with no such outlier is unaffected. Set
-#'   `FALSE` to anchor on every subject. For a fuller, tunable screen of the
-#'   generated output, see [flag_identifiable_subjects()] and
+#' @param screen When `TRUE` (default), a source subject whose follow-up length
+#'   or dose count is more than twice the cohort median is not used as an anchor,
+#'   so no avatar inherits an extreme skeleton (the long tail a reader notices).
+#'   Only these structural axes are screened; dose magnitude (which weight-based
+#'   dosing makes noisy) and DV (which is blended, not copied) are not. The rule
+#'   is a median multiple, so an ordinary high-end subject is kept while a
+#'   genuinely extreme one is dropped, and a source with no extreme subject is
+#'   unaffected. Set `FALSE` to anchor on every subject. For a fuller, tunable
+#'   screen of the generated output, see [flag_identifiable_subjects()] and
 #'   [remediate_identifiable_subjects()].
 #'
 #' @return An ordinary data frame or tibble with retained source columns, order,
@@ -584,20 +614,15 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         as.integer(k)
       ))
     }
-    # Keep the output from looking crazy by default: do not anchor an avatar on
-    # a source subject whose *event structure* is a gross outlier, since the
-    # anchor's skeleton is copied verbatim. Only follow-up length and dose count
-    # are screened -- the two axes that make a skeleton look structurally wrong.
-    # Dose magnitude is left alone (weight-based dosing makes ordinary subjects
-    # look like dose outliers), and DV is blended rather than copied. Screening
-    # uses no randomness, so a source with no such outlier yields byte-identical
-    # output to `screen = FALSE`. Turn it off to keep every structure.
+    # Keep the output from looking extreme by default: do not anchor an avatar
+    # on a source subject whose event structure is far beyond the cohort, since
+    # the anchor's skeleton is copied verbatim. See .structural_outlier_anchors.
+    # Screening uses no randomness, so a source with no such outlier yields
+    # byte-identical output to `screen = FALSE`. Turn it off to keep every
+    # structure.
     allowed <- seq_along(subjects)
     if (isTRUE(screen)) {
-      flags <- flag_identifiable_subjects(source, source_roles)
-      structural <- flags$flagged &
-        grepl("follow-up time|number of doses", flags$outlier_axes)
-      excluded <- which(as.character(subjects) %in% flags$subject_id[structural])
+      excluded <- .structural_outlier_anchors(source, source_roles)
       if (length(excluded) && length(excluded) < length(subjects)) {
         allowed <- setdiff(allowed, excluded)
       } else if (length(excluded)) {
