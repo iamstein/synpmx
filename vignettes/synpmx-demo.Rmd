@@ -270,20 +270,14 @@ knitr::kable(
   source_synthetic_preview(theo_md, theo_synth),
   caption = "Actual Theophylline rows and synthesized rows"
 )
-knitr::kable(
-  check_demo_similarity(theo_md, theo_synth, theo_roles, c(0, 170),
-                        "Theophylline"),
-  digits = 2, caption = "Theophylline cohort and sampling-design checks"
-)
 ```
 
-`compare_pmx_distributions()` is the numeric counterpart to the structural
-checks: it summarizes the dependent variable per endpoint and each baseline
-covariate, source against synthetic, so you can see at a glance that the ranges
-line up. Expect them to be close in magnitude and shape, not identical — AVATAR
-does not reproduce the source distribution exactly. Like every source-derived
-diagnostic it is marked restricted and stays inside the source data's access
-controls.
+`compare_pmx_distributions()` summarizes the dependent variable per endpoint and
+each baseline covariate, source against synthetic, so you can see at a glance
+that the ranges line up. Expect them to be close in magnitude and shape, not
+identical — AVATAR does not reproduce the source distribution exactly. Like
+every source-derived diagnostic it is marked restricted and stays inside the
+source data's access controls.
 
 ```{r theo-distributions, eval=has_nlmixr2data}
 theo_dist <- compare_pmx_distributions(theo_md, theo_synth, theo_roles)
@@ -293,27 +287,11 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight distribution, source versus synthetic")
 ```
 
-Where `compare_pmx_distributions()` checks the cohort as a whole,
-`flag_identifiable_subjects()` checks individuals: it screens each synthetic
-subject for being a structural outlier — an unusual follow-up time, dose count,
-dose magnitude, or peak DV — since a subject unlike anyone else is the one
-easiest to single out. Run it before the synthetic data leaves the source's
-access controls and drop or regenerate anything it flags.
+For a per-subject re-identification check, `flag_identifiable_subjects()` scores
+each synthetic subject for being a structural outlier, and
+`remediate_identifiable_subjects()` removes or shortens the ones it flags.
 
-```{r theo-identifiability, eval=has_nlmixr2data}
-theo_flags <- flag_identifiable_subjects(theo_synth, theo_roles)
-knitr::kable(head(theo_flags, 5), digits = 2,
-             caption = "Per-subject outlier screen (most unusual first)")
-```
-
-`remediate_identifiable_subjects()` acts on those flags: by default it truncates
-a subject flagged only for an unusually long follow-up back to the cohort's
-longest ordinary follow-up, and drops a subject flagged for any other reason (an
-extreme value or a rare dose), since there is no single value to trim. The
-lasting fix is to stop generating structural outliers at all, by sampling each
-avatar's event skeleton from the cohort rather than copying one subject's.
-
-```{r theo-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r theo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),
   observed_plot_data(theo_synth, theo_roles, "Synthetic")
@@ -339,7 +317,7 @@ A dose-relative display makes the coarse curve shape easier to see. AVATAR
 preserves the rise-and-fall because it blends real subject profiles rather than
 inventing a shape.
 
-```{r theo-tad, eval=has_nlmixr2data && has_ggplot2}
+```{r theo-tad, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 theo_tad <- rbind(
   tad_plot_data(theo_md, theo_roles, "Source"),
   tad_plot_data(theo_synth, theo_roles, "Synthetic")
@@ -366,26 +344,16 @@ ggplot2::ggplot(
 `warfarin` has a lower-case schema, one dose, and two endpoints (`cp` and
 `pca`) with factor covariates. Both endpoints and all subjects are retained.
 
-```{r warfarin, eval=has_nlmixr2data}
+```{r warfarin, echo=FALSE, eval=has_nlmixr2data}
 data("warfarin", package = "nlmixr2data")
 warfarin_roles <- pmx_roles(
   id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
   dvid = "dvid", covariates = c("wt", "age", "sex")
 )
 warfarin_synth <- synpmx_avatar(warfarin, warfarin_roles, seed = 404)
-validate_pmx(warfarin_synth, warfarin_roles)$valid
-knitr::kable(
-  source_synthetic_preview(warfarin, warfarin_synth),
-  caption = "Actual Warfarin rows and synthesized rows"
-)
-knitr::kable(
-  check_demo_similarity(warfarin, warfarin_synth, warfarin_roles, c(0, 130),
-                        "Warfarin"),
-  digits = 2, caption = "Warfarin cohort and endpoint checks"
-)
 ```
 
-```{r warfarin-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r warfarin-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 warfarin_comparison <- rbind(
   observed_plot_data(warfarin, warfarin_roles, "Source"),
   observed_plot_data(warfarin_synth, warfarin_roles, "Synthetic")
@@ -410,39 +378,26 @@ ggplot2::ggplot(
 ## WBC: infusion, a delayed response, and structural screening
 
 `wbcSim` has infusion start/stop events and a study-time white-blood-cell
-response with a delayed decline, nadir, and recovery. It is also genuinely
-heterogeneous: a few subjects are followed far longer than the rest. Because an
-avatar copies its anchor's event skeleton, a lone very-long follow-up would
-otherwise carry straight into the synthetic data.
+response with a delayed decline, nadir, and recovery. A few subjects are
+followed far longer than the rest.
 
-By default `synpmx_avatar()` does not anchor an avatar on a subject whose
-follow-up is more than twice the cohort's 90th percentile (`screen = TRUE`), so
-the most extreme follow-up does not carry into the synthetic data — while
-ordinary long follow-ups are kept. Turning the screen off shows what it
-prevents:
+A patient followed much longer than everyone else stands out, so a synthetic
+copy built from them could point back to the real person. To lower that risk,
+`synpmx_avatar()` by default does not build an avatar from such an extreme
+subject, quietly leaving the very-long follow-ups out of the synthetic data
+(`screen = TRUE`). This is an informal safeguard against singling someone out,
+not a formal privacy guarantee; ordinary long follow-ups are kept, and
+`screen = FALSE` keeps every subject.
 
-```{r wbc, eval=has_nlmixr2data}
+```{r wbc, echo=FALSE, eval=has_nlmixr2data}
 data("wbcSim", package = "nlmixr2data")
 wbc_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT"
 )
 wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
-wbc_raw   <- suppressWarnings(
-  synpmx_avatar(wbcSim, wbc_roles, seed = 505, screen = FALSE)
-)
-validate_pmx(wbc_synth, wbc_roles)$valid
-c(default_screen = max(wbc_synth$TIME[wbc_synth$EVID == 0]),
-  screen_off     = max(wbc_raw$TIME[wbc_raw$EVID == 0]))
 ```
 
-The default screen only looks at follow-up length and dose count — the axes that
-make a skeleton look structurally wrong. For a fuller, tunable check of a
-generated dataset, including dose-magnitude and DV outliers,
-`flag_identifiable_subjects()` scores every subject and
-`remediate_identifiable_subjects()` truncates, drops, or replaces the ones it
-flags.
-
-```{r wbc-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r wbc-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 wbc_comparison <- rbind(
   observed_plot_data(wbcSim, wbc_roles, "Source"),
   observed_plot_data(wbc_synth, wbc_roles, "Synthetic")
@@ -472,7 +427,7 @@ copies it verbatim from the same subject that supplied the doses, so it stays
 coherent with them. The redundant `WGT` column is simply left undeclared, so
 AVATAR drops it.
 
-```{r nimo, eval=has_nlmixr2data}
+```{r nimo, echo=FALSE, eval=has_nlmixr2data}
 data("nimoData", package = "nlmixr2data")
 nimo_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
@@ -480,15 +435,9 @@ nimo_roles <- pmx_roles(
   covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
 )
 nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
-validate_pmx(nimo_synth, nimo_roles)$valid
-knitr::kable(
-  check_demo_similarity(nimoData, nimo_synth, nimo_roles, c(0, 3000),
-                        "NimoData", clock = "tad"),
-  digits = 2, caption = "NimoData cohort and infusion checks"
-)
 ```
 
-```{r nimo-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r nimo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 nimo_comparison <- rbind(
   tad_plot_data(nimoData, nimo_roles, "Source"),
   tad_plot_data(nimo_synth, nimo_roles, "Synthetic")
@@ -518,7 +467,7 @@ The reset clock validates within ID and occasion. AVATAR copies the whole event
 template from one anchor, so `DOSE` stays coherent with the doses when carried
 through with `keep`.
 
-```{r mavo, eval=has_nlmixr2data}
+```{r mavo, echo=FALSE, eval=has_nlmixr2data}
 data("mavoglurant", package = "nlmixr2data")
 mavo_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
@@ -527,15 +476,9 @@ mavo_roles <- pmx_roles(
 )
 mavo_synth <- suppressWarnings(synpmx_avatar(mavoglurant, mavo_roles,
                                               seed = 707))
-validate_pmx(mavo_synth, mavo_roles)$valid
-knitr::kable(
-  check_demo_similarity(mavoglurant, mavo_synth, mavo_roles, c(0, 120),
-                        "Mavoglurant", clock = "tad"),
-  digits = 2, caption = "Mavoglurant cohort and occasion checks"
-)
 ```
 
-```{r mavo-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r mavo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 mavo_comparison <- rbind(
   tad_plot_data(mavoglurant, mavo_roles, "Source"),
   tad_plot_data(mavo_synth, mavo_roles, "Synthetic")
@@ -621,7 +564,7 @@ Reach for `synpmx_generate()` rather than calling `synpmx_empirical()` a second
 time — a second call is a second release, and its budget has to be composed
 with the first.
 
-```{r empirical-plot, eval=has_nlmixr2data && has_ggplot2}
+```{r empirical-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 theo_private_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),
   observed_plot_data(theo_private, theo_roles, "Synthetic")
