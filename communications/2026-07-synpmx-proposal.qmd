@@ -19,7 +19,7 @@ execute:
 - The shared philosophy: `synadam` and `synpmx`
 - How does `synpmx` work?
 - Example output
-- Safeguards against data mix-up
+- Safeguards: not copying real patients, and no data mix-up
 
 # Background and context
 
@@ -86,7 +86,8 @@ trajectory** — because a PMX event table only makes sense as a coherent whole.
 1. **Sample** a compatible source subject's event skeleton as a template
    (its dosing/observation structure and timing).
 2. **Blend** covariates and endpoint trajectories from a distance-weighted set
-   of a few similar source subjects.
+   of **at least five** similar source subjects, so no single real trajectory
+   comes through.
 3. **Perturb** with subject-level and within-trajectory noise.
 
 The output looks like real data because it is **built from real data** — whole
@@ -99,7 +100,8 @@ A PMX event table only makes sense as a **coherent whole**: dosing records,
 observation records, per-subject timing, and multiple endpoints all have to line
 up. Resampling column by column would break that coherence.
 
-- **Works at any cohort size** — twelve subjects is enough.
+- **Works at small cohorts** — a dozen subjects is plenty; it needs at least
+  five, since every avatar is blended from several real subjects.
 - **No elicitation** — no model, no priors, no protocol declaration. Point it at
   the data and go.
 - **Structurally exact, vaguely right on the numbers** — exactly the accuracy
@@ -139,9 +141,25 @@ No model, no priors — just the column meanings.
 
 A concentration-time scatter of source against synthetic shows the synthetic
 cohort reproducing the **shape, timing, and magnitude** of the real profiles
-without reproducing any individual subject.
+without copying any individual subject's data. This is a governance-based
+safeguard, not a formal privacy guarantee.
 
-# Safeguards against data mix-up
+# Safeguards
+
+## Not copying any real patient
+
+- **Every avatar blends at least five real subjects**, so no single real
+  trajectory comes through.
+- **Extreme subjects are dropped** — a patient who stands out, for example one
+  followed far longer than the rest, is not used as a template, so an unusual
+  individual is never copied.
+- For this reason `synpmx` **requires at least five patients**; below that it
+  says so loudly rather than generate thin blends.
+- Optional per-subject checks find and remove any avatar that still stands out
+  before the data moves.
+
+A **governance-based** safeguard on top of the trust boundary, in the same
+spirit as `synadam` — not a formal privacy guarantee.
 
 ## Keeping synthetic and real data apart
 
@@ -161,8 +179,8 @@ without reproducing any individual subject.
 - `synpmx` extends the **`synadam` philosophy** — resample real data, rely on
   governance — from the **column** to the **subject trajectory**, because a PMX
   event table is only coherent as a whole.
-- It **blends whole real subject trajectories**: structurally exact, works at
-  any N, needs no elicitation.
+- It **blends whole real subject trajectories** — at least five per avatar, so
+  no one patient is copied: structurally exact, needs no elicitation.
 - The payoff: **move synthetic PMX data out of GPS-II to a local machine** —
   still inside Novartis's trusted boundary — and develop against it with modern
   tooling, then run unchanged on the real data.
