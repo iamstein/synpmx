@@ -1,7 +1,7 @@
 # synpmx_avatar(screen = TRUE) is the default: a source subject whose follow-up
-# or dose count is more than twice the cohort median is not used as an anchor,
-# so no avatar inherits its extreme skeleton. A source with no such outlier is
-# unaffected.
+# or dose count is more than twice the cohort's 90th percentile is not used as
+# an anchor, so no avatar inherits its extreme skeleton. A source with no such
+# outlier is unaffected.
 
 scr_sub <- function(id, obs) {
   data.frame(

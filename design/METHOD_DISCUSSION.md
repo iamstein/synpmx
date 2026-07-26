@@ -267,12 +267,15 @@ The owner's guiding principle is *good enough, not perfect; output must not look
 extreme; simplicity is valuable* (the canonical bad case is the lone 4580-hour
 `wbcSim` avatar). The simplest expression of that is preventive and on by
 default: `synpmx_avatar(screen = TRUE)` does not use a source subject whose
-follow-up or dose count is more than twice the cohort median as an anchor, so no
-avatar inherits an extreme skeleton. The rule is a **median multiple, not a MAD
-z-score**: on a tight core with a heavy tail (wbcSim follow-up clusters near 480
-h with a few far beyond) a z-score flags ordinary high-end subjects too — it cut
-the synthetic max to 576 and excluded 14 of 45 — whereas the median multiple
-keeps the ordinary high end (~650) and drops only the genuinely extreme.
+follow-up or dose count is more than twice the cohort's **90th percentile** as
+an anchor, so no avatar inherits an extreme skeleton. Two iterations got here.
+A MAD z-score (cutoff 3.5) over-excluded: on a tight core with a heavy tail
+(wbcSim follow-up clusters near 480 h) the tiny MAD flags ordinary high-end
+subjects, cutting the synthetic max to 576 and excluding 14 of 45. A median
+multiple was better but still catches ordinary spread (2× the median can be
+normal). Anchoring the cut on 2× the 90th percentile is the rule that only fires
+well beyond the high end of normal: on wbcSim it excludes just the 1730/4580 h
+subjects and keeps the ordinary tail (~1130 h and below).
 
 Only follow-up length and dose count are screened — the axes that make a
 skeleton look wrong. Dose magnitude is left alone (weight-based dosing makes

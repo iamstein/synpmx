@@ -415,9 +415,11 @@ heterogeneous: a few subjects are followed far longer than the rest. Because an
 avatar copies its anchor's event skeleton, a lone very-long follow-up would
 otherwise carry straight into the synthetic data.
 
-By default `synpmx_avatar()` does not anchor an avatar on such a structural
-outlier (`screen = TRUE`), so the synthetic follow-up stays in the cohort's
-ordinary range. Turning the screen off shows what it prevents:
+By default `synpmx_avatar()` does not anchor an avatar on a subject whose
+follow-up is more than twice the cohort's 90th percentile (`screen = TRUE`), so
+the most extreme follow-up does not carry into the synthetic data — while
+ordinary long follow-ups are kept. Turning the screen off shows what it
+prevents:
 
 ```{r wbc, eval=has_nlmixr2data}
 data("wbcSim", package = "nlmixr2data")
