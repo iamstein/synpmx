@@ -1,0 +1,191 @@
+---
+title: "AVATAR synthesis on CPIT565B1 modeling data"
+format: html
+---
+
+Try the AVATAR blending generator on a real modeling dataset.
+
+This is the **default** method. Use it when the synthetic data *reaches no one
+the source data could not* -- the same access controls and confidentiality
+obligations still apply, which includes carrying it to your own workstation for
+model development. It resamples and blends whole source subject
+trajectories -- more faithful and far less ceremony than the differentially
+private path -- but makes **no** formal privacy guarantee. If the data may reach
+someone new, use `try_dp_calibrated.R` instead. See the `synpmx-privacy`
+vignette for the decision rule (which method when).
+
+This document runs in the safe computing environment, in a gitignored folder so
+nothing here can be committed.
+
+Workflow:
+
+1. fill in the CONFIG chunk (just the column roles)
+2. compare the synthetic table to the source
+
+```{r}
+#| label: setup
+#| message: false
+library(tidyverse)
+library(xgxr)
+xgx_theme_set()
+
+# If not installed here: devtools::load_all("/path/to/synpmx")
+# This load_all line only needs to be run once, so you may comment out if you're 
+# Trying this out on your own dataset
+
+devtools::load_all()
+library(synpmx)
+
+```
+
+## Configuration
+
+Everything you edit is in this chunk.
+
+```{r}
+#| label: config
+user <- Sys.getenv("USER")
+gps_prefix <- paste0("/view/", user, "_view/vob/")
+filename   <- file.path(gps_prefix, "CPIT565A1/mas/mas_1/data/output_001/", "mt96714_poppkpd.csv")
+data_in    <- read.csv(filename, stringsAsFactors = FALSE)
+
+DATA       <- data_in |> filter(NAME %in% c("PIT565 Dose", "PIT565 PK", "Circ B Cells"), STUDYID == "CPIT565B12101")
+OUT_DIR   <- "output_pit565b"
+SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
+
+# plot initial data
+ggplot(DATA |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = ID, color = TRT)) + 
+  geom_point(alpha = 0.5) + 
+  geom_line(alpha = 0.5) + 
+  facet_wrap(~NAME) + 
+  xgx_scale_x_time_units("days") +
+  xgx_scale_y_log10()
+```
+
+Map your columns onto PMX roles. Only the roles the real dataset has. AVATAR
+needs no model, priors, design, or budget -- just the column meanings. List
+baseline covariates in `covariates` and they are blended from compatible donors
+like everything else.
+
+```{r}
+#| label: roles
+ROLES <- pmx_roles(
+  id       = "USUBJID",
+  time     = "TIME",
+  dv       = "LIDV",
+  amt      = "AMT",
+  evid     = "EVID",
+  # Two columns encode the same endpoint: numeric YTYPE and character NAME.
+  # Declare both. YTYPE (first) is the grouping key; validation checks NAME is a
+  # consistent 1:1 mapping with it and errors if not, and both are carried out.
+  dvid     = c("YTYPE", "NAME"),
+  cmt      = "CMT",
+  mdv      = "MDV",
+  rate     = NULL,           # set if you have infusion RATE rows
+  occasion = NULL,           # set if TIME resets by occasion
+  # If the data has below-limit-of-quantification (BLQ) records, declare cens
+  # (and limit, if intervals are used). AVATAR then reconstructs censoring
+  # coherently -- DV at the limit, CENS/LIMIT agreeing -- instead of copying a
+  # flag that no longer matches the blended DV. Leave NULL if there is no BLQ.
+  cens     = "CENS",           # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
+  limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
+  # BLENDED into new values across donors. B0 (baseline B cells) is deliberately
+  # left out: it is the same quantity as the Circ B Cells endpoint, and AVATAR
+  # blends covariates and endpoints independently, so a synthetic B0 would not
+  # match its own generated trajectory (REV-022). Read the baseline off the
+  # trajectory instead if you need it.
+  covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
+  # keep = copied verbatim from the subject that supplied the doses, so it stays
+  # coherent with them. Put assigned, subject-defining values here -- treatment
+  # arm, dose group -- e.g. keep = "ARM". List only columns your data has.
+  keep     = c("STUDYIDN", "STUDYID", "TRT", "TRTN")
+  # Every column NOT named by a role above is dropped. That is deliberate: a
+  # secondary identifier you forget cannot leak out of a real subject. The run
+  # prints exactly which columns it dropped.
+)
+
+# Number of synthetic subjects. NULL keeps the source cohort size.
+N_SUBJECTS <- NULL
+```
+
+## Workflow
+
+You should not need to edit below here.
+
+```{r}
+#| label: read-source
+dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
+raw   <- DATA
+roles <- ROLES
+```
+
+### Source structural validation
+
+```{r}
+#| label: validate-source
+report <- validate_pmx(raw, roles, strict = FALSE)
+if (!report$valid) {
+  print(report)   # names each problem, the role, and the column it maps to
+  stop("Source failed structural validation. See the numbered problems above; ",
+       "each says which role and column to fix in `pmx_roles()`.", call. = FALSE)
+}
+message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
+```
+
+### Synthesize (AVATAR blending)
+
+```{r}
+#| label: synthesize
+synthetic <- synpmx_avatar(raw, roles, seed = SEED)
+stopifnot(validate_pmx(synthetic, roles)$valid)
+message("  generated ", nrow(synthetic), " rows for ",
+        length(unique(synthetic[[roles$id]])), " subjects; new identifiers: ",
+        length(intersect(synthetic[[roles$id]], raw[[roles$id]])) == 0)
+
+write.csv(synthetic, file.path(OUT_DIR, "avatar_synthetic.csv"), row.names = FALSE)
+```
+
+### Restricted diagnostic: distribution summary
+
+Source-derived. Keep it in the safe environment; do not export these tables.
+
+`compare_pmx_distributions()` summarizes the dependent variable per endpoint and
+each baseline covariate, source against synthetic -- a quick numeric range check
+before the plot. Expect the summaries to line up in magnitude and shape, not to
+match exactly, since AVATAR does not reproduce the source distribution.
+
+```{r}
+#| label: distribution-summary
+print(compare_pmx_distributions(raw, synthetic, roles))
+```
+
+### Restricted diagnostic: source vs synthetic
+
+Source-derived. Keep it in the safe environment; do not export the figure.
+
+```{r}
+#| label: diagnostic
+
+  raw_keep = raw[,names(synthetic)]
+
+  compare = rbind(raw_keep |> mutate(DATA = "source"), 
+                  synthetic |> mutate(DATA = "synthetic"))
+  
+  g = ggplot(compare |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = USUBJID, color = TRT)) + 
+    geom_point(alpha = 0.5) + 
+    geom_line(alpha = 0.5) + 
+    facet_wrap(DATA~NAME) + 
+    xgx_scale_x_time_units("days") +
+    xgx_scale_y_log10()
+
+  g
+  
+  #ggsave(file.path(OUT_DIR, "RESTRICTED_source_vs_synthetic.pdf"), g, 
+  #       width = 7, height = 6, dpi = 110)
+  
+```
+
+The synthetic table carries no formal privacy guarantee; it is built by blending
+real subject trajectories, so it stays under the source data's own access
+controls and obligations wherever it is used — your own workstation included, a
+partner or vendor not.

@@ -1,6 +1,6 @@
 ---
 title: "AVATAR synthesis on CPIT565A1 modeling data"
-format: pdf
+format: html
 ---
 
 Try the AVATAR blending generator on a real modeling dataset.
@@ -49,8 +49,8 @@ gps_prefix <- paste0("/view/", user, "_view/vob/")
 filename   <- file.path(gps_prefix, "CPIT565A1/mas/mas_1/data/output_001/", "mt96714_poppkpd.csv")
 data_in    <- read.csv(filename, stringsAsFactors = FALSE)
 
-DATA       <- data_in |> filter(NAME %in% c("PIT565 Dose", "PIT565 PK", "Circ B Cells"), STUDYID == "CPIT565B12101")
-OUT_DIR   <- "output_pit565"
+DATA       <- data_in |> filter(NAME %in% c("PIT565 Dose", "PIT565 PK", "CRP"), STUDYID == "CPIT565A12101")
+OUT_DIR   <- "output_pit565a"
 SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
 
 # plot initial data
