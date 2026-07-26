@@ -279,7 +279,17 @@ compare_pmx_distributions <- function(source, synthetic = NULL, roles) {
     .endpoint_dv_summary(datasets[[label]], roles, label)
   })
 
-  bind <- function(parts) if (length(parts)) do.call(rbind, parts) else NULL
+  # Order every table primarily by variable, then by dataset, so a variable's
+  # source and synthetic rows sit together for easy comparison. Variables keep
+  # their order of first appearance; datasets keep source before synthetic.
+  bind <- function(parts) {
+    if (!length(parts)) return(NULL)
+    df <- do.call(rbind, parts)
+    df <- df[order(match(df$variable, unique(df$variable)),
+                   match(df$dataset, names(datasets))), , drop = FALSE]
+    rownames(df) <- NULL
+    df
+  }
   structure(
     list(
       endpoints = .mark_release(bind(endpoint_rows),
