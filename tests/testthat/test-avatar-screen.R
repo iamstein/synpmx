@@ -1,7 +1,7 @@
-# synpmx_avatar(screen = TRUE) is the default: a source subject with a gross
-# structural outlier (long/short follow-up or unusual dose count) is not used as
-# an anchor, so no avatar inherits its crazy skeleton. A source with no such
-# outlier is unaffected.
+# synpmx_avatar(screen = TRUE) is the default: a source subject whose follow-up
+# or dose count is more than twice the cohort median is not used as an anchor,
+# so no avatar inherits its extreme skeleton. A source with no such outlier is
+# unaffected.
 
 scr_sub <- function(id, obs) {
   data.frame(

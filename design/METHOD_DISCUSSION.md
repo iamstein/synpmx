@@ -264,21 +264,28 @@ coherent with the regimen. Connects to protocol structure in
 ### D. Default anchor screen — DONE (2026-07-25), the "good enough" guard
 
 The owner's guiding principle is *good enough, not perfect; output must not look
-crazy; simplicity is valuable* (the canonical bad case is the lone 4580-hour
+extreme; simplicity is valuable* (the canonical bad case is the lone 4580-hour
 `wbcSim` avatar). The simplest expression of that is preventive and on by
-default: `synpmx_avatar(screen = TRUE)` does not use a source subject with a
-gross **structural** outlier as an anchor, so no avatar inherits a crazy
-skeleton. Only follow-up length and dose count are screened — the axes that make
-a skeleton look wrong. Dose magnitude is left alone (weight-based dosing makes
+default: `synpmx_avatar(screen = TRUE)` does not use a source subject whose
+follow-up or dose count is more than twice the cohort median as an anchor, so no
+avatar inherits an extreme skeleton. The rule is a **median multiple, not a MAD
+z-score**: on a tight core with a heavy tail (wbcSim follow-up clusters near 480
+h with a few far beyond) a z-score flags ordinary high-end subjects too — it cut
+the synthetic max to 576 and excluded 14 of 45 — whereas the median multiple
+keeps the ordinary high end (~650) and drops only the genuinely extreme.
+
+Only follow-up length and dose count are screened — the axes that make a
+skeleton look wrong. Dose magnitude is left alone (weight-based dosing makes
 ordinary subjects look like dose outliers, and screening it broke `theo_md`),
 and DV is blended rather than copied. Screening uses no randomness, so a source
-with no such outlier yields byte-identical output to `screen = FALSE`; only
-datasets that actually contain a crazy structure change. This makes not-crazy
-the default with no extra step, and leaves `flag_identifiable_subjects()` /
-`remediate_identifiable_subjects()` as the fuller, tunable manual layer.
+with no extreme subject yields byte-identical output to `screen = FALSE`; only
+datasets that actually contain an extreme structure change. This makes
+not-extreme the default with no extra step, and leaves
+`flag_identifiable_subjects()` / `remediate_identifiable_subjects()` as the
+fuller, tunable manual layer.
 
 Given this, skeleton sampling (B) is firmly a "consider, not do": the default
-screen already removes the crazy structure simply, which is the bar the owner
+screen already removes the extreme structure simply, which is the bar the owner
 set.
 
 ### C. A post-generation outlier detector (owner request) — DONE (2026-07-25)
