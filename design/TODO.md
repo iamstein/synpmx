@@ -33,6 +33,27 @@ development. Keep all of it in `scripts_private/`.
 - [ ] Turn tester friction into `REV-###` entries in `REVIEW_BACKLOG.md` as it
       surfaces, so external use feeds back into the package.
 
+The AVATAR extreme-structure work (`REV-025`/`REV-026`) is settled for now and
+should be judged on real data before any more is built. Current design (see
+`design/METHOD_DISCUSSION.md` §6a; guiding principle is good enough, not
+perfect — output must not look extreme, and simplicity is valued):
+
+- **Default, on:** `synpmx_avatar(screen = TRUE)` never anchors on a subject
+  whose follow-up or dose count exceeds **twice the cohort's 90th percentile**,
+  so no avatar looks structurally extreme; clean datasets are byte-identical to
+  `screen = FALSE`. This went z-score → 2× median → 2× p90; p90 is the one that
+  keeps ordinary spread. One toggle, no other knobs.
+- **Manual layer:** `flag_identifiable_subjects()` (four axes) and
+  `remediate_identifiable_subjects()` (truncate long / drop others / replace).
+- **Parked:** skeleton sampling (`REV-026`) — the "perfect" cure, deliberately
+  not built.
+
+Open, only if real data shows a need:
+- [ ] Revisit the screen cut (2× the 90th percentile) if it over- or
+      under-trims on a real study.
+- [ ] Expose the screen multiplier as an argument if per-dataset tuning is
+      wanted (kept hardcoded now for simplicity).
+
 Understand it well enough to defend it.
 
 - [ ] Read the original AVATAR paper (`references/Guillaudeux23.pdf`). Feeds the
