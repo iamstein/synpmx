@@ -28,16 +28,15 @@ execute:
 - Real pharmacometric (PMX) modeling data can only be accessed in restricted
   (GxP) environments — for us, GPS-II.
 - Modelers want to build and debug analysis code — cleaning, joins, reshaping,
-  plotting, control-file plumbing, repeated-dose and longitudinal workflows — on
+  plotting and modeling — on
   their **local machines**, where richer tooling and coding agents are
   available.
-- A NONMEM-style event table (ID/TIME/DV/AMT/EVID/…) is structurally far richer
-  than a flat analysis dataset: dosing records, observation records, multiple
+- Synthetic dats is needed but aNONMEM-style event table (ID/TIME/DV/AMT/EVID/…) is structurally far richer
+  than a simpler adam dataset: dosing records, observation records, multiple
   endpoints, censoring, and per-subject timing all have to be *coherent*, not
   just present.
-- `synpmx` generates synthetic PMX datasets — **structurally exact, vaguely
-  right on the numbers** — that can be **moved out of GPS-II to a local
-  machine**, developed against there, then run unchanged back on the real data.
+- `synpmx` generates synthetic PMX datasets — **structurally exact that can be **moved out of GPS-II to a local
+  machine**, and then used to develop code which can then be transferred back to the GxP computing environment run unchanged on the real data.
 
 ## The accuracy bar, stated plainly
 
@@ -47,10 +46,7 @@ A user should be able to develop and debug an analysis pipeline against the
 synthetic data and have it run **unchanged** against the real data — while being
 unable to draw any scientific conclusion from it.
 
-The deliberate lack of statistical fidelity is a **privacy advantage**, not a
-limitation to be engineered away.
-
-# The shared philosophy
+# synadam and synpmx shared philosophy
 
 ## `synadam` and `synpmx` are the same idea
 
