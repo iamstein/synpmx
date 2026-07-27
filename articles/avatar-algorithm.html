@@ -93,6 +93,13 @@ or review what <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</
 place. Each synthetic subject is built from one real <em>anchor</em>
 subject’s event structure, filled with measurements blended from several
 similar real subjects.</p>
+<p>The generator works on <strong>any number of endpoints</strong> — a
+PK concentration alongside one or more PD measures, declared through the
+<code>dvid</code> role. Each endpoint gets its own transformation and
+its own interpolation grid, and they are then combined into a single
+per-subject profile, so one donor set serves them all. Step 5 gives the
+details, including which endpoint ends up dominating the choice of
+donors and why.</p>
 <p>The pipeline has six <strong>stages</strong>, lettered (a) to (f).
 The rest of the article walks through ten numbered
 <strong>Steps</strong>, and each stage below says which Steps it covers
@@ -124,7 +131,7 @@ lone very long follow-up), so no avatar looks structurally extreme
 nearest donors, borrowing across dose/schedule groups when the anchor’s
 own group is too small — but never across route of administration; blend
 the donors’ trajectories onto the skeleton’s observation times, capping
-any one donor’s share at <code>max_donor_weight</code> (default 0.30);
+any one donor’s share at <code>max_donor_weight</code> (default 0.50);
 add subject-level and within-subject noise; and reconstruct any
 below-limit (BLOQ) censoring.</li>
 <li>
@@ -564,6 +571,89 @@ trajectory interpolated on its common grid.</p>
 replace the source data and is never returned as a synthetic
 patient.</p>
 <div class="section level3">
+<h3 id="multiple-endpoints">Multiple endpoints<a class="anchor" aria-label="anchor" href="#multiple-endpoints"></a>
+</h3>
+<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> handles any number of endpoints — a PK
+concentration and one or more PD measures, declared through
+<code>dvid</code>. Each is processed <em>separately</em> first and only
+then merged, in this order:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Transform, per endpoint.</strong> Step 4 runs once per
+endpoint, so PK may be blended on the log scale while a PD score stays
+on the identity scale.</li>
+<li>
+<strong>Interpolate, per endpoint.</strong> Each endpoint gets its
+<em>own</em> common grid, built from the pooled observation times of
+that endpoint alone. A sparsely sampled PD is not padded out to match a
+rich PK.</li>
+<li>
+<strong>Concatenate.</strong> Covariate features, then each
+endpoint’s grid columns, are laid side by side into the single row
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝐱</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\mathbf{x}_i</annotation></semantics></math>
+above.</li>
+<li>
+<strong>Impute, drop, standardize.</strong> Median imputation,
+removal of constant columns, then column-by-column standardization.</li>
+<li>
+<strong>One PCA over everything</strong>, giving a single
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛏</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\xi}_i</annotation></semantics></math>
+that mixes all endpoints — not one PCA per endpoint.</li>
+</ol>
+<p>Consequently there is <strong>one distance, one donor set, and one
+set of weights</strong>, shared by every endpoint. A donor is chosen for
+overall similarity; a donor that matches PK closely but PD poorly still
+donates its PD.</p>
+<p>Standardization is what makes endpoints commensurable at all: a log
+concentration and a raw neutrophil count cannot be compared until each
+column is divided by its across-subject standard deviation.</p>
+<p>But note carefully what standardization does <em>not</em> do. It
+equalizes <strong>units</strong>, not <strong>endpoints</strong>. Every
+grid point becomes one unit-variance column, so an endpoint sampled at
+15 times contributes 15 columns while one sampled at 3 times contributes
+3, and a Euclidean distance summing over columns lets the first outvote
+the second by roughly five to one. On a worked two-endpoint example with
+7 usable PK columns, 3 PD columns, and 1 covariate, the retained
+variance splits</p>
+<table class="table">
+<thead><tr class="header">
+<th>block</th>
+<th>features</th>
+<th>share of retained variance</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>covariate</td>
+<td>1</td>
+<td>4.4%</td>
+</tr>
+<tr class="even">
+<td>PD</td>
+<td>3</td>
+<td>28.1%</td>
+</tr>
+<tr class="odd">
+<td>PK</td>
+<td>7</td>
+<td>67.5%</td>
+</tr>
+</tbody>
+</table>
+<p>so donor selection is driven mostly by whichever endpoint was sampled
+most densely, and baseline covariates are a small minority of the
+distance whenever trajectories are rich. <strong>This weighting is an
+accident of the sampling design, not a modeling choice</strong>, and
+there is currently no way to reweight endpoints. If donors must match on
+a sparse endpoint, that is a limitation to know about before trusting
+the selection.</p>
+<p>Two related behaviors follow. A subject missing an endpoint entirely
+is median-imputed on those columns, so it looks <em>average</em> there
+and sits nearer the middle of the space than it deserves to. And at
+generation, if a chosen donor has no value for the endpoint being
+filled, the weights renormalize locally over the donors that do — so a
+missing endpoint thins the blend rather than punching a hole in it.</p>
+</div>
+<div class="section level3">
 <h3 id="missing-features-and-scaling">Missing features and scaling<a class="anchor" aria-label="anchor" href="#missing-features-and-scaling"></a>
 </h3>
 <p>An entirely missing feature is removed. Otherwise, a missing profile
@@ -958,135 +1048,221 @@ cap, not
 is what controls how closely an avatar can resemble a single real
 patient.</p>
 <p>The raw formula above produces very uneven weights on purpose — that
-is the rank attenuation doing its job. Left alone it routinely hands one
-donor half the avatar. <code>max_donor_weight</code> (written
+is the rank attenuation doing its job. Left alone it hands one donor a
+median 58% of the avatar. <code>max_donor_weight</code> (written
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
 below, default
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>)
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.50</mn><annotation encoding="application/x-tex">0.50</annotation></semantics></math>)
 is the ceiling on any one share.</p>
 <p>Enforcing it is less obvious than it sounds, because <strong>weights
 have to keep summing to 1</strong>. Cutting the leader down does not
-remove that weight from the blend; it has to be given to the others, and
-that can push one of <em>them</em> over the ceiling. Concretely,
-starting from
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.50</mn><mo>,</mo><mn>0.25</mn><mo>,</mo><mn>0.15</mn><mo>,</mo><mn>0.06</mn><mo>,</mo><mn>0.04</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.50, 0.25, 0.15, 0.06, 0.04)</annotation></semantics></math>
-with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">c = 0.30</annotation></semantics></math>:</p>
-<ul>
-<li>Cut the leader from
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.50</mn><annotation encoding="application/x-tex">0.50</annotation></semantics></math>
-to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>.
-That frees
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.20</mn><annotation encoding="application/x-tex">0.20</annotation></semantics></math>.</li>
-<li>Spread the freed
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.20</mn><annotation encoding="application/x-tex">0.20</annotation></semantics></math>
-over the other four in proportion to what they already hold. The second
-donor was at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.25</mn><annotation encoding="application/x-tex">0.25</annotation></semantics></math>,
-and its share of the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.20</mn><annotation encoding="application/x-tex">0.20</annotation></semantics></math>
-takes it to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.35</mn><annotation encoding="application/x-tex">0.35</annotation></semantics></math>
-— <strong>over the ceiling</strong>.</li>
-</ul>
-<p>Capping the largest weight once and stopping, which is what the
-implementation did throughout the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.80</mn><annotation encoding="application/x-tex">0.80</annotation></semantics></math>
-era, leaves exactly that violation in place: the stated maximum, broken
-by the donor the redistribution itself created. At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.80</mn><annotation encoding="application/x-tex">0.80</annotation></semantics></math>
-this almost never bound twice, so it went unnoticed; at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>
-it is the normal case.</p>
-<p>The fix is to repeat the step — <em>cap, redistribute, check
-again</em> — which is the standard construction called
-<strong>water-filling</strong>:</p>
-<ul>
-<li>Pin every weight that is over
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
-down to exactly
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>.</li>
-<li>Share whatever mass is left among the donors still below
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>,
-in proportion.</li>
-<li>Look again. If redistribution pushed someone over, pin them too and
-repeat.</li>
-</ul>
-<p>Pinned donors are never topped up again, so each pass pins at least
-one more donor and the procedure stops after at most one pass per donor.
-The example above settles at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.30</mn><mo>,</mo><mn>0.30</mn><mo>,</mo><mn>0.24</mn><mo>,</mo><mn>0.096</mn><mo>,</mo><mn>0.064</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.30, 0.30, 0.24, 0.096, 0.064)</annotation></semantics></math>
-— two donors at the ceiling, the rest sharing the remainder, total still
-1. In symbols, with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
-the pinned set:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>r</mi></msub><mo>←</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mrow><mi>s</mi><mo>∈</mo><mi>P</mi></mrow></munder><msub><mi>w</mi><mi>s</mi></msub><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mfrac><msub><mi>w</mi><mi>r</mi></msub><mrow><munder><mo>∑</mo><mrow><mi>s</mi><mo>∉</mo><mi>P</mi></mrow></munder><msub><mi>w</mi><mi>s</mi></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><mi>r</mi><mo>∉</mo><mi>P</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
+remove that weight from the blend; it has to be given to the others, in
+proportion to what they already hold:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>r</mi></msub><mo>←</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mrow><mi>s</mi><mo>∈</mo><mi>P</mi></mrow></munder><msub><mi>w</mi><mi>s</mi></msub><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mfrac><msub><mi>w</mi><mi>r</mi></msub><mrow><munder><mo>∑</mo><mrow><mi>s</mi><mo>∉</mo><mi>P</mi></mrow></munder><msub><mi>w</mi><mi>s</mi></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><mi>r</mi><mo>∉</mo><mi>P</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
 w_r \leftarrow \Bigl(1-\textstyle\sum_{s\in P}w_s\Bigr)
               \frac{w_r}{\sum_{s\notin P}w_s},
-\qquad r\notin P.
+\qquad r\notin P,
 </annotation></semantics></math></p>
-<p>One boundary case matters. With
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
+is the set of donors already pinned at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>.
+And that redistribution can itself push a donor over the ceiling.
+Starting from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.50</mn><mo>,</mo><mn>0.25</mn><mo>,</mo><mn>0.15</mn><mo>,</mo><mn>0.06</mn><mo>,</mo><mn>0.04</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.50, 0.25, 0.15,
+0.06, 0.04)</annotation></semantics></math> with a tight
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">c = 0.30</annotation></semantics></math>:
+cutting the leader to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>
+frees
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.20</mn><annotation encoding="application/x-tex">0.20</annotation></semantics></math>,
+and the second donor’s share of it takes them from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.25</mn><annotation encoding="application/x-tex">0.25</annotation></semantics></math>
+to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.35</mn><annotation encoding="application/x-tex">0.35</annotation></semantics></math>
+— over the ceiling. Capping only the largest weight and stopping, which
+is what the implementation did throughout the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.80</mn><annotation encoding="application/x-tex">0.80</annotation></semantics></math>
+era, leaves exactly that violation in place: the stated maximum, broken
+by the donor the redistribution created.</p>
+<p>So the rule repeats — <em>pin everything over
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>,
+redistribute, look again</em> — the standard construction called
+<strong>water-filling</strong>. Pinned donors are never topped up, so
+each pass pins at least one more and it terminates. The tight example
+settles at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.30</mn><mo>,</mo><mn>0.30</mn><mo>,</mo><mn>0.24</mn><mo>,</mo><mn>0.096</mn><mo>,</mo><mn>0.064</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.30, 0.30, 0.24, 0.096, 0.064)</annotation></semantics></math>.</p>
+</div>
+<div class="section level3">
+<h3 id="at-the-default-cap-one-pass-is-provably-enough">At the default cap, one pass is provably enough<a class="anchor" aria-label="anchor" href="#at-the-default-cap-one-pass-is-provably-enough"></a>
+</h3>
+<p>Worth knowing, because it means the loop above is not the complexity
+it looks like. A second pass is needed only when redistribution lifts
+the runner-up over the ceiling, that is when</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mfrac><msub><mi>w</mi><mn>2</mn></msub><mrow><mn>1</mn><mo>−</mo><msub><mi>w</mi><mn>1</mn></msub></mrow></mfrac><mo>&gt;</mo><mi>c</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
+(1-c)\,\frac{w_2}{1-w_1}&gt;c .
+</annotation></semantics></math></p>
+<p>At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">c=0.5</annotation></semantics></math>
+this requires
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mn>2</mn></msub><mo>&gt;</mo><mn>1</mn><mo>−</mo><msub><mi>w</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">w_2&gt;1-w_1</annotation></semantics></math>,
+i.e. <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mn>1</mn></msub><mo>+</mo><msub><mi>w</mi><mn>2</mn></msub><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">w_1+w_2&gt;1</annotation></semantics></math>,
+which no pair of weights can satisfy. <strong>At any cap of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.5</mn><annotation encoding="application/x-tex">0.5</annotation></semantics></math>
+or above the loop runs at most once</strong>, and simulation agrees
+exactly: at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">c=0.5</annotation></semantics></math>
+the cap is untouched 33% of the time and pinned once 67%, never twice.
+Only tighter caps exercise the iteration — at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.3</mn></mrow><annotation encoding="application/x-tex">c=0.3</annotation></semantics></math>
+two passes are needed 53% of the time and three passes 11%.</p>
+<p>The general routine is kept because <code>max_donor_weight</code> is
+an argument and a user may set it below
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.5</mn><annotation encoding="application/x-tex">0.5</annotation></semantics></math>,
+where a single pass is genuinely wrong. But at the shipped default, the
+simple thing and the correct thing coincide.</p>
+</div>
+<div class="section level3">
+<h3 id="the-infeasible-cap-boundary">The infeasible-cap boundary<a class="anchor" aria-label="anchor" href="#the-infeasible-cap-boundary"></a>
+</h3>
+<p>With
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>
-donors every weight is at least
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>K</mi></mrow><annotation encoding="application/x-tex">1/K</annotation></semantics></math>
-on average, so <strong>no weight vector can satisfy a ceiling below
+donors the weights average
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>K</mi></mrow><annotation encoding="application/x-tex">1/K</annotation></semantics></math>,
+so <strong>no weight vector can satisfy a ceiling below
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>K</mi></mrow><annotation encoding="application/x-tex">1/K</annotation></semantics></math></strong>
 — asking for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">c = 0.30</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.3</mn></mrow><annotation encoding="application/x-tex">c=0.3</annotation></semantics></math>
 from three donors is asking three numbers below
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.3</mn><annotation encoding="application/x-tex">0.3</annotation></semantics></math>
 to sum to 1. Such a cap relaxes to exactly
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>K</mi></mrow><annotation encoding="application/x-tex">1/K</annotation></semantics></math>:
 uniform weights, the flattest blend available, rather than an error. Two
 donors under
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">c=0.30</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">c=0.5</annotation></semantics></math>
 give
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.5</mn><mo>,</mo><mn>0.5</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.5, 0.5)</annotation></semantics></math>.
-With exactly one donor the weight is necessarily 1; a cap cannot invent
-a second donor.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.5</mn><mo>,</mo><mn>0.5</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.5,0.5)</annotation></semantics></math>,
+which meets the cap exactly. With one donor the weight is necessarily 1;
+a cap cannot invent a second donor.</p>
+</div>
+<div class="section level3">
+<h3 id="why-a-cap-is-needed-at-all">Why a cap is needed at all<a class="anchor" aria-label="anchor" href="#why-a-cap-is-needed-at-all"></a>
+</h3>
+<p>It is reasonable to ask whether the cap earns its place, given that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
+already forces five donors into every avatar. The answer is that
+<strong>without a cap, the floor is largely decorative.</strong>
+Simulating the raw weight formula at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">k=5</annotation></semantics></math>
+with representative donor distances:</p>
+<table class="table">
+<thead><tr class="header">
+<th>uncapped largest donor share</th>
+<th>value</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>median</td>
+<td>0.58</td>
+</tr>
+<tr class="even">
+<td>interquartile range</td>
+<td>0.47 – 0.72</td>
+</tr>
+<tr class="odd">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">largest</mtext><mo>&gt;</mo><mn>0.5</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">P(\text{largest} &gt; 0.5)</annotation></semantics></math></td>
+<td>0.67</td>
+</tr>
+<tr class="even">
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">largest</mtext><mo>&gt;</mo><mn>0.8</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">P(\text{largest} &gt; 0.8)</annotation></semantics></math></td>
+<td>0.14</td>
+</tr>
+<tr class="odd">
+<td>effective donors
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msub><mo>∑</mo><mi>r</mi></msub><msubsup><mi>w</mi><mi>r</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">1/\sum_r w_r^2</annotation></semantics></math>
+</td>
+<td>2.37</td>
+</tr>
+</tbody>
+</table>
+<p>So the unconstrained formula typically puts <strong>58% of an avatar
+into a single donor</strong>, and one avatar in seven takes more than
+80% from one person. Nominally five patients are blended; effectively
+about two and a half are. The cap is the only thing that closes that
+gap.</p>
 </div>
 <div class="section level3">
 <h3 id="choosing-the-cap">Choosing the cap<a class="anchor" aria-label="anchor" href="#choosing-the-cap"></a>
 </h3>
-<p>The cap answers one question: <em>what is the most of one avatar that
-may come from one real patient?</em> That framing bounds the sensible
-range at both ends.</p>
-<ul>
-<li>At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>1</mn><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">c = 1/k</annotation></semantics></math>
-exactly
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.20</mn><annotation encoding="application/x-tex">0.20</annotation></semantics></math>
-at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">k=5</annotation></semantics></math>)
-every donor is equal, and the weights stop being random at all. Two
-avatars built from the same donor set then differ only by noise, which
-is its own kind of disclosure.</li>
-<li>At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
-near 1 the cap does nothing and one donor can be nearly the whole avatar
-— the
+<p>The useful diagnostic is <strong>how often the cap fires</strong>,
+because that says what role it is playing:</p>
+<table class="table">
+<thead><tr class="header">
+<th><code>max_donor_weight</code></th>
+<th>binds on</th>
+<th>effective donors</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>0.30</td>
+<td>99%</td>
+<td>3.92</td>
+</tr>
+<tr class="even">
+<td>0.40</td>
+<td>89%</td>
+<td>3.28</td>
+</tr>
+<tr class="odd">
+<td>0.50 <em>(default)</em>
+</td>
+<td>68%</td>
+<td>2.90</td>
+</tr>
+<tr class="even">
+<td>0.60</td>
+<td>47%</td>
+<td>2.64</td>
+</tr>
+<tr class="odd">
+<td>0.80</td>
+<td>15%</td>
+<td>2.40</td>
+</tr>
+<tr class="even">
+<td>none</td>
+<td>0%</td>
+<td>2.37</td>
+</tr>
+</tbody>
+</table>
+<p>Both ends of that table are the wrong kind of parameter. A cap that
+fires on 99% of subjects is not a guardrail — it <em>is</em> the
+weighting scheme, and the inverse-distance term underneath it barely
+matters. A cap at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.80</mn><annotation encoding="application/x-tex">0.80</annotation></semantics></math>
-default was already most of the way to this.</li>
-</ul>
-<p>So a defensible cap sits strictly between
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">1/k</annotation></semantics></math>
-and roughly
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">2/k</annotation></semantics></math>.
-Because the measured variability cost is flat across that whole range
-(next section), the fidelity side of the trade barely constrains the
-choice, which makes it a privacy decision: prefer the low end. The
-default
+fires on 15%, trimming only the worst tail while still permitting one
+patient to be four-fifths of an avatar; that was the old default, and it
+was never really protecting anything.</p>
+<p>The default is
+<strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.50</mn><annotation encoding="application/x-tex">0.50</annotation></semantics></math></strong>,
+which states as a single checkable sentence: <em>no single real patient
+is more than half of any synthetic patient.</em> It fires on about two
+thirds of subjects, so it genuinely constrains without wholly replacing
+the distance weighting.</p>
+<p>Its honest cost is that “five donors are blended” is really “about
+three effective donors”
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>2.90</mn><annotation encoding="application/x-tex">2.90</annotation></semantics></math>).
+Tightening to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>
-at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">k=5</annotation></semantics></math>
-is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.5</mn><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">1.5/k</annotation></semantics></math>,
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.5</mn><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">1.5/k</annotation></semantics></math>
-is the rule to carry over if
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-changes.</p>
+buys about one more effective donor at the price of a cap that fires
+essentially always. Both are defensible;
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.50</mn><annotation encoding="application/x-tex">0.50</annotation></semantics></math>
+is the one that can be explained in a sentence.</p>
+<p>Because these numbers depend on the cohort, <code>pmx_settings</code>
+records <code>cap_binding_fraction</code> and
+<code>mean_effective_donors</code> for every run, so the same question
+can be asked of real data rather than of a simulation.</p>
 </div>
 <div class="section level3">
 <h3 id="what-the-cap-costs">What the cap costs<a class="anchor" aria-label="anchor" href="#what-the-cap-costs"></a>
@@ -1149,14 +1325,18 @@ averaged over 20 seeds, against a source SD of
 </tr>
 </tbody>
 </table>
-<p>Tightening
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.80</mn><mo>→</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">0.80\to0.30</annotation></semantics></math>
-raises the effective donor count from 2.5 to 3.9 — a substantial privacy
-gain — while between-subject variability is flat within noise at a
+<p>Tightening the cap raises the effective donor count substantially —
+2.4 with no cap, 2.9 at the default
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.50</mn><annotation encoding="application/x-tex">0.50</annotation></semantics></math>,
+3.9 at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.30</mn><annotation encoding="application/x-tex">0.30</annotation></semantics></math>
+— while between-subject variability stays flat within noise at a
 12-subject source. The independence formula would have predicted a fall
-from 81% to 49%; correlation among neighbours is why it does not happen.
-This is one dataset and one summary, so the table is evidence that the
-cap is affordable here, not a general result.</p>
+from 81% to 49% over that range; correlation among neighbours is why it
+does not happen. This is one dataset and one summary, so the table is
+evidence that capping is affordable here, not a general result. It is
+also the reason the cap can be chosen on privacy grounds: the fidelity
+side of the trade is nearly flat.</p>
 <p>The same selected subjects and weights are used for every declared
 covariate and endpoint. When donor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
@@ -1487,48 +1667,55 @@ donors are:</p>
 <td align="left">donor</td>
 <td align="right">4</td>
 <td align="right">1.7462</td>
-<td align="right">0.3000</td>
+<td align="right">0.4364</td>
 </tr>
 <tr class="odd">
 <td align="left">3</td>
 <td align="left">donor</td>
 <td align="right">3</td>
 <td align="right">2.7489</td>
-<td align="right">0.0317</td>
+<td align="right">0.0032</td>
 </tr>
 <tr class="even">
 <td align="left">6</td>
 <td align="left">donor</td>
 <td align="right">6</td>
 <td align="right">3.2730</td>
-<td align="right">0.3000</td>
+<td align="right">0.5000</td>
 </tr>
 <tr class="odd">
 <td align="left">1</td>
 <td align="left">donor</td>
 <td align="right">1</td>
 <td align="right">6.0532</td>
-<td align="right">0.0683</td>
+<td align="right">0.0070</td>
 </tr>
 <tr class="even">
 <td align="left">2</td>
 <td align="left">donor</td>
 <td align="right">2</td>
 <td align="right">6.1283</td>
-<td align="right">0.3000</td>
+<td align="right">0.0535</td>
 </tr>
 </tbody>
 </table>
-<p>This trace shows the water-filling cap of Step 7 doing its work:
-three of the five donors sit at exactly <code>max_donor_weight</code>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>=</mo><mn>0.30</mn></mrow><annotation encoding="application/x-tex">=0.30</annotation></semantics></math>,
-having been pinned there in successive passes, while the remaining mass
-is shared by the other two. A single-pass cap on the largest weight
-alone would have left at least one donor above 0.30. The recorded
-<code>mean_effective_donors</code>,
+<p>This trace shows the cap of Step 7 doing its work, and shows why the
+cap is not optional. One donor is pinned at exactly
+<code>max_donor_weight</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>=</mo><mn>0.50</mn></mrow><annotation encoding="application/x-tex">=0.50</annotation></semantics></math>;
+without the cap that donor would have taken more. Notice too that the
+pinned donor is <em>not</em> the nearest one — the randomized rank
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>R</mi><mi>r</mi></msub><annotation encoding="application/x-tex">R_r</annotation></semantics></math>,
+not the distance order, decides who dominates a given avatar, which is
+what stops the nearest neighbour from being systematically the largest
+contributor.</p>
+<p>The recorded <code>mean_effective_donors</code>,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msub><mo>∑</mo><mi>r</mi></msub><msubsup><mi>w</mi><mi>r</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">1/\sum_r w_r^2</annotation></semantics></math>,
-is 3.63 against a floor of 5 — the gap between “five donors were used”
-and “the blend is worth about 3.6 independent donors”.</p>
+is 2.26 against a floor of 5 — the gap between “five donors were used”
+and “the blend is worth about 2.3 independent donors”. That gap is the
+honest cost of a cap chosen for simplicity, and it is why
+<code>cap_binding_fraction</code> and <code>mean_effective_donors</code>
+are both recorded rather than left to be assumed.</p>
 <p>The anchor contributes the event skeleton. Donors contribute
 transformed DVs after interpolation to the anchor times. The following
 table shows the exact pre-noise blend used by the implementation.</p>
@@ -1565,9 +1752,9 @@ endpoint working scale</caption>
 <td align="right">2.348</td>
 <td align="right">1.905</td>
 <td align="right">2.012</td>
-<td align="right">2.161</td>
-<td align="right">8.463</td>
-<td align="right">7.705</td>
+<td align="right">2.259</td>
+<td align="right">9.360</td>
+<td align="right">8.523</td>
 </tr>
 <tr class="even">
 <td align="right">1.4</td>
@@ -1576,9 +1763,9 @@ endpoint working scale</caption>
 <td align="right">1.934</td>
 <td align="right">1.486</td>
 <td align="right">1.591</td>
-<td align="right">1.745</td>
-<td align="right">5.513</td>
-<td align="right">4.904</td>
+<td align="right">1.843</td>
+<td align="right">6.100</td>
+<td align="right">5.428</td>
 </tr>
 <tr class="odd">
 <td align="right">2.8</td>
@@ -1587,9 +1774,9 @@ endpoint working scale</caption>
 <td align="right">1.231</td>
 <td align="right">0.792</td>
 <td align="right">0.886</td>
-<td align="right">1.044</td>
-<td align="right">2.627</td>
-<td align="right">2.344</td>
+<td align="right">1.142</td>
+<td align="right">2.919</td>
+<td align="right">2.607</td>
 </tr>
 <tr class="even">
 <td align="right">4.5</td>
@@ -1598,9 +1785,9 @@ endpoint working scale</caption>
 <td align="right">0.530</td>
 <td align="right">0.216</td>
 <td align="right">0.172</td>
-<td align="right">0.330</td>
-<td align="right">1.177</td>
-<td align="right">1.044</td>
+<td align="right">0.418</td>
+<td align="right">1.304</td>
+<td align="right">1.159</td>
 </tr>
 </tbody>
 </table>
@@ -1631,51 +1818,51 @@ synthesized covariates can be inspected directly:</p>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">1</td>
-<td align="right">73.945</td>
+<td align="right">80.579</td>
 <td align="left">male</td>
 </tr>
 <tr class="even">
 <td align="right">7</td>
 <td align="right">0.6</td>
-<td align="right">7.705</td>
+<td align="right">8.523</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">73.945</td>
+<td align="right">80.579</td>
 <td align="left">male</td>
 </tr>
 <tr class="odd">
 <td align="right">7</td>
 <td align="right">1.4</td>
-<td align="right">4.904</td>
+<td align="right">5.428</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">73.945</td>
+<td align="right">80.579</td>
 <td align="left">male</td>
 </tr>
 <tr class="even">
 <td align="right">7</td>
 <td align="right">2.8</td>
-<td align="right">2.344</td>
+<td align="right">2.607</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">73.945</td>
+<td align="right">80.579</td>
 <td align="left">male</td>
 </tr>
 <tr class="odd">
 <td align="right">7</td>
 <td align="right">4.5</td>
-<td align="right">1.044</td>
+<td align="right">1.159</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">73.945</td>
+<td align="right">80.579</td>
 <td align="left">male</td>
 </tr>
 </tbody>
@@ -1744,13 +1931,17 @@ schedules; normalized observation-window fallback</td>
 </tr>
 <tr class="odd">
 <td align="left">max_donor_weight</td>
-<td align="left">0.3</td>
+<td align="left">0.5</td>
 </tr>
 <tr class="even">
-<td align="left">mean_effective_donors</td>
-<td align="left">3.628</td>
+<td align="left">cap_binding_fraction</td>
+<td align="left">1</td>
 </tr>
 <tr class="odd">
+<td align="left">mean_effective_donors</td>
+<td align="left">2.256</td>
+</tr>
+<tr class="even">
 <td align="left">warnings</td>
 <td align="left"><none></none></td>
 </tr>
@@ -1816,9 +2007,10 @@ without consuming the surrounding analysis RNG stream.</p>
 <p><code>attr(synthetic, "pmx_settings")</code> records arguments,
 explicit roles, endpoint transformations, the alignment description, the
 number of compatible event groups and distinct routes, the donor weight
-cap, the mean and minimum effective donor count, and unique fallback
-warnings. It does not currently record the anchor ID, donor IDs,
-distances, or realized weights for each synthetic subject.</p>
+cap and how often it bound, the mean and minimum effective donor count,
+and unique fallback warnings. It does not currently record the anchor
+ID, donor IDs, distances, or realized weights for each synthetic
+subject.</p>
 <p>Use the public checks for different questions:</p>
 <ul>
 <li>
@@ -2001,7 +2193,7 @@ schedule differences only make a donor less preferred;</li>
 <li>endpoints are transformed and interpolated separately;</li>
 <li>the same donors support covariates and endpoints;</li>
 <li>every multi-donor weight, not only the dominant one, is capped at
-<code>max_donor_weight</code> (default 0.30);</li>
+<code>max_donor_weight</code> (default 0.50);</li>
 <li>subject and AR(1) perturbations are added on the endpoint working
 scale; and</li>
 <li>there is no inverse-PCA reconstruction of a full synthetic patient

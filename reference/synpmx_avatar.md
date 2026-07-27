@@ -23,7 +23,7 @@ synpmx_avatar(
   residual_phi = 0.6,
   time_jitter = 0,
   screen = TRUE,
-  max_donor_weight = 0.3,
+  max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
 ```
@@ -110,15 +110,24 @@ synpmx_avatar(
 - max_donor_weight:
 
   Largest share of one synthetic subject that any one real donor may
-  contribute (default 0.30, against 0.20 for a flat average at `k = 5`).
+  contribute. The default 0.50 states simply that no single real patient
+  is more than half of any synthetic patient.
+
   The floor `k` sets how many patients are blended; this cap is what
   bounds any single patient's contribution, so it, not `k`, is the
   parameter that limits how closely an avatar can resemble one real
-  person. Lowering it flattens blends toward the cohort mean and shrinks
-  synthetic between-subject variability; raising it recovers that spread
-  at the cost of letting one donor dominate. The returned `pmx_settings`
-  reports `mean_effective_donors`, `1 / sum(w^2)`, which measures where
-  a given cap actually landed.
+  person. Without a cap the randomized weights are strongly concentrated
+  — a median 58% of an avatar in one donor at `k = 5`, and about 2.4
+  effective donors — so the cap is what makes the floor mean anything.
+
+  Two diagnostics in the returned `pmx_settings` say where a given value
+  landed: `mean_effective_donors` is `1 / sum(w^2)`, the number of
+  donors an avatar is effectively blended from, and
+  `cap_binding_fraction` is how often the cap actually fired. A cap
+  binding on nearly every subject is not a guardrail but the weighting
+  scheme itself, with the inverse-distance term underneath it doing
+  little; one that never fires is not protecting anything. At `k = 5`
+  the default binds on roughly two thirds of subjects.
 
 - on_donor_shortfall:
 

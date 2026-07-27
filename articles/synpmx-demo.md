@@ -277,12 +277,12 @@ knitr::kable(
 | Source    |   1 | 0.57 |  6.570000 |   0.000 |    0 |   2 | 79.60000 |
 | Source    |   1 | 1.12 | 10.500000 |   0.000 |    0 |   2 | 79.60000 |
 | Source    |   1 | 2.02 |  9.660000 |   0.000 |    0 |   2 | 79.60000 |
-| Synthetic |  13 | 0.00 |  0.000000 | 319.365 |  101 |   1 | 63.19008 |
-| Synthetic |  13 | 0.00 |  0.000000 |   0.000 |    0 |   2 | 63.19008 |
-| Synthetic |  13 | 0.27 |  1.367489 |   0.000 |    0 |   2 | 63.19008 |
-| Synthetic |  13 | 0.58 |  4.303894 |   0.000 |    0 |   2 | 63.19008 |
-| Synthetic |  13 | 1.02 |  7.941681 |   0.000 |    0 |   2 | 63.19008 |
-| Synthetic |  13 | 2.02 |  7.829716 |   0.000 |    0 |   2 | 63.19008 |
+| Synthetic |  13 | 0.00 |  0.000000 | 319.365 |  101 |   1 | 65.11191 |
+| Synthetic |  13 | 0.00 |  0.000000 |   0.000 |    0 |   2 | 65.11191 |
+| Synthetic |  13 | 0.27 |  1.145239 |   0.000 |    0 |   2 | 65.11191 |
+| Synthetic |  13 | 0.58 |  4.262444 |   0.000 |    0 |   2 | 65.11191 |
+| Synthetic |  13 | 1.02 |  7.838701 |   0.000 |    0 |   2 | 65.11191 |
+| Synthetic |  13 | 2.02 |  7.815251 |   0.000 |    0 |   2 | 65.11191 |
 
 Actual Theophylline rows and synthesized rows {.table}
 
@@ -301,13 +301,12 @@ knitr::kable(theo_dist$endpoints, digits = 2,
              caption = "Concentration distribution, source versus synthetic")
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd |   min |  q25 | median |  q75 |   max |
-|:---------|:----------|----:|-----------:|-----:|-----:|------:|-----:|-------:|-----:|------:|
-| DV       | source    | 264 |         12 | 5.53 | 3.00 | -1.13 | 3.30 |   5.74 | 7.80 | 12.66 |
-| DV       | synthetic | 264 |         12 | 5.89 | 3.14 |  0.00 | 3.87 |   6.20 | 8.23 | 12.95 |
+| variable | dataset   |   n | n_subjects | mean |   sd |   min |  q25 | median | q75 |   max |
+|:---------|:----------|----:|-----------:|-----:|-----:|------:|-----:|-------:|----:|------:|
+| DV       | source    | 264 |         12 | 5.53 | 3.00 | -1.13 | 3.30 |   5.74 | 7.8 | 12.66 |
+| DV       | synthetic | 264 |         12 | 5.88 | 3.16 |  0.00 | 3.88 |   5.97 | 8.2 | 13.32 |
 
-Concentration distribution, source versus synthetic {.table
-style="width:100%;"}
+Concentration distribution, source versus synthetic {.table}
 
 ``` r
 
@@ -315,10 +314,10 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight distribution, source versus synthetic")
 ```
 
-| variable | dataset   |   n |  mean |   sd |   min |   q25 | median |   q75 |  max |
-|:---------|:----------|----:|------:|-----:|------:|------:|-------:|------:|-----:|
-| WT       | source    |  12 | 69.58 | 9.50 | 54.60 | 63.57 |  70.50 | 74.43 | 86.4 |
-| WT       | synthetic |  12 | 67.17 | 5.29 | 60.27 | 62.93 |  66.64 | 71.63 | 75.9 |
+| variable | dataset   |   n |  mean |   sd |   min |   q25 | median |   q75 |   max |
+|:---------|:----------|----:|------:|-----:|------:|------:|-------:|------:|------:|
+| WT       | source    |  12 | 69.58 | 9.50 | 54.60 | 63.57 |  70.50 | 74.43 | 86.40 |
+| WT       | synthetic |  12 | 67.44 | 6.52 | 58.08 | 63.45 |  67.62 | 70.91 | 79.26 |
 
 Baseline weight distribution, source versus synthetic {.table}
 

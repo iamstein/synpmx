@@ -19,6 +19,13 @@ Each synthetic subject is built from one real *anchor* subject’s event
 structure, filled with measurements blended from several similar real
 subjects.
 
+The generator works on **any number of endpoints** — a PK concentration
+alongside one or more PD measures, declared through the `dvid` role.
+Each endpoint gets its own transformation and its own interpolation
+grid, and they are then combined into a single per-subject profile, so
+one donor set serves them all. Step 5 gives the details, including which
+endpoint ends up dominating the choice of donors and why.
+
 The pipeline has six **stages**, lettered (a) to (f). The rest of the
 article walks through ten numbered **Steps**, and each stage below says
 which Steps it covers — two stages span several Steps, which is why the
@@ -44,7 +51,7 @@ sequence.
   dose/schedule groups when the anchor’s own group is too small — but
   never across route of administration; blend the donors’ trajectories
   onto the skeleton’s observation times, capping any one donor’s share
-  at `max_donor_weight` (default 0.30); add subject-level and
+  at `max_donor_weight` (default 0.50); add subject-level and
   within-subject noise; and reconstruct any below-limit (BLOQ)
   censoring.
 - **(e) Restore the original shape** — *Step 10*. Put back the source
@@ -416,6 +423,64 @@ trajectory interpolated on its common grid.
 This profile is used only for distance calculations. It does not replace
 the source data and is never returned as a synthetic patient.
 
+### Multiple endpoints
+
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+handles any number of endpoints — a PK concentration and one or more PD
+measures, declared through `dvid`. Each is processed *separately* first
+and only then merged, in this order:
+
+1.  **Transform, per endpoint.** Step 4 runs once per endpoint, so PK
+    may be blended on the log scale while a PD score stays on the
+    identity scale.
+2.  **Interpolate, per endpoint.** Each endpoint gets its *own* common
+    grid, built from the pooled observation times of that endpoint
+    alone. A sparsely sampled PD is not padded out to match a rich PK.
+3.  **Concatenate.** Covariate features, then each endpoint’s grid
+    columns, are laid side by side into the single row $`\mathbf{x}_i`$
+    above.
+4.  **Impute, drop, standardize.** Median imputation, removal of
+    constant columns, then column-by-column standardization.
+5.  **One PCA over everything**, giving a single $`\boldsymbol{\xi}_i`$
+    that mixes all endpoints — not one PCA per endpoint.
+
+Consequently there is **one distance, one donor set, and one set of
+weights**, shared by every endpoint. A donor is chosen for overall
+similarity; a donor that matches PK closely but PD poorly still donates
+its PD.
+
+Standardization is what makes endpoints commensurable at all: a log
+concentration and a raw neutrophil count cannot be compared until each
+column is divided by its across-subject standard deviation.
+
+But note carefully what standardization does *not* do. It equalizes
+**units**, not **endpoints**. Every grid point becomes one unit-variance
+column, so an endpoint sampled at 15 times contributes 15 columns while
+one sampled at 3 times contributes 3, and a Euclidean distance summing
+over columns lets the first outvote the second by roughly five to one.
+On a worked two-endpoint example with 7 usable PK columns, 3 PD columns,
+and 1 covariate, the retained variance splits
+
+| block     | features | share of retained variance |
+|-----------|----------|----------------------------|
+| covariate | 1        | 4.4%                       |
+| PD        | 3        | 28.1%                      |
+| PK        | 7        | 67.5%                      |
+
+so donor selection is driven mostly by whichever endpoint was sampled
+most densely, and baseline covariates are a small minority of the
+distance whenever trajectories are rich. **This weighting is an accident
+of the sampling design, not a modeling choice**, and there is currently
+no way to reweight endpoints. If donors must match on a sparse endpoint,
+that is a limitation to know about before trusting the selection.
+
+Two related behaviors follow. A subject missing an endpoint entirely is
+median-imputed on those columns, so it looks *average* there and sits
+nearer the middle of the space than it deserves to. And at generation,
+if a chosen donor has no value for the endpoint being filled, the
+weights renormalize locally over the donors that do — so a missing
+endpoint thins the blend rather than punching a hole in it.
+
 ### Missing features and scaling
 
 An entirely missing feature is removed. Otherwise, a missing profile
@@ -729,76 +794,124 @@ practical purpose, a copy of one person. So the cap, not $`k`$, is what
 controls how closely an avatar can resemble a single real patient.
 
 The raw formula above produces very uneven weights on purpose — that is
-the rank attenuation doing its job. Left alone it routinely hands one
-donor half the avatar. `max_donor_weight` (written $`c`$ below, default
-$`0.30`$) is the ceiling on any one share.
+the rank attenuation doing its job. Left alone it hands one donor a
+median 58% of the avatar. `max_donor_weight` (written $`c`$ below,
+default $`0.50`$) is the ceiling on any one share.
 
 Enforcing it is less obvious than it sounds, because **weights have to
 keep summing to 1**. Cutting the leader down does not remove that weight
-from the blend; it has to be given to the others, and that can push one
-of *them* over the ceiling. Concretely, starting from
-$`(0.50, 0.25, 0.15, 0.06, 0.04)`$ with $`c = 0.30`$:
-
-- Cut the leader from $`0.50`$ to $`0.30`$. That frees $`0.20`$.
-- Spread the freed $`0.20`$ over the other four in proportion to what
-  they already hold. The second donor was at $`0.25`$, and its share of
-  the $`0.20`$ takes it to $`0.35`$ — **over the ceiling**.
-
-Capping the largest weight once and stopping, which is what the
-implementation did throughout the $`0.80`$ era, leaves exactly that
-violation in place: the stated maximum, broken by the donor the
-redistribution itself created. At $`0.80`$ this almost never bound
-twice, so it went unnoticed; at $`0.30`$ it is the normal case.
-
-The fix is to repeat the step — *cap, redistribute, check again* — which
-is the standard construction called **water-filling**:
-
-- Pin every weight that is over $`c`$ down to exactly $`c`$.
-- Share whatever mass is left among the donors still below $`c`$, in
-  proportion.
-- Look again. If redistribution pushed someone over, pin them too and
-  repeat.
-
-Pinned donors are never topped up again, so each pass pins at least one
-more donor and the procedure stops after at most one pass per donor. The
-example above settles at $`(0.30, 0.30, 0.24, 0.096, 0.064)`$ — two
-donors at the ceiling, the rest sharing the remainder, total still 1. In
-symbols, with $`P`$ the pinned set:
+from the blend; it has to be given to the others, in proportion to what
+they already hold:
 
 ``` math
 w_r \leftarrow \Bigl(1-\textstyle\sum_{s\in P}w_s\Bigr)
               \frac{w_r}{\sum_{s\notin P}w_s},
-\qquad r\notin P.
+\qquad r\notin P,
 ```
 
-One boundary case matters. With $`K`$ donors every weight is at least
-$`1/K`$ on average, so **no weight vector can satisfy a ceiling below
-$`1/K`$** — asking for $`c = 0.30`$ from three donors is asking three
-numbers below $`0.30`$ to sum to 1. Such a cap relaxes to exactly
-$`1/K`$: uniform weights, the flattest blend available, rather than an
-error. Two donors under $`c=0.30`$ give $`(0.5, 0.5)`$. With exactly one
-donor the weight is necessarily 1; a cap cannot invent a second donor.
+where $`P`$ is the set of donors already pinned at $`c`$. And that
+redistribution can itself push a donor over the ceiling. Starting from
+$`(0.50, 0.25, 0.15,
+0.06, 0.04)`$ with a tight $`c = 0.30`$: cutting the leader to $`0.30`$
+frees $`0.20`$, and the second donor’s share of it takes them from
+$`0.25`$ to $`0.35`$ — over the ceiling. Capping only the largest weight
+and stopping, which is what the implementation did throughout the
+$`0.80`$ era, leaves exactly that violation in place: the stated
+maximum, broken by the donor the redistribution created.
+
+So the rule repeats — *pin everything over $`c`$, redistribute, look
+again* — the standard construction called **water-filling**. Pinned
+donors are never topped up, so each pass pins at least one more and it
+terminates. The tight example settles at
+$`(0.30, 0.30, 0.24, 0.096, 0.064)`$.
+
+### At the default cap, one pass is provably enough
+
+Worth knowing, because it means the loop above is not the complexity it
+looks like. A second pass is needed only when redistribution lifts the
+runner-up over the ceiling, that is when
+
+``` math
+(1-c)\,\frac{w_2}{1-w_1}>c .
+```
+
+At $`c=0.5`$ this requires $`w_2>1-w_1`$, i.e. $`w_1+w_2>1`$, which no
+pair of weights can satisfy. **At any cap of $`0.5`$ or above the loop
+runs at most once**, and simulation agrees exactly: at $`c=0.5`$ the cap
+is untouched 33% of the time and pinned once 67%, never twice. Only
+tighter caps exercise the iteration — at $`c=0.3`$ two passes are needed
+53% of the time and three passes 11%.
+
+The general routine is kept because `max_donor_weight` is an argument
+and a user may set it below $`0.5`$, where a single pass is genuinely
+wrong. But at the shipped default, the simple thing and the correct
+thing coincide.
+
+### The infeasible-cap boundary
+
+With $`K`$ donors the weights average $`1/K`$, so **no weight vector can
+satisfy a ceiling below $`1/K`$** — asking for $`c=0.3`$ from three
+donors is asking three numbers below $`0.3`$ to sum to 1. Such a cap
+relaxes to exactly $`1/K`$: uniform weights, the flattest blend
+available, rather than an error. Two donors under $`c=0.5`$ give
+$`(0.5,0.5)`$, which meets the cap exactly. With one donor the weight is
+necessarily 1; a cap cannot invent a second donor.
+
+### Why a cap is needed at all
+
+It is reasonable to ask whether the cap earns its place, given that
+$`k`$ already forces five donors into every avatar. The answer is that
+**without a cap, the floor is largely decorative.** Simulating the raw
+weight formula at $`k=5`$ with representative donor distances:
+
+| uncapped largest donor share        | value       |
+|-------------------------------------|-------------|
+| median                              | 0.58        |
+| interquartile range                 | 0.47 – 0.72 |
+| $`P(\text{largest} > 0.5)`$         | 0.67        |
+| $`P(\text{largest} > 0.8)`$         | 0.14        |
+| effective donors $`1/\sum_r w_r^2`$ | 2.37        |
+
+So the unconstrained formula typically puts **58% of an avatar into a
+single donor**, and one avatar in seven takes more than 80% from one
+person. Nominally five patients are blended; effectively about two and a
+half are. The cap is the only thing that closes that gap.
 
 ### Choosing the cap
 
-The cap answers one question: *what is the most of one avatar that may
-come from one real patient?* That framing bounds the sensible range at
-both ends.
+The useful diagnostic is **how often the cap fires**, because that says
+what role it is playing:
 
-- At $`c = 1/k`$ exactly ($`0.20`$ at $`k=5`$) every donor is equal, and
-  the weights stop being random at all. Two avatars built from the same
-  donor set then differ only by noise, which is its own kind of
-  disclosure.
-- At $`c`$ near 1 the cap does nothing and one donor can be nearly the
-  whole avatar — the $`0.80`$ default was already most of the way to
-  this.
+| `max_donor_weight` | binds on | effective donors |
+|--------------------|----------|------------------|
+| 0.30               | 99%      | 3.92             |
+| 0.40               | 89%      | 3.28             |
+| 0.50 *(default)*   | 68%      | 2.90             |
+| 0.60               | 47%      | 2.64             |
+| 0.80               | 15%      | 2.40             |
+| none               | 0%       | 2.37             |
 
-So a defensible cap sits strictly between $`1/k`$ and roughly $`2/k`$.
-Because the measured variability cost is flat across that whole range
-(next section), the fidelity side of the trade barely constrains the
-choice, which makes it a privacy decision: prefer the low end. The
-default $`0.30`$ at $`k=5`$ is $`1.5/k`$, and $`1.5/k`$ is the rule to
-carry over if $`k`$ changes.
+Both ends of that table are the wrong kind of parameter. A cap that
+fires on 99% of subjects is not a guardrail — it *is* the weighting
+scheme, and the inverse-distance term underneath it barely matters. A
+cap at $`0.80`$ fires on 15%, trimming only the worst tail while still
+permitting one patient to be four-fifths of an avatar; that was the old
+default, and it was never really protecting anything.
+
+The default is **$`0.50`$**, which states as a single checkable
+sentence: *no single real patient is more than half of any synthetic
+patient.* It fires on about two thirds of subjects, so it genuinely
+constrains without wholly replacing the distance weighting.
+
+Its honest cost is that “five donors are blended” is really “about three
+effective donors” ($`2.90`$). Tightening to $`0.30`$ buys about one more
+effective donor at the price of a cap that fires essentially always.
+Both are defensible; $`0.50`$ is the one that can be explained in a
+sentence.
+
+Because these numbers depend on the cohort, `pmx_settings` records
+`cap_binding_fraction` and `mean_effective_donors` for every run, so the
+same question can be asked of real data rather than of a simulation.
 
 ### What the cap costs
 
@@ -826,12 +939,15 @@ $`0.273`$ — the cap turns out to be nearly free:
 | 0.25               | 4.43             | 74%          |
 | 0.20 (uniform)     | 5.00             | 68%          |
 
-Tightening $`0.80\to0.30`$ raises the effective donor count from 2.5 to
-3.9 — a substantial privacy gain — while between-subject variability is
-flat within noise at a 12-subject source. The independence formula would
-have predicted a fall from 81% to 49%; correlation among neighbours is
-why it does not happen. This is one dataset and one summary, so the
-table is evidence that the cap is affordable here, not a general result.
+Tightening the cap raises the effective donor count substantially — 2.4
+with no cap, 2.9 at the default $`0.50`$, 3.9 at $`0.30`$ — while
+between-subject variability stays flat within noise at a 12-subject
+source. The independence formula would have predicted a fall from 81% to
+49% over that range; correlation among neighbours is why it does not
+happen. This is one dataset and one summary, so the table is evidence
+that capping is affordable here, not a general result. It is also the
+reason the cap can be chosen on privacy grounds: the fidelity side of
+the trade is nearly flat.
 
 The same selected subjects and weights are used for every declared
 covariate and endpoint. When donor $`r`$ lacks a usable value at target
@@ -1031,20 +1147,26 @@ With `seed = 2026`, the anchor and its selected compatible donors are:
 |     | role   | source_ID | profile_distance | weight |
 |:----|:-------|----------:|-----------------:|-------:|
 |     | anchor |         5 |               NA |     NA |
-| 4   | donor  |         4 |           1.7462 | 0.3000 |
-| 3   | donor  |         3 |           2.7489 | 0.0317 |
-| 6   | donor  |         6 |           3.2730 | 0.3000 |
-| 1   | donor  |         1 |           6.0532 | 0.0683 |
-| 2   | donor  |         2 |           6.1283 | 0.3000 |
+| 4   | donor  |         4 |           1.7462 | 0.4364 |
+| 3   | donor  |         3 |           2.7489 | 0.0032 |
+| 6   | donor  |         6 |           3.2730 | 0.5000 |
+| 1   | donor  |         1 |           6.0532 | 0.0070 |
+| 2   | donor  |         2 |           6.1283 | 0.0535 |
 
-This trace shows the water-filling cap of Step 7 doing its work: three
-of the five donors sit at exactly `max_donor_weight` $`=0.30`$, having
-been pinned there in successive passes, while the remaining mass is
-shared by the other two. A single-pass cap on the largest weight alone
-would have left at least one donor above 0.30. The recorded
-`mean_effective_donors`, $`1/\sum_r w_r^2`$, is 3.63 against a floor of
-5 — the gap between “five donors were used” and “the blend is worth
-about 3.6 independent donors”.
+This trace shows the cap of Step 7 doing its work, and shows why the cap
+is not optional. One donor is pinned at exactly `max_donor_weight`
+$`=0.50`$; without the cap that donor would have taken more. Notice too
+that the pinned donor is *not* the nearest one — the randomized rank
+$`R_r`$, not the distance order, decides who dominates a given avatar,
+which is what stops the nearest neighbour from being systematically the
+largest contributor.
+
+The recorded `mean_effective_donors`, $`1/\sum_r w_r^2`$, is 2.26
+against a floor of 5 — the gap between “five donors were used” and “the
+blend is worth about 2.3 independent donors”. That gap is the honest
+cost of a cap chosen for simplicity, and it is why
+`cap_binding_fraction` and `mean_effective_donors` are both recorded
+rather than left to be assumed.
 
 The anchor contributes the event skeleton. Donors contribute transformed
 DVs after interpolation to the anchor times. The following table shows
@@ -1052,10 +1174,10 @@ the exact pre-noise blend used by the implementation.
 
 | anchor_TIME | donor_4_z | donor_3_z | donor_6_z | donor_1_z | donor_2_z | blended_z | deterministic_DV | final_synthetic_DV |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.161 | 8.463 | 7.705 |
-| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.745 | 5.513 | 4.904 |
-| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.044 | 2.627 | 2.344 |
-| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.330 | 1.177 | 1.044 |
+| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.259 | 9.360 | 8.523 |
+| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 5.428 |
+| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 2.607 |
+| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 1.159 |
 
 Interpolation and blending for the anchor endpoint; z is the endpoint
 working scale {.table style="width:100%;"}
@@ -1072,11 +1194,11 @@ knitr::kable(worked_synthetic, digits = 3)
 
 |  ID | TIME |    DV | AMT | EVID | CMT | MDV |     WT | SEX  |
 |----:|-----:|------:|----:|-----:|----:|----:|-------:|:-----|
-|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 73.945 | male |
-|   7 |  0.6 | 7.705 |   0 |    0 |   2 |   0 | 73.945 | male |
-|   7 |  1.4 | 4.904 |   0 |    0 |   2 |   0 | 73.945 | male |
-|   7 |  2.8 | 2.344 |   0 |    0 |   2 |   0 | 73.945 | male |
-|   7 |  4.5 | 1.044 |   0 |    0 |   2 |   0 | 73.945 | male |
+|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 80.579 | male |
+|   7 |  0.6 | 8.523 |   0 |    0 |   2 |   0 | 80.579 | male |
+|   7 |  1.4 | 5.428 |   0 |    0 |   2 |   0 | 80.579 | male |
+|   7 |  2.8 | 2.607 |   0 |    0 |   2 |   0 | 80.579 | male |
+|   7 |  4.5 | 1.159 |   0 |    0 |   2 |   0 | 80.579 | male |
 
 The result records enough settings to audit the public generator call:
 
@@ -1094,8 +1216,9 @@ The result records enough settings to audit the public generator call:
 | compatible_event_groups | 1 |
 | routes | 1 |
 | on_donor_shortfall | drop |
-| max_donor_weight | 0.3 |
-| mean_effective_donors | 3.628 |
+| max_donor_weight | 0.5 |
+| cap_binding_fraction | 1 |
+| mean_effective_donors | 2.256 |
 | warnings |  |
 
 Recorded generator settings {.table}
@@ -1149,10 +1272,10 @@ analysis RNG stream.
 
 `attr(synthetic, "pmx_settings")` records arguments, explicit roles,
 endpoint transformations, the alignment description, the number of
-compatible event groups and distinct routes, the donor weight cap, the
-mean and minimum effective donor count, and unique fallback warnings. It
-does not currently record the anchor ID, donor IDs, distances, or
-realized weights for each synthetic subject.
+compatible event groups and distinct routes, the donor weight cap and
+how often it bound, the mean and minimum effective donor count, and
+unique fallback warnings. It does not currently record the anchor ID,
+donor IDs, distances, or realized weights for each synthetic subject.
 
 Use the public checks for different questions:
 
@@ -1284,7 +1407,7 @@ ways:
 - endpoints are transformed and interpolated separately;
 - the same donors support covariates and endpoints;
 - every multi-donor weight, not only the dominant one, is capped at
-  `max_donor_weight` (default 0.30);
+  `max_donor_weight` (default 0.50);
 - subject and AR(1) perturbations are added on the endpoint working
   scale; and
 - there is no inverse-PCA reconstruction of a full synthetic patient
