@@ -128,7 +128,7 @@
 <td><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code></td>
 <td>Real subject templates and blended real trajectories</td>
 <td>None; governance only</td>
-<td>~12 subjects up</td>
+<td>At least 5 subjects</td>
 </tr>
 <tr>
 <td><strong>2. Prior only</strong></td>
@@ -144,7 +144,7 @@
 <td>A public model, magnitude corrected by 2 private releases</td>
 <td>
 <code>(epsilon, delta)</code> DP</td>
-<td>~20 subjects up</td>
+<td>At least 20 subjects</td>
 </tr>
 <tr>
 <td><strong>4. Empirical</strong></td>
@@ -152,15 +152,15 @@
 <td>Dozens of noised population summaries</td>
 <td>
 <code>(epsilon, delta)</code> DP</td>
-<td>A few hundred up</td>
+<td>At least hundreds</td>
 </tr>
 </tbody>
 </table>
-<p>Two rules of thumb decide between them:</p>
 <ul>
 <li>
-<strong>The trust boundary decides whether you need differential privacy.</strong> Ask whether the generated data can reach anyone the source data could not. Moving the synthetic data to a new cmouting environment where the same people can access it is different from sending the data to external vendors or making it public.<br>
-If no one new can access the data, AVATAR is much easier to use.</li>
+<p><strong>The trust boundary decides whether you need differential privacy.</strong> If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use.</p>
+<p>On the other hand, if the synthetic data will reach those who do not have access to the original data, then more formal methods with mathematical trust guarantees are the appropriate methods of choice.</p>
+</li>
 </ul>
 <p><code><a href="articles/synpmx-method.html">vignette("synpmx-method")</a></code> runs all four methods on the same dataset and shows the results side by side.</p>
 </div>
@@ -168,7 +168,7 @@ If no one new can access the data, AVATAR is much easier to use.</li>
 <h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
 </h2>
 <p><strong>AVATAR blending is the primary, maintained code.</strong> It has no dependencies beyond base R, and is what to reach for when the output stays within the source data’s own access controls and obligations.</p>
-<p>The three differentially private modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary. They are present in this repository because formal privacy is the right answer when data crosses a trust boundary. They are provided as-is: not under active development and and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production release mechanism. A real regulated release needs the specialist review.</p>
+<p>The three differentially private modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary. They are present in this repository because formal privacy is needed when data crosses a trust boundary. They are provided as-is: not under active development and and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production release mechanism. A real regulated release needs the specialist review.</p>
 <p>That status is enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
 <div class="section level2">
