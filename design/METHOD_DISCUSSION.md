@@ -289,10 +289,14 @@ Owner decisions of 2026-07-27, closing the "relax exact compatibility" half of
   explicitly and mark it not recommended, which the `"drop"` and `"error"`
   messages both do. `"error"` refuses and names both alternatives. Not gated by
   `screen`: that is cosmetic, this is a privacy floor.
-- **`max_donor_weight` 0.80 → 0.30**, exposed as an argument. The owner's point:
+- **`max_donor_weight` 0.80 → 0.50**, exposed as an argument. The owner's point:
   `k` bounds how many patients are blended, but the cap is what bounds how much
   of any *one* patient lands in an avatar, so the cap — not `k` — is the real
   anonymization parameter. 0.80 let one donor be four-fifths of an avatar.
+  Landed at 0.30 first, then revised to **0.50 on 2026-07-27** after the owner
+  pushed back that 0.30 felt unnecessary and over-complicated. Both instincts
+  were checked against measurement rather than argued: see "Choosing the cap"
+  below.
 - **The cap now applies to every donor**, by water-filling (`.cap_weights()`).
   Capping only `which.max()` was adequate at 0.80; at 0.30 the runner-up
   routinely exceeds the cap after the leader's excess is redistributed, so the
@@ -325,14 +329,54 @@ default, not enough to call general. Re-measure on INTERNAL_STUDY. `mean_effecti
 and `min_effective_donors` are now recorded in `pmx_settings` so the question can
 be asked of any run.
 
-**Cap guidance recorded** (owner asked what value makes sense, 2026-07-27). The
-cap answers "what is the most of one avatar that may come from one real
-patient?", which bounds the range at both ends: at exactly `1/k` the weights are
-uniform and stop being random, so two avatars from the same donor set differ
-only by noise; near 1 the cap does nothing. Defensible range is strictly between
-`1/k` and about `2/k`, and since the measured variability cost is flat across
-that range the choice is a privacy decision, so prefer the low end. Default 0.30
-at k = 5 is `1.5/k`; carry `1.5/k` over if `k` changes.
+**Choosing the cap — settled 2026-07-27 at 0.50, on evidence.** Two questions
+were asked and both were answered by simulating the raw weight formula rather
+than by intuition.
+
+*Is a cap needed at all?* Yes, and this is the number that settles it. Uncapped
+at k = 5, the largest donor share has median **0.58** (IQR 0.47–0.72), exceeds
+0.8 in 14% of avatars, and the effective donor count `1/sum(w^2)` is **2.37**.
+So without a cap the floor is largely decorative: nominally five patients are
+blended, effectively about two and a half. The cap is the only thing closing
+that gap.
+
+*What value?* The decisive diagnostic is **how often the cap fires**, because
+that says what role it plays:
+
+| cap | binds | effective donors |
+|---|---|---|
+| 0.30 | 99% | 3.92 |
+| 0.40 | 89% | 3.28 |
+| 0.50 | 68% | 2.90 |
+| 0.60 | 47% | 2.64 |
+| 0.80 | 15% | 2.40 |
+| none | 0% | 2.37 |
+
+Both ends are the wrong kind of parameter. A cap firing on 99% of subjects is
+not a guardrail — it *is* the weighting scheme, and the inverse-distance term
+beneath it stops mattering; that is what the owner was reacting to. A cap at
+0.80 fires on 15%, trimming only the tail while still allowing one patient to be
+four-fifths of an avatar. **0.50 is the chosen default**: it fires on about two
+thirds of subjects, so it genuinely constrains without replacing the distance
+weighting, and it states as one checkable sentence — *no single real patient is
+more than half of any synthetic patient*. Honest cost, recorded so it is not
+rediscovered: effective donors fall to 2.90, so "blends 5 patients" is really
+"about 3".
+
+**A simplification that fell out of 0.50.** Multi-pass water-filling is only
+needed when redistribution lifts the runner-up over the ceiling, i.e. when
+`(1-c)*w2/(1-w1) > c`. At c = 0.5 that requires `w1 + w2 > 1`, which is
+impossible, so **at any cap >= 0.5 the loop provably runs at most once**
+(simulation: at 0.5 the cap is untouched 33% and pinned once 67%, never twice;
+at 0.3 two passes 53%, three passes 11%). The general routine is kept because
+the cap is a user argument and below 0.5 a single pass is genuinely wrong, but
+at the shipped default the simple thing and the correct thing coincide. This is
+worth remembering before anyone "simplifies" `.cap_weights()` back to one pass.
+
+**Both diagnostics are now recorded** in `pmx_settings`:
+`cap_binding_fraction` and `mean_effective_donors`, so the question can be asked
+of real data rather than of a simulation. On `theo_md` the default binds on 67%
+of subjects with 2.82 effective donors, matching the simulation closely.
 
 **Dose--exposure caveat surfaced, not changed.** The owner asked whether stage-2
 selection is "just averaging DVs without caring about dosing". Near enough: AMT
