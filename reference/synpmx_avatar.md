@@ -22,7 +22,9 @@ synpmx_avatar(
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
   time_jitter = 0,
-  screen = TRUE
+  screen = TRUE,
+  max_donor_weight = 0.3,
+  on_donor_shortfall = c("drop", "noise", "error")
 )
 ```
 
@@ -61,9 +63,11 @@ synpmx_avatar(
   Number of real patients blended into each synthetic subject (default
   5). Same-schedule donors are used first; when a subject's
   dose/schedule group holds fewer than `k`, the nearest subjects from
-  other groups are borrowed to reach `k`, blending measurements across
-  doses. A source with fewer than `k + 1` subjects cannot reach the
-  floor and triggers a loud alert.
+  other groups *on the same administration route* are borrowed to reach
+  `k`, blending measurements across doses. Route is never crossed, so a
+  route arm holding fewer than `k + 1` subjects cannot reach the floor
+  at all; those subjects are dropped from the anchor pool with a loud
+  alert, and the synthetic cohort does not represent that arm.
 
 - pca_variance:
 
@@ -103,6 +107,36 @@ synpmx_avatar(
   and
   [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md).
 
+- max_donor_weight:
+
+  Largest share of one synthetic subject that any one real donor may
+  contribute (default 0.30, against 0.20 for a flat average at `k = 5`).
+  The floor `k` sets how many patients are blended; this cap is what
+  bounds any single patient's contribution, so it, not `k`, is the
+  parameter that limits how closely an avatar can resemble one real
+  person. Lowering it flattens blends toward the cohort mean and shrinks
+  synthetic between-subject variability; raising it recovers that spread
+  at the cost of letting one donor dominate. The returned `pmx_settings`
+  reports `mean_effective_donors`, `1 / sum(w^2)`, which measures where
+  a given cap actually landed.
+
+- on_donor_shortfall:
+
+  What to do with a subject whose administration route holds fewer than
+  `k + 1` subjects, so that no legal donor set exists for it. `"drop"`
+  (default) omits those subjects from the anchor pool: no avatar is
+  built on them and the synthetic cohort does not represent that arm.
+  `"noise"` keeps them, blending however many same-route donors exist
+  (possibly none) and relying on `subject_noise_sd` and
+  `residual_noise_sd` for the rest — **not recommended**, because such a
+  synthetic subject can remain close to one real patient; screen the
+  result with
+  [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+  if you use it. `"error"` refuses to generate and names the choice.
+  Every branch alerts loudly. When *every* route arm is below the floor,
+  `"drop"` would leave nothing to generate, so generation proceeds as if
+  `"noise"`.
+
 ## Value
 
 An ordinary data frame or tibble with retained source columns, order,
@@ -116,12 +150,21 @@ published AVATAR software. It creates synthetic data for model-workflow
 exploration. It does not provide formal anonymization or preserve
 scientific parameter or covariate-response relationships.
 
-For selected compatible donors, randomized raw weights are
+Donors are selected in two stages, both confined to the anchor's own
+administration route, which is never crossed: same-signature donors
+first, taken nearest-first by Euclidean distance between retained PCA
+profile coordinates, then — if that yields fewer than `k` — the nearest
+remaining route-compatible subjects regardless of dose or schedule.
+
+For the selected donors, randomized raw weights are
 `Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)`. They are
-normalized and, when multiple donors are available, a dominant weight is
-capped at 0.80 with its excess redistributed. The same subject weights
-are used for covariates and all endpoints; weights are renormalized
-locally when a donor lacks a requested endpoint/time value.
+normalized and then capped so that *no* donor exceeds
+`max_donor_weight`, the excess being redistributed proportionally among
+the donors still below the cap until none is over. A cap below `1/K` for
+`K` donors cannot be satisfied and relaxes to `1/K`, i.e. uniform
+weights. The same subject weights are used for covariates and all
+endpoints; weights are renormalized locally when a donor lacks a
+requested endpoint/time value.
 
 Positive-like endpoints use an offset log scale and are constrained to
 be nonnegative after back-transformation. Other endpoints use the
@@ -145,8 +188,10 @@ roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
 synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 #> SYNPMX ALERT: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
 #> Warning: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
+#> SYNPMX ALERT: 3 subjects in 1 route arm below the donor floor of 5: 1:1:bolus (n=3). Donors are never blended across routes, so these subjects have no legal donor set. Dropping every arm would leave nothing to generate, so generation proceeded as if `on_donor_shortfall = "noise"`. Treat the output as individually identifying.
+#> Warning: 3 subjects in 1 route arm below the donor floor of 5: 1:1:bolus (n=3). Donors are never blended across routes, so these subjects have no legal donor set. Dropping every arm would leave nothing to generate, so generation proceeded as if `on_donor_shortfall = "noise"`. Treat the output as individually identifying.
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
+#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(synthetic, roles)$valid
 #> [1] TRUE
 ```

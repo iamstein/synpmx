@@ -35,10 +35,12 @@ subjects.
     whose structure is a gross outlier (a lone very long follow-up), so
     no avatar looks structurally extreme (`screen = TRUE`). Then pick
     the `k` (default 5) nearest donors, borrowing across dose/schedule
-    groups when the anchor’s own group is too small; blend the donors’
-    trajectories onto the skeleton’s observation times; add
-    subject-level and within-subject noise; and reconstruct any
-    below-limit (BLOQ) censoring.
+    groups when the anchor’s own group is too small — but never across
+    route of administration; blend the donors’ trajectories onto the
+    skeleton’s observation times, capping any one donor’s share at
+    `max_donor_weight` (default 0.30); add subject-level and
+    within-subject noise; and reconstruct any below-limit (BLOQ)
+    censoring.
 5.  **Restore the original shape** (Step 10). Put back the source
     schema, column types, and conventions, and attach a record of what
     was done.
@@ -446,11 +448,35 @@ synthetic rate typically runs somewhat above the source’s. And if a
 flagged with `DV` missing, for instance — AVATAR warns and carries the
 flag through untouched rather than guessing.
 
-## Step 6: restrict neighbors to compatible event patterns
+## Step 6: choose the donors
 
-Similarity in PCA space is not sufficient. A subject receiving a single
-oral dose should not donate a trajectory to an incompatible infusion or
-repeat-dose template. Each source subject therefore receives an event
+Similarity in PCA space is not sufficient on its own. A subject
+receiving a single oral dose should not donate a trajectory to an
+infusion or repeat-dose template. But the two ways a donor can be
+unsuitable are not the same kind of problem, and the generator treats
+them differently.
+
+### Two structural axes, one of them absolute
+
+**Route of administration is an absolute barrier.** A bolus, an
+infusion, and an oral dose produce categorically different concentration
+shapes. Blending across them does not yield a noisier version of the
+truth; it yields a trajectory no protocol could have produced. Donors
+are therefore *never* drawn from outside the anchor’s route, at any
+stage, for any shortfall — including when that leaves the anchor with no
+legal donor at all. Each subject’s route key is read from its dosing
+rows only, as the set of
+
+``` math
+\bigl(\mathrm{EVID},\ \mathrm{CMT},\ \mathbb{1}[\mathrm{RATE}\neq 0]\bigr)
+```
+
+triples appearing on them, so that the compartment a dose enters and
+whether it is delivered over time both bind, while dose *count* does
+not: three oral doses and five oral doses share a route. NONMEM’s
+`RATE < 0` (modeled rate or duration) counts as an infusion.
+
+**Everything else is a preference.** Each subject also receives an event
 signature containing:
 
 - the ordered EVID values on event rows;
@@ -463,11 +489,14 @@ signature containing:
 
 Notice what is not in the signature: the observation-time schedule.
 Event values still come from the anchor template, while unequal
-observation times are handled by interpolation. Dose magnitude enters
-the signature so that same-dose subjects are preferred as donors, but it
-is no longer an absolute barrier — see the borrowing rule below.
+observation times are handled by interpolation. Dose magnitude *is* in
+the signature, so same-dose subjects are preferred — but unlike route it
+is not a barrier, and the fallback below will cross it.
 
-For anchor $`a`$, Euclidean distance in retained profile coordinates is
+### The distance
+
+For anchor $`a`$ and candidate $`r`$, Euclidean distance in the retained
+profile coordinates of Step 5:
 
 ``` math
 d_{ar}=\left\|\boldsymbol{\xi}_a-
@@ -475,19 +504,94 @@ d_{ar}=\left\|\boldsymbol{\xi}_a-
 =\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
 ```
 
-Every synthetic subject blends a floor of `k` real patients (default 5).
-Same-signature subjects are preferred and taken nearest-first; when a
-subject’s own group holds fewer than `k`, the nearest subjects from
-*other* dose/schedule groups are borrowed to reach `k`, and their
-trajectories are mapped onto the anchor’s own observation times by
-interpolation. The avatar therefore keeps its anchor’s regimen while its
-measurements are averaged across at least `k` patients — deliberately
-trading some exposure-scale fidelity for the guarantee that no single
-source subject is reproduced near-verbatim. Only a source with fewer
-than `k + 1` subjects cannot reach the floor; that case raises a loud
-alert. This borrowing matters most for datasets with individualized
+This is the only distance in the selection rule. There is no separate
+structural metric trading dose differences against schedule differences:
+structure enters as the two-stage ordering below, not as a score.
+
+### The selection algorithm
+
+Write $`\mathcal{R}_a=\{r\neq a: \mathrm{route}_r=\mathrm{route}_a\}`$
+for the route-compatible pool and $`\mathcal{S}_a=\{r\in\mathcal{R}_a:
+\mathrm{sig}_r=\mathrm{sig}_a\}`$ for the exact-signature subset. To
+choose $`k`$ donors for anchor $`a`$:
+
+1.  **Exact stage.** Sort $`\mathcal{S}_a`$ by increasing $`d_{ar}`$,
+    breaking ties by subject index, and take the first $`k`$. If
+    $`|\mathcal{S}_a|\ge k`$, stop.
+2.  **Fallback stage.** Sort $`\mathcal{R}_a\setminus\mathcal{S}_a`$ the
+    same way and take enough of it to bring the total to $`k`$, whatever
+    the dose or schedule. Record a warning that donors were borrowed
+    across dose groups.
+3.  **Shortfall.** If $`|\mathcal{R}_a|<k`$ the floor is unreachable,
+    because the only remaining candidates are on another route and route
+    is never crossed.
+
+Ties break by subject index, so selection is deterministic under a fixed
+seed. Stage-2 donors’ measurements are mapped onto the anchor’s own
+observation times by interpolation, so the avatar keeps its anchor’s
+regimen while its values are averaged across at least $`k`$ real
+patients. This borrowing matters most for datasets with individualized
 dosing, where an exact dose magnitude can make nearly every subject its
-own group.
+own signature group: in `theo_md`, weight-based dosing yields 11
+signature groups across 12 subjects, so stage 2 does essentially all the
+work.
+
+### What stage 2 costs, stated plainly
+
+Be clear about what the fallback distance does and does not know. `AMT`
+is not a profile feature, so the stage-2 ranking never compares doses
+directly — it compares baseline covariates and the shape and level of
+the DV trajectory. Dose does influence it, but only *indirectly*: a
+subject given a much larger dose has higher concentrations, and those
+concentrations are profile features, so it lands further away. The
+ranking therefore tends to prefer similar-dose donors without being told
+to.
+
+Tendency is not a guarantee, and nothing rescales. A borrowed donor’s
+values are interpolated onto the anchor’s times and blended **raw**, by
+deliberate design (structural realism over statistical fidelity). The
+consequence is worth stating directly rather than leaving implicit: a
+synthetic subject carries its anchor’s `AMT` while its concentrations
+may be blended from donors given a different dose, so **the
+dose–exposure relationship in AVATAR output is not guaranteed to be
+preserved**. For developing and debugging model code — the use this
+generator exists for — that is acceptable and understood. For estimating
+parameters, it is not: fitting a structural model to AVATAR output can
+recover a dose–exposure relationship that is an artifact of blending.
+Use
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+when the parameters themselves have to mean something.
+
+### When the floor cannot be reached
+
+Because route is absolute, a route arm holding fewer than $`k+1`$
+subjects can never supply a legal donor set. There is no good answer in
+that situation, only a choice between two bad ones, and which is worse
+depends on whether the sparse arm matters more than the disclosure risk
+of reproducing it. That is the caller’s judgement, so
+`on_donor_shortfall` makes it explicit:
+
+| `on_donor_shortfall` | Behavior |
+|----|----|
+| `"drop"` *(default)* | Omit those subjects from the anchor pool. No avatar is built on them, and the synthetic cohort does not represent that arm. |
+| `"noise"` | Keep them, blending however many same-route donors exist — possibly none — and relying on `subject_noise_sd` and `residual_noise_sd` for the rest. |
+| `"error"` | Refuse to generate, naming the arm and both alternatives. |
+
+Every branch alerts loudly, because each one silently changes something
+a reader would want to know: what the cohort covers, or how identifying
+it is.
+
+`"noise"` is **available but not recommended**, and the reason is the
+defect this whole mechanism exists to prevent. A subject blended from
+one donor, or from none, is a noised near-copy of a real patient —
+exactly the behavior `REV-025` was raised about. If you use it because
+the sparse arm genuinely matters more, screen the result with
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+and treat those subjects as individually identifying.
+
+One case forces the issue: when *every* arm is below the floor, `"drop"`
+would leave nothing to generate, so generation proceeds as if `"noise"`
+and says so.
 
 ## Step 7: randomize and cap donor weights
 
@@ -511,14 +615,124 @@ where
 \end{cases}
 ```
 
-The first normalization is $`w_r=q_r/\sum_s q_s`$. When more than one
-donor is available, if one weight exceeds 0.80, the dominant weight is
-set to 0.80 and all other weights are rescaled proportionally to sum to
-0.20. A final normalization protects against floating point drift. With
-exactly one donor, its weight is necessarily 1; the cap cannot create a
-second donor. If the raw weights are nonfinite or have a nonpositive
-total, the implementation replaces them with equal raw values before
-normalization.
+The first normalization is $`w_r=q_r/\sum_s q_s`$. If the raw weights
+are nonfinite or have a nonpositive total, the implementation replaces
+them with equal raw values before normalizing.
+
+### Capping every donor, not just the largest
+
+Each donor’s weight is its **share of the avatar**: five weights that
+sum to 1. The floor $`k`$ says how many real patients go into the blend,
+but it says nothing about how much of any one of them comes out. Five
+donors weighted $`(0.95, 0.02,
+0.02, 0.005, 0.005)`$ satisfy a floor of five while being, to any
+practical purpose, a copy of one person. So the cap, not $`k`$, is what
+controls how closely an avatar can resemble a single real patient.
+
+The raw formula above produces very uneven weights on purpose — that is
+the rank attenuation doing its job. Left alone it routinely hands one
+donor half the avatar. `max_donor_weight` (written $`c`$ below, default
+$`0.30`$) is the ceiling on any one share.
+
+Enforcing it is less obvious than it sounds, because **weights have to
+keep summing to 1**. Cutting the leader down does not remove that weight
+from the blend; it has to be given to the others, and that can push one
+of *them* over the ceiling. Concretely, starting from
+$`(0.50, 0.25, 0.15, 0.06, 0.04)`$ with $`c = 0.30`$:
+
+- Cut the leader from $`0.50`$ to $`0.30`$. That frees $`0.20`$.
+- Spread the freed $`0.20`$ over the other four in proportion to what
+  they already hold. The second donor was at $`0.25`$, and its share of
+  the $`0.20`$ takes it to $`0.35`$ — **over the ceiling**.
+
+Capping the largest weight once and stopping, which is what the
+implementation did throughout the $`0.80`$ era, leaves exactly that
+violation in place: the stated maximum, broken by the donor the
+redistribution itself created. At $`0.80`$ this almost never bound
+twice, so it went unnoticed; at $`0.30`$ it is the normal case.
+
+The fix is to repeat the step — *cap, redistribute, check again* — which
+is the standard construction called **water-filling**:
+
+- Pin every weight that is over $`c`$ down to exactly $`c`$.
+- Share whatever mass is left among the donors still below $`c`$, in
+  proportion.
+- Look again. If redistribution pushed someone over, pin them too and
+  repeat.
+
+Pinned donors are never topped up again, so each pass pins at least one
+more donor and the procedure stops after at most one pass per donor. The
+example above settles at $`(0.30, 0.30, 0.24, 0.096, 0.064)`$ — two
+donors at the ceiling, the rest sharing the remainder, total still 1. In
+symbols, with $`P`$ the pinned set:
+
+``` math
+w_r \leftarrow \Bigl(1-\textstyle\sum_{s\in P}w_s\Bigr)
+              \frac{w_r}{\sum_{s\notin P}w_s},
+\qquad r\notin P.
+```
+
+One boundary case matters. With $`K`$ donors every weight is at least
+$`1/K`$ on average, so **no weight vector can satisfy a ceiling below
+$`1/K`$** — asking for $`c = 0.30`$ from three donors is asking three
+numbers below $`0.30`$ to sum to 1. Such a cap relaxes to exactly
+$`1/K`$: uniform weights, the flattest blend available, rather than an
+error. Two donors under $`c=0.30`$ give $`(0.5, 0.5)`$. With exactly one
+donor the weight is necessarily 1; a cap cannot invent a second donor.
+
+### Choosing the cap
+
+The cap answers one question: *what is the most of one avatar that may
+come from one real patient?* That framing bounds the sensible range at
+both ends.
+
+- At $`c = 1/k`$ exactly ($`0.20`$ at $`k=5`$) every donor is equal, and
+  the weights stop being random at all. Two avatars built from the same
+  donor set then differ only by noise, which is its own kind of
+  disclosure.
+- At $`c`$ near 1 the cap does nothing and one donor can be nearly the
+  whole avatar — the $`0.80`$ default was already most of the way to
+  this.
+
+So a defensible cap sits strictly between $`1/k`$ and roughly $`2/k`$.
+Because the measured variability cost is flat across that whole range
+(next section), the fidelity side of the trade barely constrains the
+choice, which makes it a privacy decision: prefer the low end. The
+default $`0.30`$ at $`k=5`$ is $`1.5/k`$, and $`1.5/k`$ is the rule to
+carry over if $`k`$ changes.
+
+### What the cap costs
+
+Treating donors as independent, a weighted blend retains
+$`\sum_r w_r^2`$ of individual variance, so the synthetic cohort’s
+between-subject standard deviation shrinks by $`\sqrt{\sum_r w_r^2}`$.
+The reciprocal $`1/\sum_r w_r^2`$ — the effective number of donors,
+reported as `mean_effective_donors` in `pmx_settings` — reads as a
+privacy floor and as the variability cost in one number. It equals $`K`$
+for uniform weights and $`1`$ for a sole donor.
+
+That independence assumption is, however, pessimistic in the direction
+that matters. Donors are *nearest neighbours*, so they are strongly
+positively correlated and averaging them destroys much less variance
+than the formula implies; the subject-level perturbation of Step 9 then
+restores more. Measured on `theo_md` — between-subject SD of
+$`\log\mathrm{AUC}`$, averaged over 20 seeds, against a source SD of
+$`0.273`$ — the cap turns out to be nearly free:
+
+| `max_donor_weight` | effective donors | BSV retained |
+|--------------------|------------------|--------------|
+| 0.80               | 2.50             | 72%          |
+| 0.50               | 2.93             | 75%          |
+| 0.30               | 3.91             | 78%          |
+| 0.25               | 4.43             | 74%          |
+| 0.20 (uniform)     | 5.00             | 68%          |
+
+Tightening $`0.80\to0.30`$ raises the effective donor count from 2.5 to
+3.9 — a substantial privacy gain — while between-subject variability is
+flat within noise at a 12-subject source. The independence formula would
+have predicted a fall from 81% to 49%; correlation among neighbours is
+why it does not happen. This is one dataset and one summary, so the
+table is evidence that the cap is affordable here, not a general result.
 
 The same selected subjects and weights are used for every declared
 covariate and endpoint. When donor $`r`$ lacks a usable value at target
@@ -718,23 +932,34 @@ With `seed = 2026`, the anchor and its selected compatible donors are:
 |     | role   | source_ID | profile_distance | weight |
 |:----|:-------|----------:|-----------------:|-------:|
 |     | anchor |         5 |               NA |     NA |
-| 4   | donor  |         4 |           1.7462 | 0.1119 |
-| 3   | donor  |         3 |           2.7489 | 0.6540 |
-| 6   | donor  |         6 |           3.2730 | 0.2341 |
+| 4   | donor  |         4 |           1.7462 | 0.3000 |
+| 3   | donor  |         3 |           2.7489 | 0.0317 |
+| 6   | donor  |         6 |           3.2730 | 0.3000 |
+| 1   | donor  |         1 |           6.0532 | 0.0683 |
+| 2   | donor  |         2 |           6.1283 | 0.3000 |
+
+This trace shows the water-filling cap of Step 7 doing its work: three
+of the five donors sit at exactly `max_donor_weight` $`=0.30`$, having
+been pinned there in successive passes, while the remaining mass is
+shared by the other two. A single-pass cap on the largest weight alone
+would have left at least one donor above 0.30. The recorded
+`mean_effective_donors`, $`1/\sum_r w_r^2`$, is 3.63 against a floor of
+5 — the gap between “five donors were used” and “the blend is worth
+about 3.6 independent donors”.
 
 The anchor contributes the event skeleton. Donors contribute transformed
 DVs after interpolation to the anchor times. The following table shows
 the exact pre-noise blend used by the implementation.
 
-| anchor_TIME | donor_4_z | donor_3_z | donor_6_z | blended_z | deterministic_DV | final_synthetic_DV |
-|---:|---:|---:|---:|---:|---:|---:|
-| 0.6 | 2.194 | 2.026 | 2.348 | 2.121 | 8.121 | 6.880 |
-| 1.4 | 1.776 | 1.688 | 1.934 | 1.755 | 5.570 | 4.832 |
-| 2.8 | 1.078 | 0.992 | 1.231 | 1.058 | 2.666 | 2.278 |
-| 4.5 | 0.324 | 0.231 | 0.530 | 0.312 | 1.151 | 0.964 |
+| anchor_TIME | donor_4_z | donor_3_z | donor_6_z | donor_1_z | donor_2_z | blended_z | deterministic_DV | final_synthetic_DV |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.161 | 8.463 | 7.705 |
+| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.745 | 5.513 | 4.904 |
+| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.044 | 2.627 | 2.344 |
+| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.330 | 1.177 | 1.044 |
 
 Interpolation and blending for the anchor endpoint; z is the endpoint
-working scale {.table}
+working scale {.table style="width:100%;"}
 
 `deterministic_DV` is the back-transformed donor blend.
 `final_synthetic_DV` also contains the one subject shift and AR(1)
@@ -748,11 +973,11 @@ knitr::kable(worked_synthetic, digits = 3)
 
 |  ID | TIME |    DV | AMT | EVID | CMT | MDV |     WT | SEX  |
 |----:|-----:|------:|----:|-----:|----:|----:|-------:|:-----|
-|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 75.166 | male |
-|   7 |  0.6 | 6.880 |   0 |    0 |   2 |   0 | 75.166 | male |
-|   7 |  1.4 | 4.832 |   0 |    0 |   2 |   0 | 75.166 | male |
-|   7 |  2.8 | 2.278 |   0 |    0 |   2 |   0 | 75.166 | male |
-|   7 |  4.5 | 0.964 |   0 |    0 |   2 |   0 | 75.166 | male |
+|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 73.945 | male |
+|   7 |  0.6 | 7.705 |   0 |    0 |   2 |   0 | 73.945 | male |
+|   7 |  1.4 | 4.904 |   0 |    0 |   2 |   0 | 73.945 | male |
+|   7 |  2.8 | 2.344 |   0 |    0 |   2 |   0 | 73.945 | male |
+|   7 |  4.5 | 1.044 |   0 |    0 |   2 |   0 | 73.945 | male |
 
 The result records enough settings to audit the public generator call:
 
@@ -760,7 +985,7 @@ The result records enough settings to audit the public generator call:
 |:---|:---|
 | seed | 2026 |
 | n_subjects | 1 |
-| k | 3 |
+| k | 5 |
 | pca_variance | 0.9 |
 | subject_noise_sd | 0.15 |
 | residual_noise_sd | 0.05 |
@@ -768,7 +993,10 @@ The result records enough settings to audit the public generator call:
 | time_jitter | 0 |
 | alignment | time relative to first positive dose within compatible schedules; normalized observation-window fallback |
 | compatible_event_groups | 1 |
-| max_donor_weight | 0.8 |
+| routes | 1 |
+| on_donor_shortfall | drop |
+| max_donor_weight | 0.3 |
+| mean_effective_donors | 3.628 |
 | warnings |  |
 
 Recorded generator settings {.table}
@@ -821,8 +1049,9 @@ produce an identical complete result without consuming the surrounding
 analysis RNG stream.
 
 `attr(synthetic, "pmx_settings")` records arguments, explicit roles,
-endpoint transformations, the alignment description, number of
-compatible event groups, the 0.80 cap, and unique fallback warnings. It
+endpoint transformations, the alignment description, the number of
+compatible event groups and distinct routes, the donor weight cap, the
+mean and minimum effective donor count, and unique fallback warnings. It
 does not currently record the anchor ID, donor IDs, distances, or
 realized weights for each synthetic subject.
 
@@ -908,7 +1137,10 @@ output over a silent incompatible blend.
 
 | Situation | Behavior |
 |:---|:---|
-| Fewer than k same-signature donors | Borrow the nearest donors from other dose/schedule groups to reach k |
+| Fewer than k same-signature donors | Borrow the nearest donors from other dose/schedule groups on the same route |
+| Route arm smaller than the k-donor floor | Follow on_donor_shortfall: drop (default), noise, or error; alert loudly |
+| Every route arm below the floor | Generate anyway and raise a loud alert; treat output as identifying |
+| Cap below 1/K for K donors | Relax the cap to 1/K, i.e. uniform weights, rather than erroring |
 | Source smaller than the k-donor floor | Blend all available donors and raise a loud alert |
 | All selected distances essentially zero | Use epsilon-stabilized randomized weights |
 | One donor time only | Repeat that donor’s mean at every target time |
@@ -948,10 +1180,12 @@ ways:
 
 - it preserves a sampled longitudinal event template rather than
   generating all fields from a wide vector;
-- compatibility is restricted by event and schedule signatures;
+- route of administration is an absolute barrier, while dose and
+  schedule differences only make a donor less preferred;
 - endpoints are transformed and interpolated separately;
 - the same donors support covariates and endpoints;
-- a dominant multi-donor weight is capped at 0.80;
+- every multi-donor weight, not only the dominant one, is capped at
+  `max_donor_weight` (default 0.30);
 - subject and AR(1) perturbations are added on the endpoint working
   scale; and
 - there is no inverse-PCA reconstruction of a full synthetic patient
@@ -978,11 +1212,15 @@ For each call to
 4.  Median-impute profile features, remove unusable features,
     standardize, and retain enough PCA components to meet `pca_variance`
     when possible.
-5.  Construct event/schedule signatures.
-6.  Sample anchor subjects with replacement.
+5.  Construct event/schedule signatures and route keys.
+6.  Drop anchors whose route arm cannot reach the donor floor, apply the
+    structural screen, and sample the remaining anchors with
+    replacement.
 7.  For each anchor, copy its whole event template.
-8.  Find up to `k` closest compatible non-anchor donors and randomize
-    their inverse-distance weights, applying the multi-donor 0.80 cap.
+8.  Find `k` donors on the anchor’s route – exact-signature
+    nearest-first, then the nearest remaining route-compatible subjects
+    – and randomize their inverse-distance weights, water-filling every
+    weight to `max_donor_weight`.
 9.  Generate subject-constant covariates from those donors.
 10. For each endpoint, interpolate donor trajectories to anchor times,
     blend, add a subject shift and AR(1) perturbations, and

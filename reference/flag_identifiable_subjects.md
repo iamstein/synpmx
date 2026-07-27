@@ -83,17 +83,17 @@ flag_identifiable_subjects(synthetic, roles)
 #> Twelve most unusual:
 #>  subject_id follow_up_time n_doses max_dose max_dv outlier_axes flagged
 #>          50             20       2   103.30 161.20     DV value    TRUE
-#>          31             20       2    99.34  63.57                FALSE
-#>          32             20       2    96.22  84.36                FALSE
-#>          33             20       2   103.30  91.65                FALSE
-#>          34             20       2   104.20  67.50                FALSE
-#>          35             20       2   104.50  80.83                FALSE
-#>          36             20       2    96.68  76.53                FALSE
-#>          37             20       2    95.77  51.94                FALSE
-#>          38             20       2    95.00  67.94                FALSE
-#>          39             20       2   105.00  85.67                FALSE
-#>          40             20       2    96.25  62.16                FALSE
-#>          41             20       2   104.80  78.34                FALSE
+#>          31             20       2    99.34  64.07                FALSE
+#>          32             20       2    96.22  84.97                FALSE
+#>          33             20       2   103.30  91.25                FALSE
+#>          34             20       2   104.20  68.27                FALSE
+#>          35             20       2   104.50  80.19                FALSE
+#>          36             20       2    96.68  76.10                FALSE
+#>          37             20       2    95.77  52.06                FALSE
+#>          38             20       2    95.00  67.85                FALSE
+#>          39             20       2   105.00  86.32                FALSE
+#>          40             20       2    96.25  60.76                FALSE
+#>          41             20       2   104.80  77.76                FALSE
 #> ... 18 more row(s) in the returned table.
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.

@@ -260,7 +260,7 @@ theo_roles <- pmx_roles(
 )
 theo_synth <- synpmx_avatar(theo_md, theo_roles, seed = 303)
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
+#> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(theo_synth, theo_roles)$valid
 #> [1] TRUE
 knitr::kable(
@@ -269,20 +269,20 @@ knitr::kable(
 )
 ```
 
-| .dataset  |  ID | TIME |         DV |     AMT | EVID | CMT |       WT |
-|:----------|----:|-----:|-----------:|--------:|-----:|----:|---------:|
-| Source    |   1 | 0.00 |  0.0000000 | 319.992 |  101 |   1 | 79.60000 |
-| Source    |   1 | 0.00 |  0.7400000 |   0.000 |    0 |   2 | 79.60000 |
-| Source    |   1 | 0.25 |  2.8400000 |   0.000 |    0 |   2 | 79.60000 |
-| Source    |   1 | 0.57 |  6.5700000 |   0.000 |    0 |   2 | 79.60000 |
-| Source    |   1 | 1.12 | 10.5000000 |   0.000 |    0 |   2 | 79.60000 |
-| Source    |   1 | 2.02 |  9.6600000 |   0.000 |    0 |   2 | 79.60000 |
-| Synthetic |  13 | 0.00 |  0.0000000 | 319.365 |  101 |   1 | 67.60315 |
-| Synthetic |  13 | 0.00 |  0.0000000 |   0.000 |    0 |   2 | 67.60315 |
-| Synthetic |  13 | 0.27 |  0.9595556 |   0.000 |    0 |   2 | 67.60315 |
-| Synthetic |  13 | 0.58 |  4.1558157 |   0.000 |    0 |   2 | 67.60315 |
-| Synthetic |  13 | 1.02 |  7.6268745 |   0.000 |    0 |   2 | 67.60315 |
-| Synthetic |  13 | 2.02 |  7.7644543 |   0.000 |    0 |   2 | 67.60315 |
+| .dataset  |  ID | TIME |        DV |     AMT | EVID | CMT |       WT |
+|:----------|----:|-----:|----------:|--------:|-----:|----:|---------:|
+| Source    |   1 | 0.00 |  0.000000 | 319.992 |  101 |   1 | 79.60000 |
+| Source    |   1 | 0.00 |  0.740000 |   0.000 |    0 |   2 | 79.60000 |
+| Source    |   1 | 0.25 |  2.840000 |   0.000 |    0 |   2 | 79.60000 |
+| Source    |   1 | 0.57 |  6.570000 |   0.000 |    0 |   2 | 79.60000 |
+| Source    |   1 | 1.12 | 10.500000 |   0.000 |    0 |   2 | 79.60000 |
+| Source    |   1 | 2.02 |  9.660000 |   0.000 |    0 |   2 | 79.60000 |
+| Synthetic |  13 | 0.00 |  0.000000 | 319.365 |  101 |   1 | 63.19008 |
+| Synthetic |  13 | 0.00 |  0.000000 |   0.000 |    0 |   2 | 63.19008 |
+| Synthetic |  13 | 0.27 |  1.367489 |   0.000 |    0 |   2 | 63.19008 |
+| Synthetic |  13 | 0.58 |  4.303894 |   0.000 |    0 |   2 | 63.19008 |
+| Synthetic |  13 | 1.02 |  7.941681 |   0.000 |    0 |   2 | 63.19008 |
+| Synthetic |  13 | 2.02 |  7.829716 |   0.000 |    0 |   2 | 63.19008 |
 
 Actual Theophylline rows and synthesized rows {.table}
 
@@ -304,7 +304,7 @@ knitr::kable(theo_dist$endpoints, digits = 2,
 | variable | dataset   |   n | n_subjects | mean |   sd |   min |  q25 | median |  q75 |   max |
 |:---------|:----------|----:|-----------:|-----:|-----:|------:|-----:|-------:|-----:|------:|
 | DV       | source    | 264 |         12 | 5.53 | 3.00 | -1.13 | 3.30 |   5.74 | 7.80 | 12.66 |
-| DV       | synthetic | 264 |         12 | 5.88 | 3.18 |  0.00 | 3.84 |   5.98 | 8.23 | 13.46 |
+| DV       | synthetic | 264 |         12 | 5.89 | 3.14 |  0.00 | 3.87 |   6.20 | 8.23 | 12.95 |
 
 Concentration distribution, source versus synthetic {.table
 style="width:100%;"}
@@ -315,10 +315,10 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight distribution, source versus synthetic")
 ```
 
-| variable | dataset   |   n |  mean |   sd |   min |   q25 | median |   q75 |   max |
-|:---------|:----------|----:|------:|-----:|------:|------:|-------:|------:|------:|
-| WT       | source    |  12 | 69.58 | 9.50 | 54.60 | 63.57 |  70.50 | 74.43 | 86.40 |
-| WT       | synthetic |  12 | 68.12 | 7.62 | 57.85 | 63.20 |  68.26 | 71.75 | 83.43 |
+| variable | dataset   |   n |  mean |   sd |   min |   q25 | median |   q75 |  max |
+|:---------|:----------|----:|------:|-----:|------:|------:|-------:|------:|-----:|
+| WT       | source    |  12 | 69.58 | 9.50 | 54.60 | 63.57 |  70.50 | 74.43 | 86.4 |
+| WT       | synthetic |  12 | 67.17 | 5.29 | 60.27 | 62.93 |  66.64 | 71.63 | 75.9 |
 
 Baseline weight distribution, source versus synthetic {.table}
 
@@ -343,7 +343,7 @@ and `pca`) with factor covariates. Both endpoints and all subjects are
 retained.
 
     #> Warning: Synthetic generation used documented small-group/profile fallbacks:
-    #> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups were borrowed to reach the floor, so some measurements are blended across doses.
+    #> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.
 
 ![](synpmx-demo_files/figure-html/warfarin-plot-1.png)
 
