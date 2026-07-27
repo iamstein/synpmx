@@ -261,6 +261,97 @@ scoped — the main remaining constraint is that dosing events themselves stay
 coherent with the regimen. Connects to protocol structure in
 `vignettes/articles/data-elicitation.Rmd`.
 
+### A2. Route barrier and donor weight cap — DONE (2026-07-27)
+
+Owner decisions of 2026-07-27, closing the "relax exact compatibility" half of
+`REV-025`:
+
+- **Route of administration is an absolute barrier.** IV, bolus, and oral are
+  never blended. The distinction the owner drew: a dose-size or schedule
+  difference makes a donor a *worse match*, which the fallback may accept, but a
+  route difference is a *different experiment* whose blend is a trajectory no
+  protocol could produce. Route key (`.route_key()`, `R/profiles.R`) is the set
+  of `(EVID, CMT, RATE != 0)` triples on dosing rows — a set, so dose count does
+  not enter; NONMEM `RATE < 0` counts as an infusion.
+- **No structural distance metric after all.** The earlier scoping proposed
+  replacing signature *equality* with a signature *distance*. The owner rejected
+  the added machinery: keep exact-signature-first, then nearest in profile
+  space, and write the algorithm down explicitly instead. So structure enters as
+  a two-stage ordering, not a score, and there is no new tuning knob. The
+  explicit statement lives in `articles/avatar-mathematics.Rmd` Step 6.
+- **A route arm below the floor is handled by `on_donor_shortfall`**, loudly in
+  every branch. With no legal donor left to borrow there is no good answer, only
+  a choice between omitting the arm and reproducing it, and only the caller
+  knows which matters more. `"drop"` (default) omits those anchors --- the
+  owner-approved outcome for subjects that cannot reach the floor. `"noise"`
+  keeps them on whatever same-route donors exist plus noise; the owner asked for
+  this escape hatch (2026-07-27) on the condition that the alert name it
+  explicitly and mark it not recommended, which the `"drop"` and `"error"`
+  messages both do. `"error"` refuses and names both alternatives. Not gated by
+  `screen`: that is cosmetic, this is a privacy floor.
+- **`max_donor_weight` 0.80 → 0.30**, exposed as an argument. The owner's point:
+  `k` bounds how many patients are blended, but the cap is what bounds how much
+  of any *one* patient lands in an avatar, so the cap — not `k` — is the real
+  anonymization parameter. 0.80 let one donor be four-fifths of an avatar.
+- **The cap now applies to every donor**, by water-filling (`.cap_weights()`).
+  Capping only `which.max()` was adequate at 0.80; at 0.30 the runner-up
+  routinely exceeds the cap after the leader's excess is redistributed, so the
+  documented maximum was violated by the donor the redistribution created. A cap
+  below `1/K` relaxes to `1/K` (uniform), so small sources degrade rather than
+  error.
+- **The `2^(-R)` rank attenuation stays.** It is what stops a capped blend
+  collapsing to a flat cohort average, which was the owner's stated worry about
+  losing individual variability.
+
+**Measured cost, and a correction.** The independence formula (a blend retains
+`sum(w^2)` of individual variance) predicted between-subject SD falling from
+~81% of source at cap 0.80 to ~49% at 0.30. That is wrong in practice, and the
+error is worth recording so it is not re-derived: donors are *nearest
+neighbours* and therefore strongly correlated, so averaging them destroys far
+less variance than independence implies, and `subject_noise_sd` restores more.
+Measured on `theo_md` (between-subject SD of log AUC, 20 seeds, source 0.273):
+
+| cap | effective donors `1/sum(w^2)` | BSV retained |
+|---|---|---|
+| 0.80 | 2.50 | 72% |
+| 0.50 | 2.93 | 75% |
+| 0.30 | 3.91 | 78% |
+| 0.25 | 4.43 | 74% |
+| 0.20 | 5.00 | 68% |
+
+So the tightening is close to free: effective donors rise 2.5 → 3.9 while BSV is
+flat within noise. One dataset, one summary, 12 subjects — enough to justify the
+default, not enough to call general. Re-measure on PIT565. `mean_effective_donors`
+and `min_effective_donors` are now recorded in `pmx_settings` so the question can
+be asked of any run.
+
+**Cap guidance recorded** (owner asked what value makes sense, 2026-07-27). The
+cap answers "what is the most of one avatar that may come from one real
+patient?", which bounds the range at both ends: at exactly `1/k` the weights are
+uniform and stop being random, so two avatars from the same donor set differ
+only by noise; near 1 the cap does nothing. Defensible range is strictly between
+`1/k` and about `2/k`, and since the measured variability cost is flat across
+that range the choice is a privacy decision, so prefer the low end. Default 0.30
+at k = 5 is `1.5/k`; carry `1.5/k` over if `k` changes.
+
+**Dose--exposure caveat surfaced, not changed.** The owner asked whether stage-2
+selection is "just averaging DVs without caring about dosing". Near enough: AMT
+is not a profile feature, so the fallback distance compares covariates and the
+DV trajectory only. Dose enters *indirectly* --- a higher dose raises
+concentrations, and concentrations are profile features, so different-dose
+subjects land further apart --- which makes the ranking prefer similar doses
+without being told to. But nothing rescales (the standing "no dose-rescaling"
+decision), so an avatar carries its anchor's AMT with concentrations possibly
+blended across doses, and the dose--exposure relationship is not guaranteed.
+Fine for code development, wrong for parameter estimation. Now stated outright
+in `avatar-mathematics.Rmd` Step 6 rather than left implicit. If this becomes a
+problem in practice, the lever is dose-normalising PK-flagged DVIDs, which §6a
+already scoped and deferred.
+
+**Still open:** whether the floor `k` should exceed 5, unchanged by this work.
+The cap is now the tighter of the two constraints, which weakens the argument
+for raising `k`.
+
 ### D. Default anchor screen — DONE (2026-07-25), the "good enough" guard
 
 The owner's guiding principle is *good enough, not perfect; output must not look
