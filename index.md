@@ -79,15 +79,16 @@ been audited for their ability to protect data privacy.
 | **3. Calibration** | [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md) | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | At least 20 subjects |
 | **4. Empirical** | [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md) | Dozens of noised population summaries | `(epsilon, delta)` DP | At least hundreds |
 
-- **The trust boundary decides whether you need differential privacy.**
-  If the generated data will not be accessible to anyone who cannot
-  access the original data, formal privacy guarantees are not needed and
-  the AVATAR blending approach is the recommended method because it is
-  the simplest method to use.
+**The trust boundary decides whether you need differential privacy.**
 
-  On the other hand, if the synthetic data will reach those who do not
-  have access to the original data, then more formal methods with
-  mathematical trust guarantees are the appropriate methods of choice.
+If the generated data will not be accessible to anyone who cannot access
+the original data, formal privacy guarantees are not needed and the
+AVATAR blending approach is the recommended method because it is the
+simplest method to use.
+
+On the other hand, if the synthetic data will reach those who do not
+have access to the original data, then more formal methods with
+mathematical trust guarantees are the appropriate methods of choice.
 
 [`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
 runs all four methods on the same dataset and shows the results side by
@@ -102,12 +103,10 @@ stays within the source data’s own access controls and obligations.
 The three differentially private modes (**prior**, **calibration**,
 **empirical**) are secondary. They are present in this repository
 because formal privacy is needed when data crosses a trust boundary.
-They are provided as-is: not under active development and and **not
+They are provided as-is: not under active development and **not
 independently privacy-audited**. Treat them as a principled
 demonstration of the privacy/utility tradeoff, not as a production
-release mechanism. A real regulated release needs the specialist review.
-
-That status is enforced in that
+ready. That status is enforced in that
 [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
 and
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
@@ -122,10 +121,6 @@ has been called once in the session.
 | [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
 | [Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
 | [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html) | How does the default generator work, step by step? |
-
-The full set of articles (privacy, feasibility, elicitation) and the
-function reference are on the [package
-website](https://iamstein.github.io/synpmx/).
 
 ## License
 
