@@ -257,13 +257,40 @@ message("\n== Restricted comparison (do not export) ==")
 # roles, so each dataset is summarized on its own rather than as a single
 # side-by-side table; read the endpoint rows across the three printouts. Expect
 # the DP versions to be close in magnitude, not exact -- that is the noise.
-message("\n-- source distribution --")
-print(compare_pmx_distributions(raw, roles = roles))
-message("\n-- prior-only distribution --")
-print(compare_pmx_distributions(prior_synthetic, roles = pmx_generated_roles()))
-message("\n-- calibrated distribution --")
-print(compare_pmx_distributions(calibrated_synthetic,
-                                roles = pmx_generated_roles()))
+
+# Rendered with knitr::kable() so the tables read as tables in the console and
+# paste straight into a knitted report. Rounding is for display only; the
+# returned object keeps the exact values. Falls back to the default print if
+# knitr is not installed here.
+show_distributions <- function(x, label) {
+  message("\n-- ", label, " distribution --")
+  if (!requireNamespace("knitr", quietly = TRUE)) {
+    print(x)
+    return(invisible(x))
+  }
+  section <- function(df, caption) {
+    if (is.null(df)) return(invisible())
+    numeric_cols <- vapply(df, is.numeric, logical(1))
+    df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = 4)
+    print(knitr::kable(df, caption = paste0("RESTRICTED -- ", label,
+                                            " -- ", caption)))
+    cat("\n")
+  }
+  section(x$endpoints, "endpoints (dependent variable on observation rows)")
+  section(x$covariates_numeric, "continuous covariates (baseline, per subject)")
+  section(x$covariates_categorical,
+          "categorical covariates (baseline, per subject)")
+  invisible(x)
+}
+
+show_distributions(compare_pmx_distributions(raw, roles = roles), "source")
+show_distributions(
+  compare_pmx_distributions(prior_synthetic, roles = pmx_generated_roles()),
+  "prior-only")
+show_distributions(
+  compare_pmx_distributions(calibrated_synthetic,
+                            roles = pmx_generated_roles()),
+  "calibrated")
 
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   obs <- function(d, r, label) {

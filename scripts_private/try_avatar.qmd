@@ -125,7 +125,28 @@ distribution.
 
 ```{r}
 #| label: distribution-summary
-print(compare_pmx_distributions(raw, synthetic, roles))
+#| results: asis
+# Rendered with knitr::kable() so the tables come out as tables when this
+# document is knitted, and stay readable when run chunk-by-chunk. Rounding is
+# for display only; the returned object keeps the exact values.
+kable_distributions <- function(x) {
+  section <- function(df, caption) {
+    if (is.null(df)) return(invisible())
+    numeric_cols <- vapply(df, is.numeric, logical(1))
+    df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = 4)
+    print(knitr::kable(df, caption = caption))
+    cat("\n")
+  }
+  section(x$endpoints,
+          "RESTRICTED -- endpoints (dependent variable on observation rows)")
+  section(x$covariates_numeric,
+          "RESTRICTED -- continuous covariates (baseline, per subject)")
+  section(x$covariates_categorical,
+          "RESTRICTED -- categorical covariates (baseline, per subject)")
+  invisible(x)
+}
+
+kable_distributions(compare_pmx_distributions(raw, synthetic, roles))
 ```
 
 ## Restricted diagnostic: source vs synthetic
