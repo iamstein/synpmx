@@ -264,6 +264,19 @@ This has two practical consequences:
 
 ### Different observation times across subjects
 
+Two subjects sampled at different times cannot be compared as vectors
+until they are put on shared coordinates. That is what the common grid
+is for — and it is worth saying up front what it is *not* for, because
+the 15-point cap below invites a misreading.
+
+> **The grid is a ruler, not a resampler.** It is used only to build the
+> profile that measures which subjects resemble each other (Step 5). It
+> never limits the resolution of the generated data. A synthetic subject
+> carries every one of its anchor’s observation times, however many that
+> is, and the donor values placed there are interpolated from each
+> donor’s **full** observed trajectory — not from its 15-point summary.
+> A richly sampled source gives a richly sampled avatar.
+
 For endpoint $`e`$, the package pools finite aligned observation times
 and makes a common grid $`G_e`$. If there are at most 15 unique times,
 all are retained. If there are more, 15 type-8 empirical quantiles are
@@ -273,6 +286,20 @@ Each subject’s transformed trajectory is linearly interpolated onto
 $`G_e`$. There is no extrapolation during profile construction, so grid
 locations outside a subject’s observed window become missing profile
 features. Tied times are averaged by `stats::approx(..., ties = mean)`.
+
+The cap does bind on ordinary PK data: `theo_md` pools 156 distinct
+aligned times, so donor ranking there runs on a 15-point summary of
+trajectories with about 22 observations each, compressed further by the
+PCA of Step 5. Two things limit the damage. The grid points are
+*quantiles of the observed times*, so they land where sampling is dense
+— early, around absorption and peak — rather than spreading evenly
+across a long tail. And the grid is built per endpoint, so PK and PD
+each get their own 15 rather than sharing them. The residual risk is
+worst for multiple-dose data with several peaks and troughs, where 15
+points across a long window can blur the shape that distinguishes
+subjects. When that happens the cost is a *worse choice of donors*,
+never a coarser output trajectory. `max_points` is currently fixed at 15
+and is not an argument.
 
 During final synthesis, donors are first interpolated directly to the
 anchor’s aligned observation times. Suppose target time $`t`$ lies
@@ -310,6 +337,35 @@ time remain tied and time ordering cannot cross.
 
 ## Step 4: choose an endpoint transformation
 
+### Why there is a transformation at all
+
+Blending happens *on the transformed scale*. So this step is really the
+choice of **what “average” means** when five patients are mixed
+together.
+
+Concentrations span orders of magnitude. Averaging 0.5, 0.8, and 12.0 on
+the raw scale gives 4.4 — a number dominated by the single high patient
+and representative of none of them. Averaging on the log scale gives
+about 1.6, the geometric mean, which is the pharmacometric convention
+for precisely this reason. Blend concentrations on the raw scale instead
+and one high-exposure donor drags every avatar it touches upward.
+
+Logs have one problem with PK data: exact zeros. Pre-dose rows and
+imputed BLQ values are genuinely 0, and $`\log 0=-\infty`$ would poison
+the entire blend. So a small constant $`c_e`$ is added before taking
+logs. Choosing $`c_e`$ to be **half the smallest positive value in that
+endpoint** puts zeros just below the smallest real measurement — near
+the bottom of the observed range, where a zero belongs — and scales it
+to the data rather than fixing an arbitrary $`10^{-6}`$.
+
+Not every endpoint wants logs. A PD score, a change from baseline, or a
+temperature difference can legitimately be negative, where a log is
+undefined. The “positive-like” test below is what separates the two
+cases; its 1% tolerance lets a concentration endpoint with a couple of
+small negative assay readings still count as positive-like.
+
+### The rule
+
 Transformations are selected separately for each DVID endpoint, or once
 for the implicit endpoint `"DV"` when DVID is absent. After discarding
 nonfinite values, an endpoint is considered positive-like when it has at
@@ -331,9 +387,11 @@ g_e^{-1}(z)=\max\{\exp(z)-c_e,0\}.
 ```
 
 Other endpoints use $`g_e(y)=y`$. The truncations mean a positive-like
-endpoint cannot generate a negative DV. Transformation choices and
-offsets are stored in
-`attr(synthetic, "pmx_settings")$endpoint_transforms`.
+endpoint cannot generate a negative DV, whatever the noise of Step 9
+does — a guarantee that comes free with the back-transformation rather
+than needing a separate clamp. Transformation choices and offsets are
+stored in `attr(synthetic, "pmx_settings")$endpoint_transforms`, so the
+scale an endpoint was blended on is always recoverable from the output.
 
 ## Step 5: build one numeric profile per source subject
 
@@ -398,11 +456,29 @@ retained dimension $`H`$ is the smallest value satisfying
 \ge v,
 ```
 
-where $`v`$ is `pca_variance` (default 0.90). The subject coordinate is
-$`\boldsymbol{\xi}_i=(\mathrm{PC}_{i1},\ldots,\mathrm{PC}_{iH})`$. If
-PCA is not available but standardized features exist, those features are
-used directly. If none exist, all subjects receive the same
-one-dimensional zero coordinate.
+where $`v`$ is `pca_variance` (default 0.90).
+
+The **subject coordinate** is the output of this whole step and the
+input to every distance in Step 6, so it gets its own symbol:
+
+``` math
+\boldsymbol{\xi}_i=(\xi_{i1},\ldots,\xi_{iH}),
+\qquad
+\xi_{ih}=\text{subject } i\text{'s score on principal component } h .
+```
+
+Read $`\boldsymbol{\xi}`$ as the Greek letter *xi*. It is one point per
+subject in an $`H`$-dimensional space, and $`H`$ is typically a handful
+— the number of components needed to reach $`v`$. Everything upstream
+exists to produce it: the raw profile $`\mathbf{x}_i`$ is imputed to
+$`x^{\mathrm{imp}}_{il}`$, standardized to $`z_{il}`$ so that a weight
+in kilograms and a log-concentration compete on equal footing rather
+than by the size of their units, and finally rotated by PCA into
+$`\boldsymbol{\xi}_i`$.
+
+If PCA is not available but standardized features exist, those features
+are used directly as $`\boldsymbol{\xi}_i`$. If none exist, all subjects
+receive the same one-dimensional zero coordinate.
 
 The term **rank-safe** means the attempted PCA rank cannot exceed either
 the feature rank or $`n-1`$. It does not imply that sparse or nearly
@@ -501,14 +577,31 @@ is not a barrier, and the fallback below will cross it.
 
 ### The distance
 
-For anchor $`a`$ and candidate $`r`$, Euclidean distance in the retained
-profile coordinates of Step 5:
+For anchor $`a`$ and candidate donor $`r`$, the distance is the ordinary
+straight-line (Euclidean) distance between their subject coordinates
+from Step 5:
 
 ``` math
 d_{ar}=\left\|\boldsymbol{\xi}_a-
                    \boldsymbol{\xi}_r\right\|_2
-=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
+=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2},
 ```
+
+where
+
+- $`h`$ indexes the **retained principal components**, running from 1 to
+  $`H`$ — not subjects and not time points;
+- $`\xi_{ah}`$ is the **anchor’s** score on component $`h`$, and
+  $`\xi_{rh}`$ is **candidate $`r`$’s** score on that same component,
+  both defined in Step 5;
+- each squared term is one component’s disagreement between the two
+  subjects, and the sum over all $`H`$ components, square-rooted, is how
+  far apart they sit.
+
+It is Pythagoras in $`H`$ dimensions; all the work went into choosing
+the coordinates. Because the features were standardized before PCA, no
+single original measurement dominates the distance merely by being
+recorded in larger units.
 
 This is the only distance in the selection rule. There is no separate
 structural metric trading dose differences against schedule differences:

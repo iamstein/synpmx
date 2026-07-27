@@ -387,6 +387,20 @@ Recompute TAD downstream if the workflow requires it.</li>
 <div class="section level3">
 <h3 id="different-observation-times-across-subjects">Different observation times across subjects<a class="anchor" aria-label="anchor" href="#different-observation-times-across-subjects"></a>
 </h3>
+<p>Two subjects sampled at different times cannot be compared as vectors
+until they are put on shared coordinates. That is what the common grid
+is for — and it is worth saying up front what it is <em>not</em> for,
+because the 15-point cap below invites a misreading.</p>
+<blockquote>
+<p><strong>The grid is a ruler, not a resampler.</strong> It is used
+only to build the profile that measures which subjects resemble each
+other (Step 5). It never limits the resolution of the generated data. A
+synthetic subject carries every one of its anchor’s observation times,
+however many that is, and the donor values placed there are interpolated
+from each donor’s <strong>full</strong> observed trajectory — not from
+its 15-point summary. A richly sampled source gives a richly sampled
+avatar.</p>
+</blockquote>
 <p>For endpoint
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>e</mi><annotation encoding="application/x-tex">e</annotation></semantics></math>,
 the package pools finite aligned observation times and makes a common
@@ -401,6 +415,20 @@ There is no extrapolation during profile construction, so grid locations
 outside a subject’s observed window become missing profile features.
 Tied times are averaged by
 <code>stats::approx(..., ties = mean)</code>.</p>
+<p>The cap does bind on ordinary PK data: <code>theo_md</code> pools 156
+distinct aligned times, so donor ranking there runs on a 15-point
+summary of trajectories with about 22 observations each, compressed
+further by the PCA of Step 5. Two things limit the damage. The grid
+points are <em>quantiles of the observed times</em>, so they land where
+sampling is dense — early, around absorption and peak — rather than
+spreading evenly across a long tail. And the grid is built per endpoint,
+so PK and PD each get their own 15 rather than sharing them. The
+residual risk is worst for multiple-dose data with several peaks and
+troughs, where 15 points across a long window can blur the shape that
+distinguishes subjects. When that happens the cost is a <em>worse choice
+of donors</em>, never a coarser output trajectory.
+<code>max_points</code> is currently fixed at 15 and is not an
+argument.</p>
 <p>During final synthesis, donors are first interpolated directly to the
 anchor’s aligned observation times. Suppose target time
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
@@ -448,6 +476,40 @@ ordering cannot cross.</p>
 <div class="section level2">
 <h2 id="step-4-choose-an-endpoint-transformation">Step 4: choose an endpoint transformation<a class="anchor" aria-label="anchor" href="#step-4-choose-an-endpoint-transformation"></a>
 </h2>
+<div class="section level3">
+<h3 id="why-there-is-a-transformation-at-all">Why there is a transformation at all<a class="anchor" aria-label="anchor" href="#why-there-is-a-transformation-at-all"></a>
+</h3>
+<p>Blending happens <em>on the transformed scale</em>. So this step is
+really the choice of <strong>what “average” means</strong> when five
+patients are mixed together.</p>
+<p>Concentrations span orders of magnitude. Averaging 0.5, 0.8, and 12.0
+on the raw scale gives 4.4 — a number dominated by the single high
+patient and representative of none of them. Averaging on the log scale
+gives about 1.6, the geometric mean, which is the pharmacometric
+convention for precisely this reason. Blend concentrations on the raw
+scale instead and one high-exposure donor drags every avatar it touches
+upward.</p>
+<p>Logs have one problem with PK data: exact zeros. Pre-dose rows and
+imputed BLQ values are genuinely 0, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>0</mn><mo>=</mo><mi>−</mi><mi>∞</mi></mrow><annotation encoding="application/x-tex">\log 0=-\infty</annotation></semantics></math>
+would poison the entire blend. So a small constant
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>e</mi></msub><annotation encoding="application/x-tex">c_e</annotation></semantics></math>
+is added before taking logs. Choosing
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>e</mi></msub><annotation encoding="application/x-tex">c_e</annotation></semantics></math>
+to be <strong>half the smallest positive value in that endpoint</strong>
+puts zeros just below the smallest real measurement — near the bottom of
+the observed range, where a zero belongs — and scales it to the data
+rather than fixing an arbitrary
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>6</mn></mrow></msup><annotation encoding="application/x-tex">10^{-6}</annotation></semantics></math>.</p>
+<p>Not every endpoint wants logs. A PD score, a change from baseline, or
+a temperature difference can legitimately be negative, where a log is
+undefined. The “positive-like” test below is what separates the two
+cases; its 1% tolerance lets a concentration endpoint with a couple of
+small negative assay readings still count as positive-like.</p>
+</div>
+<div class="section level3">
+<h3 id="the-rule">The rule<a class="anchor" aria-label="anchor" href="#the-rule"></a>
+</h3>
 <p>Transformations are selected separately for each DVID endpoint, or
 once for the implicit endpoint <code>"DV"</code> when DVID is absent.
 After discarding nonfinite values, an endpoint is considered
@@ -466,8 +528,13 @@ g_e^{-1}(z)=\max\{\exp(z)-c_e,0\}.
 <p>Other endpoints use
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mi>e</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>y</mi></mrow><annotation encoding="application/x-tex">g_e(y)=y</annotation></semantics></math>.
 The truncations mean a positive-like endpoint cannot generate a negative
-DV. Transformation choices and offsets are stored in
-<code>attr(synthetic, "pmx_settings")$endpoint_transforms</code>.</p>
+DV, whatever the noise of Step 9 does — a guarantee that comes free with
+the back-transformation rather than needing a separate clamp.
+Transformation choices and offsets are stored in
+<code>attr(synthetic, "pmx_settings")$endpoint_transforms</code>, so the
+scale an endpoint was blended on is always recoverable from the
+output.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-5-build-one-numeric-profile-per-source-subject">Step 5: build one numeric profile per source subject<a class="anchor" aria-label="anchor" href="#step-5-build-one-numeric-profile-per-source-subject"></a>
@@ -540,11 +607,38 @@ is the smallest value satisfying</p>
 </annotation></semantics></math></p>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>v</mi><annotation encoding="application/x-tex">v</annotation></semantics></math>
-is <code>pca_variance</code> (default 0.90). The subject coordinate is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>𝛏</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">C</mi></mrow><mrow><mi>i</mi><mn>1</mn></mrow></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">C</mi></mrow><mrow><mi>i</mi><mi>H</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\boldsymbol{\xi}_i=(\mathrm{PC}_{i1},\ldots,\mathrm{PC}_{iH})</annotation></semantics></math>.
-If PCA is not available but standardized features exist, those features
-are used directly. If none exist, all subjects receive the same
-one-dimensional zero coordinate.</p>
+is <code>pca_variance</code> (default 0.90).</p>
+<p>The <strong>subject coordinate</strong> is the output of this whole
+step and the input to every distance in Step 6, so it gets its own
+symbol:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>𝛏</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>ξ</mi><mrow><mi>i</mi><mn>1</mn></mrow></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>ξ</mi><mrow><mi>i</mi><mi>H</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>ξ</mi><mrow><mi>i</mi><mi>h</mi></mrow></msub><mo>=</mo><mrow><mtext mathvariant="normal">subject </mtext><mspace width="0.333em"></mspace></mrow><mi>i</mi><mrow><mtext mathvariant="normal">’s score on principal component </mtext><mspace width="0.333em"></mspace></mrow><mi>h</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\boldsymbol{\xi}_i=(\xi_{i1},\ldots,\xi_{iH}),
+\qquad
+\xi_{ih}=\text{subject } i\text{'s score on principal component } h .
+</annotation></semantics></math></p>
+<p>Read
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛏</mi><annotation encoding="application/x-tex">\boldsymbol{\xi}</annotation></semantics></math>
+as the Greek letter <em>xi</em>. It is one point per subject in an
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>-dimensional
+space, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
+is typically a handful — the number of components needed to reach
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>v</mi><annotation encoding="application/x-tex">v</annotation></semantics></math>.
+Everything upstream exists to produce it: the raw profile
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝐱</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\mathbf{x}_i</annotation></semantics></math>
+is imputed to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>x</mi><mrow><mi>i</mi><mi>l</mi></mrow><mrow><mi mathvariant="normal">i</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">p</mi></mrow></msubsup><annotation encoding="application/x-tex">x^{\mathrm{imp}}_{il}</annotation></semantics></math>,
+standardized to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>z</mi><mrow><mi>i</mi><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">z_{il}</annotation></semantics></math>
+so that a weight in kilograms and a log-concentration compete on equal
+footing rather than by the size of their units, and finally rotated by
+PCA into
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛏</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\xi}_i</annotation></semantics></math>.</p>
+<p>If PCA is not available but standardized features exist, those
+features are used directly as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛏</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\xi}_i</annotation></semantics></math>.
+If none exist, all subjects receive the same one-dimensional zero
+coordinate.</p>
 <p>The term <strong>rank-safe</strong> means the attempted PCA rank
 cannot exceed either the feature rank or
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n-1</annotation></semantics></math>.
@@ -648,14 +742,42 @@ it.</p>
 </h3>
 <p>For anchor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math>
-and candidate
+and candidate donor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>,
-Euclidean distance in the retained profile coordinates of Step 5:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>a</mi><mi>r</mi></mrow></msub><mo>=</mo><msub><mrow><mo stretchy="true" form="prefix">∥</mo><msub><mi>𝛏</mi><mi>a</mi></msub><mo>−</mo><msub><mi>𝛏</mi><mi>r</mi></msub><mo stretchy="true" form="postfix">∥</mo></mrow><mn>2</mn></msub><mo>=</mo><msqrt><mrow><munderover><mo>∑</mo><mrow><mi>h</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></munderover><mo stretchy="false" form="prefix">(</mo><msub><mi>ξ</mi><mrow><mi>a</mi><mi>h</mi></mrow></msub><mo>−</mo><msub><mi>ξ</mi><mrow><mi>r</mi><mi>h</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mi>.</mi></mrow><annotation encoding="application/x-tex">
+the distance is the ordinary straight-line (Euclidean) distance between
+their subject coordinates from Step 5:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>a</mi><mi>r</mi></mrow></msub><mo>=</mo><msub><mrow><mo stretchy="true" form="prefix">∥</mo><msub><mi>𝛏</mi><mi>a</mi></msub><mo>−</mo><msub><mi>𝛏</mi><mi>r</mi></msub><mo stretchy="true" form="postfix">∥</mo></mrow><mn>2</mn></msub><mo>=</mo><msqrt><mrow><munderover><mo>∑</mo><mrow><mi>h</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></munderover><mo stretchy="false" form="prefix">(</mo><msub><mi>ξ</mi><mrow><mi>a</mi><mi>h</mi></mrow></msub><mo>−</mo><msub><mi>ξ</mi><mrow><mi>r</mi><mi>h</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mo>,</mo></mrow><annotation encoding="application/x-tex">
 d_{ar}=\left\|\boldsymbol{\xi}_a-
                    \boldsymbol{\xi}_r\right\|_2
-=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2}.
+=\sqrt{\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2},
 </annotation></semantics></math></p>
+<p>where</p>
+<ul>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>h</mi><annotation encoding="application/x-tex">h</annotation></semantics></math>
+indexes the <strong>retained principal components</strong>, running from
+1 to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
+— not subjects and not time points;</li>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ξ</mi><mrow><mi>a</mi><mi>h</mi></mrow></msub><annotation encoding="application/x-tex">\xi_{ah}</annotation></semantics></math>
+is the <strong>anchor’s</strong> score on component
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>h</mi><annotation encoding="application/x-tex">h</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ξ</mi><mrow><mi>r</mi><mi>h</mi></mrow></msub><annotation encoding="application/x-tex">\xi_{rh}</annotation></semantics></math>
+is <strong>candidate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>’s</strong>
+score on that same component, both defined in Step 5;</li>
+<li>each squared term is one component’s disagreement between the two
+subjects, and the sum over all
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
+components, square-rooted, is how far apart they sit.</li>
+</ul>
+<p>It is Pythagoras in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
+dimensions; all the work went into choosing the coordinates. Because the
+features were standardized before PCA, no single original measurement
+dominates the distance merely by being recorded in larger units.</p>
 <p>This is the only distance in the selection rule. There is no separate
 structural metric trading dose differences against schedule differences:
 structure enters as the two-stage ordering below, not as a score.</p>
