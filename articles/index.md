@@ -2,8 +2,8 @@
 
 ### All vignettes
 
-- [AVATAR mathematics: the generator step by
-  step](https://iamstein.github.io/synpmx/articles/avatar-mathematics.md):
+- [The AVATAR
+  Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 - [Feasibility: what can be released, and from how many

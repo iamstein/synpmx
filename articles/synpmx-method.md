@@ -36,8 +36,8 @@ Modes 2, 3, and 4 all use differential privacy (DP) accounting, and mode
 
 This vignette stays at the level of what each mode does and when to use
 it. The full AVATAR algorithm — every step, the mathematics, the edge
-cases, and a worked example — is in the [AVATAR mathematics
-article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
+cases, and a worked example — is in the [AVATAR Algorithm
+article](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html).
 
 ## The example: theophylline
 
@@ -88,8 +88,8 @@ cannot leak out of a real subject by being forgotten — and here every
 `theo_md` column has a role, so nothing is dropped. On a 12-subject
 dataset it also emits documented small-group fallback warnings (some
 event-pattern groups have only one usable donor); they are suppressed
-above and explained in the [AVATAR mathematics
-article](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html).
+above and explained in the [AVATAR Algorithm
+article](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html).
 
 What you cannot say about this output is that it is anonymous. It is
 assembled from real trajectories, so it inherits the source data’s
@@ -538,8 +538,8 @@ environment’s applicable privacy and data-sharing rules.
 - [`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
   — what differential privacy guarantees, what it does not, the
   trust-boundary decision rule, and how epsilon trades against utility.
-- [AVATAR
-  mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html)
+- [The AVATAR
+  Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator step by step, with the worked example.
 - [Model
   elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)

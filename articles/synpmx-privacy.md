@@ -354,6 +354,6 @@ prints the realized accounting.
   formal method.
 - [`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
   — the four generation modes and why AVATAR is the default.
-- [AVATAR
-  mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html)
+- [The AVATAR
+  Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator in detail.

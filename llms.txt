@@ -120,7 +120,7 @@ has been called once in the session.
 |----|----|
 | [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
 | [Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
-| [AVATAR mathematics](https://iamstein.github.io/synpmx/articles/avatar-mathematics.html) | How does the default generator work, step by step? |
+| [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 
 ## License
 
@@ -269,8 +269,8 @@ Fully public example datasets for testing and demonstration.
 
 ### All vignettes
 
-- [AVATAR mathematics: the generator step by
-  step](https://iamstein.github.io/synpmx/articles/avatar-mathematics.md):
+- [The AVATAR
+  Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 - [Feasibility: what can be released, and from how many
