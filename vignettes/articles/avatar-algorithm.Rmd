@@ -1,5 +1,5 @@
 ---
-title: "AVATAR mathematics: the generator step by step"
+title: "The AVATAR Algorithm"
 ---
 
 ```{r setup, include=FALSE}
@@ -27,31 +27,37 @@ Before the step-by-step detail, here is the whole pipeline in one place. Each
 synthetic subject is built from one real *anchor* subject's event structure,
 filled with measurements blended from several similar real subjects.
 
-1. **Declare the columns** (Step 1). Roles say which column is the id, the time,
-   the dose, the measurement, and so on. Only named columns survive.
-2. **Split structure from values** (Step 2). Each subject's rows divide into a
-   fixed *event skeleton* — when doses and observations happen — and the
-   measured DV values that fill it.
-3. **Put every subject on a comparable footing** (Steps 3–5). Align time to the
-   first event, choose an endpoint transformation, and reduce each subject to one
-   numeric *profile* — baseline covariates plus its trajectory on a common
-   grid — then to a handful of principal-component coordinates for measuring who
-   resembles whom.
-4. **Build each synthetic subject** (Steps 6–9). Copy a real anchor's event
-   skeleton — but by default do not anchor on a source subject whose structure
-   is a gross outlier (a lone very long follow-up), so no avatar looks
-   structurally extreme (`screen = TRUE`). Then pick the `k` (default 5) nearest
-   donors, borrowing across dose/schedule groups when the anchor's own group is
-   too small — but never across route of administration; blend the donors'
-   trajectories onto the skeleton's observation times, capping any one donor's
-   share at `max_donor_weight` (default 0.30); add subject-level and
-   within-subject noise; and reconstruct any below-limit (BLOQ) censoring.
-5. **Restore the original shape** (Step 10). Put back the source schema, column
-   types, and conventions, and attach a record of what was done.
-6. **Screen the result** (after generation). Because the event skeleton is
-   copied from one anchor, a structurally unusual source subject yields a
-   structurally unusual — and identifiable — avatar. A per-subject screen flags
-   those, and a remediation step truncates, drops, or replaces them.
+The pipeline has six **stages**, lettered (a) to (f). The rest of the article
+walks through ten numbered **Steps**, and each stage below says which Steps it
+covers — two stages span several Steps, which is why the two are lettered and
+numbered separately rather than sharing one sequence.
+
+- **(a) Declare the columns** — *Step 1*. Roles say which column is the id, the
+  time, the dose, the measurement, and so on. Only named columns survive.
+- **(b) Split structure from values** — *Step 2*. Each subject's rows divide
+  into a fixed *event skeleton* — when doses and observations happen — and the
+  measured DV values that fill it.
+- **(c) Put every subject on a comparable footing** — *Steps 3, 4, and 5*. Align
+  time to the first event, choose an endpoint transformation, and reduce each
+  subject to one numeric *profile* — baseline covariates plus its trajectory on
+  a common grid — then to a handful of principal-component coordinates for
+  measuring who resembles whom.
+- **(d) Build each synthetic subject** — *Steps 6, 7, 8, and 9*. Copy a real
+  anchor's event skeleton — but by default do not anchor on a source subject
+  whose structure is a gross outlier (a lone very long follow-up), so no avatar
+  looks structurally extreme (`screen = TRUE`). Then pick the `k` (default 5)
+  nearest donors, borrowing across dose/schedule groups when the anchor's own
+  group is too small — but never across route of administration; blend the
+  donors' trajectories onto the skeleton's observation times, capping any one
+  donor's share at `max_donor_weight` (default 0.30); add subject-level and
+  within-subject noise; and reconstruct any below-limit (BLOQ) censoring.
+- **(e) Restore the original shape** — *Step 10*. Put back the source schema,
+  column types, and conventions, and attach a record of what was done.
+- **(f) Screen the result** — *after generation*, so it has no Step number.
+  Because the event skeleton is copied from one anchor, a structurally unusual
+  source subject yields a structurally unusual — and identifiable — avatar. A
+  per-subject screen flags those, and a remediation step truncates, drops, or
+  replaces them.
 
 The two ideas that carry the most weight are the **anchor** (each avatar keeps
 one real subject's event structure) and the **donor blend** (its measurements
@@ -1078,7 +1084,7 @@ fidelity.
 
 The blending in Steps 6–9 protects the *measurements*: every avatar's DV values
 are averaged from at least `k` real subjects, so no one person's numbers survive
-verbatim. It does **not** protect the *structure*. Step 4 copies the event
+verbatim. It does **not** protect the *structure*. Stage (d) copies the event
 skeleton — the number of doses, their sizes, and the observation times — from a
 single anchor. So a source subject with an unusual structure (a lone
 long-followed patient, a one-off dose level) produces an avatar with that same
@@ -1208,27 +1214,25 @@ no corresponding attack-based privacy validation.
 
 ## Algorithm summary
 
-For each call to `synpmx_avatar()`:
+What `synpmx_avatar()` actually executes, in order. These are implementation
+operations, finer-grained than the ten Steps and not in one-to-one
+correspondence with them, so the last column says where each is explained rather
+than leaving two numberings to be guessed at.
 
-1. Validate source data, roles, and generator arguments.
-2. Compute first-event-relative time and endpoint-specific transformations.
-3. Assemble baseline covariates and interpolate transformed endpoint
-   trajectories into one profile per source subject.
-4. Median-impute profile features, remove unusable features, standardize, and
-   retain enough PCA components to meet `pca_variance` when possible.
-5. Construct event/schedule signatures and route keys.
-6. Drop anchors whose route arm cannot reach the donor floor, apply the
-   structural screen, and sample the remaining anchors with replacement.
-7. For each anchor, copy its whole event template.
-8. Find `k` donors on the anchor's route -- exact-signature nearest-first, then
-   the nearest remaining route-compatible subjects -- and randomize their
-   inverse-distance weights, water-filling every weight to `max_donor_weight`.
-9. Generate subject-constant covariates from those donors.
-10. For each endpoint, interpolate donor trajectories to anchor times, blend,
-    add a subject shift and AR(1) perturbations, and back-transform.
-11. Re-derive standard MDV when applicable, assign a new ID, preserve tie
-    order, restore the source schema, and validate the assembled result.
-12. Attach `pmx_settings` and emit any collected fallback warnings.
+| # | Operation | Explained in |
+|---|---|---|
+| 1 | Validate source data, roles, and generator arguments | Step 1 |
+| 2 | Compute first-event-relative time and endpoint-specific transformations | Steps 3–4 |
+| 3 | Assemble baseline covariates and interpolate transformed endpoint trajectories into one profile per source subject | Step 5 |
+| 4 | Median-impute profile features, remove unusable features, standardize, and retain enough PCA components to meet `pca_variance` when possible | Step 5 |
+| 5 | Construct event/schedule signatures and route keys | Step 6 |
+| 6 | Resolve anchors whose route arm cannot reach the donor floor per `on_donor_shortfall`, apply the structural screen, and sample the remaining anchors with replacement | Step 6 |
+| 7 | For each anchor, copy its whole event template | Step 2 |
+| 8 | Find `k` donors on the anchor's route — exact-signature nearest-first, then the nearest remaining route-compatible subjects — and randomize their inverse-distance weights, water-filling every weight to `max_donor_weight` | Steps 6–7 |
+| 9 | Generate subject-constant covariates from those donors | Step 8 |
+| 10 | For each endpoint, interpolate donor trajectories to anchor times, blend, add a subject shift and AR(1) perturbations, and back-transform | Step 9 |
+| 11 | Re-derive standard MDV when applicable, assign a new ID, preserve tie order, restore the source schema, and validate the assembled result | Step 10 |
+| 12 | Attach `pmx_settings` and emit any collected fallback warnings | Step 10 |
 
 ## References
 

@@ -278,7 +278,7 @@ Owner decisions of 2026-07-27, closing the "relax exact compatibility" half of
   the added machinery: keep exact-signature-first, then nearest in profile
   space, and write the algorithm down explicitly instead. So structure enters as
   a two-stage ordering, not a score, and there is no new tuning knob. The
-  explicit statement lives in `articles/avatar-mathematics.Rmd` Step 6.
+  explicit statement lives in `articles/avatar-algorithm.Rmd` Step 6.
 - **A route arm below the floor is handled by `on_donor_shortfall`**, loudly in
   every branch. With no legal donor left to borrow there is no good answer, only
   a choice between omitting the arm and reproducing it, and only the caller
@@ -344,7 +344,7 @@ without being told to. But nothing rescales (the standing "no dose-rescaling"
 decision), so an avatar carries its anchor's AMT with concentrations possibly
 blended across doses, and the dose--exposure relationship is not guaranteed.
 Fine for code development, wrong for parameter estimation. Now stated outright
-in `avatar-mathematics.Rmd` Step 6 rather than left implicit. If this becomes a
+in `avatar-algorithm.Rmd` Step 6 rather than left implicit. If this becomes a
 problem in practice, the lever is dose-normalising PK-flagged DVIDs, which §6a
 already scoped and deferred.
 
