@@ -1,10 +1,18 @@
 # AVATAR donor similarity: from exact event-signature matching to continuous blending
 
-A scoping document, not an implementation plan. It exists so the redesign below
-can be discussed and refined before touching `synpmx_avatar()`'s core
-mechanism — the primary, maintained generation path (`design/PROTOTYPE_SPEC.md`
-section 0), and the one with the widest blast radius of anything in the
-package. Nothing here is implemented. See `design/TODO.md` and `REV-024` in
+> **Status (2026-07-27): the direction is decided, nothing is implemented
+> yet.** Andy decided (by voice, away from a machine) to drop
+> `.select_donors()`'s hard event-signature gate **completely** — see section
+> 5a. What is still open is *how* to implement that without regressing the
+> thing the gate protected for free (never blending across a genuinely
+> incompatible regimen); section 6 lists exactly what needs resolving before
+> writing code. Pick this up by reading section 5a's decision note, then
+> section 6.
+
+This is a scoping document, not (yet) an implementation plan, for changes to
+`synpmx_avatar()`'s core mechanism — the primary, maintained generation path
+(`design/PROTOTYPE_SPEC.md` section 0), and the one with the widest blast
+radius of anything in the package. See `design/TODO.md` and `REV-024` in
 `design/REVIEW_BACKLOG.md` for status.
 
 ## 1. The problem, in one sentence
@@ -119,24 +127,39 @@ similar event tables continuously rather than gating on an exact match, and
 handle within-donor time misalignment by borrowing from the nearest actual
 event rather than only interpolating.
 
-### 5a. Split the signature into a coarse hard gate and a soft distance feature
+### 5a. Decision: drop the hard gate entirely
 
-Today's signature conflates two different kinds of compatibility:
+**Decided 2026-07-27 (Andy, by voice while away from the machine this needs to
+be implemented on): drop `.select_donors()`'s hard signature-equality gate
+completely.** Not narrowed, not split into a coarse/fine version — removed. No
+part of event-table compatibility remains a boolean filter; everything about
+an event table that currently distinguishes one subject from another becomes
+a **numeric feature** feeding the same continuous distance that already ranks
+covariate and trajectory similarity, and the `k` nearest subjects by that
+combined distance are the donors, full stop.
 
-1. **Coarse regimen compatibility** — same route/dose sign, same `CMT`/`DVID`
-   pattern on event rows, same endpoint set. This does *not* degenerate under
-   interruptions: a hold doesn't change the drug, the route, or which
-   endpoints are measured.
-2. **Fine schedule shape** — exact dose count and exact inter-dose gap
-   sequence. This is what degenerates, because it demands the two schedules
-   agree almost to the day.
+This was raised and set aside as an alternative in the first draft of this
+document (keep a coarse route/dose-sign/endpoint-set gate, only soften the
+fine schedule-shape matching) — that alternative is now explicitly rejected in
+favor of the simpler, fully continuous design. The risk that motivated the
+coarse gate — blending a QD regimen with a BID regimen, or an IV cohort with
+an oral cohort, because noise in unrelated features happened to put them
+close — still needs an answer, but the answer is now "make that risk small
+through the feature design and distance weighting," not "rule it out with a
+filter." Concretely: route, dose sign, `CMT`/`DVID` pattern, and endpoint set
+all become features in the same profile vector rather than disappearing —
+e.g. one-hot/indicator features analogous to how categorical covariates are
+already encoded (`R/profiles.R:132-146`) — so a QD/BID mismatch still shows up
+as a large distance, just one computed continuously rather than enforced by
+`==`. Getting the relative scaling right so that these become naturally
+dominant contributors to distance when they differ (rather than getting
+diluted by many small schedule-shape/covariate features) is now the central
+open question for this section — see the list at the end of this document.
 
-Proposal: keep (1) as a hard gate — it is cheap, does not degenerate under
-interruptions, and still rules out blending a QD patient with a BID patient
-just because a distance metric found them numerically close. Drop (2) from the
-gate entirely, and instead turn it into a handful of **numeric features** added
+Alongside the coarse-compatibility signals, fold in the schedule-shape
+features from the original proposal — a handful of **numeric features** added
 to the same profile vector `.build_profiles()` already builds for PCA distance
-(`R/profiles.R:111-224`) — for example:
+(`R/profiles.R:111-224`):
 
 - `n_doses` — count of administration events;
 - `total_followup` — last recorded time minus first dose time;
@@ -152,21 +175,13 @@ These features are standardized and centered exactly like the existing
 covariate/trajectory features (`R/profiles.R:181-189`) and folded into the same
 PCA space, so `.neighbor_distances()` and `.randomized_weights()`
 (`R/profiles.R:226-253`) need no change — only the feature list going into
-`.build_profiles()` changes, plus dropping the schedule component out of
-`.event_signature()`'s equality gate. Patient A and Patient B from section 3
-would now be compatible (same coarse regimen) and close in distance (nearly
-identical `dose_days_fraction`, `n_doses`, `median_gap`; only `max_gap` and
-`n_interruption_episodes` differ a little) — exactly "the five patients with
-the most similar event tables" you described, ranked continuously rather than
-filtered by exact match.
-
-An alternative worth naming and rejecting for now: drop the hard gate
-entirely and let distance do all the work, including route/dose-sign/endpoint
-compatibility. This is simpler to implement but risks blending across
-regimens that should never mix (a QD arm with a BID arm, an IV cohort with an
-oral cohort) whenever noise in the other features happens to put them close.
-Keeping a coarse hard gate and only softening the schedule-shape part is the
-more conservative starting point.
+`.build_profiles()` changes, and `.event_signature()`/the signature-equality
+check in `.select_donors()` (`R/synthesis.R:363-398`) is deleted rather than
+narrowed. Patient A and Patient B from section 3 would now both be candidates
+and close in distance (nearly identical `dose_days_fraction`, `n_doses`,
+`median_gap`; only `max_gap` and `n_interruption_episodes` differ a little) —
+exactly "the five patients with the most similar event tables" you described,
+ranked continuously with no filtering step at all.
 
 ### 5b. Borrowing at a target time when donor schedules don't line up
 
@@ -209,27 +224,41 @@ mechanism:
 
 ## 6. Open engineering questions
 
+Section 5a's core decision is made (no hard gate). What remains is how to
+implement it without silently regressing the thing the old gate protected for
+free — never blending across a genuinely incompatible regimen.
+
+- **Feature encoding and weighting for what used to be the hard gate.** Route,
+  dose sign, `CMT`/`DVID` pattern, and endpoint set need to become features
+  that dominate the combined distance whenever they differ, not features that
+  get averaged in alongside dozens of others and diluted. This may need an
+  explicit weighting mechanism beyond today's uniform standardization
+  (`R/profiles.R:181-189`) — e.g. a large fixed multiplier on structural-
+  mismatch features, or computing distance in two blocks (structural,
+  then everything else) and only using the second block to rank within ties
+  on the first. Getting this wrong is the main way "drop the gate" could go
+  wrong in practice, so it deserves the most scrutiny before writing code.
 - Exact feature list for schedule shape, and whether it generalizes across
   trial designs (dose escalation, multiple arms, non-daily regimens) without
   per-study hand-tuning.
-- Precisely where the coarse/soft split falls: is dropping only the schedule
-  token enough, or should the endpoint-set token also move to a soft feature
-  for studies that add endpoints partway through follow-up?
 - Relative weighting between the new schedule-shape features and the existing
   covariate/trajectory features in the combined PCA distance — same footing as
   everything else, or a tunable knob (analogous to `pca_variance`)?
-- Whether `k` (default 5) still means the same thing once there is no hard
-  partition first — every subject in the coarse-compatible pool is now a
-  candidate, so the neighbor pool can be much larger than today, and a warning
-  when the 5th-nearest neighbor is still far away may be worth adding.
+- Whether `k` (default 5) still means the same thing once there is no
+  partition at all — every subject in the dataset is now a candidate for every
+  anchor, so the neighbor pool can be much larger than today, and a warning
+  when the 5th-nearest neighbor is still far away (in the structural-mismatch
+  sense above, not just Euclidean distance overall) may be worth adding.
 - Which of the three time-borrowing options (5b) to implement first, and
   whether it is a new opt-in argument to `synpmx_avatar()` or a change to
   today's default.
 - Test/fixture impact: none of the current fixtures or the five `nlmixr2data`
   demo datasets exercise variable dose-interruption schedules, so validating
   this change needs new synthetic fixtures built specifically to have that
-  shape — this is a real regression-coverage gap today, independent of this
-  proposal.
+  shape. It also needs a fixture that actively tests the removed-gate risk —
+  e.g. a mixed QD/BID dataset — to confirm the new distance still keeps them
+  apart in practice, not just in theory. This is a real regression-coverage
+  gap today, independent of this proposal.
 - Documentation impact once a design is chosen and implemented:
   `vignettes/articles/avatar-mathematics.Rmd` steps on time alignment,
   donor compatibility, and trajectory synthesis all need rewriting to describe

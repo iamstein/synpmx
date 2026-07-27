@@ -91,10 +91,14 @@ functions either.
    `R/profiles.R`) means an oncology-style dataset with dose holds or
    variable follow-up duration puts nearly every patient in a singleton
    compatible-donor group, so blending silently stops happening exactly where
-   the event table is richest. Full scoping, a worked example, and a proposed
-   fix in `design/AVATAR_DONOR_SIMILARITY.md`; not yet implemented. Directly
-   relevant to item 3 above — this is likely to bite the PIT565 trial run if
-   its dosing has interruptions.
+   the event table is richest. **Decided 2026-07-27: drop the hard gate
+   completely** rather than narrow it — worked example, the decision, and the
+   remaining open implementation questions (mainly: how to keep a route/dose/
+   endpoint mismatch dominant in the continuous distance now that nothing
+   filters it out first) are in `design/AVATAR_DONOR_SIMILARITY.md`. Not yet
+   implemented — pick up from that document's "Status" note at the top.
+   Directly relevant to item 3 above — this is likely to bite the PIT565 trial
+   run if its dosing has interruptions.
 
 ## Done: documentation reorganization (2026-07-23)
 
