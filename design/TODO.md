@@ -86,6 +86,16 @@ functions either.
    internally consistent without carrying a real calendar date. Not needed for
    PIT565.
 
+5. **`REV-024` AVATAR donor selection degenerates on interrupted/variable-length
+   daily dosing.** Exact `.event_signature()` matching (`R/synthesis.R`,
+   `R/profiles.R`) means an oncology-style dataset with dose holds or
+   variable follow-up duration puts nearly every patient in a singleton
+   compatible-donor group, so blending silently stops happening exactly where
+   the event table is richest. Full scoping, a worked example, and a proposed
+   fix in `design/AVATAR_DONOR_SIMILARITY.md`; not yet implemented. Directly
+   relevant to item 3 above — this is likely to bite the PIT565 trial run if
+   its dosing has interruptions.
+
 ## Done: documentation reorganization (2026-07-23)
 
 Decided and executed. The reasoning, the audience analysis, and the rationale

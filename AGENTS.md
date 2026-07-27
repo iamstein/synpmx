@@ -91,11 +91,15 @@ task list itself.
   documentation diff.
 - After changes to simulation, design inference, privacy accounting, public
   APIs, or output structure, make an explicit documentation-impact pass:
-  update the demo for workflow/output changes, the simulation-method vignette
-  for generator changes, the privacy-introduction vignette for privacy changes,
-  and the epsilon-exploration vignette for privacy--utility behavior. Also
-  check roxygen documentation, `README.md`, `NEWS.md`, and design specifications
-  where relevant.
+  update `synpmx-demo.Rmd` for workflow/output changes, `synpmx-method.Rmd` for
+  generator changes, and `synpmx-privacy.Rmd` for privacy and privacy--utility
+  changes. **`avatar-mathematics.Rmd` is load-bearing and must be kept current
+  whenever AVATAR's donor-selection, time-alignment, or blending mechanism
+  changes** — it is the only place the algorithm is spelled out in full detail
+  (event signatures, PCA profiles, neighbor weighting, trajectory
+  interpolation), and stale prose there is worse than no prose, since a reader
+  cannot tell which parts still apply. Also check roxygen documentation,
+  `README.md`, `NEWS.md`, and design specifications where relevant.
 - Verify every implementation-specific statement against the exact functions
   and tests that establish it. This includes defaults, constants, equations,
   grids, budget allocation, randomness, inferred dosing/sampling behavior,

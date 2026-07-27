@@ -400,6 +400,31 @@ The closest `k` candidates are kept. If fewer exist, `k` is reduced and a
 warning is recorded. If none exist, the anchor itself becomes the sole donor;
 only subsequent randomized perturbation can then move its measurements.
 
+### Long or irregular dosing histories can make every signature unique
+
+The signature's schedule component is exact: it includes the precise dose
+count and the precise rounded gap between every successive dose start. This
+works cleanly for the short, regular regimens in the demo datasets, but it
+degrades for long daily-dosing studies where patients differ in *when* they
+held or resumed dosing, or in how long they were followed — a phase 3
+oncology trial where most patients accumulate their own pattern of
+toxicity-driven dose interruptions, or a phase 1 dose-escalation trial with
+variable follow-up duration. Two patients on an identical regimen who differ
+by a single multi-day hold produce different signature strings and are
+**not** candidate donors for each other, even though they are otherwise as
+similar as two patients on the same protocol can be. In a cohort where
+interruptions are common, most anchors can end up in a signature group of
+size one — themselves — and the fallback above (anchor as sole donor) applies
+far more often than the general description suggests.
+
+This is a known, documented limitation, not a bug: `.event_signature()`
+(`R/profiles.R:1-52`) and `.select_donors()` (`R/synthesis.R:363-398`) behave
+exactly as described above. A worked numerical example, the underlying cause,
+and a proposed redesign (splitting the signature into a coarse hard gate plus
+a continuous "schedule shape" distance) are in
+`design/AVATAR_DONOR_SIMILARITY.md` (`REV-024`); nothing there is implemented
+yet.
+
 ## Step 7: randomize and cap donor weights
 
 Suppose $K$ donors have been selected. Let $E_r\sim\mathrm{Exponential}(1)$
