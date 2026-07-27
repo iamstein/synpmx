@@ -3,6 +3,11 @@ url: https://iamstein.github.io/synpmx/
 template:
   bootstrap: 5
 
+# The AVATAR article was published as avatar-mathematics.html before it was
+# renamed on 2026-07-27. Keep the old URL working for anyone holding a link.
+redirects:
+  - ["articles/avatar-mathematics.html", "articles/avatar-algorithm.html"]
+
 navbar:
   structure:
     left: [intro, reference, articles]
@@ -20,8 +25,8 @@ navbar:
         href: articles/synpmx-privacy.html
       - text: -------
       - text: "Method"
-      - text: AVATAR mathematics
-        href: articles/avatar-mathematics.html
+      - text: The AVATAR Algorithm
+        href: articles/avatar-algorithm.html
       - text: -------
       - text: "Privacy"
       - text: Privacy background

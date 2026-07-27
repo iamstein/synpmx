@@ -59,7 +59,7 @@ Understand it well enough to defend it.
 - [ ] Read the original AVATAR paper (`references/Guillaudeux23.pdf`). Feeds the
       novelty positioning owed under "Verification owed" below.
 - [ ] Write my own mental map of how AVATAR works, checked against
-      `vignettes/articles/avatar-mathematics.Rmd`, to confirm my understanding.
+      `vignettes/articles/avatar-algorithm.Rmd`, to confirm my understanding.
 
 Documentation the owner asked for (2026-07-25). Both are writing tasks that
 depend on inputs not yet in hand, so they are queued, not started:
@@ -109,7 +109,7 @@ this section is stale. `AGENTS.md` now records the resulting three-tier rule.
       high level), `synpmx-demo`, `synpmx-privacy`. `synpmx-intro` and
       `synpmx-epsilon-exploration` were merged away.
 - [x] Deep AVATAR mathematics moved out of the method vignette into
-      `vignettes/articles/avatar-mathematics.Rmd`.
+      `vignettes/articles/avatar-algorithm.Rmd`.
 - [x] Five design documents moved to `vignettes/articles/`: feasibility,
       privacy background, privacy argument, model and data elicitation.
 - [x] Every citation into `design/` removed from shipped documentation and
@@ -276,7 +276,7 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       anchor pool) and `max_donor_weight` 0.80 -> 0.30 enforced on every donor,
       which measurement showed costs almost no between-subject variability.
       Tests in `test-avatar-pooling.R`, `test-avatar-weights.R`; algorithm
-      written out in `articles/avatar-mathematics.Rmd` Steps 6-7.
+      written out in `articles/avatar-algorithm.Rmd` Steps 6-7.
       Still open: whether the headline floor should exceed 5 -- now the weaker
       of the two constraints, since the cap binds first. Judge on PIT565.
 - [ ] `REV-026` **Consider, not committed (2026-07-25 decision).** "Skeleton

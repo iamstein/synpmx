@@ -83,7 +83,7 @@ why to care.
 
 | Article | Source |
 |---|---|
-| `avatar-mathematics.Rmd` | The deep AVATAR algorithm, mathematics, and edge cases, lifted out of the old method vignette. |
+| `avatar-algorithm.Rmd` | The deep AVATAR algorithm, mathematics, and edge cases, lifted out of the old method vignette. |
 | `privacy-background.Rmd` | `design/PRIVACY_BACKGROUND.md` — `d`, `f`, sensitivity, the error law, worked examples. |
 | `feasibility.Rmd` | `design/FEASIBILITY.md` — measured utility by cohort size. |
 | `privacy-argument.Rmd` | `design/PRIVACY_ARGUMENT.md` — the formal mechanism-level argument, for a reviewer. |
@@ -102,7 +102,7 @@ The first instinct was to narrow it to AVATAR alone. Covering all four instead
 makes one document the canonical method reference rather than scattering
 prior-only, calibration, and empirical across the privacy and demo vignettes.
 The size problem this would otherwise create is solved by moving the deep
-mathematics to `avatar-mathematics.Rmd`: the vignette stays high level and
+mathematics to `avatar-algorithm.Rmd`: the vignette stays high level and
 short, and stops reading as half-vignette, half-specification.
 
 This also absorbs part of the old "alternatives" section. Once the vignette
@@ -166,7 +166,7 @@ ends mid-flight.
 2. Move to articles: feasibility, privacy argument, privacy background, both
    elicitation documents.
 3. Split the deep AVATAR mathematics out of the method vignette into
-   `avatar-mathematics.Rmd`.
+   `avatar-algorithm.Rmd`.
 4. Rename `synpmx-simulation-method.Rmd` → `synpmx-method.Rmd` and restructure
    to the four modes at a high level.
 5. Merge `synpmx-epsilon-exploration.Rmd` into `synpmx-privacy.Rmd`.

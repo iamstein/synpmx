@@ -31,7 +31,7 @@ in the tarball. Use this tier for teaching and evidence that does not need to be
 rebuilt on every change. Note that pkgdown *executes* article code, so a broken
 article fails the site build.
 
-- `avatar-mathematics.Rmd` — the default generator step by step.
+- `avatar-algorithm.Rmd` — the default generator step by step.
 - `privacy-background.Rmd` — `d`, `f`, sensitivity, the error law.
 - `privacy-argument.Rmd` — the formal mechanism-level argument, for a reviewer.
 - `feasibility.Rmd` — what is achievable at which cohort size.
