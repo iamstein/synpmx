@@ -51,6 +51,35 @@
   )
 }
 
+# The administration route, and the one structural axis that is an absolute
+# barrier: an avatar is never blended from a donor dosed by a different route.
+# Every other difference -- dose size, number of doses, interval -- makes a
+# donor a worse match, and the fallback in `.select_donors()` is allowed to
+# accept it. A route difference is not a worse match, it is a different
+# experiment: a bolus, an infusion, and an oral dose produce categorically
+# different concentration shapes, so blending across them yields a trajectory no
+# protocol could have produced. Read from the dosing rows only: which EVID and
+# compartment the dose enters, and whether it is delivered over time. NONMEM's
+# RATE < 0 (modeled rate or duration) is still an infusion. The tokens form a
+# *set*, so three oral doses and five oral doses share a route -- dose count is
+# a schedule difference, handled by the signature, not a route difference.
+.route_key <- function(subject_data, roles) {
+  dosed <- .dose_rows(subject_data, roles)
+  if (!any(dosed)) return("none")
+  pieces <- list(as.character(subject_data[[roles$evid]][dosed]))
+  if (!is.null(roles$cmt)) {
+    pieces[[length(pieces) + 1L]] <-
+      as.character(subject_data[[roles$cmt[[1L]]]][dosed])
+  }
+  delivery <- rep("bolus", sum(dosed))
+  if (!is.null(roles$rate)) {
+    rate <- suppressWarnings(as.numeric(subject_data[[roles$rate]][dosed]))
+    delivery[is.finite(rate) & rate != 0] <- "infusion"
+  }
+  pieces[[length(pieces) + 1L]] <- delivery
+  paste(sort(unique(do.call(paste, c(pieces, sep = ":")))), collapse = ";")
+}
+
 .choose_transform <- function(values) {
   values <- values[is.finite(values)]
   if (!length(values)) {
@@ -210,6 +239,9 @@
   signatures <- vapply(subject_rows, function(rows) {
     .event_signature(data[rows, , drop = FALSE], roles)
   }, character(1))
+  routes <- vapply(subject_rows, function(rows) {
+    .route_key(data[rows, , drop = FALSE], roles)
+  }, character(1))
 
   list(
     subjects = subjects,
@@ -218,6 +250,7 @@
     transforms = transforms,
     grids = grids,
     signatures = signatures,
+    routes = routes,
     dropped_features = setdiff(colnames(profile), colnames(imputed)),
     pca = pca
   )
@@ -230,7 +263,47 @@
   sqrt(rowSums(difference^2))
 }
 
-.randomized_weights <- function(distances, max_weight = 0.80) {
+# Hold *every* donor at or below `max_weight`, not only the largest one.
+# Water-filling: donors over the cap are pinned there, the mass they give up is
+# redistributed proportionally among those still under it, and the pass repeats
+# until none is over. Pinned donors are never topped up again, so the loop
+# closes after at most one pass per donor.
+#
+# Capping only `which.max()` (the behavior through the 0.80 era) was adequate
+# while the cap was loose, because a second donor rarely reached it. At 0.30 the
+# runner-up routinely lands above the cap once the leader's excess is
+# redistributed, so a single pass would leave the documented maximum violated by
+# the very donor the redistribution created.
+#
+# No weight vector of length K can satisfy a cap below 1/K, so such a cap
+# relaxes to exactly 1/K: uniform weights, the flattest blend available. This is
+# what a small source falls back to -- with two donors and a 0.30 cap the answer
+# is 0.5/0.5, not an error.
+.cap_weights <- function(weights, max_weight) {
+  n <- length(weights)
+  if (!n) return(weights)
+  cap <- max(max_weight, 1 / n)
+  tolerance <- sqrt(.Machine$double.eps)
+  pinned <- rep(FALSE, n)
+  for (pass in seq_len(n)) {
+    over <- !pinned & weights > cap + tolerance
+    if (!any(over)) break
+    pinned <- pinned | over
+    weights[pinned] <- cap
+    free <- !pinned
+    if (!any(free)) break
+    remaining <- 1 - sum(weights[pinned])
+    share <- weights[free]
+    weights[free] <- if (sum(share) > 0) {
+      remaining * share / sum(share)
+    } else {
+      remaining / sum(free)
+    }
+  }
+  weights / sum(weights)
+}
+
+.randomized_weights <- function(distances, max_weight = 0.30) {
   n <- length(distances)
   if (!n) return(numeric())
   if (n == 1L) return(1)
@@ -239,15 +312,5 @@
   randomized_rank <- sample.int(n)
   raw <- stats::rexp(n) / pmax(distances, epsilon) * 2^(-randomized_rank)
   if (!all(is.finite(raw)) || sum(raw) <= 0) raw <- rep(1, n)
-  weights <- raw / sum(raw)
-  if (max(weights) > max_weight) {
-    dominant <- which.max(weights)
-    remainder <- weights[-dominant]
-    if (!is.finite(sum(remainder)) || sum(remainder) <= 0) {
-      remainder <- rep(1, length(remainder))
-    }
-    weights[dominant] <- max_weight
-    weights[-dominant] <- (1 - max_weight) * remainder / sum(remainder)
-  }
-  weights / sum(weights)
+  .cap_weights(raw / sum(raw), max_weight)
 }

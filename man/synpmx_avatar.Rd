@@ -17,7 +17,9 @@ synpmx_avatar(
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
   time_jitter = 0,
-  screen = TRUE
+  screen = TRUE,
+  max_donor_weight = 0.3,
+  on_donor_shortfall = c("drop", "noise", "error")
 )
 }
 \arguments{
@@ -40,9 +42,11 @@ restored on exit.}
 \item{k}{Number of real patients blended into each synthetic subject
 (default 5). Same-schedule donors are used first; when a subject's
 dose/schedule group holds fewer than \code{k}, the nearest subjects from other
-groups are borrowed to reach \code{k}, blending measurements across doses. A
-source with fewer than \code{k + 1} subjects cannot reach the floor and triggers
-a loud alert.}
+groups \emph{on the same administration route} are borrowed to reach \code{k},
+blending measurements across doses. Route is never crossed, so a route arm
+holding fewer than \code{k + 1} subjects cannot reach the floor at all; those
+subjects are dropped from the anchor pool with a loud alert, and the
+synthetic cohort does not represent that arm.}
 
 \item{pca_variance}{Fraction of usable profile variance retained for
 neighborhood distances.}
@@ -67,6 +71,30 @@ weight-based dosing makes noisy) and DV (which is blended, not copied) are
 not. A source with no extreme subject is unaffected. Set \code{FALSE} to anchor
 on every subject. For a fuller, tunable screen of the generated output, see
 \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}} and \code{\link[=remediate_identifiable_subjects]{remediate_identifiable_subjects()}}.}
+
+\item{max_donor_weight}{Largest share of one synthetic subject that any one
+real donor may contribute (default 0.30, against 0.20 for a flat average at
+\code{k = 5}). The floor \code{k} sets how many patients are blended; this cap is
+what bounds any single patient's contribution, so it, not \code{k}, is the
+parameter that limits how closely an avatar can resemble one real person.
+Lowering it flattens blends toward the cohort mean and shrinks synthetic
+between-subject variability; raising it recovers that spread at the cost of
+letting one donor dominate. The returned \code{pmx_settings} reports
+\code{mean_effective_donors}, \code{1 / sum(w^2)}, which measures where a given cap
+actually landed.}
+
+\item{on_donor_shortfall}{What to do with a subject whose administration
+route holds fewer than \code{k + 1} subjects, so that no legal donor set exists
+for it. \code{"drop"} (default) omits those subjects from the anchor pool: no
+avatar is built on them and the synthetic cohort does not represent that
+arm. \code{"noise"} keeps them, blending however many same-route donors exist
+(possibly none) and relying on \code{subject_noise_sd} and \code{residual_noise_sd}
+for the rest --- \strong{not recommended}, because such a synthetic subject can
+remain close to one real patient; screen the result with
+\code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}} if you use it. \code{"error"} refuses to generate
+and names the choice. Every branch alerts loudly. When \emph{every} route arm is
+below the floor, \code{"drop"} would leave nothing to generate, so generation
+proceeds as if \code{"noise"}.}
 }
 \value{
 An ordinary data frame or tibble with retained source columns, order,
@@ -85,12 +113,20 @@ published AVATAR software. It creates synthetic data for model-workflow
 exploration. It does not provide formal anonymization or preserve scientific
 parameter or covariate-response relationships.
 
-For selected compatible donors, randomized raw weights are
+Donors are selected in two stages, both confined to the anchor's own
+administration route, which is never crossed: same-signature donors first,
+taken nearest-first by Euclidean distance between retained PCA profile
+coordinates, then --- if that yields fewer than \code{k} --- the nearest remaining
+route-compatible subjects regardless of dose or schedule.
+
+For the selected donors, randomized raw weights are
 \code{Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)}. They are normalized
-and, when multiple donors are available, a dominant weight is capped at
-0.80 with its excess redistributed. The
-same subject weights are used for covariates and all endpoints; weights are
-renormalized locally when a donor lacks a requested endpoint/time value.
+and then capped so that \emph{no} donor exceeds \code{max_donor_weight}, the excess
+being redistributed proportionally among the donors still below the cap until
+none is over. A cap below \code{1/K} for \code{K} donors cannot be satisfied and
+relaxes to \code{1/K}, i.e. uniform weights. The same subject weights are used for
+covariates and all endpoints; weights are renormalized locally when a donor
+lacks a requested endpoint/time value.
 
 Positive-like endpoints use an offset log scale and are constrained to be
 nonnegative after back-transformation. Other endpoints use the identity

@@ -264,15 +264,21 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
       warns. Either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright. (Was stranded in the
       completed documentation-reorganization list.)
-- [~] `REV-025` **Owner-flagged, 2026-07-25. Core fix landed.** AVATAR now
+- [x] `REV-025` **Owner-flagged, 2026-07-25; closed 2026-07-27.** AVATAR
       borrows the nearest donors across dose/schedule groups to blend `k` (=5)
-      real patients into every avatar, with a loud red alert only when the
-      source has fewer than `k + 1` subjects (`.select_donors()`,
-      `.loud_warn()`; `test-avatar-pooling.R`). Discovery: weight-based dosing
-      made nearly every subject its own singleton, so this was the common case,
-      not an edge case. Outlier detector done too:
-      `flag_identifiable_subjects()` screens follow-up time, dose count, dose
-      magnitude, and DV. Still open: whether the headline floor should exceed 5.
+      real patients into every avatar, with a loud red alert when the source has
+      fewer than `k + 1` subjects (`.select_donors()`, `.loud_warn()`).
+      Discovery: weight-based dosing made nearly every subject its own
+      singleton, so this was the common case, not an edge case. Outlier detector
+      done too: `flag_identifiable_subjects()` screens follow-up time, dose
+      count, dose magnitude, and DV. Closed out 2026-07-27 with the route
+      barrier (IV/bolus/oral never blended; short route arms dropped from the
+      anchor pool) and `max_donor_weight` 0.80 -> 0.30 enforced on every donor,
+      which measurement showed costs almost no between-subject variability.
+      Tests in `test-avatar-pooling.R`, `test-avatar-weights.R`; algorithm
+      written out in `articles/avatar-mathematics.Rmd` Steps 6-7.
+      Still open: whether the headline floor should exceed 5 -- now the weaker
+      of the two constraints, since the cap binds first. Judge on INTERNAL_STUDY.
 - [ ] `REV-026` **Consider, not committed (2026-07-25 decision).** "Skeleton
       sampling." Today each avatar copies one real anchor's *event skeleton* —
       the number of doses, their sizes, and the observation times — verbatim,

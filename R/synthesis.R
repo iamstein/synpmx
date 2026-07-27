@@ -1,7 +1,8 @@
 .validate_generator_options <- function(n_subjects, source_n, event_method,
                                         dv_method, k, pca_variance,
                                         subject_noise_sd, residual_noise_sd,
-                                        residual_phi, time_jitter) {
+                                        residual_phi, time_jitter,
+                                        max_donor_weight) {
   if (is.null(n_subjects)) n_subjects <- source_n
   if (length(n_subjects) != 1L || is.na(n_subjects) ||
       n_subjects < 1 || n_subjects != as.integer(n_subjects)) {
@@ -33,6 +34,11 @@
       !is.finite(residual_phi) || abs(residual_phi) >= 1) {
     stop("`residual_phi` must be finite and strictly between -1 and 1.",
          call. = FALSE)
+  }
+  if (length(max_donor_weight) != 1L || is.na(max_donor_weight) ||
+      !is.finite(max_donor_weight) || max_donor_weight <= 0 ||
+      max_donor_weight > 1) {
+    stop("`max_donor_weight` must be one number in (0, 1].", call. = FALSE)
   }
   as.integer(n_subjects)
 }
@@ -376,13 +382,25 @@
 }
 
 # Choose the donors whose trajectories are blended onto the anchor's event
-# skeleton. Same-schedule subjects (identical event signature) are preferred and
-# taken nearest-first; when there are fewer than `k` of them, the nearest
-# subjects from *other* dose/schedule groups are borrowed to reach `k`. Their
-# measurements are mapped onto the anchor's own observation times by
-# interpolation, so the avatar keeps the anchor's regimen while its values are
-# averaged across >= k real patients. Only a source smaller than k + 1 subjects
-# cannot reach the floor; that case is flagged loudly by the caller.
+# skeleton, in two stages, both confined to the anchor's own administration
+# route (`.route_key()`; never crossed, at any stage, for any shortfall):
+#
+#   1. Same-schedule donors -- identical event signature -- taken nearest-first
+#      in profile space, up to `k`.
+#   2. If stage 1 yields fewer than `k`, the shortfall is filled with the
+#      nearest remaining route-compatible subjects in profile space, whatever
+#      their dose or schedule.
+#
+# "Nearest" is Euclidean distance between retained PCA profile coordinates
+# (`.neighbor_distances()`), ties broken by subject index so selection is
+# deterministic under a fixed seed. Stage-2 donors' measurements are mapped onto
+# the anchor's own observation times by interpolation, so the avatar keeps its
+# anchor's regimen while its values are averaged across >= k real patients.
+#
+# A shortfall that survives both stages means the anchor's route arm holds fewer
+# than k + 1 subjects. There is no legal donor left to borrow, so the caller
+# drops such anchors before generation and alerts; reaching this function with
+# no compatible donor at all is the residual case where dropping was impossible.
 # Source subjects whose event structure is extreme on the high side -- a
 # follow-up or dose count more than `mult` times the cohort's 90th percentile.
 # These are the anchors that would give an avatar a structurally extreme
@@ -415,12 +433,15 @@
   which(high(follow_up) | high(n_doses))
 }
 
-.select_donors <- function(anchor, profiles, k, warnings) {
+.select_donors <- function(anchor, profiles, k, warnings,
+                           max_donor_weight = 0.30) {
   target <- as.integer(k)
-  others <- setdiff(seq_along(profiles$subjects), anchor)
-  if (!length(others)) {
-    # A source of one subject: nothing to borrow, so the avatar is a noised copy
-    # of that single patient. Unavoidable, and alerted loudly by the caller.
+  routes <- profiles$routes %||% rep("none", length(profiles$subjects))
+  compatible <- setdiff(which(routes == routes[anchor]), anchor)
+  if (!length(compatible)) {
+    # No subject shares the anchor's route, and route is never crossed, so the
+    # avatar is a noised copy of this one patient. The caller drops such anchors
+    # where it can and alerts loudly where every anchor is in this position.
     return(list(indices = anchor, distances = 0, weights = 1))
   }
 
@@ -429,21 +450,22 @@
     pool[order(.neighbor_distances(profiles$coordinates, anchor, pool), pool)]
   }
 
-  same_group <- setdiff(which(profiles$signatures == profiles$signatures[anchor]),
-                        anchor)
+  same_group <- intersect(
+    which(profiles$signatures == profiles$signatures[anchor]), compatible
+  )
   chosen <- nearest(same_group)
   if (length(chosen) > target) chosen <- chosen[seq_len(target)]
 
   if (length(chosen) < target) {
-    fill <- nearest(setdiff(others, chosen))
+    fill <- nearest(setdiff(compatible, chosen))
     need <- target - length(chosen)
     chosen <- c(chosen, fill[seq_len(min(length(fill), need))])
     if (length(same_group) < target) {
       warnings$add(paste0(
         "Fewer than ", target, " same-schedule donors were available for at ",
         "least one subject; the nearest donors from other dose/schedule groups ",
-        "were borrowed to reach the floor, so some measurements are blended ",
-        "across doses."
+        "on the same route were borrowed to reach the floor, so some ",
+        "measurements are blended across doses."
       ))
     }
   }
@@ -458,7 +480,7 @@
   list(
     indices = chosen,
     distances = chosen_distances,
-    weights = .randomized_weights(chosen_distances)
+    weights = .randomized_weights(chosen_distances, max_donor_weight)
   )
 }
 
@@ -475,12 +497,20 @@
 #' parameter or covariate-response relationships.
 #'
 #' @details
-#' For selected compatible donors, randomized raw weights are
+#' Donors are selected in two stages, both confined to the anchor's own
+#' administration route, which is never crossed: same-signature donors first,
+#' taken nearest-first by Euclidean distance between retained PCA profile
+#' coordinates, then --- if that yields fewer than `k` --- the nearest remaining
+#' route-compatible subjects regardless of dose or schedule.
+#'
+#' For the selected donors, randomized raw weights are
 #' `Exp(1) / max(distance, epsilon) * 2^(-randomized_rank)`. They are normalized
-#' and, when multiple donors are available, a dominant weight is capped at
-#' 0.80 with its excess redistributed. The
-#' same subject weights are used for covariates and all endpoints; weights are
-#' renormalized locally when a donor lacks a requested endpoint/time value.
+#' and then capped so that *no* donor exceeds `max_donor_weight`, the excess
+#' being redistributed proportionally among the donors still below the cap until
+#' none is over. A cap below `1/K` for `K` donors cannot be satisfied and
+#' relaxes to `1/K`, i.e. uniform weights. The same subject weights are used for
+#' covariates and all endpoints; weights are renormalized locally when a donor
+#' lacks a requested endpoint/time value.
 #'
 #' Positive-like endpoints use an offset log scale and are constrained to be
 #' nonnegative after back-transformation. Other endpoints use the identity
@@ -500,9 +530,11 @@
 #' @param k Number of real patients blended into each synthetic subject
 #'   (default 5). Same-schedule donors are used first; when a subject's
 #'   dose/schedule group holds fewer than `k`, the nearest subjects from other
-#'   groups are borrowed to reach `k`, blending measurements across doses. A
-#'   source with fewer than `k + 1` subjects cannot reach the floor and triggers
-#'   a loud alert.
+#'   groups *on the same administration route* are borrowed to reach `k`,
+#'   blending measurements across doses. Route is never crossed, so a route arm
+#'   holding fewer than `k + 1` subjects cannot reach the floor at all; those
+#'   subjects are dropped from the anchor pool with a loud alert, and the
+#'   synthetic cohort does not represent that arm.
 #' @param pca_variance Fraction of usable profile variance retained for
 #'   neighborhood distances.
 #' @param subject_noise_sd Nonnegative subject perturbation multiplier.
@@ -521,6 +553,28 @@
 #'   not. A source with no extreme subject is unaffected. Set `FALSE` to anchor
 #'   on every subject. For a fuller, tunable screen of the generated output, see
 #'   [flag_identifiable_subjects()] and [remediate_identifiable_subjects()].
+#' @param max_donor_weight Largest share of one synthetic subject that any one
+#'   real donor may contribute (default 0.30, against 0.20 for a flat average at
+#'   `k = 5`). The floor `k` sets how many patients are blended; this cap is
+#'   what bounds any single patient's contribution, so it, not `k`, is the
+#'   parameter that limits how closely an avatar can resemble one real person.
+#'   Lowering it flattens blends toward the cohort mean and shrinks synthetic
+#'   between-subject variability; raising it recovers that spread at the cost of
+#'   letting one donor dominate. The returned `pmx_settings` reports
+#'   `mean_effective_donors`, `1 / sum(w^2)`, which measures where a given cap
+#'   actually landed.
+#' @param on_donor_shortfall What to do with a subject whose administration
+#'   route holds fewer than `k + 1` subjects, so that no legal donor set exists
+#'   for it. `"drop"` (default) omits those subjects from the anchor pool: no
+#'   avatar is built on them and the synthetic cohort does not represent that
+#'   arm. `"noise"` keeps them, blending however many same-route donors exist
+#'   (possibly none) and relying on `subject_noise_sd` and `residual_noise_sd`
+#'   for the rest --- **not recommended**, because such a synthetic subject can
+#'   remain close to one real patient; screen the result with
+#'   [flag_identifiable_subjects()] if you use it. `"error"` refuses to generate
+#'   and names the choice. Every branch alerts loudly. When *every* route arm is
+#'   below the floor, `"drop"` would leave nothing to generate, so generation
+#'   proceeds as if `"noise"`.
 #'
 #' @return An ordinary data frame or tibble with retained source columns, order,
 #'   and practical classes. A lightweight `pmx_settings` attribute records the
@@ -546,7 +600,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      dv_method = "avatar_blend", k = 5,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
-                     time_jitter = 0, screen = TRUE) {
+                     time_jitter = 0, screen = TRUE,
+                     max_donor_weight = 0.30,
+                     on_donor_shortfall = c("drop", "noise", "error")) {
+  on_donor_shortfall <- match.arg(on_donor_shortfall)
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
@@ -570,7 +627,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   subjects <- .unique_in_order(source[[source_roles$id]])
   n_subjects <- .validate_generator_options(
     n_subjects, length(subjects), event_method, dv_method, k, pca_variance,
-    subject_noise_sd, residual_noise_sd, residual_phi, time_jitter
+    subject_noise_sd, residual_noise_sd, residual_phi, time_jitter,
+    max_donor_weight
   )
 
   .with_local_seed(seed, {
@@ -624,25 +682,115 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # byte-identical output to `screen = FALSE`. Turn it off to keep every
     # structure.
     allowed <- seq_along(subjects)
+    # Route is an absolute barrier (see `.route_key()`), so a subject whose
+    # route arm holds fewer than k + 1 subjects can never be blended to the
+    # floor: there is no legal donor left to borrow. What to do about it is the
+    # caller's call, because only the caller knows whether a sparsely populated
+    # arm matters more than the re-identification risk of reproducing it.
+    # `on_donor_shortfall` picks; every branch is loud, because each silently
+    # changes either what the cohort covers or how identifying it is.
+    route_size <- table(profiles$routes)
+    short_arms <- names(route_size)[route_size < as.integer(k) + 1L]
+    route_excluded <- which(profiles$routes %in% short_arms)
+    if (length(route_excluded)) {
+      arm_summary <- paste0(
+        short_arms, " (n=", as.integer(route_size[short_arms]), ")",
+        collapse = "; "
+      )
+      # The most donors any of these subjects could actually get: arm size minus
+      # itself. Zero means noise on a lone patient, which is worth saying out
+      # loud rather than leaving the reader to work out.
+      best_available <- max(as.integer(route_size[short_arms])) - 1L
+      one_subject <- length(route_excluded) == 1L
+      shortfall_context <- sprintf(
+        paste0("%d subject%s in %d route arm%s below the donor floor of %d: ",
+               "%s. Donors are never blended across routes, so %s no legal ",
+               "donor set."),
+        length(route_excluded), if (one_subject) "" else "s",
+        length(short_arms), if (length(short_arms) == 1L) "" else "s",
+        as.integer(k), arm_summary,
+        if (one_subject) "this subject has" else "these subjects have"
+      )
+      if (identical(on_donor_shortfall, "error")) {
+        stop(shortfall_context, "\n  Choose how to proceed with ",
+             "`on_donor_shortfall`:\n",
+             "  \"drop\"  (default) omit these subjects from the anchor pool; ",
+             "the synthetic cohort will not represent the arm.\n",
+             "  \"noise\" keep them, ",
+             if (best_available > 0L) {
+               sprintf(paste0("blending the %d donor%s available within their ",
+                              "own route and relying on subject and residual ",
+                              "noise for the rest"),
+                       best_available, if (best_available == 1L) "" else "s")
+             } else {
+               "with no donor at all, so only subject and residual noise"
+             },
+             ". Not recommended: such a subject can stay close to one real ",
+             "patient.",
+             call. = FALSE)
+      }
+      if (identical(on_donor_shortfall, "noise")) {
+        .loud_warn(sprintf(
+          paste0("%s They were kept anyway under `on_donor_shortfall = ",
+                 "\"noise\"`, generated from at most %d donor%s plus subject ",
+                 "and residual noise. Such avatars can stay close to one real ",
+                 "patient; treat them as individually identifying, and use ",
+                 "`flag_identifiable_subjects()` on the result. The default ",
+                 "`on_donor_shortfall = \"drop\"` omits them instead."),
+          shortfall_context, max(best_available, 0L),
+          if (best_available == 1L) "" else "s"
+        ))
+      } else if (length(route_excluded) < length(subjects)) {
+        allowed <- setdiff(allowed, route_excluded)
+        .loud_warn(sprintf(
+          paste0("%s They were dropped from the anchor pool, so the synthetic ",
+                 "cohort does not represent %s arm%s. To keep them anyway, set ",
+                 "`on_donor_shortfall = \"noise\"` -- not recommended, since ",
+                 "such a subject can stay close to one real patient."),
+          shortfall_context,
+          if (length(short_arms) == 1L) "this" else "these",
+          if (length(short_arms) == 1L) "" else "s"
+        ))
+      } else {
+        .loud_warn(sprintf(
+          paste0("%s Dropping every arm would leave nothing to generate, so ",
+                 "generation proceeded as if `on_donor_shortfall = \"noise\"`. ",
+                 "Treat the output as individually identifying."),
+          shortfall_context
+        ))
+      }
+    }
     if (isTRUE(screen)) {
       excluded <- .structural_outlier_anchors(source, source_roles)
-      if (length(excluded) && length(excluded) < length(subjects)) {
+      # Tested against `allowed`, not the whole cohort: the route floor above
+      # may already have removed anchors, and screening the rest to nothing
+      # would leave no anchor to sample.
+      if (length(excluded) && length(setdiff(allowed, excluded))) {
         allowed <- setdiff(allowed, excluded)
       } else if (length(excluded)) {
-        warning("Screening would exclude every source subject as a structural ",
-                "outlier; it was skipped for this call.", call. = FALSE)
+        warning("Screening would exclude every eligible source subject as a ",
+                "structural outlier; it was skipped for this call.",
+                call. = FALSE)
       }
     }
     anchors <- allowed[sample.int(length(allowed), n_subjects, replace = TRUE)]
     standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
+    # Inverse participation ratio of the donor weights, 1 / sum(w^2): the number
+    # of donors an avatar is *effectively* blended from, which is what the
+    # weight cap actually controls. It equals K for uniform weights and 1 for a
+    # sole donor, and -- treating donors as independent -- the blend retains
+    # sum(w^2) of individual variance, so it reads as a privacy floor and as the
+    # between-subject-variability cost in the same number.
+    effective_donors <- numeric(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
-      donors <- .select_donors(anchor, profiles, k, warnings)
+      donors <- .select_donors(anchor, profiles, k, warnings, max_donor_weight)
+      effective_donors[synthetic_index] <- 1 / sum(donors$weights^2)
       skeleton <- .synthesize_covariates(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd
@@ -688,7 +836,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         "normalized observation-window fallback"
       ),
       compatible_event_groups = length(unique(profiles$signatures)),
-      max_donor_weight = 0.80,
+      routes = length(unique(profiles$routes)),
+      on_donor_shortfall = on_donor_shortfall,
+      max_donor_weight = max_donor_weight,
+      mean_effective_donors = mean(effective_donors),
+      min_effective_donors = min(effective_donors),
       warnings = warnings$messages
     )
     attr(result, "pmx_settings") <- settings
