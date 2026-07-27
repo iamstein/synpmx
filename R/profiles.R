@@ -270,10 +270,10 @@
 # closes after at most one pass per donor.
 #
 # Capping only `which.max()` (the behavior through the 0.80 era) was adequate
-# while the cap was loose, because a second donor rarely reached it. At 0.30 the
-# runner-up routinely lands above the cap once the leader's excess is
-# redistributed, so a single pass would leave the documented maximum violated by
-# the very donor the redistribution created.
+# while the cap was loose, because a second donor rarely reached it. At a cap
+# that actually bites, the runner-up routinely lands above it once the leader's
+# excess is redistributed, so a single pass would leave the documented maximum
+# violated by the very donor the redistribution created.
 #
 # No weight vector of length K can satisfy a cap below 1/K, so such a cap
 # relaxes to exactly 1/K: uniform weights, the flattest blend available. This is
@@ -303,7 +303,7 @@
   weights / sum(weights)
 }
 
-.randomized_weights <- function(distances, max_weight = 0.30) {
+.randomized_weights <- function(distances, max_weight = 0.50) {
   n <- length(distances)
   if (!n) return(numeric())
   if (n == 1L) return(1)

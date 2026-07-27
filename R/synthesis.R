@@ -434,7 +434,7 @@
 }
 
 .select_donors <- function(anchor, profiles, k, warnings,
-                           max_donor_weight = 0.30) {
+                           max_donor_weight = 0.50) {
   target <- as.integer(k)
   routes <- profiles$routes %||% rep("none", length(profiles$subjects))
   compatible <- setdiff(which(routes == routes[anchor]), anchor)
@@ -554,15 +554,23 @@
 #'   on every subject. For a fuller, tunable screen of the generated output, see
 #'   [flag_identifiable_subjects()] and [remediate_identifiable_subjects()].
 #' @param max_donor_weight Largest share of one synthetic subject that any one
-#'   real donor may contribute (default 0.30, against 0.20 for a flat average at
-#'   `k = 5`). The floor `k` sets how many patients are blended; this cap is
-#'   what bounds any single patient's contribution, so it, not `k`, is the
-#'   parameter that limits how closely an avatar can resemble one real person.
-#'   Lowering it flattens blends toward the cohort mean and shrinks synthetic
-#'   between-subject variability; raising it recovers that spread at the cost of
-#'   letting one donor dominate. The returned `pmx_settings` reports
-#'   `mean_effective_donors`, `1 / sum(w^2)`, which measures where a given cap
-#'   actually landed.
+#'   real donor may contribute. The default 0.50 states simply that no single
+#'   real patient is more than half of any synthetic patient.
+#'
+#'   The floor `k` sets how many patients are blended; this cap is what bounds
+#'   any single patient's contribution, so it, not `k`, is the parameter that
+#'   limits how closely an avatar can resemble one real person. Without a cap
+#'   the randomized weights are strongly concentrated --- a median 58% of an
+#'   avatar in one donor at `k = 5`, and about 2.4 effective donors --- so the
+#'   cap is what makes the floor mean anything.
+#'
+#'   Two diagnostics in the returned `pmx_settings` say where a given value
+#'   landed: `mean_effective_donors` is `1 / sum(w^2)`, the number of donors an
+#'   avatar is effectively blended from, and `cap_binding_fraction` is how often
+#'   the cap actually fired. A cap binding on nearly every subject is not a
+#'   guardrail but the weighting scheme itself, with the inverse-distance term
+#'   underneath it doing little; one that never fires is not protecting
+#'   anything. At `k = 5` the default binds on roughly two thirds of subjects.
 #' @param on_donor_shortfall What to do with a subject whose administration
 #'   route holds fewer than `k + 1` subjects, so that no legal donor set exists
 #'   for it. `"drop"` (default) omits those subjects from the anchor pool: no
@@ -601,7 +609,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
                      time_jitter = 0, screen = TRUE,
-                     max_donor_weight = 0.30,
+                     max_donor_weight = 0.50,
                      on_donor_shortfall = c("drop", "noise", "error")) {
   on_donor_shortfall <- match.arg(on_donor_shortfall)
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
@@ -783,6 +791,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # sum(w^2) of individual variance, so it reads as a privacy floor and as the
     # between-subject-variability cost in the same number.
     effective_donors <- numeric(n_subjects)
+    # How often the cap actually binds. A cap that fires on nearly every subject
+    # is not a guardrail, it *is* the weighting scheme, and the inverse-distance
+    # term underneath it is doing little; a cap that never fires is not
+    # protecting anything. Reporting the rate is what makes that visible on real
+    # data instead of inferable only by simulation.
+    cap_bound <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -791,6 +805,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
       donors <- .select_donors(anchor, profiles, k, warnings, max_donor_weight)
       effective_donors[synthetic_index] <- 1 / sum(donors$weights^2)
+      cap_bound[synthetic_index] <- length(donors$weights) > 1L &&
+        max(donors$weights) >= max_donor_weight - sqrt(.Machine$double.eps)
       skeleton <- .synthesize_covariates(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd
@@ -839,6 +855,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       routes = length(unique(profiles$routes)),
       on_donor_shortfall = on_donor_shortfall,
       max_donor_weight = max_donor_weight,
+      cap_binding_fraction = mean(cap_bound),
       mean_effective_donors = mean(effective_donors),
       min_effective_donors = min(effective_donors),
       warnings = warnings$messages

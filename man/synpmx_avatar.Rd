@@ -18,7 +18,7 @@ synpmx_avatar(
   residual_phi = 0.6,
   time_jitter = 0,
   screen = TRUE,
-  max_donor_weight = 0.3,
+  max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
 }
@@ -73,15 +73,23 @@ on every subject. For a fuller, tunable screen of the generated output, see
 \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}} and \code{\link[=remediate_identifiable_subjects]{remediate_identifiable_subjects()}}.}
 
 \item{max_donor_weight}{Largest share of one synthetic subject that any one
-real donor may contribute (default 0.30, against 0.20 for a flat average at
-\code{k = 5}). The floor \code{k} sets how many patients are blended; this cap is
-what bounds any single patient's contribution, so it, not \code{k}, is the
-parameter that limits how closely an avatar can resemble one real person.
-Lowering it flattens blends toward the cohort mean and shrinks synthetic
-between-subject variability; raising it recovers that spread at the cost of
-letting one donor dominate. The returned \code{pmx_settings} reports
-\code{mean_effective_donors}, \code{1 / sum(w^2)}, which measures where a given cap
-actually landed.}
+real donor may contribute. The default 0.50 states simply that no single
+real patient is more than half of any synthetic patient.
+
+The floor \code{k} sets how many patients are blended; this cap is what bounds
+any single patient's contribution, so it, not \code{k}, is the parameter that
+limits how closely an avatar can resemble one real person. Without a cap
+the randomized weights are strongly concentrated --- a median 58\% of an
+avatar in one donor at \code{k = 5}, and about 2.4 effective donors --- so the
+cap is what makes the floor mean anything.
+
+Two diagnostics in the returned \code{pmx_settings} say where a given value
+landed: \code{mean_effective_donors} is \code{1 / sum(w^2)}, the number of donors an
+avatar is effectively blended from, and \code{cap_binding_fraction} is how often
+the cap actually fired. A cap binding on nearly every subject is not a
+guardrail but the weighting scheme itself, with the inverse-distance term
+underneath it doing little; one that never fires is not protecting
+anything. At \code{k = 5} the default binds on roughly two thirds of subjects.}
 
 \item{on_donor_shortfall}{What to do with a subject whose administration
 route holds fewer than \code{k + 1} subjects, so that no legal donor set exists

@@ -52,11 +52,13 @@ test_that("synpmx_avatar records the cap and the effective donor count", {
     suppressWarnings(synpmx_avatar(theo_md, roles, seed = 101)), "pmx_settings"
   )
 
-  expect_equal(settings$max_donor_weight, 0.30)
-  # 1 / sum(w^2) cannot exceed k, and a 0.30 cap must keep it above the 1/0.30
-  # a maximally concentrated capped vector would give.
+  expect_equal(settings$max_donor_weight, 0.50)
+  expect_true(settings$cap_binding_fraction >= 0 &&
+                settings$cap_binding_fraction <= 1)
+  # 1 / sum(w^2) cannot exceed k, and a cap of c keeps it at or above 1/c,
+  # the value a maximally concentrated capped vector would give.
   expect_lte(settings$mean_effective_donors, settings$k)
-  expect_gte(settings$min_effective_donors, 1 / 0.30)
+  expect_gte(settings$min_effective_donors, 1 / 0.50)
 })
 
 test_that("max_donor_weight is validated", {
