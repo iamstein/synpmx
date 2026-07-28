@@ -80,25 +80,47 @@
 
     
     
-<p>This article builds a source dataset with four relationships put in
-deliberately — a covariate effect, a dose effect, a treatment effect,
-and an exposure–response link — runs <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> over
-it, and measures how much of each one comes out the other side.</p>
-<p>AVATAR does not explicity model any of these relationships. There is
-no covariate model in it, no dose–response model, no PK/PD link, and no
-notion of a treatment arm. Nothing in the generator knows that weight
-ought to affect clearance. Whatever survives does so as a <strong>side
-effect of how the method works</strong>; whole real subjects are blended
-together, and a subject carries all of its properties at once. So the
-right expectation is a <em>tendency</em> to keep relationships, but
-there is not a guarantee.</p>
+<p>This article builds source datasets with relationships put in
+deliberately — covariate effects, a dose effect, a treatment effect, and
+an exposure–response link — runs <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> over them,
+and measures how much of each one comes out the other side.</p>
+<p>AVATAR does not explicitly model any of these relationships. There is
+no covariate model in it, no dose–response model, no
+pharmacokinetic/pharmacodynamic (PK/PD) link, and no notion of a
+treatment arm. Nothing in the generator knows that weight ought to
+affect clearance. Whatever survives does so as a <strong>side effect of
+how the method works</strong>; whole real subjects are blended together,
+and a subject carries all of its properties at once. So the right
+expectation is a <em>tendency</em> to keep relationships, but there is
+not a guarantee.</p>
+<p>Two source datasets are used, in increasing order of difficulty.</p>
+<ul>
+<li>
+<strong><a href="#example-1-one-compartment-one-covariate">Example
+1</a></strong> is the small case: a one-compartment model, one
+covariate, four relationships. It establishes the measurement approach
+and shows the basic result.</li>
+<li>
+<strong><a href="#example-2-two-compartments-three-correlated-covariates">Example
+2</a></strong> is the harder case: a two-compartment model, three
+<em>correlated</em> covariates, a saturating exposure–response, and a
+richer set of diagnostics. Correlated covariates are where the
+interesting behaviour is, because blending acts on the joint
+distribution rather than on one column at a time.</li>
+</ul>
+<p>The mechanism behind both results, and where it stops working, is
+discussed <a href="#why-the-avatar-algorithm-preserves-relationships">once at the
+end</a> — it is the same mechanism in both examples.</p>
 <div class="section level2">
-<h2 id="the-model-the-source-data-comes-from">The model the source data comes from<a class="anchor" aria-label="anchor" href="#the-model-the-source-data-comes-from"></a>
+<h2 id="example-1-one-compartment-one-covariate">Example 1: one compartment, one covariate<a class="anchor" aria-label="anchor" href="#example-1-one-compartment-one-covariate"></a>
 </h2>
+<div class="section level3">
+<h3 id="the-model-the-source-data-comes-from">The model the source data comes from<a class="anchor" aria-label="anchor" href="#the-model-the-source-data-comes-from"></a>
+</h3>
 <p>Everything here is simulated, so the truth is known exactly and no
 real patient is involved. The four relationships being tested are the
 four places a covariate or a dose enters these equations — nothing else
-in the article puts a relationship in.</p>
+in the example puts a relationship in.</p>
 <p><strong>Pharmacokinetics.</strong> One-compartment oral, first-order
 absorption and elimination, for subject
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
@@ -140,13 +162,14 @@ reaches higher concentrations, so its response is driven further down)
 and the <strong>exposure–response</strong> link (whatever a subject’s
 exposure, response tracks it). There is no separate “treatment” term:
 the arm matters only through the dose it implies.</p>
-<div class="section level3">
-<h3 id="what-that-predicts-before-any-data-is-generated">What that predicts, before any data is generated<a class="anchor" aria-label="anchor" href="#what-that-predicts-before-any-data-is-generated"></a>
-</h3>
+<div class="section level4">
+<h4 id="what-that-predicts-before-any-data-is-generated">What that predicts, before any data is generated<a class="anchor" aria-label="anchor" href="#what-that-predicts-before-any-data-is-generated"></a>
+</h4>
 <p>Two of these have closed-form consequences worth writing down,
 because they are what the table later checks against:</p>
-<p>Since
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>U</mi><msub><mi>C</mi><mrow><mn>0</mn><mo>−</mo><mi>∞</mi></mrow></msub><mo>=</mo><mi>D</mi><mi>/</mi><mi>C</mi><mi>L</mi></mrow><annotation encoding="application/x-tex">AUC_{0-\infty} = D/CL</annotation></semantics></math>
+<p>Since the area under the concentration–time curve extrapolated to
+infinity satisfies
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>U</mi><msub><mi>C</mi><mrow><mn>0</mn><mo>−</mo><mi>∞</mi></mrow></msub><mo>=</mo><mi>D</mi><mi>/</mi><mi>C</mi><mi>L</mi></mrow><annotation encoding="application/x-tex">AUC_{0-\infty} = D/CL</annotation></semantics></math>,
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>L</mi><mo>∝</mo><mi>W</mi><msup><mi>T</mi><mn>0.75</mn></msup></mrow><annotation encoding="application/x-tex">CL \propto WT^{0.75}</annotation></semantics></math>,</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mfrac><mrow><mi>A</mi><mi>U</mi><msub><mi>C</mi><mi>i</mi></msub></mrow><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>=</mo><mtext mathvariant="normal">constant</mtext><mo>−</mo><mn>0.75</mn><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>W</mi><msub><mi>T</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">
@@ -167,9 +190,9 @@ are the ground truth. Everything below asks how much of them
 survives.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="generating-the-source-dataset">Generating the source dataset<a class="anchor" aria-label="anchor" href="#generating-the-source-dataset"></a>
-</h2>
+<div class="section level3">
+<h3 id="generating-the-source-dataset">Generating the source dataset<a class="anchor" aria-label="anchor" href="#generating-the-source-dataset"></a>
+</h3>
 <p>Eighty subjects, forty per arm.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
@@ -227,9 +250,9 @@ from its anchor. Those are different subjects — the anchor supplies the
 skeleton and the kept columns, the donors supply the values — which is
 why the treatment effect surviving at all is not obvious in advance.</p>
 </div>
-<div class="section level2">
-<h2 id="measuring-the-four-relationships">Measuring the four relationships<a class="anchor" aria-label="anchor" href="#measuring-the-four-relationships"></a>
-</h2>
+<div class="section level3">
+<h3 id="measuring-the-four-relationships">Measuring the four relationships<a class="anchor" aria-label="anchor" href="#measuring-the-four-relationships"></a>
+</h3>
 <p>Each measurement is chosen so its answer can be compared against a
 number we already know from the equations above.</p>
 <p>To recover the allometric exponent, log AUC must be regressed on log
@@ -273,16 +296,16 @@ exponent of about 0.75, and an arm ratio of about 2. That is the check
 that the source dataset really contains what we think it contains,
 before AVATAR is asked to preserve it.</p>
 </div>
-<div class="section level2">
-<h2 id="what-the-source-data-looks-like">What the source data looks like<a class="anchor" aria-label="anchor" href="#what-the-source-data-looks-like"></a>
-</h2>
+<div class="section level3">
+<h3 id="what-the-source-data-looks-like">What the source data looks like<a class="anchor" aria-label="anchor" href="#what-the-source-data-looks-like"></a>
+</h3>
 <p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/source-plot-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
 <p>The high arm reaches higher concentrations and its response is driven
 further down — relationships 2 and 3, visible directly.</p>
 </div>
-<div class="section level2">
-<h2 id="run-avatar-several-times">Run AVATAR, several times<a class="anchor" aria-label="anchor" href="#run-avatar-several-times"></a>
-</h2>
+<div class="section level3">
+<h3 id="run-avatar-several-times">Run AVATAR, several times<a class="anchor" aria-label="anchor" href="#run-avatar-several-times"></a>
+</h3>
 <p>One synthetic dataset tells you little, because each run draws its
 own anchors and donors. Thirty runs show both the central tendency and
 the spread, and the spread is as much the point as the average.</p>
@@ -343,21 +366,23 @@ runs</caption>
 </tbody>
 </table>
 <p>Every relationship survives, and all four land within roughly 10% of
-the source value. The direction is consistently mild
+the source value. The two regression-based measures show mild
 <strong>dilution</strong> rather than distortion: the allometric
 exponent softens from 0.75 to about 0.68, and the exposure–response
 slope loses about a tenth of its steepness. Blending pulls each subject
 toward its neighbours, and a relationship measured across subjects
-flattens slightly as a result.</p>
+flattens slightly as a result. The two ratio-based measures barely move
+at all. Example 2 shows that the dilution is not a law — the sign can go
+the other way.</p>
 <p>The <code>run_to_run_sd</code> column is the honest part of the
 table. The <em>average</em> over thirty runs sits close to the truth,
 but a single synthetic dataset can land well off it — the allometric
 exponent has a run-to-run SD of about 0.18 on a value of 0.68, so one
 draw can easily read 0.5 or 0.9.</p>
 </div>
-<div class="section level2">
-<h2 id="seeing-it-rather-than-reading-it">Seeing it, rather than reading it<a class="anchor" aria-label="anchor" href="#seeing-it-rather-than-reading-it"></a>
-</h2>
+<div class="section level3">
+<h3 id="seeing-it-rather-than-reading-it">Seeing it, rather than reading it<a class="anchor" aria-label="anchor" href="#seeing-it-rather-than-reading-it"></a>
+</h3>
 <p>The two relationships that are easiest to misjudge from a table are
 the covariate effect and the exposure–response link. Both are visible
 directly.</p>
@@ -373,9 +398,9 @@ Both are present in the synthetic panel, with the cloud slightly tighter
 — that tightening is the blending, and it is why the fitted slope
 flattens a little.</p>
 </div>
-<div class="section level2">
-<h2 id="is-the-treatment-arm-coherent-with-the-dose">Is the treatment arm coherent with the dose?<a class="anchor" aria-label="anchor" href="#is-the-treatment-arm-coherent-with-the-dose"></a>
-</h2>
+<div class="section level3">
+<h3 id="is-the-treatment-arm-coherent-with-the-dose">Is the treatment arm coherent with the dose?<a class="anchor" aria-label="anchor" href="#is-the-treatment-arm-coherent-with-the-dose"></a>
+</h3>
 <p><code>ARM</code> is copied from the anchor and the concentrations are
 blended from the donors, so nothing structurally prevents a “high” label
 from arriving with “low” data. Check it directly.</p>
@@ -386,9 +411,656 @@ from arriving with “low” data. Check it directly.</p>
 <span><span class="co">#&gt; ARM    300 600</span></span>
 <span><span class="co">#&gt;   high   0  41</span></span>
 <span><span class="co">#&gt;   low   39   0</span></span></code></pre></div>
-<p>Every synthetic subject’s arm label matches its dose. That is not
-luck, and it is worth understanding why, because it is the mechanism the
-whole article rests on.</p>
+<p>Every synthetic subject’s arm label matches its dose — see <a href="#why-the-avatar-algorithm-preserves-relationships">the mechanism
+section</a> for why that is not luck.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="example-2-two-compartments-three-correlated-covariates">Example 2: two compartments, three correlated covariates<a class="anchor" aria-label="anchor" href="#example-2-two-compartments-three-correlated-covariates"></a>
+</h2>
+<p>Example 1 is deliberately easy: one compartment, one covariate,
+effects that are large relative to between-subject variability. A
+colleague’s first question is what happens when the model looks more
+like a real one. This example raises every dimension at once:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Example 1</th>
+<th>Example 2</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Structure</td>
+<td>one compartment, oral</td>
+<td>
+<strong>two</strong> compartments, oral</td>
+</tr>
+<tr class="even">
+<td>Covariates</td>
+<td><code>WT</code></td>
+<td>
+<code>WT</code>, <code>CRCL</code>, <code>AGE</code>
+</td>
+</tr>
+<tr class="odd">
+<td>Covariate distribution</td>
+<td>independent</td>
+<td>
+<strong>correlated</strong> (multivariate normal)</td>
+</tr>
+<tr class="even">
+<td>Covariates on clearance</td>
+<td>1</td>
+<td>2, and they are collinear</td>
+</tr>
+<tr class="odd">
+<td>Exposure–response</td>
+<td>linear</td>
+<td>
+<strong>saturating</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><annotation encoding="application/x-tex">E_{max}</annotation></semantics></math>)</td>
+</tr>
+<tr class="even">
+<td>Subjects</td>
+<td>80</td>
+<td>150</td>
+</tr>
+</tbody>
+</table>
+<p>The two changes that actually matter are the last-but-one and the
+third. A two-compartment profile has a shape — a fast distribution phase
+and a slow terminal phase — that a one-compartment profile does not, so
+there is a structural feature that can be lost independently of any
+covariate effect. And correlated covariates mean the generator has to
+preserve a <em>joint</em> distribution, not three marginal ones, before
+any covariate effect can be measured correctly.</p>
+<div class="section level3">
+<h3 id="the-model-the-source-data-comes-from-1">The model the source data comes from<a class="anchor" aria-label="anchor" href="#the-model-the-source-data-comes-from-1"></a>
+</h3>
+<p><strong>Covariates.</strong> Three of them, drawn together from a
+multivariate normal on a latent scale so that they carry a correlation
+structure:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>𝐳</mi><mi>i</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>𝟎</mn><mo>,</mo><mi>𝐑</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>𝐑</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0.50</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0.10</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0.50</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>−</mi><mn>0.60</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0.10</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>−</mi><mn>0.60</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd></mtr></mtable><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
+\mathbf{z}_i \sim N(\mathbf{0}, \mathbf{R}), \qquad
+\mathbf{R}=\begin{pmatrix}
+1 &amp; 0.50 &amp; 0.10\\
+0.50 &amp; 1 &amp; -0.60\\
+0.10 &amp; -0.60 &amp; 1
+\end{pmatrix}
+</annotation></semantics></math></p>
+<p>for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>W</mi><mi>T</mi><mo>,</mo><mi>C</mi><mi>R</mi><mi>C</mi><mi>L</mi><mo>,</mo><mi>A</mi><mi>G</mi><mi>E</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(WT, CRCL, AGE)</annotation></semantics></math>
+— weight in kg, creatinine clearance (CRCL) in mL/min, and age in years.
+Heavier subjects filter more (+0.50), older subjects filter less
+(−0.60), and weight and age are close to independent (+0.10). That is a
+crude but recognisable rendering of a real covariate table, and the
+negative CRCL–age correlation is the one that causes trouble later.</p>
+<p><strong>Pharmacokinetics.</strong> Two-compartment with first-order
+oral absorption. Writing
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mn>10</mn></msub><mo>=</mo><mi>C</mi><mi>L</mi><mi>/</mi><msub><mi>V</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">k_{10}=CL/V_c</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mn>12</mn></msub><mo>=</mo><mi>Q</mi><mi>/</mi><msub><mi>V</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">k_{12}=Q/V_c</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mn>21</mn></msub><mo>=</mo><mi>Q</mi><mi>/</mi><msub><mi>V</mi><mi>p</mi></msub></mrow><annotation encoding="application/x-tex">k_{21}=Q/V_p</annotation></semantics></math>,
+the macro rate constants
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>&gt;</mo><mi>β</mi></mrow><annotation encoding="application/x-tex">\alpha&gt;\beta</annotation></semantics></math>
+are the roots of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>−</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>k</mi><mn>10</mn></msub><mo>+</mo><msub><mi>k</mi><mn>12</mn></msub><mo>+</mo><msub><mi>k</mi><mn>21</mn></msub><mo stretchy="false" form="postfix">)</mo><mi>x</mi><mo>+</mo><msub><mi>k</mi><mn>10</mn></msub><msub><mi>k</mi><mn>21</mn></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x^2-(k_{10}+k_{12}+k_{21})x+k_{10}k_{21}=0</annotation></semantics></math>,
+and</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><msub><mi>D</mi><mi>i</mi></msub><msub><mi>k</mi><mi>a</mi></msub></mrow><msub><mi>V</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow></msub></mfrac><mrow><mo stretchy="true" form="prefix">[</mo><mfrac><mrow><msub><mi>k</mi><mn>21</mn></msub><mo>−</mo><mi>α</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>k</mi><mi>a</mi></msub><mo>−</mo><mi>α</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo>−</mo><mi>α</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac><msup><mi>e</mi><mrow><mi>−</mi><mi>α</mi><mi>t</mi></mrow></msup><mo>+</mo><mfrac><mrow><msub><mi>k</mi><mn>21</mn></msub><mo>−</mo><mi>β</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>k</mi><mi>a</mi></msub><mo>−</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mi>α</mi><mo>−</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac><msup><mi>e</mi><mrow><mi>−</mi><mi>β</mi><mi>t</mi></mrow></msup><mo>+</mo><mfrac><mrow><msub><mi>k</mi><mn>21</mn></msub><mo>−</mo><msub><mi>k</mi><mi>a</mi></msub></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mi>α</mi><mo>−</mo><msub><mi>k</mi><mi>a</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo>−</mo><msub><mi>k</mi><mi>a</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow></mfrac><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>k</mi><mi>a</mi></msub><mi>t</mi></mrow></msup><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">
+C_i(t)=\frac{D_i k_a}{V_{c,i}}\left[
+\frac{k_{21}-\alpha}{(k_a-\alpha)(\beta-\alpha)}e^{-\alpha t}+
+\frac{k_{21}-\beta}{(k_a-\beta)(\alpha-\beta)}e^{-\beta t}+
+\frac{k_{21}-k_a}{(\alpha-k_a)(\beta-k_a)}e^{-k_a t}\right]
+</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mi>a</mi></msub><mo>=</mo><mn>1.5</mn><mspace width="0.222em"></mspace><msup><mi mathvariant="normal">h</mi><mrow><mi mathvariant="normal">−</mi><mn mathvariant="normal">1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">k_a=1.5\ \mathrm{h^{-1}}</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mo>=</mo><mn>15</mn><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">L</mi><mi mathvariant="normal">/</mi><mi mathvariant="normal">h</mi></mrow></mrow><annotation encoding="application/x-tex">Q=15\ \mathrm{L/h}</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>V</mi><mi>p</mi></msub><mo>=</mo><mn>50</mn><mspace width="0.222em"></mspace><mi mathvariant="normal">L</mi></mrow><annotation encoding="application/x-tex">V_p=50\ \mathrm{L}</annotation></semantics></math>.
+At typical parameter values that gives a distribution half-life of about
+0.8 h and a <strong>terminal half-life of about 15 h</strong> — the two
+phases are well separated, so the biphasic shape is a real feature of
+the data and not a curiosity of the parameterisation.</p>
+<p><strong>Covariate effects.</strong> Two covariates act on clearance
+and one acts on the pharmacodynamic baseline:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><msub><mi>L</mi><mi>i</mi></msub><mo>=</mo><mn>4</mn><msup><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mi>W</mi><msub><mi>T</mi><mi>i</mi></msub></mrow><mn>70</mn></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mn mathvariant="bold">0.75</mn></msup><msup><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mi>C</mi><mi>R</mi><mi>C</mi><msub><mi>L</mi><mi>i</mi></msub></mrow><mn>100</mn></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mn mathvariant="bold">0.50</mn></msup><msup><mi>e</mi><msub><mi>η</mi><mrow><mi>C</mi><mi>L</mi><mo>,</mo><mi>i</mi></mrow></msub></msup><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>V</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mn>30</mn><msup><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mi>W</mi><msub><mi>T</mi><mi>i</mi></msub></mrow><mn>70</mn></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mn>1.0</mn></msup><msup><mi>e</mi><msub><mi>η</mi><mrow><mi>V</mi><mo>,</mo><mi>i</mi></mrow></msub></msup><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>E</mi><mrow><mn>0</mn><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mn>100</mn><msup><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mi>A</mi><mi>G</mi><msub><mi>E</mi><mi>i</mi></msub></mrow><mn>55</mn></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mn mathvariant="bold">0.30</mn></msup><msup><mi>e</mi><msub><mi>η</mi><mrow><msub><mi>E</mi><mn>0</mn></msub><mo>,</mo><mi>i</mi></mrow></msub></msup></mrow><annotation encoding="application/x-tex">
+CL_i = 4\left(\frac{WT_i}{70}\right)^{\mathbf{0.75}}
+         \left(\frac{CRCL_i}{100}\right)^{\mathbf{0.50}} e^{\eta_{CL,i}},
+\qquad
+V_{c,i} = 30\left(\frac{WT_i}{70}\right)^{1.0} e^{\eta_{V,i}},
+\qquad
+E_{0,i} = 100\left(\frac{AGE_i}{55}\right)^{\mathbf{0.30}} e^{\eta_{E_0,i}}
+</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi>C</mi><mi>L</mi></mrow></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>0.15</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_{CL}\sim N(0,0.15^2)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>V</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>0.15</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_V\sim N(0,0.15^2)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><msub><mi>E</mi><mn>0</mn></msub></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>0.10</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_{E_0}\sim N(0,0.10^2)</annotation></semantics></math>.</p>
+<p><strong>Pharmacodynamics.</strong> A direct but <em>saturating</em>
+inhibitory effect:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>E</mi><mrow><mn>0</mn><mo>,</mo><mi>i</mi></mrow></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mfrac><mrow><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><mspace width="0.167em"></mspace><msub><mi>C</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>E</mi><msub><mi>C</mi><mn>50</mn></msub><mo>+</mo><msub><mi>C</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><msup><mi>e</mi><mi>ε</mi></msup><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><mo>=</mo><mn>0.60</mn><mo>,</mo><mspace width="1.0em"></mspace><mi>E</mi><msub><mi>C</mi><mn>50</mn></msub><mo>=</mo><mn>2</mn><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">/</mi><mi mathvariant="normal">L</mi></mrow></mrow><annotation encoding="application/x-tex">
+E_i(t) = E_{0,i}\left(1 - \frac{E_{max}\,C_i(t)}{EC_{50}+C_i(t)}\right)e^{\varepsilon},
+\qquad E_{max}=0.60,\quad EC_{50}=2\ \mathrm{mg/L}
+</annotation></semantics></math></p>
+<p>Saturation is the point. Because
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>U</mi><msub><mi>C</mi><mrow><mn>0</mn><mo>−</mo><mi>∞</mi></mrow></msub><mo>=</mo><mi>D</mi><mi>/</mi><mi>C</mi><mi>L</mi></mrow><annotation encoding="application/x-tex">AUC_{0-\infty}=D/CL</annotation></semantics></math>
+still holds, doubling the dose still doubles exposure exactly — but it
+does <strong>not</strong> double the response, because the high arm
+spends more of its time on the flat part of the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><annotation encoding="application/x-tex">E_{max}</annotation></semantics></math>
+curve. The response ratio between arms should therefore come out well
+below 2.</p>
+<div class="section level4">
+<h4 id="what-that-predicts-before-any-data-is-generated-1">What that predicts, before any data is generated<a class="anchor" aria-label="anchor" href="#what-that-predicts-before-any-data-is-generated-1"></a>
+</h4>
+<p>Three consequences to check against later:</p>
+<ol style="list-style-type: decimal">
+<li>Since
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>U</mi><msub><mi>C</mi><mrow><mn>0</mn><mo>−</mo><mi>∞</mi></mrow></msub><mo>=</mo><mi>D</mi><mi>/</mi><mi>C</mi><mi>L</mi></mrow><annotation encoding="application/x-tex">AUC_{0-\infty}=D/CL</annotation></semantics></math>,
+a regression of dose-normalised log AUC on <strong>both</strong> log
+weight and log CRCL should recover
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>0.75</mn></mrow><annotation encoding="application/x-tex">-0.75</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>0.50</mn></mrow><annotation encoding="application/x-tex">-0.50</annotation></semantics></math>.</li>
+<li>Leaving CRCL out of that regression should <strong>not</strong>
+recover
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>0.75</mn></mrow><annotation encoding="application/x-tex">-0.75</annotation></semantics></math>.
+Weight and CRCL are correlated at 0.50, so the weight coefficient
+absorbs part of the CRCL effect and reads far too steep. This is
+ordinary confounding, and it is worth measuring precisely because it is
+a property of the joint covariate distribution — exactly the thing
+blending might damage.</li>
+<li>The high/low AUC ratio should be 2, and the high/low
+<em>response</em> ratio should be clearly less than 2.</li>
+</ol>
+</div>
+</div>
+<div class="section level3">
+<h3 id="generating-the-source-dataset-1">Generating the source dataset<a class="anchor" aria-label="anchor" href="#generating-the-source-dataset-1"></a>
+</h3>
+<p>One hundred and fifty subjects, seventy-five per arm. Correlated
+covariates are drawn with a Cholesky factor, so no extra package is
+needed.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">303</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cov_corr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="fl">1.00</span>,  <span class="fl">0.50</span>,  <span class="fl">0.10</span>,</span>
+<span>  <span class="fl">0.50</span>,  <span class="fl">1.00</span>, <span class="op">-</span><span class="fl">0.60</span>,</span>
+<span>  <span class="fl">0.10</span>, <span class="op">-</span><span class="fl">0.60</span>,  <span class="fl">1.00</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">chol_R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/chol.html" class="external-link">chol</a></span><span class="op">(</span><span class="va">cov_corr</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Three correlated covariates on a latent normal scale, then transformed to</span></span>
+<span><span class="co"># plausible clinical ranges and clipped so nothing extreme comes out.</span></span>
+<span><span class="va">draw_covariates</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">3</span> <span class="op">*</span> <span class="va">n</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">chol_R</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    WT   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">70</span> <span class="op">+</span> <span class="fl">12</span> <span class="op">*</span> <span class="va">z</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    CRCL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">100</span> <span class="op">+</span> <span class="fl">30</span> <span class="op">*</span> <span class="va">z</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    AGE  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="fl">85</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">55</span> <span class="op">+</span> <span class="fl">12</span> <span class="op">*</span> <span class="va">z</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Two-compartment oral, in macro rate constants.</span></span>
+<span><span class="va">conc_2cmt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">dose</span>, <span class="va">cl</span>, <span class="va">vc</span>, <span class="va">q</span>, <span class="va">vp</span>, <span class="va">ka</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">k10</span> <span class="op">&lt;-</span> <span class="va">cl</span> <span class="op">/</span> <span class="va">vc</span>; <span class="va">k12</span> <span class="op">&lt;-</span> <span class="va">q</span> <span class="op">/</span> <span class="va">vc</span>; <span class="va">k21</span> <span class="op">&lt;-</span> <span class="va">q</span> <span class="op">/</span> <span class="va">vp</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">k10</span> <span class="op">+</span> <span class="va">k12</span> <span class="op">+</span> <span class="va">k21</span></span>
+<span>  <span class="va">alpha</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">s</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">s</span><span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">4</span> <span class="op">*</span> <span class="va">k10</span> <span class="op">*</span> <span class="va">k21</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span></span>
+<span>  <span class="va">beta</span>  <span class="op">&lt;-</span> <span class="op">(</span><span class="va">s</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">s</span><span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">4</span> <span class="op">*</span> <span class="va">k10</span> <span class="op">*</span> <span class="va">k21</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span></span>
+<span>  <span class="va">dose</span> <span class="op">*</span> <span class="va">ka</span> <span class="op">/</span> <span class="va">vc</span> <span class="op">*</span> <span class="op">(</span></span>
+<span>    <span class="op">(</span><span class="va">k21</span> <span class="op">-</span> <span class="va">alpha</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="op">(</span><span class="va">ka</span> <span class="op">-</span> <span class="va">alpha</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">beta</span> <span class="op">-</span> <span class="va">alpha</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">alpha</span> <span class="op">*</span> <span class="va">t</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="op">(</span><span class="va">k21</span> <span class="op">-</span> <span class="va">beta</span><span class="op">)</span>  <span class="op">/</span> <span class="op">(</span><span class="op">(</span><span class="va">ka</span> <span class="op">-</span> <span class="va">beta</span><span class="op">)</span>  <span class="op">*</span> <span class="op">(</span><span class="va">alpha</span> <span class="op">-</span> <span class="va">beta</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">beta</span>  <span class="op">*</span> <span class="va">t</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="op">(</span><span class="va">k21</span> <span class="op">-</span> <span class="va">ka</span><span class="op">)</span>    <span class="op">/</span> <span class="op">(</span><span class="op">(</span><span class="va">alpha</span> <span class="op">-</span> <span class="va">ka</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">beta</span> <span class="op">-</span> <span class="va">ka</span><span class="op">)</span><span class="op">)</span>    <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">ka</span>    <span class="op">*</span> <span class="va">t</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">pk_time_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">8</span>, <span class="fl">12</span>, <span class="fl">24</span>, <span class="fl">36</span>, <span class="fl">48</span><span class="op">)</span></span>
+<span><span class="va">pd_time_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, <span class="fl">8</span>, <span class="fl">24</span>, <span class="fl">48</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">make_subject_2c</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">id</span>, <span class="va">arm</span>, <span class="va">dose</span>, <span class="va">cov</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">wt</span> <span class="op">&lt;-</span> <span class="va">cov</span><span class="op">$</span><span class="va">WT</span>; <span class="va">crcl</span> <span class="op">&lt;-</span> <span class="va">cov</span><span class="op">$</span><span class="va">CRCL</span>; <span class="va">age</span> <span class="op">&lt;-</span> <span class="va">cov</span><span class="op">$</span><span class="va">AGE</span></span>
+<span>  <span class="co"># COVARIATE EFFECTS -- 0.75 on weight and 0.50 on CRCL, both on clearance.</span></span>
+<span>  <span class="va">cl</span> <span class="op">&lt;-</span> <span class="fl">4</span>  <span class="op">*</span> <span class="op">(</span><span class="va">wt</span> <span class="op">/</span> <span class="fl">70</span><span class="op">)</span><span class="op">^</span><span class="fl">0.75</span> <span class="op">*</span> <span class="op">(</span><span class="va">crcl</span> <span class="op">/</span> <span class="fl">100</span><span class="op">)</span><span class="op">^</span><span class="fl">0.50</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0.15</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">vc</span> <span class="op">&lt;-</span> <span class="fl">30</span> <span class="op">*</span> <span class="op">(</span><span class="va">wt</span> <span class="op">/</span> <span class="fl">70</span><span class="op">)</span><span class="op">^</span><span class="fl">1.00</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0.15</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">15</span>; <span class="va">vp</span> <span class="op">&lt;-</span> <span class="fl">50</span>; <span class="va">ka</span> <span class="op">&lt;-</span> <span class="fl">1.5</span></span>
+<span>  <span class="va">cc</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu">conc_2cmt</span><span class="op">(</span><span class="va">t</span>, <span class="va">dose</span>, <span class="va">cl</span>, <span class="va">vc</span>, <span class="va">q</span>, <span class="va">vp</span>, <span class="va">ka</span><span class="op">)</span></span>
+<span>  <span class="co"># AGE acts only here, on the PD baseline -- a covariate on the other endpoint.</span></span>
+<span>  <span class="va">e0</span> <span class="op">&lt;-</span> <span class="fl">100</span> <span class="op">*</span> <span class="op">(</span><span class="va">age</span> <span class="op">/</span> <span class="fl">55</span><span class="op">)</span><span class="op">^</span><span class="fl">0.30</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0.10</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="co"># SATURATING exposure-response: doubling exposure does not double effect.</span></span>
+<span>  <span class="va">eff</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="va">e0</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fl">0.60</span> <span class="op">*</span> <span class="fu">cc</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">+</span> <span class="fu">cc</span><span class="op">(</span><span class="va">t</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">base</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>WT <span class="op">=</span> <span class="va">wt</span>, CRCL <span class="op">=</span> <span class="va">crcl</span>, AGE <span class="op">=</span> <span class="va">age</span>, ARM <span class="op">=</span> <span class="va">arm</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, TIME <span class="op">=</span> <span class="fl">0</span>, DV <span class="op">=</span> <span class="cn">NA_real_</span>, AMT <span class="op">=</span> <span class="va">dose</span>, EVID <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>               CMT <span class="op">=</span> <span class="fl">1L</span>, DVID <span class="op">=</span> <span class="st">"PK"</span>, <span class="va">base</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, TIME <span class="op">=</span> <span class="va">pk_time_2c</span>,</span>
+<span>               DV <span class="op">=</span> <span class="fu">cc</span><span class="op">(</span><span class="va">pk_time_2c</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">pk_time_2c</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.08</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>               AMT <span class="op">=</span> <span class="fl">0</span>, EVID <span class="op">=</span> <span class="fl">0L</span>, CMT <span class="op">=</span> <span class="fl">2L</span>, DVID <span class="op">=</span> <span class="st">"PK"</span>, <span class="va">base</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, TIME <span class="op">=</span> <span class="va">pd_time_2c</span>,</span>
+<span>               DV <span class="op">=</span> <span class="fu">eff</span><span class="op">(</span><span class="va">pd_time_2c</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">pd_time_2c</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>               AMT <span class="op">=</span> <span class="fl">0</span>, EVID <span class="op">=</span> <span class="fl">0L</span>, CMT <span class="op">=</span> <span class="fl">3L</span>, DVID <span class="op">=</span> <span class="st">"PD"</span>, <span class="va">base</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">n_arm</span> <span class="op">&lt;-</span> <span class="fl">75</span></span>
+<span><span class="va">covs</span> <span class="op">&lt;-</span> <span class="fu">draw_covariates</span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">n_arm</span><span class="op">)</span></span>
+<span><span class="va">source_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">n_arm</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">make_subject_2c</span><span class="op">(</span><span class="va">i</span>, <span class="kw">if</span> <span class="op">(</span><span class="va">i</span> <span class="op">&lt;=</span> <span class="va">n_arm</span><span class="op">)</span> <span class="st">"low"</span> <span class="kw">else</span> <span class="st">"high"</span>,</span>
+<span>                  <span class="kw">if</span> <span class="op">(</span><span class="va">i</span> <span class="op">&lt;=</span> <span class="va">n_arm</span><span class="op">)</span> <span class="fl">300</span> <span class="kw">else</span> <span class="fl">600</span>, <span class="va">covs</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">source_2c</span> <span class="op">&lt;-</span> <span class="va">source_2c</span><span class="op">[</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">source_2c</span><span class="op">$</span><span class="va">ID</span>, <span class="va">source_2c</span><span class="op">$</span><span class="va">TIME</span>, <span class="va">source_2c</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">source_2c</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
+<span></span>
+<span><span class="va">roles_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"DVID"</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"CRCL"</span>, <span class="st">"AGE"</span><span class="op">)</span>,   <span class="co"># all three blended jointly</span></span>
+<span>  keep <span class="op">=</span> <span class="st">"ARM"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>All three covariates are declared as <code>covariates</code>, so all
+three are blended. Nothing in that declaration says they are correlated;
+whether the correlation survives is one of the questions below.</p>
+<p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/source-plot-2c-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
+<p>The PD panel already shows the saturation: the high arm’s response
+trough is deeper than the low arm’s, but nowhere near twice as deep. The
+two disposition phases are hard to see on a linear scale, so they get
+their own log-scale diagnostic below.</p>
+</div>
+<div class="section level3">
+<h3 id="measuring-what-the-complex-model-puts-in">Measuring what the complex model puts in<a class="anchor" aria-label="anchor" href="#measuring-what-the-complex-model-puts-in"></a>
+</h3>
+<p>Two helpers. The first reduces a dataset to one row per subject; the
+second turns those rows into the numbers to compare. Exposure now uses a
+proper non-compartmental calculation — linear-up/log-down trapezoid,
+plus a terminal extrapolation from the fitted
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>z</mi></msub><annotation encoding="application/x-tex">\lambda_z</annotation></semantics></math>
+— because a plain trapezoid over a biphasic profile truncated at 48 h is
+biased, and the bias itself depends on weight.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># One row per subject: covariates, exposure, terminal half-life, PD baseline</span></span>
+<span><span class="co"># and nadir.</span></span>
+<span><span class="va">subjects_2c</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">obs</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">DV</span><span class="op">)</span></span>
+<span>  <span class="va">pk</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">obs</span> <span class="op">&amp;</span> <span class="va">d</span><span class="op">$</span><span class="va">DVID</span> <span class="op">==</span> <span class="st">"PK"</span>, <span class="op">]</span>; <span class="va">pd</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">obs</span> <span class="op">&amp;</span> <span class="va">d</span><span class="op">$</span><span class="va">DVID</span> <span class="op">==</span> <span class="st">"PD"</span>, <span class="op">]</span></span>
+<span>  <span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Terminal slope from the 12 h and later points; the two-compartment shape is</span></span>
+<span>  <span class="co"># exactly what makes this different from the whole-profile slope.</span></span>
+<span>  <span class="va">lambda_z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">pk</span><span class="op">)</span><span class="op">)</span>, <span class="va">ids</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">t</span> <span class="op">&lt;-</span> <span class="va">pk</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>; <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">pk</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>; <span class="va">late</span> <span class="op">&lt;-</span> <span class="va">t</span> <span class="op">&gt;=</span> <span class="fl">12</span> <span class="op">&amp;</span> <span class="va">y</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">late</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">3</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_real_</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="va">late</span><span class="op">]</span><span class="op">)</span> <span class="op">~</span> <span class="va">t</span><span class="op">[</span><span class="va">late</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="va">auc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">pk</span><span class="op">)</span><span class="op">)</span>, <span class="va">ids</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">t</span> <span class="op">&lt;-</span> <span class="va">pk</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>; <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">pk</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>; <span class="va">o</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">t</span><span class="op">)</span>; <span class="va">t</span> <span class="op">&lt;-</span> <span class="va">t</span><span class="op">[</span><span class="va">o</span><span class="op">]</span>; <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="va">o</span><span class="op">]</span></span>
+<span>    <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">y</span>, <span class="op">-</span><span class="fl">1</span><span class="op">)</span>; <span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">y</span>, <span class="op">-</span><span class="fl">1</span><span class="op">)</span>; <span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span>    <span class="va">down</span> <span class="op">&lt;-</span> <span class="va">b</span> <span class="op">&lt;</span> <span class="va">a</span> <span class="op">&amp;</span> <span class="va">b</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">a</span> <span class="op">&gt;</span> <span class="fl">0</span>                       <span class="co"># linear up, log down</span></span>
+<span>    <span class="va">seg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">down</span>, <span class="va">dt</span> <span class="op">*</span> <span class="op">(</span><span class="va">a</span> <span class="op">-</span> <span class="va">b</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">a</span> <span class="op">/</span> <span class="va">b</span><span class="op">)</span>, <span class="va">dt</span> <span class="op">*</span> <span class="op">(</span><span class="va">a</span> <span class="op">+</span> <span class="va">b</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span>
+<span>    <span class="va">lz</span> <span class="op">&lt;-</span> <span class="va">lambda_z</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">seg</span><span class="op">)</span> <span class="op">+</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">lz</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="va">lz</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">y</span>, <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="va">lz</span> <span class="kw">else</span> <span class="fl">0</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">first</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">ids</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">auc</span><span class="op">)</span></span>
+<span>  <span class="va">base</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">pd</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">pd</span><span class="op">$</span><span class="va">TIME</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pd</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">pd</span><span class="op">$</span><span class="va">TIME</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                 <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    wt   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">first</span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">WT</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    crcl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">first</span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">CRCL</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    age  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">first</span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">AGE</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    arm  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">first</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pk</span><span class="op">$</span><span class="va">ARM</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    dose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">AMT</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span>,</span>
+<span>                             <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                             <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    auc   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">auc</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    thalf <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">lambda_z</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    base  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">base</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    nadir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">pd</span><span class="op">$</span><span class="va">DV</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pd</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span>, <span class="va">min</span><span class="op">)</span><span class="op">[</span><span class="va">n</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">relationships_2c</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">subjects_2c</span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">s</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">auc</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">auc</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">base</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">base</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span></span>
+<span>           <span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">thalf</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="va">adj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">auc</span> <span class="op">/</span> <span class="va">dose</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">wt</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">crcl</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">drop_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">base</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"high"</span><span class="op">]</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">nadir</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"high"</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">drop_lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">base</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"low"</span><span class="op">]</span><span class="op">)</span>  <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">nadir</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"low"</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="co"># structural: does the second compartment survive at all?</span></span>
+<span>    thalf         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">thalf</span><span class="op">)</span>,</span>
+<span>    <span class="co"># dose effect; truth = 2 because AUC = D/CL is still linear in dose.</span></span>
+<span>    dose_ratio    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">auc</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"high"</span><span class="op">]</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">auc</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"low"</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    <span class="co"># covariate effects on CL, adjusted for each other; truth = 0.75 and 0.50.</span></span>
+<span>    wt_exponent   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="op">-</span><span class="va">adj</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    crcl_exponent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="op">-</span><span class="va">adj</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    <span class="co"># the same weight effect NOT adjusted for CRCL -- confounded on purpose.</span></span>
+<span>    wt_unadjusted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">auc</span> <span class="op">/</span> <span class="va">dose</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">wt</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    <span class="co"># covariate on the other endpoint; truth = 0.30.</span></span>
+<span>    age_on_base   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">base</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">age</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    <span class="co"># saturation: below 2 because the Emax curve flattens.</span></span>
+<span>    resp_ratio    <span class="op">=</span> <span class="va">drop_hi</span> <span class="op">/</span> <span class="va">drop_lo</span>,</span>
+<span>    <span class="co"># the joint covariate distribution: correlations and marginal spread.</span></span>
+<span>    cor_wt_crcl   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">wt</span>, <span class="va">s</span><span class="op">$</span><span class="va">crcl</span><span class="op">)</span>,</span>
+<span>    cor_crcl_age  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">crcl</span>, <span class="va">s</span><span class="op">$</span><span class="va">age</span><span class="op">)</span>,</span>
+<span>    cor_wt_age    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">wt</span>, <span class="va">s</span><span class="op">$</span><span class="va">age</span><span class="op">)</span>,</span>
+<span>    sd_log_wt     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">wt</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    sd_log_crcl   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">crcl</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    sd_log_auc    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">auc</span> <span class="op">/</span> <span class="va">s</span><span class="op">$</span><span class="va">dose</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">truth_2c</span> <span class="op">&lt;-</span> <span class="fu">relationships_2c</span><span class="op">(</span><span class="va">source_2c</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">truth_2c</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         thalf    dose_ratio   wt_exponent crcl_exponent wt_unadjusted </span></span>
+<span><span class="co">#&gt;        15.973         2.026         0.759         0.456         1.233 </span></span>
+<span><span class="co">#&gt;   age_on_base    resp_ratio   cor_wt_crcl  cor_crcl_age    cor_wt_age </span></span>
+<span><span class="co">#&gt;         0.277         1.184         0.487        -0.682         0.044 </span></span>
+<span><span class="co">#&gt;     sd_log_wt   sd_log_crcl    sd_log_auc </span></span>
+<span><span class="co">#&gt;         0.172         0.357         0.296</span></span></code></pre></div>
+<p>Everything lands where the equations said it would. The terminal
+half-life is near 15 h, the dose ratio is 2, the adjusted exponents are
+near 0.75 and 0.50, and the age exponent is near 0.30. The three sample
+correlations (0.49, −0.68, 0.04) reproduce the intended 0.50, −0.60 and
+0.10 to within ordinary sampling noise at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>150</mn></mrow><annotation encoding="application/x-tex">n=150</annotation></semantics></math>.
+And <code>wt_unadjusted</code> reads about 1.2 rather than 0.75, which
+is the confounding working exactly as predicted.</p>
+</div>
+<div class="section level3">
+<h3 id="run-avatar-several-times-1">Run AVATAR, several times<a class="anchor" aria-label="anchor" href="#run-avatar-several-times-1"></a>
+</h3>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">17</span><span class="op">)</span></span>
+<span><span class="va">replicates_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">replicate</a></span><span class="op">(</span><span class="fl">30</span>, <span class="op">{</span></span>
+<span>  <span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">source_2c</span>, <span class="va">roles_2c</span>, seed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample.int</a></span><span class="op">(</span><span class="fl">1e6</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="fu">relationships_2c</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># One fixed run, used for every plot below so the panels are all the same</span></span>
+<span><span class="co"># synthetic dataset.</span></span>
+<span><span class="va">one_2c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">source_2c</span>, <span class="va">roles_2c</span>, seed <span class="op">=</span> <span class="fl">5150</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Example 2: structural, dose, and covariate effects, 30
+runs</caption>
+<colgroup>
+<col width="59%">
+<col width="7%">
+<col width="10%">
+<col width="14%">
+<col width="9%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">feature</th>
+<th align="right">source</th>
+<th align="right">synthetic</th>
+<th align="right">run_to_run_sd</th>
+<th align="left">retained</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">terminal half-life, median (model = 15 h)</td>
+<td align="right">15.973</td>
+<td align="right">15.813</td>
+<td align="right">0.294</td>
+<td align="left">99%</td>
+</tr>
+<tr class="even">
+<td align="left">dose effect: AUC ratio high/low (model = 2.0)</td>
+<td align="right">2.026</td>
+<td align="right">2.008</td>
+<td align="right">0.099</td>
+<td align="left">99%</td>
+</tr>
+<tr class="odd">
+<td align="left">weight exponent on CL, adjusted for CRCL (model =
+0.75)</td>
+<td align="right">0.759</td>
+<td align="right">0.840</td>
+<td align="right">0.147</td>
+<td align="left">111%</td>
+</tr>
+<tr class="even">
+<td align="left">CRCL exponent on CL, adjusted for weight (model =
+0.50)</td>
+<td align="right">0.456</td>
+<td align="right">0.440</td>
+<td align="right">0.067</td>
+<td align="left">96%</td>
+</tr>
+<tr class="odd">
+<td align="left">weight exponent, NOT adjusted (confounded, model !=
+0.75)</td>
+<td align="right">1.233</td>
+<td align="right">1.403</td>
+<td align="right">0.110</td>
+<td align="left">114%</td>
+</tr>
+<tr class="even">
+<td align="left">age exponent on PD baseline (model = 0.30)</td>
+<td align="right">0.277</td>
+<td align="right">0.436</td>
+<td align="right">0.115</td>
+<td align="left">158%</td>
+</tr>
+<tr class="odd">
+<td align="left">saturating response: high/low change from baseline
+(&lt; 2)</td>
+<td align="right">1.184</td>
+<td align="right">1.175</td>
+<td align="right">0.047</td>
+<td align="left">99%</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>Example 2: the joint covariate distribution, 30 runs</caption>
+<colgroup>
+<col width="53%">
+<col width="8%">
+<col width="12%">
+<col width="17%">
+<col width="8%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">quantity</th>
+<th align="right">source</th>
+<th align="right">synthetic</th>
+<th align="right">run_to_run_sd</th>
+<th align="right">change</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">correlation, weight vs CRCL (model = 0.50)</td>
+<td align="right">0.487</td>
+<td align="right">0.620</td>
+<td align="right">0.057</td>
+<td align="right">0.133</td>
+</tr>
+<tr class="even">
+<td align="left">correlation, CRCL vs age (model = -0.60)</td>
+<td align="right">-0.682</td>
+<td align="right">-0.699</td>
+<td align="right">0.029</td>
+<td align="right">-0.017</td>
+</tr>
+<tr class="odd">
+<td align="left">correlation, weight vs age (model = 0.10)</td>
+<td align="right">0.044</td>
+<td align="right">-0.092</td>
+<td align="right">0.079</td>
+<td align="right">-0.136</td>
+</tr>
+<tr class="even">
+<td align="left">SD of log weight</td>
+<td align="right">0.172</td>
+<td align="right">0.129</td>
+<td align="right">0.005</td>
+<td align="right">-0.044</td>
+</tr>
+<tr class="odd">
+<td align="left">SD of log CRCL</td>
+<td align="right">0.357</td>
+<td align="right">0.271</td>
+<td align="right">0.014</td>
+<td align="right">-0.086</td>
+</tr>
+<tr class="even">
+<td align="left">SD of log dose-normalised AUC</td>
+<td align="right">0.296</td>
+<td align="right">0.272</td>
+<td align="right">0.013</td>
+<td align="right">-0.024</td>
+</tr>
+</tbody>
+</table>
+<p>Four things to read off these tables.</p>
+<p><strong>The structural and dose features come through essentially
+intact.</strong> The terminal half-life, the dose ratio, and the
+saturating response ratio are all within a couple of percent of the
+source, with small run-to-run spread. Nothing in AVATAR knows there are
+two compartments, and the second compartment survives anyway — because
+it is a property of each donor’s own trajectory, and a weighted average
+of biphasic curves is still biphasic.</p>
+<p><strong>The correlation structure broadly survives, but it is not
+reproduced exactly.</strong> Both signed, substantial correlations come
+back with the right sign and the right rough size, and the CRCL–age one
+is reproduced almost exactly (−0.68 against −0.68). The weight–CRCL
+correlation, though, is <em>inflated</em> from 0.49 to 0.62, and the
+near-zero weight–age correlation drifts from +0.04 to −0.09. Both of
+those shifts are large compared with the run-to-run spread, so they are
+systematic rather than noise. The lesson is that blending moves
+correlations by a modest but real amount, and does not move them all in
+the same direction.</p>
+<p><strong>The marginal spread is compressed, and unevenly.</strong> The
+standard deviation of log weight and log CRCL each shrink by about a
+quarter, and log age by nearer a third, while the spread of
+dose-normalised AUC shrinks by only about 8%. That asymmetry is what
+drives the next point.</p>
+<p><strong>Covariate slopes move, and not all in the same
+direction.</strong> A regression slope is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">v</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{cov}(x,y)/\mathrm{var}(x)</annotation></semantics></math>.
+Where blending compressed the covariate axis harder than it compressed
+the exposure axis, the ratio goes <em>up</em>: the weight exponent reads
+11% high, the unadjusted weight exponent 14% high, and the age exponent
+on baseline is inflated by nearly 60%. The CRCL exponent, in contrast,
+is essentially unchanged (−4%). So within a single dataset the four
+covariate slopes move by anywhere from −4% to +58%, and in example 1 the
+one covariate slope moved the other way entirely. That is the single
+most important thing on this page: <strong>the direction and size of the
+bias in a covariate effect are not a fixed property of the
+method.</strong> They depend on how much each axis was compressed, and
+that depends on the dataset.</p>
+<p>Note also that <code>wt_unadjusted</code> stays wrong in the
+synthetic data, wrong in the same direction, and wrong by a comparable
+amount — 1.23 in the source against 1.40 in the synthetic, when the
+model’s exponent is 0.75. The confounding is a real feature of the joint
+distribution and it is reproduced rather than washed out, which is what
+you want from a dataset used to develop the covariate-model code that
+has to untangle it.</p>
+</div>
+<div class="section level3">
+<h3 id="diagnostics">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+</h3>
+<div class="section level4">
+<h4 id="does-the-biphasic-shape-survive">Does the biphasic shape survive?<a class="anchor" aria-label="anchor" href="#does-the-biphasic-shape-survive"></a>
+</h4>
+<p>The structural question this example exists to ask. Median and
+10th–90th percentile band at each nominal time, source against one
+synthetic run.</p>
+<p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/profile-2c-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
+<p>Both panels bend at the same place and settle onto a terminal slope
+of the same steepness. The synthetic band is a little narrower — the
+same compression the table reported — but the shape is the shape.</p>
+</div>
+<div class="section level4">
+<h4 id="does-the-joint-covariate-distribution-survive">Does the joint covariate distribution survive?<a class="anchor" aria-label="anchor" href="#does-the-joint-covariate-distribution-survive"></a>
+</h4>
+<p>Correlations first, since a covariate model built on synthetic data
+is built on these.</p>
+<p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/cov-pairs-2c-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
+<p>The tilt of each fitted line is the correlation, and both datasets
+share the axes in each panel so the two clouds are directly comparable.
+The two panels that carry a real correlation — CRCL against weight, and
+age against CRCL — keep their sign and their direction, with fitted
+lines that differ by less than a third. The third is the near-flat
+weight–age pair, where there is almost no correlation to reproduce and
+each fitted line is chasing noise; that panel is a caution, not a
+success. What is plain in all three is the tightening: the orange cloud
+sits inside the blue one.</p>
+<p>That tightening is worth seeing on its own, because it is what bends
+the covariate slopes.</p>
+<p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/cov-margins-2c-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
+<p>The covariate panels are noticeably narrower in the synthetic data
+while the exposure panel is much less affected. Blended covariates are
+an average of <code>k</code> donor values with a modest amount of noise
+added back, whereas a blended concentration also carries the
+residual-error structure that is re-applied on top. The two axes
+therefore do not shrink together, and a slope measured between them
+moves.</p>
+<p>Note that the compression is symmetric rather than one-sided: the
+medians agree, and the synthetic data has no values outside the source
+range. That is the behaviour to want — nothing extreme is being invented
+— but it is also the reason a covariate effect estimated from synthetic
+data is not the source’s effect.</p>
+</div>
+<div class="section level4">
+<h4 id="does-the-saturating-exposureresponse-survive">Does the saturating exposure–response survive?<a class="anchor" aria-label="anchor" href="#does-the-saturating-exposureresponse-survive"></a>
+</h4>
+<p><img src="example-avatar-PKPD-covariate-treatment-effect_files/figure-html/er-2c-1.png" class="r-plt" alt="" width="100%" style="display: block; margin: auto;"></p>
+<p>Response rises with exposure and then bends over as it approaches the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><annotation encoding="application/x-tex">E_{max}</annotation></semantics></math>
+ceiling, in both panels. The high arm sits to the right and higher, but
+by much less than a factor of two — which is what the
+<code>resp_ratio</code> row of the table reports numerically. A
+synthetic dataset that had lost the saturation would show a straight
+line here and a response ratio near 2.</p>
+</div>
+<div class="section level4">
+<h4 id="is-the-arm-still-coherent-with-the-dose-and-is-anything-dropped">Is the arm still coherent with the dose, and is anything
+dropped?<a class="anchor" aria-label="anchor" href="#is-the-arm-still-coherent-with-the-dose-and-is-anything-dropped"></a>
+</h4>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span>ARM <span class="op">=</span> <span class="va">one_2c</span><span class="op">$</span><span class="va">ARM</span><span class="op">[</span><span class="va">one_2c</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span>, dose <span class="op">=</span> <span class="va">one_2c</span><span class="op">$</span><span class="va">AMT</span><span class="op">[</span><span class="va">one_2c</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       dose</span></span>
+<span><span class="co">#&gt; ARM    300 600</span></span>
+<span><span class="co">#&gt;   high   0  72</span></span>
+<span><span class="co">#&gt;   low   78   0</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source_subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source_2c</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  synthetic_subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">one_2c</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    source_subjects synthetic_subjects </span></span>
+<span><span class="co">#&gt;                150                150</span></span></code></pre></div>
+<p>The arm labels are still perfectly aligned with the doses, and no
+subject was dropped for want of donors — the default
+<code>on_donor_shortfall = "drop"</code> never had to fire, because 75
+subjects per arm is far above the <code>k = 5</code> floor.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="what-example-2-adds">What example 2 adds<a class="anchor" aria-label="anchor" href="#what-example-2-adds"></a>
+</h3>
+<ul>
+<li>Structure that lives inside a single subject’s trajectory — the
+second compartment, the terminal slope, the shape of the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><annotation encoding="application/x-tex">E_{max}</annotation></semantics></math>
+curve — comes through essentially unharmed, and needed no help from the
+three extra covariates or from anything in the role declaration.</li>
+<li>A <em>joint</em> covariate distribution comes through with its
+correlations broadly intact — right signs, roughly right sizes, with one
+of the three inflated by about a quarter — including the confounding
+that makes an unadjusted covariate analysis wrong.</li>
+<li>Marginal spread is compressed, and not by the same amount on every
+axis. That is what moves regression slopes, and it is why three of the
+four covariate exponents here come out <strong>too steep</strong> while
+example 1’s single exponent came out too shallow.</li>
+<li>So the honest summary is not “AVATAR mildly dilutes relationships”.
+It is “AVATAR compresses each axis by an amount that depends on the
+data, and a quantity defined as a ratio between two axes moves
+accordingly, in whichever direction that arithmetic takes it.”</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
 <h2 id="why-the-avatar-algorithm-preserves-relationships">Why the AVATAR algorithm preserves relationships<a class="anchor" aria-label="anchor" href="#why-the-avatar-algorithm-preserves-relationships"></a>
@@ -397,16 +1069,24 @@ whole article rests on.</p>
 for blending are first sought among subjects with an identical event
 signature, and that signature <em>includes the dose amount</em>. The 300
 mg and 600 mg subjects therefore fall into different donor groups
-automatically, and with 40 subjects per arm the floor of
+automatically, and with 40 or more subjects per arm the floor of
 <code>k = 5</code> is met without ever borrowing across them. The arm
 label copied from the anchor lands on concentrations blended from
-same-arm donors.</p>
-<p><strong>2. The profile distance separates them</strong> Even where
+same-arm donors. That is why both arm/dose tables above are perfectly
+diagonal.</p>
+<p><strong>2. The profile distance separates them.</strong> Even where
 dose does not distinguish two arms, the donor search ranks candidates by
 distance in a profile space built from the covariates and the DV
 trajectory. A subject with higher concentrations sits near other
 subjects with higher concentrations. The effect you are trying to
 preserve is itself part of what selects the donors.</p>
+<p><strong>3. A subject is blended whole.</strong> Covariates, both
+endpoints, and the anchor’s kept columns all come from the same donor
+draw, so a synthetic subject’s weight, its CRCL, its exposure, and its
+response are all consistent with one another. This is why correlations
+<em>between</em> covariates largely survive in example 2, and why no
+special handling was needed to make three covariates work rather than
+one.</p>
 </div>
 <div class="section level2">
 <h2 id="where-it-weakens">Where it weakens<a class="anchor" aria-label="anchor" href="#where-it-weakens"></a>
@@ -416,6 +1096,12 @@ because the effect is visible in the trajectory. An effect that is small
 relative to between-subject variability does not organise the donor
 neighbourhoods, donors get drawn from both groups, and the difference
 dilutes further than the mild flattening seen here.</p>
+<p>Example 2 adds a second, quieter failure mode that has nothing to do
+with effect size: blending compresses every axis, and it does not
+compress them equally. Anything defined as a ratio between two
+compressed axes — a regression slope, a covariate exponent, a variance
+component — will move even when the relationship it describes is
+perfectly intact in shape.</p>
 <p>That is the boundary to keep in mind. Everything measured on this
 page had a large, clean effect and a dose that separated the arms
 exactly.</p>
@@ -425,31 +1111,48 @@ exactly.</p>
 </h2>
 <ul>
 <li>Relationships put into a source dataset come out of AVATAR at close
-to their original size — within about 10% here — without anything in the
-method being told about them.</li>
-<li>That is a <strong>tendency, not a specification</strong>. It rests
-on donors being chosen by profile similarity and on covariates,
+to their original size — within about 10% in example 1, and within a few
+percent for the structural and dose features of example 2 — without
+anything in the method being told about them.</li>
+<li>Structural PK/PD features survive best: the number of compartments,
+the terminal slope, and the shape of a saturating exposure–response are
+carried inside individual trajectories, and blending trajectories
+preserves them.</li>
+<li>A joint covariate distribution largely survives, correlations
+included. Three correlated covariates needed no special handling, and
+the confounding they create is reproduced rather than washed out.
+Individual correlations do shift by up to about 0.13, systematically and
+in different directions, so check the ones your analysis depends
+on.</li>
+<li>
+<strong>Covariate slopes are the fragile quantity, and the bias has
+no fixed sign.</strong> Example 1’s allometric exponent came back about
+8% too shallow. In example 2 the weight exponent came back 11% too
+steep, the CRCL exponent 4% too shallow, and the age exponent on
+baseline nearly 60% too steep. What determines the direction is which
+axis the blending compressed more.</li>
+<li>Expect compressed spread. Marginal covariate standard deviations
+shrank by a quarter to a third in example 2, while exposure shrank by
+8%. Nothing extreme is invented, which is the point, but the synthetic
+cohort is less variable than the real one.</li>
+<li>All of this is a <strong>tendency, not a specification</strong>. It
+rests on donors being chosen by profile similarity and on covariates,
 endpoints, and the anchor’s kept columns being tied to the same donor
 draw. Nothing declares it, nothing enforces it, and no argument controls
 its strength.</li>
-<li>It is strongest when the effect is large relative to between-subject
-variability, and when the arms differ in something the event signature
-already separates — dose, schedule, route.</li>
-<li>Expect mild dilution. Every relationship here came back a little
-weaker than it went in, so a size read off synthetic data is a slight
-underestimate, not an inflation.</li>
 <li>Nothing here indicates the parameters can accurately be estimated
 from synthetic data. These measurements say the <em>structure</em>
 survives well enough to develop and debug analysis code against. A
 parameter estimate from AVATAR output is an estimate from blended data,
-and this article does not make it trustworthy.</li>
+and this article does not make it trustworthy — example 2’s covariate
+exponents are the direct demonstration.</li>
 </ul>
-<p>The numbers on this page come from one simulated source with clean,
-strong relationships and 80 subjects. They are an illustration of the
-mechanism, not a general guarantee about your dataset. Run the same
-measurement on your own source if the answer matters — the
-<code>relationships()</code> function above is the whole method, and it
-takes any data frame.</p>
+<p>The numbers on this page come from two simulated sources with clean,
+strong relationships and 80 and 150 subjects. They are an illustration
+of the mechanism, not a general guarantee about your dataset. Run the
+same measurement on your own source if the answer matters — the
+<code>relationships()</code> and <code>relationships_2c()</code>
+functions above are the whole method, and they take any data frame.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
