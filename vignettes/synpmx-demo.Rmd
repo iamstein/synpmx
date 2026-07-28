@@ -1,5 +1,5 @@
 ---
-title: "Using synpmx AVATAR with 5 datasets"
+title: "Demo: Using synpmx AVATAR with 5 datasets"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -594,9 +594,7 @@ asserts curve shape from a public structural model and privately calibrates only
 the magnitude, is the better choice at this cohort size; the introduction
 vignette runs it on this same dataset.
 
-## What is preserved, and what is not
-
-This section describes the AVATAR output shown above.
+## What is preserved in AVATAR, and what is not
 
 Preserved: schema, column classes, factor levels, cohort size, endpoint set,
 event structure, coarse regimen and sampling timing, and the broad shape and
@@ -608,8 +606,4 @@ are always freshly generated and never reuse a source value.
 
 Not provided: any formal privacy guarantee. The synthetic data is built by
 blending real subject trajectories, so it is appropriate wherever the source
-data's own obligations still apply — including a local workstation under the
-same access controls — but not for release to anyone outside them. See
-`vignette("synpmx-method")` for all four modes side by side and
-`vignette("synpmx-privacy")` for what differential privacy does and does not
-promise.
+data and synthetic data are accessible by the same users, but — but not for release to anyone outside. 
