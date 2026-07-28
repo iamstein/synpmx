@@ -1,13 +1,19 @@
 ---
-title: "Prior-only synthetic PK: pyrazinamide 1200 mg once daily"
-format: html
+title: "Example: prior-only synthetic PK for pyrazinamide"
 ---
 
-A worked `synpmx_prior()` run for pyrazinamide. Prior-only generation reads **no
-data at all** --- it takes a public structural model and a trial design and
-simulates from those alone --- so nothing here needs a privacy argument, and
-there is no `data` argument to supply. See `vignette("synpmx-privacy")` for where
-this sits among the three method families.
+One concrete case worked end to end: a synthetic pyrazinamide dataset, 1200 mg
+orally once daily for two weeks, sampled on day 14. Every number and every
+choice is shown, including the ones the generator cannot represent.
+
+Prior-only generation reads **no data at all** --- it takes a public structural
+model and a trial design and simulates from those alone --- so nothing here
+needs a privacy argument, and there is no `data` argument to supply. See
+`vignette("synpmx-privacy")` for where this sits among the three method
+families, and the
+[AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
+article for the default method, which works the other way round: from real data,
+with no model to state.
 
 The cardinal rule for this mode: every number below must come from somewhere
 that is *not* the study being simulated. The values used here are literature /
@@ -24,9 +30,10 @@ pretend otherwise.
 ```{r}
 #| label: setup
 #| message: false
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center",
+                      out.width = "100%")
 library(synpmx)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
-# If synpmx is not installed here: devtools::load_all("/path/to/synpmx")
 ```
 
 ## The specification
