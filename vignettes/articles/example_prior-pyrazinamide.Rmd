@@ -285,14 +285,27 @@ fails loudly, so they are listed here rather than left to be discovered.
 
 **1. Covariate effects are absent.** The requested WT exponents (0.75 on CL/F, 1
 on V/F), the GENDER effect on CL/F (-0.40), and the CD38 effect on CL/F (-0.22)
-are **not applied**. `pmx_structural_model()` has no covariate-effect argument:
-subject parameters are drawn as typical value times lognormal IIV, and
-covariates are drawn independently. `WT`, `CD38`, and `GENDER` are therefore
-columns of plausible numbers with **no relationship to the concentrations** in
-the same row. This is by design --- `R/covariates.R` states that covariates
-exist so covariate-handling pipeline code has something to run against, and that
-fidelity is secondary --- but it means this dataset cannot be used to check
-whether a covariate model recovers these effects. It would recover nothing.
+are **not applied**. `WT`, `CD38`, and `GENDER` are columns of plausible numbers
+with **no relationship to the concentrations** in the same row, so this dataset
+cannot be used to check whether a covariate model recovers these effects. It
+would recover nothing.
+
+The reason is worth stating precisely, because it is not a deep one. The
+generator draws each subject's parameters as typical value times lognormal IIV
+and simulates the whole profile from those; covariates are drawn separately
+afterwards and merged onto the finished table, so by the time a weight exists
+the concentration beside it has already been computed. There is no argument on
+`pmx_structural_model()` that could link them, and no code anywhere in the
+package that applies a covariate to a parameter.
+
+Note what this is *not*. It is not a privacy constraint: prior-only generation
+reads nothing, so a covariate effect would be a public assertion exactly like
+`typical` and `iiv`, costing no budget. (In the differentially private engines
+the calculus differs, since every covariate consumes a slice of the budget.) It
+is simply unimplemented. If you need covariate--parameter relationships in
+synthetic data today, simulate them explicitly in `rxode2` or `nlmixr2`, or use
+`synpmx_avatar()` on real data, where real covariate relationships survive
+because whole real subjects do.
 
 **2. IOV is absent.** The requested inter-occasion variability on V (log-SD
 0.117) is not represented; the generator draws one parameter vector per subject
