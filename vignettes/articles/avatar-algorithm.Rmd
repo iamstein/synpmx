@@ -360,7 +360,15 @@ $$
 c_e=\max\left\{\frac{1}{2}\min(Y_e[Y_e>0]),\sqrt{\epsilon_{\mathrm{mach}}}\right\}
 $$
 
-and use the offset-log pair
+where $\epsilon_{\mathrm{mach}}$ is machine epsilon (`.Machine$double.eps` in R,
+about $2.22\times10^{-16}$ in double precision) — the usual numerical floor for
+"indistinguishable from zero," used here only so a degenerate endpoint (one
+whose positive values are already vanishingly small) cannot produce an offset
+that itself underflows to zero and breaks the log. It carries no scientific
+meaning beyond that safety role, and the same floor reappears in Step 5 below
+to decide when a profile feature's spread is too small to standardize.
+
+Use the offset-log pair
 
 $$
 g_e(y)=\log\{\max(y,0)+c_e\},
