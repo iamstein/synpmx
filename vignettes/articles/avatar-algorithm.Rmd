@@ -548,11 +548,19 @@ taken rather than inventing a per-row rule the source cannot support.
 **Censored donor values are imputed before blending.** Every censored source row
 reports the same substituted number, so blending those values directly would put
 a floor under the synthetic data that the real study does not have. Each
-censored row is instead replaced by a draw inside its censoring region — uniform
-below the limit for a left-censored row, uniform within the interval for an
-interval-censored one — before the trajectory is transformed and blended. A
-uniform draw rather than a fixed LLOQ/2 avoids replacing one artificial spike
-with another.
+censored row is instead replaced by a draw inside its censoring region:
+
+- **Left-censored** (below a lower quantification limit): uniform between 0 and
+  the reported boundary.
+- **Interval-censored** (`LIMIT` present): uniform between `LIMIT` and the
+  reported boundary.
+- **Right-censored** (above an upper limit, with no reported ceiling to draw
+  within): the reported boundary scaled by a uniform multiplier between 1 and
+  2 — a multiplicative stand-in for the same relative spread a left-censored
+  draw would span, since there is no absolute upper bound to draw inside of.
+
+This happens before the trajectory is transformed and blended. A uniform draw
+rather than a fixed LLOQ/2 avoids replacing one artificial spike with another.
 
 **`DV`, `CENS`, and `LIMIT` are reconstructed together.** The back-transformed
 blend is treated as a *latent* value: what the subject would have measured with
