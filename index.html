@@ -88,12 +88,12 @@
 <tbody>
 <tr>
 <td>
-<strong>Build the code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model fitting outside the environment that holds the real study. Only the structure has to be right.</td>
+<strong>Develop code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern. You’ll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.</td>
 <td><strong>Yes — this is what the package is for.</strong></td>
 </tr>
 <tr>
 <td>
-<strong>Use better tools.</strong> The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed.</td>
+<strong>Use better coding tools.</strong> The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed.</td>
 <td>
 <strong>Yes</strong>, same job as above.</td>
 </tr>
@@ -107,23 +107,24 @@
 <td>
 <strong>Answer the scientific question.</strong> Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm.</td>
 <td>
-<strong>No.</strong> No method here — see below.</td>
+<strong>No.</strong> Use the real data for this.</td>
 </tr>
 <tr>
 <td>
-<strong>Teach and compare.</strong> Show what the different generation methods actually do and what each one costs.</td>
+<strong>Teach and compare.</strong> Show what the different generation methods actually do.</td>
 <td>
 <strong>Yes</strong>, secondarily; that is why the non-default modes ship.</td>
 </tr>
 </tbody>
 </table>
-<p>The concrete use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that development work can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working against synthetic data lets those tools be used without exposing them to patient data.</p>
+<p>The concrete use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
 <h2 id="how-much-of-the-real-data-survives">How much of the real data survives?<a class="anchor" aria-label="anchor" href="#how-much-of-the-real-data-survives"></a>
 </h2>
-<p>Whatever the goal, the design question is <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. That is a privacy question before it is a technical one, and <code>synpmx</code> offers four answers.</p>
-<p>The main deliverable of the package is an implementation of the AVATAR method, which offers some blinding but no formal privacy guarantee. AVATAR works by blending together actual patient profiles, and requires no model to be specified. The package also provides code for other methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. Those are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
+<p>Whatever the goal, the design question is <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. That is a privacy question before it is a technical one, and <code>synpmx</code> offers four algorithms for generating synthetic data.</p>
+<p>The main deliverable of the package is an implementation of the AVATAR method [1, 2], which offers some blinding but no formal privacy guarantee. AVATAR works by blending together actual patient profiles, and requires no model to be specified. “AVATAR” is a method name rather than an initialism, from the patient-centric <em>avatarization</em> literature: the original method is due to Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK [1]. This package implements an AVATAR-<em>inspired</em> adaptation for longitudinal event tables, not published AVATAR software.</p>
+<p>The package also provides code for other methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. Those are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -216,8 +217,8 @@
 <div class="section level2">
 <h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
 </h2>
-<p><strong>AVATAR blending is the primary, maintained code.</strong> It has no dependencies beyond base R, and is what to reach for when the output stays within the source data’s own access controls and obligations.</p>
-<p>The three differentially private modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary. They are present in this repository because formal privacy is needed when data crosses a trust boundary. They are provided as-is: not under active development and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production ready. That status is enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
+<p><strong>AVATAR blending is the primary, maintained code.</strong> It has no dependencies beyond base R, and is what to reach for when the output stays within the source data’s own access controls and obligations. However, AVATAR does not offer any formal, mathematical guarantees around privacy.</p>
+<p>The three other modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary; but, they are present in this repository because they cover scenarios where data crosses a trust boundary and formal privacy conditions must be met. The methods are provided as-is: not under active development and <strong>not independently privacy-audited</strong>. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production ready. That status is enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
 <div class="section level2">
 <h2 id="key-documentation">Key Documentation<a class="anchor" aria-label="anchor" href="#key-documentation"></a>
@@ -233,12 +234,12 @@
 </tr></thead>
 <tbody>
 <tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-method.html">The four generation modes</a></td>
+<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-method.html">The four synthetic generation modes</a></td>
 <td>What are the modes, and which one do I want? <strong>Start here.</strong>
 </td>
 </tr>
 <tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-demo.html">Using synpmx AVATAR with 5 datasets</a></td>
+<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-demo.html">Demo; Using synpmx AVATAR with 5 datasets</a></td>
 <td>How do I run this on my own study?</td>
 </tr>
 <tr>
@@ -247,6 +248,14 @@
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data overcome the privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark using a daptomycin population pharmacokinetic model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.</p></li>
+<li><p>Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data generation, no reason to risk re-identification in biomedical data analysis. <em>npj Digital Medicine.</em> 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>
+</ol>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
