@@ -249,6 +249,65 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 
+## Next: covariate relationships and covariance
+
+Raised by the owner 2026-07-28, after the pyrazinamide example
+(`scripts/example_prior_pyrazinamide.qmd`) had to omit covariates entirely.
+**Status measured, not assumed** --- the numbers below are from a 80-subject
+source with a known allometric WT effect on CL, 15 synthetic replicates.
+
+| Mode | Covariate -> PK/PD | Covariate <-> covariate |
+|---|---|---|
+| `synpmx_avatar()` | **Largely retained.** cor(WT, log AUC) source -0.757 -> synthetic -0.571; regression slope d(logAUC)/d(logWT) source -0.707 -> synthetic -0.804 (sd 0.126). | Retained by the same mechanism, attenuated. |
+| `synpmx_prior()` | **None.** | **None.** |
+| `synpmx_calibrated()` | **None.** | **None.** |
+| `synpmx_empirical()` | **None.** | **None.** |
+
+Why AVATAR keeps it: `.synthesize_covariates()` and `.synthesize_trajectories()`
+are handed *the same* `donors$indices` and `donors$weights`
+(`R/synthesis.R`), so a subject whose concentrations came mostly from donor A
+also gets mostly donor A's weight. The relationship survives because it is never
+taken apart. The correlation attenuates --- blending plus `subject_noise_sd`
+adds noise to both sides --- but the *slope*, which is what a covariate model
+estimates, comes through close to intact. That is a stronger result than
+expected and worth not breaking.
+
+Why the model-based modes lose it: `.generate_structural()` draws parameters at
+line 118 and simulates the whole profile from them; covariates are drawn at line
+184 by `.draw_covariate_table()` and `merge()`d onto the finished table. The
+concentration exists before the weight does. And `.draw_covariate_table()` loops
+over covariates one at a time, so there is no joint structure between them
+either --- two correlated covariates come out independent.
+
+- [ ] **Decide whether the model-based modes should carry covariate effects at
+      all.** Owner's position (2026-07-28) is that they probably should not: the
+      space of PMX models is unbounded, every study wants something
+      idiosyncratic, and a user is better served writing the model they want in
+      `rxode2`/`nlmixr2` --- with an LLM and a skill file as the assistant ---
+      than by this package growing a model language. `vignettes/synpmx-method.Rmd`
+      now says so outright ("The built-in models are illustrative, and
+      deliberately so"). If that holds, this item closes as *documented, not
+      built*, and the work is to keep the documentation honest.
+- [ ] **If it is built anyway, the contained version** is a `covariate_effects`
+      argument on `pmx_structural_model()`, drawing covariates *before*
+      parameters and scaling each subject's parameters by their covariate terms.
+      Needs the functional form pinned down first: whether a categorical effect
+      of -0.40 means `x (1 - 0.40)` or `x exp(-0.40)`, and whether a continuous
+      effect is a power on a centred covariate or a linear term. Would benefit
+      `synpmx_calibrated()` for free, since it shares the generator.
+- [ ] **Covariate--covariate covariance is a separate and cheaper problem.** Even
+      without parameter effects, two covariates that are correlated in reality
+      (weight and height, age and renal function) come out independent from the
+      model-based modes, and from `pmx_covariates_auto()`, which resamples each
+      column marginally in the `synadam` style. A joint draw would fix that
+      without touching the structural model at all.
+- [ ] **Protect what AVATAR already does.** The retention measured above is a
+      property of sharing one donor set and one weight vector across covariates
+      and endpoints. Any future change that draws them separately, or reweights
+      per endpoint, would silently destroy it. There is no regression test
+      pinning it; add one before touching `.select_donors()` or
+      `.synthesize_covariates()` again.
+
 ## Next: correctness and privacy findings
 
 - [ ] `REV-003` Data-dependent `stop()` on confidential rows before any noise is
