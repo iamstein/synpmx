@@ -225,9 +225,11 @@ whereas our k is donors **within an event-signature group** in a PMX cohort of
 "about the largest floor feasible at PMX cohort sizes", not a privacy-optimal
 choice. The paper names *"dynamic adaptation of k depending on … density"* as
 future work, which is exactly the cross-cohort pooling below. Note also the
-existing `max_donor_weight = 0.80` cap (`R/synthesis.R:580`): even with 5
-donors, one real subject can still be 80% of a synthetic one, so the floor alone
-does not bound individual contribution — the weight cap does, and 0.80 is loose.
+then-current `max_donor_weight = 0.80` cap: even with 5 donors, one real subject
+could still be 80% of a synthetic one, so the floor alone does not bound
+individual contribution — the weight cap does, and 0.80 was loose. *(The cap is
+now 0.50 and enforced on every donor; see A2 below. This paragraph is left as
+the 2026-07-25 record of why the cap was identified as the binding constraint.)*
 
 ### Why it was silent, and how to make it loud
 
