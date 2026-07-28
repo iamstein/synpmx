@@ -14,7 +14,7 @@ put in deliberately --- a covariate effect, a dose effect, a treatment effect,
 and an exposure--response link --- runs `synpmx_avatar()` over it, and measures
 how much of each one comes out the other side.
 
-AVATAR does not explicityl model any of these relationships. 
+AVATAR does not explicity model any of these relationships. 
 There is no covariate model in it, no dose--response
 model, no PK/PD link, and no notion of a treatment arm. Nothing in the generator
 knows that weight ought to affect clearance. Whatever survives does so as a

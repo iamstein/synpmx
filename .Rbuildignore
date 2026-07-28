@@ -24,3 +24,4 @@
 ^\.github$
 ^README\.html$
 ^communications$
+^dev\.R$
