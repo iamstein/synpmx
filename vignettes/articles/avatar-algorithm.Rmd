@@ -527,8 +527,9 @@ profiles contain useful separation.
 
 ## Below-the-limit-of-quantification (BLOQ) data and a Monolix-style CENS column
 
-Declare `cens` and, if the source uses one, `limit` in `pmx_roles()`, and AVATAR
-reconstructs censoring rather than copying it. The mechanism has three parts.
+Declare a `cens` column (and, if the source uses one, a `limit` column) in
+`pmx_roles()`, and AVATAR reconstructs censoring rather than copying it. The
+mechanism has three parts.
 
 **The boundary is read from the source.** AVATAR makes no formal privacy claim,
 so it may recover the assay limit from the data itself: under the Monolix
