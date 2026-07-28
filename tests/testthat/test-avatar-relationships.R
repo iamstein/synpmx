@@ -78,9 +78,9 @@ test_that("a covariate-exposure relationship survives blending", {
 
   expect_lt(source_slope, 0)
   expect_lt(synthetic_slope, 0)
-  # Wide bounds on purpose. The article measures roughly 143% of the source
-  # slope on a larger cohort -- amplified, because WT helps choose the donors --
-  # so this is a destruction check, not an equality check.
+  # Wide bounds on purpose. The article measures ~92% of the source slope on a
+  # larger cohort with the dose divided out, a mild dilution, so this is a
+  # destruction check rather than an equality check.
   expect_gt(synthetic_slope / source_slope, 0.4)
   expect_lt(synthetic_slope / source_slope, 2.5)
 })
