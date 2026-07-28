@@ -84,7 +84,7 @@
 deliberately — a covariate effect, a dose effect, a treatment effect,
 and an exposure–response link — runs <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> over
 it, and measures how much of each one comes out the other side.</p>
-<p>AVATAR does not explicityl model any of these relationships. There is
+<p>AVATAR does not explicity model any of these relationships. There is
 no covariate model in it, no dose–response model, no PK/PD link, and no
 notion of a treatment arm. Nothing in the generator knows that weight
 ought to affect clearance. Whatever survives does so as a <strong>side
@@ -232,13 +232,8 @@ why the treatment effect surviving at all is not obvious in advance.</p>
 </h2>
 <p>Each measurement is chosen so its answer can be compared against a
 number we already know from the equations above.</p>
-<p><strong>The dose normalisation matters.</strong> To recover the
-allometric exponent, log AUC must be regressed on log weight <em>after
-dividing out the dose</em>. Skip that and the regression is confounded:
-the arms differ twofold in exposure, so any chance imbalance between
-weight and arm assignment leaks straight into the slope. In this cohort
-the unadjusted slope reads -0.90 while the dose-normalised one reads
--0.75, and only the second is the allometric exponent.</p>
+<p>To recover the allometric exponent, log AUC must be regressed on log
+weight after dividing out the dose.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">relationships</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">obs</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">DV</span><span class="op">)</span></span>
@@ -396,29 +391,22 @@ luck, and it is worth understanding why, because it is the mechanism the
 whole article rests on.</p>
 </div>
 <div class="section level2">
-<h2 id="why-anything-survives-at-all">Why anything survives at all<a class="anchor" aria-label="anchor" href="#why-anything-survives-at-all"></a>
+<h2 id="why-the-avatar-algorithm-preserves-relationships">Why the AVATAR algorithm preserves relationships<a class="anchor" aria-label="anchor" href="#why-the-avatar-algorithm-preserves-relationships"></a>
 </h2>
-<p>Two independent mechanisms, neither of which was designed for this
-purpose.</p>
 <p><strong>1. The event signature separates the arms.</strong> Donors
-are first sought among subjects with an identical event signature, and
-that signature <em>includes the dose amount</em>. The 300 mg and 600 mg
-subjects therefore fall into different donor groups automatically, and
-with 40 subjects per arm the floor of <code>k = 5</code> is met without
-ever borrowing across them. The arm label copied from the anchor lands
-on concentrations blended from same-arm donors.</p>
-<p><strong>2. The profile distance separates them again.</strong> Even
-where dose does not distinguish two arms, the donor search ranks
-candidates by distance in a profile space built from the covariates
-<em>and the DV trajectory</em>. A subject with higher concentrations
-sits near other subjects with higher concentrations. The effect you are
-trying to preserve is itself part of what selects the donors.</p>
-<p>And underneath both: <code>.synthesize_covariates()</code> and
-<code>.synthesize_trajectories()</code> are handed <strong>the same
-donors and the same weights</strong>. A synthetic subject whose
-concentrations came mostly from one donor also gets mostly that donor’s
-weight. The relationship between them is never taken apart, so it does
-not have to be put back together.</p>
+for blending are first sought among subjects with an identical event
+signature, and that signature <em>includes the dose amount</em>. The 300
+mg and 600 mg subjects therefore fall into different donor groups
+automatically, and with 40 subjects per arm the floor of
+<code>k = 5</code> is met without ever borrowing across them. The arm
+label copied from the anchor lands on concentrations blended from
+same-arm donors.</p>
+<p><strong>2. The profile distance separates them</strong> Even where
+dose does not distinguish two arms, the donor search ranks candidates by
+distance in a profile space built from the covariates and the DV
+trajectory. A subject with higher concentrations sits near other
+subjects with higher concentrations. The effect you are trying to
+preserve is itself part of what selects the donors.</p>
 </div>
 <div class="section level2">
 <h2 id="where-it-weakens">Where it weakens<a class="anchor" aria-label="anchor" href="#where-it-weakens"></a>
@@ -450,11 +438,11 @@ already separates — dose, schedule, route.</li>
 <li>Expect mild dilution. Every relationship here came back a little
 weaker than it went in, so a size read off synthetic data is a slight
 underestimate, not an inflation.</li>
-<li>Nothing here licenses estimating parameters from synthetic data.
-These measurements say the <em>structure</em> survives well enough to
-develop and debug analysis code against. A parameter estimate from
-AVATAR output is an estimate from blended data, and this article does
-not make it trustworthy.</li>
+<li>Nothing here indicates the parameters can accurately be estimated
+from synthetic data. These measurements say the <em>structure</em>
+survives well enough to develop and debug analysis code against. A
+parameter estimate from AVATAR output is an estimate from blended data,
+and this article does not make it trustworthy.</li>
 </ul>
 <p>The numbers on this page come from one simulated source with clean,
 strong relationships and 80 subjects. They are an illustration of the

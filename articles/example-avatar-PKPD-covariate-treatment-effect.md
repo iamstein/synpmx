@@ -6,7 +6,7 @@ and an exposure–response link — runs
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 over it, and measures how much of each one comes out the other side.
 
-AVATAR does not explicityl model any of these relationships. There is no
+AVATAR does not explicity model any of these relationships. There is no
 covariate model in it, no dose–response model, no PK/PD link, and no
 notion of a treatment arm. Nothing in the generator knows that weight
 ought to affect clearance. Whatever survives does so as a **side effect
@@ -148,13 +148,8 @@ why the treatment effect surviving at all is not obvious in advance.
 Each measurement is chosen so its answer can be compared against a
 number we already know from the equations above.
 
-**The dose normalisation matters.** To recover the allometric exponent,
-log AUC must be regressed on log weight *after dividing out the dose*.
-Skip that and the regression is confounded: the arms differ twofold in
-exposure, so any chance imbalance between weight and arm assignment
-leaks straight into the slope. In this cohort the unadjusted slope reads
--0.90 while the dose-normalised one reads -0.75, and only the second is
-the allometric exponent.
+To recover the allometric exponent, log AUC must be regressed on log
+weight after dividing out the dose.
 
 ``` r
 
@@ -285,31 +280,22 @@ Every synthetic subject’s arm label matches its dose. That is not luck,
 and it is worth understanding why, because it is the mechanism the whole
 article rests on.
 
-## Why anything survives at all
+## Why the AVATAR algorithm preserves relationships
 
-Two independent mechanisms, neither of which was designed for this
-purpose.
+**1. The event signature separates the arms.** Donors for blending are
+first sought among subjects with an identical event signature, and that
+signature *includes the dose amount*. The 300 mg and 600 mg subjects
+therefore fall into different donor groups automatically, and with 40
+subjects per arm the floor of `k = 5` is met without ever borrowing
+across them. The arm label copied from the anchor lands on
+concentrations blended from same-arm donors.
 
-**1. The event signature separates the arms.** Donors are first sought
-among subjects with an identical event signature, and that signature
-*includes the dose amount*. The 300 mg and 600 mg subjects therefore
-fall into different donor groups automatically, and with 40 subjects per
-arm the floor of `k = 5` is met without ever borrowing across them. The
-arm label copied from the anchor lands on concentrations blended from
-same-arm donors.
-
-**2. The profile distance separates them again.** Even where dose does
-not distinguish two arms, the donor search ranks candidates by distance
-in a profile space built from the covariates *and the DV trajectory*. A
-subject with higher concentrations sits near other subjects with higher
+**2. The profile distance separates them** Even where dose does not
+distinguish two arms, the donor search ranks candidates by distance in a
+profile space built from the covariates and the DV trajectory. A subject
+with higher concentrations sits near other subjects with higher
 concentrations. The effect you are trying to preserve is itself part of
 what selects the donors.
-
-And underneath both: `.synthesize_covariates()` and
-`.synthesize_trajectories()` are handed **the same donors and the same
-weights**. A synthetic subject whose concentrations came mostly from one
-donor also gets mostly that donor’s weight. The relationship between
-them is never taken apart, so it does not have to be put back together.
 
 ## Where it weakens
 
@@ -338,11 +324,11 @@ had a large, clean effect and a dose that separated the arms exactly.
 - Expect mild dilution. Every relationship here came back a little
   weaker than it went in, so a size read off synthetic data is a slight
   underestimate, not an inflation.
-- Nothing here licenses estimating parameters from synthetic data. These
-  measurements say the *structure* survives well enough to develop and
-  debug analysis code against. A parameter estimate from AVATAR output
-  is an estimate from blended data, and this article does not make it
-  trustworthy.
+- Nothing here indicates the parameters can accurately be estimated from
+  synthetic data. These measurements say the *structure* survives well
+  enough to develop and debug analysis code against. A parameter
+  estimate from AVATAR output is an estimate from blended data, and this
+  article does not make it trustworthy.
 
 The numbers on this page come from one simulated source with clean,
 strong relationships and 80 subjects. They are an illustration of the
