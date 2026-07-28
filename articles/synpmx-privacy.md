@@ -3,12 +3,12 @@
 ## Scope
 
 `synpmx` generates synthetic pharmacometric (PMX) datasets — dosing and
-measurement event tables of the kind a population pharmacokinetic (PK)
-or pharmacodynamic analysis consumes. It offers two families of method
-that protect patients in fundamentally different ways. This vignette
-explains what each one actually is, what differential privacy does and
-does not promise, how to choose between them, and — once a private mode
-is chosen — how to choose an epsilon.
+measurement event tables used for a population pharmacokinetic (PK) or
+pharmacodynamic analysis. It offers two families of method that protect
+patients in fundamentally different ways. This vignette explains what
+each one actually is, what differential privacy does and does not
+promise, how to choose between methods and if a private mode is chosen,
+how to choose an epsilon.
 
 The companion vignettes are
 [`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
@@ -16,17 +16,19 @@ The companion vignettes are
 [`vignette("synpmx-demo")`](https://iamstein.github.io/synpmx/articles/synpmx-demo.md)
 (the practical workflow).
 
-## The two families in one page
+## The two method families
 
-### AVATAR blending: synthetic data built out of real subjects
+### AVATAR blending: synthetic data built from real subjects
 
-The **default** method is
+The **default** method in this package is
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
-AVATAR-style blending. “AVATAR” is a method name rather than an
+AVATAR-style blending \[1, 2\]. “AVATAR” is a method name rather than an
 initialism: it comes from the patient-centric *avatarization*
 literature, in which each synthetic record (“avatar”) is constructed
 from the local neighborhood of real records rather than from a fitted
-parametric model. This package implements an AVATAR-*inspired*
+parametric model. The original method is due to Guillaudeux and
+colleagues \[2\]; Destere and colleagues benchmark a modified AVATAR for
+population PK \[1\]. This package implements an AVATAR-*inspired*
 adaptation for longitudinal event tables, not published AVATAR software.
 
 Mechanically, for each synthetic subject it:
@@ -40,7 +42,7 @@ Mechanically, for each synthetic subject it:
     is `k = 5`);
 3.  fills covariates and endpoint trajectories with a randomized,
     distance-weighted **blend** of those donors, with no single donor
-    allowed more than 80% of the weight; and
+    allowed more than 50% of the weight; and
 4.  adds subject-level and within-trajectory random noise.
 
 The output looks like trial data because it is assembled from trial
@@ -124,7 +126,7 @@ That is the wrong axis. The difference is one of **kind**:
 | Holds against a determined adversary | Not established | Yes, by construction |
 | Rests on | Governance and access control | Mathematics, plus correct declared ranges |
 | Utility at small N | Good — works from a dozen subjects | Degrades sharply below a few hundred |
-| Elicitation required | None | Public structural model, priors, and clipping ranges |
+| What you must supply | Nothing but the source data | A public structural model, priors, and clipping ranges — all worked out without looking at the data |
 | Cost | None | Epsilon budget, and accuracy paid for it |
 
 The honest caveat about AVATAR is one of granularity. A resampled
@@ -357,3 +359,16 @@ prints the realized accounting.
 - [The AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator in detail.
+
+## References
+
+1.  Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data
+    overcome the privacy and fidelity bottleneck in Pharmacometrics? A
+    comparative benchmark using a daptomycin population pharmacokinetic
+    model.* medRxiv preprint, posted June 2, 2026. doi:
+    [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+2.  Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+    data generation, no reason to risk re-identification in biomedical
+    data analysis. *npj Digital Medicine.* 2023;6. doi:
+    [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).

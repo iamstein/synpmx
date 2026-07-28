@@ -85,31 +85,32 @@ Stein</h4>
 <h2 id="scope">Scope<a class="anchor" aria-label="anchor" href="#scope"></a>
 </h2>
 <p><code>synpmx</code> generates synthetic pharmacometric (PMX) datasets
-— dosing and measurement event tables of the kind a population
-pharmacokinetic (PK) or pharmacodynamic analysis consumes. It offers two
-families of method that protect patients in fundamentally different
-ways. This vignette explains what each one actually is, what
-differential privacy does and does not promise, how to choose between
-them, and — once a private mode is chosen — how to choose an
-epsilon.</p>
+— dosing and measurement event tables used for a population
+pharmacokinetic (PK) or pharmacodynamic analysis. It offers two families
+of method that protect patients in fundamentally different ways. This
+vignette explains what each one actually is, what differential privacy
+does and does not promise, how to choose between methods and if a
+private mode is chosen, how to choose an epsilon.</p>
 <p>The companion vignettes are <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>
 (the four generation modes) and <code><a href="../articles/synpmx-demo.html">vignette("synpmx-demo")</a></code>
 (the practical workflow).</p>
 </div>
 <div class="section level2">
-<h2 id="the-two-families-in-one-page">The two families in one page<a class="anchor" aria-label="anchor" href="#the-two-families-in-one-page"></a>
+<h2 id="the-two-method-families">The two method families<a class="anchor" aria-label="anchor" href="#the-two-method-families"></a>
 </h2>
 <div class="section level3">
-<h3 id="avatar-blending-synthetic-data-built-out-of-real-subjects">AVATAR blending: synthetic data built out of real subjects<a class="anchor" aria-label="anchor" href="#avatar-blending-synthetic-data-built-out-of-real-subjects"></a>
+<h3 id="avatar-blending-synthetic-data-built-from-real-subjects">AVATAR blending: synthetic data built from real subjects<a class="anchor" aria-label="anchor" href="#avatar-blending-synthetic-data-built-from-real-subjects"></a>
 </h3>
-<p>The <strong>default</strong> method is <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>,
-AVATAR-style blending. “AVATAR” is a method name rather than an
-initialism: it comes from the patient-centric <em>avatarization</em>
-literature, in which each synthetic record (“avatar”) is constructed
-from the local neighborhood of real records rather than from a fitted
-parametric model. This package implements an AVATAR-<em>inspired</em>
-adaptation for longitudinal event tables, not published AVATAR
-software.</p>
+<p>The <strong>default</strong> method in this package is
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>, AVATAR-style blending [1, 2]. “AVATAR” is
+a method name rather than an initialism: it comes from the
+patient-centric <em>avatarization</em> literature, in which each
+synthetic record (“avatar”) is constructed from the local neighborhood
+of real records rather than from a fitted parametric model. The original
+method is due to Guillaudeux and colleagues [2]; Destere and colleagues
+benchmark a modified AVATAR for population PK [1]. This package
+implements an AVATAR-<em>inspired</em> adaptation for longitudinal event
+tables, not published AVATAR software.</p>
 <p>Mechanically, for each synthetic subject it:</p>
 <ol style="list-style-type: decimal">
 <li>samples a real source subject as an <strong>anchor</strong> and
@@ -121,7 +122,7 @@ anchor in a standardized, principal-component (PCA) profile space (the
 default is <code>k = 5</code>);</li>
 <li>fills covariates and endpoint trajectories with a randomized,
 distance-weighted <strong>blend</strong> of those donors, with no single
-donor allowed more than 80% of the weight; and</li>
+donor allowed more than 50% of the weight; and</li>
 <li>adds subject-level and within-trajectory random noise.</li>
 </ol>
 <p>The output looks like trial data because it is assembled from trial
@@ -240,9 +241,10 @@ influence</td>
 <td>Degrades sharply below a few hundred</td>
 </tr>
 <tr class="even">
-<td>Elicitation required</td>
-<td>None</td>
-<td>Public structural model, priors, and clipping ranges</td>
+<td>What you must supply</td>
+<td>Nothing but the source data</td>
+<td>A public structural model, priors, and clipping ranges — all worked
+out without looking at the data</td>
 </tr>
 <tr class="odd">
 <td>Cost</td>
@@ -495,6 +497,19 @@ and why AVATAR is the default.</li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The
 AVATAR Algorithm</a> — the default generator in detail.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data
+overcome the privacy and fidelity bottleneck in Pharmacometrics? A
+comparative benchmark using a daptomycin population pharmacokinetic
+model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.</p></li>
+<li><p>Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric
+synthetic data generation, no reason to risk re-identification in
+biomedical data analysis. <em>npj Digital Medicine.</em> 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>
+</ol>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -23,8 +23,8 @@ dataset.
 
 The four modes, from most faithful to most protective:
 
-1.  **AVATAR blending** — build each synthetic subject out of real
-    subjects.
+1.  **AVATAR blending** \[1, 2\] — build each synthetic subject out of
+    real subjects.
 2.  **Prior only** — read no data at all; simulate from a public model.
 3.  **Calibration** — simulate from a public model whose magnitude is
     corrected by a small, differentially private release.
@@ -33,6 +33,15 @@ The four modes, from most faithful to most protective:
 
 Modes 2, 3, and 4 all use differential privacy (DP) accounting, and mode
 2 is its trivial limit: spending nothing.
+
+“AVATAR” is a method name rather than an initialism, from the
+patient-centric *avatarization* literature in which each synthetic
+record is built from the local neighborhood of real records. The
+original method is due to Guillaudeux and colleagues \[2\]; Destere and
+colleagues benchmark a modified AVATAR against other synthesis
+algorithms for population PK \[1\]. This package implements an
+AVATAR-*inspired* adaptation for longitudinal event tables, not
+published AVATAR software.
 
 This vignette stays at the level of what each mode does and when to use
 it. The full AVATAR algorithm — every step, the mathematics, the edge

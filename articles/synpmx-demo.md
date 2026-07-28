@@ -191,7 +191,7 @@ later.
 The package offers four generation modes, and the “Introduction to
 synpmx” vignette applies all four to one dataset side by side:
 
-- **AVATAR blending**
+- **AVATAR blending** \[1, 2\]
   ([`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md))
   — build each synthetic subject from real subjects. No elicitation, no
   formal privacy guarantee.
@@ -206,6 +206,13 @@ synpmx” vignette applies all four to one dataset side by side:
   ([`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md))
   — release a dense set of differentially private summaries and rebuild
   subjects from them.
+
+“AVATAR” is a method name rather than an initialism, from the
+patient-centric *avatarization* literature: the original method is due
+to Guillaudeux and colleagues \[2\], and Destere and colleagues
+benchmark a modified AVATAR for population PK \[1\]. This package
+implements an AVATAR-*inspired* adaptation for longitudinal event
+tables, not published AVATAR software.
 
 **Most of this vignette is about the default, AVATAR blending**, applied
 to five public datasets with different structural challenges. For each
@@ -504,3 +511,16 @@ Not provided: any formal privacy guarantee. The synthetic data is built
 by blending real subject trajectories, so it is appropriate wherever the
 source data and synthetic data are accessible by the same users, but —
 but not for release to anyone outside.
+
+## References
+
+1.  Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data
+    overcome the privacy and fidelity bottleneck in Pharmacometrics? A
+    comparative benchmark using a daptomycin population pharmacokinetic
+    model.* medRxiv preprint, posted June 2, 2026. doi:
+    [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+2.  Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+    data generation, no reason to risk re-identification in biomedical
+    data analysis. *npj Digital Medicine.* 2023;6. doi:
+    [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).

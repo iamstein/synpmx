@@ -269,9 +269,9 @@ the real data later.</p>
 synpmx” vignette applies all four to one dataset side by side:</p>
 <ul>
 <li>
-<strong>AVATAR blending</strong> (<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>) —
-build each synthetic subject from real subjects. No elicitation, no
-formal privacy guarantee.</li>
+<strong>AVATAR blending</strong> [1, 2]
+(<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>) — build each synthetic subject from real
+subjects. No elicitation, no formal privacy guarantee.</li>
 <li>
 <strong>Prior only</strong> (<code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code> on a public
 structural model) — read no data at all.</li>
@@ -284,6 +284,12 @@ a small differentially private release.</li>
 release a dense set of differentially private summaries and rebuild
 subjects from them.</li>
 </ul>
+<p>“AVATAR” is a method name rather than an initialism, from the
+patient-centric <em>avatarization</em> literature: the original method
+is due to Guillaudeux and colleagues [2], and Destere and colleagues
+benchmark a modified AVATAR for population PK [1]. This package
+implements an AVATAR-<em>inspired</em> adaptation for longitudinal event
+tables, not published AVATAR software.</p>
 <p><strong>Most of this vignette is about the default, AVATAR
 blending</strong>, applied to five public datasets with different
 structural challenges. For each generated subject it samples a
@@ -754,6 +760,19 @@ source value.</p>
 built by blending real subject trajectories, so it is appropriate
 wherever the source data and synthetic data are accessible by the same
 users, but — but not for release to anyone outside.</p>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data
+overcome the privacy and fidelity bottleneck in Pharmacometrics? A
+comparative benchmark using a daptomycin population pharmacokinetic
+model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.</p></li>
+<li><p>Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric
+synthetic data generation, no reason to risk re-identification in
+biomedical data analysis. <em>npj Digital Medicine.</em> 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>
+</ol>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
