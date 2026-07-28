@@ -1,6 +1,7 @@
 # synpmx
 
-📖 **Website and documentation: <https://iamstein.github.io/synpmx/>**
+update readme 📖 **Website and documentation:
+<https://iamstein.github.io/synpmx/>**
 
 `synpmx` builds **synthetic pharmacometric datasets** from actual
 datasets.
@@ -13,28 +14,20 @@ method is appropriat.
 
 | The goal | Served here? |
 |----|----|
-| **Build the code.** You need data with the right *shape* — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model-run plumbing outside the environment that holds the real study. Only the structure has to be right. | **Yes — this is what the package is for.** |
+| **Build the code.** You need data with the right *shape* — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model fitting outside the environment that holds the real study. Only the structure has to be right. | **Yes — this is what the package is for.** |
 | **Use better tools.** The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed. | **Yes**, same job as above. |
 | **Send data past a trust boundary.** The output will reach people who cannot see the real data: a partner, a publication, a public repository. | **Only with care.** This needs a formal guarantee; see the privacy modes below, which are illustrative rather than audited. |
 | **Answer the scientific question.** Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm. | **No.** No method here — see below. |
 | **Teach and compare.** Show what the different generation methods actually do and what each one costs. | **Yes**, secondarily; that is why the non-default modes ship. |
 
-The “answer the scientific question” row is the one worth stating
-plainly: **synthetic data contains no information about the drug that
-was not already in its source.** Analyze it and you recover, at best, a
-noisier version of what the real data would have told you, and at worst
-your own modeling assumptions handed back to you. A generated dataset is
-also not anonymous data, and is not evidence that source subjects cannot
-be re-identified. This package aims at structural usefulness, not
-scientific equivalence.
-
-The concrete use case it was built for: sharing realistic-looking study
-data outside the GxP (Good Practice regulated) computing environment but
-still within the organization, so that development work can happen
-without the real data. In some cases that environment does not permit
-the most advanced agentic coding tools, because of the risk of
-misalignment or unintended agent behavior. Working against synthetic
-data lets those tools be used without exposing them to patient data.
+The concrete use case this package was built for: sharing
+realistic-looking study data outside the GxP (Good Practice regulated)
+computing environment but still within the organization, so that
+development work can happen without the real data. In some cases the GxP
+environment does not permit the most advanced agentic coding tools,
+because of the risk of misalignment or unintended agent behavior.
+Working against synthetic data lets those tools be used without exposing
+them to patient data.
 
 ## How much of the real data survives?
 

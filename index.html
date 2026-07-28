@@ -70,7 +70,7 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
-<p>📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
+<p>update readme 📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
 <p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets.</p>
 <div class="section level2">
 <h2 id="which-job-do-you-want-synthetic-data-to-do">Which job do you want synthetic data to do?<a class="anchor" aria-label="anchor" href="#which-job-do-you-want-synthetic-data-to-do"></a>
@@ -88,7 +88,7 @@
 <tbody>
 <tr>
 <td>
-<strong>Build the code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model-run plumbing outside the environment that holds the real study. Only the structure has to be right.</td>
+<strong>Build the code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model fitting outside the environment that holds the real study. Only the structure has to be right.</td>
 <td><strong>Yes — this is what the package is for.</strong></td>
 </tr>
 <tr>
@@ -117,8 +117,7 @@
 </tr>
 </tbody>
 </table>
-<p>The “answer the scientific question” row is the one worth stating plainly: <strong>synthetic data contains no information about the drug that was not already in its source.</strong> Analyze it and you recover, at best, a noisier version of what the real data would have told you, and at worst your own modeling assumptions handed back to you. A generated dataset is also not anonymous data, and is not evidence that source subjects cannot be re-identified. This package aims at structural usefulness, not scientific equivalence.</p>
-<p>The concrete use case it was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that development work can happen without the real data. In some cases that environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working against synthetic data lets those tools be used without exposing them to patient data.</p>
+<p>The concrete use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that development work can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working against synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
 <h2 id="how-much-of-the-real-data-survives">How much of the real data survives?<a class="anchor" aria-label="anchor" href="#how-much-of-the-real-data-survives"></a>
