@@ -258,19 +258,18 @@ source with a known allometric WT effect on CL, 15 synthetic replicates.
 
 | Mode | Covariate -> PK/PD | Covariate <-> covariate |
 |---|---|---|
-| `synpmx_avatar()` | **Retained, but not at face value.** Measured over 30 runs in the worked article: a dose/arm effect comes through at ~104%, a treatment effect at ~99%, an exposure-response slope is *diluted* to ~89%, and a declared covariate effect is *amplified* to ~143%. | Retained by the same mechanism. |
+| `synpmx_avatar()` | **Retained, mildly diluted.** Measured over 30 runs in the worked article: allometric exponent 0.75 -> 0.68 (92%), dose effect 104%, treatment effect 99%, exposure-response slope 89%. All within ~10% of source. | Retained by the same mechanism. |
 | `synpmx_prior()` | **None.** | **None.** |
 | `synpmx_calibrated()` | **None.** | **None.** |
 | `synpmx_empirical()` | **None.** | **None.** |
 
-**The amplification is the finding worth remembering.** A declared covariate is
-one of the features building the profile space that selects donors, so a
-subject's donors resemble it in that covariate *and* in exposure at once.
-Blending averages away the exposure variation the covariate does not explain and
-keeps what it does, so the relationship comes out cleaner than it went in. A
-covariate can therefore look *more* predictive in AVATAR output than in reality
--- the opposite of the failure people expect, and in the direction that makes a
-reader over-confident.
+**Correction, 2026-07-28.** An earlier version of this entry recorded the
+covariate effect as *amplified* to ~143%. That was an artifact of a confounded
+measurement: log AUC was regressed on log WT without dividing out the dose, so a
+chance weight/arm imbalance leaked into the slope. Dose-normalised, the source
+slope is -0.747 -- the allometric exponent 0.75 itself -- and AVATAR returns
+0.683, a mild dilution. There is no amplification. Every relationship measured
+moves the same way: slightly toward the null.
 
 Why AVATAR keeps it: `.synthesize_covariates()` and `.synthesize_trajectories()`
 are handed *the same* `donors$indices` and `donors$weights`
