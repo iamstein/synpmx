@@ -6,6 +6,8 @@
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
+- [Example: prior-only synthetic PK for
+  pyrazinamide](https://iamstein.github.io/synpmx/articles/example_prior-pyrazinamide.md):
 - [Feasibility: what can be released, and from how many
   patients](https://iamstein.github.io/synpmx/articles/feasibility.md):
 - [Building the structural model: an elicitation

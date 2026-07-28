@@ -38,6 +38,9 @@
     <li><a class="dropdown-item" href="../articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/example_prior-pyrazinamide.html">Example: prior-only PK for pyrazinamide</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -292,15 +295,13 @@ private” but the difference is more substantial.</p>
 <td>None</td>
 <td>Proven <code>(epsilon, delta)</code> bound on one subject’s
 influence</td>
-<td>Nothing is disclosed — <strong>only if the model was written without
-reading the data</strong>
-</td>
+<td>Nothing is disclosed</td>
 </tr>
 <tr class="odd">
 <td>Holds against a determined adversary</td>
 <td>Not established</td>
 <td>Yes, by construction</td>
-<td>Vacuously — there is nothing to attack</td>
+<td>Yes, there is nothing to attack</td>
 </tr>
 <tr class="even">
 <td>Rests on</td>
@@ -321,12 +322,6 @@ the data</td>
 <td>A public structural model, priors, and clipping ranges — all worked
 out without looking at the data</td>
 <td>A public structural model and a trial design</td>
-</tr>
-<tr class="odd">
-<td>Epsilon</td>
-<td>Not applicable — no guarantee is claimed</td>
-<td>Spent per release</td>
-<td>Not applicable — nothing to spend it on</td>
 </tr>
 </tbody>
 </table>

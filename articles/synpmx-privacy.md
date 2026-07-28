@@ -187,12 +187,11 @@ but the difference is more substantial.
 | Function | [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md) | [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md), [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md) | [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md) |
 | Reads the source data | Yes, whole trajectories | Yes, as clipped aggregates | **Never** — and neither may the model it is given |
 | What produces the output | Real subject trajectories, blended and perturbed | Noised aggregate statistics plus a public structural model | A public structural model and trial design alone |
-| Privacy claim | None | Proven `(epsilon, delta)` bound on one subject’s influence | Nothing is disclosed — **only if the model was written without reading the data** |
-| Holds against a determined adversary | Not established | Yes, by construction | Vacuously — there is nothing to attack |
+| Privacy claim | None | Proven `(epsilon, delta)` bound on one subject’s influence | Nothing is disclosed |
+| Holds against a determined adversary | Not established | Yes, by construction | Yes, there is nothing to attack |
 | Rests on | Governance and access control | Mathematics, plus correct declared ranges | Discipline: that every parameter was fixed before anyone looked at the data |
 | Utility at small N | Good | Degrades sharply below a few hundred | Independent of N — it depends on your model, not your cohort |
 | What you must supply | Nothing but the source data | A public structural model, priors, and clipping ranges — all worked out without looking at the data | A public structural model and a trial design |
-| Epsilon | Not applicable — no guarantee is claimed | Spent per release | Not applicable — nothing to spend it on |
 
 A caveat about AVATAR is that a resampled subject **trajectory** is much
 closer to a fingerprint for a patient than a randomly chosen covariate.
