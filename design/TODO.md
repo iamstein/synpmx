@@ -258,10 +258,19 @@ source with a known allometric WT effect on CL, 15 synthetic replicates.
 
 | Mode | Covariate -> PK/PD | Covariate <-> covariate |
 |---|---|---|
-| `synpmx_avatar()` | **Largely retained.** cor(WT, log AUC) source -0.757 -> synthetic -0.571; regression slope d(logAUC)/d(logWT) source -0.707 -> synthetic -0.804 (sd 0.126). | Retained by the same mechanism, attenuated. |
+| `synpmx_avatar()` | **Retained, but not at face value.** Measured over 30 runs in the worked article: a dose/arm effect comes through at ~104%, a treatment effect at ~99%, an exposure-response slope is *diluted* to ~89%, and a declared covariate effect is *amplified* to ~143%. | Retained by the same mechanism. |
 | `synpmx_prior()` | **None.** | **None.** |
 | `synpmx_calibrated()` | **None.** | **None.** |
 | `synpmx_empirical()` | **None.** | **None.** |
+
+**The amplification is the finding worth remembering.** A declared covariate is
+one of the features building the profile space that selects donors, so a
+subject's donors resemble it in that covariate *and* in exposure at once.
+Blending averages away the exposure variation the covariate does not explain and
+keeps what it does, so the relationship comes out cleaner than it went in. A
+covariate can therefore look *more* predictive in AVATAR output than in reality
+-- the opposite of the failure people expect, and in the direction that makes a
+reader over-confident.
 
 Why AVATAR keeps it: `.synthesize_covariates()` and `.synthesize_trajectories()`
 are handed *the same* `donors$indices` and `donors$weights`
@@ -301,12 +310,19 @@ either --- two correlated covariates come out independent.
       model-based modes, and from `pmx_covariates_auto()`, which resamples each
       column marginally in the `synadam` style. A joint draw would fix that
       without touching the structural model at all.
-- [ ] **Protect what AVATAR already does.** The retention measured above is a
-      property of sharing one donor set and one weight vector across covariates
-      and endpoints. Any future change that draws them separately, or reweights
-      per endpoint, would silently destroy it. There is no regression test
-      pinning it; add one before touching `.select_donors()` or
-      `.synthesize_covariates()` again.
+- [x] **Protect what AVATAR already does.** Done 2026-07-28:
+      `test-avatar-relationships.R` pins the covariate slope, the arm dose
+      ratio, arm/dose coherence for a `keep` column, and structurally that
+      `.select_donors()` is called once per subject and feeds both synthesisers.
+      Bounds are deliberately wide -- these catch destruction, not drift.
+      Worked evidence in
+      `vignettes/articles/example-avatar-PKPD-covariate-treatment-effect.Rmd`.
+- [ ] **Revisit the per-endpoint donor weighting idea in that light.** Reweighting
+      donors per endpoint was floated to stop a densely-sampled endpoint
+      dominating donor selection (see the multi-endpoint section of the AVATAR
+      article). It would also break the single shared donor draw that every
+      relationship above depends on. The two goals are in direct tension; decide
+      deliberately rather than discovering it in a test failure.
 
 ## Next: correctness and privacy findings
 
