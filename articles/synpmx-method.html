@@ -191,6 +191,12 @@ nothing to protect and no budget to spend: this is
 <p>The typical parameter values must come from somewhere that is not the
 data — allometric scaling from preclinical work, a published model for
 the compound class, or the reasoning that set the starting dose.</p>
+<p>Before reaching for this mode as a simulator, read <a href="#the-built-in-models-are-illustrative-and-deliberately-so">what
+the built-in models can and cannot express</a>. The catalogue is small
+on purpose: no covariate effects, no inter-occasion variability, no
+additive residual error, no ODE models. It produces a structurally
+correct dataset to develop code against, not a faithful rendering of an
+arbitrary pharmacometric model.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
 <span>  pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>,</span>
@@ -647,15 +653,76 @@ budget.</p>
 for a single PK correction plus the count), the noise per released
 quantity stays small, which is why this engine remains usable at 20 to
 60 subjects. The tradeoff is that everything not calibrated is
-<em>asserted</em>: curve shape, variability, residual error, and
-covariate relationships come from the public model, so the output is
-only as realistic as that model. It cannot reveal a structural feature
-the model does not contain.</p>
+<em>asserted</em>: curve shape, variability, and residual error come
+from the public model, so the output is only as realistic as that model.
+It cannot reveal a structural feature the model does not contain.</p>
 <p><code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> instead reconstructs shape from a
 denser set of noised summaries. It asserts less — trajectory shape is
 measured rather than assumed — but it releases far more numbers, so the
 same epsilon is split many ways. Utility therefore collapses below a few
 hundred subjects.</p>
+<div class="section level3">
+<h3 id="the-built-in-models-are-illustrative-and-deliberately-so">The built-in models are illustrative, and deliberately so<a class="anchor" aria-label="anchor" href="#the-built-in-models-are-illustrative-and-deliberately-so"></a>
+</h3>
+<p>It is worth being blunt about the ceiling here, because the phrase
+“structural model” invites an expectation this package does not meet.
+The model catalogue is small and fixed:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Supported</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>PK</td>
+<td>
+<code>1cmt_iv</code>, <code>1cmt_oral</code>,
+<code>1cmt_infusion</code>, <code>2cmt_iv</code>, <code>2cmt_oral</code>
+— closed form, no ODEs</td>
+</tr>
+<tr class="even">
+<td>PD</td>
+<td>
+<code>constant</code>, <code>linear</code>,
+<code>exponential</code>, with no exposure dependence</td>
+</tr>
+<tr class="odd">
+<td>Variability</td>
+<td>Lognormal between-subject variability on the typical parameters</td>
+</tr>
+<tr class="even">
+<td>Residual error</td>
+<td>Proportional only</td>
+</tr>
+</tbody>
+</table>
+<p>And that is the whole of it. There are <strong>no covariate–parameter
+relationships</strong> (no allometric exponent on clearance, no sex or
+biomarker effect), no inter-occasion variability, no additive or
+combined residual error, no absorption lag or transit compartments, no
+enzyme induction or time-varying parameters, no exposure-driven PD, and
+no user-supplied ODE model. Declared covariates appear in the output as
+columns, but nothing links them to the concentrations beside them.</p>
+<p>This is a scope decision rather than a gap waiting to be filled. The
+space of pharmacometric models is effectively unbounded, and every study
+wants something idiosyncratic; a package that chased that would slowly
+become a worse <code>rxode2</code>, which already does the job properly.
+What the built-in models are <em>for</em> is narrow and useful: giving
+the DP engines a public backbone whose magnitude can be corrected under
+a budget, and producing structurally correct event tables to develop
+pipeline code against.</p>
+<p>So if your question is <strong>“does my code handle this dataset
+shape?”</strong>, these modes are the right tool. If it is <strong>“what
+would this study look like under my model?”</strong>, write that model
+in <code>rxode2</code> or <code>nlmixr2</code> and simulate it there —
+that is the right tool, and an LLM is a capable assistant for producing
+the model code. The two are complementary; only the second is a
+simulator.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="practical-review-checklist">Practical review checklist<a class="anchor" aria-label="anchor" href="#practical-review-checklist"></a>

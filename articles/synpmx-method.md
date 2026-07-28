@@ -116,6 +116,14 @@ The typical parameter values must come from somewhere that is not the
 data — allometric scaling from preclinical work, a published model for
 the compound class, or the reasoning that set the starting dose.
 
+Before reaching for this mode as a simulator, read [what the built-in
+models can and cannot
+express](#the-built-in-models-are-illustrative-and-deliberately-so). The
+catalogue is small on purpose: no covariate effects, no inter-occasion
+variability, no additive residual error, no ODE models. It produces a
+structurally correct dataset to develop code against, not a faithful
+rendering of an arbitrary pharmacometric model.
+
 ``` r
 
 theo_model <- pmx_structural_model(
@@ -492,15 +500,52 @@ Because only a handful of numbers are released (`d = 2` for a single PK
 correction plus the count), the noise per released quantity stays small,
 which is why this engine remains usable at 20 to 60 subjects. The
 tradeoff is that everything not calibrated is *asserted*: curve shape,
-variability, residual error, and covariate relationships come from the
-public model, so the output is only as realistic as that model. It
-cannot reveal a structural feature the model does not contain.
+variability, and residual error come from the public model, so the
+output is only as realistic as that model. It cannot reveal a structural
+feature the model does not contain.
 
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
 instead reconstructs shape from a denser set of noised summaries. It
 asserts less — trajectory shape is measured rather than assumed — but it
 releases far more numbers, so the same epsilon is split many ways.
 Utility therefore collapses below a few hundred subjects.
+
+### The built-in models are illustrative, and deliberately so
+
+It is worth being blunt about the ceiling here, because the phrase
+“structural model” invites an expectation this package does not meet.
+The model catalogue is small and fixed:
+
+|  | Supported |
+|----|----|
+| PK | `1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral` — closed form, no ODEs |
+| PD | `constant`, `linear`, `exponential`, with no exposure dependence |
+| Variability | Lognormal between-subject variability on the typical parameters |
+| Residual error | Proportional only |
+
+And that is the whole of it. There are **no covariate–parameter
+relationships** (no allometric exponent on clearance, no sex or
+biomarker effect), no inter-occasion variability, no additive or
+combined residual error, no absorption lag or transit compartments, no
+enzyme induction or time-varying parameters, no exposure-driven PD, and
+no user-supplied ODE model. Declared covariates appear in the output as
+columns, but nothing links them to the concentrations beside them.
+
+This is a scope decision rather than a gap waiting to be filled. The
+space of pharmacometric models is effectively unbounded, and every study
+wants something idiosyncratic; a package that chased that would slowly
+become a worse `rxode2`, which already does the job properly. What the
+built-in models are *for* is narrow and useful: giving the DP engines a
+public backbone whose magnitude can be corrected under a budget, and
+producing structurally correct event tables to develop pipeline code
+against.
+
+So if your question is **“does my code handle this dataset shape?”**,
+these modes are the right tool. If it is **“what would this study look
+like under my model?”**, write that model in `rxode2` or `nlmixr2` and
+simulate it there — that is the right tool, and an LLM is a capable
+assistant for producing the model code. The two are complementary; only
+the second is a simulator.
 
 ## Practical review checklist
 
