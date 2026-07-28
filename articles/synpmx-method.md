@@ -9,17 +9,15 @@ and model-run plumbing can be developed outside the restricted
 environment that holds the real data.
 
 That narrow purpose is important. A generated dataset is not anonymous
-data and is not evidence that source subjects cannot be re-identified.
-It is also not suitable for estimation, model selection, inference, dose
-selection, or clinical decisions. The method aims for structural
-usefulness, not scientific equivalence.
+data and is not a formal proof that source subjects cannot be
+re-identified. It is also not suitable for estimation, model selection,
+inference, dose selection, or clinical decisions. The method aims for
+structural usefulness, not scientific equivalence.
 
-The hard part is not making numbers. It is deciding **how much of the
-real data is allowed to survive into the synthetic data**, which is a
-privacy question before it is a technical one. This package therefore
-offers four generation modes at different points on that scale. This
-vignette introduces all four and applies each one to the same public
-dataset.
+Given that synthetic data is oven used as a way to protect privacy, this
+package offers four synthetic data generation functions that offer
+different privacy guarantees. This vignette introduces all four and
+applies each one to the same public dataset.
 
 The four modes, from most faithful to most protective:
 
@@ -30,9 +28,6 @@ The four modes, from most faithful to most protective:
     corrected by a small, differentially private release.
 4.  **Empirical** — release a dense set of differentially private
     summaries and rebuild subjects from them.
-
-Modes 2, 3, and 4 all use differential privacy (DP) accounting, and mode
-2 is its trivial limit: spending nothing.
 
 “AVATAR” is a method name rather than an initialism, from the
 patient-centric *avatarization* literature in which each synthetic
@@ -124,6 +119,10 @@ variability, no additive residual error, no ODE models. It produces a
 structurally correct dataset to develop code against, not a faithful
 rendering of an arbitrary pharmacometric model.
 
+Others are working in parallel to develop a data simulation SKILL.md
+file to support development of such synthetic data. This work is
+important, but outside the scope of this package.
+
 ``` r
 
 theo_model <- pmx_structural_model(
@@ -185,10 +184,7 @@ and
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
 refuse to run until
 [`synpmx_enable_dp_engines()`](https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.md)
-has been called once in the session — a deliberate speed bump, not a
-technical safeguard, so that the maintenance status below cannot be
-reached by accident. `backend = "public"` calls, like the ones in this
-vignette, make no DP claim and are exempt.
+has been called once in the session — a deliberate speed bump.
 
 ``` r
 
@@ -256,15 +252,6 @@ again — a second fit would spend the budget a second time.
 another <- synpmx_generate(calibrated_data, seed = 304)   # spends nothing
 ```
 
-Two honest notes. First, `backend = "public"` is used here because
-`theo_md` is already public: it makes the release **noiseless** and
-therefore makes no DP claim, which the printed model states. A
-confidential fit uses the default validated backend, and **fails
-closed** if it is unavailable — it stops with an error rather than
-substituting ordinary R random noise. A fallback would produce output
-that looked private and carried an epsilon, without the noise ever
-having been checked against the privacy relation:
-
 ``` r
 
 calibrated <- synpmx_calibrated(
@@ -281,10 +268,10 @@ dp_backend_status()
 #> 1  OpenDP      TRUE  0.15.1       TRUE
 ```
 
-Second, at 12 subjects a genuine DP release of this correction is noisy
-enough that it is often censored at the prior boundary — the package
-warns when that happens, because the generated data then reflects the
-prior, not the study.
+At 12 subjects a genuine DP release of this correction is noisy enough
+that it is often censored at the prior boundary — the package warns when
+that happens, because the generated data then reflects the prior, not
+the study.
 [`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
 covers when the release is worth making.
 
@@ -336,7 +323,7 @@ privacy_report(empirical_data)
 Note the requested `epsilon = 5`, five times the calibrated fit’s
 budget, for a worse result at this cohort size. That is not a bug: the
 same budget is being split six ways over dozens of released coordinates.
-This engine earns its keep on large pooled corpora, not on twelve
+This engine earns its keep on large pooled datasets, not on twelve
 subjects.
 
 ## The four side by side
@@ -407,10 +394,10 @@ size the noise is visible.
 
 | Mode | Function | Output built from | Guarantee | Cohort size | Elicitation needed |
 |:---|:---|:---|:---|:---|:---|
-| 1\. AVATAR blending | synpmx_avatar() | Real subject templates and blended real trajectories | None; governance only | Any, from ~12 | None |
+| 1\. AVATAR blending | synpmx_avatar() | Real subject templates and blended real trajectories | None; governance only | Any, from ~5 | None |
 | 2\. Prior only | synpmx_prior() | A public model and protocol only | epsilon = 0 (no data read) | Any (data-independent) | Structural model + protocol |
 | 3\. Calibration | synpmx_calibrated() | A public model, magnitude corrected by 2 private releases | (epsilon, delta) DP | ~20 and up | Model, protocol, prior ranges |
-| 4\. Empirical | synpmx_empirical() | Dozens of noised population summaries | (epsilon, delta) DP | A few hundred and up | Endpoints, bounds, limits, budget split |
+| 4\. Empirical | synpmx_empirical() | Dozens of noised population summaries | (epsilon, delta) DP | ~200 and up | Endpoints, bounds, limits, budget split |
 
 Where each mode belongs:
 
@@ -423,15 +410,14 @@ Where each mode belongs:
 
 Two rules of thumb behind the table:
 
-- **The trust boundary decides whether you need DP.** Ask whether the
-  generated data can reach anyone the source data could not — people and
-  obligations, not machines. A workstation under the same access
-  controls reaches no one new. If no one new, AVATAR is more useful and
-  its lack of a formal guarantee costs nothing. If someone new, only an
-  accounted release holds up.
-- **The cohort size decides which DP mode is usable.** Epsilon buys
-  accuracy in proportion to the number of subjects and in inverse
-  proportion to how many quantities you release. At 12 subjects,
+- **The trust boundary decides the level of privacy needed.** Ask
+  whether the generated data can reach anyone the source data could not.
+  A workstation under the same access controls reaches no one new. If no
+  one new, AVATAR is more useful and its lack of a formal guarantee
+  costs nothing. If someone new, only an accounted release holds up.
+- **The cohort size decides which differential privacy mode is usable.**
+  Epsilon buys accuracy in proportion to the number of subjects and in
+  inverse proportion to how many quantities you release. At 12 subjects,
   releasing two numbers can work and releasing fifty cannot.
 
 Epsilon and delta are governance decisions, not defaults. For anything
@@ -458,14 +444,14 @@ resampling. If `synadam`’s privacy model is acceptable for its use,
 AVATAR’s is acceptable for the same use — output kept under the source
 data’s own access controls, reaching no one the source data could not.
 
-One honest caveat follows from the difference in granularity. A
-resampled covariate value (a weight of 72 kg) is weakly identifying
-because many people share it. A resampled subject trajectory is more
-strongly identifying, closer to a fingerprint, because a full
-sampling-and-response pattern is more nearly unique. Blending several
-donors and adding noise mitigates this, but not formally. AVATAR
-therefore depends on the governance context somewhat more than
-`synadam`’s column resampling does.
+One caveat follows from the difference in granularity. A resampled
+covariate value (a weight of 72 kg) is weakly identifying because many
+people share it. A resampled subject trajectory is more strongly
+identifying because a full sampling-and-response pattern is more nearly
+unique. Blending several donors, adding noise, and removing outlying
+patients mitigates this, but not formally. AVATAR therefore depends on
+the governance context somewhat more than `synadam`’s column resampling
+does.
 
 ## What the model-based modes replace
 
@@ -542,47 +528,9 @@ against.
 
 So if your question is **“does my code handle this dataset shape?”**,
 these modes are the right tool. If it is **“what would this study look
-like under my model?”**, write that model in `rxode2` or `nlmixr2` and
-simulate it there — that is the right tool, and an LLM is a capable
-assistant for producing the model code. The two are complementary; only
-the second is a simulator.
-
-## Practical review checklist
-
-Before using a synthetic dataset for workflow development, verify all of
-the following:
-
-Every critical column has an explicit and correct role.
-
-Units and event conventions are documented outside the generator.
-
-`validate_pmx(source, roles)` and `validate_pmx(synthetic, roles)` are
-valid.
-
-Source and synthetic event counts are credible by EVID, CMT, and DVID.
-
-Dose, infusion start/stop, and tied-time records remain coherent.
-
-Observation-time windows and endpoint trajectories are usable for the
-intended plotting and model-run code.
-
-Declared covariates are constant within synthetic subject and retain
-classes.
-
-`pmx_settings$warnings` and endpoint transformations were reviewed.
-
-Any TAD column was recomputed if TIME was jittered.
-
-If the source has below-the-limit-of-quantification (BLOQ) records, a
-`cens` role was declared so the limit is reconstructed rather than
-copied, and the generated censored fraction was checked against the
-source.
-
-No claim of anonymity, privacy, parameter fidelity, or scientific
-equivalence is being made.
-
-The synthetic output remains governed according to the source
-environment’s applicable privacy and data-sharing rules.
+like under my model?”**, write that model in `rxode2` and simulate it
+there — that is the right tool, and an LLM is a capable assistant for
+producing the model code.
 
 ## Where to go next
 
