@@ -19,7 +19,7 @@ navbar:
       - text: "Guides"
       - text: The four generation modes
         href: articles/synpmx-method.html
-      - text: Using synpmx AVATAR with 5 datasets
+      - text: "Demo: Using synpmx AVATAR with 5 datasets"
         href: articles/synpmx-demo.html
       - text: Privacy in synpmx
         href: articles/synpmx-privacy.html
