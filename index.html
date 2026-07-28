@@ -70,10 +70,61 @@
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
 <p>📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
-<p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets. The intended use case is to provide realistic looking data of a study that can be shared outside the GxP computing environment (but stay within the organization) so that data-assembly code, diagnostic plots, and modeling can be developed outside the restricted computing environment that holds the real data.</p>
-<p>In some cases the GxP computing environment does not allow use of the most advanced agentic coding tools due to risks from misalignment and unintended behavior of the agents. Using synthetic data allows the most advanced agentic coding tools to be used without exposing them to patient data.</p>
-<p>In general, when developing synthetic data, it’s important to think carefully about <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. This is a privacy question and <code>synpmx</code> offers four options.</p>
-<p>The main deliverable of the package uses an implementation of the AVATAR method which offers some blinding, but not formal privacy guarantees. The AVATAR method works by blending together actual patient profiles and does not requiring specification of a model.</p>
+<p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets.</p>
+<div class="section level2">
+<h2 id="which-job-do-you-want-synthetic-data-to-do">Which job do you want synthetic data to do?<a class="anchor" aria-label="anchor" href="#which-job-do-you-want-synthetic-data-to-do"></a>
+</h2>
+<p>There are many reasons to generate “synthetic data.” It is worth being explicit about which one you are after, because the goal decides which method is appropriat.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>The goal</th>
+<th>Served here?</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+<strong>Build the code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern — to develop data-assembly code, diagnostic plots, and model-run plumbing outside the environment that holds the real study. Only the structure has to be right.</td>
+<td><strong>Yes — this is what the package is for.</strong></td>
+</tr>
+<tr>
+<td>
+<strong>Use better tools.</strong> The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed.</td>
+<td>
+<strong>Yes</strong>, same job as above.</td>
+</tr>
+<tr>
+<td>
+<strong>Send data past a trust boundary.</strong> The output will reach people who cannot see the real data: a partner, a publication, a public repository.</td>
+<td>
+<strong>Only with care.</strong> This needs a formal guarantee; see the privacy modes below, which are illustrative rather than audited.</td>
+</tr>
+<tr>
+<td>
+<strong>Answer the scientific question.</strong> Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm.</td>
+<td>
+<strong>No.</strong> No method here — see below.</td>
+</tr>
+<tr>
+<td>
+<strong>Teach and compare.</strong> Show what the different generation methods actually do and what each one costs.</td>
+<td>
+<strong>Yes</strong>, secondarily; that is why the non-default modes ship.</td>
+</tr>
+</tbody>
+</table>
+<p>The “answer the scientific question” row is the one worth stating plainly: <strong>synthetic data contains no information about the drug that was not already in its source.</strong> Analyze it and you recover, at best, a noisier version of what the real data would have told you, and at worst your own modeling assumptions handed back to you. A generated dataset is also not anonymous data, and is not evidence that source subjects cannot be re-identified. This package aims at structural usefulness, not scientific equivalence.</p>
+<p>The concrete use case it was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that development work can happen without the real data. In some cases that environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working against synthetic data lets those tools be used without exposing them to patient data.</p>
+</div>
+<div class="section level2">
+<h2 id="how-much-of-the-real-data-survives">How much of the real data survives?<a class="anchor" aria-label="anchor" href="#how-much-of-the-real-data-survives"></a>
+</h2>
+<p>Whatever the goal, the design question is <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. That is a privacy question before it is a technical one, and <code>synpmx</code> offers four answers.</p>
+<p>The main deliverable of the package is an implementation of the AVATAR method, which offers some blinding but no formal privacy guarantee. AVATAR works by blending together actual patient profiles, and requires no model to be specified. The package also provides code for other methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. Those are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
