@@ -1,0 +1,328 @@
+# Example: are PK/PD, covariate, and treatment relationships preserved?
+
+A synthetic dataset is only useful if the things you were going to *look
+for* are still in it. This article builds a source dataset with four
+relationships put in deliberately — a covariate effect, a dose effect, a
+treatment effect, and an exposure–response link — runs
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+over it, and measures how much of each one comes out the other side.
+
+**Read this first, because it frames every number below.** AVATAR does
+not model any of these relationships. There is no covariate model in it,
+no dose–response model, no PK/PD link, and no notion of a treatment arm.
+Nothing in the generator knows that weight ought to affect clearance.
+Whatever survives does so as a **side effect of how the method works** —
+whole real subjects are blended together, and a subject carries all of
+its properties at once — and not because anything was specified. So the
+right expectation is a *tendency*, strong under some conditions and
+weaker under others, rather than a guarantee. The last two sections
+measure exactly where it weakens.
+
+## A source dataset with known relationships
+
+Everything here is simulated, so the truth is known and no real patient
+is involved. Eighty subjects, two treatment arms at different doses, a
+one-compartment oral PK model with allometric weight effects on
+clearance and volume, and a direct-effect PD endpoint driven by
+concentration.
+
+``` r
+
+set.seed(2026)
+
+make_subject <- function(id, arm, dose) {
+  wt <- rnorm(1, 70, 12)
+  cl <- 5  * (wt / 70)^0.75 * exp(rnorm(1, 0, 0.20))   # allometric on CL
+  v  <- 40 * (wt / 70)      * exp(rnorm(1, 0, 0.15))   # allometric on V
+  ka <- 1.2
+  pk_time <- c(0.5, 1, 2, 4, 8, 12, 24)
+  pd_time <- c(0, 4, 12, 24)
+  conc <- function(t) {
+    dose / v * ka / (ka - cl / v) * (exp(-cl / v * t) - exp(-ka * t))
+  }
+  e0 <- 100 * exp(rnorm(1, 0, 0.10))
+  rbind(
+    data.frame(ID = id, TIME = 0, DV = NA_real_, AMT = dose, EVID = 1L,
+               CMT = 1L, DVID = "PK", WT = wt, ARM = arm),
+    data.frame(ID = id, TIME = pk_time,
+               DV = conc(pk_time) * exp(rnorm(length(pk_time), 0, 0.08)),
+               AMT = 0, EVID = 0L, CMT = 2L, DVID = "PK", WT = wt, ARM = arm),
+    data.frame(ID = id, TIME = pd_time,
+               DV = (e0 - 3 * conc(pd_time)) *
+                 exp(rnorm(length(pd_time), 0, 0.05)),
+               AMT = 0, EVID = 0L, CMT = 3L, DVID = "PD", WT = wt, ARM = arm)
+  )
+}
+
+source_data <- do.call(rbind, c(
+  lapply(1:40,  make_subject, arm = "low",  dose = 300),
+  lapply(41:80, make_subject, arm = "high", dose = 600)
+))
+source_data <- source_data[
+  order(source_data$ID, source_data$TIME, source_data$EVID == 0L), ]
+rownames(source_data) <- NULL
+
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "DVID",
+  covariates = "WT",     # blended across donors into a new value
+  keep = "ARM"           # copied verbatim from the one anchor subject
+)
+```
+
+Note the two different treatments of the two non-PK columns, because it
+matters for what follows. `WT` is a **covariate**: the synthetic subject
+gets a new weight blended from its donors. `ARM` is **kept**: the
+synthetic subject gets one real subject’s arm label, copied unchanged
+from its anchor. Those are different subjects — the anchor supplies the
+skeleton and the kept columns, the donors supply the values — which is
+why the treatment effect surviving at all is not obvious in advance.
+
+## The four relationships, measured the same way on any dataset
+
+``` r
+
+relationships <- function(d) {
+  obs <- d$EVID == 0 & !is.na(d$DV)
+  pk  <- d[obs & d$DVID == "PK", ]
+  pd  <- d[obs & d$DVID == "PD", ]
+  ids <- as.character(pk$ID)
+
+  auc <- tapply(seq_len(nrow(pk)), ids, function(i) {
+    t <- pk$TIME[i]; y <- pk$DV[i]; o <- order(t)
+    sum(diff(t[o]) * (head(y[o], -1) + tail(y[o], -1)) / 2)
+  })
+  wt     <- tapply(pk$WT, ids, function(v) v[1])
+  arm    <- tapply(as.character(pk$ARM), ids, function(v) v[1])
+  pd_min <- tapply(pd$DV, as.character(pd$ID), min)[names(auc)]
+  ok     <- is.finite(auc) & auc > 0 & is.finite(wt) & is.finite(pd_min)
+
+  c(wt_slope   = unname(coef(lm(log(auc[ok]) ~ log(wt[ok])))[2]),
+    dose_ratio = unname(mean(auc[ok & arm == "high"]) /
+                          mean(auc[ok & arm == "low"])),
+    pd_effect  = unname(mean(pd_min[ok & arm == "low"]) -
+                          mean(pd_min[ok & arm == "high"])),
+    er_slope   = unname(coef(lm(pd_min[ok] ~ log(auc[ok])))[2]))
+}
+
+truth <- relationships(source_data)
+```
+
+## Run AVATAR, several times
+
+One synthetic dataset tells you little, because each run draws its own
+anchors and donors. Thirty runs show both the central tendency and the
+spread, and the spread is as much the point as the average.
+
+``` r
+
+set.seed(7)
+replicates <- replicate(30, {
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source_data, roles, seed = sample.int(1e6, 1))
+  )
+  relationships(synthetic)
+})
+```
+
+| relationship | source | synthetic | run_to_run_sd | retained |
+|:---|---:|---:|---:|:---|
+| WT to exposure (slope of log AUC on log WT) | -0.896 | -1.284 | 0.426 | 143% |
+| dose to exposure (AUC ratio, high/low arm) | 2.151 | 2.240 | 0.076 | 104% |
+| treatment effect (PD nadir difference, low - high) | 18.747 | 18.637 | 4.475 | 99% |
+| exposure to response (slope of PD nadir on log AUC) | -23.678 | -20.964 | 4.664 | 89% |
+
+Relationships in the source and in AVATAR output, 30 runs {.table}
+
+Every relationship survives — none collapses to nothing — but read the
+`retained` column carefully, because the three rows do **not** behave
+the same way, and the differences are informative rather than noise.
+
+- **The dose and treatment effects come through almost exactly** (104%,
+  99%).
+- **The exposure–response slope is diluted** (89%). It relates two
+  quantities that were *both* blended, and blending pulls each toward
+  its local mean, so the slope between them flattens.
+- **The covariate effect is amplified** (143%). That is not a rounding
+  artifact: across 30 runs the standard error of that mean is about
+  0.08, so a source slope of -0.90 becoming -1.28 is a real shift, and
+  it is in the *opposite* direction to the dilution above.
+
+The amplification has a specific cause, and it is worth understanding
+because it generalises to any covariate you declare. `WT` is one of the
+features used to build the profile space that selects donors, so a
+subject’s donors tend to resemble it in weight *and* in exposure at the
+same time. Blending then averages away the part of a subject’s exposure
+that weight does not explain, while leaving the part it does. The
+relationship comes out cleaner than it went in.
+
+**So a declared covariate can look more predictive in AVATAR output than
+it is in reality.** That is the single most important caveat on this
+page: it is the opposite of the failure people expect from synthetic
+data, and it runs in the direction that would make you over-confident.
+
+## Is the treatment arm coherent with the dose?
+
+`ARM` is copied from the anchor and the concentrations are blended from
+the donors, so nothing structurally prevents a “high” label from
+arriving with “low” data. Check it directly.
+
+``` r
+
+one_run <- suppressWarnings(synpmx_avatar(source_data, roles, seed = 99))
+table(ARM = one_run$ARM[one_run$EVID == 1], dose = one_run$AMT[one_run$EVID == 1])
+#>       dose
+#> ARM    300 600
+#>   high   0  41
+#>   low   39   0
+```
+
+Every synthetic subject’s arm label matches its dose. That is not luck,
+and it is worth understanding why, because it is the mechanism the whole
+article rests on.
+
+## Why anything survives at all
+
+Two independent mechanisms, neither of which was designed for this
+purpose.
+
+**1. The event signature separates the arms.** Donors are first sought
+among subjects with an identical event signature, and that signature
+*includes the dose amount*. The 300 mg and 600 mg subjects therefore
+fall into different donor groups automatically, and with 40 subjects per
+arm the floor of `k = 5` is met without ever borrowing across them. The
+arm label copied from the anchor lands on concentrations blended from
+same-arm donors.
+
+**2. The profile distance separates them again.** Even where dose does
+not distinguish two arms, the donor search ranks candidates by distance
+in a profile space built from the covariates *and the DV trajectory*. A
+subject with higher concentrations sits near other subjects with higher
+concentrations. The effect you are trying to preserve is itself part of
+what selects the donors.
+
+And underneath both: `.synthesize_covariates()` and
+`.synthesize_trajectories()` are handed **the same donors and the same
+weights**. A synthetic subject whose concentrations came mostly from one
+donor also gets mostly that donor’s weight. The relationship between
+them is never taken apart, so it does not have to be put back together.
+
+## Where it weakens
+
+The second mechanism suggests the failure mode: it works because the
+effect is visible in the trajectory. When an effect is small relative to
+between-subject variability, the arms overlap in profile space, donors
+are drawn from both, and the difference dilutes.
+
+To show this without the dose doing the separating, here are two arms
+given the **same** dose, differing only in relative bioavailability —
+swept across effect sizes and levels of variability in clearance.
+
+``` r
+
+make_f_subject <- function(id, arm, relF, iiv_cl) {
+  wt <- rnorm(1, 70, 12)
+  cl <- 5 * (wt / 70)^0.75 * exp(rnorm(1, 0, iiv_cl))
+  v  <- 40 * (wt / 70) * exp(rnorm(1, 0, 0.15)); ka <- 1.2
+  tt <- c(0.5, 1, 2, 4, 8, 12, 24)
+  conc <- relF * 450 / v * ka / (ka - cl / v) *
+    (exp(-cl / v * tt) - exp(-ka * tt))
+  rbind(
+    data.frame(ID = id, TIME = 0, DV = NA_real_, AMT = 450, EVID = 1L,
+               CMT = 1L, WT = wt, ARM = arm),
+    data.frame(ID = id, TIME = tt, DV = conc * exp(rnorm(7, 0, 0.08)),
+               AMT = 0, EVID = 0L, CMT = 2L, WT = wt, ARM = arm)
+  )
+}
+f_roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT",
+                     keep = "ARM")
+
+auc_ratio <- function(d) {
+  obs <- d$EVID == 0 & !is.na(d$DV); pk <- d[obs, ]; ids <- as.character(pk$ID)
+  auc <- tapply(seq_len(nrow(pk)), ids, function(i) {
+    t <- pk$TIME[i]; y <- pk$DV[i]; o <- order(t)
+    sum(diff(t[o]) * (head(y[o], -1) + tail(y[o], -1)) / 2)
+  })
+  arm <- tapply(as.character(pk$ARM), ids, function(v) v[1])
+  mean(auc[arm == "test"]) / mean(auc[arm == "ref"])
+}
+
+sweep <- do.call(rbind, lapply(
+  list(c(1.15, 0.20), c(1.15, 0.40), c(1.80, 0.20)),
+  function(cfg) {
+    relF <- cfg[1]; iiv <- cfg[2]
+    set.seed(2026)
+    src <- do.call(rbind, c(
+      lapply(1:40,  make_f_subject, arm = "ref",  relF = 1,    iiv_cl = iiv),
+      lapply(41:80, make_f_subject, arm = "test", relF = relF, iiv_cl = iiv)))
+    src <- src[order(src$ID, src$TIME, src$EVID == 0L), ]
+    rownames(src) <- NULL
+    observed <- auc_ratio(src)
+    set.seed(5)
+    got <- replicate(15, auc_ratio(suppressWarnings(
+      synpmx_avatar(src, f_roles, seed = sample.int(1e6, 1)))))
+    data.frame(
+      effect = paste0(relF, "x"), iiv_cl = iiv,
+      source = round(observed, 3), synthetic = round(mean(got), 3),
+      retained = paste0(round(100 * (mean(got) - 1) / (observed - 1)), "%")
+    )
+  }))
+```
+
+| effect | iiv_cl | source | synthetic | retained |
+|:-------|-------:|-------:|----------:|:---------|
+| 1.15x  |    0.2 |  1.110 |     1.090 | 82%      |
+| 1.15x  |    0.4 |  1.131 |     1.093 | 71%      |
+| 1.8x   |    0.2 |  1.737 |     1.692 | 94%      |
+
+Retention of an arm effect when dose cannot separate the arms {.table}
+
+The pattern is the one the mechanism predicts. A large effect is
+preserved almost completely, because it is loud enough to organise the
+donor neighbourhoods by itself. A small effect against large variability
+is retained least — the arms blur together, donors cross between them,
+and the difference shrinks toward the cohort mean.
+
+Here retention is at or below 100% throughout, so an effect that the
+donor search cannot see gets *diluted*. Put beside the covariate result
+above, the rule is about what the donor search knows:
+
+| The relationship is with… | Effect on the estimate | Why |
+|----|----|----|
+| a declared **covariate** | **amplified** | it helps choose the donors, so blending sharpens it |
+| something in the **event signature** (dose, schedule, route) | preserved | donor groups line up with it exactly |
+| a **kept** label the signature cannot see | diluted | donors cross the groups, and the difference averages out |
+| another **blended** quantity (exposure to response) | diluted | both sides are pulled toward their local means |
+
+## What to take from this
+
+- Relationships put into a source dataset largely come out of AVATAR,
+  without anything in the method being told about them — but not at
+  their original size. Expect covariate effects to be somewhat
+  overstated and effects between blended quantities to be understated.
+- That is a **tendency, not a specification**. It rests on donors being
+  chosen by profile similarity and on covariates, endpoints, and the
+  anchor’s kept columns being tied to the same donor draw. Nothing
+  declares it, nothing enforces it, and no argument controls its
+  strength.
+- It is strongest when the effect is large relative to between-subject
+  variability, and when the arms differ in something the event signature
+  already separates — dose, schedule, route.
+- It is weakest for subtle effects in noisy data, which is exactly the
+  situation where you would most want to trust a synthetic dataset. Do
+  not use AVATAR output to decide whether a small effect is real — and
+  do not read a strong covariate relationship in synthetic data as
+  evidence that one exists, because the method sharpens exactly those.
+- Nothing here licenses estimating parameters from synthetic data. These
+  measurements say the *structure* survives well enough to develop and
+  debug analysis code against. A parameter estimate from AVATAR output
+  is an estimate from blended data, and this article does not make it
+  trustworthy.
+
+The numbers on this page come from one simulated source with clean,
+strong relationships and 80 subjects. They are an illustration of the
+mechanism, not a general guarantee about your dataset. Run the same
+measurement on your own source if the answer matters — the
+`relationships()` function above is the whole method, and it takes any
+data frame.
