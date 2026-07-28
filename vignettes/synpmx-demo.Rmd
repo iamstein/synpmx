@@ -7,7 +7,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{Using synpmx AVATAR with 5 datasets}
+  %\VignetteIndexEntry{Demo: Using synpmx AVATAR with 5 datasets}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
