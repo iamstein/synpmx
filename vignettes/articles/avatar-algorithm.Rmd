@@ -12,9 +12,16 @@ knitr::opts_chunk$set(
 library(synpmx)
 ```
 
-This article is the full specification of the default AVATAR generator: every
-step from role declaration to the restored output schema, with the mathematics,
-the edge cases, and a worked example.
+This article is the full specification of the default AVATAR generator [1, 2]:
+every step from role declaration to the restored output schema, with the
+mathematics, the edge cases, and a worked example.
+
+"AVATAR" is a method name rather than an initialism, from the patient-centric
+*avatarization* literature in which each synthetic record is built from the
+local neighborhood of real records. The original method is due to Guillaudeux
+and colleagues [2]; Destere and colleagues benchmark a modified AVATAR for
+population PK [1]. What this package does differently is set out under
+[Relationship to AVATAR](#relationship-to-avatar) below.
 
 It is the companion to `vignette("synpmx-method")`, which introduces all four
 generation modes at a high level and says which one to reach for. Read that
