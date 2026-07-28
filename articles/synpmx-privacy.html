@@ -86,18 +86,22 @@ Stein</h4>
 </h2>
 <p><code>synpmx</code> generates synthetic pharmacometric (PMX) datasets
 — dosing and measurement event tables used for a population
-pharmacokinetic (PK) or pharmacodynamic analysis. It offers two families
-of method that protect patients in fundamentally different ways. This
-vignette explains what each one actually is, what differential privacy
-does and does not promise, how to choose between methods and if a
-private mode is chosen, how to choose an epsilon.</p>
+pharmacokinetic (PK) or pharmacodynamic analysis. It offers three
+families of method that protect patients in fundamentally different
+ways. This vignette explains what each one actually is, what
+differential privacy does and does not promise, how to choose between
+methods and if a private mode is chosen, how to choose an epsilon.</p>
 <p>The companion vignettes are <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>
 (the four generation modes) and <code><a href="../articles/synpmx-demo.html">vignette("synpmx-demo")</a></code>
 (the practical workflow).</p>
 </div>
 <div class="section level2">
-<h2 id="the-two-method-families">The two method families<a class="anchor" aria-label="anchor" href="#the-two-method-families"></a>
+<h2 id="the-three-method-families">The three method families<a class="anchor" aria-label="anchor" href="#the-three-method-families"></a>
 </h2>
+<p>They differ on one axis above all: <strong>what of the real data
+reaches the output.</strong> AVATAR sends real trajectories, blended.
+The DP engines send noised aggregates. Public-model simulation sends
+nothing, because it never opens the file.</p>
 <div class="section level3">
 <h3 id="avatar-blending-synthetic-data-built-from-real-subjects">AVATAR blending: synthetic data built from real subjects<a class="anchor" aria-label="anchor" href="#avatar-blending-synthetic-data-built-from-real-subjects"></a>
 </h3>
@@ -140,7 +144,7 @@ privacy accounting at all.</p>
 <h3 id="differential-privacy-a-bound-on-what-any-one-subject-can-change">Differential privacy: a bound on what any one subject can
 change<a class="anchor" aria-label="anchor" href="#differential-privacy-a-bound-on-what-any-one-subject-can-change"></a>
 </h3>
-<p>The <strong>alternative</strong> is the differentially private (DP)
+<p>The <strong>second</strong> family is the differentially private (DP)
 engines, <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code>. These never copy or blend a subject’s
 data into the output. Instead they:</p>
@@ -156,6 +160,53 @@ public structural model.</li>
 </ol>
 <p>Only the noised aggregates ever touch the generated data, so the
 release carries a mathematical guarantee.</p>
+</div>
+<div class="section level3">
+<h3 id="public-model-simulation-synthetic-data-that-never-reads-the-real-data">Public-model simulation: synthetic data that never reads the real
+data<a class="anchor" aria-label="anchor" href="#public-model-simulation-synthetic-data-that-never-reads-the-real-data"></a>
+</h3>
+<p>The <strong>third</strong> family is <code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code>, and
+it does not answer the privacy question so much as step around it. Give
+it a public structural model and a trial design and it simulates
+subjects from those alone. It never opens the source data — its
+arguments do not even include a dataset.</p>
+<p>That buys a property neither other family can have. AVATAR has no
+formal guarantee; the DP engines have a proven one. Public-model
+simulation needs neither, because nothing about any real patient is ever
+read. There is no disclosure to bound, no budget to spend, and epsilon
+simply does not apply.</p>
+<p><strong>But that property belongs to the model, not to the function —
+and this is the one thing to get right.</strong> Every parameter must be
+fixed <em>before</em> anyone looks at the source data: allometric
+scaling from preclinical work, a published model for the compound class,
+the reasoning that set the starting dose. If instead you fit a model to
+the real study and feed those estimates to <code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code>,
+the real data reaches the output through the parameters, and the
+“nothing was read” claim is simply false. The generated rows would carry
+real information about real patients while looking, to every downstream
+reader, like pure simulation.</p>
+<p><code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code> cannot detect this. It sees a model
+object and has no way to know where the numbers in it came from.
+<code><a href="../reference/pmx_structural_model.html">pmx_structural_model()</a></code> and <code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code>
+each take a <code>source</code> argument to record that provenance in
+writing, but it is a statement by the author, not a check by the
+package. The discipline is yours to keep.</p>
+<p>This is the same failure mode as a data-derived clipping range in the
+DP engines — an input that quietly smuggles the data past the accounting
+— and it deserves the same suspicion. If a number in your model was
+chosen because it made the synthetic data look more like the real data,
+it came from the data.</p>
+<p>The cost is the exact mirror of the benefit. Everything in the output
+is <em>asserted</em> rather than learned, so the fidelity of the result
+is precisely the fidelity of the model, design, and priors you supplied.
+It cannot discover a covariate relationship you did not put in, and it
+will reproduce a wrong assumption faithfully and without complaint. Its
+natural uses are exercising pipeline code before any data exists, and
+cases where the real data cannot be touched at all.</p>
+<p>Producing those public inputs without reading data is its own skill;
+see the <a href="https://iamstein.github.io/synpmx/articles/model-elicitation.html">model
+elicitation</a> and <a href="https://iamstein.github.io/synpmx/articles/data-elicitation.html">data
+elicitation</a> articles.</p>
 </div>
 </div>
 <div class="section level2">
@@ -183,80 +234,105 @@ package:</p>
 <strong>Sensitivity</strong> — the most that adding or removing one
 subject can move the released quantity. It exists only because
 per-subject values are clipped into a range declared <em>without looking
-at the data</em>. A data-derived range is itself a leak, and the
+at the data</em> so that an extreme value does not have a large impact
+on the synthetic data. A data-derived range is itself a leak, and the
 accounting will not catch it.</li>
 <li>
 <strong>A noise scale tied to that sensitivity.</strong> The engines
 use the Laplace mechanism: noise of scale
 <code>sensitivity / epsilon</code>. Smaller epsilon means a stronger
-promise and more noise. Budget is spent, not reused: releasing
-<code>d</code> separate quantities splits epsilon <code>d</code>
-ways.</li>
+promise and more noise.</li>
 </ul>
 <p>The <a href="https://iamstein.github.io/synpmx/articles/privacy-background.html">privacy
 background article</a> works the arithmetic through with examples.</p>
 </div>
 <div class="section level2">
-<h2 id="avatar-and-dp-are-not-two-points-on-one-privacy-scale">AVATAR and DP are not two points on one privacy scale<a class="anchor" aria-label="anchor" href="#avatar-and-dp-are-not-two-points-on-one-privacy-scale"></a>
+<h2 id="the-three-families-are-fundamentally-different">The three families are fundamentally different<a class="anchor" aria-label="anchor" href="#the-three-families-are-fundamentally-different"></a>
 </h2>
 <p>It is tempting to rank the methods as “less private” and “more
-private.” That is the wrong axis. The difference is one of
-<strong>kind</strong>:</p>
+private” but the difference is more substantial.</p>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
 </colgroup>
 <thead><tr class="header">
 <th></th>
 <th>AVATAR blending</th>
 <th>Differentially private engines</th>
+<th>Public-model simulation</th>
 </tr></thead>
 <tbody>
+<tr class="odd">
+<td>Function</td>
+<td><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code></td>
+<td>
+<code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code>,
+<code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code>
+</td>
+<td><code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code></td>
+</tr>
+<tr class="even">
+<td>Reads the source data</td>
+<td>Yes, whole trajectories</td>
+<td>Yes, as clipped aggregates</td>
+<td>
+<strong>Never</strong> — and neither may the model it is given</td>
+</tr>
 <tr class="odd">
 <td>What produces the output</td>
 <td>Real subject trajectories, blended and perturbed</td>
 <td>Noised aggregate statistics plus a public structural model</td>
+<td>A public structural model and trial design alone</td>
 </tr>
 <tr class="even">
 <td>Privacy claim</td>
-<td>None formal; heuristic mitigation by blending and noise</td>
+<td>None</td>
 <td>Proven <code>(epsilon, delta)</code> bound on one subject’s
 influence</td>
+<td>Nothing is disclosed — <strong>only if the model was written without
+reading the data</strong>
+</td>
 </tr>
 <tr class="odd">
 <td>Holds against a determined adversary</td>
 <td>Not established</td>
 <td>Yes, by construction</td>
+<td>Vacuously — there is nothing to attack</td>
 </tr>
 <tr class="even">
 <td>Rests on</td>
 <td>Governance and access control</td>
 <td>Mathematics, plus correct declared ranges</td>
+<td>Discipline: that every parameter was fixed before anyone looked at
+the data</td>
 </tr>
 <tr class="odd">
 <td>Utility at small N</td>
-<td>Good — works from a dozen subjects</td>
+<td>Good</td>
 <td>Degrades sharply below a few hundred</td>
+<td>Independent of N — it depends on your model, not your cohort</td>
 </tr>
 <tr class="even">
 <td>What you must supply</td>
 <td>Nothing but the source data</td>
 <td>A public structural model, priors, and clipping ranges — all worked
 out without looking at the data</td>
+<td>A public structural model and a trial design</td>
 </tr>
 <tr class="odd">
-<td>Cost</td>
-<td>None</td>
-<td>Epsilon budget, and accuracy paid for it</td>
+<td>Epsilon</td>
+<td>Not applicable — no guarantee is claimed</td>
+<td>Spent per release</td>
+<td>Not applicable — nothing to spend it on</td>
 </tr>
 </tbody>
 </table>
-<p>The honest caveat about AVATAR is one of granularity. A resampled
-covariate value — a body weight of 72 kg — is weakly identifying,
-because thousands of people share it. A resampled subject
-<strong>trajectory</strong> is much closer to a fingerprint: its
+<p>A caveat about AVATAR is that a resampled subject
+<strong>trajectory</strong> is much closer to a fingerprint for a
+patient than a randomly chosen covariate. A trajectory contains
 particular sampling times, missed visits, noise pattern, and curve shape
 can be nearly unique. Blending several donors and adding noise mitigates
 this, but not formally, and pushing the noise high enough to defeat a
@@ -267,46 +343,88 @@ column-wise resampling like <code>synadam</code> does. This package has
 undergone no attack-based privacy validation.</p>
 </div>
 <div class="section level2">
+<h2 id="what-each-family-asks-of-you">What each family asks of you<a class="anchor" aria-label="anchor" href="#what-each-family-asks-of-you"></a>
+</h2>
+<p>The quickest way to feel the difference is to ask what you have to
+supply. Ordered below, the amount <strong>you must assert</strong> falls
+and the amount <strong>taken from the data</strong> rises.</p>
+<p><strong>1. Public-model simulation.</strong> You specify everything:
+the structural model, every typical parameter value, the dose levels,
+and the full sampling schedule. All of it has to come from somewhere
+that is not this study — allometric scaling from preclinical work, a
+published model for the compound class, the reasoning behind the
+starting dose. You never look at the data; the function does not even
+take a dataset. The most work of the three, and in exchange the privacy
+question never arises.</p>
+<p><strong>2. Differential privacy.</strong> You still assert the model,
+the design, and the prior ranges, and then buy a small correction toward
+reality with epsilon. For <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> exactly
+<strong>two numbers leave the data</strong>: a bounded multiplicative
+correction to the model’s magnitude, and a noised subject count.
+Everything else — curve shape, between-subject variability, residual
+error, covariate relationships — stays asserted from the public model
+and costs nothing. <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> sits further along
+the same axis: it buys many more numbers and asserts less, so the same
+epsilon splits many more ways, which is why it needs a far larger cohort
+to be worth it.</p>
+<p><strong>3. AVATAR.</strong> You name the columns — which one is the
+subject ID, which is time, which is the measurement, which is the dose —
+and it works out the rest from the data itself. No model, no design, no
+priors, no budget. Least work by a wide margin, and for the same reason
+the least to stand on: there is no asserted model to point at and no
+formal guarantee either.</p>
+<p>The pattern is worth stating plainly, because it is not a
+coincidence: <strong>the work you did not do is the guarantee you do not
+get.</strong> Each step down this list trades an assertion you would
+have had to defend for a fact taken from real patients, and the privacy
+claim weakens by exactly that much.</p>
+<p>For all three run end to end on <code>theo_md</code>, with code and
+output, see <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>.</p>
+</div>
+<div class="section level2">
 <h2 id="the-decision-rule">The decision rule<a class="anchor" aria-label="anchor" href="#the-decision-rule"></a>
 </h2>
-<p>The choice is a single question:</p>
+<p>Two questions, in order.</p>
 <blockquote>
-<p><strong>Does the generated data reach anyone the source data could
-not?</strong></p>
+<p><strong>First: does the output need to reflect the real data at
+all?</strong></p>
+</blockquote>
+<ul>
+<li>
+<strong>No</strong> — you are exercising pipeline code, the study
+has not read out yet, or the data cannot be touched → use
+<strong>public-model simulation</strong> (<code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code>).
+Nothing is read, so the privacy question never arises. You are trading
+away all fidelity to the real cohort in exchange for having no
+disclosure to argue about.</li>
+<li>
+<strong>Yes</strong> — the synthetic data has to resemble
+<em>these</em> patients → ask the second question.</li>
+</ul>
+<blockquote>
+<p><strong>Second: does the generated data reach anyone the source data
+could not?</strong></p>
 </blockquote>
 <ul>
 <li>
 <strong>No</strong> — the same organization, under the same access
 controls and confidentiality obligations → use <strong>AVATAR</strong>
-(<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>). Its lack of a formal guarantee costs
-nothing, because there is no adversary to guarantee against.</li>
+(<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>).</li>
 <li>
 <strong>Yes</strong> — shared with a partner or vendor, published,
 or moved to a system outside those obligations → use a
 <strong>DP</strong> engine. A formal guarantee is the only thing that
 survives a determined adversary.</li>
 </ul>
-<p>The boundary is drawn by <strong>obligations, not by
-geography</strong>. It is about who may see the data and under what
-duty, not about which machine holds it. Copying AVATAR output from a
-validated environment onto an analyst workstation does not cross it,
-provided that workstation is covered by the same access controls and the
-same confidentiality obligations as the source data — that is a
-supported use of this package, and is much of why it exists. Emailing
-the same file to a vendor does cross it, no matter which machine it was
-sent from.</p>
-<p>Two things follow, and neither is softened by the reframing. First,
-AVATAR output is assembled from real subject trajectories: it is not
-anonymous, it carries no formal guarantee, and it inherits the source
-data’s handling obligations wherever it goes. Second, whether a
-particular destination sits inside your boundary is a determination for
-your organization’s governance, not one this package can make for you.
-What is written here is the rule; applying it to your systems is a
-sponsor decision.</p>
-<p>Differential privacy is expensive precisely because it defends
-against someone who wants to break it. Buy it when the output will be
-handed to strangers; skip it when nothing outside the source data’s own
-obligations can reach the output.</p>
+<p>Differential privacy is more complex precisely because it defends
+against someone who wants to break it. Use it when the output will be
+handed to strangers; skip it when the synthetic data does not reach
+anyone outside the trusted organization.</p>
+<p>Note that the first question is about <em>utility</em>, not privacy.
+That is the point: public-model simulation is the only mode whose
+privacy story is settled before you start, so the only thing left to
+weigh is whether a model-derived cohort is good enough for what you are
+doing.</p>
 </div>
 <div class="section level2">
 <h2 id="the-differentially-private-engines">The differentially private engines<a class="anchor" aria-label="anchor" href="#the-differentially-private-engines"></a>
@@ -492,10 +610,18 @@ by cohort size</a> — the complete measured frontier, and why small
 cohorts are hard for any formal method.</li>
 <li>
 <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code> — the four generation modes
-and why AVATAR is the default.</li>
+and why AVATAR is the default. Note that it splits public-model
+simulation and the two DP engines into three separate <em>modes</em>,
+where this vignette groups the DP engines into one <em>family</em>; four
+modes, three families, same functions.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The
 AVATAR Algorithm</a> — the default generator in detail.</li>
+<li>
+<a href="https://iamstein.github.io/synpmx/articles/model-elicitation.html">Model
+elicitation</a> and <a href="https://iamstein.github.io/synpmx/articles/data-elicitation.html">data
+elicitation</a> — how to produce the public model, priors, and design
+that public-model simulation and the DP engines both need.</li>
 </ul>
 </div>
 <div class="section level2">
