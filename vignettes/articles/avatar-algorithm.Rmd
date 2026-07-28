@@ -256,7 +256,17 @@ below invites a misreading.
 For endpoint $e$, the package pools finite aligned observation times and makes
 a common grid $G_e$. If there are at most 15 unique times, all are retained. If
 there are more, 15 type-8 empirical quantiles are used and duplicate quantiles
-are removed.
+are removed. "Type 8" refers to the Hyndman–Fan quantile-estimator taxonomy
+[3] implemented by R's `stats::quantile()`. It places the $p$-th sample
+quantile at plotting position $h = (n + 1/3)p + 1/3$ among the sorted times,
+which makes the estimate approximately median-unbiased regardless of the
+observation times' distribution — a property R's type-7 default (the
+interpolated empirical CDF) does not have. That distribution-free property is
+why it is used here: the grid is built once per endpoint from pooled times
+that may be sampled on very different schedules across subjects, and a
+plotting-position estimator keeps the 15 grid points representative of the
+pooled sample without favoring whichever schedule happens to be linear in
+rank.
 
 Each subject's transformed trajectory is linearly interpolated onto $G_e$.
 There is no extrapolation during profile construction, so grid locations
@@ -1450,3 +1460,7 @@ than leaving two numberings to be guessed at.
    generation, no reason to risk re-identification in biomedical data analysis.
    *npj Digital Medicine.* 2023;6.
    doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
+
+3. Hyndman RJ, Fan Y. Sample quantiles in statistical packages. *The American
+   Statistician.* 1996;50(4):361-365.
+   doi: [10.1080/00031305.1996.10473566](https://doi.org/10.1080/00031305.1996.10473566).
