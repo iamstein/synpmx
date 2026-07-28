@@ -376,7 +376,9 @@ g_e(y)=\log\{\max(y,0)+c_e\},
 g_e^{-1}(z)=\max\{\exp(z)-c_e,0\}.
 $$
 
-Other endpoints use $g_e(y)=y$. The truncations mean a positive-like endpoint
+Other endpoints use the identity transformation, $g_e(y)=y$ — that is, no
+transformation at all; values are blended, noised, and reported on their
+original scale. The truncations described above mean a positive-like endpoint
 cannot generate a negative DV, whatever the noise of Step 9 does — a guarantee
 that comes free with the back-transformation rather than needing a separate
 clamp. Transformation choices and offsets are stored in
