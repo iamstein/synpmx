@@ -187,7 +187,9 @@ records that can result from generating event fields independently.
 
 Only a few parts of this skeleton are subsequently changed:
 
-- TIME may be jittered if `time_jitter > 0`;
+- TIME may be jittered if `time_jitter > 0` (the default is `time_jitter = 0`,
+  so no jitter is applied unless requested — see
+  [Optional coherent time jitter](#optional-coherent-time-jitter));
 - declared baseline covariates are replaced for all rows of the synthetic subject;
 - eligible, originally present observation DVs are synthesized;
 - standard MDV may be re-derived;
