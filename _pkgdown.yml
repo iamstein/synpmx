@@ -27,6 +27,8 @@ navbar:
       - text: "Method"
       - text: The AVATAR Algorithm
         href: articles/avatar-algorithm.html
+      - text: "Example: are relationships preserved?"
+        href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
       - text: "Privacy"
       - text: Privacy background
