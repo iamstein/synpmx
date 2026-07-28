@@ -1,4 +1,4 @@
-# Using synpmx AVATAR with 5 datasets
+# Demo: Using synpmx AVATAR with 5 datasets
 
 This vignette compares five source datasets against their synthetic
 counterparts, so it needs a few helpers to pull observed rows into a
@@ -489,9 +489,7 @@ mode, which asserts curve shape from a public structural model and
 privately calibrates only the magnitude, is the better choice at this
 cohort size; the introduction vignette runs it on this same dataset.
 
-## What is preserved, and what is not
-
-This section describes the AVATAR output shown above.
+## What is preserved in AVATAR, and what is not
 
 Preserved: schema, column classes, factor levels, cohort size, endpoint
 set, event structure, coarse regimen and sampling timing, and the broad
@@ -504,10 +502,5 @@ source value.
 
 Not provided: any formal privacy guarantee. The synthetic data is built
 by blending real subject trajectories, so it is appropriate wherever the
-source data’s own obligations still apply — including a local
-workstation under the same access controls — but not for release to
-anyone outside them. See
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
-for all four modes side by side and
-[`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
-for what differential privacy does and does not promise.
+source data and synthetic data are accessible by the same users, but —
+but not for release to anyone outside.

@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Using synpmx AVATAR with 5 datasets • synpmx</title>
+<title>Demo: Using synpmx AVATAR with 5 datasets • synpmx</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Using synpmx AVATAR with 5 datasets">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Demo: Using synpmx AVATAR with 5 datasets">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -70,7 +70,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Using synpmx AVATAR with 5 datasets</h1>
+      <h1>Demo: Using synpmx AVATAR with 5 datasets</h1>
                         <h4 data-toc-skip class="author">Andrew
 Stein</h4>
             
@@ -741,9 +741,8 @@ calibrates only the magnitude, is the better choice at this cohort size;
 the introduction vignette runs it on this same dataset.</p>
 </div>
 <div class="section level2">
-<h2 id="what-is-preserved-and-what-is-not">What is preserved, and what is not<a class="anchor" aria-label="anchor" href="#what-is-preserved-and-what-is-not"></a>
+<h2 id="what-is-preserved-in-avatar-and-what-is-not">What is preserved in AVATAR, and what is not<a class="anchor" aria-label="anchor" href="#what-is-preserved-in-avatar-and-what-is-not"></a>
 </h2>
-<p>This section describes the AVATAR output shown above.</p>
 <p>Preserved: schema, column classes, factor levels, cohort size,
 endpoint set, event structure, coarse regimen and sampling timing, and
 the broad shape and magnitude of each endpoint.</p>
@@ -753,11 +752,8 @@ trajectories. Identifiers are always freshly generated and never reuse a
 source value.</p>
 <p>Not provided: any formal privacy guarantee. The synthetic data is
 built by blending real subject trajectories, so it is appropriate
-wherever the source data’s own obligations still apply — including a
-local workstation under the same access controls — but not for release
-to anyone outside them. See <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code> for
-all four modes side by side and <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>
-for what differential privacy does and does not promise.</p>
+wherever the source data and synthetic data are accessible by the same
+users, but — but not for release to anyone outside.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
