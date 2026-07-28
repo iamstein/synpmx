@@ -121,7 +121,7 @@ the wrong axis. The difference is one of **kind**:
 | Holds against a determined adversary | Not established | Yes, by construction |
 | Rests on | Governance and access control | Mathematics, plus correct declared ranges |
 | Utility at small N | Good — works from a dozen subjects | Degrades sharply below a few hundred |
-| Elicitation required | None | Public structural model, priors, and clipping ranges |
+| What you must supply | Nothing but the source data | A public structural model, priors, and clipping ranges — all worked out without looking at the data |
 | Cost | None | Epsilon budget, and accuracy paid for it |
 
 The honest caveat about AVATAR is one of granularity. A resampled covariate
