@@ -21,7 +21,7 @@ implementation of the AVATAR method which offers some blinding, but not formal p
 pak::pak("iamstein/synpmx")
 ```
 
-AVATAR needs nothing beyond base R. Other 
+AVATAR needs nothing beyond base R. The other methods 
 additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
