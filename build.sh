@@ -4,7 +4,9 @@
 #
 #   ./build.sh              regenerate docs, build tarball, R CMD check
 #   ./build.sh check        same as above (explicit)
-#   ./build.sh vignettes    also install and render every vignette to HTML
+#   ./build.sh vignettes    install, then render every shipped vignette to HTML
+#   ./build.sh articles     install, then render every pkgdown article to HTML
+#   ./build.sh docs         both of the above
 #   ./build.sh --keep-lib   leave the temporary library in place for inspection
 #
 # Everything happens against a temporary library that is created fresh on every
@@ -14,9 +16,14 @@
 # ...) still resolve from the user library; only synpmx itself is forced
 # to be freshly built.
 #
-# R CMD check rebuilds the vignettes once, which is enough to prove they still
-# execute. The separate 'vignettes' mode exists for when you want inspectable
-# HTML to read the tables and plots.
+# R CMD check rebuilds the shipped vignettes once, which is enough to prove they
+# still execute. The 'vignettes' mode exists for when you want inspectable HTML
+# to read the tables and plots.
+#
+# Articles under vignettes/articles/ are a different matter: .Rbuildignore keeps
+# them out of the package, so R CMD check NEVER executes them and a broken one
+# is invisible locally until the pkgdown job fails on GitHub. That is what
+# 'articles' is for -- run it before pushing anything that touches them.
 #
 # Artifacts land in output/, which is gitignored and excluded from the build.
 
@@ -27,14 +34,19 @@ readonly ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly OUT="${ROOT}/output"
 readonly CHECK_DIR="${OUT}/check"
 readonly VIG_DIR="${OUT}/vignettes"
+readonly ART_DIR="${OUT}/articles"
 readonly LOG_DIR="${OUT}/logs"
 
-MODE="all"
+MODE="check"
+RENDER_VIGNETTES=0
+RENDER_ARTICLES=0
 KEEP_LIB=0
 for arg in "$@"; do
   case "$arg" in
     check)       MODE="check" ;;
-    vignettes)   MODE="vignettes" ;;
+    vignettes)   MODE="render"; RENDER_VIGNETTES=1 ;;
+    articles)    MODE="render"; RENDER_ARTICLES=1 ;;
+    docs)        MODE="render"; RENDER_VIGNETTES=1; RENDER_ARTICLES=1 ;;
     --keep-lib)  KEEP_LIB=1 ;;
     -h|--help)   sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)           echo "unknown argument: $arg (try --help)" >&2; exit 2 ;;
@@ -57,7 +69,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$CHECK_DIR" "$VIG_DIR" "$LOG_DIR"
+mkdir -p "$CHECK_DIR" "$VIG_DIR" "$ART_DIR" "$LOG_DIR"
 cd "$ROOT"
 
 # R CMD check reruns tests and rebuilds vignettes; keep it from also picking up
@@ -81,7 +93,7 @@ mv "$TARBALL" "${OUT}/"
 TARBALL="${OUT}/${TARBALL}"
 ok "$(basename "$TARBALL")"
 
-if [[ "$MODE" != "vignettes" ]]; then
+if [[ "$MODE" != "render" ]]; then
   step "R CMD check (as-CRAN, into a clean library)"
   set +e
   R CMD check --library="$LIB" --output="$CHECK_DIR" --as-cran --no-manual "$TARBALL" \
@@ -101,13 +113,18 @@ if [[ "$MODE" != "vignettes" ]]; then
   ok "R CMD check passed"
 fi
 
-if [[ "$MODE" != "vignettes" ]]; then
+if [[ "$MODE" != "render" ]]; then
   cat <<EOF
 
 Vignettes were rebuilt once inside R CMD check. AGENTS.md does not require a
 separate clean-library re-render, but it does require that vignette code and
 prose be updated to match behavioral changes. Run './build.sh vignettes' if you
 want inspectable HTML in ${VIG_DIR}.
+
+Articles under vignettes/articles/ were NOT executed: .Rbuildignore keeps them
+out of the package, so R CMD check never sees them. Run './build.sh articles'
+before pushing changes to any of them, or the pkgdown job is the first thing
+that will notice a break.
 EOF
   exit 0
 fi
@@ -116,38 +133,51 @@ step "Installing the freshly built tarball into the clean library"
 R CMD INSTALL --library="$LIB" "$TARBALL" 2>&1 | tee "${LOG_DIR}/install.log" >/dev/null
 ok "installed to $LIB"
 
-step "Rendering every vignette against the clean install"
 INSTALLED=$(Rscript --vanilla -e "cat(as.character(utils::packageVersion('${PKG}', lib.loc='${LIB}')))")
 printf 'using %s %s from %s\n' "$PKG" "$INSTALLED" "$LIB"
 
 RENDER_FAILED=0
-for RMD in vignettes/*.Rmd; do
-  NAME="$(basename "${RMD%.Rmd}")"
-  printf '  %-42s ' "$NAME"
-  if Rscript --vanilla -e "
-      .libPaths(c('${LIB}', .libPaths()))
-      # Guard against silently validating a stale install from the user library.
-      stopifnot(identical(
-        normalizePath(dirname(getNamespaceInfo(asNamespace('${PKG}'), 'path'))),
-        normalizePath('${LIB}')))
-      rmarkdown::render('${RMD}',
-        output_dir = '${VIG_DIR}',
-        quiet = TRUE,
-        envir = new.env(parent = globalenv()))
-    " >"${LOG_DIR}/${NAME}.log" 2>&1; then
-    printf '%sok%s\n' "$GREEN" "$OFF"
-  else
-    printf '%sFAILED%s (see %s)\n' "$RED" "$OFF" "${LOG_DIR}/${NAME}.log"
-    RENDER_FAILED=1
-  fi
-done
 
-[[ $RENDER_FAILED -eq 0 ]] || fail "at least one vignette failed to render"
+# $1 = glob of .Rmd files, $2 = destination directory, $3 = label for the step
+render_set() {
+  local pattern="$1" dest="$2" label="$3" rmd name
+  local -a files=()
+  for rmd in $pattern; do [[ -f "$rmd" ]] && files+=("$rmd"); done
+  if [[ ${#files[@]} -eq 0 ]]; then warn "no files matched ${pattern}"; return; fi
+  step "$label"
+  for rmd in "${files[@]}"; do
+    name="$(basename "${rmd%.Rmd}")"
+    printf '  %-52s ' "$name"
+    if Rscript --vanilla -e "
+        .libPaths(c('${LIB}', .libPaths()))
+        # Guard against silently validating a stale install from the user library.
+        stopifnot(identical(
+          normalizePath(dirname(getNamespaceInfo(asNamespace('${PKG}'), 'path'))),
+          normalizePath('${LIB}')))
+        rmarkdown::render('${rmd}',
+          output_dir = '${dest}',
+          quiet = TRUE,
+          envir = new.env(parent = globalenv()))
+      " >"${LOG_DIR}/${name}.log" 2>&1; then
+      printf '%sok%s\n' "$GREEN" "$OFF"
+    else
+      printf '%sFAILED%s (see %s)\n' "$RED" "$OFF" "${LOG_DIR}/${name}.log"
+      RENDER_FAILED=1
+    fi
+  done
+}
+
+[[ $RENDER_VIGNETTES -eq 1 ]] && \
+  render_set "vignettes/*.Rmd" "$VIG_DIR" "Rendering shipped vignettes against the clean install"
+[[ $RENDER_ARTICLES -eq 1 ]] && \
+  render_set "vignettes/articles/*.Rmd" "$ART_DIR" "Rendering pkgdown articles against the clean install"
+
+[[ $RENDER_FAILED -eq 0 ]] || fail "at least one document failed to render"
 
 step "Summary"
 ok "tarball    ${TARBALL}"
-[[ "$MODE" != "vignettes" ]] && ok "check      ${CHECK_DIR}/${PKG}.Rcheck/00check.log"
-ok "vignettes  ${VIG_DIR}"
+[[ $RENDER_VIGNETTES -eq 1 ]] && ok "vignettes  ${VIG_DIR}"
+[[ $RENDER_ARTICLES -eq 1 ]] && ok "articles   ${ART_DIR}"
 cat <<'EOF'
 
 A successful knit is necessary but not sufficient. Open the rendered HTML and

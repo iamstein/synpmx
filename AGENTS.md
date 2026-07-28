@@ -58,6 +58,15 @@ task list itself.
 - Treat `data/` and `output/` as local/generated unless told otherwise.
 - Preserve unrelated changes and avoid adding dependencies unnecessarily.
 - Run the full tests and `R CMD check` after behavioral changes. `./build.sh`
+- `./build.sh articles` before pushing anything that touches
+  `vignettes/articles/`. `.Rbuildignore` keeps articles out of the package, so
+  `R CMD check` never executes them and the pkgdown job on GitHub is otherwise
+  the first thing to notice a break. `./build.sh docs` does vignettes and
+  articles together.
+- `source("dev.R")` in the R console for the fast loop: `dev_preview("name")`
+  renders one document against the working tree in seconds and opens it,
+  `dev_list()` shows what exists. Rendered HTML lands in `output/`, which is
+  gitignored --- that is why it does not show up in `git status`.
   does both against a clean temporary library.
 
 ## Simulation testing and evaluation
