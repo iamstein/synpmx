@@ -18,9 +18,12 @@ patient data.
 In general, when developing synthetic data, it’s important to think
 carefully about **how much information about the real data is allowed to
 survive into the synthetic data**. This is a privacy question and
-`synpmx` offers four options. The main deliverable of the package uses
-an implementation of the AVATAR method which offers some blinding, but
-not formal privacy guarantees.
+`synpmx` offers four options.
+
+The main deliverable of the package uses an implementation of the AVATAR
+method which offers some blinding, but not formal privacy guarantees.
+The AVATAR method works by blending together actual patient profiles and
+does not requiring specification of a model.
 
 ## Installation
 
