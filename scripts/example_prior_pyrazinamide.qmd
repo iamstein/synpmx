@@ -1,5 +1,6 @@
 ---
 title: "Example: prior-only synthetic PK for pyrazinamide"
+format: html
 ---
 
 One concrete case worked end to end: a synthetic pyrazinamide dataset, 1200 mg
@@ -10,10 +11,7 @@ Prior-only generation reads **no data at all** --- it takes a public structural
 model and a trial design and simulates from those alone --- so nothing here
 needs a privacy argument, and there is no `data` argument to supply. See
 `vignette("synpmx-privacy")` for where this sits among the three method
-families, and the
-[AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
-article for the default method, which works the other way round: from real data,
-with no model to state.
+families.
 
 The cardinal rule for this mode: every number below must come from somewhere
 that is *not* the study being simulated. The values used here are literature /
@@ -23,9 +21,16 @@ real data would reach the output through the parameters and the "nothing was
 read" claim would be false --- `synpmx_prior()` cannot detect that, so the
 discipline is yours to keep.
 
-**Read the last section before using the output.** Four parts of the requested
-specification cannot be expressed by this generator, and the script does not
-pretend otherwise.
+**Covariates are deliberately not generated here.** The original specification
+included WT, CD38, and GENDER along with their effects on CL/F and V/F. This
+generator has no way to link a covariate to a parameter (see the last section),
+so those columns would carry no relationship to the concentrations beside them
+--- decoration that invites exactly the wrong conclusion. They are left out
+rather than shipped as plausible-looking noise.
+
+**Read the last section before using the output.** Three further parts of the
+specification cannot be expressed either, and the script does not pretend
+otherwise.
 
 ```{r}
 #| label: setup
@@ -47,9 +52,7 @@ has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 | IIV (log-SD) | Ka 0.620, CL 0.174, V 0.181 |
 | IOV (log-SD) | V 0.117 |
 | Residual error | proportional 0.22, additive SD 2.41 mg/L |
-| WT | N(55.50, 8.40), bounded [30, 100] |
-| CD38 | N(36.13, 13.74), bounded [0, 100] |
-| GENDER | levels {1, 2}, proportions {0.526, 0.474} |
+| WT, CD38, GENDER | *not generated --- see above* |
 | Regimen | 1200 mg orally once daily |
 | Sampling | after 2 weeks of dosing, at 0.3, 0.9, 2.2, 4.5, 8 h post dose |
 
@@ -65,13 +68,11 @@ DROPOUT    <- 0           # no discontinuation modelled
 N_DOSES    <- 14          # "2 weeks of dosing" at once daily
 ```
 
-## Two unit conversions
+## One unit conversion
 
-Both are places where the specification and the package use different
-parameterisations, so converting rather than pasting matters.
-
-**IIV.** `pmx_structural_model(iiv = )` takes a **CV**, while the specification
-gives **log-SD**. For a lognormal, `CV = sqrt(exp(omega^2) - 1)`.
+`pmx_structural_model(iiv = )` takes a **CV**, while the specification gives
+**log-SD**. These are different parameterisations of the same lognormal, so the
+values are converted rather than pasted: `CV = sqrt(exp(omega^2) - 1)`.
 
 ```{r}
 #| label: iiv
@@ -84,32 +85,6 @@ knitr::kable(
              log_sd = iiv_log_sd, cv = round(iiv_cv, 4)),
   row.names = FALSE, caption = "IIV: specification (log-SD) to package (CV)"
 )
-```
-
-**Continuous covariates.** `pmx_covariate(range = )` is a single public range
-that does double duty: in prior mode the generator draws
-`rnorm(mean(range), diff(range) / 6)` and clips to that same range. So a range
-of `mean +/- 3 SD` reproduces a requested normal distribution, with clipping
-falling at 3 SD where it costs about 0.3% of draws.
-
-```{r}
-#| label: covariate-range
-normal_to_range <- function(mean, sd) c(mean - 3 * sd, mean + 3 * sd)
-
-normal_to_range(55.50, 8.40)   # WT
-normal_to_range(36.13, 13.74)  # CD38 -- note the negative lower bound
-```
-
-The CD38 range comes out negative at the low end, which is not a usable bound
-for a biomarker. Because the one range fixes both the spread and the clipping,
-the mean and the non-negativity cannot both be kept alongside the full SD. The
-mean and the floor at zero are kept, and the SD lands at 12.04 rather than
-13.74:
-
-```{r}
-#| label: cd38
-cd38_range <- c(0, 2 * 36.13)
-c(mean = mean(cd38_range), sd = diff(cd38_range) / 6)
 ```
 
 ## The public inputs
@@ -127,24 +102,6 @@ pza_model <- pmx_structural_model(
   )
 )
 pza_model
-```
-
-```{r}
-#| label: covariates
-pza_covariates <- pmx_covariates(
-  WT = pmx_covariate(
-    range  = normal_to_range(55.50, 8.40),
-    source = "Protocol-eligible adult weight range; literature mean and SD."
-  ),
-  CD38 = pmx_covariate(
-    range  = cd38_range,
-    source = "Literature CD38 distribution; floored at zero."
-  ),
-  GENDER = pmx_covariate(
-    levels = c("1", "2"),
-    source = "Protocol sex categories."
-  )
-)
 ```
 
 Sampling is requested only after two weeks of dosing, so thirteen doses carry no
@@ -173,7 +130,7 @@ pza_design
 pza <- synpmx_prior(
   pza_model, pza_design,
   n_subjects = N_SUBJECTS, seed = SEED,
-  dropout = DROPOUT, lloq = LLOQ, covariates = pza_covariates
+  dropout = DROPOUT, lloq = LLOQ
 )
 
 str(pza)
@@ -223,25 +180,6 @@ knitr::kable(
 ```
 
 ```{r}
-#| label: check-covariates
-first_row <- !duplicated(pza[[roles$id]])
-knitr::kable(
-  data.frame(
-    covariate = c("WT", "CD38", "GENDER = 1"),
-    requested = c("mean 55.50, SD 8.40", "mean 36.13, SD 13.74", "0.526"),
-    generated = c(
-      sprintf("mean %.2f, SD %.2f", mean(pza$WT[first_row]),
-              sd(pza$WT[first_row])),
-      sprintf("mean %.2f, SD %.2f", mean(pza$CD38[first_row]),
-              sd(pza$CD38[first_row])),
-      sprintf("%.3f", mean(pza$GENDER[first_row] == "1"))
-    )
-  ),
-  row.names = FALSE, caption = "Covariates: requested versus generated"
-)
-```
-
-```{r}
 #| label: check-concentrations
 by_time <- split(pza[[roles$dv]][obs], round(nominal_tad[obs], 2))
 knitr::kable(
@@ -280,30 +218,35 @@ ggplot2::ggplot(plot_data, ggplot2::aes(tad, dv, group = id)) +
 
 Prior-only generation exists to produce structurally correct data for pipeline
 and model-code development. It is not a reimplementation of the source model,
-and four parts of the specification have no representation in it. None of them
+and three parts of the specification have no representation in it. None of them
 fails loudly, so they are listed here rather than left to be discovered.
 
-**1. Covariate effects are absent.** The requested WT exponents (0.75 on CL/F, 1
-on V/F), the GENDER effect on CL/F (-0.40), and the CD38 effect on CL/F (-0.22)
-are **not applied**. `WT`, `CD38`, and `GENDER` are columns of plausible numbers
-with **no relationship to the concentrations** in the same row, so this dataset
-cannot be used to check whether a covariate model recovers these effects. It
-would recover nothing.
+**1. Covariate effects cannot be expressed, which is why no covariates are
+generated.** The requested WT exponents (0.75 on CL/F, 1 on V/F), the GENDER
+effect on CL/F (-0.40), and the CD38 effect on CL/F (-0.22) have nowhere to go.
 
 The reason is worth stating precisely, because it is not a deep one. The
 generator draws each subject's parameters as typical value times lognormal IIV
-and simulates the whole profile from those; covariates are drawn separately
-afterwards and merged onto the finished table, so by the time a weight exists
-the concentration beside it has already been computed. There is no argument on
-`pmx_structural_model()` that could link them, and no code anywhere in the
-package that applies a covariate to a parameter.
+and simulates the whole profile from those; covariates, when requested, are
+drawn separately afterwards and merged onto the finished table, so by the time a
+weight exists the concentration beside it has already been computed. There is no
+argument on `pmx_structural_model()` that could link them, and no code anywhere
+in the package that applies a covariate to a parameter.
+
+The generator *will* happily add `WT`, `CD38`, and `GENDER` columns if asked --
+`synpmx_prior(covariates = pmx_covariates(...))`. They would be plausible
+numbers bearing **no relationship to the concentrations in the same row**, and a
+reader who did not know that would draw a false conclusion from the first
+covariate plot they made. That is the reason they are omitted here: a missing
+column is honest, a meaningless one is not. Add them only if your pipeline needs
+columns of the right *type* to run against, and label them as such.
 
 Note what this is *not*. It is not a privacy constraint: prior-only generation
 reads nothing, so a covariate effect would be a public assertion exactly like
 `typical` and `iiv`, costing no budget. (In the differentially private engines
 the calculus differs, since every covariate consumes a slice of the budget.) It
 is simply unimplemented. If you need covariate--parameter relationships in
-synthetic data today, simulate them explicitly in `rxode2` or `nlmixr2`, or use
+synthetic data, simulate them explicitly in `rxode2` or `nlmixr2`, or use
 `synpmx_avatar()` on real data, where real covariate relationships survive
 because whole real subjects do.
 
@@ -318,18 +261,7 @@ dropped, so low concentrations are less noisy than specified. With sampling
 ending at 8 h and concentrations staying well above the additive scale, the
 practical effect is modest --- but at a trough it would not be.
 
-**4. GENDER proportions are uniform.** In prior mode a categorical covariate is
-drawn with equal probabilities; the level *set* is public but the *proportions*
-are not settable. The draw probability is therefore 0.500 rather than the
-requested 0.526, and the realised fraction in any one run wanders around 0.5 by
-ordinary sampling noise --- at 60 subjects one standard error is about 0.065, so
-the table above can sit well away from either number without anything being
-wrong. If the exact split matters, overwrite the column after generation.
-
-Also note the CD38 SD compromise described above: 12.04 rather than 13.74, in
-exchange for a floor at zero.
-
-If the covariate--parameter relationships in point 1 are the thing you actually
-need --- to test a covariate model, rather than to exercise pipeline code ---
-then prior-only generation is the wrong tool, and either an explicit simulation
-in `rxode2`/`nlmixr2` or `synpmx_avatar()` on real data would serve better.
+What the output *is* good for: exercising code that reads, reshapes, plots, and
+fits a repeated-dose PK dataset with a realistic event structure, nominal and
+actual times, occasions, and a censoring flag --- without a single real patient
+being involved.

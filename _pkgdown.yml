@@ -24,10 +24,6 @@ navbar:
       - text: Privacy in synpmx
         href: articles/synpmx-privacy.html
       - text: -------
-      - text: "Examples"
-      - text: "Example: prior-only PK for pyrazinamide"
-        href: articles/example_prior-pyrazinamide.html
-      - text: -------
       - text: "Method"
       - text: The AVATAR Algorithm
         href: articles/avatar-algorithm.html
