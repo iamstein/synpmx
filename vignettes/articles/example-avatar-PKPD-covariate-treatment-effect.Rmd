@@ -23,7 +23,7 @@ together, and a subject carries all of its properties at once.
 So the right expectation is a *tendency* to keep relationships, 
 but there is not a guarantee.  
 
-## The model the source data comes from
+## The model the source data comes from 
 
 Everything here is simulated, so the truth is known exactly and no real patient
 is involved. The four relationships being tested are the four places a covariate
