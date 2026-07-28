@@ -455,8 +455,8 @@ Two related behaviors follow. A subject missing an endpoint entirely is
 median-imputed on those columns, so it looks *average* there and sits nearer the
 middle of the space than it deserves to. And at generation, if a chosen donor
 has no value for the endpoint being filled, the weights renormalize locally over
-the donors that do — so a missing endpoint thins the blend rather than punching
-a hole in it.
+the donors that do — so a missing endpoint reduces the blend to fewer donors
+rather than leaving that position undefined.
 
 ### Missing features and scaling
 
