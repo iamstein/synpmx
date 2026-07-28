@@ -185,6 +185,44 @@ would have destroyed — without the accounting to prove it. AVATAR therefore
 leans on the governance context more heavily than column-wise resampling like
 `synadam` does. This package has undergone no attack-based privacy validation.
 
+## What each family asks of you
+
+The quickest way to feel the difference is to ask what you have to supply.
+Ordered below, the amount **you must assert** falls and the amount **taken from
+the data** rises.
+
+**1. Public-model simulation.** You specify everything: the structural model,
+every typical parameter value, the dose levels, and the full sampling schedule.
+All of it has to come from somewhere that is not this study — allometric scaling
+from preclinical work, a published model for the compound class, the reasoning
+behind the starting dose. You never look at the data; the function does not even
+take a dataset. The most work of the three, and in exchange the privacy question
+never arises.
+
+**2. Differential privacy.** You still assert the model, the design, and the
+prior ranges, and then buy a small correction toward reality with epsilon. For
+`synpmx_calibrated()` exactly **two numbers leave the data**: a bounded
+multiplicative correction to the model's magnitude, and a noised subject count.
+Everything else — curve shape, between-subject variability, residual error,
+covariate relationships — stays asserted from the public model and costs
+nothing. `synpmx_empirical()` sits further along the same axis: it buys many
+more numbers and asserts less, so the same epsilon splits many more ways, which
+is why it needs a far larger cohort to be worth it.
+
+**3. AVATAR.** You name the columns — which one is the subject ID, which is
+time, which is the measurement, which is the dose — and it works out the rest
+from the data itself. No model, no design, no priors, no budget. Least work by a
+wide margin, and for the same reason the least to stand on: there is no asserted
+model to point at and no formal guarantee either.
+
+The pattern is worth stating plainly, because it is not a coincidence: **the
+work you did not do is the guarantee you do not get.** Each step down this list
+trades an assertion you would have had to defend for a fact taken from real
+patients, and the privacy claim weakens by exactly that much.
+
+For all three run end to end on `theo_md`, with code and output, see
+`vignette("synpmx-method")`.
+
 ## The decision rule
 
 Two questions, in order.
