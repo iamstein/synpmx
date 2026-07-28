@@ -30,8 +30,9 @@ not formal privacy guarantees.
 pak::pak("iamstein/synpmx")
 ```
 
-AVATAR needs nothing beyond base R. Other additionally require the
-official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
+AVATAR needs nothing beyond base R. The other methods additionally
+require the official [OpenDP R
+package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
 
