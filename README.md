@@ -40,8 +40,8 @@ Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified
 AVATAR for population PK [1]. This package implements an AVATAR-*inspired*
 adaptation for longitudinal event tables, not published AVATAR software.
 
-The package also provides code for other methods: trial simulation from prior
-knowledge, and two differential privacy (DP) methods that give more formal
+The package also provides code for other methods: trial simulation
+from prior knowledge, and two differential privacy (DP) methods that give more formal
 protection. Those are provided mainly to illustrate the tradeoffs between ways
 of generating synthetic data, and are not actively maintained.
 
@@ -109,12 +109,14 @@ On the other hand, if the synthetic data will reach those who do not have access
 
 **AVATAR blending is the primary, maintained code.** It has no
 dependencies beyond base R, and is what to reach for when the output
-stays within the source data’s own access controls and obligations.
+stays within the source data’s own access controls and obligations.  However,
+AVATAR does not offer any formal, mathematical guarantees around privacy.  
 
-The three differentially private modes (**prior**, **calibration**,
-**empirical**) are secondary.  They are present in this repository
-because formal privacy is needed when data crosses a trust
-boundary. They are provided as-is: not under active development and **not independently privacy-audited**.
+The three other modes (**prior**, **calibration**,
+**empirical**) are secondary; but, they are present in this repository
+because they cover scenarios where data crosses a trust
+boundary and formal privacy conditions must be met. 
+The methods are provided as-is: not under active development and **not independently privacy-audited**.
 Treat them as a principled demonstration of the privacy/utility
 tradeoff, not as a production ready. That status is enforced in that `synpmx_calibrated()` and `synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has been called once in the session.
 
@@ -122,8 +124,8 @@ tradeoff, not as a production ready. That status is enforced in that `synpmx_cal
 
 | Document | Question it answers |
 |----|----|
-| [The four generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
-| [Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
+| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
+| [Demo; Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 
 ## References
