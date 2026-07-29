@@ -78,6 +78,70 @@ one real subject's event structure) and the **donor blend** (its measurements
 are averaged from several real subjects, never copied from one). Keep those in
 mind and the rest is detail.
 
+## Every mechanism that obscures the source
+
+AVATAR offers no formal guarantee, so the only honest description of its
+protection is a list of the mechanisms with what each one does — and, just as
+importantly, what it does not. There are four. Three run by default; the fourth
+is a measurement you run yourself.
+
+| # | Mechanism | Protects | Cannot protect | Control |
+|---|---|---|---|---|
+| 1 | **Donor blending** | The measured values | Anything structural | `k`, `max_donor_weight` |
+| 2 | **Screening extreme subjects** | Against being conspicuous | Being merely unique | `screen`, `flag_identifiable_subjects()` |
+| 3 | **Coarsening and re-refining time** | The visit schedule | Which visits were attended | `coarsen_time` |
+| 4 | **Skeleton-uniqueness checking** | Nothing — it measures | — | `skeleton_uniqueness()` |
+
+**1. Blending across donors** (Steps 6–9). No avatar's measurements come from
+one real patient: each is a distance-weighted blend of at least `k` = 5
+compatible donors, with `max_donor_weight` = 0.50 capping any single donor at
+half the blend. This is the only mechanism whose strength grows with cohort
+size, which is why a source with fewer than `k + 1` subjects raises a loud
+alert instead of quietly producing near-copies.
+
+**2. Screening structurally extreme subjects** (stage d, and after generation).
+A source subject whose follow-up length or dose count exceeds twice the cohort's
+90th percentile is never used as an anchor. After generation,
+`flag_identifiable_subjects()` scores four axes — follow-up time, dose count,
+dose magnitude, peak DV — and `remediate_identifiable_subjects()` truncates,
+drops, or replaces what it finds. This catches subjects who are **extreme**.
+
+**3. Coarsening the visit grid, then re-refining it** (`coarsen_time = TRUE`,
+before Step 5). Source times are collapsed onto a shared visit grid, and the
+per-visit deviations are pooled across the cohort and resampled independently
+onto each avatar. This protects the **schedule**, which blending never touches:
+the skeleton is copied verbatim from one anchor, and under actual recorded times
+almost every subject holds the only copy of their visit vector. The order is the
+mechanism — snapping is many-to-one and *destroys* the deviation, whereas
+perturbing a time in place leaves it recoverable. Note that `time_jitter` is
+therefore not an alternative: its clamp holds every time inside its own Voronoi
+cell, so at any magnitude a visit stays within half a gap of the source value.
+
+**4. Checking for unique event skeletons** (`skeleton_uniqueness()`, run
+manually on the **source**, before generating). A measurement, not a mitigation.
+It reports how many other subjects share each subject's observation time vector,
+observation count, and event signature — and, for the subjects that are alone,
+*why*: because they were observed at a moment nobody else was (mechanism 3's
+job) or because every time is shared and only the pattern of attendance is
+unique (mechanism 2's job). `scripts/measure_skeleton_uniqueness.R` runs the
+before-and-after over the public datasets.
+
+### What the four leave uncovered
+
+Being explicit about the gaps is what makes the list worth anything.
+
+- **Attendance patterns.** Which visits a subject attended — dropout, early
+  discontinuation, a missed sample — survives coarsening entirely, because the
+  times themselves are already shared. On `warfarin` and `mavoglurant` this is
+  the *whole* of the residual exposure after coarsening.
+- **Dose amount.** Weight-based dosing and per-subject titration leave a cohort
+  unique on event signature no matter what the grid does.
+- **Membership.** None of the four defends against an adversary who already
+  holds a suspected participant's record and only wants to confirm they were in
+  the study. They reduce the ways that attack succeeds without bounding how
+  often it does. That is what differential privacy provides, and it is why the
+  trust-boundary question — not the length of this list — decides the mode.
+
 ## Step 1: declare the meaning of the columns
 
 The package never guesses critical PMX roles from column names. The user must

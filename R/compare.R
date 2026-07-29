@@ -565,10 +565,30 @@ skeleton_uniqueness <- function(data, roles) {
   # recorded times this is the class that is universally of size one, and the one
   # `coarsen_time = TRUE` exists to collapse.
   time <- suppressWarnings(as.numeric(data[[roles$time]]))
-  obs_time <- vapply(subject_rows, function(rows) {
-    values <- sort(time[rows[observed_index[rows]]])
+  obs_times <- lapply(subject_rows, function(rows) {
+    sort(time[rows[observed_index[rows]]])
+  })
+  obs_time <- vapply(obs_times, function(values) {
     paste(format(values, digits = 12, trim = TRUE), collapse = ",")
   }, character(1))
+  # Being alone on the whole vector has two very different causes, and they need
+  # different remedies. Either the subject was observed at a moment nobody else
+  # was -- a one-off visit no grid can hide, because the cell has one member --
+  # or every individual time is shared and only the *pattern* of which visits
+  # were attended is unique. The second is dropout and missed visits, and
+  # `coarsen_time` cannot touch it however fine or coarse the grid.
+  # `min_time_share` separates them: it is the smallest number of subjects
+  # sharing any one of this subject's observation times.
+  # Build the lookup and query it with the *same* formatted keys; `table()` names
+  # its entries with as.character(), which does not agree with format(digits =).
+  time_keys <- lapply(obs_times, function(values) {
+    format(unique(values), digits = 12, trim = TRUE)
+  })
+  shared <- table(unlist(time_keys))
+  min_time_share <- vapply(time_keys, function(keys) {
+    if (!length(keys)) return(NA_integer_)
+    min(as.integer(shared[keys]))
+  }, integer(1))
 
   count_by <- function(keep) {
     as.integer(tapply(as.integer(keep), sub, sum)[as.character(subjects)])
@@ -588,6 +608,7 @@ skeleton_uniqueness <- function(data, roles) {
     n_doses = n_doses,
     signature_class = signature_class,
     obs_time_class = obs_time_class,
+    min_time_share = min_time_share,
     n_obs_class = n_obs_class,
     alone = obs_time_class == 1L,
     stringsAsFactors = FALSE,
@@ -599,6 +620,7 @@ skeleton_uniqueness <- function(data, roles) {
   attr(out, "n_alone") <- sum(out$obs_time_class == 1L)
   attr(out, "n_alone_signature") <- sum(out$signature_class == 1L)
   attr(out, "n_alone_n_obs") <- sum(out$n_obs_class == 1L)
+  attr(out, "n_unshared_time") <- sum(out$min_time_share == 1L, na.rm = TRUE)
   attr(out, "min_class") <- if (nrow(out)) min(out$obs_time_class) else NA_integer_
   .mark_release(
     structure(out, class = c("pmx_skeleton_uniqueness", "data.frame")),
@@ -620,8 +642,13 @@ print.pmx_skeleton_uniqueness <- function(x, ...) {
     "Alone = the only subject with this observation time vector (%.0f%% here).\n\n",
     if (n) 100 * alone / n else 0
   ))
-  cat(sprintf("  obs times alone: %3d  <- what `coarsen_time = TRUE` collapses\n",
-              alone))
+  unshared <- attr(x, "n_unshared_time") %||% sum(x$min_time_share == 1L,
+                                                  na.rm = TRUE)
+  cat(sprintf("  obs times alone: %3d  <- of which:\n", alone))
+  cat(sprintf("    visited a moment nobody else did: %3d  <- the grid's job\n",
+              unshared))
+  cat(sprintf("    every time shared, pattern unique: %3d  <- dropout; the screen's\n",
+              max(alone - unshared, 0L)))
   cat(sprintf("  n_obs alone:     %3d  <- the residual it leaves, for the screen\n",
               alone_obs))
   cat(sprintf("  signature alone: %3d  <- dose structure/amount; coarsening does not change it\n",
