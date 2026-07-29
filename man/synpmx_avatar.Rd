@@ -18,6 +18,7 @@ synpmx_avatar(
   residual_phi = 0.6,
   time_jitter = 0,
   screen = TRUE,
+  coarsen_time = TRUE,
   max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
@@ -59,7 +60,11 @@ neighborhood distances.}
 -1 and 1.}
 
 \item{time_jitter}{Standard deviation for coherent tied-time jitter. Zero,
-the default, leaves the event template's times unchanged.}
+the default, leaves the event template's times unchanged. This is a realism
+control, \strong{not} a privacy control: every jittered time is clamped inside
+its own Voronoi cell, so no value of \code{time_jitter} moves a visit more than
+half a gap from where the source subject's visit was, and the source
+schedule stays recoverable. Use \code{coarsen_time} for that.}
 
 \item{screen}{When \code{TRUE} (default), a source subject whose follow-up length
 or dose count is more than twice the cohort's 90th percentile is not used as
@@ -71,6 +76,23 @@ weight-based dosing makes noisy) and DV (which is blended, not copied) are
 not. A source with no extreme subject is unaffected. Set \code{FALSE} to anchor
 on every subject. For a fuller, tunable screen of the generated output, see
 \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}} and \code{\link[=remediate_identifiable_subjects]{remediate_identifiable_subjects()}}.}
+
+\item{coarsen_time}{When \code{TRUE} (default), source times are collapsed onto a
+shared visit grid before generation, and per-visit deviations are pooled
+across the cohort and resampled independently onto each avatar. The grid is
+the \code{nominal_time} role where one is declared, and K-means centres of the
+pooled times otherwise. This is the mechanism that stops an avatar from
+carrying one real subject's exact visit schedule: the event skeleton is
+copied verbatim from a single anchor, and under actual recorded times almost
+every subject is alone in its event-signature class, so the copy is
+identifying. Snapping is many-to-one and \emph{destroys} the deviation rather
+than perturbing it, which is what distinguishes this from \code{time_jitter}. A
+source already on nominal time has no deviation to remove or restore, so its
+output is unchanged. Run \code{\link[=skeleton_uniqueness]{skeleton_uniqueness()}} on the source to see how
+much this has to do, and what it leaves behind. The cost is timing
+fidelity: an avatar's deviation from nominal is drawn from the cohort, not
+inherited, so \code{TIME} no longer pairs with its \code{DV} as precisely as the
+source did. Set \code{FALSE} to keep exact source timing.}
 
 \item{max_donor_weight}{Largest share of one synthetic subject that any one
 real donor may contribute. The default 0.50 states simply that no single
@@ -151,8 +173,10 @@ source <- data.frame(
   CMT = rep(c(1L, 2L, 2L, 2L), 3),
   WT = rep(c(60, 70, 80), each = 4)
 )
-roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
-                   NULL, NULL, "WT")
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", covariates = "WT"
+)
 synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 validate_pmx(synthetic, roles)$valid
 }

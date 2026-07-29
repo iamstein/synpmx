@@ -27,12 +27,13 @@ test_that("the README example produces the output the README shows", {
 
   head4 <- head(synthetic, 4)
   expect_equal(as.character(head4$ID), rep("13", 4))
-  expect_equal(head4$TIME, c(0.00, 0.00, 0.30, 0.63), tolerance = 1e-8)
+  expect_equal(head4$TIME, c(0.0000000, 0.0000000, 0.2816667, 0.5231061),
+               tolerance = 1e-6)
   expect_equal(head4$DV,
-               c(0.000000, 0.000000, 2.429472, 3.706058),
+               c(0.000000, 0.000000, 1.870186, 3.282410),
                tolerance = 1e-6)
   expect_equal(head4$AMT, c(267.84, 0.00, 0.00, 0.00), tolerance = 1e-6)
   expect_equal(head4$EVID, c(101L, 0L, 0L, 0L))
   expect_equal(head4$CMT, c(1L, 2L, 2L, 2L))
-  expect_equal(head4$WT, rep(70.30935, 4), tolerance = 1e-5)
+  expect_equal(head4$WT, rep(74.1902, 4), tolerance = 1e-5)
 })

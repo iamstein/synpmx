@@ -206,7 +206,32 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
     nominal <- data[[roles$nominal_time]]
     if (!is.numeric(nominal) || any(!is.finite(nominal))) {
       add("nominal_time", "error", "Nominal time must be numeric and finite.")
-    } else add("nominal_time", "pass", "Nominal time is numeric and finite.")
+    } else {
+      # A misdeclared nominal_time is silent without this. `pmx_roles()` takes
+      # nominal_time tenth positionally, so a covariate passed by position lands
+      # here, is numeric and finite, and passes -- and then
+      # `synpmx_avatar(coarsen_time = TRUE)` snaps every observation time onto
+      # that column's values. Nominal and actual time describe the same visit, so
+      # a typical departure wider than the whole observation window means the
+      # column is not a schedule.
+      actual <- suppressWarnings(as.numeric(data[[roles$time]]))
+      comparable <- is.finite(actual) & is.finite(nominal)
+      span <- if (any(comparable)) diff(range(actual[comparable])) else 0
+      departure <- if (any(comparable)) {
+        stats::median(abs(actual[comparable] - nominal[comparable]))
+      } else 0
+      if (span > 0 && departure > span) {
+        add("nominal_time", "error", paste0(
+          "Nominal time departs from actual time by more than the whole ",
+          "observation window (median ", signif(departure, 3), " against a span ",
+          "of ", signif(span, 3), "); `", roles$nominal_time, "` does not look ",
+          "like a visit schedule. Check that `nominal_time` was not supplied ",
+          "positionally."
+        ))
+      } else {
+        add("nominal_time", "pass", "Nominal time is numeric and finite.")
+      }
+    }
   }
   if (!is.null(roles$tad)) {
     tad <- suppressWarnings(as.numeric(data[[roles$tad]]))

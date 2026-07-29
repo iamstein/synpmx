@@ -472,6 +472,171 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
   )
 }
 
+# Skeleton uniqueness ---------------------------------------------------------
+#
+# flag_identifiable_subjects() finds subjects that are *extreme*. This finds
+# subjects that are *alone*, which is a different property: a patient can sit
+# squarely in the middle of every distribution and still be the only one with
+# their exact visit schedule. synpmx_avatar() copies the anchor's event skeleton
+# verbatim (`.jitter_skeleton_time()` cannot change that -- its clamp holds every
+# time inside its own Voronoi cell), so a subject alone in its equivalence class
+# hands its schedule to every avatar anchored on it.
+#
+# Two classes are scored because `coarsen_time` collapses one and not the other:
+#
+#   - `signature` -- the full `.event_signature()`: dose amounts, dose gaps,
+#     endpoint set. Under actual recorded times this is near-universally unique
+#     and coarsening is what collapses it.
+#   - `n_obs` -- the observation count alone. Coarsening does not touch it, so
+#     what survives is dropout and missed visits. That residual is the screen's
+#     job, not the grid's.
+
+.class_sizes <- function(key) {
+  counts <- table(key)
+  as.integer(counts[match(key, names(counts))])
+}
+
+#' Score how many subjects share each subject's event skeleton
+#'
+#' A source-side screen for subjects that are **alone**, the complement to
+#' [flag_identifiable_subjects()], which finds subjects that are **extreme**. A
+#' patient can be perfectly ordinary on every distribution and still hold the
+#' only copy of their visit schedule, and [synpmx_avatar()] copies the anchor's
+#' event skeleton verbatim, so such a subject hands an identifying schedule to
+#' every avatar anchored on it.
+#'
+#' Three equivalence classes are scored per subject:
+#'
+#' - **`obs_time`** -- subjects sharing the exact observation time vector. This
+#'   is the fingerprint, because [synpmx_avatar()] copies the anchor's event
+#'   skeleton verbatim. Under nominal visit times the class is large, since the
+#'   schedule is protocol-driven; under actual recorded times it is
+#'   near-universally of size one. `coarsen_time = TRUE` collapses the second
+#'   case into the first, and `alone` reports this class.
+#' - **`n_obs`** -- subjects sharing the observation count. Coarsening cannot
+#'   change a count, so this is what survives it: dropout, early
+#'   discontinuation, and missed visits. That residual is the outlier screen's
+#'   job rather than the grid's.
+#' - **`signature`** -- subjects sharing the full [pmx_roles()] event signature:
+#'   dose structure, dose amounts, and endpoint set. Note this does *not* include
+#'   observation times -- it is the key donor compatibility uses. Weight-based
+#'   dosing or per-subject titration makes it unique regardless of schedule, and
+#'   coarsening does not change that either.
+#'
+#' Run it on the **source**, before generating, to decide whether coarsening is
+#' needed and what is left over once it is applied. It is a heuristic screen, not
+#' a privacy guarantee, and is marked `"restricted_not_releasable"`.
+#'
+#' @param data A PMX dataset -- normally the source.
+#' @param roles Explicit roles from [pmx_roles()].
+#'
+#' @return A `pmx_skeleton_uniqueness` data frame, most-exposed first, one row
+#'   per subject: `subject_id`, `n_obs`, `n_doses`, `signature_class`,
+#'   `obs_time_class`, `n_obs_class` (each counting the subjects sharing that
+#'   key, including itself), and `alone` (`TRUE` when `obs_time_class == 1`).
+#'   Attributes `n_alone`, `n_alone_signature`, `n_alone_n_obs`, and `min_class`
+#'   summarize the cohort.
+#' @seealso [flag_identifiable_subjects()], [synpmx_avatar()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(30)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' skeleton_uniqueness(data, roles)
+skeleton_uniqueness <- function(data, roles) {
+  .assert_roles(data, roles)
+  subjects <- .unique_in_order(data[[roles$id]])
+  sub <- factor(as.character(data[[roles$id]]),
+                levels = as.character(subjects))
+  observed <- .observation_rows(data, roles, require_present = TRUE)
+  dosed <- .dose_rows(data, roles)
+
+  subject_rows <- lapply(as.character(subjects), function(id) which(sub == id))
+  observed_index <- observed
+  signature <- vapply(subject_rows, function(rows) {
+    .event_signature(data[rows, , drop = FALSE], roles)
+  }, character(1))
+  # `.event_signature()` covers dose structure, dose amounts, and the endpoint
+  # set -- it does *not* include observation times. Donor compatibility does not
+  # need them, but they are exactly what `synpmx_avatar()` copies verbatim from
+  # the anchor, so the observation time vector is scored on its own. Under actual
+  # recorded times this is the class that is universally of size one, and the one
+  # `coarsen_time = TRUE` exists to collapse.
+  time <- suppressWarnings(as.numeric(data[[roles$time]]))
+  obs_time <- vapply(subject_rows, function(rows) {
+    values <- sort(time[rows[observed_index[rows]]])
+    paste(format(values, digits = 12, trim = TRUE), collapse = ",")
+  }, character(1))
+
+  count_by <- function(keep) {
+    as.integer(tapply(as.integer(keep), sub, sum)[as.character(subjects)])
+  }
+  n_obs <- count_by(observed)
+  n_obs[is.na(n_obs)] <- 0L
+  n_doses <- count_by(dosed)
+  n_doses[is.na(n_doses)] <- 0L
+
+  signature_class <- .class_sizes(signature)
+  obs_time_class <- .class_sizes(obs_time)
+  n_obs_class <- .class_sizes(as.character(n_obs))
+
+  out <- data.frame(
+    subject_id = as.character(subjects),
+    n_obs = n_obs,
+    n_doses = n_doses,
+    signature_class = signature_class,
+    obs_time_class = obs_time_class,
+    n_obs_class = n_obs_class,
+    alone = obs_time_class == 1L,
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+  out <- out[order(out$obs_time_class, out$signature_class, out$n_obs_class,
+                   out$subject_id), , drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "n_alone") <- sum(out$obs_time_class == 1L)
+  attr(out, "n_alone_signature") <- sum(out$signature_class == 1L)
+  attr(out, "n_alone_n_obs") <- sum(out$n_obs_class == 1L)
+  attr(out, "min_class") <- if (nrow(out)) min(out$obs_time_class) else NA_integer_
+  .mark_release(
+    structure(out, class = c("pmx_skeleton_uniqueness", "data.frame")),
+    "restricted_not_releasable"
+  )
+}
+
+#' @export
+print.pmx_skeleton_uniqueness <- function(x, ...) {
+  n <- nrow(x)
+  alone <- attr(x, "n_alone") %||% sum(x$signature_class == 1L)
+  alone_sig <- attr(x, "n_alone_signature") %||% sum(x$signature_class == 1L)
+  alone_obs <- attr(x, "n_alone_n_obs") %||% sum(x$n_obs_class == 1L)
+  cat(sprintf(
+    "Restricted PMX skeleton-uniqueness screen: %d of %d subject%s alone\n",
+    alone, n, if (n == 1L) "" else "s"
+  ))
+  cat(sprintf(
+    "Alone = the only subject with this observation time vector (%.0f%% here).\n\n",
+    if (n) 100 * alone / n else 0
+  ))
+  cat(sprintf("  obs times alone: %3d  <- what `coarsen_time = TRUE` collapses\n",
+              alone))
+  cat(sprintf("  n_obs alone:     %3d  <- the residual it leaves, for the screen\n",
+              alone_obs))
+  cat(sprintf("  signature alone: %3d  <- dose structure/amount; coarsening does not change it\n",
+              alone_sig))
+  cat("\n")
+  cat(if (n > 12L) "Twelve most exposed:\n" else "By class size:\n")
+  print(.round_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
+  if (n > 12L) {
+    cat(sprintf("... %d more row(s) in the returned table.\n", n - 12L))
+  }
+  cat("\nSource-derived; not releasable unless separately public or privately",
+      "budgeted.\n")
+  invisible(x)
+}
+
 #' @export
 print.pmx_identifiability <- function(x, ...) {
   n <- nrow(x)
