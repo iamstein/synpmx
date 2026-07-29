@@ -73,9 +73,11 @@ Open on the two new mechanisms:
       pool. Constructing a nominal time (rounding the roughly-weekly infusions to
       their protocol week) would fix both this and its inferred-grid failure --
       worth demonstrating, since real studies will hit the same shape.
-- [ ] Titrated / outcome-adaptive dose sequences remain untouched by both
-      mechanisms, by design. The oncology study is the case that will show
-      whether that matters.
+- [ ] The dose *amount* is now handled at any number of levels, intra-patient
+      escalation included. What is still copied is the *sequence of levels* an
+      anchor climbed; where escalation is outcome-adaptive that sequence encodes
+      the subject's own response. The oncology study will show whether it
+      matters.
 
 Open, only if real data shows a need:
 - [ ] Revisit the screen cut (2× the 90th percentile) if it over- or

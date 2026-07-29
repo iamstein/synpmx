@@ -29,9 +29,7 @@
 #'   event skeleton and uses the stratum to group two things that are protocol
 #'   properties rather than patient properties: the dose-to-covariate
 #'   relationship, and the pool of attendance patterns an avatar may draw from.
-#'   Declaring a dose group here is what lets a study with several dose levels be
-#'   recognised as weight-based within each level. It is **not** a blending
-#'   barrier — only route of administration is (see [synpmx_avatar()]), so donors
+#'   It is **not** a blending barrier — only route of administration is (see [synpmx_avatar()]), so donors
 #'   are still borrowed across strata to reach the donor floor.
 #'
 #'   The differential-privacy engines model the same columns jointly with the

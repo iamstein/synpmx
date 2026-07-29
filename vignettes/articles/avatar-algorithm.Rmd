@@ -90,7 +90,7 @@ is a measurement you run yourself.
 | 1 | **Donor blending** | The measured values | Anything structural | `k`, `max_donor_weight` |
 | 2 | **Screening extreme subjects** | Against being conspicuous | Being merely unique | `screen`, `flag_identifiable_subjects()` |
 | 3 | **Coarsening and re-refining time** | The visit schedule | Which visits were attended | `coarsen_time` |
-| 4 | **Dose recomputed from a blended covariate** | The dose amount, under mg/kg dosing | Flat or titrated dosing | automatic; `subject_properties` |
+| 4 | **Dose recomputed from a blended covariate** | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
 | 5 | **Attendance-pattern sampling** | Which visits were attended | Dose events, deliberately | `min_pattern_share` |
 | 6 | **Skeleton-uniqueness checking** | Nothing — it measures | — | `skeleton_uniqueness()` |
 
@@ -149,10 +149,12 @@ Being explicit about the gaps is what makes the list worth anything.
   alerts. The cost when it *does* apply is the opposite problem: on `warfarin`
   and `theo_md` only one pattern clears a floor of 3, so the cohort's missingness
   distribution collapses to complete attendance.
-- **Titrated dose.** Mechanism 4 handles proportional dosing. Where the dose
-  sequence is outcome-adaptive — intra-patient escalation driven by a subject's
-  own tolerability — the sequence encodes that subject's response and nothing
-  here touches it.
+- **Which dose level a patient reached.** Mechanism 4 recomputes the *amount*
+  from the avatar's own covariate, at any number of levels and including
+  intra-patient escalation. What it does not change is the *sequence of levels*
+  the anchor climbed. Where escalation is outcome-adaptive — driven by a
+  subject's own tolerability — that sequence encodes their response, and it is
+  copied.
 - **Membership.** None of the four defends against an adversary who already
   holds a suspected participant's record and only wants to confirm they were in
   the study. They reduce the ways that attack succeeds without bounding how
