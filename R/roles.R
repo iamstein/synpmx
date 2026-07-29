@@ -20,11 +20,22 @@
 #'   interval-boundary columns.
 #' @param addl,ii Optional additional-dose and interdose-interval columns.
 #' @param covariates Baseline covariate column names, or `NULL`.
-#' @param subject_properties Differential-privacy engines only. Subject-level
-#'   assignment or grouping columns (`ACTARM`, `TRT`, a nominal dose group)
-#'   modeled jointly with the regimen as a released category domain.
-#'   [synpmx_avatar()] does not use this — carry such a column with `keep`, which
-#'   copies it verbatim from the subject that supplied the doses.
+#' @param subject_properties Treatment arm, dose group, cohort — any **assigned,
+#'   subject-level stratum**, as opposed to a measured characteristic, which is a
+#'   `covariate`. Must be complete and constant within subject. Several columns
+#'   may be named, and their combination defines the stratum.
+#'
+#'   [synpmx_avatar()] carries these verbatim from the subject that supplied the
+#'   event skeleton and uses the stratum to group two things that are protocol
+#'   properties rather than patient properties: the dose-to-covariate
+#'   relationship, and the pool of attendance patterns an avatar may draw from.
+#'   Declaring a dose group here is what lets a study with several dose levels be
+#'   recognised as weight-based within each level. It is **not** a blending
+#'   barrier — only route of administration is (see [synpmx_avatar()]), so donors
+#'   are still borrowed across strata to reach the donor floor.
+#'
+#'   The differential-privacy engines model the same columns jointly with the
+#'   regimen as a released category domain.
 #' @param assigned_dose Differential-privacy engines only. A nominal
 #'   assigned-dose column reconstructed from the generated regimen.
 #'   [synpmx_avatar()] does not use this — carry the column with `keep`.

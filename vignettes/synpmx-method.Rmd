@@ -123,7 +123,7 @@ it.
 
 AVATAR gives no formal guarantee, so the honest way to describe its protection
 is to list the mechanisms and say what each one does and does not cover. There
-are four, and they are on by default unless noted.
+are six, and they are on by default unless noted.
 
 **1. Blending across donors.** No synthetic subject's measurements come from one
 real patient. Each avatar's covariates and concentrations are a
@@ -156,7 +156,30 @@ times otherwise; the inferred case is best-effort and alerts loudly when it
 cannot collapse a subject. The cost is timing fidelity: an avatar's deviation
 from nominal is drawn from the cohort rather than inherited.
 
-**4. Checking for unique event skeletons** (`skeleton_uniqueness()`, manual).
+**4. Recomputing the dose from a blended covariate** (automatic). When the dose
+is a fixed multiple of a baseline covariate within each assigned stratum — mg/kg,
+mg/m² — that multiplier is a protocol property the stratum shares, while the
+covariate is individual and already blended. So the multiplier is kept and the
+amount recomputed from the avatar's *own* blended weight. Previously `AMT` was
+copied verbatim while covariates were blended, which both disclosed the anchor's
+weight exactly and left every avatar violating its own protocol: a cohort dosed
+at exactly 5 mg/kg produced avatars from 4.4 to 5.3. Detection fails closed, and
+a study with several dose levels is recognised only when those levels are
+declared through `subject_properties`.
+
+**5. Sampling the attendance pattern** (`min_pattern_share`, default 3). Once
+coarsening has put every subject on a shared visit grid, what remains of a
+schedule is which of those visits each subject attended. Every time is then
+shared, so no single visit is identifying — the *combination of absences* is,
+and a patient who missed weeks 2 and 3 is singled out by a fingerprint made of
+gaps. No grid fixes this at any resolution, because the grid decides where the
+visits are, not which ones a subject has. So the pattern is drawn from ones at
+least `min_pattern_share` subjects hold. Nobody leaves the cohort: a subject with
+a rare pattern still contributes measurements as a donor, only their distinctive
+absences stop being reproduced. Dose events are never sampled, since that could
+emit a regimen no protocol permits.
+
+**6. Checking for unique event skeletons** (`skeleton_uniqueness()`, manual).
 Reports, per subject, how many others share its observation time vector, its
 observation count, and its event signature. Run it on the source before
 generating. It is a measurement, not a mitigation — what to do about what it

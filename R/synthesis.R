@@ -2,7 +2,8 @@
                                         dv_method, k, pca_variance,
                                         subject_noise_sd, residual_noise_sd,
                                         residual_phi, time_jitter,
-                                        max_donor_weight, coarsen_time) {
+                                        max_donor_weight, coarsen_time,
+                                        min_pattern_share) {
   if (is.null(n_subjects)) n_subjects <- source_n
   if (length(n_subjects) != 1L || is.na(n_subjects) ||
       n_subjects < 1 || n_subjects != as.integer(n_subjects)) {
@@ -43,6 +44,11 @@
   if (length(coarsen_time) != 1L || is.na(coarsen_time) ||
       !is.logical(coarsen_time)) {
     stop("`coarsen_time` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (length(min_pattern_share) != 1L || is.na(min_pattern_share) ||
+      !is.finite(min_pattern_share) || min_pattern_share < 1 ||
+      min_pattern_share != as.integer(min_pattern_share)) {
+    stop("`min_pattern_share` must be one integer of 1 or more.", call. = FALSE)
   }
   as.integer(n_subjects)
 }
@@ -241,6 +247,220 @@
   list(source = source, deviations = deviations, grid = kind)
 }
 
+# The stratum a subject was assigned to: the combination of every
+# `subject_properties` column, or one shared stratum when none is declared.
+# Protocol properties -- what dose level the arm received, which visits the
+# schedule called for -- are constant within a stratum and differ between them,
+# so it is the right grouping for both the dose basis below and the attendance
+# pattern pool. It is deliberately *not* a blending barrier; only `.route_key()`
+# is.
+.subject_strata <- function(data, roles) {
+  if (!length(roles$subject_properties)) {
+    return(rep("all", nrow(data)))
+  }
+  do.call(paste, c(lapply(roles$subject_properties, function(column) {
+    as.character(data[[column]])
+  }), list(sep = "\r")))
+}
+
+.relative_spread <- function(values) {
+  values <- values[is.finite(values)]
+  if (length(values) < 2L) return(0)
+  centre <- mean(values)
+  if (!is.finite(centre) || abs(centre) < .Machine$double.eps) return(Inf)
+  stats::sd(values) / abs(centre)
+}
+
+# Is the dose a fixed multiple of a baseline covariate -- mg/kg, mg/m^2 -- within
+# each assigned stratum?
+#
+# This matters twice over. An avatar's `AMT` is copied verbatim from its anchor
+# while its covariates are blended from donors, so under weight-based dosing the
+# avatar's own mg/kg is wrong: source subjects all sit at exactly 5 mg/kg and
+# avatars come out anywhere from 4.4 to 5.3, violating the protocol every
+# generated subject claims to follow. And the copied amount is one real
+# patient's real dose, which under proportional dosing discloses that patient's
+# weight exactly -- the reason `skeleton_uniqueness()` reports nearly every
+# subject as unique on dose (`REV-025` found the same thing from the other end,
+# where it made every subject its own donor group).
+#
+# The fix is the decomposition that made time coarsening work. The multiplier is
+# a protocol property shared by the whole stratum; the covariate is the
+# individual part, and it is already blended. So keep the multiplier, recompute
+# the amount from the avatar's own covariate, and the dose becomes both coherent
+# and non-identifying.
+#
+# Detection is deliberately conservative, because recomputing amounts on a study
+# that is not dose-proportional would be worse than leaving them alone. Dividing
+# by the covariate has to *collapse* the variation in dose -- amounts must vary
+# within the stratum, ratios must not. A study with several dose levels is
+# recognised only when the levels are declared through `subject_properties`,
+# since without that the levels sit in one stratum and the ratio is not
+# constant. That is the safe direction to fail.
+.detect_dose_basis <- function(source, roles, tolerance = 0.02) {
+  if (is.null(roles$amt) || !length(roles$covariates)) return(NULL)
+  amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
+  usable <- .dose_rows(source, roles) & is.finite(amount) & amount > 0
+  if (sum(usable) < 3L) return(NULL)
+  strata <- .subject_strata(source, roles)[usable]
+  amount <- amount[usable]
+  # Flat dosing within every stratum: nothing varies, so nothing to explain and
+  # nothing identifying about the amount.
+  if (max(tapply(amount, strata, .relative_spread)) <= tolerance) return(NULL)
+
+  for (covariate in roles$covariates) {
+    values <- suppressWarnings(as.numeric(source[[covariate]]))
+    if (!is.numeric(values) || is.factor(source[[covariate]])) next
+    values <- values[usable]
+    if (any(!is.finite(values) | values <= 0)) next
+    ratio <- amount / values
+    if (max(tapply(ratio, strata, .relative_spread)) > tolerance) next
+    return(list(
+      covariate = covariate,
+      multiplier = vapply(split(ratio, strata), mean, numeric(1))
+    ))
+  }
+  NULL
+}
+
+# Recompute this avatar's dose from its own blended covariate, keeping the
+# stratum's multiplier. Any declared RATE scales with the amount so the infusion
+# duration the protocol specified is preserved.
+.apply_dose_basis <- function(skeleton, roles, basis) {
+  if (is.null(basis)) return(skeleton)
+  stratum <- .subject_strata(skeleton, roles)[1L]
+  multiplier <- basis$multiplier[[stratum]]
+  if (is.null(multiplier) || !is.finite(multiplier)) return(skeleton)
+  covariate <- suppressWarnings(as.numeric(
+    .first_present(skeleton[[basis$covariate]])
+  ))
+  if (!is.finite(covariate) || covariate <= 0) return(skeleton)
+
+  dosed <- .dose_rows(skeleton, roles)
+  amount <- suppressWarnings(as.numeric(skeleton[[roles$amt]]))
+  target <- multiplier * covariate
+  change <- dosed & is.finite(amount) & amount > 0
+  if (!any(change)) return(skeleton)
+  scale <- target / amount[change]
+  if (!is.null(roles$rate)) {
+    rate <- suppressWarnings(as.numeric(skeleton[[roles$rate]]))
+    scalable <- change & is.finite(rate) & rate > 0
+    if (any(scalable)) {
+      rate[scalable] <- rate[scalable] * (target / amount[scalable])
+      skeleton[[roles$rate]] <- rate
+    }
+  }
+  amount[change] <- target
+  skeleton[[roles$amt]] <- amount
+  skeleton
+}
+
+# Attendance patterns ---------------------------------------------------------
+#
+# Once `coarsen_time` has put every subject on a shared visit grid, what is left
+# of a subject's schedule is a bitmap: which of the shared visits they actually
+# attended, per endpoint. On `warfarin` the grid holds 15 visits and 32 subjects
+# produce 14 distinct bitmaps -- one covering 18 subjects, the rest held by one
+# or two people each. Every column is shared, so no single time is identifying;
+# the *combination of absences* is. A patient who missed weeks 2 and 3 is
+# singled out by a fingerprint made of gaps.
+#
+# No grid can fix that, at any resolution. Merging two columns to blur a bitmap
+# would delete a real visit from everybody who attended both, which is exactly
+# what the disjointness constraint in `.derive_time_grid()` refuses. The grid
+# decides where the columns are; it has no say in which cells hold a 1.
+#
+# So sample the bitmap instead of copying the anchor's, drawing only from
+# patterns that at least `min_pattern_share` subjects hold. No avatar then wears
+# a one-of-a-kind attendance pattern, and -- unlike dropping the exposed
+# subjects -- nobody leaves the cohort: a subject with a rare pattern still
+# contributes their measurements as a donor, only their distinctive absences
+# stop being reproduced.
+#
+# Whole patterns are sampled, not individual bits. Drawing each visit
+# independently would preserve the marginal attendance rate but destroy the
+# correlation that makes dropout dropout -- once a subject discontinues they are
+# gone, and independent draws produce implausible attend/miss/attend sequences.
+# Copying a real pattern that at least `min_pattern_share` subjects share keeps
+# that structure exactly, and sampling frequency-weighted keeps the per-visit
+# attendance rates close to the source.
+#
+# Dose events are untouched. All the residual exposure is in observations, and
+# sampling dose events risks emitting a regimen the protocol never permitted --
+# the objection that ruled out randomized dose dropping.
+
+.attendance_key <- function(data, roles, rows) {
+  observed <- rows & .observation_rows(data, roles, require_present = TRUE)
+  if (!any(observed)) return("")
+  endpoint <- .endpoint(data, roles)[observed]
+  time <- suppressWarnings(as.numeric(data[[roles$time]][observed]))
+  paste(sort(unique(paste0(endpoint, "@",
+                           format(time, digits = 12, trim = TRUE)))),
+        collapse = ";")
+}
+
+# The pool an avatar may draw from, per stratum. Patterns are kept only when
+# enough subjects share them; a stratum with nothing shared widely enough
+# contributes no pool and its anchors keep their own pattern.
+.attendance_pool <- function(source, roles, profiles, min_pattern_share) {
+  if (min_pattern_share <= 1L) return(NULL)
+  subject_rows <- profiles$subject_rows
+  keys <- vapply(subject_rows, function(rows) {
+    .attendance_key(source, roles, rows)
+  }, character(1))
+  strata <- vapply(subject_rows, function(rows) {
+    .subject_strata(source, roles)[which(rows)[1L]]
+  }, character(1))
+  # An avatar must not be given a pattern naming endpoints its anchor does not
+  # have, so the pool is separated by endpoint set as well as by stratum.
+  endpoints <- vapply(subject_rows, function(rows) {
+    observed <- rows & .observation_rows(source, roles, require_present = TRUE)
+    paste(sort(unique(.endpoint(source, roles)[observed])), collapse = ",")
+  }, character(1))
+  group <- paste(strata, endpoints, sep = "\r")
+
+  pool <- list()
+  for (name in unique(group)) {
+    member <- group == name
+    counts <- table(keys[member])
+    counts <- counts[names(counts) != "" & counts >= min_pattern_share]
+    if (!length(counts)) next
+    representative <- vapply(names(counts), function(key) {
+      which(member & keys == key)[1L]
+    }, integer(1))
+    pool[[name]] <- list(
+      keys = names(counts), weight = as.numeric(counts),
+      representative = representative
+    )
+  }
+  list(pool = pool, group = group, keys = keys)
+}
+
+# Rebuild the skeleton's observation rows to match a sampled pattern, keeping
+# every dose row exactly as the anchor had it. Rows for a visit the anchor did
+# not attend are cloned from one of its own observation rows for that endpoint,
+# so compartment, MDV, and every carried column stay coherent; the DV itself is
+# filled by the donor blend afterwards, exactly as for a copied skeleton.
+.apply_attendance <- function(skeleton, roles, key) {
+  observed <- .observation_rows(skeleton, roles, require_present = TRUE)
+  if (!any(observed) || !nzchar(key)) return(skeleton)
+  wanted <- strsplit(key, ";", fixed = TRUE)[[1L]]
+  wanted_endpoint <- sub("@.*$", "", wanted)
+  wanted_time <- as.numeric(sub("^.*@", "", wanted))
+  endpoint <- .endpoint(skeleton, roles)
+
+  template <- vapply(unique(wanted_endpoint), function(name) {
+    candidate <- which(observed & endpoint == name)
+    if (length(candidate)) candidate[1L] else NA_integer_
+  }, integer(1))
+  names(template) <- unique(wanted_endpoint)
+  if (anyNA(template)) return(skeleton)
+
+  built <- skeleton[template[wanted_endpoint], , drop = FALSE]
+  built[[roles$time]] <- wanted_time
+  rbind(skeleton[!observed, , drop = FALSE], built)
+}
+
 # TAD is time since the most recent dose, so it goes stale the moment TIME
 # moves. Recomputed from the generated skeleton rather than carried over from
 # the anchor, where it would describe a schedule the avatar no longer has.
@@ -317,7 +537,6 @@
 # handled when it was not -- reject them and point at the role that does the job.
 .reject_dp_only_roles <- function(roles) {
   guidance <- c(
-    subject_properties = "carry the column with `keep`",
     assigned_dose = "carry the column with `keep`",
     exclude = "simply leave the column undeclared; it is then dropped"
   )
@@ -769,6 +988,48 @@
 #'   fidelity: an avatar's deviation from nominal is drawn from the cohort, not
 #'   inherited, so `TIME` no longer pairs with its `DV` as precisely as the
 #'   source did. Set `FALSE` to keep exact source timing.
+#' @param min_pattern_share How many source subjects must share an attendance
+#'   pattern before an avatar may be given it. Default 3; `1` restores copying
+#'   the anchor's own pattern.
+#'
+#'   Once `coarsen_time` has put every subject on a shared visit grid, what
+#'   remains of a schedule is which of those visits each subject attended. Every
+#'   time is then shared, so no single visit is identifying — but the
+#'   *combination of absences* is, and a patient who missed weeks 2 and 3 can be
+#'   singled out by a fingerprint made of gaps. No grid can fix that at any
+#'   resolution, because the grid decides where the visits are and not which ones
+#'   a subject has. So the pattern is sampled from ones at least
+#'   `min_pattern_share` subjects hold, frequency-weighted, and whole patterns
+#'   are drawn rather than individual visits, which keeps dropout monotone
+#'   instead of producing implausible attend/miss/attend sequences.
+#'
+#'   Unlike dropping the exposed subjects, nobody leaves the cohort: a subject
+#'   with a rare pattern still contributes measurements as a donor, only their
+#'   distinctive absences stop being reproduced. Dose events are never sampled,
+#'   since that could emit a regimen no protocol permits. Raising this hides more
+#'   and flattens the cohort's missingness further; where no pattern is shared
+#'   widely enough, anchors keep their own and the run alerts loudly. Pools are
+#'   formed within each `subject_properties` stratum and endpoint set.
+#' @section Dose recomputed from a blended covariate:
+#' When the dose is a fixed multiple of a baseline covariate within each
+#' assigned stratum — mg/kg, mg/m^2 — that multiplier is a protocol property the
+#' whole stratum shares, while the covariate is individual and is already
+#' blended across donors. `synpmx_avatar()` detects this and recomputes each
+#' avatar's `AMT` (and any `rate`, keeping the infusion duration) from the
+#' avatar's *own* blended covariate.
+#'
+#' This fixes two things at once. The amount is no longer one real patient's
+#' real dose, which under proportional dosing discloses that patient's weight
+#' exactly. And the avatar stops violating the protocol it claims to follow:
+#' previously `AMT` was copied from the anchor while covariates were blended, so
+#' a cohort dosed at exactly 5 mg/kg produced avatars anywhere from 4.4 to 5.3.
+#'
+#' Detection is conservative and fails closed — dividing by the covariate must
+#' collapse the variation in dose, and a study with several dose levels is
+#' recognised only when the levels are declared through `subject_properties`.
+#' The detected covariate is recorded as `dose_basis` in the settings, `NA` when
+#' none was found.
+#'
 #' @param max_donor_weight Largest share of one synthetic subject that any one
 #'   real donor may contribute. The default 0.50 states simply that no single
 #'   real patient is more than half of any synthetic patient.
@@ -827,6 +1088,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
                      time_jitter = 0, screen = TRUE, coarsen_time = TRUE,
+                     min_pattern_share = 3L,
                      max_donor_weight = 0.50,
                      on_donor_shortfall = c("drop", "noise", "error")) {
   on_donor_shortfall <- match.arg(on_donor_shortfall)
@@ -854,7 +1116,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   n_subjects <- .validate_generator_options(
     n_subjects, length(subjects), event_method, dv_method, k, pca_variance,
     subject_noise_sd, residual_noise_sd, residual_phi, time_jitter,
-    max_donor_weight, coarsen_time
+    max_donor_weight, coarsen_time, min_pattern_share
   )
 
   .with_local_seed(seed, {
@@ -939,7 +1201,27 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         ))
       }
     }
+    dose_basis <- .detect_dose_basis(source, source_roles)
     profiles <- .build_profiles(source, source_roles, pca_variance)
+    attendance <- .attendance_pool(source, source_roles, profiles,
+                                   as.integer(min_pattern_share))
+    if (!is.null(attendance)) {
+      unpooled <- setdiff(unique(attendance$group), names(attendance$pool))
+      if (length(unpooled)) {
+        stranded <- sum(attendance$group %in% unpooled)
+        .loud_warn(sprintf(
+          paste0("no attendance pattern is shared by %d or more subjects in ",
+                 "%d of %d group(s), covering %d subject(s), so avatars ",
+                 "anchored there keep their anchor's own pattern of attended ",
+                 "visits -- which is what `min_pattern_share` exists to avoid ",
+                 "reproducing. Lower `min_pattern_share`, or declare a ",
+                 "`nominal_time` role so coarsening can put more subjects on ",
+                 "the same visits."),
+          as.integer(min_pattern_share), length(unpooled),
+          length(unique(attendance$group)), stranded
+        ))
+      }
+    }
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
     # Donor floor: each avatar should blend `k` real patients, borrowing across
     # dose/schedule groups to reach it. The only unfixable shortfall is a source
@@ -1070,11 +1352,23 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # protecting anything. Reporting the rate is what makes that visible on real
     # data instead of inferable only by simulation.
     cap_bound <- logical(n_subjects)
+    pattern_sampled <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
+      if (!is.null(attendance)) {
+        available <- attendance$pool[[attendance$group[[anchor]]]]
+        if (!is.null(available)) {
+          drawn <- sample.int(length(available$keys), 1L,
+                              prob = available$weight)
+          skeleton <- .apply_attendance(skeleton, source_roles,
+                                        available$keys[[drawn]])
+          original_order <- seq_len(nrow(skeleton))
+          pattern_sampled[synthetic_index] <- TRUE
+        }
+      }
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
       if (length(time_deviations)) {
         skeleton <- .offset_unique_times(skeleton, source_roles, function(n) {
@@ -1089,6 +1383,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd
       )
+      skeleton <- .apply_dose_basis(skeleton, source_roles, dose_basis)
       skeleton <- .synthesize_trajectories(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd, residual_noise_sd, residual_phi, warnings,
@@ -1125,10 +1420,14 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       residual_phi = residual_phi,
       time_jitter = time_jitter,
       coarsen_time = coarsen_time,
+      min_pattern_share = as.integer(min_pattern_share),
+      pattern_sampled_fraction = mean(pattern_sampled),
       time_grid = coarsened$grid,
       # How many source subjects still hold a schedule nobody else shares, once
       # coarsening has done what it can, and why. Recorded rather than only
       # alerted so a report can tabulate it without recomputing.
+      dose_basis = if (is.null(dose_basis)) NA_character_ else
+        dose_basis$covariate,
       exposure_alone = exposure_alone,
       exposure_unique_moment = exposure_unique_moment,
       exposure_unique_pattern = if (is.na(exposure_alone)) NA_integer_ else
