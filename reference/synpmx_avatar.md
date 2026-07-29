@@ -23,6 +23,8 @@ synpmx_avatar(
   residual_phi = 0.6,
   time_jitter = 0,
   screen = TRUE,
+  coarsen_time = TRUE,
+  min_pattern_share = 2L,
   max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
@@ -89,7 +91,12 @@ synpmx_avatar(
 - time_jitter:
 
   Standard deviation for coherent tied-time jitter. Zero, the default,
-  leaves the event template's times unchanged.
+  leaves the event template's times unchanged. This is a realism
+  control, **not** a privacy control: every jittered time is clamped
+  inside its own Voronoi cell, so no value of `time_jitter` moves a
+  visit more than half a gap from where the source subject's visit was,
+  and the source schedule stays recoverable. Use `coarsen_time` for
+  that.
 
 - screen:
 
@@ -106,6 +113,74 @@ synpmx_avatar(
   [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
   and
   [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md).
+
+- coarsen_time:
+
+  When `TRUE` (default), source times are collapsed onto a shared visit
+  grid before generation, and per-visit deviations are pooled across the
+  cohort and resampled independently onto each avatar. The grid is the
+  `nominal_time` role where one is declared, and K-means centres of the
+  pooled times otherwise. This is the mechanism that stops an avatar
+  from carrying one real subject's exact visit schedule: the event
+  skeleton is copied verbatim from a single anchor, and under actual
+  recorded times almost every subject is alone in its event-signature
+  class, so the copy is identifying. Snapping is many-to-one and
+  *destroys* the deviation rather than perturbing it, which is what
+  distinguishes this from `time_jitter`. A source already on nominal
+  time has no deviation to remove or restore, so its output is
+  unchanged. Run
+  [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+  on the source to see how much this has to do, and what it leaves
+  behind. The cost is timing fidelity: an avatar's deviation from
+  nominal is drawn from the cohort, not inherited, so `TIME` no longer
+  pairs with its `DV` as precisely as the source did. Set `FALSE` to
+  keep exact source timing.
+
+- min_pattern_share:
+
+  How many source subjects must share an attendance pattern before an
+  avatar may be given it. Default 2; `1` restores copying the anchor's
+  own pattern.
+
+  Two is the smallest value that means something, and what it means is
+  precise: **no synthetic patient carries a schedule unique to a real
+  patient.** An attacker who links a reproduced pattern to a participant
+  gets at least two candidates, never one. Higher values hide more and
+  are harder to state — "shared by at least three" is more conservative
+  but no more defensible — and they cost sharply more, because
+  attendance patterns are distributed with one common pattern and a long
+  tail of singletons rather than a populated middle.
+
+  Once `coarsen_time` has put every subject on a shared visit grid, what
+  remains of a schedule is which of those visits each subject attended.
+  Every time is then shared, so no single visit is identifying — but the
+  *combination of absences* is, and a patient who missed weeks 2 and 3
+  can be singled out by a fingerprint made of gaps. No grid can fix that
+  at any resolution, because the grid decides where the visits are and
+  not which ones a subject has. So the pattern is sampled from ones at
+  least `min_pattern_share` subjects hold, frequency-weighted, and whole
+  patterns are drawn rather than individual visits, which keeps dropout
+  monotone instead of producing implausible attend/miss/attend
+  sequences.
+
+  Unlike dropping the exposed subjects, nobody leaves the cohort: a
+  subject with a rare pattern still contributes measurements as a donor,
+  only their distinctive absences stop being reproduced. Dose events are
+  never sampled, since that could emit a regimen no protocol permits.
+  Raising this hides more and flattens the cohort's missingness further;
+  where no pattern is shared widely enough, anchors keep their own and
+  the run alerts loudly. Pools are formed within each
+  `subject_properties` stratum and endpoint set.
+
+  **Patterns below the floor are lost, not approximated.** A dropout or
+  dose-interruption pattern held by too few patients simply will not
+  appear in the synthetic data, and that loss is the mechanism working —
+  it is what stops an avatar carrying a schedule traceable to one
+  person. Because it is a real cost to the data's realism, every run
+  reports it: the number of source patterns excluded and how many
+  subjects held them, both as a loud alert and as `patterns_dropped` /
+  `subjects_with_dropped_pattern` in the settings. Check those before
+  deciding the default suits your study.
 
 - max_donor_weight:
 
@@ -180,6 +255,35 @@ be nonnegative after back-transformation. Other endpoints use the
 identity scale. Transform choices and interpolation alignment are
 recorded in the returned `pmx_settings` attribute.
 
+## Dose recomputed from a blended covariate
+
+When the dose is a fixed multiple of a baseline covariate within each
+assigned stratum — mg/kg, mg/m^2 — that multiplier is a protocol
+property the whole stratum shares, while the covariate is individual and
+is already blended across donors. `synpmx_avatar()` detects this and
+recomputes each avatar's `AMT` (and any `rate`, keeping the infusion
+duration) from the avatar's *own* blended covariate.
+
+This fixes two things at once. The amount is no longer one real
+patient's real dose, which under proportional dosing discloses that
+patient's weight exactly. And the avatar stops violating the protocol it
+claims to follow: previously `AMT` was copied from the anchor while
+covariates were blended, so a cohort dosed at exactly 5 mg/kg produced
+avatars anywhere from 4.4 to 5.3.
+
+Several dose levels are handled by clustering the observed ratios rather
+than averaging within a group, so a 1/2/3 mg/kg escalation is recognised
+without the arm being declared — and so is **intra-patient** escalation,
+where the level changes within a subject and no subject-constant
+grouping could see it.
+
+Detection is conservative and fails closed: the ratios must collapse
+onto a handful of levels while the amounts they came from stay varied,
+so a study whose dose is unrelated to the covariate produces about as
+many ratios as amounts and is refused. The covariate and the levels
+found are recorded as `dose_basis` and `dose_levels` in the settings,
+`NA` when none was found.
+
 ## Examples
 
 ``` r
@@ -192,8 +296,10 @@ source <- data.frame(
   CMT = rep(c(1L, 2L, 2L, 2L), 3),
   WT = rep(c(60, 70, 80), each = 4)
 )
-roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
-                   NULL, NULL, "WT")
+roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", covariates = "WT"
+)
 synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 #> SYNPMX ALERT: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
 #> Warning: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.

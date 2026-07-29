@@ -76,6 +76,151 @@ keeps one real subject’s event structure) and the **donor blend** (its
 measurements are averaged from several real subjects, never copied from
 one). Keep those in mind and the rest is detail.
 
+## Every mechanism that obscures the source
+
+AVATAR offers no formal guarantee, so the only honest description of its
+protection is a list of the mechanisms with what each one does — and,
+just as importantly, what it does not. There are four. Three run by
+default; the fourth is a measurement you run yourself.
+
+| \# | Mechanism | Protects | Cannot protect | Control |
+|----|----|----|----|----|
+| 1 | **Donor blending** | The measured values | Anything structural | `k`, `max_donor_weight` |
+| 2 | **Screening extreme subjects** | Against being conspicuous | Being merely unique | `screen`, [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) |
+| 3 | **Coarsening and re-refining time** | The visit schedule | Which visits were attended | `coarsen_time` |
+| 4 | **Dose recomputed from a blended covariate** | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
+| 5 | **Attendance-pattern sampling** | Which visits were attended | Dose events, deliberately | `min_pattern_share` (2) |
+| 6 | **Skeleton-uniqueness checking** | Nothing — it measures | — | [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md) |
+
+**1. Blending across donors** (Steps 6–9). No avatar’s measurements come
+from one real patient: each is a distance-weighted blend of at least `k`
+= 5 compatible donors, with `max_donor_weight` = 0.50 capping any single
+donor at half the blend. This is the only mechanism whose strength grows
+with cohort size, which is why a source with fewer than `k + 1` subjects
+raises a loud alert instead of quietly producing near-copies.
+
+**2. Screening structurally extreme subjects** (stage d, and after
+generation). A source subject whose follow-up length or dose count
+exceeds twice the cohort’s 90th percentile is never used as an anchor.
+After generation,
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+scores four axes — follow-up time, dose count, dose magnitude, peak DV —
+and
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+truncates, drops, or replaces what it finds. This catches subjects who
+are **extreme**.
+
+**3. Coarsening the visit grid, then re-refining it**
+(`coarsen_time = TRUE`, before Step 5). Source times are collapsed onto
+a shared visit grid, and the per-visit deviations are pooled across the
+cohort and resampled independently onto each avatar. This protects the
+**schedule**, which blending never touches: the skeleton is copied
+verbatim from one anchor, and under actual recorded times almost every
+subject holds the only copy of their visit vector. The order is the
+mechanism — snapping is many-to-one and *destroys* the deviation,
+whereas perturbing a time in place leaves it recoverable. Note that
+`time_jitter` is therefore not an alternative: its clamp holds every
+time inside its own Voronoi cell, so at any magnitude a visit stays
+within half a gap of the source value.
+
+**4. Recomputing the dose from a blended covariate** (automatic). Under
+dosing proportional to a baseline covariate, the multiplier is a
+protocol property the stratum shares and the covariate is individual —
+and already blended. Keeping the multiplier and recomputing the amount
+from the avatar’s own covariate stops the dose being a verbatim real
+value (which under mg/kg dosing discloses the anchor’s weight exactly)
+and repairs a coherence defect: previously every avatar violated the
+mg/kg rule its own data claims to follow. See `REV-027`.
+
+**5. Sampling the attendance pattern** (`min_pattern_share`, default 2).
+Once coarsening has put every subject on a shared visit grid, what
+remains of a schedule is which of those visits each subject attended.
+Every time is then shared, so no single visit is identifying — the
+*combination of absences* is, and a patient who missed weeks 2 and 3 is
+singled out by a fingerprint made of gaps. No grid fixes this at any
+resolution, because the grid decides where the visits are and not which
+ones a subject has. So the pattern is drawn from ones at least
+`min_pattern_share` subjects hold.
+
+The default of 2 is the smallest value that means anything, and what it
+means is exact: **no synthetic patient carries a schedule unique to a
+real patient.** An attacker who links a reproduced pattern to a
+participant gets at least two candidates, never one. Three is more
+conservative but no more defensible as a sentence, and it costs sharply
+more — see the section on what this loses below.
+
+**6. Checking for unique event skeletons**
+([`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md),
+run manually on the **source**, before generating). A measurement, not a
+mitigation. It reports how many other subjects share each subject’s
+observation time vector, observation count, and event signature — and,
+for the subjects that are alone, *why*: because they were observed at a
+moment nobody else was (mechanism 3’s job) or because every time is
+shared and only the pattern of attendance is unique (mechanism 2’s job).
+`scripts/measure_skeleton_uniqueness.R` runs the before-and-after over
+the public datasets.
+
+### What sampling the pattern costs
+
+This mechanism does not approximate rare patterns; it **discards** them.
+A dropout or dose-interruption pattern held by fewer than
+`min_pattern_share` patients will not appear in the synthetic data at
+all. That is the mechanism working — it is precisely what stops an
+avatar carrying a schedule traceable to one person — but it is a real
+loss of realism, and one worth quantifying rather than waving at.
+
+Attendance patterns are distributed badly for this. They do not spread
+evenly: there is one common pattern that most patients follow, and then
+a long tail of singletons, with very little in between. `warfarin` after
+coarsening has 32 subjects across 14 patterns, distributed 18, 2, and
+then twelve patterns of one patient each. So the floor bites hard and
+quickly:
+
+| `min_pattern_share` | patterns kept | patterns lost | subjects affected | distinct sample counts surviving |
+|----|----|----|----|----|
+| 1 (off) | 14 | 0 | 0 | 6 |
+| **2 (default)** | 2 | 12 | 12 | 2 |
+| 3 | 1 | 13 | 14 | 1 |
+
+At a floor of 3 every avatar becomes a complete attender and the
+cohort’s missingness distribution vanishes entirely. At 2 it survives,
+barely. This is why the default is 2 rather than something rounder: the
+marginal privacy gain from 3 is small and hard to state, while the
+marginal cost is most of what is left.
+
+Because the cost is real, **every run reports it** — a loud alert naming
+how many source patterns were excluded and how many patients held them,
+and the same figures as `patterns_dropped` and
+`subjects_with_dropped_pattern` in `attr(x, "pmx_settings")`. Read those
+before accepting the default on a study whose dose interruptions matter.
+Lower the floor to keep more; `1` disables the mechanism entirely and
+restores copying each anchor’s own pattern, at the cost of the guarantee
+above.
+
+### What the six leave uncovered
+
+Being explicit about the gaps is what makes the list worth anything.
+
+- **Rare attendance patterns, when nothing is shared widely enough.**
+  Mechanism 5 needs a pool: where no pattern reaches `min_pattern_share`
+  — `nimoData`, where all twelve subjects hold a distinct one — anchors
+  keep their own and the run alerts. The cost when it *does* apply is
+  the opposite problem: on `warfarin` and `theo_md` only one pattern
+  clears a floor of 3, so the cohort’s missingness distribution
+  collapses to complete attendance.
+- **Which dose level a patient reached.** Mechanism 4 recomputes the
+  *amount* from the avatar’s own covariate, at any number of levels and
+  including intra-patient escalation. What it does not change is the
+  *sequence of levels* the anchor climbed. Where escalation is
+  outcome-adaptive — driven by a subject’s own tolerability — that
+  sequence encodes their response, and it is copied.
+- **Membership.** None of the four defends against an adversary who
+  already holds a suspected participant’s record and only wants to
+  confirm they were in the study. They reduce the ways that attack
+  succeeds without bounding how often it does. That is what differential
+  privacy provides, and it is why the trust-boundary question — not the
+  length of this list — decides the mode.
+
 ## Step 1: declare the meaning of the columns
 
 The package never guesses critical PMX roles from column names. The user
@@ -1180,12 +1325,28 @@ The anchor contributes the event skeleton. Donors contribute transformed
 DVs after interpolation to the anchor times. The following table shows
 the exact pre-noise blend used by the implementation.
 
+    #> SYNPMX ALERT: 3 of 6 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
+    #> Warning: 3 of 6 source subjects share every observation time with others but
+    #> hold a unique *pattern* of which visits were attended -- dropout,
+    #> discontinuation, or missed visits. Coarsening cannot change this, because the
+    #> times are already shared. Screen those subjects with
+    #> `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the
+    #> pattern matters.
+    #> SYNPMX ALERT: 3 source attendance pattern(s), held by 3 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> Warning: 3 source attendance pattern(s), held by 3 subject(s), were not shared
+    #> by 2 or more patients and so will not appear in the synthetic data. These are
+    #> real dropout and dose-interruption patterns, and losing them is what stops an
+    #> avatar carrying a schedule traceable to one patient. To keep more of them,
+    #> lower `min_pattern_share` (2 means no synthetic patient carries a schedule
+    #> unique to a real one); `1` disables the mechanism and copies each anchor's own
+    #> pattern.
+
 | anchor_TIME | donor_4_z | donor_3_z | donor_6_z | donor_1_z | donor_2_z | blended_z | deterministic_DV | final_synthetic_DV |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.259 | 9.360 | 8.523 |
-| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 5.428 |
-| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 2.607 |
-| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 1.159 |
+| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.259 | 9.360 | 7.626 |
+| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 4.365 |
+| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 2.139 |
+| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 0.392 |
 
 Interpolation and blending for the anchor endpoint; z is the endpoint
 working scale {.table style="width:100%;"}
@@ -1200,13 +1361,13 @@ synthesized covariates can be inspected directly:
 knitr::kable(worked_synthetic, digits = 3)
 ```
 
-|  ID | TIME |    DV | AMT | EVID | CMT | MDV |     WT | SEX  |
-|----:|-----:|------:|----:|-----:|----:|----:|-------:|:-----|
-|   7 |  0.0 | 0.000 | 100 |    1 |   1 |   1 | 80.579 | male |
-|   7 |  0.6 | 8.523 |   0 |    0 |   2 |   0 | 80.579 | male |
-|   7 |  1.4 | 5.428 |   0 |    0 |   2 |   0 | 80.579 | male |
-|   7 |  2.8 | 2.607 |   0 |    0 |   2 |   0 | 80.579 | male |
-|   7 |  4.5 | 1.159 |   0 |    0 |   2 |   0 | 80.579 | male |
+|  ID |  TIME |    DV | AMT | EVID | CMT | MDV |     WT | SEX  |
+|----:|------:|------:|----:|-----:|----:|----:|-------:|:-----|
+|   7 | 0.000 | 0.000 | 100 |    1 |   1 |   1 | 74.968 | male |
+|   7 | 0.467 | 7.626 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 1.250 | 4.365 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 2.667 | 2.139 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 5.333 | 0.392 |   0 |    0 |   2 |   0 | 74.968 | male |
 
 The result records enough settings to audit the public generator call:
 
@@ -1226,7 +1387,7 @@ The result records enough settings to audit the public generator call:
 | on_donor_shortfall | drop |
 | max_donor_weight | 0.5 |
 | cap_binding_fraction | 1 |
-| mean_effective_donors | 2.256 |
+| mean_effective_donors | 2.283 |
 | warnings |  |
 
 Recorded generator settings {.table}
@@ -1314,7 +1475,28 @@ level) produces an avatar with that same unusual structure, and a
 structural oddity is enough to single someone out even when their values
 are blended.
 
-Two functions address this after the data is generated.
+Structural exposure comes in two forms, and they need different
+remedies.
+
+A subject can be **extreme** — followed far longer than anyone else,
+dosed at a level nobody else received. The screen and the two functions
+below handle that.
+
+A subject can also be **alone** without being extreme at all. Sitting
+squarely in the middle of every distribution is no protection if nobody
+else shares your exact vector of observation times, and under actual
+recorded times — as opposed to nominal, protocol-scheduled ones — that
+is very nearly everybody. Verbatim copying then reproduces one real
+patient’s visit pattern exactly. This is the case `coarsen_time = TRUE`
+addresses, by collapsing every subject onto a shared visit grid *before*
+any avatar is built and resampling pooled deviations back afterwards;
+[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+is how you see how much of it there was and how much survived. Note that
+`time_jitter` cannot substitute: every jittered time is clamped inside
+its own Voronoi cell, so at any magnitude a visit stays within half a
+gap of where the source subject’s visit was.
+
+Two functions address the extreme case after the data is generated.
 
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
 scores every subject, one axis at a time, with a robust median/MAD

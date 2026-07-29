@@ -135,11 +135,18 @@ interval-boundary columns.</p></dd>
 
 
 <dt id="arg-subject-properties">subject_properties<a class="anchor" aria-label="anchor" href="#arg-subject-properties"></a></dt>
-<dd><p>Differential-privacy engines only. Subject-level
-assignment or grouping columns (<code>ACTARM</code>, <code>TRT</code>, a nominal dose group)
-modeled jointly with the regimen as a released category domain.
-<code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> does not use this — carry such a column with <code>keep</code>, which
-copies it verbatim from the subject that supplied the doses.</p></dd>
+<dd><p>Treatment arm, dose group, cohort — any <strong>assigned,
+subject-level stratum</strong>, as opposed to a measured characteristic, which is a
+<code>covariate</code>. Must be complete and constant within subject. Several columns
+may be named, and their combination defines the stratum.</p>
+<p><code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> carries these verbatim from the subject that supplied the
+event skeleton and uses the stratum to group two things that are protocol
+properties rather than patient properties: the dose-to-covariate
+relationship, and the pool of attendance patterns an avatar may draw from.
+It is <strong>not</strong> a blending barrier — only route of administration is (see <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code>), so donors
+are still borrowed across strata to reach the donor floor.</p>
+<p>The differential-privacy engines model the same columns jointly with the
+regimen as a released category domain.</p></dd>
 
 
 <dt id="arg-assigned-dose">assigned_dose<a class="anchor" aria-label="anchor" href="#arg-assigned-dose"></a></dt>

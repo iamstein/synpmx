@@ -70,19 +70,19 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
-<p>update readme 📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
+<p>📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
 <p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets.</p>
 <div class="section level2">
 <h2 id="which-job-do-you-want-synthetic-data-to-do">Which job do you want synthetic data to do?<a class="anchor" aria-label="anchor" href="#which-job-do-you-want-synthetic-data-to-do"></a>
 </h2>
-<p>There are many reasons to generate “synthetic data.” It is worth being explicit about which one you are after, because the goal decides which method is appropriat.</p>
+<p>There are many reasons to generate “synthetic data.” It is important to be be explicit about your use case because the use case determines the appropriate data generation algorithm.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
 <col width="50%">
 </colgroup>
 <thead><tr>
-<th>The goal</th>
+<th>Use case</th>
 <th>Served here?</th>
 </tr></thead>
 <tbody>
@@ -90,12 +90,6 @@
 <td>
 <strong>Develop code.</strong> You need data with the right <em>shape</em> — schema, event grammar, covariates, dosing and sampling pattern. You’ll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.</td>
 <td><strong>Yes — this is what the package is for.</strong></td>
-</tr>
-<tr>
-<td>
-<strong>Use better coding tools.</strong> The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed.</td>
-<td>
-<strong>Yes</strong>, same job as above.</td>
 </tr>
 <tr>
 <td>
@@ -111,20 +105,19 @@
 </tr>
 <tr>
 <td>
-<strong>Teach and compare.</strong> Show what the different generation methods actually do.</td>
+<strong>Teach and compare.</strong> Show what the different synthetic data generation methods do.</td>
 <td>
 <strong>Yes</strong>, secondarily; that is why the non-default modes ship.</td>
 </tr>
 </tbody>
 </table>
-<p>The concrete use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
+<p>The use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
-<h2 id="how-much-of-the-real-data-survives">How much of the real data survives?<a class="anchor" aria-label="anchor" href="#how-much-of-the-real-data-survives"></a>
+<h2 id="the-main-deliverable-avatar-method">The main deliverable: AVATAR method<a class="anchor" aria-label="anchor" href="#the-main-deliverable-avatar-method"></a>
 </h2>
-<p>Whatever the goal, the design question is <strong>how much information about the real data is allowed to survive into the synthetic data</strong>. That is a privacy question before it is a technical one, and <code>synpmx</code> offers four algorithms for generating synthetic data.</p>
-<p>The main deliverable of the package is an implementation of the AVATAR method [1, 2], which offers some blinding but no formal privacy guarantee. AVATAR works by blending together actual patient profiles, and requires no model to be specified. “AVATAR” is a method name rather than an initialism, from the patient-centric <em>avatarization</em> literature: the original method is due to Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK [1]. This package implements an AVATAR-<em>inspired</em> adaptation for longitudinal event tables, not published AVATAR software.</p>
-<p>The package also provides code for other methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. Those are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
+<p>The main deliverable of the package is an implementation of the AVATAR method [1, 2], which offers some masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and requires no model to be specified. “AVATAR” is a method name rather than an initialism, from the patient-centric <em>avatarization</em> literature: the original method was developed in Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK [1]. Destere et al [1], did not test their method using pharmacometrics dataset from actual clinical trials. We have done here, and in the process we have added features such as handling BLOQ data and masking patients with unique dosing schedules. The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</p>
+<p>The package also provides code for other data masking methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. These methods are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -154,12 +147,11 @@
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   ID TIME       DV    AMT EVID CMT       WT</span></span>
-<span><span class="co">#&gt; 1 13 0.00 0.000000 267.84  101   1 70.30935</span></span>
-<span><span class="co">#&gt; 2 13 0.00 0.000000   0.00    0   2 70.30935</span></span>
-<span><span class="co">#&gt; 3 13 0.30 2.429472   0.00    0   2 70.30935</span></span>
-<span><span class="co">#&gt; 4 13 0.63 3.706058   0.00    0   2 70.30935</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 13 0.0000000 0.000000 267.84  101   1 69.80615</span></span>
+<span><span class="co">#&gt; 2 13 0.0000000 0.000000   0.00    0   2 69.80615</span></span>
+<span><span class="co">#&gt; 3 13 0.2816667 2.861275   0.00    0   2 69.80615</span></span>
+<span><span class="co">#&gt; 4 13 0.5416667 3.600730   0.00    0   2 69.80615</span></span></code></pre></div>
 <p>The output dataset keeps the same structure.</p>
-<p>The other three modes for generating synthetic data cover the scenarios where formal data privacy requirements are needed. They are included in the package as part of a conceptual framework to help the modeler think about various options that are available, but these methods have not been audited for their ability to protect data privacy.</p>
 <table class="table">
 <colgroup>
 <col width="20%">
@@ -210,7 +202,7 @@
 </tbody>
 </table>
 <p><strong>The trust boundary decides whether you need differential privacy.</strong></p>
-<p>If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use.</p>
+<p>If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn’t require the specification of a model.</p>
 <p>On the other hand, if the synthetic data will reach those who do not have access to the original data, then more formal methods with mathematical trust guarantees are the appropriate methods of choice.</p>
 <p><code><a href="articles/synpmx-method.html">vignette("synpmx-method")</a></code> runs all four methods on the same dataset and shows the results side by side.</p>
 </div>

@@ -241,10 +241,10 @@ replicates <- replicate(30, {
 
 | relationship | source | synthetic | run_to_run_sd | retained |
 |:---|---:|---:|---:|:---|
-| allometric exponent on CL (truth = 0.75) | 0.747 | 0.683 | 0.184 | 92% |
-| dose effect: AUC ratio high/low (truth = 2.0) | 2.151 | 2.240 | 0.076 | 104% |
-| treatment effect: PD nadir difference (low - high) | 18.747 | 18.637 | 4.475 | 99% |
-| exposure-response: PD nadir per log AUC | -23.678 | -20.964 | 4.664 | 89% |
+| allometric exponent on CL (truth = 0.75) | 0.747 | 0.660 | 0.154 | 88% |
+| dose effect: AUC ratio high/low (truth = 2.0) | 2.151 | 2.217 | 0.092 | 103% |
+| treatment effect: PD nadir difference (low - high) | 18.747 | 18.337 | 4.211 | 98% |
+| exposure-response: PD nadir per log AUC | -23.678 | -21.015 | 4.490 | 89% |
 
 Relationships in the source and in AVATAR output, 30 runs {.table}
 
@@ -627,24 +627,24 @@ one_2c <- suppressWarnings(synpmx_avatar(source_2c, roles_2c, seed = 5150))
 
 | feature | source | synthetic | run_to_run_sd | retained |
 |:---|---:|---:|---:|:---|
-| terminal half-life, median (model = 15 h) | 15.973 | 15.813 | 0.294 | 99% |
-| dose effect: AUC ratio high/low (model = 2.0) | 2.026 | 2.008 | 0.099 | 99% |
-| weight exponent on CL, adjusted for CRCL (model = 0.75) | 0.759 | 0.840 | 0.147 | 111% |
-| CRCL exponent on CL, adjusted for weight (model = 0.50) | 0.456 | 0.440 | 0.067 | 96% |
-| weight exponent, NOT adjusted (confounded, model != 0.75) | 1.233 | 1.403 | 0.110 | 114% |
-| age exponent on PD baseline (model = 0.30) | 0.277 | 0.436 | 0.115 | 158% |
-| saturating response: high/low change from baseline (\< 2) | 1.184 | 1.175 | 0.047 | 99% |
+| terminal half-life, median (model = 15 h) | 15.973 | 15.812 | 0.402 | 99% |
+| dose effect: AUC ratio high/low (model = 2.0) | 2.026 | 2.011 | 0.104 | 99% |
+| weight exponent on CL, adjusted for CRCL (model = 0.75) | 0.759 | 0.831 | 0.158 | 110% |
+| CRCL exponent on CL, adjusted for weight (model = 0.50) | 0.456 | 0.457 | 0.061 | 100% |
+| weight exponent, NOT adjusted (confounded, model != 0.75) | 1.233 | 1.429 | 0.135 | 116% |
+| age exponent on PD baseline (model = 0.30) | 0.277 | 0.428 | 0.085 | 155% |
+| saturating response: high/low change from baseline (\< 2) | 1.184 | 1.163 | 0.043 | 98% |
 
 Example 2: structural, dose, and covariate effects, 30 runs {.table}
 
 | quantity | source | synthetic | run_to_run_sd | change |
 |:---|---:|---:|---:|---:|
-| correlation, weight vs CRCL (model = 0.50) | 0.487 | 0.620 | 0.057 | 0.133 |
-| correlation, CRCL vs age (model = -0.60) | -0.682 | -0.699 | 0.029 | -0.017 |
-| correlation, weight vs age (model = 0.10) | 0.044 | -0.092 | 0.079 | -0.136 |
-| SD of log weight | 0.172 | 0.129 | 0.005 | -0.044 |
-| SD of log CRCL | 0.357 | 0.271 | 0.014 | -0.086 |
-| SD of log dose-normalised AUC | 0.296 | 0.272 | 0.013 | -0.024 |
+| correlation, weight vs CRCL (model = 0.50) | 0.487 | 0.623 | 0.058 | 0.136 |
+| correlation, CRCL vs age (model = -0.60) | -0.682 | -0.696 | 0.034 | -0.014 |
+| correlation, weight vs age (model = 0.10) | 0.044 | -0.094 | 0.074 | -0.138 |
+| SD of log weight | 0.172 | 0.128 | 0.004 | -0.045 |
+| SD of log CRCL | 0.357 | 0.273 | 0.017 | -0.084 |
+| SD of log dose-normalised AUC | 0.296 | 0.274 | 0.013 | -0.022 |
 
 Example 2: the joint covariate distribution, 30 runs {.table}
 

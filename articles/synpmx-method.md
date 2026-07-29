@@ -100,6 +100,105 @@ assembled from real trajectories, so it inherits the source data’s
 handling obligations wherever it is used — a constraint on who may see
 it, not on which machine holds it.
 
+### What AVATAR does to obscure the source
+
+AVATAR gives no formal guarantee, so the honest way to describe its
+protection is to list the mechanisms and say what each one does and does
+not cover. There are six, and they are on by default unless noted.
+
+**1. Blending across donors.** No synthetic subject’s measurements come
+from one real patient. Each avatar’s covariates and concentrations are a
+distance-weighted blend of at least `k` = 5 compatible real donors, and
+`max_donor_weight` = 0.50 caps any single donor at half the blend. This
+is what protects the *values*. It is also the only mechanism whose
+strength grows with cohort size, and it is why a source with fewer than
+`k + 1` subjects triggers a loud alert rather than quietly producing
+near-copies.
+
+**2. Screening structurally extreme subjects** (`screen = TRUE`). A
+source subject whose follow-up length or dose count exceeds twice the
+cohort’s 90th percentile is never used as an anchor, so no avatar
+inherits a conspicuous skeleton. Only those two axes are screened at
+generation, because dose magnitude is noisy under weight-based dosing
+and DV is blended rather than copied. After generation,
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+screens four axes — follow-up time, dose count, dose magnitude, and peak
+DV — and
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+truncates, drops, or replaces what it finds. This catches subjects who
+are *extreme*.
+
+**3. Coarsening the visit grid, then re-refining it**
+(`coarsen_time = TRUE`). Source times are collapsed onto a shared visit
+grid, and the per-visit deviations are pooled across the cohort and
+resampled independently onto each avatar. This is what protects the
+*schedule*, which blending does not touch: the event skeleton is copied
+verbatim from one anchor, and under actual recorded times almost every
+subject holds the only copy of their visit vector. The order is what
+makes it work — snapping is many-to-one and destroys the deviation,
+where perturbing the original time in place would leave it recoverable.
+The grid is the `nominal_time` role where one is declared, and inferred
+from the pooled times otherwise; the inferred case is best-effort and
+alerts loudly when it cannot collapse a subject. The cost is timing
+fidelity: an avatar’s deviation from nominal is drawn from the cohort
+rather than inherited.
+
+**4. Recomputing the dose from a blended covariate** (automatic). When
+the dose is a fixed multiple of a baseline covariate within each
+assigned stratum — mg/kg, mg/m² — that multiplier is a protocol property
+the stratum shares, while the covariate is individual and already
+blended. So the multiplier is kept and the amount recomputed from the
+avatar’s *own* blended weight. Previously `AMT` was copied verbatim
+while covariates were blended, which both disclosed the anchor’s weight
+exactly and left every avatar violating its own protocol: a cohort dosed
+at exactly 5 mg/kg produced avatars from 4.4 to 5.3. Several dose levels
+are found by clustering the observed ratios, so a 1/2/3 mg/kg escalation
+is recognised without declaring the arm — and so is *intra-patient*
+escalation, where the level changes within a subject. Detection fails
+closed where the dose is unrelated to any covariate.
+
+**5. Sampling the attendance pattern** (`min_pattern_share`, default 2).
+Once coarsening has put every subject on a shared visit grid, what
+remains of a schedule is which of those visits each subject attended.
+Every time is then shared, so no single visit is identifying — the
+*combination of absences* is, and a patient who missed weeks 2 and 3 is
+singled out by a fingerprint made of gaps. No grid fixes this at any
+resolution, because the grid decides where the visits are, not which
+ones a subject has. So the pattern is drawn from ones at least
+`min_pattern_share` subjects hold. Nobody leaves the cohort: a subject
+with a rare pattern still contributes measurements as a donor, only
+their distinctive absences stop being reproduced. Dose events are never
+sampled, since that could emit a regimen no protocol permits.
+
+The default of 2 states exactly one thing: no synthetic patient carries
+a schedule unique to a real patient. Patterns below the floor are
+*discarded*, not approximated, so real dropout and dose-interruption
+patterns are lost — which is what stops an avatar being traceable, and
+is also a genuine cost to realism. Every run reports how many patterns
+were excluded and how many patients held them, so the trade can be
+judged per study rather than assumed.
+
+**6. Checking for unique event skeletons**
+([`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md),
+manual). Reports, per subject, how many others share its observation
+time vector, its observation count, and its event signature. Run it on
+the source before generating. It is a measurement, not a mitigation —
+what to do about what it finds is mechanism 2 or 3 depending on which
+class is exposed. Observation *times* are coarsening’s job; observation
+*counts* are the screen’s, because no grid can change a count and what
+survives coarsening is dropout and missed visits; dose amount is
+neither’s, so weight-based dosing leaves a cohort unique on signature
+regardless. `scripts/measure_skeleton_uniqueness.R` runs the before and
+after over every public dataset.
+
+Two things none of these do. They do not bound what an adversary learns,
+which is what differential privacy provides and why the trust-boundary
+question below decides the mode rather than the mechanism list. And they
+do not defend against an attacker who already holds a suspected
+participant’s record and only wants to confirm membership — the
+mechanisms reduce the ways that attack succeeds without limiting how
+often it does.
+
 ## Mode 2: prior only
 
 The opposite extreme. Declare a public structural model and a public
@@ -358,7 +457,7 @@ knitr::kable(
 
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
-| 1\. AVATAR      |            264 |   5.45 | 1.31 |  9.00 |
+| 1\. AVATAR      |            264 |   5.11 | 1.08 |  8.34 |
 | 2\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
 | 3\. Calibration |            240 |   4.05 | 0.36 |  7.54 |
 | 4\. Empirical   |            264 |   4.43 | 0.43 | 11.96 |

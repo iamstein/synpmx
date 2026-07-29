@@ -77,12 +77,23 @@ pmx_roles(
 
 - subject_properties:
 
-  Differential-privacy engines only. Subject-level assignment or
-  grouping columns (`ACTARM`, `TRT`, a nominal dose group) modeled
-  jointly with the regimen as a released category domain.
+  Treatment arm, dose group, cohort — any **assigned, subject-level
+  stratum**, as opposed to a measured characteristic, which is a
+  `covariate`. Must be complete and constant within subject. Several
+  columns may be named, and their combination defines the stratum.
+
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-  does not use this — carry such a column with `keep`, which copies it
-  verbatim from the subject that supplied the doses.
+  carries these verbatim from the subject that supplied the event
+  skeleton and uses the stratum to group two things that are protocol
+  properties rather than patient properties: the dose-to-covariate
+  relationship, and the pool of attendance patterns an avatar may draw
+  from. It is **not** a blending barrier — only route of administration
+  is (see
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)),
+  so donors are still borrowed across strata to reach the donor floor.
+
+  The differential-privacy engines model the same columns jointly with
+  the regimen as a released category domain.
 
 - assigned_dose:
 

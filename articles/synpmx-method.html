@@ -177,6 +177,100 @@ Algorithm article</a>.</p>
 assembled from real trajectories, so it inherits the source data’s
 handling obligations wherever it is used — a constraint on who may see
 it, not on which machine holds it.</p>
+<div class="section level3">
+<h3 id="what-avatar-does-to-obscure-the-source">What AVATAR does to obscure the source<a class="anchor" aria-label="anchor" href="#what-avatar-does-to-obscure-the-source"></a>
+</h3>
+<p>AVATAR gives no formal guarantee, so the honest way to describe its
+protection is to list the mechanisms and say what each one does and does
+not cover. There are six, and they are on by default unless noted.</p>
+<p><strong>1. Blending across donors.</strong> No synthetic subject’s
+measurements come from one real patient. Each avatar’s covariates and
+concentrations are a distance-weighted blend of at least <code>k</code>
+= 5 compatible real donors, and <code>max_donor_weight</code> = 0.50
+caps any single donor at half the blend. This is what protects the
+<em>values</em>. It is also the only mechanism whose strength grows with
+cohort size, and it is why a source with fewer than <code>k + 1</code>
+subjects triggers a loud alert rather than quietly producing
+near-copies.</p>
+<p><strong>2. Screening structurally extreme subjects</strong>
+(<code>screen = TRUE</code>). A source subject whose follow-up length or
+dose count exceeds twice the cohort’s 90th percentile is never used as
+an anchor, so no avatar inherits a conspicuous skeleton. Only those two
+axes are screened at generation, because dose magnitude is noisy under
+weight-based dosing and DV is blended rather than copied. After
+generation, <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> screens four axes
+— follow-up time, dose count, dose magnitude, and peak DV — and
+<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> truncates, drops, or
+replaces what it finds. This catches subjects who are
+<em>extreme</em>.</p>
+<p><strong>3. Coarsening the visit grid, then re-refining it</strong>
+(<code>coarsen_time = TRUE</code>). Source times are collapsed onto a
+shared visit grid, and the per-visit deviations are pooled across the
+cohort and resampled independently onto each avatar. This is what
+protects the <em>schedule</em>, which blending does not touch: the event
+skeleton is copied verbatim from one anchor, and under actual recorded
+times almost every subject holds the only copy of their visit vector.
+The order is what makes it work — snapping is many-to-one and destroys
+the deviation, where perturbing the original time in place would leave
+it recoverable. The grid is the <code>nominal_time</code> role where one
+is declared, and inferred from the pooled times otherwise; the inferred
+case is best-effort and alerts loudly when it cannot collapse a subject.
+The cost is timing fidelity: an avatar’s deviation from nominal is drawn
+from the cohort rather than inherited.</p>
+<p><strong>4. Recomputing the dose from a blended covariate</strong>
+(automatic). When the dose is a fixed multiple of a baseline covariate
+within each assigned stratum — mg/kg, mg/m² — that multiplier is a
+protocol property the stratum shares, while the covariate is individual
+and already blended. So the multiplier is kept and the amount recomputed
+from the avatar’s <em>own</em> blended weight. Previously
+<code>AMT</code> was copied verbatim while covariates were blended,
+which both disclosed the anchor’s weight exactly and left every avatar
+violating its own protocol: a cohort dosed at exactly 5 mg/kg produced
+avatars from 4.4 to 5.3. Several dose levels are found by clustering the
+observed ratios, so a 1/2/3 mg/kg escalation is recognised without
+declaring the arm — and so is <em>intra-patient</em> escalation, where
+the level changes within a subject. Detection fails closed where the
+dose is unrelated to any covariate.</p>
+<p><strong>5. Sampling the attendance pattern</strong>
+(<code>min_pattern_share</code>, default 2). Once coarsening has put
+every subject on a shared visit grid, what remains of a schedule is
+which of those visits each subject attended. Every time is then shared,
+so no single visit is identifying — the <em>combination of absences</em>
+is, and a patient who missed weeks 2 and 3 is singled out by a
+fingerprint made of gaps. No grid fixes this at any resolution, because
+the grid decides where the visits are, not which ones a subject has. So
+the pattern is drawn from ones at least <code>min_pattern_share</code>
+subjects hold. Nobody leaves the cohort: a subject with a rare pattern
+still contributes measurements as a donor, only their distinctive
+absences stop being reproduced. Dose events are never sampled, since
+that could emit a regimen no protocol permits.</p>
+<p>The default of 2 states exactly one thing: no synthetic patient
+carries a schedule unique to a real patient. Patterns below the floor
+are <em>discarded</em>, not approximated, so real dropout and
+dose-interruption patterns are lost — which is what stops an avatar
+being traceable, and is also a genuine cost to realism. Every run
+reports how many patterns were excluded and how many patients held them,
+so the trade can be judged per study rather than assumed.</p>
+<p><strong>6. Checking for unique event skeletons</strong>
+(<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code>, manual). Reports, per subject, how
+many others share its observation time vector, its observation count,
+and its event signature. Run it on the source before generating. It is a
+measurement, not a mitigation — what to do about what it finds is
+mechanism 2 or 3 depending on which class is exposed. Observation
+<em>times</em> are coarsening’s job; observation <em>counts</em> are the
+screen’s, because no grid can change a count and what survives
+coarsening is dropout and missed visits; dose amount is neither’s, so
+weight-based dosing leaves a cohort unique on signature regardless.
+<code>scripts/measure_skeleton_uniqueness.R</code> runs the before and
+after over every public dataset.</p>
+<p>Two things none of these do. They do not bound what an adversary
+learns, which is what differential privacy provides and why the
+trust-boundary question below decides the mode rather than the mechanism
+list. And they do not defend against an attacker who already holds a
+suspected participant’s record and only wants to confirm membership —
+the mechanisms reduce the ways that attack succeeds without limiting how
+often it does.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="mode-2-prior-only">Mode 2: prior only<a class="anchor" aria-label="anchor" href="#mode-2-prior-only"></a>
@@ -401,9 +495,9 @@ datasets, not on twelve subjects.</p>
 <tr class="odd">
 <td align="left">1. AVATAR</td>
 <td align="right">264</td>
-<td align="right">5.45</td>
-<td align="right">1.31</td>
-<td align="right">9.00</td>
+<td align="right">5.11</td>
+<td align="right">1.08</td>
+<td align="right">8.34</td>
 </tr>
 <tr class="even">
 <td align="left">2. Prior only</td>

@@ -77,23 +77,23 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 flag_identifiable_subjects(synthetic, roles)
-#> Restricted PMX outlier / identifiability check: 1 of 30 subjects flagged
+#> Restricted PMX outlier / identifiability check: 0 of 30 subjects flagged
 #> Flag = a robust outlier in follow-up time, dose count, dose magnitude, or DV value.
 #> 
 #> Twelve most unusual:
 #>  subject_id follow_up_time n_doses max_dose max_dv outlier_axes flagged
-#>          50             20       2   103.30 161.20     DV value    TRUE
-#>          31             20       2    99.34  63.83                FALSE
-#>          32             20       2    96.22  84.46                FALSE
-#>          33             20       2   103.30  91.31                FALSE
-#>          34             20       2   104.20  67.75                FALSE
-#>          35             20       2   104.50  80.61                FALSE
-#>          36             20       2    96.68  76.53                FALSE
-#>          37             20       2    95.77  51.96                FALSE
-#>          38             20       2    95.00  67.84                FALSE
-#>          39             20       2   105.00  85.67                FALSE
-#>          40             20       2    96.25  61.36                FALSE
-#>          41             20       2   104.80  78.18                FALSE
+#>          31             20       2    87.00  76.96                FALSE
+#>          32             20       2    93.85  52.47                FALSE
+#>          33             20       2   103.10  83.37                FALSE
+#>          34             20       2    98.69  98.81                FALSE
+#>          35             20       2    98.15  79.91                FALSE
+#>          36             20       2    83.66  60.46                FALSE
+#>          37             20       2    96.70  58.39                FALSE
+#>          38             20       2   101.20 109.50                FALSE
+#>          39             20       2   117.70  86.63                FALSE
+#>          40             20       2   103.50  73.65                FALSE
+#>          41             20       2    90.47  88.92                FALSE
+#>          42             20       2   116.80 101.20                FALSE
 #> ... 18 more row(s) in the returned table.
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.

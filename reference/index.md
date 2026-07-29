@@ -112,6 +112,9 @@ Structural checks on generated data, and restricted comparisons.
   : Compare per-covariate and per-endpoint distributions of source and
   synthetic
 
+- [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+  : Score how many subjects share each subject's event skeleton
+
 - [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
   : Flag structurally unusual – and so easily identifiable – subjects
 
