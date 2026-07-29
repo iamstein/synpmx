@@ -47,8 +47,10 @@
   not approximated, so real dropout and dose-interruption patterns are lost. That
   cost is dataset-dependent and can be large — on `warfarin` the default excludes
   12 of 14 patterns held by 12 of 32 patients — so every run now reports it as a
-  loud alert and as `patterns_dropped` / `subjects_with_dropped_pattern` in the
-  settings.
+  loud alert and as `patterns_total`, `patterns_dropped` and
+  `subjects_with_dropped_pattern` in the settings. Note that at the default floor
+  the last two are necessarily equal, since a pattern is discarded exactly when
+  one patient holds it.
 
 * `subject_properties` is no longer rejected by `synpmx_avatar()`. It now names
   the assigned stratum — treatment arm, dose group, cohort — carried verbatim and

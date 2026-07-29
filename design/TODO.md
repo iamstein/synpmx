@@ -74,6 +74,13 @@ Open on the two new mechanisms:
       `warfarin`, 2 is the only usable value and option D in the design
       discussion (decompose the pattern into miss-count plus placement rather
       than copying it whole) becomes the way to keep interruptions at all.
+- [ ] The strict pattern definition is what drives the loss: a pattern is the
+      *exact* set of endpoint/time pairs, so two patients who each missed one
+      visit have different patterns if they missed different visits. Singletons
+      therefore dominate -- 12 of warfarin's 14, 54 of mavoglurant's 64. The
+      strictness is required for the guarantee (reusing a pattern one patient
+      holds reproduces their schedule), so loosening it means moving to option D
+      rather than relaxing the match.
 - [ ] `nimoData` has no pattern shared by even two subjects, so sampling has no
       pool. Constructing a nominal time (rounding the roughly-weekly infusions to
       their protocol week) would fix both this and its inferred-grid failure --

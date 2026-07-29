@@ -467,12 +467,14 @@
   group <- paste(strata, endpoints, sep = "\r")
 
   pool <- list()
+  total_patterns <- 0L
   dropped_patterns <- 0L
   dropped_subjects <- 0L
   for (name in unique(group)) {
     member <- group == name
     counts <- table(keys[member])
     counts <- counts[names(counts) != ""]
+    total_patterns <- total_patterns + length(counts)
     kept <- counts >= min_pattern_share
     # What the floor costs, counted rather than inferred. These are real
     # attendance patterns -- dropout, treatment interruption, a missed visit --
@@ -486,7 +488,8 @@
     pool[[name]] <- list(keys = names(counts), weight = as.numeric(counts))
   }
   list(pool = pool, group = group, keys = keys,
-       dropped_patterns = dropped_patterns, dropped_subjects = dropped_subjects)
+       total_patterns = total_patterns, dropped_patterns = dropped_patterns,
+       dropped_subjects = dropped_subjects)
 }
 
 # Rebuild the skeleton's observation rows to match a sampled pattern, keeping
@@ -1516,6 +1519,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       pattern_sampled_fraction = mean(pattern_sampled),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
+      # Note that at the default floor of 2 a dropped pattern is *by definition*
+      # held by exactly one subject, so `patterns_dropped` and
+      # `subjects_with_dropped_pattern` are necessarily equal there. They
+      # diverge only at 3 or more.
+      patterns_total = if (is.null(attendance)) NA_integer_ else
+        as.integer(attendance$total_patterns),
       patterns_dropped = if (is.null(attendance)) 0L else
         as.integer(attendance$dropped_patterns),
       subjects_with_dropped_pattern = if (is.null(attendance)) 0L else
