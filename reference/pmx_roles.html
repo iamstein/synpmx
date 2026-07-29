@@ -137,7 +137,9 @@ interval-boundary columns.</p></dd>
 <dt id="arg-subject-properties">subject_properties<a class="anchor" aria-label="anchor" href="#arg-subject-properties"></a></dt>
 <dd><p>Treatment arm, dose group, cohort — any <strong>assigned,
 subject-level stratum</strong>, as opposed to a measured characteristic, which is a
-<code>covariate</code>. Must be complete and constant within subject. Several columns
+<code>covariate</code>. Must be constant within subject; subjects with no recorded
+value are grouped as their own stratum, with a warning rather than an
+error. Several columns
 may be named, and their combination defines the stratum.</p>
 <p><code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> carries these verbatim from the subject that supplied the
 event skeleton and uses the stratum to group two things that are protocol

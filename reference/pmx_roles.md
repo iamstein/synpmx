@@ -79,8 +79,10 @@ pmx_roles(
 
   Treatment arm, dose group, cohort — any **assigned, subject-level
   stratum**, as opposed to a measured characteristic, which is a
-  `covariate`. Must be complete and constant within subject. Several
-  columns may be named, and their combination defines the stratum.
+  `covariate`. Must be constant within subject; subjects with no
+  recorded value are grouped as their own stratum, with a warning rather
+  than an error. Several columns may be named, and their combination
+  defines the stratum.
 
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   carries these verbatim from the subject that supplied the event
