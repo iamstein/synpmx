@@ -742,6 +742,39 @@ sequence worth following is:
 1. **Declare `nominal_time` if the study has it.** This is free, and it is the
    only thing that helps the unique-moment column. On `nimoData` it is the
    difference between the mechanism working and not working at all.
+
+   A study that has no nominal-time column can often still *construct* one, and
+   `nimoData` is a good example because its inferred grid fails completely. Its
+   design is ten roughly-weekly infusions with a declared occasion and
+   time-after-dose, so the protocol grid is the occasion number times the
+   nominal interval, plus the visit's nominal time after dose:
+
+    ```{r nimo-nominal, eval=has_nlmixr2data}
+    nimo_nominal <- nimoData
+    nimo_nominal$NTIME <- (nimo_nominal$OCC - 1) * 168 +
+      ifelse(nimo_nominal$EVID == 0, round(nimo_nominal$TAD / 24) * 24, 0)
+
+    nimo_roles_nominal <- pmx_roles(
+      id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+      rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+      nominal_time = "NTIME",
+      covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+    )
+    nimo_fixed <- suppressWarnings(
+      synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
+    )
+    unlist(attr(nimo_fixed, "pmx_settings")[
+      c("time_grid", "exposure_alone", "exposure_unique_moment")
+    ])
+    ```
+
+    Subjects alone fall from 12 of 12 to 5, all in the long washout tail after
+    the last dose, where a follow-up visit at 240 or 624 hours belongs to one
+    patient. Coarsening that tail further does not help — at a two-week grid the
+    count goes back up, because merging genuinely distinct visits creates new
+    *pattern* uniqueness. Just as important, attendance sampling now has a pool
+    at all: with the inferred grid no two subjects shared a pattern, so
+    `min_pattern_share` had nothing to draw from.
 2. **Then re-run this table.** If the unique-moment count is at or near zero,
    the grid has done its whole job and no amount of tuning will improve it.
 3. **Then decide about the pattern column.** These are dropout and missed-visit

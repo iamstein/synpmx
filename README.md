@@ -1,22 +1,20 @@
 # synpmx
-update readme
 📖 **Website and documentation: <https://iamstein.github.io/synpmx/>**
 
 `synpmx` builds **synthetic pharmacometric datasets** from actual datasets.
 
 ## Which job do you want synthetic data to do?
 
-There are many reasons to generate "synthetic data."  It is worth being explicit about which one you are after, because the goal decides which method is appropriat.
+There are many reasons to generate "synthetic data."  It is important to be be explicit about your use case because the use case determines the appropriate data generation algorithm.  
 
-| The goal | Served here? |
+| Use case | Served here? |
 |----|----|
 | **Develop code.** You need data with the right *shape* — schema, event grammar, covariates, dosing and sampling pattern.  You'll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.  | **Yes — this is what the package is for.** |
-| **Use better coding tools.** The restricted environment forbids, or has not yet approved, the tooling you want to work with. Synthetic data moves the development work somewhere those tools are allowed. | **Yes**, same job as above. |
 | **Send data past a trust boundary.** The output will reach people who cannot see the real data: a partner, a publication, a public repository. | **Only with care.** This needs a formal guarantee; see the privacy modes below, which are illustrative rather than audited. |
 | **Answer the scientific question.** Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm. | **No.**   Use the real data for this. |
-| **Teach and compare.** Show what the different generation methods actually do. | **Yes**, secondarily; that is why the non-default modes ship. |
+| **Teach and compare.** Show what the different synthetic data generation methods do. | **Yes**, secondarily; that is why the non-default modes ship. |
 
-The concrete use case this package was built for: sharing realistic-looking study data
+The use case this package was built for: sharing realistic-looking study data
 outside the GxP (Good Practice regulated) computing environment but still within
 the organization, so that code development can happen without the real data. In
 some cases the GxP environment does not permit the most advanced agentic coding
@@ -24,25 +22,21 @@ tools, because of the risk of misalignment or unintended agent behavior. Working
 with synthetic data lets those tools be used without exposing them to patient
 data.
 
-## How much of the real data survives?
-
-Whatever the goal, the design question is
-**how much information about the real data is allowed to survive into the synthetic data**.
-That is a privacy question before it is a technical one, and `synpmx` offers
-four algorithms for generating synthetic data.
+## The main deliverable: AVATAR method
 
 The main deliverable of the package is an implementation of the AVATAR method
-[1, 2], which offers some blinding but no formal privacy guarantee. AVATAR works
-by blending together actual patient profiles, and requires no model to be
+[1, 2], which offers some masking but no formal privacy guarantee. AVATAR works
+by blending together patient profiles, and requires no model to be
 specified. "AVATAR" is a method name rather than an initialism, from the
-patient-centric *avatarization* literature: the original method is due to
+patient-centric *avatarization* literature: the original method was developed in
 Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified
-AVATAR for population PK [1]. This package implements an AVATAR-*inspired*
-adaptation for longitudinal event tables, not published AVATAR software.
+AVATAR for population PK [1]. Destere et al [1], did not test their method using
+pharmacometrics dataset from actual clinical trials.  We have done here, and in the process
+we have added features such as handling BLOQ data and masking patients with unique dosing schedules.  The key function is `synpmx_avatar()`.
 
-The package also provides code for other methods: trial simulation
+The package also provides code for other data masking methods: trial simulation
 from prior knowledge, and two differential privacy (DP) methods that give more formal
-protection. Those are provided mainly to illustrate the tradeoffs between ways
+protection. These methods are provided mainly to illustrate the tradeoffs between ways
 of generating synthetic data, and are not actively maintained.
 
 ## Installation
@@ -85,11 +79,6 @@ head(synthetic, 4)
 
 The output dataset keeps the same structure.  
 
-The other three modes for generating synthetic data cover the scenarios where formal data privacy requirements are needed.  They are included in the package 
-as part of a conceptual framework to help the modeler think about various
-options that are available, but these methods have not been audited
-for their ability to protect data privacy.  
-
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|
 | **1. AVATAR blending** | `synpmx_avatar()` | Real subject templates and blended real trajectories | None; governance only | At least 5 subjects |
@@ -99,7 +88,7 @@ for their ability to protect data privacy.
 
 **The trust boundary decides whether you need differential privacy.**
 
-If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use.  
+If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn't require the specification of a model.  
 
 On the other hand, if the synthetic data will reach those who do not have access to the original data, then  more formal methods with mathematical trust guarantees are the appropriate methods of choice.  
 
