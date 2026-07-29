@@ -119,6 +119,16 @@ from real trajectories, so it inherits the source data's handling obligations
 wherever it is used — a constraint on who may see it, not on which machine holds
 it.
 
+AVATAR protects source subjects through a stack of heuristics rather than a
+single guarantee: blending across donors, capping any one donor's share,
+coarsening visit times onto a shared grid, subject-level and within-subject
+noise, screening structurally extreme subjects out of the anchor pool, and
+screening the result again afterwards. The complete
+inventory — every mechanism, the argument that controls it, its default, and
+what is deliberately *not* masked — is the
+[one-list section](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html#every-masking-mechanism-in-one-list)
+of the AVATAR Algorithm article.
+
 ## Mode 2: prior only
 
 The opposite extreme. Declare a public structural model and a public protocol,
