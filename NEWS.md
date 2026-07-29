@@ -32,7 +32,7 @@
   without declaring the arm, as is intra-patient escalation. Detection fails
   closed and is recorded as `dose_basis` / `dose_levels` in the settings.
 
-* `synpmx_avatar()` gains `min_pattern_share`, default 3. Each avatar's set of
+* `synpmx_avatar()` gains `min_pattern_share`, default 2. Each avatar's set of
   attended visits is drawn from patterns at least that many source subjects
   share, so no one-of-a-kind attendance pattern is reproduced — the residual
   `coarsen_time` cannot reach, since it is which visits a subject attended rather
@@ -40,8 +40,15 @@
   pattern still contributes measurements as a donor. Dose events are never
   sampled. `1` restores copying the anchor's pattern. This partly closes
   `REV-026`, which coarsening made far cheaper by reducing a schedule to a bitmap
-  over a shared grid. Note the cost is dataset-dependent and can be large: where
-  few patterns are widely shared, the cohort's missingness distribution flattens.
+  over a shared grid.
+
+  The default of 2 states exactly one thing: no synthetic patient carries a
+  schedule unique to a real patient. Patterns below the floor are **discarded**,
+  not approximated, so real dropout and dose-interruption patterns are lost. That
+  cost is dataset-dependent and can be large — on `warfarin` the default excludes
+  12 of 14 patterns held by 12 of 32 patients — so every run now reports it as a
+  loud alert and as `patterns_dropped` / `subjects_with_dropped_pattern` in the
+  settings.
 
 * `subject_properties` is no longer rejected by `synpmx_avatar()`. It now names
   the assigned stratum — treatment arm, dose group, cohort — carried verbatim and

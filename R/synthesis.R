@@ -467,20 +467,26 @@
   group <- paste(strata, endpoints, sep = "\r")
 
   pool <- list()
+  dropped_patterns <- 0L
+  dropped_subjects <- 0L
   for (name in unique(group)) {
     member <- group == name
     counts <- table(keys[member])
-    counts <- counts[names(counts) != "" & counts >= min_pattern_share]
+    counts <- counts[names(counts) != ""]
+    kept <- counts >= min_pattern_share
+    # What the floor costs, counted rather than inferred. These are real
+    # attendance patterns -- dropout, treatment interruption, a missed visit --
+    # that no avatar will reproduce because too few patients shared them. The
+    # loss is the mechanism working, but it is a loss, and a caller deciding
+    # whether to lower the floor needs the number rather than a rule of thumb.
+    dropped_patterns <- dropped_patterns + sum(!kept)
+    dropped_subjects <- dropped_subjects + sum(as.integer(counts[!kept]))
+    counts <- counts[kept]
     if (!length(counts)) next
-    representative <- vapply(names(counts), function(key) {
-      which(member & keys == key)[1L]
-    }, integer(1))
-    pool[[name]] <- list(
-      keys = names(counts), weight = as.numeric(counts),
-      representative = representative
-    )
+    pool[[name]] <- list(keys = names(counts), weight = as.numeric(counts))
   }
-  list(pool = pool, group = group, keys = keys)
+  list(pool = pool, group = group, keys = keys,
+       dropped_patterns = dropped_patterns, dropped_subjects = dropped_subjects)
 }
 
 # Rebuild the skeleton's observation rows to match a sampled pattern, keeping
@@ -1036,8 +1042,17 @@
 #'   inherited, so `TIME` no longer pairs with its `DV` as precisely as the
 #'   source did. Set `FALSE` to keep exact source timing.
 #' @param min_pattern_share How many source subjects must share an attendance
-#'   pattern before an avatar may be given it. Default 3; `1` restores copying
+#'   pattern before an avatar may be given it. Default 2; `1` restores copying
 #'   the anchor's own pattern.
+#'
+#'   Two is the smallest value that means something, and what it means is
+#'   precise: **no synthetic patient carries a schedule unique to a real
+#'   patient.** An attacker who links a reproduced pattern to a participant gets
+#'   at least two candidates, never one. Higher values hide more and are harder
+#'   to state — "shared by at least three" is more conservative but no more
+#'   defensible — and they cost sharply more, because attendance patterns are
+#'   distributed with one common pattern and a long tail of singletons rather
+#'   than a populated middle.
 #'
 #'   Once `coarsen_time` has put every subject on a shared visit grid, what
 #'   remains of a schedule is which of those visits each subject attended. Every
@@ -1057,6 +1072,15 @@
 #'   and flattens the cohort's missingness further; where no pattern is shared
 #'   widely enough, anchors keep their own and the run alerts loudly. Pools are
 #'   formed within each `subject_properties` stratum and endpoint set.
+#'
+#'   **Patterns below the floor are lost, not approximated.** A dropout or
+#'   dose-interruption pattern held by too few patients simply will not appear in
+#'   the synthetic data, and that loss is the mechanism working — it is what
+#'   stops an avatar carrying a schedule traceable to one person. Because it is a
+#'   real cost to the data's realism, every run reports it: the number of source
+#'   patterns excluded and how many subjects held them, both as a loud alert and
+#'   as `patterns_dropped` / `subjects_with_dropped_pattern` in the settings.
+#'   Check those before deciding the default suits your study.
 #' @section Dose recomputed from a blended covariate:
 #' When the dose is a fixed multiple of a baseline covariate within each
 #' assigned stratum — mg/kg, mg/m^2 — that multiplier is a protocol property the
@@ -1140,7 +1164,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
                      time_jitter = 0, screen = TRUE, coarsen_time = TRUE,
-                     min_pattern_share = 3L,
+                     min_pattern_share = 2L,
                      max_donor_weight = 0.50,
                      on_donor_shortfall = c("drop", "noise", "error")) {
   on_donor_shortfall <- match.arg(on_donor_shortfall)
@@ -1257,6 +1281,20 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     profiles <- .build_profiles(source, source_roles, pca_variance)
     attendance <- .attendance_pool(source, source_roles, profiles,
                                    as.integer(min_pattern_share))
+    if (!is.null(attendance) && attendance$dropped_patterns > 0L) {
+      .loud_warn(sprintf(
+        paste0("%d source attendance pattern(s), held by %d subject(s), were ",
+               "not shared by %d or more patients and so will not appear in ",
+               "the synthetic data. These are real dropout and dose-",
+               "interruption patterns, and losing them is what stops an avatar ",
+               "carrying a schedule traceable to one patient. To keep more of ",
+               "them, lower `min_pattern_share` (2 means no synthetic patient ",
+               "carries a schedule unique to a real one); `1` disables the ",
+               "mechanism and copies each anchor's own pattern."),
+        attendance$dropped_patterns, attendance$dropped_subjects,
+        as.integer(min_pattern_share)
+      ))
+    }
     if (!is.null(attendance)) {
       unpooled <- setdiff(unique(attendance$group), names(attendance$pool))
       if (length(unpooled)) {
@@ -1476,6 +1514,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),
+      # What the floor cost: source attendance patterns excluded from the pool,
+      # and how many real subjects held them.
+      patterns_dropped = if (is.null(attendance)) 0L else
+        as.integer(attendance$dropped_patterns),
+      subjects_with_dropped_pattern = if (is.null(attendance)) 0L else
+        as.integer(attendance$dropped_subjects),
       time_grid = coarsened$grid,
       # How many source subjects still hold a schedule nobody else shares, once
       # coarsening has done what it can, and why. Recorded rather than only

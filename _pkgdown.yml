@@ -98,6 +98,7 @@ reference:
   - validate_pmx
   - compare_pmx
   - compare_pmx_distributions
+  - skeleton_uniqueness
   - flag_identifiable_subjects
   - remediate_identifiable_subjects
   - sampling_summary

@@ -722,15 +722,22 @@ tolerability — nothing here touches it, because the sequence *is* that subject
 response.
 
 **Attendance.** The `Unique pattern` column above is what
-`min_pattern_share` (default 3) addresses: an avatar's set of attended visits is
-drawn from patterns at least that many source subjects share, so no
-one-of-a-kind pattern is reproduced. Nobody is dropped to achieve it — a subject
-with a rare pattern still contributes measurements as a donor. The cost is real
-and dataset-dependent: on `warfarin` and `theo_md` only one pattern clears a
-floor of 3, so every avatar becomes a complete attender and the cohort's
-missingness distribution collapses. A floor of 2 keeps all three of `theo_md`'s
-patterns and 8 of `wbcSim`'s 25. On `nimoData` no pattern is shared by even two
-subjects, so there is no pool at all and the run alerts.
+`min_pattern_share` (default 2) addresses: an avatar's set of attended visits is
+drawn from patterns at least that many source subjects share, so no synthetic
+patient carries a schedule unique to a real one. No subject is removed from the
+cohort to achieve it — a patient with a rare pattern still contributes
+measurements as a donor.
+
+What *is* lost is the rare patterns themselves. They are discarded rather than
+approximated, so real dropout and dose-interruption patterns will not appear in
+the output. On `warfarin` the default excludes 12 of the 14 observed patterns,
+held by 12 of 32 patients, leaving 2 distinct sample counts where the source had
+6. Raising the floor to 3 would leave exactly 1. Every run reports the figures —
+`patterns_dropped` and `subjects_with_dropped_pattern` in the settings, plus a
+loud alert — so this can be judged per study instead of assumed. On `nimoData` no
+pattern is shared by even two subjects, so there is no pool at all and each
+anchor keeps its own; constructing a nominal time, below, is what gives sampling
+something to draw from.
 
 ### What to do about it
 

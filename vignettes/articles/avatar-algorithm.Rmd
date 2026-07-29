@@ -91,7 +91,7 @@ is a measurement you run yourself.
 | 2 | **Screening extreme subjects** | Against being conspicuous | Being merely unique | `screen`, `flag_identifiable_subjects()` |
 | 3 | **Coarsening and re-refining time** | The visit schedule | Which visits were attended | `coarsen_time` |
 | 4 | **Dose recomputed from a blended covariate** | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
-| 5 | **Attendance-pattern sampling** | Which visits were attended | Dose events, deliberately | `min_pattern_share` |
+| 5 | **Attendance-pattern sampling** | Which visits were attended | Dose events, deliberately | `min_pattern_share` (2) |
 | 6 | **Skeleton-uniqueness checking** | Nothing — it measures | — | `skeleton_uniqueness()` |
 
 **1. Blending across donors** (Steps 6–9). No avatar's measurements come from
@@ -127,8 +127,20 @@ dose being a verbatim real value (which under mg/kg dosing discloses the anchor'
 weight exactly) and repairs a coherence defect: previously every avatar violated
 the mg/kg rule its own data claims to follow. See `REV-027`.
 
-**5. Sampling the attendance pattern** (`min_pattern_share`, default 3). Covered
-in detail under "After generation" below.
+**5. Sampling the attendance pattern** (`min_pattern_share`, default 2). Once
+coarsening has put every subject on a shared visit grid, what remains of a
+schedule is which of those visits each subject attended. Every time is then
+shared, so no single visit is identifying — the *combination of absences* is,
+and a patient who missed weeks 2 and 3 is singled out by a fingerprint made of
+gaps. No grid fixes this at any resolution, because the grid decides where the
+visits are and not which ones a subject has. So the pattern is drawn from ones at
+least `min_pattern_share` subjects hold.
+
+The default of 2 is the smallest value that means anything, and what it means is
+exact: **no synthetic patient carries a schedule unique to a real patient.** An
+attacker who links a reproduced pattern to a participant gets at least two
+candidates, never one. Three is more conservative but no more defensible as a
+sentence, and it costs sharply more — see the section on what this loses below.
 
 **6. Checking for unique event skeletons** (`skeleton_uniqueness()`, run
 manually on the **source**, before generating). A measurement, not a mitigation.
@@ -139,7 +151,41 @@ job) or because every time is shared and only the pattern of attendance is
 unique (mechanism 2's job). `scripts/measure_skeleton_uniqueness.R` runs the
 before-and-after over the public datasets.
 
-### What the four leave uncovered
+### What sampling the pattern costs
+
+This mechanism does not approximate rare patterns; it **discards** them. A
+dropout or dose-interruption pattern held by fewer than `min_pattern_share`
+patients will not appear in the synthetic data at all. That is the mechanism
+working — it is precisely what stops an avatar carrying a schedule traceable to
+one person — but it is a real loss of realism, and one worth quantifying rather
+than waving at.
+
+Attendance patterns are distributed badly for this. They do not spread evenly:
+there is one common pattern that most patients follow, and then a long tail of
+singletons, with very little in between. `warfarin` after coarsening has 32
+subjects across 14 patterns, distributed 18, 2, and then twelve patterns of one
+patient each. So the floor bites hard and quickly:
+
+| `min_pattern_share` | patterns kept | patterns lost | subjects affected | distinct sample counts surviving |
+|---|---|---|---|---|
+| 1 (off) | 14 | 0 | 0 | 6 |
+| **2 (default)** | 2 | 12 | 12 | 2 |
+| 3 | 1 | 13 | 14 | 1 |
+
+At a floor of 3 every avatar becomes a complete attender and the cohort's
+missingness distribution vanishes entirely. At 2 it survives, barely. This is why
+the default is 2 rather than something rounder: the marginal privacy gain from 3
+is small and hard to state, while the marginal cost is most of what is left.
+
+Because the cost is real, **every run reports it** — a loud alert naming how many
+source patterns were excluded and how many patients held them, and the same
+figures as `patterns_dropped` and `subjects_with_dropped_pattern` in
+`attr(x, "pmx_settings")`. Read those before accepting the default on a study
+whose dose interruptions matter. Lower the floor to keep more; `1` disables the
+mechanism entirely and restores copying each anchor's own pattern, at the cost of
+the guarantee above.
+
+### What the six leave uncovered
 
 Being explicit about the gaps is what makes the list worth anything.
 

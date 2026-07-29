@@ -169,7 +169,7 @@ recognised without declaring the arm — and so is *intra-patient* escalation,
 where the level changes within a subject. Detection fails closed where the dose
 is unrelated to any covariate.
 
-**5. Sampling the attendance pattern** (`min_pattern_share`, default 3). Once
+**5. Sampling the attendance pattern** (`min_pattern_share`, default 2). Once
 coarsening has put every subject on a shared visit grid, what remains of a
 schedule is which of those visits each subject attended. Every time is then
 shared, so no single visit is identifying — the *combination of absences* is,
@@ -180,6 +180,13 @@ least `min_pattern_share` subjects hold. Nobody leaves the cohort: a subject wit
 a rare pattern still contributes measurements as a donor, only their distinctive
 absences stop being reproduced. Dose events are never sampled, since that could
 emit a regimen no protocol permits.
+
+The default of 2 states exactly one thing: no synthetic patient carries a
+schedule unique to a real patient. Patterns below the floor are *discarded*, not
+approximated, so real dropout and dose-interruption patterns are lost — which is
+what stops an avatar being traceable, and is also a genuine cost to realism.
+Every run reports how many patterns were excluded and how many patients held
+them, so the trade can be judged per study rather than assumed.
 
 **6. Checking for unique event skeletons** (`skeleton_uniqueness()`, manual).
 Reports, per subject, how many others share its observation time vector, its
