@@ -22,11 +22,19 @@ The workflow separates a trial into three inputs that differ in how sensitive
 they are. Keeping them separate is what lets most of the work happen outside the
 privacy budget.
 
-| Input | What it is | Privacy status | Who can produce it |
-|---|---|---|---|
-| **Config** | structural model, priors, role mapping, sampling schedule | Public. From protocol + preclinical prediction | A pharmacometrician, or an assisting AI reading the protocol and the dataset headers |
-| **Regimen skeleton** | one row per subject: dose(s), cohort, timing | Design if prespecified; outcome if adaptive | See below |
-| **Observed DV** | the actual concentrations / responses | Confidential | Only `synpmx_calibrated()` ever reads it, and only to extract a correction factor |
+**Config** — structural model, priors, role mapping, sampling schedule
+- *Privacy status:* public, from protocol + preclinical prediction
+- *Who can produce it:* a pharmacometrician, or an assisting AI reading the
+  protocol and the dataset headers
+
+**Regimen skeleton** — one row per subject: dose(s), cohort, timing
+- *Privacy status:* design if prespecified; outcome if adaptive
+- *Who can produce it:* see below
+
+**Observed DV** — the actual concentrations / responses
+- *Privacy status:* confidential
+- *Who can produce it:* only `synpmx_calibrated()` ever reads it, and only to
+  extract a correction factor
 
 The config can be drafted from public documents alone, so an AI that sees only
 the protocol and the column headers (not the data) can produce it. That is the
@@ -92,11 +100,27 @@ Name studies by their internal identifier only. No patient-level facts, no
 enrollment figures, no results belong in this file: it is the one tracked file in
 this folder, so anything written here leaves the environment.
 
-| Study | Template | Design shape | Why it is here | Checked |
-|---|---|---|---|---|
-| PIT565 A1 | `try_avatar_pit565a1.qmd` | Phase 1 dose escalation, fixed 3 doses per subject | First real schema; fixed dosing means the dose sequence is protocol, not outcome | roles, validation |
-| PIT565 B1 | `try_avatar_pit565b1.qmd` | Phase 1, second part | Second real schema against the same role vocabulary | roles, validation |
-| *(oncology, add identifier)* | *(to add)* | Repeated dosing with intra-patient escalation | The case fixed-dose studies do not cover: dose amount varies **within** subject, so the event signature stays unique after coarsening and a dropped-dose mechanism would be protocol-invalid | not yet run |
+### PIT565 A1
+- **Template** — `try_avatar_pit565a1.qmd`
+- **Design shape** — Phase 1 dose escalation, with subsequent weekly dosing.
+  Dose interruptions exist.
+- **Why it is here** — first real schema
+- **Checked** — roles, validation
+
+### PIT565 B1
+- **Template** — `try_avatar_pit565b1.qmd`
+- **Design shape** — Phase 1, dose escalation
+- **Why it is here** — fixed 3 doses per subject with intrapatient dose
+  escalation
+- **Checked** — roles, validation
+
+### Oncology study *(to add)*
+- **Template** — not yet written
+- **Design shape** — repeated dosing with intra-patient escalation
+- **Why it is here** — the case fixed-dose studies do not cover: dose amount
+  varies *within* subject, so the event signature stays unique after coarsening
+  and a dropped-dose mechanism would be protocol-invalid
+- **Checked** — not yet run
 
 ### What to record per study
 
@@ -104,17 +128,26 @@ Run `scripts/measure_skeleton_uniqueness.R`'s `measure()` against the study and
 record the structural properties below. They are what decide whether the default
 mechanisms do anything, and they are cheap to compute:
 
-| Field | Why it matters |
-|---|---|
-| Subjects | Every mechanism's strength scales with it |
-| `nominal_time` declared? | Decides an exact snap versus the best-effort inferred grid |
-| Times nominal or actual? | Decides whether the schedule is exposed at all |
-| Dose regime | Fixed / escalating / intra-patient escalating |
-| Doses per subject | Fixed or variable |
-| `obs_time_alone`, before and after coarsening | What `coarsen_time` collapses. Should fall toward zero |
-| `n_obs_alone` | The residual coarsening cannot touch — dropout and missed visits — left to the screen |
-| `signature_alone` | Dose structure and amount; weight-based dosing keeps this high regardless |
-| `smallest_class` | The effective *k* on the schedule |
+Design, which decides whether the mechanisms can do anything at all:
+
+- **Subjects** — every mechanism's strength scales with it
+- **`nominal_time` declared?** — an exact snap to the protocol grid versus the
+  best-effort inferred one. The single most important field here
+- **Times nominal or actual?** — decides whether the schedule is exposed at all
+- **Dose regime** — fixed, escalating, or intra-patient escalating
+- **Doses per subject** — fixed or variable
+
+Exposure, in the same terms the demo vignette's table uses:
+
+- **`alone` before coarsening** — subjects whose visit schedule no other subject
+  shares. Under actual recorded times, expect nearly all of them
+- **`alone` after coarsening** — the number you would consider dropping
+- **`unique_moment`** — of those, the ones observed at a time nobody else was.
+  This is the grid's job, and declaring `nominal_time` is what fixes it
+- **`unique_pattern`** — of those, the ones whose every time is shared and only
+  whose combination of attended visits is unique. Dropout; no grid touches it
+- **`signature_alone`** — unique dose structure or amount. Weight-based dosing
+  keeps this high regardless of what the grid does
 
 Also record the existing utility metrics on the same row —
 `compare_pmx_distributions()`, `flag_identifiable_subjects()` counts,

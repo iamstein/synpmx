@@ -9,32 +9,35 @@
 #
 # This script measures the before and after on every public dataset, so the
 # registry in design/TEST_SIM.md can be kept honest and so the same table can be
-# produced for a real study under scripts_private/. It reports three classes,
-# because they behave differently and only one of them is coarsening's job:
+# produced for a real study under scripts_private/. The columns match the ones
+# the demo vignette explains in prose, under "How well did the obfuscation
+# work?".
 #
-#   obs_time_alone  the observation time vector is shared with nobody. It
-#                   splits into two causes with opposite remedies:
-#     unshared_time   the subject was observed at a moment nobody else was, so
-#                     no grid can hide it. THIS is what coarsening drives to
-#                     zero, and on every public dataset it does.
-#     pattern_only    every individual time is shared; only the pattern of which
-#                     visits were attended is unique. Coarsening cannot touch
-#                     this and no amount of grid tuning will -- it is dropout,
-#                     and it belongs to the outlier screen.
-#   n_obs_alone     the observation *count* is shared with nobody. Coarsening
-#                   cannot change a count, so this is the residual it leaves --
-#                   dropout, discontinuation, missed visits -- and it is the
-#                   outlier screen's job, not the grid's.
-#   signature_alone the pmx_roles() event signature -- dose structure, dose
-#                   amount, endpoint set -- is shared with nobody. Weight-based
-#                   dosing makes this unique regardless of schedule, and
-#                   coarsening does not change it either.
+#   alone            subjects whose visit schedule NO other subject shares. An
+#                    avatar built on one of them wears a schedule belonging to
+#                    exactly one real person. The `coarsened` row is the number
+#                    you would consider dropping. It splits by cause, and the
+#                    two causes have different answers:
 #
-# Reading it: `unshared_time` falling to zero means the grid did its whole job.
-# A nonzero `unshared_time` after coarsening is the case to investigate -- the
-# cohort holds one-off visit times, and declaring a `nominal_time` role is the
-# fix. A high `pattern_only` is not a coarsening failure at all; it is dropout,
-# and the remedy is `flag_identifiable_subjects()`.
+#     unique_moment    the subject was observed at a time nobody else was. The
+#                      grid is meant to absorb this, so a nonzero count means
+#                      the INFERRED grid found no shared schedule --
+#                      declaring a `nominal_time` role is the fix.
+#     unique_pattern   every one of the subject's times is shared, but the
+#                      combination of visits they attended is theirs alone.
+#                      Dropout and missed visits. No grid can fix this at any
+#                      resolution; only dropping or remediating helps.
+#
+#   unique_n_samples subjects with an observation count nobody else has.
+#   unique_dosing    subjects unique on the event signature -- dose structure and
+#                    amount. Weight-based dosing or per-subject titration keeps
+#                    this high no matter what the grid does.
+#   smallest_group   the fewest subjects sharing any one schedule; the effective
+#                    k on the schedule axis.
+#
+# Reading it: `unique_moment` falling to zero means the grid did its whole job
+# and no tuning will improve it. A high `unique_pattern` is not a coarsening
+# failure at all, and the remedy is `flag_identifiable_subjects()`.
 #
 # Run with:  Rscript scripts/measure_skeleton_uniqueness.R
 
@@ -66,12 +69,12 @@ summarize <- function(data, roles, label, stage) {
     dataset = label,
     stage = stage,
     subjects = n,
-    obs_time_alone = attr(report, "n_alone"),
-    unshared_time = attr(report, "n_unshared_time"),
-    pattern_only = attr(report, "n_alone") - attr(report, "n_unshared_time"),
-    n_obs_alone = attr(report, "n_alone_n_obs"),
-    signature_alone = attr(report, "n_alone_signature"),
-    smallest_class = attr(report, "min_class"),
+    alone = attr(report, "n_alone"),
+    unique_moment = attr(report, "n_unshared_time"),
+    unique_pattern = attr(report, "n_alone") - attr(report, "n_unshared_time"),
+    unique_n_samples = attr(report, "n_alone_n_obs"),
+    unique_dosing = attr(report, "n_alone_signature"),
+    smallest_group = attr(report, "min_class"),
     stringsAsFactors = FALSE
   )
 }
@@ -150,11 +153,12 @@ cat("\nSkeleton uniqueness, before and after coarsen_time\n")
 cat("==================================================\n\n")
 print(report, row.names = FALSE)
 
-cat("\nColumns count subjects that are ALONE in the named class.\n")
-cat("obs_time_alone splits into unshared_time (a moment nobody else shares --\n")
-cat("the grid's job, and it drives this to zero) and pattern_only (which visits\n")
-cat("were attended -- dropout, which no grid can touch). n_obs_alone and\n")
-cat("signature_alone are likewise outside coarsening's reach.\n")
+cat("\n`alone` = subjects whose visit schedule no other subject shares; on the\n")
+cat("coarsened row it is the number you would consider dropping. It splits into\n")
+cat("unique_moment (seen at a time nobody else was -- the grid's job, fixed by\n")
+cat("declaring nominal_time) and unique_pattern (which visits were attended --\n")
+cat("dropout, which no grid can touch). unique_n_samples and unique_dosing are\n")
+cat("likewise outside coarsening's reach.\n")
 cat("\nSource-derived. Not releasable unless the source is separately public.\n")
 
 invisible(report)
