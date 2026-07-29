@@ -664,6 +664,80 @@ Source subjects holding a visit schedule no other subject shares, before
 and after time coarsening. The last two columns split the ‘after’ count
 by cause. {.table}
 
+### And what the masking cost
+
+Exposure is only half the story. The mechanisms that reduce it do so by
+*removing* things, and the removals are worth seeing next to the numbers
+above.
+
+``` r
+
+cost_row <- function(label, synthetic) {
+  settings <- attr(synthetic, "pmx_settings")
+  data.frame(
+    Dataset = label,
+    `Dose basis` = ifelse(is.na(settings$dose_basis), "—", settings$dose_basis),
+    `Patterns lost` = settings$patterns_dropped,
+    `Patients affected` = settings$subjects_with_dropped_pattern,
+    `Sampled a pattern` = settings$pattern_sampled_fraction,
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+knitr::kable(
+  rbind(
+    cost_row("theo_md", theo_synth),
+    cost_row("warfarin", warfarin_synth),
+    cost_row("wbcSim", wbc_synth),
+    cost_row("nimoData", nimo_synth),
+    cost_row("mavoglurant", mavo_synth)
+  ),
+  caption = paste(
+    "What the masking removed. `Patterns lost` counts source attendance",
+    "patterns too rare to be reused; `Patients affected` counts the real",
+    "patients who held them."
+  )
+)
+```
+
+| Dataset     | Dose basis | Patterns lost | Patients affected | Sampled a pattern |
+|:------------|:-----------|--------------:|------------------:|------------------:|
+| theo_md     | —          |             0 |                 0 |                 1 |
+| warfarin    | wt         |            12 |                12 |                 1 |
+| wbcSim      | —          |            17 |                17 |                 1 |
+| nimoData    | —          |            12 |                12 |                 0 |
+| mavoglurant | —          |            54 |                54 |                 1 |
+
+What the masking removed. `Patterns lost` counts source attendance
+patterns too rare to be reused; `Patients affected` counts the real
+patients who held them. {.table}
+
+`Patterns lost` is the number to look at hardest, because it is the only
+one of these that costs realism rather than buying it. Each lost pattern
+is a real dropout or dose-interruption sequence that will **not** appear
+in the synthetic data — discarded rather than approximated, because too
+few patients shared it. Discarding them is exactly what stops an avatar
+carrying a schedule traceable to one person, so this is the mechanism
+working; but if a study’s interruptions are part of what you need the
+synthetic data to exercise, this is where you find out they are gone.
+
+`Sampled a pattern` is the fraction of avatars that received a drawn
+pattern rather than their anchor’s own. Below 1 means some group had
+nothing shared widely enough to draw from, and those avatars kept the
+anchor’s pattern — the safe failure, but not the protection you asked
+for. On `nimoData` it is 0: no two of its twelve subjects share a
+pattern at all, which is the same underlying problem as its grid failure
+and has the same fix.
+
+`Dose basis` names the covariate the dose was found proportional to.
+Where it is `—`, amounts were left exactly as the source had them,
+because detection could not establish a relationship and inventing one
+would be worse.
+
+Both of these are recorded in `attr(x, "pmx_settings")` on every run,
+alongside a loud alert, so this table can be produced for any study
+rather than only the ones shown here.
+
 ### Reading the table
 
 **“Alone after” is the number of patients you would consider dropping**,

@@ -962,6 +962,120 @@ shares, before and after time coarsening. The last two columns split the
 </table>
 </div>
 <div class="section level3">
+<h3 id="and-what-the-masking-cost">And what the masking cost<a class="anchor" aria-label="anchor" href="#and-what-the-masking-cost"></a>
+</h3>
+<p>Exposure is only half the story. The mechanisms that reduce it do so
+by <em>removing</em> things, and the removals are worth seeing next to
+the numbers above.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    Dataset <span class="op">=</span> <span class="va">label</span>,</span>
+<span>    `Dose basis` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>, <span class="st">"—"</span>, <span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>,</span>
+<span>    `Patterns lost` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">patterns_dropped</span>,</span>
+<span>    `Patients affected` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">subjects_with_dropped_pattern</span>,</span>
+<span>    `Sampled a pattern` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">pattern_sampled_fraction</span>,</span>
+<span>    check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbc_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimo_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavo_synth</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
+<span>    <span class="st">"What the masking removed. `Patterns lost` counts source attendance"</span>,</span>
+<span>    <span class="st">"patterns too rare to be reused; `Patients affected` counts the real"</span>,</span>
+<span>    <span class="st">"patients who held them."</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>What the masking removed. <code>Patterns lost</code> counts
+source attendance patterns too rare to be reused;
+<code>Patients affected</code> counts the real patients who held
+them.</caption>
+<colgroup>
+<col width="16%">
+<col width="15%">
+<col width="19%">
+<col width="24%">
+<col width="24%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Dataset</th>
+<th align="left">Dose basis</th>
+<th align="right">Patterns lost</th>
+<th align="right">Patients affected</th>
+<th align="right">Sampled a pattern</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">theo_md</td>
+<td align="left">—</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">warfarin</td>
+<td align="left">wt</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">wbcSim</td>
+<td align="left">—</td>
+<td align="right">17</td>
+<td align="right">17</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">nimoData</td>
+<td align="left">—</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">mavoglurant</td>
+<td align="left">—</td>
+<td align="right">54</td>
+<td align="right">54</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p><code>Patterns lost</code> is the number to look at hardest, because
+it is the only one of these that costs realism rather than buying it.
+Each lost pattern is a real dropout or dose-interruption sequence that
+will <strong>not</strong> appear in the synthetic data — discarded
+rather than approximated, because too few patients shared it. Discarding
+them is exactly what stops an avatar carrying a schedule traceable to
+one person, so this is the mechanism working; but if a study’s
+interruptions are part of what you need the synthetic data to exercise,
+this is where you find out they are gone.</p>
+<p><code>Sampled a pattern</code> is the fraction of avatars that
+received a drawn pattern rather than their anchor’s own. Below 1 means
+some group had nothing shared widely enough to draw from, and those
+avatars kept the anchor’s pattern — the safe failure, but not the
+protection you asked for. On <code>nimoData</code> it is 0: no two of
+its twelve subjects share a pattern at all, which is the same underlying
+problem as its grid failure and has the same fix.</p>
+<p><code>Dose basis</code> names the covariate the dose was found
+proportional to. Where it is <code>—</code>, amounts were left exactly
+as the source had them, because detection could not establish a
+relationship and inventing one would be worse.</p>
+<p>Both of these are recorded in <code>attr(x, "pmx_settings")</code> on
+every run, alongside a loud alert, so this table can be produced for any
+study rather than only the ones shown here.</p>
+</div>
+<div class="section level3">
 <h3 id="reading-the-table">Reading the table<a class="anchor" aria-label="anchor" href="#reading-the-table"></a>
 </h3>
 <p><strong>“Alone after” is the number of patients you would consider
@@ -1054,7 +1168,7 @@ because its inferred grid fails completely. Its design is ten
 roughly-weekly infusions with a declared occasion and time-after-dose,
 so the protocol grid is the occasion number times the nominal interval,
 plus the visit’s nominal time after dose:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
 <span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">168</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span>, <span class="fl">0</span><span class="op">)</span></span>
