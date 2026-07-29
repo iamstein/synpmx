@@ -210,8 +210,9 @@ data.frame(
     "  ... unique attendance pattern (dropout; min_pattern_share's job)",
     "dose basis detected",
     "dose levels found",
-    "attendance patterns discarded",
-    "  ... real subjects who held them",
+    "attendance patterns in the source",
+    "  ... discarded as too rare to reuse",
+    "  ... real subjects who held those",
     "avatars given a sampled pattern",
     "donor floor: mean effective donors",
     "donor cap binding fraction"
@@ -225,6 +226,7 @@ data.frame(
            settings$dose_basis),
     ifelse(is.na(settings$dose_basis), "-",
            paste(signif(settings$dose_levels, 4), collapse = ", ")),
+    settings$patterns_total,
     settings$patterns_dropped,
     settings$subjects_with_dropped_pattern,
     settings$pattern_sampled_fraction,
@@ -235,7 +237,12 @@ data.frame(
 ) |> knitr::kable()
 ```
 
-`attendance patterns discarded` is the one to look at hardest. Those are real
+At the default floor of 2, `discarded` and `real subjects who held those` are
+necessarily equal: a pattern is discarded exactly when fewer than two patients
+share it, so every discarded pattern has exactly one holder. They diverge only at
+a floor of 3 or more.
+
+`discarded as too rare to reuse` is the one to look at hardest. Those are real
 dropout and dose-interruption patterns that will not appear in the synthetic
 data, because too few patients shared them. Discarding them is what stops an
 avatar carrying a schedule traceable to one person, but if this study's

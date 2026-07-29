@@ -684,57 +684,72 @@ Exposure is only half the story. The mechanisms that reduce it do so by
 *removing* things, and the removals are worth seeing next to the numbers above.
 
 ```{r exposure-cost, eval=has_nlmixr2data}
-cost_row <- function(label, synthetic) {
+cost_row <- function(label, source, roles, synthetic) {
   settings <- attr(synthetic, "pmx_settings")
   data.frame(
     Dataset = label,
-    `Dose basis` = ifelse(is.na(settings$dose_basis), "—", settings$dose_basis),
+    Patients = length(unique(source[[roles$id]])),
+    `Patterns` = settings$patterns_total,
     `Patterns lost` = settings$patterns_dropped,
     `Patients affected` = settings$subjects_with_dropped_pattern,
-    `Sampled a pattern` = settings$pattern_sampled_fraction,
+    `Dose basis` = ifelse(is.na(settings$dose_basis), "—", settings$dose_basis),
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }
 
 knitr::kable(
   rbind(
-    cost_row("theo_md", theo_synth),
-    cost_row("warfarin", warfarin_synth),
-    cost_row("wbcSim", wbc_synth),
-    cost_row("nimoData", nimo_synth),
-    cost_row("mavoglurant", mavo_synth)
+    cost_row("theo_md", theo_md, theo_roles, theo_synth),
+    cost_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
+    cost_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
+    cost_row("nimoData", nimoData, nimo_roles, nimo_synth),
+    cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth)
   ),
   caption = paste(
-    "What the masking removed. `Patterns lost` counts source attendance",
-    "patterns too rare to be reused; `Patients affected` counts the real",
-    "patients who held them."
+    "What the masking removed. `Patterns` counts the distinct attendance",
+    "patterns in the source; `Patterns lost` counts those too rare to be",
+    "reused."
   )
 )
 ```
 
-`Patterns lost` is the number to look at hardest, because it is the only one of
-these that costs realism rather than buying it. Each lost pattern is a real
-dropout or dose-interruption sequence that will **not** appear in the synthetic
-data — discarded rather than approximated, because too few patients shared it.
-Discarding them is exactly what stops an avatar carrying a schedule traceable to
-one person, so this is the mechanism working; but if a study's interruptions are
-part of what you need the synthetic data to exercise, this is where you find out
-they are gone.
+Two things in this table look wrong at first and are not.
 
-`Sampled a pattern` is the fraction of avatars that received a drawn pattern
-rather than their anchor's own. Below 1 means some group had nothing shared
-widely enough to draw from, and those avatars kept the anchor's pattern — the
-safe failure, but not the protection you asked for. On `nimoData` it is 0: no two
-of its twelve subjects share a pattern at all, which is the same underlying
-problem as its grid failure and has the same fix.
+**`Patterns lost` equals `Patients affected` in every row.** That is an identity,
+not a coincidence. At the default floor of 2, a pattern is discarded exactly when
+*fewer than two* patients share it — that is, when exactly one does. So every
+discarded pattern has precisely one holder and the two columns must agree. They
+only diverge at a floor of 3 or more, where a pattern held by two patients is
+also dropped.
 
-`Dose basis` names the covariate the dose was found proportional to. Where it is
-`—`, amounts were left exactly as the source had them, because detection could
-not establish a relationship and inventing one would be worse.
+**`nimoData` loses all twelve patterns, held by all twelve patients.** Also
+correct: no two of its subjects share an attendance pattern at all, so nothing
+qualifies and there is no pool to draw from. Every avatar keeps its anchor's own
+pattern — the safe failure, and the run alerts — which is the same underlying
+problem as its inferred-grid failure and has the same fix, shown below.
 
-Both of these are recorded in `attr(x, "pmx_settings")` on every run, alongside a
-loud alert, so this table can be produced for any study rather than only the ones
-shown here.
+### Is a "pattern" too strictly defined?
+
+Reasonably asked, and the answer is yes, deliberately. A pattern here is the
+**exact** set of endpoint-and-time pairs a subject was observed at. Two patients
+who each missed exactly one visit have *different* patterns if they missed
+different visits. That is why singletons dominate so heavily — 12 of warfarin's
+14, 54 of mavoglurant's 64 — and therefore why so much is discarded.
+
+The strictness is what makes the guarantee exact: reusing a pattern that one real
+patient holds would reproduce that patient's schedule, so nothing short of exact
+matching would support the claim. The cost is that the definition cannot see that
+"missed one visit, early" and "missed one visit, late" are the same *kind* of
+event.
+
+A looser definition would recover much of the loss. Describing a pattern by its
+*shape* — how many visits were missed, and whether the misses were consecutive —
+would put both of those patients in one group, giving it two holders where the
+strict definition gives two groups of one. The synthetic patient's misses would
+then be placed rather than copied, so some would land at clinically odd points,
+but dropout would survive as a phenomenon instead of being discarded. That is not
+built; it is recorded in `design/TODO.md` as the thing to do if a real study
+turns out to look like `warfarin` rather than like `theo_md`.
 
 ### Reading the table
 
