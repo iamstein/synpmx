@@ -243,13 +243,13 @@ test_that("a stratum with nothing shared widely enough alerts rather than copyin
   # Every subject on their own schedule: no pattern can qualify, so anchors keep
   # their own pattern. That is the safe failure, but it must be loud, because it
   # is exactly what the mechanism was asked to prevent.
-  # The times themselves are shared -- coarsening puts everyone on one grid --
-  # but each subject attended a different subset of it, so every *pattern* is
-  # held by exactly one subject and none can qualify. This is the residual
-  # coarsening cannot reach, in its purest form.
-  grid <- c(0.5, 1, 2, 4, 8, 12)
+  # Neither an exact pattern nor a shape can qualify here: each subject misses a
+  # *different number* of visits, so every shape is held by one subject too. A
+  # fixture where only the exact patterns differ would now be rescued by the
+  # shape fallback, which is the point of that fallback.
+  grid <- c(0.5, 1, 2, 4, 8, 12, 24)
   source <- do.call(rbind, lapply(1:6, function(i) {
-    kept <- grid[-i]
+    kept <- utils::head(grid, length(grid) - i)
     data.frame(
       ID = as.character(i), TIME = c(0, kept),
       DV = c(0, 5 * exp(-0.2 * kept)),
@@ -271,6 +271,103 @@ test_that("a stratum with nothing shared widely enough alerts rather than copyin
   ))
   expect_true(any(grepl("no attendance pattern is shared by 2 or more subjects",
                         raised, fixed = TRUE)))
+})
+
+test_that("a shape rescues patterns no single subject shares", {
+  # Six subjects each miss exactly one visit, but a different one, so every
+  # *exact* pattern is held by one subject and the strict rule discards all six.
+  # As shapes they are one group of six: "one visit missed, mid-study".
+  grid <- c(0.5, 1, 2, 4, 8, 12)
+  source <- do.call(rbind, lapply(1:6, function(i) {
+    kept <- grid[-i]
+    data.frame(
+      ID = as.character(i), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.2 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + i, stringsAsFactors = FALSE
+    )
+  }))
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, da_roles(), n_subjects = 12, seed = 21)
+  )
+  settings <- attr(synthetic, "pmx_settings")
+  # Nothing is discarded, where the exact-cell rule alone would have lost all six.
+  expect_equal(settings$patterns_dropped, 0L)
+  expect_equal(settings$pattern_sampled_fraction, 1)
+  # Each avatar still misses exactly one visit: the shape is preserved even
+  # though which visit was missed is not.
+  counts <- tapply(synthetic$TIME[synthetic$EVID == 0],
+                   as.character(synthetic$ID[synthetic$EVID == 0]), length)
+  expect_true(all(counts == length(grid) - 1L))
+  expect_true(validate_pmx(synthetic, da_roles())$valid)
+})
+
+test_that("a generated placement never reproduces a pattern too rare to reuse", {
+  # The guarantee the rejection check defends. Every exact pattern here is held
+  # by one subject, so every one of them is off limits; the shape they share is
+  # not. No avatar may come out holding any source subject's exact visit set.
+  grid <- c(0.5, 1, 2, 4, 8, 12)
+  source <- do.call(rbind, lapply(1:6, function(i) {
+    kept <- grid[-i]
+    data.frame(
+      ID = as.character(i), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.2 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + i, stringsAsFactors = FALSE
+    )
+  }))
+  roles <- da_roles()
+  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
+  rare <- vapply(unique(as.character(coarsened$ID)), function(id) {
+    paste(sort(coarsened$TIME[coarsened$ID == id & coarsened$EVID == 0]),
+          collapse = ",")
+  }, character(1))
+
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, roles, n_subjects = 40, seed = 22)
+  )
+  produced <- vapply(unique(as.character(synthetic$ID)), function(id) {
+    paste(sort(synthetic$TIME[synthetic$ID == id & synthetic$EVID == 0]),
+          collapse = ",")
+  }, character(1))
+  # Times are re-noised after placement, so an exact string match is not the
+  # test; the visit *set* is. Compare on the grid the placement chose.
+  expect_gt(attr(synthetic, "pmx_settings")$pattern_generated_fraction, 0)
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  expect_equal(length(produced), 40L)
+})
+
+test_that("the shape is drawn before the arrangement, so the mix is preserved", {
+  # Ten complete attenders and two who dropped out. The cohort is mostly
+  # complete, and sampling must keep it that way rather than flattening the mix.
+  grid <- c(0.5, 1, 2, 4, 8)
+  subject <- function(id, keep_n) {
+    kept <- utils::head(grid, keep_n)
+    data.frame(
+      ID = as.character(id), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.2 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + id, stringsAsFactors = FALSE
+    )
+  }
+  source <- rbind(do.call(rbind, lapply(1:10, subject, keep_n = 5)),
+                  subject(11, keep_n = 3), subject(12, keep_n = 3))
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, da_roles(), n_subjects = 60, seed = 23)
+  )
+  counts <- tapply(synthetic$TIME[synthetic$EVID == 0],
+                   as.character(synthetic$ID[synthetic$EVID == 0]), length)
+  complete <- mean(counts == 5L)
+  # Ten of twelve source subjects are complete attenders; the synthetic cohort
+  # should be near that, not uniform across shapes.
+  expect_gt(complete, 0.6)
+  expect_lt(complete, 0.95)
 })
 
 test_that("the cost of the floor is counted and reported", {
