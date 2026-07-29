@@ -91,6 +91,18 @@ ROLES <- pmx_roles(
   # mechanism working and not working -- see `skeleton_uniqueness()`.
   nominal_time = NULL, # e.g. "NTIME"
   tad      = NULL,     # time-after-dose column; recomputed after generation
+  # ASSIGNED STRATUM -- treatment arm, dose group, cohort. Carried verbatim like
+  # `keep`, and additionally used to group the pool of attendance patterns an
+  # avatar may draw from, so an avatar only inherits a visit pattern from its own
+  # arm. Not a blending barrier: donors are still borrowed across strata to reach
+  # the donor floor, because only route of administration is absolute.
+  #
+  # Whether to declare an arm here is a real trade, not an obvious win. Declaring
+  # it is more faithful -- arms with different visit schedules stay separate --
+  # but it splits the pattern pools, so fewer patterns clear `min_pattern_share`
+  # and more real dropout patterns are discarded. The run reports how many were
+  # lost either way; try it both ways and compare.
+  subject_properties = NULL,   # e.g. "TRT", or c("TRT", "COHORT")
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
   # If the data has below-limit-of-quantification (BLQ) records, declare cens
@@ -106,8 +118,10 @@ ROLES <- pmx_roles(
   # trajectory instead if you need it.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
   # keep = copied verbatim from the subject that supplied the doses, so it stays
-  # coherent with them. Put assigned, subject-defining values here -- treatment
-  # arm, dose group -- e.g. keep = "ARM". List only columns your data has.
+  # coherent with them. Use it for pass-through values with no other meaning --
+  # a study id, a character label. An assigned *stratum* (treatment arm, dose
+  # group) is better declared in `subject_properties` above, which carries it
+  # the same way and also groups the attendance-pattern pools.
   keep     = c("STUDYIDN", "STUDYID", "TRT", "TRTN")
   # Every column NOT named by a role above is dropped. That is deliberate: a
   # secondary identifier you forget cannot leak out of a real subject. The run
@@ -146,11 +160,20 @@ message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 
 Run before generating. The event skeleton is copied verbatim from one anchor, so
 a subject holding the only copy of its observation time vector hands that
-schedule to every avatar anchored on it. `alone` is what `coarsen_time = TRUE`
-collapses; `n_obs_class == 1` is the residual left to
-`flag_identifiable_subjects()`; `signature_class == 1` is dose structure and
-amount, which coarsening does not change. Record these in
-`scripts_private/README.md`'s study inventory.
+schedule to every avatar anchored on it.
+
+Read `alone` first, then why:
+
+- `min_time_share == 1` -- observed at a moment no other subject was. This is
+  what `coarsen_time` collapses, and a residue here means the *inferred* grid
+  found no shared schedule. Declaring `nominal_time` is the fix.
+- `min_time_share >= 2` but `alone` -- every time is shared and only the
+  *pattern* of attended visits is unique. Dropout and missed visits. No grid
+  touches this; `min_pattern_share` is what stops it being reproduced.
+- `n_obs_class == 1` -- a sample count nobody else has.
+- `signature_class == 1` -- dose structure or amount nobody else has.
+
+Record these in `scripts_private/README.md`'s study inventory.
 
 ```{r}
 #| label: skeleton-uniqueness
@@ -170,6 +193,55 @@ message("  generated ", nrow(synthetic), " rows for ",
 
 write.csv(synthetic, file.path(OUT_DIR, "avatar_synthetic.csv"), row.names = FALSE)
 ```
+
+### What the mechanisms actually did
+
+Every masking mechanism records what it did, and two of them record what it
+cost. Copy these into the study inventory in `scripts_private/README.md`.
+
+```{r}
+#| label: mechanism-report
+settings <- attr(synthetic, "pmx_settings")
+data.frame(
+  quantity = c(
+    "time grid used",
+    "subjects still alone after coarsening",
+    "  ... seen at a unique moment (declare nominal_time to fix)",
+    "  ... unique attendance pattern (dropout; min_pattern_share's job)",
+    "dose basis detected",
+    "dose levels found",
+    "attendance patterns discarded",
+    "  ... real subjects who held them",
+    "avatars given a sampled pattern",
+    "donor floor: mean effective donors",
+    "donor cap binding fraction"
+  ),
+  value = c(
+    settings$time_grid,
+    settings$exposure_alone,
+    settings$exposure_unique_moment,
+    settings$exposure_unique_pattern,
+    ifelse(is.na(settings$dose_basis), "none (amounts left alone)",
+           settings$dose_basis),
+    ifelse(is.na(settings$dose_basis), "-",
+           paste(signif(settings$dose_levels, 4), collapse = ", ")),
+    settings$patterns_dropped,
+    settings$subjects_with_dropped_pattern,
+    settings$pattern_sampled_fraction,
+    round(settings$mean_effective_donors, 2),
+    round(settings$cap_binding_fraction, 2)
+  ),
+  stringsAsFactors = FALSE
+) |> knitr::kable()
+```
+
+`attendance patterns discarded` is the one to look at hardest. Those are real
+dropout and dose-interruption patterns that will not appear in the synthetic
+data, because too few patients shared them. Discarding them is what stops an
+avatar carrying a schedule traceable to one person, but if this study's
+interruptions matter, lower `min_pattern_share` (2 is the lowest value that
+still guarantees no synthetic patient has a schedule unique to a real one) or
+set it to `1` to keep every pattern and give up that guarantee.
 
 ### Restricted diagnostic: distribution summary
 
