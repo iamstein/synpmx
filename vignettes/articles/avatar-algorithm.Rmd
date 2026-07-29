@@ -78,6 +78,73 @@ one real subject's event structure) and the **donor blend** (its measurements
 are averaged from several real subjects, never copied from one). Keep those in
 mind and the rest is detail.
 
+## Every masking mechanism, in one list
+
+The steps below introduce protections as they arise, which makes it easy to
+lose count of them. This section is the complete inventory in one place,
+ordered by when it acts. Each row names the argument that controls it and that
+argument's default; "—" means the mechanism is unconditional and cannot be
+turned off. The Step column says where to read the detail.
+
+**Before generation — deciding what may be copied at all**
+
+| Mechanism | What it withholds | Control (default) | Step |
+|---|---|---|---|
+| Role allowlist | Every column no role names is dropped, so an undeclared site, date, or secondary identifier cannot ride along | `roles` (naming is opt-in) | 1 |
+| Source time coarsening | Collapses source times onto a shared visit grid — the `nominal_time` role where declared, K-means centres of the pooled times otherwise — so an avatar cannot carry one real subject's exact visit schedule. Each subject's deviation from the grid is *destroyed*, not perturbed; deviations are pooled across the cohort and resampled independently onto each avatar | `coarsen_time = TRUE` | 3 |
+| Structural-outlier anchor screen | Source subjects whose follow-up or dose count exceeds twice the 90th percentile never become anchors, so no avatar wears a conspicuous skeleton | `screen = TRUE` | 6 |
+| Donor-shortfall drop | Subjects in a route arm with fewer than `k + 1` members are removed from the anchor pool rather than blended from too few donors | `on_donor_shortfall = "drop"` | 6 |
+
+**During generation — keeping any one avatar from tracing back to one person**
+
+| Mechanism | What it withholds | Control (default) | Step |
+|---|---|---|---|
+| Anchor resampling with replacement | Anchors are drawn with replacement, so the map from source subject to avatar is not one-to-one and cohort composition is randomized | `n_subjects` (source size) | 6 |
+| Self-exclusion | The anchor is removed from its own donor pool, so no avatar is blended from the subject whose skeleton it wears | — | 6 |
+| `k`-nearest-donor blending | Covariates and trajectories are a weighted blend of several other subjects, never a copy of one | `k = 5` | 6 |
+| Randomized weights | Weights are inverse-distance scaled by an exponential draw and a *random* rank, not the true distance rank | — | 7 |
+| Donor-weight cap | No donor — not just no largest donor — may exceed the cap; excess is redistributed | `max_donor_weight = 0.50` | 7 |
+| Trajectory interpolation | A donor's measurement is never emitted at the time it was taken; it is interpolated onto the anchor's grid | — | 9 |
+| Subject-level noise | One random shift per subject on each covariate and each endpoint, scaled to the donors' spread | `subject_noise_sd = 0.15` | 8, 9 |
+| Within-subject AR(1) residual | Correlated noise along each trajectory | `residual_noise_sd = 0.05`, `residual_phi = 0.6` | 9 |
+| Coherent time jitter | Perturbs each distinct observation time, clipped so tied times stay tied and order is preserved. A *fidelity* control, not a privacy one: the clamp holds every time inside its own cell, so the schedule stays recoverable. `coarsen_time` is the mechanism that hides a schedule | `time_jitter = 0` — **off by default** | 3 |
+
+**After generation — identity, and the outliers that survive**
+
+| Mechanism | What it withholds | Control (default) | Step |
+|---|---|---|---|
+| Fresh identifiers | Every avatar gets a new ID that cannot collide with a source label | — | 10 |
+| Row re-ordering and MDV re-derivation | Anchor-specific row order and copied MDV values are recomputed rather than inherited | — | 10 |
+| `flag_identifiable_subjects()` / `remediate_identifiable_subjects()` | Flags avatars extreme on follow-up, dose count, max dose, or max DV, then truncates, drops, or replaces them | `threshold = 3.5` | (f) |
+| `skeleton_uniqueness()` | A *source*-side screen, run before generating: finds subjects who are alone in their event signature and would hand it to every avatar anchored on them | — | (f) |
+
+### What is deliberately not masked
+
+Three things are worth stating as plainly as the list above, because assuming
+otherwise is the likeliest way to misjudge this generator:
+
+- **The event skeleton is still copied from one anchor.** Coarsening removes the
+  anchor's deviation from the visit grid, but dose count, dose sizes, dose
+  intervals, and the number of observations are inherited verbatim, and nothing
+  resamples them. That residual is what `skeleton_uniqueness()` measures on the
+  `n_obs` axis and what the post-generation screen exists to catch: a subject
+  can be exposed by dropout or a missed visit even when none of their
+  measurements are released.
+- **`keep`-role columns are copied verbatim** from that same anchor, with no
+  blending and no noise. That is what the `keep` role is for, and it means
+  anything routed through it inherits the anchor's exact value.
+- **Coarsening applies to time only.** Covariates and measurements are never
+  rounded, binned, or winsorized — they are protected by blending, the donor
+  cap, and noise instead. The only value clamping is at the assay censoring
+  limits and at zero for positive-valued endpoints, and the only rounding is the
+  type restoration that puts integer columns back to integers. Dose-interval
+  grouping keys are rounded internally to two significant digits, but that
+  coarsens *which donors are compatible*, never a released value.
+
+None of this is a formal guarantee. These are heuristics that raise the cost of
+re-identification; the modes with a stated privacy budget are the other three,
+described in `vignette("synpmx-method")`.
+
 ## Step 1: declare the meaning of the columns
 
 The package never guesses critical PMX roles from column names. The user must
