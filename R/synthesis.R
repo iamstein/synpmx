@@ -2,7 +2,7 @@
                                         dv_method, k, pca_variance,
                                         subject_noise_sd, residual_noise_sd,
                                         residual_phi, time_jitter,
-                                        max_donor_weight) {
+                                        max_donor_weight, coarsen_time) {
   if (is.null(n_subjects)) n_subjects <- source_n
   if (length(n_subjects) != 1L || is.na(n_subjects) ||
       n_subjects < 1 || n_subjects != as.integer(n_subjects)) {
@@ -40,25 +40,196 @@
       max_donor_weight > 1) {
     stop("`max_donor_weight` must be one number in (0, 1].", call. = FALSE)
   }
+  if (length(coarsen_time) != 1L || is.na(coarsen_time) ||
+      !is.logical(coarsen_time)) {
+    stop("`coarsen_time` must be TRUE or FALSE.", call. = FALSE)
+  }
   as.integer(n_subjects)
 }
 
-.jitter_skeleton_time <- function(skeleton, roles, time_jitter) {
-  if (time_jitter == 0) return(skeleton)
+# Move each *distinct* time in a skeleton by an offset, coherently: every row
+# recorded at one time moves together, so a dose and its pre-dose sample stay
+# tied and the row order can never invert. Offsets are clamped into each time's
+# own Voronoi cell, which keeps visits from crossing or colliding.
+#
+# The clamp is why this cannot be a privacy control. Whatever the offsets are,
+# every time stays within half a gap of where it started, so an offset applied
+# to a *source* time leaves the source time recoverable. `coarsen_time` works
+# because it moves the centre to a grid point shared by the whole equivalence
+# class first; only then is the offset harmless. Order matters, and
+# `.coarsen_source_time()` is what establishes it.
+.offset_unique_times <- function(skeleton, roles, offsets) {
   time <- skeleton[[roles$time]]
   unique_time <- sort(unique(time))
   if (!length(unique_time)) return(skeleton)
-  jittered <- unique_time + stats::rnorm(length(unique_time), sd = time_jitter)
+  moved <- unique_time + offsets(length(unique_time))
   if (length(unique_time) > 1L) {
     midpoint <- (unique_time[-1L] + unique_time[-length(unique_time)]) / 2
     first_lower <- if (min(unique_time) >= 0) 0 else -Inf
     lower <- c(first_lower, midpoint)
-    upper <- c(midpoint, Inf)
-    jittered <- pmin(pmax(jittered, lower), upper)
+    # The last cell is bounded by half the final gap, not left open. An open
+    # upper bound let a large offset stretch follow-up arbitrarily, which is
+    # exactly the structurally extreme output `screen = TRUE` exists to prevent
+    # -- and it let one visit escape the "no time moves more than half a gap"
+    # property every other visit obeys.
+    last <- length(unique_time)
+    upper <- c(midpoint, unique_time[last] + (unique_time[last] -
+                                              unique_time[last - 1L]) / 2)
+    moved <- pmin(pmax(moved, lower), upper)
   } else {
-    jittered <- max(0, jittered)
+    moved <- max(0, moved)
   }
-  skeleton[[roles$time]] <- jittered[match(time, unique_time)]
+  skeleton[[roles$time]] <- moved[match(time, unique_time)]
+  skeleton
+}
+
+.jitter_skeleton_time <- function(skeleton, roles, time_jitter) {
+  if (time_jitter == 0) return(skeleton)
+  .offset_unique_times(skeleton, roles, function(n) {
+    stats::rnorm(n, sd = time_jitter)
+  })
+}
+
+# Nearest-grid-point snap. `findInterval()` keeps this O(n log k) and monotone,
+# so a subject's times can never reorder.
+.snap_to_grid <- function(x, grid) {
+  grid <- sort(unique(grid[is.finite(grid)]))
+  if (!length(grid)) return(x)
+  if (length(grid) == 1L) return(rep(grid, length(x)))
+  index <- findInterval(x, grid, all.inside = TRUE)
+  lower <- grid[index]
+  upper <- grid[index + 1L]
+  ifelse(abs(x - lower) <= abs(upper - x), lower, upper)
+}
+
+# The visit grid, when no `nominal_time` role names one. Best-effort: it
+# recovers a shared schedule where the data contains one, and declines to invent
+# one where it does not. `nominal_time` is the reliable path, and
+# `scripts/measure_skeleton_uniqueness.R` is how you tell which case you are in.
+#
+# Times are pooled and cut into cells wherever the gap between consecutive
+# distinct values exceeds a threshold -- single-linkage clustering in one
+# dimension, exact and O(n log n). The threshold is searched for rather than
+# assumed, because there is no defensible constant: it is the largest cut that
+# still preserves every subject's own visit count (see below).
+.derive_time_grid <- function(times, subject_index) {
+  keep <- is.finite(times)
+  times <- times[keep]
+  subject_index <- subject_index[keep]
+  distinct <- sort(unique(times))
+  if (length(distinct) < 2L) return(distinct)
+
+  # The coarsest grid that still preserves every subject's own visit count. Two
+  # pooled times are the same nominal visit exactly when merging them never puts
+  # two of one subject's visits in one cell -- that constraint is the definition
+  # of "too coarse", and the largest threshold satisfying it is the most
+  # collapsing this can safely do.
+  #
+  # A fixed fraction of the smallest within-subject gap was tried first and is
+  # far too conservative: one subject anywhere with a tightly spaced pair drags
+  # the threshold to near zero and nothing merges at all, which
+  # `scripts/measure_skeleton_uniqueness.R` shows plainly on the public
+  # datasets. Searching for the constraint boundary is immune to that, because
+  # one tight pair only pins the cells around itself.
+  pairs <- unique(data.frame(subject = subject_index, time = times,
+                             stringsAsFactors = FALSE))
+  preserves_visits <- function(threshold) {
+    cluster <- cumsum(c(TRUE, diff(distinct) > threshold))
+    !anyDuplicated(data.frame(
+      subject = pairs$subject,
+      cell = cluster[match(pairs$time, distinct)],
+      stringsAsFactors = FALSE
+    ))
+  }
+  candidates <- sort(unique(diff(distinct)))
+  candidates <- candidates[candidates > 0]
+  if (!length(candidates)) return(distinct)
+  # Binary search the largest candidate that still preserves visit counts. Cells
+  # only ever merge as the threshold grows, so validity is monotone in it.
+  low <- 0L
+  high <- length(candidates)
+  while (low < high) {
+    middle <- (low + high + 1L) %/% 2L
+    if (preserves_visits(candidates[middle])) low <- middle else high <- middle - 1L
+  }
+  if (low == 0L) return(distinct)
+  cluster <- cumsum(c(TRUE, diff(distinct) > candidates[low]))
+  if (max(cluster) == length(distinct)) return(distinct)
+  # Centre each visit on the mean of the times actually recorded there, so a
+  # visit sampled by many patients is not pulled by a sparse neighbour.
+  member <- cluster[match(times, distinct)]
+  as.numeric(tapply(times, member, mean))
+}
+
+# Collapse every subject onto a shared visit grid, and keep the deviations that
+# were removed so they can be resampled back as a pool.
+#
+# This is what makes an avatar's schedule non-identifying. `.event_signature()`
+# keys on dose gaps and amounts, so under actual recorded times almost every
+# subject is alone in its own equivalence class (`skeleton_uniqueness()` shows
+# this directly) and the verbatim skeleton copy at generation reproduces one real
+# patient's visit schedule exactly. Snapping is many-to-one: it destroys the
+# per-subject deviation rather than perturbing it, so subjects that shared a
+# protocol schedule become genuinely exchangeable before any avatar is built.
+#
+# The removed deviations are pooled across the whole cohort and resampled
+# independently afterwards. A single deviation value is weakly identifying in the
+# same sense a resampled covariate value is (`design/METHOD_DISCUSSION.md` s4),
+# while the vector an avatar receives is a fresh combination. Resampling them is
+# what keeps `TIME` distinct from `NTIME` in the output, so workflow code that
+# reconciles the two still has something to reconcile.
+.coarsen_source_time <- function(source, roles) {
+  time <- suppressWarnings(as.numeric(source[[roles$time]]))
+  finite <- is.finite(time)
+  none <- list(source = source, deviations = numeric(), grid = "none")
+  if (!any(finite)) return(none)
+
+  target <- rep(NA_real_, length(time))
+  kind <- "nominal"
+  if (!is.null(roles$nominal_time)) {
+    nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
+    usable <- finite & is.finite(nominal)
+    target[usable] <- nominal[usable]
+  }
+  outstanding <- finite & !is.finite(target)
+  if (any(outstanding)) {
+    kind <- if (all(outstanding[finite])) "derived" else "mixed"
+    grid <- .derive_time_grid(time[outstanding],
+                              as.character(source[[roles$id]])[outstanding])
+    target[outstanding] <- .snap_to_grid(time[outstanding], grid)
+  }
+  if (!any(is.finite(target))) return(none)
+
+  deviations <- (time - target)[finite & is.finite(target)]
+  deviations <- deviations[is.finite(deviations)]
+  # A source already on its nominal grid has nothing to remove and nothing to
+  # restore. Emptying the pool rather than resampling zeros keeps the RNG stream
+  # untouched too, so such a source generates byte-identical output whether
+  # `coarsen_time` is on or off -- the same guarantee `screen` gives a cohort
+  # with no structural outlier.
+  if (!any(abs(deviations) > sqrt(.Machine$double.eps))) {
+    deviations <- numeric()
+  }
+  snapped <- time
+  snapped[finite & is.finite(target)] <- target[finite & is.finite(target)]
+  source[[roles$time]] <- snapped
+  list(source = source, deviations = deviations, grid = kind)
+}
+
+# TAD is time since the most recent dose, so it goes stale the moment TIME
+# moves. Recomputed from the generated skeleton rather than carried over from
+# the anchor, where it would describe a schedule the avatar no longer has.
+.recompute_tad <- function(skeleton, roles) {
+  if (is.null(roles$tad)) return(skeleton)
+  time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
+  dose_time <- sort(time[.dose_rows(skeleton, roles) & is.finite(time)])
+  if (!length(dose_time)) return(skeleton)
+  index <- findInterval(time, dose_time)
+  # Before the first dose there is no elapsed time to report; zero is the only
+  # value `validate_pmx()` accepts and the only one that is not a fiction.
+  tad <- ifelse(index >= 1L, time - dose_time[pmax(index, 1L)], 0)
+  tad[!is.finite(tad)] <- 0
+  skeleton[[roles$tad]] <- pmax(tad, 0)
   skeleton
 }
 
@@ -542,7 +713,11 @@
 #' @param residual_phi AR(1) correlation in observation order, strictly between
 #'   -1 and 1.
 #' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
-#'   the default, leaves the event template's times unchanged.
+#'   the default, leaves the event template's times unchanged. This is a realism
+#'   control, **not** a privacy control: every jittered time is clamped inside
+#'   its own Voronoi cell, so no value of `time_jitter` moves a visit more than
+#'   half a gap from where the source subject's visit was, and the source
+#'   schedule stays recoverable. Use `coarsen_time` for that.
 #' @param screen When `TRUE` (default), a source subject whose follow-up length
 #'   or dose count is more than twice the cohort's 90th percentile is not used as
 #'   an anchor, so no avatar inherits an extreme skeleton (the long tail a reader
@@ -553,6 +728,22 @@
 #'   not. A source with no extreme subject is unaffected. Set `FALSE` to anchor
 #'   on every subject. For a fuller, tunable screen of the generated output, see
 #'   [flag_identifiable_subjects()] and [remediate_identifiable_subjects()].
+#' @param coarsen_time When `TRUE` (default), source times are collapsed onto a
+#'   shared visit grid before generation, and per-visit deviations are pooled
+#'   across the cohort and resampled independently onto each avatar. The grid is
+#'   the `nominal_time` role where one is declared, and K-means centres of the
+#'   pooled times otherwise. This is the mechanism that stops an avatar from
+#'   carrying one real subject's exact visit schedule: the event skeleton is
+#'   copied verbatim from a single anchor, and under actual recorded times almost
+#'   every subject is alone in its event-signature class, so the copy is
+#'   identifying. Snapping is many-to-one and *destroys* the deviation rather
+#'   than perturbing it, which is what distinguishes this from `time_jitter`. A
+#'   source already on nominal time has no deviation to remove or restore, so its
+#'   output is unchanged. Run [skeleton_uniqueness()] on the source to see how
+#'   much this has to do, and what it leaves behind. The cost is timing
+#'   fidelity: an avatar's deviation from nominal is drawn from the cohort, not
+#'   inherited, so `TIME` no longer pairs with its `DV` as precisely as the
+#'   source did. Set `FALSE` to keep exact source timing.
 #' @param max_donor_weight Largest share of one synthetic subject that any one
 #'   real donor may contribute. The default 0.50 states simply that no single
 #'   real patient is more than half of any synthetic patient.
@@ -599,8 +790,10 @@
 #'   CMT = rep(c(1L, 2L, 2L, 2L), 3),
 #'   WT = rep(c(60, 70, 80), each = 4)
 #' )
-#' roles <- pmx_roles("ID", "TIME", "DV", "AMT", "EVID", "CMT", NULL,
-#'                    NULL, NULL, "WT")
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", covariates = "WT"
+#' )
 #' synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 #' validate_pmx(synthetic, roles)$valid
 synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
@@ -608,7 +801,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      dv_method = "avatar_blend", k = 5,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
-                     time_jitter = 0, screen = TRUE,
+                     time_jitter = 0, screen = TRUE, coarsen_time = TRUE,
                      max_donor_weight = 0.50,
                      on_donor_shortfall = c("drop", "noise", "error")) {
   on_donor_shortfall <- match.arg(on_donor_shortfall)
@@ -636,7 +829,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   n_subjects <- .validate_generator_options(
     n_subjects, length(subjects), event_method, dv_method, k, pca_variance,
     subject_noise_sd, residual_noise_sd, residual_phi, time_jitter,
-    max_donor_weight
+    max_donor_weight, coarsen_time
   )
 
   .with_local_seed(seed, {
@@ -665,6 +858,38 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         ))
       }
       source <- .impute_censored(source, source_roles)
+    }
+    # Before profiling, so equivalence classes are formed on the coarsened
+    # schedule: donor compatibility (`.select_donors()` stage 1) matches on the
+    # event signature, which under actual times is unique per subject and forces
+    # every avatar into the route-only fallback.
+    coarsened <- if (coarsen_time) {
+      .coarsen_source_time(source, source_roles)
+    } else {
+      list(source = source, deviations = numeric(), grid = "off")
+    }
+    source <- coarsened$source
+    time_deviations <- coarsened$deviations
+    # Coarsening onto a derived grid is best-effort: where subjects hold samples
+    # closer together than the spread between subjects, no grid can merge them
+    # without collapsing a real visit, so the schedule stays unique and the
+    # verbatim skeleton copy stays identifying. That is the safe failure, but it
+    # is a silent one, and a caller who asked for `coarsen_time` and did not get
+    # it should hear so rather than infer it from the absence of an alert.
+    if (coarsen_time) {
+      still_alone <- sum(skeleton_uniqueness(source, source_roles)$alone)
+      if (still_alone > 0L) {
+        .loud_warn(sprintf(
+          paste0("`coarsen_time = TRUE` left %d of %d source subject%s holding ",
+                 "the only copy of its observation schedule, so an avatar ",
+                 "anchored there still carries an identifying visit pattern. ",
+                 "Declare a `nominal_time` role to snap to the protocol grid ",
+                 "exactly; `scripts/measure_skeleton_uniqueness.R` shows what ",
+                 "the grid did and did not collapse."),
+          still_alone, length(subjects),
+          if (still_alone == 1L) "" else "s"
+        ))
+      }
     }
     profiles <- .build_profiles(source, source_roles, pca_variance)
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
@@ -803,6 +1028,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
+      if (length(time_deviations)) {
+        skeleton <- .offset_unique_times(skeleton, source_roles, function(n) {
+          sample(time_deviations, n, replace = TRUE)
+        })
+      }
       donors <- .select_donors(anchor, profiles, k, warnings, max_donor_weight)
       effective_donors[synthetic_index] <- 1 / sum(donors$weights^2)
       cap_bound[synthetic_index] <- length(donors$weights) > 1L &&
@@ -816,6 +1046,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         subject_noise_sd, residual_noise_sd, residual_phi, warnings,
         censoring_by_endpoint
       )
+      skeleton <- .recompute_tad(skeleton, source_roles)
       if (standard_mdv) skeleton <- .derive_standard_mdv(skeleton, source_roles)
       new_id <- new_ids[synthetic_index]
       if (is.factor(skeleton[[source_roles$id]])) {
@@ -845,6 +1076,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       residual_noise_sd = residual_noise_sd,
       residual_phi = residual_phi,
       time_jitter = time_jitter,
+      coarsen_time = coarsen_time,
+      time_grid = coarsened$grid,
+      time_deviation_sd = if (length(time_deviations)) {
+        stats::sd(time_deviations)
+      } else 0,
       roles = unclass(source_roles),
       endpoint_transforms = profiles$transforms,
       alignment = paste(

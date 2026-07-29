@@ -1302,7 +1302,24 @@ long-followed patient, a one-off dose level) produces an avatar with that same
 unusual structure, and a structural oddity is enough to single someone out even
 when their values are blended.
 
-Two functions address this after the data is generated.
+Structural exposure comes in two forms, and they need different remedies.
+
+A subject can be **extreme** — followed far longer than anyone else, dosed at a
+level nobody else received. The screen and the two functions below handle that.
+
+A subject can also be **alone** without being extreme at all. Sitting squarely
+in the middle of every distribution is no protection if nobody else shares your
+exact vector of observation times, and under actual recorded times — as opposed
+to nominal, protocol-scheduled ones — that is very nearly everybody. Verbatim
+copying then reproduces one real patient's visit pattern exactly. This is the
+case `coarsen_time = TRUE` addresses, by collapsing every subject onto a shared
+visit grid *before* any avatar is built and resampling pooled deviations back
+afterwards; `skeleton_uniqueness()` is how you see how much of it there was and
+how much survived. Note that `time_jitter` cannot substitute: every jittered
+time is clamped inside its own Voronoi cell, so at any magnitude a visit stays
+within half a gap of where the source subject's visit was.
+
+Two functions address the extreme case after the data is generated.
 
 `flag_identifiable_subjects()` scores every subject, one axis at a time, with a
 robust median/MAD outlier statistic (the Iglewicz–Hoaglin modified z-score,

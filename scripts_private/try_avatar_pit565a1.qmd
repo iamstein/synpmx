@@ -81,6 +81,16 @@ ROLES <- pmx_roles(
   dvid     = c("YTYPE", "NAME"),
   cmt      = "CMT",
   mdv      = "MDV",
+
+  # DECLARE NOMINAL TIME IF THE STUDY HAS IT. `coarsen_time = TRUE` (the
+  # default) collapses subjects onto a shared visit grid so no avatar carries one
+  # real subject's exact visit schedule. With `nominal_time` declared it snaps to
+  # the protocol grid exactly; without it the grid is inferred from the pooled
+  # times, which is best-effort and alerts loudly when it cannot collapse a
+  # subject. Under ACTUAL recorded times this is the difference between the
+  # mechanism working and not working -- see `skeleton_uniqueness()`.
+  nominal_time = NULL, # e.g. "NTIME"
+  tad      = NULL,     # time-after-dose column; recomputed after generation
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
   # If the data has below-limit-of-quantification (BLQ) records, declare cens
@@ -130,6 +140,22 @@ if (!report$valid) {
        "each says which role and column to fix in `pmx_roles()`.", call. = FALSE)
 }
 message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
+```
+
+### Source skeleton exposure
+
+Run before generating. The event skeleton is copied verbatim from one anchor, so
+a subject holding the only copy of its observation time vector hands that
+schedule to every avatar anchored on it. `alone` is what `coarsen_time = TRUE`
+collapses; `n_obs_class == 1` is the residual left to
+`flag_identifiable_subjects()`; `signature_class == 1` is dose structure and
+amount, which coarsening does not change. Record these in
+`scripts_private/README.md`'s study inventory.
+
+```{r}
+#| label: skeleton-uniqueness
+exposure <- skeleton_uniqueness(raw, roles)
+exposure
 ```
 
 ### Synthesize (AVATAR blending)

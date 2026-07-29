@@ -76,8 +76,50 @@ rule):
   a publication) and needs a formal (epsilon, delta) guarantee. Needs a structural model, priors, and a trial design. This is the
   secondary, provided-as-is path (see the package README's maintenance status).
 
-`try_avatar_pit565.qmd` is a filled-in AVATAR example on a real study, kept as a
-reference for what a completed roles block looks like.
+`try_avatar_pit565a1.qmd` and `try_avatar_pit565b1.qmd` are filled-in AVATAR
+examples on a real study, kept as a reference for what a completed roles block
+looks like.
+
+## The study inventory
+
+Each real study exercises a different part of the generator, and no public
+dataset covers some of them at all. This table is the working record of what is
+available and what has actually been checked on it. **Keep it current** — it is
+the private counterpart to the dataset registry in `design/TEST_SIM.md`, and the
+only place the coverage is written down.
+
+Name studies by their internal identifier only. No patient-level facts, no
+enrollment figures, no results belong in this file: it is the one tracked file in
+this folder, so anything written here leaves the environment.
+
+| Study | Template | Design shape | Why it is here | Checked |
+|---|---|---|---|---|
+| PIT565 A1 | `try_avatar_pit565a1.qmd` | Phase 1 dose escalation, fixed 3 doses per subject | First real schema; fixed dosing means the dose sequence is protocol, not outcome | roles, validation |
+| PIT565 B1 | `try_avatar_pit565b1.qmd` | Phase 1, second part | Second real schema against the same role vocabulary | roles, validation |
+| *(oncology, add identifier)* | *(to add)* | Repeated dosing with intra-patient escalation | The case fixed-dose studies do not cover: dose amount varies **within** subject, so the event signature stays unique after coarsening and a dropped-dose mechanism would be protocol-invalid | not yet run |
+
+### What to record per study
+
+Run `scripts/measure_skeleton_uniqueness.R`'s `measure()` against the study and
+record the structural properties below. They are what decide whether the default
+mechanisms do anything, and they are cheap to compute:
+
+| Field | Why it matters |
+|---|---|
+| Subjects | Every mechanism's strength scales with it |
+| `nominal_time` declared? | Decides an exact snap versus the best-effort inferred grid |
+| Times nominal or actual? | Decides whether the schedule is exposed at all |
+| Dose regime | Fixed / escalating / intra-patient escalating |
+| Doses per subject | Fixed or variable |
+| `obs_time_alone`, before and after coarsening | What `coarsen_time` collapses. Should fall toward zero |
+| `n_obs_alone` | The residual coarsening cannot touch — dropout and missed visits — left to the screen |
+| `signature_alone` | Dose structure and amount; weight-based dosing keeps this high regardless |
+| `smallest_class` | The effective *k* on the schedule |
+
+Also record the existing utility metrics on the same row —
+`compare_pmx_distributions()`, `flag_identifiable_subjects()` counts,
+`cap_binding_fraction`, `mean_effective_donors` — so a privacy change and its
+utility cost can be read off one line rather than reconstructed.
 
 ## Running the AVATAR template
 

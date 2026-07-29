@@ -48,9 +48,34 @@ perfect — output must not look extreme, and simplicity is valued):
 - **Parked:** skeleton sampling (`REV-026`) — the "perfect" cure, deliberately
   not built.
 
+- **Default, on:** `synpmx_avatar(coarsen_time = TRUE)` collapses source times
+  onto a shared visit grid before generation and resamples pooled deviations
+  back afterwards, so no avatar carries one real subject's exact visit schedule
+  (`SIM-033`). Exact when a `nominal_time` role is declared; inferred and
+  best-effort otherwise, with a loud alert when it cannot collapse a subject
+  (`SIM-034`). `time_jitter` is *not* an alternative -- its Voronoi clamp holds
+  every time within half a gap of the source value at any magnitude.
+- **Measurement:** `skeleton_uniqueness()` on the source, and
+  `scripts/measure_skeleton_uniqueness.R` for the before/after table.
+
 Open, only if real data shows a need:
 - [ ] Revisit the screen cut (2× the 90th percentile) if it over- or
       under-trims on a real study.
+- [ ] Declare `nominal_time` in the private templates' roles blocks once the
+      real schemas are confirmed to carry it. The placeholder is in
+      `scripts_private/try_avatar*.qmd`; without it the inferred grid is
+      best-effort and, on the public datasets, collapses nothing at all for
+      warfarin and mavoglurant.
+- [ ] Record the skeleton-exposure numbers per study in
+      `scripts_private/README.md`'s study inventory, including the oncology
+      repeated-dosing/intra-patient-escalation study, which no public dataset
+      and neither PIT565 part covers.
+- [ ] Consider randomized dropping of *observations* (not doses) if
+      `n_obs_alone` stays high after coarsening on real data. Dropping doses was
+      considered and rejected: it is protocol-invalid under fixed dose
+      escalation, and the regime cannot be inferred reliably when intra-patient
+      escalation makes dose amount vary within subject either way. Observation
+      drops are protocol-neutral and cover a larger share of the residual.
 - [ ] Expose the screen multiplier as an argument if per-dataset tuning is
       wanted (kept hardcoded now for simplicity).
 

@@ -297,6 +297,18 @@ For a per-subject re-identification check, `flag_identifiable_subjects()` scores
 each synthetic subject for being a structural outlier, and
 `remediate_identifiable_subjects()` removes or shortens the ones it flags.
 
+Those find subjects that are *extreme*. `skeleton_uniqueness()` finds subjects
+that are *alone* — run on the **source**, before generating, it reports how many
+others share each subject's observation time vector, observation count, and
+event signature. That matters because the event skeleton is copied verbatim from
+one anchor, so a subject holding the only copy of its visit schedule passes it to
+every avatar anchored on it. `synpmx_avatar(coarsen_time = TRUE)`, the default,
+is what collapses the schedule case.
+
+```{r theo-uniqueness, eval=has_nlmixr2data}
+skeleton_uniqueness(theo_md, theo_roles)
+```
+
 ```{r theo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
   observed_plot_data(theo_md, theo_roles, "Source"),
