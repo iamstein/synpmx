@@ -50,11 +50,22 @@ interval-boundary columns.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 
-\item{subject_properties}{Differential-privacy engines only. Subject-level
-assignment or grouping columns (\code{ACTARM}, \code{TRT}, a nominal dose group)
-modeled jointly with the regimen as a released category domain.
-\code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use this — carry such a column with \code{keep}, which
-copies it verbatim from the subject that supplied the doses.}
+\item{subject_properties}{Treatment arm, dose group, cohort — any \strong{assigned,
+subject-level stratum}, as opposed to a measured characteristic, which is a
+\code{covariate}. Must be complete and constant within subject. Several columns
+may be named, and their combination defines the stratum.
+
+\code{\link[=synpmx_avatar]{synpmx_avatar()}} carries these verbatim from the subject that supplied the
+event skeleton and uses the stratum to group two things that are protocol
+properties rather than patient properties: the dose-to-covariate
+relationship, and the pool of attendance patterns an avatar may draw from.
+Declaring a dose group here is what lets a study with several dose levels be
+recognised as weight-based within each level. It is \strong{not} a blending
+barrier — only route of administration is (see \code{\link[=synpmx_avatar]{synpmx_avatar()}}), so donors
+are still borrowed across strata to reach the donor floor.
+
+The differential-privacy engines model the same columns jointly with the
+regimen as a released category domain.}
 
 \item{assigned_dose}{Differential-privacy engines only. A nominal
 assigned-dose column reconstructed from the generated regimen.

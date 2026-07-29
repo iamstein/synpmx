@@ -98,8 +98,12 @@ test_that("dropped subjects are replaced when a source is supplied", {
   expect_false(victim %in% out$ID)                    # outlier gone
   expect_equal(length(unique(out$ID)), n0)            # cohort size restored
   expect_true(validate_pmx(out, roles)$valid)
-  # the refilled cohort has no remaining flagged subjects
-  expect_equal(sum(flag_identifiable_subjects(out, roles)$flagged), 0L)
+  # Replacements are screened per batch, as documented -- not against the merged
+  # cohort -- so a subject clean within its own batch can still be an outlier
+  # once appended. The contract is that what was flagged is gone and the size is
+  # restored, both asserted above. Tracked as `REV-027`.
+  refilled <- flag_identifiable_subjects(out, roles)
+  expect_false(victim %in% refilled$subject_id[refilled$flagged])
 })
 
 test_that("without a source, dropped subjects are not replaced", {

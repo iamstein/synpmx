@@ -706,6 +706,32 @@ response.
   essentially all it could. The remaining 58 differ in which of the shared
   visits they attended.
 
+### What the other mechanisms leave behind
+
+Two of the six mechanisms act on the columns this table does not show, and it is
+worth knowing which residual belongs to which.
+
+**Dose.** Under dosing proportional to a baseline covariate, each avatar's `AMT`
+is recomputed from its *own* blended weight rather than copied from its anchor,
+so the amount is neither a real patient's real dose nor inconsistent with the
+avatar's own covariates. `warfarin` is recognised this way (1.5 mg/kg to within
+0.1%); `theo_md` is not, because its dose-to-weight ratio varies by 15% and
+detection deliberately fails closed. Where the dose sequence is instead
+outcome-adaptive — intra-patient escalation driven by a subject's own
+tolerability — nothing here touches it, because the sequence *is* that subject's
+response.
+
+**Attendance.** The `Unique pattern` column above is what
+`min_pattern_share` (default 3) addresses: an avatar's set of attended visits is
+drawn from patterns at least that many source subjects share, so no
+one-of-a-kind pattern is reproduced. Nobody is dropped to achieve it — a subject
+with a rare pattern still contributes measurements as a donor. The cost is real
+and dataset-dependent: on `warfarin` and `theo_md` only one pattern clears a
+floor of 3, so every avatar becomes a complete attender and the cohort's
+missingness distribution collapses. A floor of 2 keeps all three of `theo_md`'s
+patterns and 8 of `wbcSim`'s 25. On `nimoData` no pattern is shared by even two
+subjects, so there is no pool at all and the run alerts.
+
 ### What to do about it
 
 Dropping 59 of 120 subjects is a real cost, and it is not automatic. Under this

@@ -148,6 +148,13 @@ Exposure, in the same terms the demo vignette's table uses:
   whose combination of attended visits is unique. Dropout; no grid touches it
 - **`signature_alone`** — unique dose structure or amount. Weight-based dosing
   keeps this high regardless of what the grid does
+- **`dose_basis`** (from `attr(synthetic, "pmx_settings")`) — the covariate the
+  dose was found proportional to, or `NA`. `NA` on a study you believe is
+  weight-based means the ratio was not constant within stratum; check whether a
+  dose group needs declaring in `subject_properties`
+- **`pattern_sampled_fraction`** — how many avatars got a sampled attendance
+  pattern rather than their anchor's. Below 1 means some stratum had no pattern
+  shared by `min_pattern_share` subjects, and the run will have alerted
 
 Also record the existing utility metrics on the same row —
 `compare_pmx_distributions()`, `flag_identifiable_subjects()` counts,

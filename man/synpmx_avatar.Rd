@@ -19,6 +19,7 @@ synpmx_avatar(
   time_jitter = 0,
   screen = TRUE,
   coarsen_time = TRUE,
+  min_pattern_share = 3L,
   max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
@@ -94,6 +95,29 @@ fidelity: an avatar's deviation from nominal is drawn from the cohort, not
 inherited, so \code{TIME} no longer pairs with its \code{DV} as precisely as the
 source did. Set \code{FALSE} to keep exact source timing.}
 
+\item{min_pattern_share}{How many source subjects must share an attendance
+pattern before an avatar may be given it. Default 3; \code{1} restores copying
+the anchor's own pattern.
+
+Once \code{coarsen_time} has put every subject on a shared visit grid, what
+remains of a schedule is which of those visits each subject attended. Every
+time is then shared, so no single visit is identifying — but the
+\emph{combination of absences} is, and a patient who missed weeks 2 and 3 can be
+singled out by a fingerprint made of gaps. No grid can fix that at any
+resolution, because the grid decides where the visits are and not which ones
+a subject has. So the pattern is sampled from ones at least
+\code{min_pattern_share} subjects hold, frequency-weighted, and whole patterns
+are drawn rather than individual visits, which keeps dropout monotone
+instead of producing implausible attend/miss/attend sequences.
+
+Unlike dropping the exposed subjects, nobody leaves the cohort: a subject
+with a rare pattern still contributes measurements as a donor, only their
+distinctive absences stop being reproduced. Dose events are never sampled,
+since that could emit a regimen no protocol permits. Raising this hides more
+and flattens the cohort's missingness further; where no pattern is shared
+widely enough, anchors keep their own and the run alerts loudly. Pools are
+formed within each \code{subject_properties} stratum and endpoint set.}
+
 \item{max_donor_weight}{Largest share of one synthetic subject that any one
 real donor may contribute. The default 0.50 states simply that no single
 real patient is more than half of any synthetic patient.
@@ -163,6 +187,28 @@ nonnegative after back-transformation. Other endpoints use the identity
 scale. Transform choices and interpolation alignment are recorded in the
 returned \code{pmx_settings} attribute.
 }
+\section{Dose recomputed from a blended covariate}{
+
+When the dose is a fixed multiple of a baseline covariate within each
+assigned stratum — mg/kg, mg/m^2 — that multiplier is a protocol property the
+whole stratum shares, while the covariate is individual and is already
+blended across donors. \code{synpmx_avatar()} detects this and recomputes each
+avatar's \code{AMT} (and any \code{rate}, keeping the infusion duration) from the
+avatar's \emph{own} blended covariate.
+
+This fixes two things at once. The amount is no longer one real patient's
+real dose, which under proportional dosing discloses that patient's weight
+exactly. And the avatar stops violating the protocol it claims to follow:
+previously \code{AMT} was copied from the anchor while covariates were blended, so
+a cohort dosed at exactly 5 mg/kg produced avatars anywhere from 4.4 to 5.3.
+
+Detection is conservative and fails closed — dividing by the covariate must
+collapse the variation in dose, and a study with several dose levels is
+recognised only when the levels are declared through \code{subject_properties}.
+The detected covariate is recorded as \code{dose_basis} in the settings, \code{NA} when
+none was found.
+}
+
 \examples{
 source <- data.frame(
   ID = rep(1:3, each = 4),

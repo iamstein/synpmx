@@ -55,8 +55,27 @@ perfect — output must not look extreme, and simplicity is valued):
   best-effort otherwise, with a loud alert when it cannot collapse a subject
   (`SIM-034`). `time_jitter` is *not* an alternative -- its Voronoi clamp holds
   every time within half a gap of the source value at any magnitude.
+- **Default, on:** dose recomputed from the avatar's own blended covariate where
+  dosing is covariate-proportional within a `subject_properties` stratum
+  (`REV-027`). Fixes a coherence defect as well as the disclosure.
+- **Default, on:** `min_pattern_share = 3` draws each avatar's attended-visit
+  pattern from ones at least three subjects share (`REV-026`, partly closed).
 - **Measurement:** `skeleton_uniqueness()` on the source, and
   `scripts/measure_skeleton_uniqueness.R` for the before/after table.
+
+Open on the two new mechanisms:
+- [ ] Decide `min_pattern_share`'s default from real data. At 3, `warfarin` and
+      `theo_md` collapse to a single attendance pattern (every avatar a complete
+      attender); at 2 they keep 2 of 14 and 3 of 3. The public datasets have an
+      18/2/1/1/1 shape with no middle, so PIT565 and the oncology study should
+      decide it.
+- [ ] `nimoData` has no pattern shared by even two subjects, so sampling has no
+      pool. Constructing a nominal time (rounding the roughly-weekly infusions to
+      their protocol week) would fix both this and its inferred-grid failure --
+      worth demonstrating, since real studies will hit the same shape.
+- [ ] Titrated / outcome-adaptive dose sequences remain untouched by both
+      mechanisms, by design. The oncology study is the case that will show
+      whether that matters.
 
 Open, only if real data shows a need:
 - [ ] Revisit the screen cut (2× the 90th percentile) if it over- or

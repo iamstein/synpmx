@@ -26,9 +26,18 @@ test_that("a gross follow-up outlier is never anchored by default", {
   )
   roles <- scr_roles()
 
-  screened <- suppressWarnings(synpmx_avatar(src, roles, n_subjects = 40, seed = 1))
+  # `min_pattern_share = 1` keeps attendance sampling out of this test. Sampling
+  # would also suppress the 100-hour structure -- the outlier's pattern is held
+  # by nobody else, so it never enters the pool -- and then `screen = FALSE`
+  # would look identical to `screen = TRUE` for reasons that have nothing to do
+  # with the screen. The two mechanisms overlap here by design; this test is
+  # about one of them.
+  screened <- suppressWarnings(
+    synpmx_avatar(src, roles, n_subjects = 40, seed = 1, min_pattern_share = 1)
+  )
   raw <- suppressWarnings(
-    synpmx_avatar(src, roles, n_subjects = 40, seed = 1, screen = FALSE)
+    synpmx_avatar(src, roles, n_subjects = 40, seed = 1, screen = FALSE,
+                  min_pattern_share = 1)
   )
 
   expect_lte(obs_max(screened), 4)        # the 100-hour structure never appears
