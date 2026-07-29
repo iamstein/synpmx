@@ -107,58 +107,83 @@
 # one where it does not. `nominal_time` is the reliable path, and
 # `scripts/measure_skeleton_uniqueness.R` is how you tell which case you are in.
 #
-# Times are pooled and cut into cells wherever the gap between consecutive
-# distinct values exceeds a threshold -- single-linkage clustering in one
-# dimension, exact and O(n log n). The threshold is searched for rather than
-# assumed, because there is no defensible constant: it is the largest cut that
-# still preserves every subject's own visit count (see below).
+# Pooled times are merged into visit cells agglomeratively, closest pair first,
+# and a merge is taken only when the resulting cell holds no subject twice. That
+# constraint is the definition of "too coarse": collapsing two of one subject's
+# own visits into a single time destroys a real visit rather than hiding a
+# schedule.
+#
+# The merge decision is *local*, which is the whole point. Two earlier rules
+# used a single global threshold -- a fraction of the smallest within-subject
+# gap, then the largest threshold satisfying the constraint everywhere -- and
+# both are hostage to the tightest pair of samples anywhere in the study. One
+# subject with two draws ten minutes apart at hour 1 drove the global threshold
+# to ten minutes and left the hour-24 visits, spread across a whole day, sitting
+# unmerged. Deciding each boundary on its own pins only the cells around that
+# tight pair, so a dense early phase and a sparse late one can be gridded at the
+# resolution each actually has.
 .derive_time_grid <- function(times, subject_index) {
   keep <- is.finite(times)
   times <- times[keep]
   subject_index <- subject_index[keep]
   distinct <- sort(unique(times))
-  if (length(distinct) < 2L) return(distinct)
+  n <- length(distinct)
+  if (n < 2L) return(distinct)
 
-  # The coarsest grid that still preserves every subject's own visit count. Two
-  # pooled times are the same nominal visit exactly when merging them never puts
-  # two of one subject's visits in one cell -- that constraint is the definition
-  # of "too coarse", and the largest threshold satisfying it is the most
-  # collapsing this can safely do.
+  position <- match(times, distinct)
+  members <- vector("list", n)
+  observed_at <- split(subject_index, position)
+  for (name in names(observed_at)) {
+    members[[as.integer(name)]] <- unique(observed_at[[name]])
+  }
+
+  # Disjoint subject sets are not enough on their own. An outlier's lone
+  # observation at hour 500 shares no subject with the hour-4 visit, so nothing
+  # would stop the two merging and dragging every hour-4 observation to their
+  # common mean. A cell is meant to be one visit, and two visits of a typical
+  # subject sit a typical spacing apart, so no boundary wider than that can be
+  # internal to a visit.
   #
-  # A fixed fraction of the smallest within-subject gap was tried first and is
-  # far too conservative: one subject anywhere with a tightly spaced pair drags
-  # the threshold to near zero and nothing merges at all, which
-  # `scripts/measure_skeleton_uniqueness.R` shows plainly on the public
-  # datasets. Searching for the constraint boundary is immune to that, because
-  # one tight pair only pins the cells around itself.
-  pairs <- unique(data.frame(subject = subject_index, time = times,
-                             stringsAsFactors = FALSE))
-  preserves_visits <- function(threshold) {
-    cluster <- cumsum(c(TRUE, diff(distinct) > threshold))
-    !anyDuplicated(data.frame(
-      subject = pairs$subject,
-      cell = cluster[match(pairs$time, distinct)],
-      stringsAsFactors = FALSE
-    ))
+  # The median, deliberately, not the minimum. A minimum is hostage to the
+  # tightest pair of samples anywhere in the study -- the same fragility that
+  # made a global threshold useless -- and this guard does not need to be tight.
+  # Distinguishing adjacent visits is the subject-disjointness check's job; all
+  # this has to do is refuse the absurd.
+  spacing <- unlist(lapply(split(times, subject_index), function(v) {
+    diff(sort(unique(v)))
+  }), use.names = FALSE)
+  spacing <- spacing[is.finite(spacing) & spacing > 0]
+  widest <- if (length(spacing)) stats::median(spacing) else Inf
+
+  # Union-find over cells. Merges are only ever between neighbours, so cells
+  # stay contiguous runs of `distinct` and the roots need no ordering.
+  parent <- seq_len(n)
+  root <- function(i) {
+    while (parent[i] != i) i <- parent[i]
+    i
   }
-  candidates <- sort(unique(diff(distinct)))
-  candidates <- candidates[candidates > 0]
-  if (!length(candidates)) return(distinct)
-  # Binary search the largest candidate that still preserves visit counts. Cells
-  # only ever merge as the threshold grows, so validity is monotone in it.
-  low <- 0L
-  high <- length(candidates)
-  while (low < high) {
-    middle <- (low + high + 1L) %/% 2L
-    if (preserves_visits(candidates[middle])) low <- middle else high <- middle - 1L
+
+  gaps <- diff(distinct)
+  for (boundary in order(gaps)) {
+    left <- root(boundary)
+    right <- root(boundary + 1L)
+    if (left == right) next
+    # Blocked boundaries stay blocked: cells only grow, so two that share a
+    # subject now will still share one later. No need to revisit.
+    if (length(intersect(members[[left]], members[[right]]))) next
+    if (gaps[boundary] > widest) next
+    parent[right] <- left
+    members[[left]] <- c(members[[left]], members[[right]])
+    # `members[[right]] <- NULL` would *delete* the element and shift every
+    # index after it; the cell is unreachable now, so empty it in place.
+    members[right] <- list(NULL)
   }
-  if (low == 0L) return(distinct)
-  cluster <- cumsum(c(TRUE, diff(distinct) > candidates[low]))
-  if (max(cluster) == length(distinct)) return(distinct)
+
+  cell <- vapply(seq_len(n), root, integer(1))
+  if (length(unique(cell)) == n) return(distinct)
   # Centre each visit on the mean of the times actually recorded there, so a
   # visit sampled by many patients is not pulled by a sparse neighbour.
-  member <- cluster[match(times, distinct)]
-  as.numeric(tapply(times, member, mean))
+  as.numeric(tapply(times, cell[position], mean))
 }
 
 # Collapse every subject onto a shared visit grid, and keep the deviations that
@@ -877,17 +902,36 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # is a silent one, and a caller who asked for `coarsen_time` and did not get
     # it should hear so rather than infer it from the absence of an alert.
     if (coarsen_time) {
-      still_alone <- sum(skeleton_uniqueness(source, source_roles)$alone)
-      if (still_alone > 0L) {
+      exposure <- skeleton_uniqueness(source, source_roles)
+      still_alone <- sum(exposure$alone)
+      # Two causes, opposite remedies, so the alert has to say which. A subject
+      # observed at a moment nobody else was is a grid failure -- declaring
+      # `nominal_time` fixes it. A subject whose every time is shared and whose
+      # *attendance pattern* is unique is dropout, and no grid however fine or
+      # coarse touches that; it is the outlier screen's problem.
+      unshared <- sum(exposure$min_time_share == 1L, na.rm = TRUE)
+      pattern_only <- max(still_alone - unshared, 0L)
+      if (unshared > 0L) {
         .loud_warn(sprintf(
-          paste0("`coarsen_time = TRUE` left %d of %d source subject%s holding ",
-                 "the only copy of its observation schedule, so an avatar ",
-                 "anchored there still carries an identifying visit pattern. ",
+          paste0("`coarsen_time = TRUE` left %d of %d source subject%s observed ",
+                 "at a moment no other subject shares, so the grid could not ",
+                 "hide the schedule and an avatar anchored there carries it. ",
                  "Declare a `nominal_time` role to snap to the protocol grid ",
                  "exactly; `scripts/measure_skeleton_uniqueness.R` shows what ",
                  "the grid did and did not collapse."),
-          still_alone, length(subjects),
-          if (still_alone == 1L) "" else "s"
+          unshared, length(subjects), if (unshared == 1L) "" else "s"
+        ))
+      }
+      if (pattern_only > 0L) {
+        .loud_warn(sprintf(
+          paste0("%d of %d source subject%s share every observation time with ",
+                 "others but hold a unique *pattern* of which visits were ",
+                 "attended -- dropout, discontinuation, or missed visits. ",
+                 "Coarsening cannot change this, because the times are already ",
+                 "shared. Screen those subjects with ",
+                 "`flag_identifiable_subjects()` and ",
+                 "`remediate_identifiable_subjects()` if the pattern matters."),
+          pattern_only, length(subjects), if (pattern_only == 1L) "" else "s"
         ))
       }
     }

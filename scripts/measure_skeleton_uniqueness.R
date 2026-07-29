@@ -12,9 +12,15 @@
 # produced for a real study under scripts_private/. It reports three classes,
 # because they behave differently and only one of them is coarsening's job:
 #
-#   obs_time_alone  the observation time vector is shared with nobody. What
-#                   coarsening collapses. Expect ~100% under actual recorded
-#                   times and ~0% under nominal ones.
+#   obs_time_alone  the observation time vector is shared with nobody. It
+#                   splits into two causes with opposite remedies:
+#     unshared_time   the subject was observed at a moment nobody else was, so
+#                     no grid can hide it. THIS is what coarsening drives to
+#                     zero, and on every public dataset it does.
+#     pattern_only    every individual time is shared; only the pattern of which
+#                     visits were attended is unique. Coarsening cannot touch
+#                     this and no amount of grid tuning will -- it is dropout,
+#                     and it belongs to the outlier screen.
 #   n_obs_alone     the observation *count* is shared with nobody. Coarsening
 #                   cannot change a count, so this is the residual it leaves --
 #                   dropout, discontinuation, missed visits -- and it is the
@@ -24,11 +30,11 @@
 #                   dosing makes this unique regardless of schedule, and
 #                   coarsening does not change it either.
 #
-# Reading it: a dataset where obs_time_alone falls to zero after coarsening and
-# n_obs_alone is already low is fully served by the default. One where
-# n_obs_alone stays high needs the screen as well. One where obs_time_alone
-# stays high after coarsening has near-coincident samples that defeated the grid
-# threshold, and should be inspected rather than trusted.
+# Reading it: `unshared_time` falling to zero means the grid did its whole job.
+# A nonzero `unshared_time` after coarsening is the case to investigate -- the
+# cohort holds one-off visit times, and declaring a `nominal_time` role is the
+# fix. A high `pattern_only` is not a coarsening failure at all; it is dropout,
+# and the remedy is `flag_identifiable_subjects()`.
 #
 # Run with:  Rscript scripts/measure_skeleton_uniqueness.R
 
@@ -61,9 +67,10 @@ summarize <- function(data, roles, label, stage) {
     stage = stage,
     subjects = n,
     obs_time_alone = attr(report, "n_alone"),
+    unshared_time = attr(report, "n_unshared_time"),
+    pattern_only = attr(report, "n_alone") - attr(report, "n_unshared_time"),
     n_obs_alone = attr(report, "n_alone_n_obs"),
     signature_alone = attr(report, "n_alone_signature"),
-    pct_obs_time_alone = round(100 * attr(report, "n_alone") / n, 1),
     smallest_class = attr(report, "min_class"),
     stringsAsFactors = FALSE
   )
@@ -144,9 +151,10 @@ cat("==================================================\n\n")
 print(report, row.names = FALSE)
 
 cat("\nColumns count subjects that are ALONE in the named class.\n")
-cat("obs_time_alone is what coarsening collapses; n_obs_alone is the residual\n")
-cat("left for flag_identifiable_subjects(); signature_alone is dose structure\n")
-cat("and amount, which coarsening does not change.\n")
+cat("obs_time_alone splits into unshared_time (a moment nobody else shares --\n")
+cat("the grid's job, and it drives this to zero) and pattern_only (which visits\n")
+cat("were attended -- dropout, which no grid can touch). n_obs_alone and\n")
+cat("signature_alone are likewise outside coarsening's reach.\n")
 cat("\nSource-derived. Not releasable unless the source is separately public.\n")
 
 invisible(report)
