@@ -77,6 +77,20 @@
   group is what lets a multi-level study be recognised as weight-based within
   each level. It is **not** a blending barrier; only route of administration is.
 
+* `validate_pmx()` no longer refuses a `nominal_time` column with gaps. Missing
+  nominal times are ordinary — an unscheduled visit has no protocol slot — and
+  `synpmx_avatar()` already handles them row by row, snapping what has one and
+  falling back to the inferred grid for the rest (reported as the `"mixed"`
+  grid). A wholly missing column is still an error, since the role should just be
+  left undeclared.
+
+* `subject_properties` may now be missing for some subjects. They are grouped as
+  their own stratum and the check reports a warning instead of an error. A column
+  that *varies* within a subject is still an error: it cannot be that subject's
+  assignment. A declared column that does not exist in the data remains fatal and
+  names itself, because only role-named columns survive generation and silently
+  skipping one would drop data on a typo.
+
 * `time_jitter` is documented as a realism control rather than a privacy one.
   Every jittered time is clamped inside its own Voronoi cell, so no value of
   `time_jitter` moves a visit more than half a gap from the source subject's

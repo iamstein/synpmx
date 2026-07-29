@@ -22,7 +22,9 @@
 #' @param covariates Baseline covariate column names, or `NULL`.
 #' @param subject_properties Treatment arm, dose group, cohort — any **assigned,
 #'   subject-level stratum**, as opposed to a measured characteristic, which is a
-#'   `covariate`. Must be complete and constant within subject. Several columns
+#'   `covariate`. Must be constant within subject; subjects with no recorded
+#'   value are grouped as their own stratum, with a warning rather than an
+#'   error. Several columns
 #'   may be named, and their combination defines the stratum.
 #'
 #'   [synpmx_avatar()] carries these verbatim from the subject that supplied the
