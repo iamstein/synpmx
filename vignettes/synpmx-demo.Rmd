@@ -612,6 +612,124 @@ asserts curve shape from a public structural model and privately calibrates only
 the magnitude, is the better choice at this cohort size; the introduction
 vignette runs it on this same dataset.
 
+## How well did the obfuscation work?
+
+Everything above shows that the synthetic data *looks* right. This section asks
+the other question: how much of each real patient is still visible in it?
+
+### What is being counted, and why
+
+`synpmx_avatar()` blends every avatar's **measurements** from at least five real
+donors, so no single patient's numbers survive. But it copies the **event
+skeleton** — the pattern of when that patient was dosed and sampled — verbatim
+from one real anchor. Blending never touches it.
+
+So the question that matters is: **does any real subject have a visit schedule
+that no other subject in the cohort shares?** If yes, an avatar built on that
+subject wears a schedule belonging to exactly one real person, however carefully
+their concentrations were blended. Call such a subject **alone**.
+
+`skeleton_uniqueness()` counts them, and `coarsen_time = TRUE` (the default) is
+the mechanism that tries to fix it, by snapping every subject onto a shared visit
+grid before any avatar is built. A subject can end up alone for two reasons, and
+they have different answers:
+
+- **Seen at a unique moment.** The subject was observed at a time no other
+  subject was observed at all — a one-off visit. The grid is supposed to absorb
+  this by pulling nearby times together, so a nonzero count here means the
+  inferred grid could not find a shared schedule. **The fix is to declare a
+  `nominal_time` role**, which snaps to the real protocol grid instead of a
+  guessed one.
+- **Unique pattern of visits.** Every one of the subject's times is shared with
+  somebody — but the particular *combination* they attended is theirs alone.
+  This is dropout, early discontinuation, or a missed sample. **No grid can fix
+  it**, however fine or coarse, because the times are already shared. Only
+  dropping or remediating the subject helps.
+
+```{r exposure-table, eval=has_nlmixr2data}
+exposure_row <- function(label, source, roles, synthetic) {
+  before <- skeleton_uniqueness(source, roles)
+  after <- attr(synthetic, "pmx_settings")
+  data.frame(
+    Dataset = label,
+    Subjects = nrow(before),
+    `Alone before` = attr(before, "n_alone"),
+    `Alone after` = after$exposure_alone,
+    `Unique moment` = after$exposure_unique_moment,
+    `Unique pattern` = after$exposure_unique_pattern,
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+exposure <- rbind(
+  exposure_row("theo_md", theo_md, theo_roles, theo_synth),
+  exposure_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
+  exposure_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
+  exposure_row("nimoData", nimoData, nimo_roles, nimo_synth),
+  exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth)
+)
+knitr::kable(
+  exposure,
+  caption = paste(
+    "Source subjects holding a visit schedule no other subject shares,",
+    "before and after time coarsening. The last two columns split the",
+    "'after' count by cause."
+  )
+)
+```
+
+### Reading the table
+
+**"Alone after" is the number of patients you would consider dropping**, and the
+last two columns say why — which decides whether dropping is even the right
+response.
+
+- **`theo_md` — nothing to do.** All twelve subjects start out alone, because
+  their sampling times are recorded to the minute and no two patients were
+  bled at exactly the same moment. Coarsening pulls those onto a shared grid and
+  the count goes to zero. This is the mechanism working exactly as intended.
+- **`warfarin` — consider dropping 12 of 32, but the reason matters.** Only two
+  are alone because of a unique moment; the other ten share every one of their
+  times and are alone purely on *which* visits they attended. Warfarin has
+  subjects with 13, 14, 16, 17, 18, 19 and 25 observations, and the rarer counts
+  single those subjects out. Coarsening cannot help them.
+- **`wbcSim` — 17 of 45, split 6 and 11.** The six unique-moment subjects are
+  the ones to look at first; declaring a nominal-time column would likely clear
+  them.
+- **`nimoData` — 12 of 12, and coarsening achieved nothing.** All twelve are
+  alone on a unique moment. This is a genuine failure of the inferred grid: with
+  ten roughly-weekly infusions per subject over a long follow-up, no two
+  subjects were ever dosed or sampled close enough together for the grid to
+  merge them. This dataset needs `nominal_time` declared, or its avatars should
+  be treated as carrying real visit schedules.
+- **`mavoglurant` — 59 of 120, but only one from a unique moment.** The grid did
+  essentially all it could. The remaining 58 differ in which of the shared
+  visits they attended.
+
+### What to do about it
+
+Dropping 59 of 120 subjects is a real cost, and it is not automatic. Under this
+package's governance model — AVATAR output stays inside the source data's own
+access controls — a unique schedule is a reason for care, not a blocker. The
+sequence worth following is:
+
+1. **Declare `nominal_time` if the study has it.** This is free, and it is the
+   only thing that helps the unique-moment column. On `nimoData` it is the
+   difference between the mechanism working and not working at all.
+2. **Then re-run this table.** If the unique-moment count is at or near zero,
+   the grid has done its whole job and no amount of tuning will improve it.
+3. **Then decide about the pattern column.** These are dropout and missed-visit
+   patterns. `flag_identifiable_subjects()` and
+   `remediate_identifiable_subjects()` can drop or truncate them; whether that
+   is worth the lost cohort size is a judgment about who will see the output.
+
+Two limits to keep in view. This counts *schedules*, not dose amounts — a study
+with weight-based dosing or per-subject titration leaves subjects unique on dose
+regardless of what the grid does, which `skeleton_uniqueness()` reports
+separately as `signature_class`. And none of this bounds what an adversary
+learns; it reduces the ways a real patient can be singled out without limiting
+how often that succeeds. That is what the differentially private modes are for.
+
 ## What is preserved in AVATAR, and what is not
 
 Preserved: schema, column classes, factor levels, cohort size, endpoint set,

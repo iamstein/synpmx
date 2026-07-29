@@ -901,6 +901,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # verbatim skeleton copy stays identifying. That is the safe failure, but it
     # is a silent one, and a caller who asked for `coarsen_time` and did not get
     # it should hear so rather than infer it from the absence of an alert.
+    exposure_alone <- NA_integer_
+    exposure_unique_moment <- NA_integer_
     if (coarsen_time) {
       exposure <- skeleton_uniqueness(source, source_roles)
       still_alone <- sum(exposure$alone)
@@ -911,6 +913,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # coarse touches that; it is the outlier screen's problem.
       unshared <- sum(exposure$min_time_share == 1L, na.rm = TRUE)
       pattern_only <- max(still_alone - unshared, 0L)
+      exposure_alone <- still_alone
+      exposure_unique_moment <- unshared
       if (unshared > 0L) {
         .loud_warn(sprintf(
           paste0("`coarsen_time = TRUE` left %d of %d source subject%s observed ",
@@ -1122,6 +1126,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       time_jitter = time_jitter,
       coarsen_time = coarsen_time,
       time_grid = coarsened$grid,
+      # How many source subjects still hold a schedule nobody else shares, once
+      # coarsening has done what it can, and why. Recorded rather than only
+      # alerted so a report can tabulate it without recomputing.
+      exposure_alone = exposure_alone,
+      exposure_unique_moment = exposure_unique_moment,
+      exposure_unique_pattern = if (is.na(exposure_alone)) NA_integer_ else
+        exposure_alone - exposure_unique_moment,
       time_deviation_sd = if (length(time_deviations)) {
         stats::sd(time_deviations)
       } else 0,
