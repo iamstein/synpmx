@@ -90,6 +90,7 @@ default; the fourth is a measurement you run yourself.
 | 3 | **Coarsening and re-refining time** | The visit schedule | Which visits were attended | `coarsen_time` |
 | 4 | **Dose recomputed from a blended covariate** | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
 | 5 | **Attendance-pattern sampling** | Which visits were attended | Dose events, deliberately | `min_pattern_share` (2) |
+| 7 | **Proximity measurement** | Nothing — it measures | — | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) |
 | 6 | **Skeleton-uniqueness checking** | Nothing — it measures | — | [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md) |
 
 **1. Blending across donors** (Steps 6–9). No avatar’s measurements come
@@ -149,6 +150,17 @@ participant gets at least two candidates, never one. Three is more
 conservative but no more defensible as a sentence, and it costs sharply
 more — see the section on what this loses below.
 
+**7. Measuring how close the values landed**
+([`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md),
+run after generating). The counterpart to mechanism 6, and the
+measurement for mechanism 1: blending protects the *values*, and this
+asks whether they landed too close to somebody real. Each subject’s
+nearest neighbour is either in its own dataset or the other one; under
+the ideal it is a coin flip. The null comes from splitting the source
+cohort in half and running the identical statistic, so small-sample
+artefacts cancel. At pharmacometric cohort sizes that interval is wide —
+it catches a blatant leak, not a subtle one.
+
 **6. Checking for unique event skeletons**
 ([`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md),
 run manually on the **source**, before generating). A measurement, not a
@@ -162,40 +174,65 @@ the public datasets.
 
 ### What sampling the pattern costs
 
-This mechanism does not approximate rare patterns; it **discards** them.
-A dropout or dose-interruption pattern held by fewer than
-`min_pattern_share` patients will not appear in the synthetic data at
-all. That is the mechanism working — it is precisely what stops an
-avatar carrying a schedule traceable to one person — but it is a real
-loss of realism, and one worth quantifying rather than waving at.
+An exact pattern — the precise set of endpoint-and-time cells a subject
+was observed at — is a strict thing to match. Two patients who each
+missed exactly one visit have *different* patterns if they missed
+different visits, so attendance patterns arrive as one common pattern
+and a long tail of singletons, with almost nothing in between.
+`warfarin` after coarsening has 32 subjects across 14 patterns,
+distributed 18, 2, and then twelve patterns of one patient each.
+Matching only exact patterns would therefore discard almost all of them.
 
-Attendance patterns are distributed badly for this. They do not spread
-evenly: there is one common pattern that most patients follow, and then
-a long tail of singletons, with very little in between. `warfarin` after
-coarsening has 32 subjects across 14 patterns, distributed 18, 2, and
-then twelve patterns of one patient each. So the floor bites hard and
-quickly:
+So the pattern is drawn in two stages. First a **shape** — how many
+visits were missed, and how they were arranged:
 
-| `min_pattern_share` | patterns kept | patterns lost | subjects affected | distinct sample counts surviving |
+| shape       | meaning                                                      |
+|-------------|--------------------------------------------------------------|
+| `complete`  | attended everything                                          |
+| `trailing`  | every miss is at the end — dropout or early discontinuation  |
+| `block`     | the misses are contiguous but not terminal — an interruption |
+| `scattered` | anything else                                                |
+
+Two patients who each missed one mid-study visit are the *same shape*
+even when they missed different ones, so together they clear a floor
+neither clears alone. Then, within that shape, a real pattern is reused
+if one clears the floor on its own; only if none does is an arrangement
+generated, by placing the misses on the grid. Generated placements are
+**rejected and redrawn** if they happen to land on a source pattern too
+rare to have been reusable — without that check the guarantee would
+quietly weaken from “no synthetic patient carries a schedule unique to a
+real one” to merely “nothing was copied on purpose”, and an attacker
+cannot tell those apart.
+
+Measured on `warfarin`, which is the hardest of the public sets:
+
+| `min_pattern_share` | patterns lost | patients affected | placements generated | distinct sample counts surviving |
 |----|----|----|----|----|
-| 1 (off) | 14 | 0 | 0 | 6 |
-| **2 (default)** | 2 | 12 | 12 | 2 |
-| 3 | 1 | 13 | 14 | 1 |
+| 1 (off) | 0 | 0 | 0% | 6 |
+| **2 (default)** | **2** | **2** | 28% | 5 |
+| 3 | 6 | 6 | 34% | 3 |
+| 5 | 9 | 9 | 22% | 2 |
 
-At a floor of 3 every avatar becomes a complete attender and the
-cohort’s missingness distribution vanishes entirely. At 2 it survives,
-barely. This is why the default is 2 rather than something rounder: the
-marginal privacy gain from 3 is small and hard to state, while the
-marginal cost is most of what is left.
+The source has six distinct sample counts; the default keeps five.
+Matching exact patterns alone would have kept two. Most avatars still
+receive a real pattern — the generated column is the minority — because
+generation is a fallback, not the mechanism.
 
-Because the cost is real, **every run reports it** — a loud alert naming
+What is genuinely lost is *resolution*. The output keeps how much
+missingness there was and what kind, and loses which specific visits
+each patient missed. For developing code against realistic-looking data
+that is the right trade; for studying visit-specific dropout it is not.
+
+Because the loss is real, **every run reports it**: a loud alert naming
 how many source patterns were excluded and how many patients held them,
-and the same figures as `patterns_dropped` and
-`subjects_with_dropped_pattern` in `attr(x, "pmx_settings")`. Read those
-before accepting the default on a study whose dose interruptions matter.
-Lower the floor to keep more; `1` disables the mechanism entirely and
-restores copying each anchor’s own pattern, at the cost of the guarantee
-above.
+and the same figures as `patterns_total`, `patterns_dropped` and
+`subjects_with_dropped_pattern` in `attr(x, "pmx_settings")`, alongside
+`pattern_generated_fraction` for how often an arrangement had to be
+invented. Note that at the default floor a discarded pattern is by
+definition held by exactly one patient, so the lost and affected counts
+agree; they diverge only at 3 or more. Lower the floor to keep more; `1`
+disables the mechanism and restores copying each anchor’s own pattern,
+giving up the guarantee above.
 
 ### What the six leave uncovered
 
@@ -1332,8 +1369,8 @@ the exact pre-noise blend used by the implementation.
     #> times are already shared. Screen those subjects with
     #> `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the
     #> pattern matters.
-    #> SYNPMX ALERT: 3 source attendance pattern(s), held by 3 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
-    #> Warning: 3 source attendance pattern(s), held by 3 subject(s), were not shared
+    #> SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> Warning: 1 source attendance pattern(s), held by 1 subject(s), were not shared
     #> by 2 or more patients and so will not appear in the synthetic data. These are
     #> real dropout and dose-interruption patterns, and losing them is what stops an
     #> avatar carrying a schedule traceable to one patient. To keep more of them,
@@ -1344,9 +1381,9 @@ the exact pre-noise blend used by the implementation.
 | anchor_TIME | donor_4_z | donor_3_z | donor_6_z | donor_1_z | donor_2_z | blended_z | deterministic_DV | final_synthetic_DV |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.259 | 9.360 | 7.626 |
-| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 4.365 |
-| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 2.139 |
-| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 0.392 |
+| 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 5.702 |
+| 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 1.781 |
+| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 0.344 |
 
 Interpolation and blending for the anchor endpoint; z is the endpoint
 working scale {.table style="width:100%;"}
@@ -1365,9 +1402,9 @@ knitr::kable(worked_synthetic, digits = 3)
 |----:|------:|------:|----:|-----:|----:|----:|-------:|:-----|
 |   7 | 0.000 | 0.000 | 100 |    1 |   1 |   1 | 74.968 | male |
 |   7 | 0.467 | 7.626 |   0 |    0 |   2 |   0 | 74.968 | male |
-|   7 | 1.250 | 4.365 |   0 |    0 |   2 |   0 | 74.968 | male |
-|   7 | 2.667 | 2.139 |   0 |    0 |   2 |   0 | 74.968 | male |
-|   7 | 5.333 | 0.392 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 0.858 | 5.702 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 3.000 | 1.781 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 5.783 | 0.344 |   0 |    0 |   2 |   0 | 74.968 | male |
 
 The result records enough settings to audit the public generator call:
 

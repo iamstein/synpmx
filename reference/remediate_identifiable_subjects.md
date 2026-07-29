@@ -113,5 +113,5 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 cleaned <- remediate_identifiable_subjects(synthetic, roles, source = data)
-#> remediate_identifiable_subjects(): dropped 0, truncated 0.
+#> remediate_identifiable_subjects(): dropped 1, truncated 0, replaced 1.
 ```

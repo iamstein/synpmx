@@ -178,9 +178,12 @@ synpmx_avatar(
   it is what stops an avatar carrying a schedule traceable to one
   person. Because it is a real cost to the data's realism, every run
   reports it: the number of source patterns excluded and how many
-  subjects held them, both as a loud alert and as `patterns_dropped` /
-  `subjects_with_dropped_pattern` in the settings. Check those before
-  deciding the default suits your study.
+  subjects held them, both as a loud alert and as `patterns_total`,
+  `patterns_dropped` and `subjects_with_dropped_pattern` in the
+  settings, alongside `pattern_generated_fraction` for how often an
+  arrangement had to be invented. What survives is how much missingness
+  there was and of what kind; what is lost is which specific visits.
+  Check those figures before deciding the default suits your study.
 
 - max_donor_weight:
 

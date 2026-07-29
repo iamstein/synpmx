@@ -223,6 +223,13 @@ default; the fourth is a measurement you run yourself.</p>
 <code>min_pattern_share</code> (2)</td>
 </tr>
 <tr class="even">
+<td>7</td>
+<td><strong>Proximity measurement</strong></td>
+<td>Nothing — it measures</td>
+<td>—</td>
+<td><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code></td>
+</tr>
+<tr class="odd">
 <td>6</td>
 <td><strong>Skeleton-uniqueness checking</strong></td>
 <td>Nothing — it measures</td>
@@ -284,6 +291,16 @@ unique to a real patient.</strong> An attacker who links a reproduced
 pattern to a participant gets at least two candidates, never one. Three
 is more conservative but no more defensible as a sentence, and it costs
 sharply more — see the section on what this loses below.</p>
+<p><strong>7. Measuring how close the values landed</strong>
+(<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code>, run after generating). The
+counterpart to mechanism 6, and the measurement for mechanism 1:
+blending protects the <em>values</em>, and this asks whether they landed
+too close to somebody real. Each subject’s nearest neighbour is either
+in its own dataset or the other one; under the ideal it is a coin flip.
+The null comes from splitting the source cohort in half and running the
+identical statistic, so small-sample artefacts cancel. At pharmacometric
+cohort sizes that interval is wide — it catches a blatant leak, not a
+subtle one.</p>
 <p><strong>6. Checking for unique event skeletons</strong>
 (<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code>, run manually on the
 <strong>source</strong>, before generating). A measurement, not a
@@ -297,19 +314,57 @@ runs the before-and-after over the public datasets.</p>
 <div class="section level3">
 <h3 id="what-sampling-the-pattern-costs">What sampling the pattern costs<a class="anchor" aria-label="anchor" href="#what-sampling-the-pattern-costs"></a>
 </h3>
-<p>This mechanism does not approximate rare patterns; it
-<strong>discards</strong> them. A dropout or dose-interruption pattern
-held by fewer than <code>min_pattern_share</code> patients will not
-appear in the synthetic data at all. That is the mechanism working — it
-is precisely what stops an avatar carrying a schedule traceable to one
-person — but it is a real loss of realism, and one worth quantifying
-rather than waving at.</p>
-<p>Attendance patterns are distributed badly for this. They do not
-spread evenly: there is one common pattern that most patients follow,
-and then a long tail of singletons, with very little in between.
+<p>An exact pattern — the precise set of endpoint-and-time cells a
+subject was observed at — is a strict thing to match. Two patients who
+each missed exactly one visit have <em>different</em> patterns if they
+missed different visits, so attendance patterns arrive as one common
+pattern and a long tail of singletons, with almost nothing in between.
 <code>warfarin</code> after coarsening has 32 subjects across 14
 patterns, distributed 18, 2, and then twelve patterns of one patient
-each. So the floor bites hard and quickly:</p>
+each. Matching only exact patterns would therefore discard almost all of
+them.</p>
+<p>So the pattern is drawn in two stages. First a <strong>shape</strong>
+— how many visits were missed, and how they were arranged:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>shape</th>
+<th>meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>complete</code></td>
+<td>attended everything</td>
+</tr>
+<tr class="even">
+<td><code>trailing</code></td>
+<td>every miss is at the end — dropout or early discontinuation</td>
+</tr>
+<tr class="odd">
+<td><code>block</code></td>
+<td>the misses are contiguous but not terminal — an interruption</td>
+</tr>
+<tr class="even">
+<td><code>scattered</code></td>
+<td>anything else</td>
+</tr>
+</tbody>
+</table>
+<p>Two patients who each missed one mid-study visit are the <em>same
+shape</em> even when they missed different ones, so together they clear
+a floor neither clears alone. Then, within that shape, a real pattern is
+reused if one clears the floor on its own; only if none does is an
+arrangement generated, by placing the misses on the grid. Generated
+placements are <strong>rejected and redrawn</strong> if they happen to
+land on a source pattern too rare to have been reusable — without that
+check the guarantee would quietly weaken from “no synthetic patient
+carries a schedule unique to a real one” to merely “nothing was copied
+on purpose”, and an attacker cannot tell those apart.</p>
+<p>Measured on <code>warfarin</code>, which is the hardest of the public
+sets:</p>
 <table class="table">
 <colgroup>
 <col width="20%">
@@ -320,50 +375,63 @@ each. So the floor bites hard and quickly:</p>
 </colgroup>
 <thead><tr class="header">
 <th><code>min_pattern_share</code></th>
-<th>patterns kept</th>
 <th>patterns lost</th>
-<th>subjects affected</th>
+<th>patients affected</th>
+<th>placements generated</th>
 <th>distinct sample counts surviving</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>1 (off)</td>
-<td>14</td>
 <td>0</td>
 <td>0</td>
+<td>0%</td>
 <td>6</td>
 </tr>
 <tr class="even">
 <td><strong>2 (default)</strong></td>
-<td>2</td>
-<td>12</td>
-<td>12</td>
-<td>2</td>
+<td><strong>2</strong></td>
+<td><strong>2</strong></td>
+<td>28%</td>
+<td>5</td>
 </tr>
 <tr class="odd">
 <td>3</td>
-<td>1</td>
-<td>13</td>
-<td>14</td>
-<td>1</td>
+<td>6</td>
+<td>6</td>
+<td>34%</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>9</td>
+<td>9</td>
+<td>22%</td>
+<td>2</td>
 </tr>
 </tbody>
 </table>
-<p>At a floor of 3 every avatar becomes a complete attender and the
-cohort’s missingness distribution vanishes entirely. At 2 it survives,
-barely. This is why the default is 2 rather than something rounder: the
-marginal privacy gain from 3 is small and hard to state, while the
-marginal cost is most of what is left.</p>
-<p>Because the cost is real, <strong>every run reports it</strong> — a
+<p>The source has six distinct sample counts; the default keeps five.
+Matching exact patterns alone would have kept two. Most avatars still
+receive a real pattern — the generated column is the minority — because
+generation is a fallback, not the mechanism.</p>
+<p>What is genuinely lost is <em>resolution</em>. The output keeps how
+much missingness there was and what kind, and loses which specific
+visits each patient missed. For developing code against
+realistic-looking data that is the right trade; for studying
+visit-specific dropout it is not.</p>
+<p>Because the loss is real, <strong>every run reports it</strong>: a
 loud alert naming how many source patterns were excluded and how many
-patients held them, and the same figures as
+patients held them, and the same figures as <code>patterns_total</code>,
 <code>patterns_dropped</code> and
 <code>subjects_with_dropped_pattern</code> in
-<code>attr(x, "pmx_settings")</code>. Read those before accepting the
-default on a study whose dose interruptions matter. Lower the floor to
-keep more; <code>1</code> disables the mechanism entirely and restores
-copying each anchor’s own pattern, at the cost of the guarantee
-above.</p>
+<code>attr(x, "pmx_settings")</code>, alongside
+<code>pattern_generated_fraction</code> for how often an arrangement had
+to be invented. Note that at the default floor a discarded pattern is by
+definition held by exactly one patient, so the lost and affected counts
+agree; they diverge only at 3 or more. Lower the floor to keep more;
+<code>1</code> disables the mechanism and restores copying each anchor’s
+own pattern, giving up the guarantee above.</p>
 </div>
 <div class="section level3">
 <h3 id="what-the-six-leave-uncovered">What the six leave uncovered<a class="anchor" aria-label="anchor" href="#what-the-six-leave-uncovered"></a>
@@ -1972,8 +2040,8 @@ table shows the exact pre-noise blend used by the implementation.</p>
 <span><span class="co">#&gt; times are already shared. Screen those subjects with</span></span>
 <span><span class="co">#&gt; `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the</span></span>
 <span><span class="co">#&gt; pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 3 source attendance pattern(s), held by 3 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
-<span><span class="co">#&gt; Warning: 3 source attendance pattern(s), held by 3 subject(s), were not shared</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
+<span><span class="co">#&gt; Warning: 1 source attendance pattern(s), held by 1 subject(s), were not shared</span></span>
 <span><span class="co">#&gt; by 2 or more patients and so will not appear in the synthetic data. These are</span></span>
 <span><span class="co">#&gt; real dropout and dose-interruption patterns, and losing them is what stops an</span></span>
 <span><span class="co">#&gt; avatar carrying a schedule traceable to one patient. To keep more of them,</span></span>
@@ -2026,7 +2094,7 @@ endpoint working scale</caption>
 <td align="right">1.591</td>
 <td align="right">1.843</td>
 <td align="right">6.100</td>
-<td align="right">4.365</td>
+<td align="right">5.702</td>
 </tr>
 <tr class="odd">
 <td align="right">2.8</td>
@@ -2037,7 +2105,7 @@ endpoint working scale</caption>
 <td align="right">0.886</td>
 <td align="right">1.142</td>
 <td align="right">2.919</td>
-<td align="right">2.139</td>
+<td align="right">1.781</td>
 </tr>
 <tr class="even">
 <td align="right">4.5</td>
@@ -2048,7 +2116,7 @@ endpoint working scale</caption>
 <td align="right">0.172</td>
 <td align="right">0.418</td>
 <td align="right">1.304</td>
-<td align="right">0.392</td>
+<td align="right">0.344</td>
 </tr>
 </tbody>
 </table>
@@ -2095,8 +2163,8 @@ synthesized covariates can be inspected directly:</p>
 </tr>
 <tr class="odd">
 <td align="right">7</td>
-<td align="right">1.250</td>
-<td align="right">4.365</td>
+<td align="right">0.858</td>
+<td align="right">5.702</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
@@ -2106,8 +2174,8 @@ synthesized covariates can be inspected directly:</p>
 </tr>
 <tr class="even">
 <td align="right">7</td>
-<td align="right">2.667</td>
-<td align="right">2.139</td>
+<td align="right">3.000</td>
+<td align="right">1.781</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
@@ -2117,8 +2185,8 @@ synthesized covariates can be inspected directly:</p>
 </tr>
 <tr class="odd">
 <td align="right">7</td>
-<td align="right">5.333</td>
-<td align="right">0.392</td>
+<td align="right">5.783</td>
+<td align="right">0.344</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>

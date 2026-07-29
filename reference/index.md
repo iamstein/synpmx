@@ -115,6 +115,9 @@ Structural checks on generated data, and restricted comparisons.
 - [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
   : Score how many subjects share each subject's event skeleton
 
+- [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
+  : Are synthetic subjects sitting too close to real ones?
+
 - [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
   : Flag structurally unusual – and so easily identifiable – subjects
 

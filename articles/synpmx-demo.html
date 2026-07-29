@@ -493,7 +493,7 @@ access controls.</p>
 <code class="sourceCode R"><span><span class="va">theo_dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">theo_dist</span><span class="op">$</span><span class="va">endpoints</span>, digits <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Concentration distribution, source versus synthetic"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<table style="width:100%;" class="table">
 <caption>Concentration distribution, source versus synthetic</caption>
 <colgroup>
 <col width="12%">
@@ -501,7 +501,7 @@ access controls.</p>
 <col width="5%">
 <col width="15%">
 <col width="6%">
-<col width="5%">
+<col width="6%">
 <col width="8%">
 <col width="6%">
 <col width="9%">
@@ -528,7 +528,7 @@ access controls.</p>
 <td align="right">264</td>
 <td align="right">12</td>
 <td align="right">5.53</td>
-<td align="right">3.0</td>
+<td align="right">3.00</td>
 <td align="right">-1.13</td>
 <td align="right">3.30</td>
 <td align="right">5.74</td>
@@ -540,13 +540,13 @@ access controls.</p>
 <td align="left">synthetic</td>
 <td align="right">264</td>
 <td align="right">12</td>
-<td align="right">5.58</td>
-<td align="right">3.1</td>
+<td align="right">5.03</td>
+<td align="right">2.63</td>
 <td align="right">0.00</td>
-<td align="right">3.34</td>
-<td align="right">5.68</td>
-<td align="right">7.86</td>
-<td align="right">13.08</td>
+<td align="right">3.38</td>
+<td align="right">5.23</td>
+<td align="right">6.75</td>
+<td align="right">11.77</td>
 </tr>
 </tbody>
 </table>
@@ -588,7 +588,7 @@ access controls.</p>
 <td align="right">9.50</td>
 <td align="right">54.60</td>
 <td align="right">63.57</td>
-<td align="right">70.50</td>
+<td align="right">70.5</td>
 <td align="right">74.43</td>
 <td align="right">86.40</td>
 </tr>
@@ -596,13 +596,13 @@ access controls.</p>
 <td align="left">WT</td>
 <td align="left">synthetic</td>
 <td align="right">12</td>
-<td align="right">67.53</td>
-<td align="right">3.89</td>
-<td align="right">62.46</td>
-<td align="right">63.17</td>
-<td align="right">67.41</td>
-<td align="right">71.22</td>
-<td align="right">73.12</td>
+<td align="right">68.53</td>
+<td align="right">5.18</td>
+<td align="right">58.23</td>
+<td align="right">65.50</td>
+<td align="right">69.7</td>
+<td align="right">71.69</td>
+<td align="right">77.08</td>
 </tr>
 </tbody>
 </table>
@@ -685,14 +685,14 @@ Both endpoints and all subjects are retained.</p>
 <span><span class="co">#&gt; times are already shared. Screen those subjects with</span></span>
 <span><span class="co">#&gt; `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the</span></span>
 <span><span class="co">#&gt; pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 12 source attendance pattern(s), held by 12 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
-<span><span class="co">#&gt; Warning: 12 source attendance pattern(s), held by 12 subject(s), were not</span></span>
-<span><span class="co">#&gt; shared by 2 or more patients and so will not appear in the synthetic data.</span></span>
-<span><span class="co">#&gt; These are real dropout and dose-interruption patterns, and losing them is what</span></span>
-<span><span class="co">#&gt; stops an avatar carrying a schedule traceable to one patient. To keep more of</span></span>
-<span><span class="co">#&gt; them, lower `min_pattern_share` (2 means no synthetic patient carries a</span></span>
-<span><span class="co">#&gt; schedule unique to a real one); `1` disables the mechanism and copies each</span></span>
-<span><span class="co">#&gt; anchor's own pattern.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
+<span><span class="co">#&gt; Warning: 2 source attendance pattern(s), held by 2 subject(s), were not shared</span></span>
+<span><span class="co">#&gt; by 2 or more patients and so will not appear in the synthetic data. These are</span></span>
+<span><span class="co">#&gt; real dropout and dose-interruption patterns, and losing them is what stops an</span></span>
+<span><span class="co">#&gt; avatar carrying a schedule traceable to one patient. To keep more of them,</span></span>
+<span><span class="co">#&gt; lower `min_pattern_share` (2 means no synthetic patient carries a schedule</span></span>
+<span><span class="co">#&gt; unique to a real one); `1` disables the mechanism and copies each anchor's own</span></span>
+<span><span class="co">#&gt; pattern.</span></span>
 <span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
 <span><span class="co">#&gt; - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
@@ -715,7 +715,7 @@ privacy guarantee; ordinary long follow-ups are kept, and
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 6 of 45 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: 11 of 45 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 17 source attendance pattern(s), held by 17 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 4 source attendance pattern(s), held by 4 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
@@ -730,8 +730,7 @@ undeclared, so AVATAR drops it.</p>
 <pre><code><span><span class="co">#&gt; synpmx_avatar(): dropped 1 undeclared column(s): WGT.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 12 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 12 source attendance pattern(s), held by 12 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: no attendance pattern is shared by 2 or more subjects in 1 of 1 group(s), covering 12 subject(s), so avatars anchored there keep their anchor's own pattern of attended visits -- which is what `min_pattern_share` exists to avoid reproducing. Lower `min_pattern_share`, or declare a `nominal_time` role so coarsening can put more subjects on the same visits.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
@@ -745,7 +744,7 @@ whole event template from one anchor, so <code>DOSE</code> stays
 coherent with the doses when carried through with <code>keep</code>.</p>
 <pre><code><span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 54 source attendance pattern(s), held by 54 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
@@ -1028,32 +1027,32 @@ counts those too rare to be reused.</caption>
 <td align="left">warfarin</td>
 <td align="right">32</td>
 <td align="right">14</td>
-<td align="right">12</td>
-<td align="right">12</td>
+<td align="right">2</td>
+<td align="right">2</td>
 <td align="left">wt</td>
 </tr>
 <tr class="odd">
 <td align="left">wbcSim</td>
 <td align="right">45</td>
 <td align="right">25</td>
-<td align="right">17</td>
-<td align="right">17</td>
+<td align="right">4</td>
+<td align="right">4</td>
 <td align="left">—</td>
 </tr>
 <tr class="even">
 <td align="left">nimoData</td>
 <td align="right">12</td>
 <td align="right">12</td>
-<td align="right">12</td>
-<td align="right">12</td>
+<td align="right">2</td>
+<td align="right">2</td>
 <td align="left">—</td>
 </tr>
 <tr class="odd">
 <td align="left">mavoglurant</td>
 <td align="right">120</td>
 <td align="right">64</td>
-<td align="right">54</td>
-<td align="right">54</td>
+<td align="right">1</td>
+<td align="right">1</td>
 <td align="left">—</td>
 </tr>
 </tbody>
@@ -1087,16 +1086,103 @@ that one real patient holds would reproduce that patient’s schedule, so
 nothing short of exact matching would support the claim. The cost is
 that the definition cannot see that “missed one visit, early” and
 “missed one visit, late” are the same <em>kind</em> of event.</p>
-<p>A looser definition would recover much of the loss. Describing a
-pattern by its <em>shape</em> — how many visits were missed, and whether
-the misses were consecutive — would put both of those patients in one
-group, giving it two holders where the strict definition gives two
-groups of one. The synthetic patient’s misses would then be placed
-rather than copied, so some would land at clinically odd points, but
-dropout would survive as a phenomenon instead of being discarded. That
-is not built; it is recorded in <code>design/TODO.md</code> as the thing
-to do if a real study turns out to look like <code>warfarin</code>
-rather than like <code>theo_md</code>.</p>
+<p>That is why the draw is two-stage. A <strong>shape</strong> is chosen
+first — how many visits were missed, and whether the misses were
+terminal (dropout), contiguous (an interruption), or scattered — and
+both of those patients share one. Within the shape a real pattern is
+reused if one clears the floor; only otherwise is an arrangement
+generated, and a generated one is rejected and redrawn if it happens to
+land on a pattern too rare to have been reusable. On
+<code>warfarin</code> that takes the loss from 12 patterns to the 2
+shown above.</p>
+<p>What remains lost is <em>resolution</em>: how much missingness there
+was and what kind survive; which specific visits each patient missed
+does not.</p>
+</div>
+<div class="section level3">
+<h3 id="and-how-close-the-values-landed">And how close the values landed<a class="anchor" aria-label="anchor" href="#and-how-close-the-values-landed"></a>
+</h3>
+<p>Everything above concerns <em>structure</em>. Blending is the
+mechanism that protects the <strong>values</strong>, and
+<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> is its measurement: it asks whether
+each subject’s nearest neighbour lies in its own dataset or the other
+one. Near 0.5 means a synthetic subject is no more like a real subject
+than one real subject is like another, which is the target; toward 0
+means memorisation.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">proximity_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    Dataset <span class="op">=</span> <span class="va">label</span>,</span>
+<span>    `Adversarial accuracy` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">report</span><span class="op">$</span><span class="va">adversarial_accuracy</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>    `Null lower` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">report</span><span class="op">$</span><span class="va">null_lower</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>    `Null upper` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">report</span><span class="op">$</span><span class="va">null_upper</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>    `Per side` <span class="op">=</span> <span class="va">report</span><span class="op">$</span><span class="va">n_compared</span>,</span>
+<span>    check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span>,</span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span>,</span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span>,</span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
+<span>    <span class="st">"Nearest-neighbour adversarial accuracy against a split-half null built"</span>,</span>
+<span>    <span class="st">"from the source cohort itself. 0.5 is the target."</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Nearest-neighbour adversarial accuracy against a split-half
+null built from the source cohort itself. 0.5 is the target.</caption>
+<thead><tr class="header">
+<th align="left">Dataset</th>
+<th align="right">Adversarial accuracy</th>
+<th align="right">Null lower</th>
+<th align="right">Null upper</th>
+<th align="right">Per side</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">theo_md</td>
+<td align="right">0.500</td>
+<td align="right">0.167</td>
+<td align="right">0.773</td>
+<td align="right">6</td>
+</tr>
+<tr class="even">
+<td align="left">warfarin</td>
+<td align="right">0.562</td>
+<td align="right">0.335</td>
+<td align="right">0.750</td>
+<td align="right">16</td>
+</tr>
+<tr class="odd">
+<td align="left">wbcSim</td>
+<td align="right">0.455</td>
+<td align="right">0.341</td>
+<td align="right">0.649</td>
+<td align="right">22</td>
+</tr>
+<tr class="even">
+<td align="left">mavoglurant</td>
+<td align="right">0.617</td>
+<td align="right">0.431</td>
+<td align="right">0.599</td>
+<td align="right">60</td>
+</tr>
+</tbody>
+</table>
+<p>Read the null intervals before the point estimates. They are
+<strong>wide</strong> — these are cohorts of a few dozen, and the
+statistic is built from nearest-neighbour comparisons that are noisy at
+that size. A value inside the interval means <em>nothing was
+detected</em>, not that nothing is there. What it would catch is a
+blatant leak: a synthetic subject sitting on top of a real one drives
+the statistic to zero, which the package’s own regression test confirms
+by handing the function a verbatim copy and requiring it to object.</p>
 </div>
 <div class="section level3">
 <h3 id="reading-the-table">Reading the table<a class="anchor" aria-label="anchor" href="#reading-the-table"></a>
@@ -1191,7 +1277,7 @@ because its inferred grid fails completely. Its design is ten
 roughly-weekly infusions with a declared occasion and time-after-dose,
 so the protocol grid is the occasion number times the nominal interval,
 plus the visit’s nominal time after dose:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
 <span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">168</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span>, <span class="fl">0</span><span class="op">)</span></span>
@@ -1208,7 +1294,7 @@ plus the visit’s nominal time after dose:</p>
 <span><span class="co">#&gt; synpmx_avatar(): dropped 1 undeclared column(s): WGT.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 5 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 5 source attendance pattern(s), held by 5 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">nimo_fixed</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">[</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time_grid"</span>, <span class="st">"exposure_alone"</span>, <span class="st">"exposure_unique_moment"</span><span class="op">)</span></span>
 <span><span class="op">]</span><span class="op">)</span></span>

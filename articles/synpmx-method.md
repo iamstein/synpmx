@@ -104,7 +104,8 @@ it, not on which machine holds it.
 
 AVATAR gives no formal guarantee, so the honest way to describe its
 protection is to list the mechanisms and say what each one does and does
-not cover. There are six, and they are on by default unless noted.
+not cover. There are seven: five run by default, and two are
+measurements you run yourself.
 
 **1. Blending across donors.** No synthetic subject’s measurements come
 from one real patient. Each avatar’s covariates and concentrations are a
@@ -171,12 +172,28 @@ their distinctive absences stop being reproduced. Dose events are never
 sampled, since that could emit a regimen no protocol permits.
 
 The default of 2 states exactly one thing: no synthetic patient carries
-a schedule unique to a real patient. Patterns below the floor are
-*discarded*, not approximated, so real dropout and dose-interruption
-patterns are lost — which is what stops an avatar being traceable, and
-is also a genuine cost to realism. Every run reports how many patterns
-were excluded and how many patients held them, so the trade can be
-judged per study rather than assumed.
+a schedule unique to a real patient. Matching *exact* patterns alone
+would discard almost everything, because two patients who each missed
+one visit count as different patterns if they missed different visits.
+So the draw is two-stage: a **shape** first — how many visits were
+missed and whether the misses were terminal, contiguous, or scattered —
+then a real pattern of that shape if one clears the floor, and only
+otherwise a generated arrangement, which is rejected and redrawn if it
+lands on a pattern too rare to have been reusable. On `warfarin` that
+takes the loss from 12 patterns to 2. What is lost is resolution: how
+much missingness and what kind survive, which specific visits does not.
+Every run reports the figures, so the trade can be judged per study
+rather than assumed.
+
+**7. Measuring how close the values landed**
+([`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md),
+manual). The measurement for mechanism 1. Blending protects the values,
+and this asks whether they landed too close to somebody real: each
+subject’s nearest neighbour is either in its own dataset or the other
+one, and under the ideal that is a coin flip. The null comes from
+splitting the source cohort in half and running the identical statistic,
+so small-sample artefacts cancel. Wide at pharmacometric cohort sizes —
+it catches a blatant leak, not a subtle one.
 
 **6. Checking for unique event skeletons**
 ([`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md),
@@ -457,7 +474,7 @@ knitr::kable(
 
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
-| 1\. AVATAR      |            264 |   5.11 | 1.08 |  8.34 |
+| 1\. AVATAR      |            264 |   5.30 | 1.26 |  8.72 |
 | 2\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
 | 3\. Calibration |            240 |   4.05 | 0.36 |  7.54 |
 | 4\. Empirical   |            264 |   4.43 | 0.43 | 11.96 |
