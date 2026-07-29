@@ -19,7 +19,7 @@ synpmx_avatar(
   time_jitter = 0,
   screen = TRUE,
   coarsen_time = TRUE,
-  min_pattern_share = 3L,
+  min_pattern_share = 2L,
   max_donor_weight = 0.5,
   on_donor_shortfall = c("drop", "noise", "error")
 )
@@ -96,8 +96,17 @@ inherited, so \code{TIME} no longer pairs with its \code{DV} as precisely as the
 source did. Set \code{FALSE} to keep exact source timing.}
 
 \item{min_pattern_share}{How many source subjects must share an attendance
-pattern before an avatar may be given it. Default 3; \code{1} restores copying
+pattern before an avatar may be given it. Default 2; \code{1} restores copying
 the anchor's own pattern.
+
+Two is the smallest value that means something, and what it means is
+precise: \strong{no synthetic patient carries a schedule unique to a real
+patient.} An attacker who links a reproduced pattern to a participant gets
+at least two candidates, never one. Higher values hide more and are harder
+to state — "shared by at least three" is more conservative but no more
+defensible — and they cost sharply more, because attendance patterns are
+distributed with one common pattern and a long tail of singletons rather
+than a populated middle.
 
 Once \code{coarsen_time} has put every subject on a shared visit grid, what
 remains of a schedule is which of those visits each subject attended. Every
@@ -116,7 +125,16 @@ distinctive absences stop being reproduced. Dose events are never sampled,
 since that could emit a regimen no protocol permits. Raising this hides more
 and flattens the cohort's missingness further; where no pattern is shared
 widely enough, anchors keep their own and the run alerts loudly. Pools are
-formed within each \code{subject_properties} stratum and endpoint set.}
+formed within each \code{subject_properties} stratum and endpoint set.
+
+\strong{Patterns below the floor are lost, not approximated.} A dropout or
+dose-interruption pattern held by too few patients simply will not appear in
+the synthetic data, and that loss is the mechanism working — it is what
+stops an avatar carrying a schedule traceable to one person. Because it is a
+real cost to the data's realism, every run reports it: the number of source
+patterns excluded and how many subjects held them, both as a loud alert and
+as \code{patterns_dropped} / \code{subjects_with_dropped_pattern} in the settings.
+Check those before deciding the default suits your study.}
 
 \item{max_donor_weight}{Largest share of one synthetic subject that any one
 real donor may contribute. The default 0.50 states simply that no single

@@ -58,17 +58,22 @@ perfect — output must not look extreme, and simplicity is valued):
 - **Default, on:** dose recomputed from the avatar's own blended covariate where
   dosing is covariate-proportional within a `subject_properties` stratum
   (`REV-027`). Fixes a coherence defect as well as the disclosure.
-- **Default, on:** `min_pattern_share = 3` draws each avatar's attended-visit
-  pattern from ones at least three subjects share (`REV-026`, partly closed).
+- **Default, on:** `min_pattern_share = 2` draws each avatar's attended-visit
+  pattern from ones at least two subjects share (`REV-026`, partly closed), so no
+  synthetic patient carries a schedule unique to a real one. Rare patterns are
+  discarded rather than approximated, and the loss is reported per run.
 - **Measurement:** `skeleton_uniqueness()` on the source, and
   `scripts/measure_skeleton_uniqueness.R` for the before/after table.
 
 Open on the two new mechanisms:
-- [ ] Decide `min_pattern_share`'s default from real data. At 3, `warfarin` and
-      `theo_md` collapse to a single attendance pattern (every avatar a complete
-      attender); at 2 they keep 2 of 14 and 3 of 3. The public datasets have an
-      18/2/1/1/1 shape with no middle, so PIT565 and the oncology study should
-      decide it.
+- [ ] Confirm `min_pattern_share = 2` on real data. Attendance patterns on the
+      public sets are distributed 18/2/1/1/1 -- one common pattern and a tail of
+      singletons, no middle -- so the floor bites hard: on `warfarin` 2 keeps 2 of
+      14 patterns and 3 keeps 1. If PIT565 and the oncology study have a
+      populated middle, a higher floor may be affordable; if they look like
+      `warfarin`, 2 is the only usable value and option D in the design
+      discussion (decompose the pattern into miss-count plus placement rather
+      than copying it whole) becomes the way to keep interruptions at all.
 - [ ] `nimoData` has no pattern shared by even two subjects, so sampling has no
       pool. Constructing a nominal time (rounding the roughly-weekly infusions to
       their protocol week) would fix both this and its inferred-grid failure --

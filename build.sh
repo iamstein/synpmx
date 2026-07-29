@@ -111,6 +111,20 @@ if [[ "$MODE" != "render" ]]; then
   fi
   [[ ${CHECK_STATUS} -eq 0 ]] || fail "R CMD check exited ${CHECK_STATUS} — see ${LOG}"
   ok "R CMD check passed"
+
+  # R CMD check knows nothing about _pkgdown.yml, so a newly exported function
+  # that was never added to the reference index passes every local gate and then
+  # fails the pkgdown job on GitHub -- which is how `skeleton_uniqueness()`
+  # broke the site for six consecutive commits. check_pkgdown() catches exactly
+  # that, in under a second, without building the site.
+  step "Checking the pkgdown reference index"
+  set +e
+  Rscript -e 'pkgdown::check_pkgdown()' 2>&1 | tee "${LOG_DIR}/pkgdown-check.log"
+  PKGDOWN_STATUS=${PIPESTATUS[0]}
+  set -e
+  [[ ${PKGDOWN_STATUS} -eq 0 ]] || fail \
+    "pkgdown::check_pkgdown() failed — every exported function needs an entry in _pkgdown.yml"
+  ok "pkgdown reference index is complete"
 fi
 
 if [[ "$MODE" != "render" ]]; then

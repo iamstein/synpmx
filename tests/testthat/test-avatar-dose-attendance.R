@@ -168,7 +168,8 @@ test_that("subject_properties is a stratum, never a blending barrier", {
 
 # Ten subjects on one schedule, plus two who each miss a different visit. The
 # full pattern is held by ten, so it qualifies at any floor up to ten; the two
-# partial patterns are held by one subject each and must never be reproduced.
+# partial patterns are held by one subject each and must never be reproduced at
+# the default floor of 2.
 at_source <- function() {
   times <- c(0.5, 1, 2, 4, 8)
   subject <- function(id, drop = integer()) {
@@ -268,8 +269,38 @@ test_that("a stratum with nothing shared widely enough alerts rather than copyin
       invokeRestart("muffleWarning")
     }
   ))
-  expect_true(any(grepl("no attendance pattern is shared by 3 or more subjects",
+  expect_true(any(grepl("no attendance pattern is shared by 2 or more subjects",
                         raised, fixed = TRUE)))
+})
+
+test_that("the cost of the floor is counted and reported", {
+  source <- at_source()
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, da_roles(), n_subjects = 20, seed = 14)
+  )
+  settings <- attr(synthetic, "pmx_settings")
+  # Subjects 11 and 12 each hold a pattern nobody else does, so both are
+  # excluded and the run must say so rather than losing them silently.
+  expect_equal(settings$patterns_dropped, 2L)
+  expect_equal(settings$subjects_with_dropped_pattern, 2L)
+
+  raised <- character()
+  suppressMessages(withCallingHandlers(
+    synpmx_avatar(source, da_roles(), n_subjects = 20, seed = 14),
+    warning = function(w) {
+      raised <<- c(raised, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  ))
+  expect_true(any(grepl("held by 2 subject(s), were not shared",
+                        raised, fixed = TRUE)))
+
+  # Nothing is dropped when the mechanism is off.
+  off <- suppressWarnings(
+    synpmx_avatar(source, da_roles(), n_subjects = 20, seed = 14,
+                  min_pattern_share = 1)
+  )
+  expect_equal(attr(off, "pmx_settings")$patterns_dropped, 0L)
 })
 
 test_that("min_pattern_share is validated", {
