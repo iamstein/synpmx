@@ -84,27 +84,68 @@ test_that("flat dosing needs no basis and gets none", {
   expect_true(all(synthetic$AMT[synthetic$EVID != 0] == 100))
 })
 
-test_that("a declared stratum lets several dose levels be recognised", {
-  # Two arms at different mg/kg. Pooled, the ratio is not constant and detection
-  # correctly refuses; declared as a stratum, each arm is proportional and both
-  # are recomputed against their own multiplier. This is what `subject_properties`
-  # buys, and why a multi-level study has to declare its dose group.
-  source <- rbind(da_source(n = 12L, mg_per_kg = 5, arm = "low", seed = 1),
-                  da_source(n = 12L, mg_per_kg = 9, arm = "high", seed = 2))
+test_that("several dose levels are recognised with or without a declared arm", {
+  # Ratios are clustered, not averaged within a declared stratum, so the levels
+  # are found from the numbers themselves. Declaring the arm is then a
+  # convenience rather than a requirement.
+  source <- rbind(da_source(n = 10L, mg_per_kg = 1, arm = "a", seed = 1),
+                  da_source(n = 10L, mg_per_kg = 2, arm = "b", seed = 2),
+                  da_source(n = 10L, mg_per_kg = 3, arm = "c", seed = 3))
   source$ID <- paste0(source$ARM, "_", source$ID)
 
-  pooled <- suppressWarnings(synpmx_avatar(
-    source, da_roles(keep = "ARM"), n_subjects = 12, seed = 5
-  ))
-  expect_true(is.na(attr(pooled, "pmx_settings")$dose_basis))
+  for (roles in list(da_roles(keep = "ARM"), da_roles(properties = "ARM"))) {
+    synthetic <- suppressWarnings(
+      synpmx_avatar(source, roles, n_subjects = 30, seed = 5)
+    )
+    settings <- attr(synthetic, "pmx_settings")
+    expect_identical(settings$dose_basis, "WT")
+    expect_equal(sort(settings$dose_levels), c(1, 2, 3), tolerance = 1e-8)
+    dosed <- synthetic[synthetic$EVID != 0, , drop = FALSE]
+    expect_equal(dosed$AMT / dosed$WT,
+                 c(a = 1, b = 2, c = 3)[dosed$ARM],
+                 tolerance = 1e-8, ignore_attr = TRUE)
+  }
+})
 
-  stratified <- suppressWarnings(synpmx_avatar(
-    source, da_roles(properties = "ARM"), n_subjects = 24, seed = 5
-  ))
-  expect_identical(attr(stratified, "pmx_settings")$dose_basis, "WT")
-  dosed <- stratified[stratified$EVID != 0, , drop = FALSE]
-  expected <- ifelse(dosed$ARM == "low", 5, 9)
-  expect_equal(dosed$AMT / dosed$WT, expected, tolerance = 1e-8)
+test_that("intra-patient escalation is recognised", {
+  # The case a stratum cannot reach: the level changes *within* subject, so any
+  # subject-constant grouping sees a non-constant ratio and fails closed. A
+  # ratio does not care which subject or occasion it came from.
+  set.seed(4)
+  weight <- round(stats::runif(12, 55, 95), 1)
+  ladder <- c(1, 2, 4)
+  source <- do.call(rbind, lapply(seq_along(weight), function(i) {
+    do.call(rbind, lapply(seq_along(ladder), function(step) {
+      start <- (step - 1) * 24
+      times <- start + c(1, 2, 4, 8)
+      data.frame(
+        ID = as.character(i), TIME = c(start, times),
+        DV = c(0, 5 * exp(-0.2 * (times - start))),
+        AMT = c(ladder[step] * weight[i], rep(0, length(times))),
+        EVID = c(1L, rep(0L, length(times))),
+        CMT = c(1L, rep(2L, length(times))),
+        WT = weight[i], stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  roles <- da_roles()
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, roles, n_subjects = 12, seed = 8)
+  )
+  settings <- attr(synthetic, "pmx_settings")
+  expect_identical(settings$dose_basis, "WT")
+  expect_equal(sort(settings$dose_levels), ladder, tolerance = 1e-8)
+
+  dosed <- synthetic[synthetic$EVID != 0, , drop = FALSE]
+  # Every avatar climbs the same ladder against its own blended weight, and each
+  # subject keeps three ascending doses.
+  expect_true(all(round(dosed$AMT / dosed$WT, 6) %in% ladder))
+  by_subject <- split(dosed$AMT / dosed$WT, as.character(dosed$ID))
+  expect_true(all(vapply(by_subject, function(v) {
+    identical(round(sort(v), 6), ladder)
+  }, logical(1))))
+  expect_equal(sum(round(dosed$AMT, 6) %in%
+                     round(source$AMT[source$EVID != 0], 6)), 0L)
 })
 
 test_that("subject_properties is a stratum, never a blending barrier", {

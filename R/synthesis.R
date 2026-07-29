@@ -292,61 +292,108 @@
 #
 # Detection is deliberately conservative, because recomputing amounts on a study
 # that is not dose-proportional would be worse than leaving them alone. Dividing
-# by the covariate has to *collapse* the variation in dose -- amounts must vary
-# within the stratum, ratios must not. A study with several dose levels is
-# recognised only when the levels are declared through `subject_properties`,
-# since without that the levels sit in one stratum and the ratio is not
-# constant. That is the safe direction to fail.
-.detect_dose_basis <- function(source, roles, tolerance = 0.02) {
+# by the covariate has to *collapse* the variation: a handful of ratios standing
+# in for many distinct amounts. See `.dose_ratio_levels()` for why the levels are
+# clustered rather than averaged within a declared group.
+.detect_dose_basis <- function(source, roles, tolerance = 0.02,
+                               max_levels = 10L) {
   if (is.null(roles$amt) || !length(roles$covariates)) return(NULL)
   amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
   usable <- .dose_rows(source, roles) & is.finite(amount) & amount > 0
   if (sum(usable) < 3L) return(NULL)
-  strata <- .subject_strata(source, roles)[usable]
   amount <- amount[usable]
-  # Flat dosing within every stratum: nothing varies, so nothing to explain and
-  # nothing identifying about the amount.
-  if (max(tapply(amount, strata, .relative_spread)) <= tolerance) return(NULL)
+  distinct_amounts <- length(unique(signif(amount, 8)))
+  # Flat dosing: nothing varies, so nothing to explain and nothing identifying
+  # about the amount.
+  if (distinct_amounts < 2L) return(NULL)
 
   for (covariate in roles$covariates) {
+    if (is.factor(source[[covariate]])) next
     values <- suppressWarnings(as.numeric(source[[covariate]]))
-    if (!is.numeric(values) || is.factor(source[[covariate]])) next
+    if (!is.numeric(values)) next
     values <- values[usable]
     if (any(!is.finite(values) | values <= 0)) next
-    ratio <- amount / values
-    if (max(tapply(ratio, strata, .relative_spread)) > tolerance) next
-    return(list(
-      covariate = covariate,
-      multiplier = vapply(split(ratio, strata), mean, numeric(1))
-    ))
+
+    levels <- .dose_ratio_levels(amount / values, tolerance)
+    if (is.null(levels)) next
+    # Ratios must be far more concentrated than the amounts they came from.
+    # A protocol has a handful of dose levels and many patients, so genuine
+    # proportional dosing collapses dozens of distinct amounts onto a few
+    # ratios; a study where dose is unrelated to the covariate produces about as
+    # many ratios as amounts and is refused here.
+    if (length(levels) > max_levels) next
+    if (length(levels) * 2L > sum(usable)) next
+    if (distinct_amounts < 2L * length(levels)) next
+    return(list(covariate = covariate, levels = levels))
   }
   NULL
 }
 
-# Recompute this avatar's dose from its own blended covariate, keeping the
-# stratum's multiplier. Any declared RATE scales with the amount so the infusion
-# duration the protocol specified is preserved.
-.apply_dose_basis <- function(skeleton, roles, basis) {
-  if (is.null(basis)) return(skeleton)
-  stratum <- .subject_strata(skeleton, roles)[1L]
-  multiplier <- basis$multiplier[[stratum]]
-  if (is.null(multiplier) || !is.finite(multiplier)) return(skeleton)
+# Group the observed dose-to-covariate ratios into protocol levels: sort, and
+# cut wherever consecutive ratios differ by more than `tolerance` in relative
+# terms. Returns the level values, or NULL when a cluster is too loose to be one
+# level.
+#
+# Clustering rather than averaging within a declared stratum is what lets this
+# see *intra-patient* escalation. A stratum is constant within subject, so it
+# cannot tell a subject's 1 mg/kg dose from that same subject's later 2 mg/kg
+# dose, and the pooled ratio is not constant, so the stratum-based test failed
+# closed on exactly the design most likely to need it. A ratio does not care
+# which subject or which occasion it came from.
+.dose_ratio_levels <- function(ratio, tolerance) {
+  ratio <- ratio[is.finite(ratio) & ratio > 0]
+  if (!length(ratio)) return(NULL)
+  sorted <- sort(ratio)
+  if (length(sorted) == 1L) return(sorted)
+  midpoint <- (sorted[-1L] + sorted[-length(sorted)]) / 2
+  cluster <- cumsum(c(TRUE, abs(diff(sorted)) / midpoint > tolerance))
+  levels <- vapply(split(sorted, cluster), mean, numeric(1))
+  spread <- vapply(split(sorted, cluster), .relative_spread, numeric(1))
+  if (any(!is.finite(spread) | spread > tolerance)) return(NULL)
+  unname(levels)
+}
+
+# Which protocol level each dose row sits at, read from the anchor *before* its
+# covariates are blended away. Kept separate from application because the level
+# is a property of the anchor and the amount is a property of the avatar.
+.dose_levels_for <- function(skeleton, roles, basis) {
+  if (is.null(basis)) return(NULL)
+  covariate <- suppressWarnings(as.numeric(
+    .first_present(skeleton[[basis$covariate]])
+  ))
+  if (!is.finite(covariate) || covariate <= 0) return(NULL)
+  amount <- suppressWarnings(as.numeric(skeleton[[roles$amt]]))
+  dosed <- .dose_rows(skeleton, roles) & is.finite(amount) & amount > 0
+  if (!any(dosed)) return(NULL)
+  level <- rep(NA_real_, length(amount))
+  ratio <- amount[dosed] / covariate
+  level[dosed] <- basis$levels[
+    max.col(-abs(outer(ratio, basis$levels, "-")), ties.method = "first")
+  ]
+  level
+}
+
+# Recompute the dose from the avatar's own blended covariate, holding the level
+# the anchor was dosed at. Any declared RATE scales with the amount so the
+# infusion duration the protocol specified is preserved.
+.apply_dose_basis <- function(skeleton, roles, basis, level) {
+  if (is.null(basis) || is.null(level)) return(skeleton)
   covariate <- suppressWarnings(as.numeric(
     .first_present(skeleton[[basis$covariate]])
   ))
   if (!is.finite(covariate) || covariate <= 0) return(skeleton)
-
-  dosed <- .dose_rows(skeleton, roles)
   amount <- suppressWarnings(as.numeric(skeleton[[roles$amt]]))
-  target <- multiplier * covariate
-  change <- dosed & is.finite(amount) & amount > 0
+  if (length(level) != length(amount)) return(skeleton)
+  change <- is.finite(level) & is.finite(amount) & amount > 0
   if (!any(change)) return(skeleton)
-  scale <- target / amount[change]
+
+  target <- level[change] * covariate
   if (!is.null(roles$rate)) {
     rate <- suppressWarnings(as.numeric(skeleton[[roles$rate]]))
     scalable <- change & is.finite(rate) & rate > 0
     if (any(scalable)) {
-      rate[scalable] <- rate[scalable] * (target / amount[scalable])
+      rate[scalable] <- rate[scalable] *
+        (level[scalable] * covariate / amount[scalable])
       skeleton[[roles$rate]] <- rate
     }
   }
@@ -1024,11 +1071,16 @@
 #' previously `AMT` was copied from the anchor while covariates were blended, so
 #' a cohort dosed at exactly 5 mg/kg produced avatars anywhere from 4.4 to 5.3.
 #'
-#' Detection is conservative and fails closed — dividing by the covariate must
-#' collapse the variation in dose, and a study with several dose levels is
-#' recognised only when the levels are declared through `subject_properties`.
-#' The detected covariate is recorded as `dose_basis` in the settings, `NA` when
-#' none was found.
+#' Several dose levels are handled by clustering the observed ratios rather than
+#' averaging within a group, so a 1/2/3 mg/kg escalation is recognised without
+#' the arm being declared — and so is **intra-patient** escalation, where the
+#' level changes within a subject and no subject-constant grouping could see it.
+#'
+#' Detection is conservative and fails closed: the ratios must collapse onto a
+#' handful of levels while the amounts they came from stay varied, so a study
+#' whose dose is unrelated to the covariate produces about as many ratios as
+#' amounts and is refused. The covariate and the levels found are recorded as
+#' `dose_basis` and `dose_levels` in the settings, `NA` when none was found.
 #'
 #' @param max_donor_weight Largest share of one synthetic subject that any one
 #'   real donor may contribute. The default 0.50 states simply that no single
@@ -1379,11 +1431,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       effective_donors[synthetic_index] <- 1 / sum(donors$weights^2)
       cap_bound[synthetic_index] <- length(donors$weights) > 1L &&
         max(donors$weights) >= max_donor_weight - sqrt(.Machine$double.eps)
+      dose_level <- .dose_levels_for(skeleton, source_roles, dose_basis)
       skeleton <- .synthesize_covariates(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd
       )
-      skeleton <- .apply_dose_basis(skeleton, source_roles, dose_basis)
+      skeleton <- .apply_dose_basis(skeleton, source_roles, dose_basis,
+                                    dose_level)
       skeleton <- .synthesize_trajectories(
         skeleton, source, source_roles, donors$indices, donors$weights, profiles,
         subject_noise_sd, residual_noise_sd, residual_phi, warnings,
@@ -1428,6 +1482,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # alerted so a report can tabulate it without recomputing.
       dose_basis = if (is.null(dose_basis)) NA_character_ else
         dose_basis$covariate,
+      dose_levels = if (is.null(dose_basis)) NA_real_ else dose_basis$levels,
       exposure_alone = exposure_alone,
       exposure_unique_moment = exposure_unique_moment,
       exposure_unique_pattern = if (is.na(exposure_alone)) NA_integer_ else

@@ -163,9 +163,11 @@ covariate is individual and already blended. So the multiplier is kept and the
 amount recomputed from the avatar's *own* blended weight. Previously `AMT` was
 copied verbatim while covariates were blended, which both disclosed the anchor's
 weight exactly and left every avatar violating its own protocol: a cohort dosed
-at exactly 5 mg/kg produced avatars from 4.4 to 5.3. Detection fails closed, and
-a study with several dose levels is recognised only when those levels are
-declared through `subject_properties`.
+at exactly 5 mg/kg produced avatars from 4.4 to 5.3. Several dose levels are
+found by clustering the observed ratios, so a 1/2/3 mg/kg escalation is
+recognised without declaring the arm — and so is *intra-patient* escalation,
+where the level changes within a subject. Detection fails closed where the dose
+is unrelated to any covariate.
 
 **5. Sampling the attendance pattern** (`min_pattern_share`, default 3). Once
 coarsening has put every subject on a shared visit grid, what remains of a

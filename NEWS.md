@@ -27,8 +27,10 @@
   `REV-027`: the amount was previously copied verbatim from the anchor while
   covariates were blended, so it both disclosed the anchor's weight exactly and
   left every avatar violating its own protocol — a cohort dosed at exactly
-  5 mg/kg produced avatars from 4.41 to 5.25. Detection fails closed and is
-  recorded as `dose_basis` in the settings.
+  5 mg/kg produced avatars from 4.41 to 5.25. Several dose levels are found by
+  clustering the observed ratios, so a 1/2/3 mg/kg escalation is recognised
+  without declaring the arm, as is intra-patient escalation. Detection fails
+  closed and is recorded as `dose_basis` / `dose_levels` in the settings.
 
 * `synpmx_avatar()` gains `min_pattern_share`, default 3. Each avatar's set of
   attended visits is drawn from patterns at least that many source subjects

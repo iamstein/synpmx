@@ -202,11 +202,16 @@ exactly. And the avatar stops violating the protocol it claims to follow:
 previously \code{AMT} was copied from the anchor while covariates were blended, so
 a cohort dosed at exactly 5 mg/kg produced avatars anywhere from 4.4 to 5.3.
 
-Detection is conservative and fails closed — dividing by the covariate must
-collapse the variation in dose, and a study with several dose levels is
-recognised only when the levels are declared through \code{subject_properties}.
-The detected covariate is recorded as \code{dose_basis} in the settings, \code{NA} when
-none was found.
+Several dose levels are handled by clustering the observed ratios rather than
+averaging within a group, so a 1/2/3 mg/kg escalation is recognised without
+the arm being declared — and so is \strong{intra-patient} escalation, where the
+level changes within a subject and no subject-constant grouping could see it.
+
+Detection is conservative and fails closed: the ratios must collapse onto a
+handful of levels while the amounts they came from stay varied, so a study
+whose dose is unrelated to the covariate produces about as many ratios as
+amounts and is refused. The covariate and the levels found are recorded as
+\code{dose_basis} and \code{dose_levels} in the settings, \code{NA} when none was found.
 }
 
 \examples{
