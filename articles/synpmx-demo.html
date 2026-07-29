@@ -968,112 +968,135 @@ shares, before and after time coarsening. The last two columns split the
 by <em>removing</em> things, and the removals are worth seeing next to
 the numbers above.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    Dataset <span class="op">=</span> <span class="va">label</span>,</span>
-<span>    `Dose basis` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>, <span class="st">"—"</span>, <span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>,</span>
+<span>    Patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    `Patterns` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">patterns_total</span>,</span>
 <span>    `Patterns lost` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">patterns_dropped</span>,</span>
 <span>    `Patients affected` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">subjects_with_dropped_pattern</span>,</span>
-<span>    `Sampled a pattern` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">pattern_sampled_fraction</span>,</span>
+<span>    `Dose basis` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>, <span class="st">"—"</span>, <span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span>,</span>
 <span>    check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbc_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimo_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavo_synth</span><span class="op">)</span></span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="va">theo_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="va">warfarin_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
-<span>    <span class="st">"What the masking removed. `Patterns lost` counts source attendance"</span>,</span>
-<span>    <span class="st">"patterns too rare to be reused; `Patients affected` counts the real"</span>,</span>
-<span>    <span class="st">"patients who held them."</span></span>
+<span>    <span class="st">"What the masking removed. `Patterns` counts the distinct attendance"</span>,</span>
+<span>    <span class="st">"patterns in the source; `Patterns lost` counts those too rare to be"</span>,</span>
+<span>    <span class="st">"reused."</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>What the masking removed. <code>Patterns lost</code> counts
-source attendance patterns too rare to be reused;
-<code>Patients affected</code> counts the real patients who held
-them.</caption>
+<caption>What the masking removed. <code>Patterns</code> counts the
+distinct attendance patterns in the source; <code>Patterns lost</code>
+counts those too rare to be reused.</caption>
 <colgroup>
 <col width="16%">
-<col width="15%">
+<col width="12%">
+<col width="12%">
 <col width="19%">
 <col width="24%">
-<col width="24%">
+<col width="15%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dataset</th>
-<th align="left">Dose basis</th>
+<th align="right">Patients</th>
+<th align="right">Patterns</th>
 <th align="right">Patterns lost</th>
 <th align="right">Patients affected</th>
-<th align="right">Sampled a pattern</th>
+<th align="left">Dose basis</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">theo_md</td>
+<td align="right">12</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="left">—</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
 </tr>
 <tr class="even">
 <td align="left">warfarin</td>
+<td align="right">32</td>
+<td align="right">14</td>
+<td align="right">12</td>
+<td align="right">12</td>
 <td align="left">wt</td>
-<td align="right">12</td>
-<td align="right">12</td>
-<td align="right">1</td>
 </tr>
 <tr class="odd">
 <td align="left">wbcSim</td>
+<td align="right">45</td>
+<td align="right">25</td>
+<td align="right">17</td>
+<td align="right">17</td>
 <td align="left">—</td>
-<td align="right">17</td>
-<td align="right">17</td>
-<td align="right">1</td>
 </tr>
 <tr class="even">
 <td align="left">nimoData</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">12</td>
 <td align="left">—</td>
-<td align="right">12</td>
-<td align="right">12</td>
-<td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">mavoglurant</td>
+<td align="right">120</td>
+<td align="right">64</td>
+<td align="right">54</td>
+<td align="right">54</td>
 <td align="left">—</td>
-<td align="right">54</td>
-<td align="right">54</td>
-<td align="right">1</td>
 </tr>
 </tbody>
 </table>
-<p><code>Patterns lost</code> is the number to look at hardest, because
-it is the only one of these that costs realism rather than buying it.
-Each lost pattern is a real dropout or dose-interruption sequence that
-will <strong>not</strong> appear in the synthetic data — discarded
-rather than approximated, because too few patients shared it. Discarding
-them is exactly what stops an avatar carrying a schedule traceable to
-one person, so this is the mechanism working; but if a study’s
-interruptions are part of what you need the synthetic data to exercise,
-this is where you find out they are gone.</p>
-<p><code>Sampled a pattern</code> is the fraction of avatars that
-received a drawn pattern rather than their anchor’s own. Below 1 means
-some group had nothing shared widely enough to draw from, and those
-avatars kept the anchor’s pattern — the safe failure, but not the
-protection you asked for. On <code>nimoData</code> it is 0: no two of
-its twelve subjects share a pattern at all, which is the same underlying
-problem as its grid failure and has the same fix.</p>
-<p><code>Dose basis</code> names the covariate the dose was found
-proportional to. Where it is <code>—</code>, amounts were left exactly
-as the source had them, because detection could not establish a
-relationship and inventing one would be worse.</p>
-<p>Both of these are recorded in <code>attr(x, "pmx_settings")</code> on
-every run, alongside a loud alert, so this table can be produced for any
-study rather than only the ones shown here.</p>
+<p>Two things in this table look wrong at first and are not.</p>
+<p><strong><code>Patterns lost</code> equals
+<code>Patients affected</code> in every row.</strong> That is an
+identity, not a coincidence. At the default floor of 2, a pattern is
+discarded exactly when <em>fewer than two</em> patients share it — that
+is, when exactly one does. So every discarded pattern has precisely one
+holder and the two columns must agree. They only diverge at a floor of 3
+or more, where a pattern held by two patients is also dropped.</p>
+<p><strong><code>nimoData</code> loses all twelve patterns, held by all
+twelve patients.</strong> Also correct: no two of its subjects share an
+attendance pattern at all, so nothing qualifies and there is no pool to
+draw from. Every avatar keeps its anchor’s own pattern — the safe
+failure, and the run alerts — which is the same underlying problem as
+its inferred-grid failure and has the same fix, shown below.</p>
+</div>
+<div class="section level3">
+<h3 id="is-a-pattern-too-strictly-defined">Is a “pattern” too strictly defined?<a class="anchor" aria-label="anchor" href="#is-a-pattern-too-strictly-defined"></a>
+</h3>
+<p>Reasonably asked, and the answer is yes, deliberately. A pattern here
+is the <strong>exact</strong> set of endpoint-and-time pairs a subject
+was observed at. Two patients who each missed exactly one visit have
+<em>different</em> patterns if they missed different visits. That is why
+singletons dominate so heavily — 12 of warfarin’s 14, 54 of
+mavoglurant’s 64 — and therefore why so much is discarded.</p>
+<p>The strictness is what makes the guarantee exact: reusing a pattern
+that one real patient holds would reproduce that patient’s schedule, so
+nothing short of exact matching would support the claim. The cost is
+that the definition cannot see that “missed one visit, early” and
+“missed one visit, late” are the same <em>kind</em> of event.</p>
+<p>A looser definition would recover much of the loss. Describing a
+pattern by its <em>shape</em> — how many visits were missed, and whether
+the misses were consecutive — would put both of those patients in one
+group, giving it two holders where the strict definition gives two
+groups of one. The synthetic patient’s misses would then be placed
+rather than copied, so some would land at clinically odd points, but
+dropout would survive as a phenomenon instead of being discarded. That
+is not built; it is recorded in <code>design/TODO.md</code> as the thing
+to do if a real study turns out to look like <code>warfarin</code>
+rather than like <code>theo_md</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="reading-the-table">Reading the table<a class="anchor" aria-label="anchor" href="#reading-the-table"></a>
