@@ -67,3 +67,83 @@ test_that("the four generation modes are exported side by side", {
     ".generate_structural"
   ) %in% exports))
 })
+
+# Real assignment and schedule columns have gaps. Validation used to refuse both,
+# which stopped a run over data that the generator handles perfectly well: a
+# missing nominal time falls back to the inferred grid row by row, and a missing
+# stratum is simply its own level. Found 2026-07-29 on a real study.
+
+gap_roles <- function(...) {
+  pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+            cmt = "CMT", dvid = "DVID", covariates = "WT", ...)
+}
+
+test_that("a nominal time with gaps is accepted and falls back per row", {
+  data <- pmx_simulated_fixture(20)
+  data$NTIME[c(3L, 40L, 77L)] <- NA_real_
+  roles <- gap_roles(nominal_time = "NTIME")
+
+  report <- validate_pmx(data, roles)
+  expect_true(report$valid)
+  expect_match(
+    report$checks$message[report$checks$check == "nominal_time"],
+    "3 row\\(s\\) have none"
+  )
+  # Rows that have a nominal time snap to it; the rest use the inferred grid.
+  synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+  expect_identical(attr(synthetic, "pmx_settings")$time_grid, "mixed")
+  expect_true(validate_pmx(synthetic, roles)$valid)
+})
+
+test_that("a nominal time that is entirely missing is refused", {
+  data <- pmx_simulated_fixture(10)
+  data$NTIME <- NA_real_
+  report <- validate_pmx(data, gap_roles(nominal_time = "NTIME"))
+  expect_false(report$valid)
+  expect_match(
+    report$checks$message[report$checks$check == "nominal_time"],
+    "entirely missing"
+  )
+})
+
+test_that("a stratum with gaps warns and becomes its own level", {
+  data <- pmx_simulated_fixture(20)
+  data$TRT <- rep(c("A", "B"), each = nrow(data) / 2)
+  data$TRT[data$ID %in% c("5", "6")] <- NA_character_
+  roles <- gap_roles(subject_properties = "TRT")
+
+  report <- validate_pmx(data, roles)
+  # A warning, not an error: visible without stopping a run over data that is
+  # merely incomplete.
+  expect_true(report$valid)
+  expect_identical(
+    report$checks$status[report$checks$check == "subject_property_TRT"],
+    "warning"
+  )
+  synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  expect_true(anyNA(synthetic$TRT))
+})
+
+test_that("a stratum that varies within subject is still an error", {
+  # Missing is incomplete data; varying means the column is not a subject-level
+  # assignment at all, and no stratum can be built from it.
+  data <- pmx_simulated_fixture(10)
+  data$TRT <- rep(c("A", "B"), length.out = nrow(data))
+  report <- validate_pmx(data, gap_roles(subject_properties = "TRT"))
+  expect_false(report$valid)
+  expect_match(
+    report$checks$message[report$checks$check == "subject_property_TRT"],
+    "varies within"
+  )
+})
+
+test_that("a declared column that does not exist is named, not ignored", {
+  # Deliberately still fatal. Only role-named columns survive generation, so
+  # silently skipping a role that points at nothing would drop data on a typo.
+  data <- pmx_simulated_fixture(10)
+  expect_error(
+    synpmx_avatar(data, gap_roles(keep = c("STUDYID", "TRT")), seed = 1),
+    "Role columns not found in `data`: STUDYID, TRT"
+  )
+})

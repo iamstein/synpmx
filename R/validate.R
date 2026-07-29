@@ -204,8 +204,19 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
 
   if (!is.null(roles$nominal_time)) {
     nominal <- data[[roles$nominal_time]]
-    if (!is.numeric(nominal) || any(!is.finite(nominal))) {
-      add("nominal_time", "error", "Nominal time must be numeric and finite.")
+    # Missing nominal times are ordinary in real data -- an unscheduled visit has
+    # no protocol slot to belong to -- and the generator already handles them
+    # row by row, snapping what has a nominal time to it and falling back to the
+    # inferred grid for the rest (`.coarsen_source_time()` reports that as the
+    # "mixed" grid). Only a non-numeric column, or an infinite value that is not
+    # simply absent, is a declaration error.
+    present <- !is.na(nominal)
+    if (!is.numeric(nominal) || any(!is.finite(nominal[present]))) {
+      add("nominal_time", "error",
+          "Nominal time must be numeric, and present values must be finite.")
+    } else if (!any(present)) {
+      add("nominal_time", "error",
+          "Nominal time is entirely missing; leave the role undeclared instead.")
     } else {
       # A misdeclared nominal_time is silent without this. `pmx_roles()` takes
       # nominal_time tenth positionally, so a covariate passed by position lands
@@ -227,6 +238,11 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
           "of ", signif(span, 3), "); `", roles$nominal_time, "` does not look ",
           "like a visit schedule. Check that `nominal_time` was not supplied ",
           "positionally."
+        ))
+      } else if (!all(present)) {
+        add("nominal_time", "pass", paste0(
+          "Nominal time is numeric; ", sum(!present), " row(s) have none and ",
+          "fall back to the inferred visit grid."
         ))
       } else {
         add("nominal_time", "pass", "Nominal time is numeric and finite.")
@@ -387,24 +403,34 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
           paste(covariate, "varies within", sum(!constant), "subject(s)."))
   }
   for (property in roles$subject_properties) {
-    complete <- vapply(subjects, function(subject) {
-      value <- data[[property]][!is.na(id) & id == subject]
-      length(value) > 0L && all(!is.na(value))
+    # A stratum has to be constant within subject -- that is what makes it a
+    # subject-level assignment rather than a time-varying one -- but it does not
+    # have to be recorded for everyone. Real assignment columns have gaps, and
+    # `synpmx_avatar()` treats a missing value as its own stratum level rather
+    # than failing on it. Varying stays an error, since a column that changes
+    # within a subject cannot be that subject's assignment; missing is a warning,
+    # so it is visible without stopping a run over data that is merely
+    # incomplete.
+    values <- lapply(subjects, function(subject) {
+      data[[property]][!is.na(id) & id == subject]
+    })
+    constant <- vapply(values, function(value) {
+      length(unique(value[!is.na(value)])) <= 1L
     }, logical(1))
-    constant <- vapply(subjects, function(subject) {
-      value <- data[[property]][!is.na(id) & id == subject]
-      length(unique(value[!is.na(value)])) == 1L
+    incomplete <- vapply(values, function(value) {
+      !length(value) || anyNA(value)
     }, logical(1))
     add(
       paste0("subject_property_", property),
-      if (all(complete & constant)) "pass" else "error",
-      if (all(complete & constant)) {
-        paste(property, "is complete and constant within subject.")
+      if (!all(constant)) "error" else if (any(incomplete)) "warning" else "pass",
+      if (!all(constant)) {
+        paste(property, "varies within", sum(!constant), "subject(s); a",
+              "stratum must be constant within subject.")
+      } else if (any(incomplete)) {
+        paste0(property, " is missing for ", sum(incomplete), " subject(s); ",
+               "they are grouped as their own stratum.")
       } else {
-        paste(
-          property, "is missing or varies within",
-          sum(!(complete & constant)), "subject(s)."
-        )
+        paste(property, "is complete and constant within subject.")
       }
     )
   }

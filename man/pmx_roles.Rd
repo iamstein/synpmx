@@ -52,7 +52,9 @@ interval-boundary columns.}
 
 \item{subject_properties}{Treatment arm, dose group, cohort — any \strong{assigned,
 subject-level stratum}, as opposed to a measured characteristic, which is a
-\code{covariate}. Must be complete and constant within subject. Several columns
+\code{covariate}. Must be constant within subject; subjects with no recorded
+value are grouped as their own stratum, with a warning rather than an
+error. Several columns
 may be named, and their combination defines the stratum.
 
 \code{\link[=synpmx_avatar]{synpmx_avatar()}} carries these verbatim from the subject that supplied the
