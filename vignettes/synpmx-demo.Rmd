@@ -742,14 +742,59 @@ matching would support the claim. The cost is that the definition cannot see tha
 "missed one visit, early" and "missed one visit, late" are the same *kind* of
 event.
 
-A looser definition would recover much of the loss. Describing a pattern by its
-*shape* — how many visits were missed, and whether the misses were consecutive —
-would put both of those patients in one group, giving it two holders where the
-strict definition gives two groups of one. The synthetic patient's misses would
-then be placed rather than copied, so some would land at clinically odd points,
-but dropout would survive as a phenomenon instead of being discarded. That is not
-built; it is recorded in `design/TODO.md` as the thing to do if a real study
-turns out to look like `warfarin` rather than like `theo_md`.
+That is why the draw is two-stage. A **shape** is chosen first — how many visits
+were missed, and whether the misses were terminal (dropout), contiguous (an
+interruption), or scattered — and both of those patients share one. Within the
+shape a real pattern is reused if one clears the floor; only otherwise is an
+arrangement generated, and a generated one is rejected and redrawn if it happens
+to land on a pattern too rare to have been reusable. On `warfarin` that takes the
+loss from 12 patterns to the 2 shown above.
+
+What remains lost is *resolution*: how much missingness there was and what kind
+survive; which specific visits each patient missed does not.
+
+### And how close the values landed
+
+Everything above concerns *structure*. Blending is the mechanism that protects
+the **values**, and `compare_pmx_proximity()` is its measurement: it asks whether
+each subject's nearest neighbour lies in its own dataset or the other one. Near
+0.5 means a synthetic subject is no more like a real subject than one real
+subject is like another, which is the target; toward 0 means memorisation.
+
+```{r proximity, eval=has_nlmixr2data}
+proximity_row <- function(label, source, synthetic, roles) {
+  report <- compare_pmx_proximity(source, synthetic, roles, replicates = 30)
+  data.frame(
+    Dataset = label,
+    `Adversarial accuracy` = round(report$adversarial_accuracy, 3),
+    `Null lower` = round(report$null_lower, 3),
+    `Null upper` = round(report$null_upper, 3),
+    `Per side` = report$n_compared,
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+knitr::kable(
+  rbind(
+    proximity_row("theo_md", theo_md, theo_synth, theo_roles),
+    proximity_row("warfarin", warfarin, warfarin_synth, warfarin_roles),
+    proximity_row("wbcSim", wbcSim, wbc_synth, wbc_roles),
+    proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles)
+  ),
+  caption = paste(
+    "Nearest-neighbour adversarial accuracy against a split-half null built",
+    "from the source cohort itself. 0.5 is the target."
+  )
+)
+```
+
+Read the null intervals before the point estimates. They are **wide** — these
+are cohorts of a few dozen, and the statistic is built from nearest-neighbour
+comparisons that are noisy at that size. A value inside the interval means
+*nothing was detected*, not that nothing is there. What it would catch is a
+blatant leak: a synthetic subject sitting on top of a real one drives the
+statistic to zero, which the package's own regression test confirms by handing
+the function a verbatim copy and requiring it to object.
 
 ### Reading the table
 

@@ -474,22 +474,142 @@
     member <- group == name
     counts <- table(keys[member])
     counts <- counts[names(counts) != ""]
+    if (!length(counts)) next
     total_patterns <- total_patterns + length(counts)
     kept <- counts >= min_pattern_share
-    # What the floor costs, counted rather than inferred. These are real
-    # attendance patterns -- dropout, treatment interruption, a missed visit --
-    # that no avatar will reproduce because too few patients shared them. The
-    # loss is the mechanism working, but it is a loss, and a caller deciding
-    # whether to lower the floor needs the number rather than a rule of thumb.
-    dropped_patterns <- dropped_patterns + sum(!kept)
-    dropped_subjects <- dropped_subjects + sum(as.integer(counts[!kept]))
-    counts <- counts[kept]
-    if (!length(counts)) next
-    pool[[name]] <- list(keys = names(counts), weight = as.numeric(counts))
+
+    # The grid this group's subjects were observed on, in time order, and each
+    # distinct pattern expressed as a shape over it. `shape` is what lets a
+    # pattern that only one patient holds still contribute: two patients who each
+    # missed one visit are the same shape even when they missed different visits,
+    # so together they clear a floor that neither clears alone.
+    cells <- .attendance_cells(names(counts))
+    shapes <- vapply(names(counts), function(key) {
+      .attendance_shape(key, cells)
+    }, character(1))
+    shape_counts <- tapply(as.integer(counts), shapes, sum)
+    shape_kept <- shape_counts[shape_counts >= min_pattern_share]
+
+    # What is lost is now what neither an exact pattern nor its shape can carry.
+    lost <- !kept & !(shapes %in% names(shape_kept))
+    dropped_patterns <- dropped_patterns + sum(lost)
+    dropped_subjects <- dropped_subjects + sum(as.integer(counts[lost]))
+    if (!length(shape_kept)) next
+
+    pool[[name]] <- list(
+      cells = cells,
+      shapes = names(shape_kept), shape_weight = as.numeric(shape_kept),
+      # Exact patterns that clear the floor on their own, indexed by shape, so a
+      # real pattern is preferred wherever reusing one is safe.
+      exact = split(names(counts)[kept], shapes[kept]),
+      exact_weight = split(as.numeric(counts[kept]), shapes[kept]),
+      # Patterns too rare to reuse. A generated placement that lands on one of
+      # these is rejected, so "nothing was copied" does not quietly weaken into
+      # "something was reproduced by accident".
+      rare = names(counts)[!kept]
+    )
   }
   list(pool = pool, group = group, keys = keys,
        total_patterns = total_patterns, dropped_patterns = dropped_patterns,
        dropped_subjects = dropped_subjects)
+}
+
+# The union of every cell any subject in the group was observed at, in time
+# order. Time first, so "trailing" means late in the study -- dropout -- rather
+# than late in an alphabet.
+.attendance_cells <- function(keys) {
+  cells <- unique(unlist(strsplit(keys, ";", fixed = TRUE), use.names = FALSE))
+  cells <- cells[nzchar(cells)]
+  time <- suppressWarnings(as.numeric(sub("^.*@", "", cells)))
+  cells[order(time, cells)]
+}
+
+# Describe a pattern by *how* it departs from full attendance rather than by
+# which cells it holds: the number of missed visits and their arrangement.
+#
+#   complete   attended everything
+#   trailing   every miss is at the end -- dropout or early discontinuation
+#   block      the misses are contiguous but not terminal -- an interruption
+#   scattered  anything else
+#
+# This is the whole point of the fallback. The exact-cell definition cannot see
+# that "missed one visit, early" and "missed one visit, late" are the same kind
+# of event, so each is a group of one and both are discarded. As a shape they are
+# one group of two.
+.attendance_shape <- function(key, cells) {
+  held <- strsplit(key, ";", fixed = TRUE)[[1L]]
+  missed <- which(!(cells %in% held))
+  if (!length(missed)) return("complete|0")
+  n <- length(cells)
+  kind <- if (all(missed > n - length(missed))) {
+    "trailing"
+  } else if (all(diff(missed) == 1L)) {
+    "block"
+  } else {
+    "scattered"
+  }
+  paste0(kind, "|", length(missed))
+}
+
+.attendance_key_from <- function(cells, missed) {
+  paste(sort(cells[-missed]), collapse = ";")
+}
+
+# Place a shape's misses on the grid without copying anyone's arrangement, and
+# refuse any placement that happens to reproduce a pattern too rare to have been
+# reusable. Without that rejection the guarantee would weaken from "no synthetic
+# patient carries a schedule unique to a real one" to merely "nothing was copied
+# on purpose", and an attacker cannot tell those apart.
+.place_attendance <- function(cells, shape, rare, tries = 24L) {
+  parts <- strsplit(shape, "|", fixed = TRUE)[[1L]]
+  kind <- parts[[1L]]
+  n_miss <- as.integer(parts[[2L]])
+  n <- length(cells)
+  if (kind == "complete" || n_miss < 1L) return(paste(sort(cells), collapse = ";"))
+  if (n_miss >= n) return(NA_character_)
+
+  for (attempt in seq_len(tries)) {
+    missed <- switch(
+      kind,
+      trailing = seq.int(n - n_miss + 1L, n),
+      block = {
+        # Contiguous but not terminal, so a block stays distinguishable from
+        # dropout.
+        last_start <- n - n_miss
+        if (last_start < 1L) return(NA_character_)
+        start <- sample.int(last_start, 1L)
+        seq.int(start, start + n_miss - 1L)
+      },
+      scattered = sort(sample.int(n, n_miss)),
+      return(NA_character_)
+    )
+    if (kind == "scattered") {
+      # Keep the kind honest: a scattered draw that came out contiguous or
+      # terminal is a different shape, so redraw.
+      if (all(diff(missed) == 1L) || all(missed > n - n_miss)) next
+    }
+    key <- .attendance_key_from(cells, missed)
+    if (!(key %in% rare)) return(key)
+  }
+  NA_character_
+}
+
+# Draw one attendance pattern for an avatar. A real pattern is used wherever
+# reusing one is safe; a placement is generated only for shapes whose every
+# realisation is too rare to reuse. The shape is drawn first either way, so the
+# cohort's mix of complete, interrupted, and dropped-out subjects is preserved
+# even when the individual arrangements are not.
+.draw_attendance <- function(available) {
+  index <- sample.int(length(available$shapes), 1L, prob = available$shape_weight)
+  shape <- available$shapes[[index]]
+  exact <- available$exact[[shape]]
+  if (length(exact)) {
+    weight <- available$exact_weight[[shape]]
+    return(list(key = exact[[sample.int(length(exact), 1L, prob = weight)]],
+                generated = FALSE))
+  }
+  key <- .place_attendance(available$cells, shape, available$rare)
+  list(key = key, generated = !is.na(key))
 }
 
 # Rebuild the skeleton's observation rows to match a sampled pattern, keeping
@@ -1082,8 +1202,11 @@
 #'   stops an avatar carrying a schedule traceable to one person. Because it is a
 #'   real cost to the data's realism, every run reports it: the number of source
 #'   patterns excluded and how many subjects held them, both as a loud alert and
-#'   as `patterns_dropped` / `subjects_with_dropped_pattern` in the settings.
-#'   Check those before deciding the default suits your study.
+#'   as `patterns_total`, `patterns_dropped` and `subjects_with_dropped_pattern`
+#'   in the settings, alongside `pattern_generated_fraction` for how often an
+#'   arrangement had to be invented. What survives is how much missingness there
+#'   was and of what kind; what is lost is which specific visits. Check those
+#'   figures before deciding the default suits your study.
 #' @section Dose recomputed from a blended covariate:
 #' When the dose is a fixed multiple of a baseline covariate within each
 #' assigned stratum — mg/kg, mg/m^2 — that multiplier is a protocol property the
@@ -1446,6 +1569,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # data instead of inferable only by simulation.
     cap_bound <- logical(n_subjects)
     pattern_sampled <- logical(n_subjects)
+    pattern_generated <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -1454,12 +1578,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       if (!is.null(attendance)) {
         available <- attendance$pool[[attendance$group[[anchor]]]]
         if (!is.null(available)) {
-          drawn <- sample.int(length(available$keys), 1L,
-                              prob = available$weight)
-          skeleton <- .apply_attendance(skeleton, source_roles,
-                                        available$keys[[drawn]])
-          original_order <- seq_len(nrow(skeleton))
-          pattern_sampled[synthetic_index] <- TRUE
+          drawn <- .draw_attendance(available)
+          if (!is.na(drawn$key)) {
+            skeleton <- .apply_attendance(skeleton, source_roles, drawn$key)
+            original_order <- seq_len(nrow(skeleton))
+            pattern_sampled[synthetic_index] <- TRUE
+            pattern_generated[synthetic_index] <- drawn$generated
+          }
         }
       }
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
@@ -1517,6 +1642,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),
+      # Of the sampled patterns, how many were built from a shape rather than
+      # reused from a real subject.
+      pattern_generated_fraction = mean(pattern_generated),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
       # Note that at the default floor of 2 a dropped pattern is *by definition*

@@ -99,6 +99,7 @@ reference:
   - compare_pmx
   - compare_pmx_distributions
   - skeleton_uniqueness
+  - compare_pmx_proximity
   - flag_identifiable_subjects
   - remediate_identifiable_subjects
   - sampling_summary

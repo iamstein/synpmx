@@ -214,6 +214,7 @@ data.frame(
     "  ... discarded as too rare to reuse",
     "  ... real subjects who held those",
     "avatars given a sampled pattern",
+    "  ... of those, arrangement generated not reused",
     "donor floor: mean effective donors",
     "donor cap binding fraction"
   ),
@@ -230,6 +231,7 @@ data.frame(
     settings$patterns_dropped,
     settings$subjects_with_dropped_pattern,
     settings$pattern_sampled_fraction,
+    round(settings$pattern_generated_fraction, 2),
     round(settings$mean_effective_donors, 2),
     round(settings$cap_binding_fraction, 2)
   ),
@@ -283,6 +285,24 @@ kable_distributions <- function(x) {
 }
 
 kable_distributions(compare_pmx_distributions(raw, synthetic, roles))
+```
+
+### Restricted diagnostic: how close did the values land?
+
+Everything above concerns structure. Blending is what protects the **values**,
+and this is its measurement: does each subject's nearest neighbour lie in its own
+dataset or the other one? Near 0.5 means a synthetic subject is no more like a
+real subject than one real subject is like another -- the target. Toward 0 means
+memorisation.
+
+Read the null interval before the point estimate. It is built by splitting *this*
+source cohort in half and running the identical statistic, so every small-sample
+artefact cancels -- but at a few dozen subjects it is wide. Inside the interval
+means **nothing was detected**, not that nothing is there.
+
+```{r}
+#| label: proximity
+compare_pmx_proximity(raw, synthetic, roles)
 ```
 
 ### Restricted diagnostic: source vs synthetic

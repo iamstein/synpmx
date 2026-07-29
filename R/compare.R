@@ -850,3 +850,241 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
   attr(out, "horizon") <- res$horizon
   out
 }
+
+# Nearest-neighbour proximity ---------------------------------------------------
+#
+# Every masking mechanism has a measurement except the first one. Blending is
+# what protects the *values* -- each avatar's covariates and trajectories are
+# averaged across at least `k` real donors -- and `cap_binding_fraction` and
+# `mean_effective_donors` describe how the blend was *built*, not whether the
+# result landed too close to somebody real. `skeleton_uniqueness()` answers the
+# structural question exactly, by counting who shares what; this answers the
+# geometric one.
+#
+# Raw distance to the closest real record is the obvious statistic and a bad
+# one. It has no natural scale, so it is only interpretable against a
+# comparison, and against zero it mostly tracks cohort size and dimension: the
+# nearest of N points gets closer as N grows, which would make a larger source
+# look worse while actually making blending safer. Worse, if the synthetic
+# marginals match the source -- the goal -- then those distances converge on the
+# real-to-real distances anyway, so a small value is evidence the generator
+# worked.
+#
+# The fix is to compare each point against its own neighbourhood instead. For
+# every subject, ask whether its nearest neighbour lies in its own dataset or
+# the other one. Under the ideal -- a synthetic subject indistinguishable from
+# one more real draw -- that is a coin flip, and the statistic sits at one half.
+# It falls toward zero when synthetic subjects sit closer to real ones than to
+# each other, which is memorisation. It rises toward one when the two sets have
+# separated, which is a utility failure rather than a privacy one. Because it
+# compares distances measured in the same neighbourhood, the scale cancels.
+#
+# The null is built by running the identical statistic on two halves of the real
+# cohort. Every small-sample artefact -- one set minimising over n - 1
+# candidates while the other has n, the dependence between nearest-neighbour
+# links, the small cohorts pharmacometrics actually has -- is then present in
+# the null and the test alike, and cancels. That is worth more than any
+# distributional assumption, and it is why the null is not simply asserted to be
+# one half.
+
+.nearest_within <- function(distance) {
+  diag(distance) <- Inf
+  apply(distance, 1L, min)
+}
+
+# One dataset's subjects against another's, both already in a common space.
+.adversarial_accuracy <- function(a, b) {
+  if (nrow(a) < 2L || nrow(b) < 2L) return(NA_real_)
+  across <- as.matrix(stats::dist(rbind(a, b)))
+  index_a <- seq_len(nrow(a))
+  index_b <- nrow(a) + seq_len(nrow(b))
+  own_a <- .nearest_within(across[index_a, index_a, drop = FALSE])
+  own_b <- .nearest_within(across[index_b, index_b, drop = FALSE])
+  other_a <- apply(across[index_a, index_b, drop = FALSE], 1L, min)
+  other_b <- apply(across[index_b, index_a, drop = FALSE], 1L, min)
+  mean(c(mean(other_a > own_a), mean(other_b > own_b)))
+}
+
+#' Are synthetic subjects sitting too close to real ones?
+#'
+#' The measurement for donor blending, the one masking mechanism
+#' [synpmx_avatar()] applies to the *values* rather than the structure.
+#' [skeleton_uniqueness()] answers the structural question by counting who
+#' shares which schedule; this answers the geometric one, by asking whether each
+#' subject's nearest neighbour lies in its own dataset or the other one.
+#'
+#' The reported statistic is a nearest-neighbour adversarial accuracy in
+#' \eqn{[0, 1]}:
+#'
+#' - **near 0.5** — a synthetic subject is no more like a real subject than one
+#'   real subject is like another. This is the target.
+#' - **toward 0** — synthetic subjects sit closer to real subjects than to each
+#'   other. That is memorisation, and it is the privacy failure.
+#' - **toward 1** — the two sets have separated. Privacy is fine and utility is
+#'   not.
+#'
+#' Raw distance to the closest real record is deliberately not the headline. It
+#' has no natural scale, and measured against zero it mostly tracks cohort size —
+#' the nearest of `N` points gets closer as `N` grows, so a larger source would
+#' score worse while blending across more donors actually makes it safer. The
+#' quantiles are still returned for context, alongside the real-to-real
+#' quantiles they should be read against.
+#'
+#' The null interval comes from running the identical statistic on two halves of
+#' the **source** cohort, so every small-sample artefact is present in the null
+#' and the observed value alike and cancels. At the cohort sizes pharmacometrics
+#' works with, that interval is wide: this will catch a blatant leak, not a
+#' subtle one. Treat a value inside the interval as "nothing detected", never as
+#' "nothing there".
+#'
+#' Marked `"restricted_not_releasable"`: it reads the source.
+#'
+#' @param source Source PMX data.
+#' @param synthetic Generated synthetic PMX data.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param replicates Split-half replicates used to build the null. Default 50.
+#' @param seed Seed for the subsampling and splits. The caller's RNG is left
+#'   untouched.
+#' @param pca_variance Variance retained when both datasets are projected into a
+#'   common profile space. Default 0.90, matching [synpmx_avatar()].
+#'
+#' @return A one-row `pmx_proximity` data frame: `adversarial_accuracy`,
+#'   `null_lower` / `null_upper` (the central 95% of the split-half null),
+#'   `verdict`, `n_compared`, and the 5th-percentile nearest-neighbour distances
+#'   `synthetic_to_source_q05` and `source_to_source_q05`.
+#' @seealso [skeleton_uniqueness()], [compare_pmx_distributions()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(40)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' compare_pmx_proximity(data, synthetic, roles, replicates = 10)
+compare_pmx_proximity <- function(source, synthetic, roles, replicates = 50L,
+                                  seed = 1L, pca_variance = 0.90) {
+  .assert_roles(source, roles)
+  .assert_roles(synthetic, roles)
+  if (!is.numeric(replicates) || length(replicates) != 1L ||
+      is.na(replicates) || replicates < 1) {
+    stop("`replicates` must be one positive integer.", call. = FALSE)
+  }
+
+  # Both datasets are projected together, so the coordinates are comparable by
+  # construction rather than by a transform carried between two fits.
+  marked_source <- source
+  marked_synthetic <- synthetic
+  marked_source[[roles$id]] <- paste0("S:", as.character(source[[roles$id]]))
+  marked_synthetic[[roles$id]] <- paste0("G:",
+                                         as.character(synthetic[[roles$id]]))
+  # `synpmx_avatar()` drops undeclared columns, so the two tables need not share
+  # a schema; the roles do, and only role-named columns feed the profile anyway.
+  shared <- intersect(names(marked_source), names(marked_synthetic))
+  combined <- rbind(marked_source[, shared, drop = FALSE],
+                    marked_synthetic[, shared, drop = FALSE])
+  profiles <- .build_profiles(combined, roles, pca_variance)
+  coordinates <- profiles$coordinates
+  is_synthetic <- startsWith(as.character(profiles$subjects), "G:")
+  real <- coordinates[!is_synthetic, , drop = FALSE]
+  fake <- coordinates[is_synthetic, , drop = FALSE]
+
+  .with_local_seed(seed, {
+    # Both arms of the comparison, and both arms of the null, are run at one
+    # size. A statistic built from nearest neighbours depends on how many
+    # candidates there were, so the sizes have to match or the null is measuring
+    # something else.
+    size <- min(nrow(real) %/% 2L, nrow(fake))
+    if (size < 3L) {
+      out <- data.frame(
+        adversarial_accuracy = NA_real_, null_lower = NA_real_,
+        null_upper = NA_real_, verdict = "too few subjects to compare",
+        n_compared = size, synthetic_to_source_q05 = NA_real_,
+        source_to_source_q05 = NA_real_, stringsAsFactors = FALSE
+      )
+      return(.mark_release(
+        structure(out, class = c("pmx_proximity", "data.frame")),
+        "restricted_not_releasable"
+      ))
+    }
+
+    take <- function(x, n) x[sample.int(nrow(x), n), , drop = FALSE]
+    observed <- .adversarial_accuracy(take(fake, size), take(real, size))
+    null <- vapply(seq_len(as.integer(replicates)), function(i) {
+      split <- sample.int(nrow(real))
+      .adversarial_accuracy(
+        real[split[seq_len(size)], , drop = FALSE],
+        real[split[size + seq_len(size)], , drop = FALSE]
+      )
+    }, numeric(1))
+    null <- null[is.finite(null)]
+    bounds <- if (length(null)) {
+      unname(stats::quantile(null, c(0.025, 0.975)))
+    } else c(NA_real_, NA_real_)
+
+    # Context only, and reported at the 5th percentile because a leak lives in
+    # the left tail rather than the middle.
+    between <- as.matrix(stats::dist(rbind(fake, real)))[
+      seq_len(nrow(fake)), nrow(fake) + seq_len(nrow(real)), drop = FALSE
+    ]
+    within <- .nearest_within(as.matrix(stats::dist(real)))
+    q05 <- function(x) unname(stats::quantile(x, 0.05))
+
+    verdict <- if (!is.finite(observed) || anyNA(bounds)) {
+      "no null available"
+    } else if (observed < bounds[[1L]]) {
+      "below the null: synthetic subjects sit closer to real ones than real ones do to each other"
+    } else if (observed > bounds[[2L]]) {
+      "above the null: the two sets have separated, which is a utility concern"
+    } else {
+      "within the null: nothing detected at this cohort size"
+    }
+
+    out <- data.frame(
+      adversarial_accuracy = observed,
+      null_lower = bounds[[1L]], null_upper = bounds[[2L]],
+      verdict = verdict, n_compared = size,
+      synthetic_to_source_q05 = q05(apply(between, 1L, min)),
+      source_to_source_q05 = q05(within),
+      stringsAsFactors = FALSE
+    )
+    .mark_release(
+      structure(out, class = c("pmx_proximity", "data.frame")),
+      "restricted_not_releasable"
+    )
+  })
+}
+
+#' @export
+print.pmx_proximity <- function(x, ...) {
+  cat("Restricted PMX nearest-neighbour proximity check\n")
+  # `rbind()`-ing several reports to tabulate a set of datasets is the obvious
+  # thing to do with these, and it keeps the class, so handle more than one row
+  # rather than failing on a length-2 condition.
+  if (nrow(x) != 1L) {
+    print(.round_for_print(as.data.frame(x)), row.names = FALSE)
+    cat("\n0.5 is the target; toward 0 is memorisation. The null is wide at",
+        "small cohorts.\n")
+    cat("Source-derived; not releasable unless separately public or privately",
+        "budgeted.\n")
+    return(invisible(x))
+  }
+  if (is.na(x$adversarial_accuracy)) {
+    cat("  ", x$verdict, "\n", sep = "")
+  } else {
+    cat(sprintf("  adversarial accuracy %.3f   null %.3f to %.3f (%d per side)\n",
+                x$adversarial_accuracy, x$null_lower, x$null_upper,
+                x$n_compared))
+    cat("  ", x$verdict, "\n", sep = "")
+    cat(sprintf(
+      "  5th-pct nearest distance: synthetic-to-source %.3f, source-to-source %.3f\n",
+      x$synthetic_to_source_q05, x$source_to_source_q05
+    ))
+  }
+  cat("\n0.5 is the target: a synthetic subject no more like a real subject than\n")
+  cat("one real subject is like another. Toward 0 is memorisation. The null is\n")
+  cat("wide at small cohorts, so 'within' means nothing detected, not nothing there.\n")
+  cat("\nSource-derived; not releasable unless separately public or privately",
+      "budgeted.\n")
+  invisible(x)
+}

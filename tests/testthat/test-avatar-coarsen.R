@@ -63,12 +63,17 @@ test_that("coarsening closes SIM-014 on AVATAR and leaving it off does not", {
   source <- crs_source()
   roles <- crs_roles()
 
+  # `min_pattern_share = 1` keeps attendance sampling out of both arms. It
+  # rewrites which visits an avatar has, so with it on neither arm reproduces a
+  # source timing vector and the contrast this test exists to draw disappears
+  # for reasons that have nothing to do with coarsening.
   coarsened <- suppressWarnings(
-    synpmx_avatar(source, roles, n_subjects = 20, seed = 1)
+    synpmx_avatar(source, roles, n_subjects = 20, seed = 1,
+                  min_pattern_share = 1)
   )
   verbatim <- suppressWarnings(
     synpmx_avatar(source, roles, n_subjects = 20, seed = 1,
-                  coarsen_time = FALSE)
+                  coarsen_time = FALSE, min_pattern_share = 1)
   )
 
   expect_false(timing_vector_copied(source, coarsened, roles))
@@ -87,7 +92,8 @@ test_that("time_jitter cannot substitute, at any magnitude", {
   worst_departure <- function(jitter_sd) {
     jittered <- suppressWarnings(
       synpmx_avatar(source, roles, n_subjects = 12, seed = 1,
-                    coarsen_time = FALSE, time_jitter = jitter_sd)
+                    coarsen_time = FALSE, time_jitter = jitter_sd,
+                    min_pattern_share = 1)
     )
     src <- split(as.numeric(source$TIME), source$ID)
     gen <- split(as.numeric(jittered$TIME), jittered$ID)

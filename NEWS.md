@@ -42,6 +42,16 @@
   `REV-026`, which coarsening made far cheaper by reducing a schedule to a bitmap
   over a shared grid.
 
+  The draw is two-stage, because matching exact patterns alone discards nearly
+  everything: two patients who each missed one visit count as different patterns
+  if they missed different visits. A **shape** is drawn first — how many visits
+  were missed and whether the misses were terminal, contiguous, or scattered —
+  then a real pattern of that shape if one clears the floor, and only otherwise a
+  generated arrangement, rejected and redrawn if it lands on a pattern too rare
+  to reuse. On `warfarin` this takes the loss from 12 patterns to 2, keeping 5 of
+  the source's 6 distinct sample counts. What is lost is resolution: how much
+  missingness and of what kind survive, which specific visits does not.
+
   The default of 2 states exactly one thing: no synthetic patient carries a
   schedule unique to a real patient. Patterns below the floor are **discarded**,
   not approximated, so real dropout and dose-interruption patterns are lost. That
@@ -51,6 +61,15 @@
   `subjects_with_dropped_pattern` in the settings. Note that at the default floor
   the last two are necessarily equal, since a pattern is discarded exactly when
   one patient holds it.
+
+* New `compare_pmx_proximity()` measures whether synthetic subjects landed too
+  close to real ones — the measurement for donor blending, the one masking
+  mechanism that acts on the values rather than the structure and previously had
+  none. It reports a nearest-neighbour adversarial accuracy against a null built
+  by splitting the source cohort in half and running the identical statistic, so
+  small-sample artefacts cancel. Raw distance to the closest record is
+  deliberately not the headline: it has no natural scale and mostly tracks cohort
+  size. A regression test hands it a verbatim copy and requires it to object.
 
 * `subject_properties` is no longer rejected by `synpmx_avatar()`. It now names
   the assigned stratum — treatment arm, dose group, cohort — carried verbatim and

@@ -74,13 +74,15 @@ Open on the two new mechanisms:
       `warfarin`, 2 is the only usable value and option D in the design
       discussion (decompose the pattern into miss-count plus placement rather
       than copying it whole) becomes the way to keep interruptions at all.
-- [ ] The strict pattern definition is what drives the loss: a pattern is the
-      *exact* set of endpoint/time pairs, so two patients who each missed one
-      visit have different patterns if they missed different visits. Singletons
-      therefore dominate -- 12 of warfarin's 14, 54 of mavoglurant's 64. The
-      strictness is required for the guarantee (reusing a pattern one patient
-      holds reproduces their schedule), so loosening it means moving to option D
-      rather than relaxing the match.
+- **Done 2026-07-29.** The shape fallback closed most of the loss: across the
+  public sets, patterns discarded fell from 12/17/12/54 to 2/4/2/1. What is left
+  to confirm on real data is whether the *resolution* cost matters -- which
+  specific visits were missed is no longer preserved, only how many and of what
+  kind.
+- **Done 2026-07-29.** `compare_pmx_proximity()` gives donor blending the
+  measurement it lacked. Still open: whether the null is usefully narrow at
+  PIT565's cohort size, or whether it is so wide that only a blatant leak is
+  detectable there too.
 - [ ] `nimoData` has no pattern shared by even two subjects, so sampling has no
       pool. Constructing a nominal time (rounding the roughly-weekly infusions to
       their protocol week) would fix both this and its inferred-grid failure --
