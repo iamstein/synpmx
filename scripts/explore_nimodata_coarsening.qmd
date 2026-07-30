@@ -1,0 +1,420 @@
+---
+title: "Visit-time masking on nimoData: a failure, diagnosed, then fixed"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(synpmx)
+data("nimoData", package = "nlmixr2data")
+```
+
+`nimoData` is the one public dataset where `coarsen_time = TRUE` — on by
+default — accomplishes **nothing**. All twelve subjects hold a set of
+observation times no other subject shares, before coarsening and after, so every
+avatar carries one real patient's exact visit schedule.
+
+This walks through the failure, diagnoses it with measurements, and then fixes
+it by constructing the nominal time the dataset does not record. The fix takes
+subjects-alone from 12 to 5, and the last section is honest about why it does
+not reach 0.
+
+```{r roles}
+nimo_roles <- function(nominal = NULL) {
+  pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+    nominal_time = nominal,
+    covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+  )
+}
+
+exposure <- function(data, roles, label) {
+  fit <- suppressWarnings(suppressMessages(
+    synpmx_avatar(data, roles, seed = 606)
+  ))
+  s <- attr(fit, "pmx_settings")
+  data.frame(
+    Run = label,
+    Grid = s$time_grid,
+    Alone = s$exposure_alone,
+    `Unique moment` = s$exposure_unique_moment,
+    `Unique visit set` = s$exposure_unique_pattern,
+    `Visit sets` = s$patterns_total,
+    `Invented` = paste0(round(100 * s$pattern_generated_fraction), "%"),
+    check.names = FALSE
+  )
+}
+```
+
+## 1. Two kinds of exposure, in plain terms
+
+The measurements in an avatar are blended from several real donors, so nobody's
+concentrations survive. What is copied verbatim from one real patient is the
+**schedule**: when they were dosed and when they were sampled. Two different
+things can make a schedule identifying, and they need different fixes.
+
+**Seen at a unique moment.** The patient was observed at a clock time nobody
+else was observed at. Sampling recorded to the minute does this to everybody:
+if you were bled at 1.28 hours and nobody else was bled at exactly 1.28 hours,
+your time vector is yours alone. *Fixable*, by placing everyone on a shared
+visit grid — that is what `coarsen_time` does.
+
+**Unique set of visits attended.** Once everyone *is* on a shared grid, every
+individual time is shared, so no single visit gives anyone away. What can still
+give them away is the **combination of visits they attended and missed** —
+dropout, an interrupted course, a skipped week. If one patient is the only one
+who missed weeks 2 and 3, that combination points at them. *Not fixable by any
+grid*, because the times are already shared; the grid decides where the visits
+are, not which ones a patient turned up for.
+
+Throughout this document, "visit set" means that combination: which of the
+study's visits a patient actually had.
+
+## 2. The failure
+
+```{r failure}
+knitr::kable(exposure(nimoData, nimo_roles(), "default, inferred grid"),
+             row.names = FALSE)
+```
+
+Twelve of twelve alone, every one of them on **unique moment**. The grid found
+nothing to share. Note the last column too — every avatar's visit set had to be
+invented rather than reused, which is the same failure seen from the other side.
+
+Why would a study look like this?
+
+```{r shape}
+observed <- nimoData$EVID == 0 & nimoData$MDV == 0
+times <- nimoData$TIME[observed]
+subject <- as.character(nimoData$ID[observed])
+
+c(subjects = length(unique(subject)),
+  observations = length(times),
+  distinct_times = length(unique(times)),
+  obs_per_subject = round(mean(table(subject)), 1))
+```
+
+**311 distinct observation times in a cohort of twelve.** If the study had a
+shared visit grid you would expect roughly 26 — one per protocol visit. That
+number is the whole diagnosis: these patients were not sampled at common times.
+
+## 3. Why the grid cannot fix it
+
+`.derive_time_grid()` pools every observation time and merges them into visit
+cells agglomeratively, closest pair first. A merge is refused for either of two
+reasons:
+
+1. **The cell would hold one patient twice.** Collapsing two of subject 7's own
+   visits into one time destroys a real visit rather than hiding a schedule.
+2. **The gap is wider than typical within-patient spacing**, guarding against an
+   outlier's lone late observation dragging an early visit to their mean. The
+   threshold is the median within-patient gap.
+
+Both come from the data, so both can be checked:
+
+```{r thresholds}
+gaps_within <- unlist(lapply(split(times, subject),
+                             function(v) diff(sort(unique(v)))))
+gaps_within <- gaps_within[is.finite(gaps_within) & gaps_within > 0]
+gaps_between <- diff(sort(unique(times)))
+
+c(merge_threshold_hours = stats::median(gaps_within),
+  cohort_gaps_under_threshold = sum(gaps_between <= stats::median(gaps_within)),
+  cohort_gaps_total = length(gaps_between))
+```
+
+**Constraint 2 is barely binding** — 294 of 310 gaps are under the threshold. So
+the blocking is almost entirely constraint 1, and that is the finding that
+matters.
+
+```{r grid-built}
+grid <- synpmx:::.derive_time_grid(times, subject)
+snapped <- synpmx:::.snap_to_grid(times, grid)
+occupancy <- rowSums(table(snapped, subject) > 0)
+
+c(distinct_times_before = length(unique(times)),
+  grid_cells_after = length(grid),
+  cells_held_by_one_patient = sum(occupancy == 1),
+  cells_held_by_two = sum(occupancy == 2),
+  cells_held_by_three_plus = sum(occupancy >= 3))
+```
+
+Coarsening **does** run — 311 times collapse to about 98 cells. It is simply not
+enough, because about a quarter of the cells still hold exactly one patient, and
+a patient needs only one such cell to be alone.
+
+And this is structural, not a tuning problem. Twelve patients contribute 24–28
+observations each. For the grid to reach ~26 shared cells, each cell would have
+to hold roughly one observation from each patient — and getting there requires
+repeatedly merging times that belong to the *same* patient, which constraint 1
+forbids. **The algorithm stops where it does because going further deletes real
+visits.**
+
+## 4. "So why not just coarsen further?"
+
+The obvious question, and worth answering with a measurement rather than an
+argument. Rounding `TIME` to a fixed resolution and declaring it as
+`nominal_time` forces exactly the coarser grid the default declined to build.
+
+```{r sweep}
+rounded <- function(hours) {
+  out <- nimoData
+  out$NTIME <- round(out$TIME / hours) * hours
+  out
+}
+
+knitr::kable(rbind(
+  exposure(nimoData, nimo_roles(), "default, inferred grid"),
+  do.call(rbind, lapply(c(6, 12, 24, 48, 168, 336), function(h) {
+    exposure(rounded(h), nimo_roles("NTIME"), sprintf("round to %g h", h))
+  }))
+), row.names = FALSE)
+```
+
+**It helps, then stops helping, and it is not monotone.** A one-week grid takes
+unique-moment exposure to zero — but `Alone` does not follow it to zero, and
+both a two-day and a two-week grid are *worse* than the default.
+
+The reason is the trade between the two middle columns. Merging times removes
+unique-moment exposure by making every time shared, but it also changes which
+cells each patient occupies, and a patient whose merged occupancy is unique
+becomes alone on **unique visit set** instead — which no grid can fix. The
+exposure moves columns rather than disappearing.
+
+That non-monotonicity is why `synpmx` does not simply retry at a coarser
+resolution until the number improves. There is no dial where coarser is reliably
+better.
+
+### And coarser grids are not free
+
+```{r cost}
+cost_row <- function(label, values) {
+  data.frame(
+    Grid = label,
+    `Same-patient collisions` = sum(duplicated(paste(subject, values))),
+    `Distinct times per patient` = round(
+      mean(tapply(values, subject, function(v) length(unique(v)))), 1),
+    check.names = FALSE
+  )
+}
+
+knitr::kable(rbind(
+  cost_row("source TIME", times),
+  cost_row("inferred grid", snapped),
+  do.call(rbind, lapply(c(24, 48, 168, 336), function(h) {
+    cost_row(sprintf("round to %g h", h), round(times / h) * h)
+  }))
+), row.names = FALSE)
+```
+
+A "same-patient collision" is two of one patient's own observations forced onto
+the same time. The one-week grid that zeroed unique-moment exposure buys it with
+**164 collisions**, cutting distinct sampling times per patient from 26.8 to
+13.1 — half the PK profile thrown away. The two-week grid leaves 7 of 27.
+
+**The default is not being timid. It is refusing to buy a better privacy number
+with data destruction.**
+
+## 5. The fix: construct the nominal time
+
+The study *has* a protocol grid. It just is not recorded as a column — it is
+implicit in two columns that are.
+
+### What OCC and TAD contain
+
+```{r structure}
+knitr::kable(
+  head(nimoData[nimoData$ID == 1,
+                c("ID", "TIME", "TAD", "OCC", "EVID", "AMT", "DV")], 11),
+  row.names = FALSE, digits = 2,
+  caption = "Subject 1: the first three infusion occasions."
+)
+```
+
+Read the `OCC` and `TAD` columns together and the design is visible. `OCC` is
+the infusion number, 1 to 10. `TAD` is time since that infusion started, and it
+resets to 0 at each one. Subject 1's first occasion is sampled at TAD 1.28,
+23.16, 46.91, 95.21, 144.13, 167.16 — which is days 0, 1, 2, 4, 6, 7, recorded
+to the minute.
+
+**So the protocol is: infusions a week apart, sampled on nominal days within
+each week.** Neither the week nor the day is stored, but both are recoverable.
+
+### The drift that defeats the inferred grid
+
+```{r drift}
+doses <- nimoData[nimoData$EVID != 0 & nimoData$AMT > 0, ]
+drift <- do.call(rbind, lapply(1:5, function(occasion) {
+  actual <- doses$TIME[doses$OCC == occasion]
+  data.frame(Occasion = occasion,
+             `Nominal hour` = (occasion - 1) * 168,
+             `Earliest actual` = round(min(actual), 1),
+             `Latest actual` = round(max(actual), 1),
+             `Spread (h)` = round(max(actual) - min(actual), 1),
+             check.names = FALSE)
+}))
+knitr::kable(drift, row.names = FALSE)
+```
+
+There is the mechanism. Occasion 1 starts at hour 0 for everyone, but by
+occasion 4 the actual start times are spread over almost a day, and the spread
+grows with each occasion as small delays accumulate. Sampling times inherit that
+drift and add their own. By late occasions, two patients at the *same protocol
+visit* are hundreds of hours apart on the clock — far beyond anything the merge
+threshold would join, and hopelessly entangled with genuinely different visits.
+
+**The inferred grid never had a chance, because on the actual clock these
+patients really were not at the same place at the same time.** The shared
+structure exists only relative to each patient's own infusion schedule.
+
+### Building it
+
+```{r build-nominal}
+nimo_fixed <- nimoData
+nimo_fixed$NTIME <-
+  (nimo_fixed$OCC - 1) * 168 +                                  # which week
+  ifelse(nimo_fixed$EVID == 0, round(nimo_fixed$TAD / 24) * 24, 0)  # which day
+
+c(distinct_TIME = length(unique(nimo_fixed$TIME)),
+  distinct_NTIME = length(unique(nimo_fixed$NTIME)),
+  median_deviation_h = stats::median(abs(nimo_fixed$TIME - nimo_fixed$NTIME)))
+```
+
+Two terms. `(OCC - 1) * 168` places the visit in its protocol week. `round(TAD /
+24) * 24` places it on its nominal day within that week, and applies only to
+observations — a dose row is by definition at TAD 0.
+
+**413 distinct clock times become 33 nominal ones**, and the median observation
+sits 3 hours from its nominal slot. That is the shared grid the inferred method
+could not see.
+
+### What it achieves
+
+```{r fixed}
+knitr::kable(rbind(
+  exposure(nimoData, nimo_roles(), "default, inferred grid"),
+  exposure(nimo_fixed, nimo_roles("NTIME"), "constructed nominal time")
+), row.names = FALSE)
+```
+
+- **Alone falls from 12 to 5**, and the grid is now reported as `nominal` rather
+  than `derived` — snapping is exact instead of guessed.
+- **Unique-visit-set exposure is zero.** Every patient who is still alone is
+  alone for the one reason a grid can still address, not the one it cannot.
+- **Invented visit sets fall from 100% to about 17%.** Once patients share a
+  grid, real visit sets become reusable, so most avatars get a real one.
+
+That last point is worth dwelling on, because the discard count alone would have
+hidden it: two visit sets are discarded either way. What changed is that the
+default had to *fabricate* every avatar's visit set from a shape, and the fix
+does not.
+
+### Why five patients are still exposed
+
+```{r residual}
+last_visit <- tapply(nimo_fixed$NTIME[nimo_fixed$EVID == 0],
+                     nimo_fixed$ID[nimo_fixed$EVID == 0], max)
+knitr::kable(
+  data.frame(Subject = names(sort(last_visit)),
+             `Last nominal visit (h)` = as.integer(sort(last_visit)),
+             `In weeks` = round(sort(last_visit) / 168, 1),
+             check.names = FALSE),
+  row.names = FALSE,
+  caption = "Follow-up length after the protocol grid is applied."
+)
+```
+
+The dosing weeks are shared; the **washout tail after the last infusion is
+not**. Patients stop at 1992, 2016, 2112, and 2136 hours, and the ones at the
+uncommon end are alone on that final visit no matter how the earlier weeks are
+gridded. Coarsening the tail further does not help — it merges genuinely
+different follow-up lengths, which converts moment-exposure into visit-set
+exposure and, as the sweep showed, can leave the total worse.
+
+**Zero is probably not reachable on this study, and that is a fact about the
+study rather than about the package.** Twelve patients with individual follow-up
+lengths do not contain twelve indistinguishable schedules. From here the options
+are to remediate the five with `flag_identifiable_subjects()` and
+`remediate_identifiable_subjects()`, or to accept that these avatars carry
+schedule information and keep the output inside the source data's access
+controls — which is the governance model the package assumes anyway.
+
+## 6. Did the fix damage the data?
+
+A privacy improvement that wrecks the profiles is not an improvement. The
+nominal grid moves every observation by a median of 3 hours, so it is worth
+checking what that did.
+
+```{r utility}
+fitted <- suppressWarnings(suppressMessages(
+  synpmx_avatar(nimo_fixed, nimo_roles("NTIME"), seed = 606)
+))
+knitr::kable(
+  compare_pmx_distributions(nimo_fixed, fitted, nimo_roles("NTIME"))$endpoints,
+  digits = 2, row.names = FALSE,
+  caption = "Concentration distribution, source versus synthetic."
+)
+```
+
+```{r profiles, echo=FALSE, fig.width=9, fig.height=4.5}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  panel <- function(data, label) {
+    keep <- data$EVID == 0 & data$MDV == 0
+    data.frame(dataset = label, subject = as.character(data$ID[keep]),
+               tad = data$TAD[keep], dv = data$DV[keep])
+  }
+  both <- rbind(panel(nimo_fixed, "Source"), panel(fitted, "Synthetic"))
+  print(
+    ggplot2::ggplot(both, ggplot2::aes(tad, dv, group = subject,
+                                       colour = dataset)) +
+      ggplot2::geom_line(alpha = 0.3) +
+      ggplot2::geom_point(alpha = 0.4, size = 0.7) +
+      ggplot2::facet_wrap(~dataset) +
+      ggplot2::scale_colour_manual(
+        values = c(Source = "#1B6CA8", Synthetic = "#D95F02")) +
+      ggplot2::labs(x = "Time after dose (hours)", y = "DV",
+                    title = "nimoData with a constructed nominal time") +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(legend.position = "none")
+  )
+}
+```
+
+## 7. What to take from this
+
+1. **An inferred grid can fail completely, and it says so.** The alert is not
+   decoration — 12 of 12 alone means every avatar wears a real patient's
+   schedule.
+2. **The failure is a property of the study.** Individually drifting visit times
+   mean there is no shared clock to find. No amount of tuning invents one.
+3. **Coarsening harder is not the answer.** It is non-monotone, and it pays for
+   the improvement by collapsing a patient's own visits together.
+4. **Recovering the protocol grid is the answer, and it is usually possible.**
+   `OCC` and `TAD` were enough here. Most studies carry something equivalent
+   even when they do not carry a nominal-time column outright.
+5. **Check the residual rather than assuming success.** Five patients remain
+   exposed, all through follow-up length, which is a different problem needing a
+   different response.
+
+## Appendix: a discrepancy found while writing this
+
+The merge enforces that a cell never holds one patient twice, but the snap that
+follows assigns each time to the **nearest cell centre**, which is a separate
+decision. A time near a boundary can land in a neighbouring cell and break the
+constraint the merge just enforced:
+
+```{r snap-mismatch}
+collisions <- paste(subject, snapped)[duplicated(paste(subject, snapped))]
+example <- which(paste(subject, snapped) == collisions[1])
+data.frame(subject = subject[example], source_time = times[example],
+           snapped_to = round(snapped[example], 3))
+```
+
+Two observations of one patient, recorded less than an hour apart, pushed onto a
+single time — 35 such collisions here. Small next to the 164 a one-week grid
+causes, and it changes no conclusion above, but the guarantee in the code
+comments is stronger than what the code delivers. Recorded as `REV-031`.
