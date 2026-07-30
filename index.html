@@ -142,38 +142,14 @@
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="a-first-synthetic-dataset">A first synthetic dataset<a class="anchor" aria-label="anchor" href="#a-first-synthetic-dataset"></a>
+<h2 id="running-it-on-your-own-study">Running it on your own study<a class="anchor" aria-label="anchor" href="#running-it-on-your-own-study"></a>
 </h2>
-<p>The default AVATAR synthetic data algorithm needs only the data and a declaration of what the columns mean.</p>
+<p>AVATAR needs two things: the data, and a declaration of what its columns mean. There is no model to specify and nothing to fit.</p>
+<p>The declaration is also the <strong>manifest of what survives</strong>. <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column no role names, so a column you forget is dropped rather than quietly copied out of a real patient. Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required; everything else is optional.</p>
+<p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the role names to match your columns. It is built to carry every declarable column at once, so most studies will use a subset:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
-<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">101</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   ID TIME       DV    AMT EVID CMT       WT</span></span>
-<span><span class="co">#&gt; 1 13 0.0000000 0.000000 267.84  101   1 69.80615</span></span>
-<span><span class="co">#&gt; 2 13 0.0000000 0.000000   0.00    0   2 69.80615</span></span>
-<span><span class="co">#&gt; 3 13 0.2816667 2.861275   0.00    0   2 69.80615</span></span>
-<span><span class="co">#&gt; 4 13 0.5416667 3.600730   0.00    0   2 69.80615</span></span></code></pre></div>
-<p>The output dataset keeps the same structure.</p>
-</div>
-<div class="section level2">
-<h2 id="declaring-every-column">Declaring every column<a class="anchor" aria-label="anchor" href="#declaring-every-column"></a>
-</h2>
-<p><code>theo_md</code> is a four-column dataset. A real study is not, so here is the full declaration. The roles are also the <strong>manifest of what survives</strong>: <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column no role names, so a column you forget is dropped rather than quietly copied out of a real patient.</p>
-<p>Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required. Everything else is optional, and this example declares all of it at once:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># A study carrying every declarable column. Yours will have a subset.</span></span>
 <span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_simulated_fixture.html">pmx_simulated_fixture</a></span><span class="op">(</span><span class="fl">24</span><span class="op">)</span>                  <span class="co"># 24 subjects, 2 endpoints</span></span>
 <span><span class="va">study</span><span class="op">$</span><span class="va">YTYPE</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">DVID</span> <span class="op">==</span> <span class="st">"cp"</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span>   <span class="co"># endpoint key, numeric</span></span>
 <span><span class="va">study</span><span class="op">$</span><span class="va">NAME</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">DVID</span><span class="op">)</span>             <span class="co"># same endpoint, as text</span></span>
@@ -232,7 +208,7 @@
 <h2 id="the-masking-options-and-their-defaults">The masking options, and their defaults<a class="anchor" aria-label="anchor" href="#the-masking-options-and-their-defaults"></a>
 </h2>
 <p>Every masking argument below is shown at its default, so this call behaves exactly like <code>synpmx_avatar(study, roles, seed = 2026)</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
 <span>  <span class="va">study</span>, <span class="va">roles</span>,</span>
 <span>  n_subjects         <span class="op">=</span> <span class="cn">NULL</span>,   <span class="co"># cohort size; NULL matches the source</span></span>
@@ -275,6 +251,10 @@
 <span><span class="co">#&gt; 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD</span></span></code></pre></div>
 <p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. And a source attendance pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong> — that loss is the mechanism working, and every run reports how much of it happened.</p>
 <p>Measure what the masking achieved with <code><a href="reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> on the source and <code><a href="reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> on the pair.</p>
+</div>
+<div class="section level2">
+<h2 id="the-four-modes">The four modes<a class="anchor" aria-label="anchor" href="#the-four-modes"></a>
+</h2>
 <table class="table">
 <colgroup>
 <col width="20%">

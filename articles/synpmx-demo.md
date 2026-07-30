@@ -266,6 +266,8 @@ theo_roles <- pmx_roles(
   evid = "EVID", cmt = "CMT", covariates = "WT"
 )
 theo_synth <- synpmx_avatar(theo_md, theo_roles, seed = 303)
+#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
 #> Warning: Synthetic generation used documented small-group/profile fallbacks:
 #> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.
 validate_pmx(theo_synth, theo_roles)$valid
@@ -444,6 +446,8 @@ quietly leaving the very-long follow-ups out of the synthetic data
 someone out, not a formal privacy guarantee; ordinary long follow-ups
 are kept, and `screen = FALSE` keeps every subject.
 
+    #> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+    #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
     #>   Declare a column in `keep` to carry it through verbatim.
     #> SYNPMX ALERT: `coarsen_time = TRUE` left 6 of 45 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
@@ -460,6 +464,8 @@ a nominal dose group (`DOS`). The dose group is carried through with
 doses, so it stays coherent with them. The redundant `WGT` column is
 simply left undeclared, so AVATAR drops it.
 
+    #> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+    #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
     #>   Declare a column in `keep` to carry it through verbatim.
     #> SYNPMX ALERT: `coarsen_time = TRUE` left 12 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
@@ -475,6 +481,10 @@ and infusion rows. The reset clock validates within ID and occasion.
 AVATAR copies the whole event template from one anchor, so `DOSE` stays
 coherent with the doses when carried through with `keep`.
 
+    #> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+    #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
+    #>   800 observation row(s) share a subject and time with another; that is ordinary for replicate
+    #>   measurements and expected if two endpoints are being read at one visit.
     #> SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
     #> SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
     #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
@@ -913,6 +923,8 @@ care, not a blocker. The sequence worth following is:
     nimo_fixed <- suppressWarnings(
       synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
     )
+    #> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+    #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
     #>   Declare a column in `keep` to carry it through verbatim.
     #> SYNPMX ALERT: `coarsen_time = TRUE` left 5 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.

@@ -103,50 +103,26 @@ package](https://docs.opendp.org/en/stable/api/r/):
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
-## A first synthetic dataset
+## Running it on your own study
 
-The default AVATAR synthetic data algorithm needs only the data and a
-declaration of what the columns mean.
+AVATAR needs two things: the data, and a declaration of what its columns
+mean. There is no model to specify and nothing to fit.
 
-``` r
-
-library(synpmx)
-data("theo_md", package = "nlmixr2data")
-
-roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", covariates = "WT"
-)
-
-synthetic <- suppressWarnings(synpmx_avatar(theo_md, roles, seed = 101))
-validate_pmx(synthetic, roles)$valid
-#> [1] TRUE
-head(synthetic, 4)
-#>   ID TIME       DV    AMT EVID CMT       WT
-#> 1 13 0.0000000 0.000000 267.84  101   1 69.80615
-#> 2 13 0.0000000 0.000000   0.00    0   2 69.80615
-#> 3 13 0.2816667 2.861275   0.00    0   2 69.80615
-#> 4 13 0.5416667 3.600730   0.00    0   2 69.80615
-```
-
-The output dataset keeps the same structure.
-
-## Declaring every column
-
-`theo_md` is a four-column dataset. A real study is not, so here is the
-full declaration. The roles are also the **manifest of what survives**:
+The declaration is also the **manifest of what survives**.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 drops every column no role names, so a column you forget is dropped
-rather than quietly copied out of a real patient.
+rather than quietly copied out of a real patient. Only `id`, `time`,
+`dv`, and `evid` are required; everything else is optional.
 
-Only `id`, `time`, `dv`, and `evid` are required. Everything else is
-optional, and this example declares all of it at once:
+The block below stands in for your study — replace the first dozen lines
+with your own data frame and edit the role names to match your columns.
+It is built to carry every declarable column at once, so most studies
+will use a subset:
 
 ``` r
 
 library(synpmx)
 
-# A study carrying every declarable column. Yours will have a subset.
 study <- pmx_simulated_fixture(24)                  # 24 subjects, 2 endpoints
 study$YTYPE <- ifelse(study$DVID == "cp", 1L, 2L)   # endpoint key, numeric
 study$NAME  <- as.character(study$DVID)             # same endpoint, as text
@@ -269,6 +245,8 @@ Measure what the masking achieved with
 on the source and
 [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
 on the pair.
+
+## The four modes
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|

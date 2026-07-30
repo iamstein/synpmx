@@ -1362,6 +1362,8 @@ The anchor contributes the event skeleton. Donors contribute transformed
 DVs after interpolation to the anchor times. The following table shows
 the exact pre-noise blend used by the implementation.
 
+    #> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+    #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> SYNPMX ALERT: 3 of 6 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
     #> Warning: 3 of 6 source subjects share every observation time with others but
     #> hold a unique *pattern* of which visits were attended -- dropout,

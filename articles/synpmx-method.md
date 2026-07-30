@@ -80,6 +80,8 @@ blend of that subject’s nearest compatible neighbors, plus noise.
 ``` r
 
 avatar <- suppressWarnings(synpmx_avatar(theo_md, theo_roles, seed = 101))
+#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
 validate_pmx(avatar, theo_roles)$valid
 #> [1] TRUE
 ```

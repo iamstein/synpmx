@@ -304,6 +304,8 @@ roles <- pmx_roles(
   cmt = "CMT", covariates = "WT"
 )
 synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
+#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
 #> SYNPMX ALERT: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
 #> Warning: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.
 #> SYNPMX ALERT: 3 subjects in 1 route arm below the donor floor of 5: 1:1:bolus (n=3). Donors are never blended across routes, so these subjects have no legal donor set. Dropping every arm would leave nothing to generate, so generation proceeded as if `on_donor_shortfall = "noise"`. Treat the output as individually identifying.
