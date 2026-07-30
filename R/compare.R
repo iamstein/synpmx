@@ -534,7 +534,7 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #'   per subject: `subject_id`, `n_obs`, `n_doses`, `signature_class`,
 #'   `obs_time_class`, `n_obs_class` (each counting the subjects sharing that
 #'   key, including itself), and `alone` (`TRUE` when `obs_time_class == 1`).
-#'   Attributes `n_alone`, `n_alone_signature`, `n_alone_n_obs`, and `min_class`
+#'   Attributes `n_unique_schedule`, `n_alone_signature`, `n_alone_n_obs`, and `min_class`
 #'   summarize the cohort.
 #' @seealso [flag_identifiable_subjects()], [synpmx_avatar()].
 #' @export
@@ -610,16 +610,16 @@ skeleton_uniqueness <- function(data, roles) {
     obs_time_class = obs_time_class,
     min_time_share = min_time_share,
     n_obs_class = n_obs_class,
-    alone = obs_time_class == 1L,
+    unique_schedule = obs_time_class == 1L,
     stringsAsFactors = FALSE,
     row.names = NULL
   )
   out <- out[order(out$obs_time_class, out$signature_class, out$n_obs_class,
                    out$subject_id), , drop = FALSE]
   rownames(out) <- NULL
-  attr(out, "n_alone") <- sum(out$obs_time_class == 1L)
-  attr(out, "n_alone_signature") <- sum(out$signature_class == 1L)
-  attr(out, "n_alone_n_obs") <- sum(out$n_obs_class == 1L)
+  attr(out, "n_unique_schedule") <- sum(out$obs_time_class == 1L)
+  attr(out, "n_unique_dose_signature") <- sum(out$signature_class == 1L)
+  attr(out, "n_unique_obs_count") <- sum(out$n_obs_class == 1L)
   attr(out, "n_unshared_time") <- sum(out$min_time_share == 1L, na.rm = TRUE)
   attr(out, "min_class") <- if (nrow(out)) min(out$obs_time_class) else NA_integer_
   .mark_release(
@@ -631,28 +631,34 @@ skeleton_uniqueness <- function(data, roles) {
 #' @export
 print.pmx_skeleton_uniqueness <- function(x, ...) {
   n <- nrow(x)
-  alone <- attr(x, "n_alone") %||% sum(x$signature_class == 1L)
-  alone_sig <- attr(x, "n_alone_signature") %||% sum(x$signature_class == 1L)
-  alone_obs <- attr(x, "n_alone_n_obs") %||% sum(x$n_obs_class == 1L)
+  unique_schedule <- attr(x, "n_unique_schedule") %||%
+    sum(x$obs_time_class == 1L)
+  unique_signature <- attr(x, "n_unique_dose_signature") %||%
+    sum(x$signature_class == 1L)
+  unique_obs_count <- attr(x, "n_unique_obs_count") %||%
+    sum(x$n_obs_class == 1L)
   cat(sprintf(
-    "Restricted PMX skeleton-uniqueness screen: %d of %d subject%s alone\n",
-    alone, n, if (n == 1L) "" else "s"
+    "Restricted PMX schedule-uniqueness screen: %d of %d patient%s\n",
+    unique_schedule, n, if (n == 1L) "" else "s"
   ))
   cat(sprintf(
-    "Alone = the only subject with this observation time vector (%.0f%% here).\n\n",
-    if (n) 100 * alone / n else 0
+    paste0("have a UNIQUE SAMPLING SCHEDULE (%.0f%%): no other patient shares ",
+           "their\nlist of observation times, so the schedule works as an ",
+           "identifier.\n\n"),
+    if (n) 100 * unique_schedule / n else 0
   ))
   unshared <- attr(x, "n_unshared_time") %||% sum(x$min_time_share == 1L,
                                                   na.rm = TRUE)
-  cat(sprintf("  obs times alone: %3d  <- of which:\n", alone))
-  cat(sprintf("    visited a moment nobody else did: %3d  <- the grid's job\n",
+  cat(sprintf("  unique sampling schedule:  %3d  <- of which:\n",
+              unique_schedule))
+  cat(sprintf("    unique sample time:      %3d  <- sampled when nobody else was; the grid's job\n",
               unshared))
-  cat(sprintf("    every time shared, pattern unique: %3d  <- dropout; the screen's\n",
-              max(alone - unshared, 0L)))
-  cat(sprintf("  n_obs alone:     %3d  <- the residual it leaves, for the screen\n",
-              alone_obs))
-  cat(sprintf("  signature alone: %3d  <- dose structure/amount; coarsening does not change it\n",
-              alone_sig))
+  cat(sprintf("    unique set of visits:    %3d  <- every time shared; dropout, the screen's job\n",
+              max(unique_schedule - unshared, 0L)))
+  cat(sprintf("  unique observation count:  %3d  <- the residual that leaves, for the screen\n",
+              unique_obs_count))
+  cat(sprintf("  unique dose signature:     %3d  <- dose structure/amount; coarsening cannot change it\n",
+              unique_signature))
   cat("\n")
   cat(if (n > 12L) "Twelve most exposed:\n" else "By class size:\n")
   print(.round_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)

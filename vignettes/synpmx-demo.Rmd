@@ -231,14 +231,14 @@ masking_report <- function(source, roles, synthetic) {
     c("**Visit schedule**", "", ""),
     c("Grid used", num(settings$time_grid),
       "`nominal` where a `nominal_time` role was declared, else inferred"),
-    c("Alone before coarsening", num(attr(before, "n_alone")),
-      "subjects whose observation-time vector nobody shares"),
-    c("Alone after coarsening", num(settings$exposure_alone), ""),
-    c("&nbsp;&nbsp;seen at a unique moment", num(settings$exposure_unique_moment),
-      "the grid's job; declaring `nominal_time` is the fix"),
-    c("&nbsp;&nbsp;unique set of visits attended",
-      num(settings$exposure_unique_pattern),
-      "dropout or a missed visit; no grid can fix this"),
+    c("Unique sampling schedule, before coarsening",
+      num(attr(before, "n_unique_schedule")),
+      "patients whose list of observation times nobody else shares"),
+    c("Unique sampling schedule, after", num(settings$unique_schedule_n), ""),
+    c("&nbsp;&nbsp;unique sample time", num(settings$unique_sample_time_n),
+      "sampled when nobody else was; the grid's job, fixed by `nominal_time`"),
+    c("&nbsp;&nbsp;unique set of visits", num(settings$unique_visit_set_n),
+      "every time shared; dropout, and no grid can fix it"),
 
     c("**Which visits each patient attended**", "", ""),
     c("Distinct visit sets in the source", num(settings$patterns_total),
@@ -361,12 +361,13 @@ came out of it.
 Two quantities are worth learning to read first, because they are the ones that
 surprise people:
 
-- **"Alone"** — a subject whose observation-time vector no other subject shares.
-  An avatar anchored on such a subject wears a schedule belonging to exactly one
-  real person, however carefully its concentrations were blended. The count is
-  split by cause, because the two causes have different answers: *seen at a
-  unique moment* is the grid's job and is fixed by declaring `nominal_time`,
-  while *unique pattern of visits* is dropout and no grid can fix it.
+- **"Unique sampling schedule"** — a patient whose list of observation times no
+  other patient shares. An avatar anchored on such a patient wears a schedule
+  belonging to exactly one real person, however carefully its concentrations
+  were blended. The count is split by cause, because the two causes have
+  different answers: a *unique sample time* is the grid's job and is fixed by
+  declaring `nominal_time`, while a *unique set of visits* is dropout and no
+  grid can fix it.
 - **"Patterns discarded"** — a real dropout or dose-interruption pattern that
   will not appear in the output at all. That loss is the mechanism working, not
   a bug: it is what stops an avatar carrying a schedule traceable to one person.
@@ -418,10 +419,10 @@ excluded: no subject is structurally extreme, and with one route there is no arm
 below the donor floor, so all twelve subjects were available to anchor on and
 twelve avatars were built.
 
-The interesting row is the schedule pair. **All twelve subjects start out
-alone** — their sampling times are recorded to the minute and no two patients
-were bled at exactly the same moment, so every one of them holds a
-time vector nobody shares. After coarsening the count is **zero**. The inferred
+The interesting row is the schedule pair. **All twelve patients start out with a
+unique sampling schedule** — their sampling times are recorded to the minute and
+no two patients were sampled at exactly the same moment, so every one of them
+holds a list of times nobody else shares. After coarsening the count is **zero**. The inferred
 grid found the shared visit structure underneath the recorded times and pulled
 everyone onto it. That is the coarsening mechanism doing its entire job.
 
@@ -448,7 +449,7 @@ For a per-subject check on the *generated* data rather than the source,
 `flag_identifiable_subjects()` scores each synthetic subject for being a
 structural outlier and `remediate_identifiable_subjects()` removes or shortens
 the ones it flags. Those find subjects that are *extreme*;
-`skeleton_uniqueness()` finds subjects that are *alone*.
+`skeleton_uniqueness()` finds patients whose *schedule is unique*.
 
 ```{r theo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 theo_comparison <- rbind(
@@ -544,8 +545,8 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 subjects were available to anchor on — but the schedule rows tell a different
 story from theophylline's.
 
-**Twelve subjects are still alone after coarsening, and only two of them for a
-reason the grid can address.** The other ten share every one of their observation
+**Twelve patients still have a unique schedule after coarsening, and only two of
+them for a reason the grid can address.** The other ten share every one of their observation
 times with somebody; what singles them out is *which* of those shared visits they
 attended. Warfarin has subjects with 13, 14, 16, 17, 18, 19 and 25 observations,
 and the rarer counts pick those subjects out on their own. No grid resolution
@@ -631,8 +632,8 @@ screened subjects also remain donors, so their measurements still contribute.
 What is lost is not their data but the possibility of an avatar wearing their
 distinctive follow-up length.
 
-**Seventeen subjects are alone, split six and eleven.** The six seen at a unique
-moment are the ones worth acting on: `wbcSim` carries no nominal-time column, so
+**Seventeen patients have a unique schedule, split six and eleven.** The six with
+a unique sample time are the ones worth acting on: `wbcSim` carries no nominal-time column, so
 the grid was inferred, and declaring a real one would likely clear them. The
 eleven with a unique set of attended visits are past the grid's reach.
 
@@ -690,8 +691,9 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 ```
 
 **This is the failure case, and it is the most instructive table in the
-vignette.** Read the schedule rows: **12 of 12 alone before coarsening, 12 of 12
-alone after, all of them on a unique moment.** The grid achieved *nothing*.
+vignette.** Read the schedule rows: **12 of 12 unique before coarsening, 12 of 12
+unique after, every one of them on a unique sample time.** The grid achieved
+*nothing*.
 
 The reason is the study design. Ten roughly-weekly infusions per subject over a
 long follow-up means no two subjects were ever dosed or sampled close enough
@@ -710,7 +712,7 @@ the game away: **every avatar's arrangement was invented rather than reused,
 
 The two failures have one cause and one fix, and `nimoData` gets that fix
 demonstrated later in this vignette: constructing a nominal time from the
-protocol grid takes subjects-alone from 12 to 5 and gives coarsening something to
+protocol grid takes the unique-schedule count from 12 to 5 and gives coarsening something to
 work with.
 
 A dataset that produces this table should not be shipped as-is. Either declare
@@ -772,8 +774,8 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 
 **The largest cohort here, and the one where the residual is largest in absolute
 terms.** Nothing was excluded from the anchor pool. The grid did essentially
-everything it could: of the subjects still alone afterwards, **only one is alone
-on a unique moment.** The rest share every observation time with somebody and
+everything it could: of the patients still unique afterwards, **only one has a
+unique sample time.** The rest share every observation time with somebody and
 differ only in which of those visits they attended.
 
 That leaves the largest absolute residual in the vignette — 58 of 120 subjects
@@ -894,10 +896,10 @@ exposure_row <- function(label, source, roles, synthetic) {
   data.frame(
     Dataset = label,
     Subjects = nrow(before),
-    `Alone before` = attr(before, "n_alone"),
-    `Alone after` = after$exposure_alone,
-    `Unique moment` = after$exposure_unique_moment,
-    `Unique pattern` = after$exposure_unique_pattern,
+    `Unique before` = attr(before, "n_unique_schedule"),
+    `Unique after` = after$unique_schedule_n,
+    `Unique sample time` = after$unique_sample_time_n,
+    `Unique visit set` = after$unique_visit_set_n,
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }
@@ -1054,14 +1056,15 @@ the function a verbatim copy and requiring it to object.
 
 ### Reading the tables across datasets
 
-**"Alone after" is the number of patients you would consider dropping**, and the
-split by cause decides whether dropping is even the right response. Each dataset
+**The unique-schedule count after coarsening is the number of patients you would
+consider dropping**, and the split by cause decides whether dropping is even the
+right response. Each dataset
 section above works through its own numbers; the pattern across all five is what
 matters here.
 
-The spread runs from **`theo_md`, where coarsening takes 12 alone to 0 and there
+The spread runs from **`theo_md`, where coarsening takes 12 unique schedules to 0 and there
 is nothing left to do**, through **`mavoglurant`, where the grid does everything
-it can and still leaves a large majority of 120 subjects alone on their
+it can and still leaves 58 of 120 patients unique on their
 visit set**, to **`nimoData`, where the grid achieves nothing at all**.
 Same package, same defaults, same seed discipline — the difference is entirely in
 how the studies were designed and how their times were recorded.
@@ -1137,11 +1140,11 @@ sequence worth following is:
       synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
     )
     unlist(attr(nimo_fixed, "pmx_settings")[
-      c("time_grid", "exposure_alone", "exposure_unique_moment")
+      c("time_grid", "unique_schedule_n", "unique_sample_time_n")
     ])
     ```
 
-    Subjects alone fall from 12 of 12 to 5, all in the long washout tail after
+    Unique schedules fall from 12 of 12 to 5, all in the long washout tail after
     the last dose, where a follow-up visit at 240 or 624 hours belongs to one
     patient. Coarsening that tail further does not help — at a two-week grid the
     count goes back up, because merging genuinely distinct visits creates new

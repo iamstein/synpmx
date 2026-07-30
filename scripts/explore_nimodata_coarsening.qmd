@@ -12,15 +12,45 @@ library(synpmx)
 data("nimoData", package = "nlmixr2data")
 ```
 
-`nimoData` is the one public dataset where `coarsen_time = TRUE` — on by
-default — accomplishes **nothing**. All twelve subjects hold a set of
-observation times no other subject shares, before coarsening and after, so every
-avatar carries one real patient's exact visit schedule.
+## The one term you need first
 
-This walks through the failure, diagnoses it with measurements, and then fixes
-it by constructing the nominal time the dataset does not record. The fix takes
-subjects-alone from 12 to 5, and the last section is honest about why it does
-not reach 0.
+Everything below counts patients with a **unique sampling schedule**, so here is
+what that means before anything else.
+
+> A patient has a **unique sampling schedule** when the list of times they were
+> observed at is not shared by any other patient in the study.
+
+Say a study enrols ten patients. Nine of them had PK sampled at hours 1, 4, 24
+and 48. The tenth was sampled at hours 1, 4, 24 and 49. That tenth patient is
+the one with a unique sampling schedule: their list of times belongs to nobody
+else, so it works as a fingerprint.
+Anyone
+holding that patient's real visit records can pick their synthetic counterpart
+out of the cohort — because `synpmx` copies the *schedule* verbatim from one
+real patient even though it blends the *measurements* from several.
+
+So **this is the number to drive to zero**, and it is counted on the real data
+before any synthetic data is made. Zero means no synthetic patient can be traced
+back to a particular real one through their visit times. Twelve out of twelve
+means every single one can.
+
+Two things it does **not** mean:
+
+- It does not mean anyone's measurements leaked. Concentrations are blended
+  across at least five donors and capped, so no real patient's numbers appear.
+- It does not mean an attack has happened. Uniqueness is a property of the
+  source data — it says the schedule *would* work as an identifier.
+
+## What this document does
+
+`nimoData` is the one public dataset where `coarsen_time = TRUE` — the default
+mechanism for fixing this — accomplishes **nothing**. All twelve patients have a
+unique sampling schedule before coarsening, and all twelve still do after.
+
+This walks through that failure, diagnoses it with measurements, and then fixes
+it by constructing the nominal visit time the dataset does not record. **The fix
+takes the count from 12 to 5**, and the last section is honest about why it
+cannot reach 0.
 
 ```{r roles}
 nimo_roles <- function(nominal = NULL) {
@@ -40,9 +70,9 @@ exposure <- function(data, roles, label) {
   data.frame(
     Run = label,
     Grid = s$time_grid,
-    Alone = s$exposure_alone,
-    `Unique moment` = s$exposure_unique_moment,
-    `Unique visit set` = s$exposure_unique_pattern,
+    `Unique schedule` = s$unique_schedule_n,
+    `Unique sample time` = s$unique_sample_time_n,
+    `Unique visit set` = s$unique_visit_set_n,
     `Visit sets` = s$patterns_total,
     `Invented` = paste0(round(100 * s$pattern_generated_fraction), "%"),
     check.names = FALSE
@@ -50,71 +80,207 @@ exposure <- function(data, roles, label) {
 }
 ```
 
-## 1. Two kinds of exposure, in plain terms
+## 1. The two reasons a schedule ends up unique
 
-The measurements in an avatar are blended from several real donors, so nobody's
-concentrations survive. What is copied verbatim from one real patient is the
-**schedule**: when they were dosed and when they were sampled. Two different
-things can make a schedule identifying, and they need different fixes.
+A schedule can be unique for two different reasons. Every table below splits the
+count between them, because they call for opposite responses.
 
 **Seen at a unique moment.** The patient was observed at a clock time nobody
-else was observed at. Sampling recorded to the minute does this to everybody:
-if you were bled at 1.28 hours and nobody else was bled at exactly 1.28 hours,
-your time vector is yours alone. *Fixable*, by placing everyone on a shared
-visit grid — that is what `coarsen_time` does.
+else was observed at. Sampling recorded to the minute does this to everybody —
+PK sampled at 1.28 hours when nobody else was sampled at exactly 1.28 hours, and
+the list is already unique. **Fixable**: place everyone on a shared visit grid,
+so 1.28 and 1.31 and 1.19 all become "the 1-hour visit". That is exactly what
+`coarsen_time` does, and on most datasets it works.
 
 **Unique set of visits attended.** Once everyone *is* on a shared grid, every
 individual time is shared, so no single visit gives anyone away. What can still
 give them away is the **combination of visits they attended and missed** —
 dropout, an interrupted course, a skipped week. If one patient is the only one
-who missed weeks 2 and 3, that combination points at them. *Not fixable by any
-grid*, because the times are already shared; the grid decides where the visits
-are, not which ones a patient turned up for.
+who missed weeks 2 and 3, that combination points at them just as well as an odd
+sampling time would. **Not fixable by any grid**, because the times are already
+shared; a grid decides where the visits are, not which ones a patient turned up
+for. This one needs a different mechanism (`min_pattern_share`) or a decision to
+drop the patient.
 
-Throughout this document, "visit set" means that combination: which of the
-study's visits a patient actually had.
+Throughout, **"visit set"** is the shorthand for that combination: which of the
+study's shared visits one patient actually had.
+
+The distinction is the practical one in this whole document. A high
+unique-moment count means *try harder on the grid*. A high unique-visit-set
+count means *the grid is finished; the remaining exposure is dropout, and you
+have a different decision to make.*
 
 ## 2. The failure
+
+Run `synpmx_avatar()` on `nimoData` with everything at its defaults:
 
 ```{r failure}
 knitr::kable(exposure(nimoData, nimo_roles(), "default, inferred grid"),
              row.names = FALSE)
 ```
 
-Twelve of twelve alone, every one of them on **unique moment**. The grid found
-nothing to share. Note the last column too — every avatar's visit set had to be
-invented rather than reused, which is the same failure seen from the other side.
+### What each column is
 
-Why would a study look like this?
+This table appears repeatedly below, so it is worth reading the columns once.
+
+| Column | Meaning | Want |
+|---|---|---|
+| **Unique schedule** | Patients out of 12 whose list of observation times nobody else shares. The headline number. | 0 |
+| **Unique sample time** | Of those, how many are unique because they were sampled at a clock time nobody else was. | 0 — a grid can fix these |
+| **Unique visit set** | Of those, how many share every individual time with somebody but attended a combination of visits nobody else did. | no grid fixes these |
+| **Visit sets** | How many distinct combinations of attended visits exist in the study, after coarsening. | — |
+| **Invented** | Share of avatars whose missed visits were placed fresh instead of copied from a real patient. | — (see below) |
+
+`Unique schedule` is always `Unique sample time` + `Unique visit set`.
+
+### Reading this row
+
+**All twelve patients have a unique sampling schedule.** Every patient has a list
+of observation times that no other patient shares, so every avatar built from
+this data wears a schedule belonging to exactly one real person. That is the
+failure, and it is total.
+
+**All twelve are unique on sample time.** Not one of them was rescued by the
+grid: each was observed at clock times nobody else was observed at, and the
+coarsening that exists to merge such times found nothing to merge. Because
+`Unique visit set` is 0, the entire problem here is the *fixable* kind — which
+is the one encouraging thing in the row, and the reason the rest of this
+document is worth reading.
+
+**`Invented` at 100% is a symptom, not a harm.** This is worth being precise
+about, because the column is easy to misread. An invented visit set means no
+real patient's combination of missed visits was reused — which is *good* for
+privacy, not bad. The reason to look at it is diagnostic: reuse is only possible
+when two patients attended the same set of visits, so **100% invented means no
+two patients in this study had anything in common to reuse.** It is the same
+underlying problem as the `Alone` column, measured a different way, and later it
+becomes the most sensitive indicator that the fix worked.
+
+If you only track one number, track **unique schedule**.
+
+### Why would a study look like this?
+
+One count explains the whole thing.
 
 ```{r shape}
 observed <- nimoData$EVID == 0 & nimoData$MDV == 0
 times <- nimoData$TIME[observed]
 subject <- as.character(nimoData$ID[observed])
 
-c(subjects = length(unique(subject)),
+c(patients = length(unique(subject)),
   observations = length(times),
-  distinct_times = length(unique(times)),
-  obs_per_subject = round(mean(table(subject)), 1))
+  observations_per_patient = round(mean(table(subject)), 1),
+  distinct_times = length(unique(times)))
 ```
 
-**311 distinct observation times in a cohort of twelve.** If the study had a
-shared visit grid you would expect roughly 26 — one per protocol visit. That
-number is the whole diagnosis: these patients were not sampled at common times.
+Each patient is sampled about **27** times. So if the twelve patients were
+sampled at the *same* protocol visits, the whole study would contain about **27
+distinct times** — everyone's hour-1 sample recorded as hour 1, everyone's
+week-2 sample as week 2.
+
+Instead it contains **311**, out of 321 observations.
+
+That is the diagnosis, and it is worth stating bluntly: **almost every single
+observation in this study sits at a moment of its own.** Not approximately
+shared, not shared after rounding — its own. Here is the same fact from the
+sharing side:
+
+```{r sharing}
+attendance <- table(times, subject) > 0
+patients_per_time <- rowSums(attendance)
+
+c(distinct_times = length(patients_per_time),
+  times_shared_by_two_or_more = sum(patients_per_time >= 2),
+  observations_at_a_shared_time = sum(patients_per_time[as.character(times)] >= 2),
+  observations_total = length(times))
+```
+
+**Nine.** Nine times in the entire study are attended by more than one patient,
+and 19 of 321 observations sit at one. Ninety-four percent of the observations
+are at a moment no other patient was observed at.
+
+### The same fact, as a picture
+
+```{r visitmap, echo=FALSE, fig.width=9, fig.height=5.5}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  data("theo_md", package = "nlmixr2data")
+  strip <- function(d, lab, tmax = Inf) {
+    o <- d$EVID == 0 & d$TIME <= tmax
+    if ("MDV" %in% names(d)) o <- o & d$MDV == 0
+    tt <- d$TIME[o]
+    counts <- table(tt)
+    data.frame(study = lab, time = tt,
+               shared = as.vector(counts[as.character(tt)] > 1))
+  }
+  both <- rbind(
+    strip(theo_md, "theo_md — 32% of times shared by 2+ patients"),
+    strip(nimoData, "nimoData — 3% of times shared by 2+ patients", tmax = 340))
+  print(
+    ggplot2::ggplot(both, ggplot2::aes(time, 0, colour = shared)) +
+      ggplot2::geom_jitter(height = 0.35, width = 0, size = 1.5, alpha = 0.8) +
+      ggplot2::facet_wrap(~study, scales = "free_x", ncol = 1) +
+      ggplot2::scale_colour_manual(
+        values = c("TRUE" = "#1B6CA8", "FALSE" = "#D95F02"),
+        labels = c("TRUE" = "shared with another patient",
+                   "FALSE" = "this patient alone here"),
+        name = NULL) +
+      ggplot2::labs(x = "Recorded observation time (hours)", y = NULL) +
+      ggplot2::theme_minimal(base_size = 11) +
+      ggplot2::theme(axis.text.y = ggplot2::element_blank(),
+                     panel.grid.major.y = ggplot2::element_blank(),
+                     panel.grid.minor = ggplot2::element_blank(),
+                     legend.position = "bottom")
+  )
+}
+```
+
+Every recorded observation time, coloured by whether any other patient was also
+observed at it. In `theo_md` the blue points are the shared protocol visits a
+grid can be built from. In `nimoData` there are essentially none — the times are
+orange almost everywhere, which is the same "9 out of 311" from above, seen
+rather than counted.
+
+A grid works by finding times that different patients have in common and pulling
+them together. **Here there is essentially nothing in common to find** — which
+is why all twelve schedules are unique, and why no amount of tuning
+the grid algorithm will change that. The problem is not that the grid is set too
+finely. The problem is that on the recorded clock, these twelve patients were
+never in the same place at the same time.
+
+Sections 3 and 4 show what the grid does try, and why pushing it harder makes
+things worse. Section 5 finds the shared structure that *does* exist, in a place
+the clock does not show it.
 
 ## 3. Why the grid cannot fix it
 
-`.derive_time_grid()` pools every observation time and merges them into visit
-cells agglomeratively, closest pair first. A merge is refused for either of two
-reasons:
+### What coarsening actually does
 
-1. **The cell would hold one patient twice.** Collapsing two of subject 7's own
-   visits into one time destroys a real visit rather than hiding a schedule.
-2. **The gap is wider than typical within-patient spacing**, guarding against an
-   outlier's lone late observation dragging an early visit to their mean. The
-   threshold is the median within-patient gap.
+Coarsening has one job: **decide which recorded times are really the same
+visit, and give them one shared time.** If three patients were sampled at 1.28,
+1.31 and 1.19 hours, those are the same protocol visit written down three ways,
+and replacing all three with "1.26 hours" hides who was who without changing the
+data in any way that matters.
 
-Both come from the data, so both can be checked:
+The way it decides is simple and worth picturing. Start with all 311 recorded
+times as 311 separate visits. Then repeatedly:
+
+> Find the two closest times still separate, and **join** them into one visit.
+
+Join the closest pair, then the next closest, and so on. Each join makes the
+grid coarser. The only question is when to stop — and rather than stopping at
+some fixed resolution, the algorithm refuses individual joins for two reasons:
+
+**Rule 1 — never put the same patient in one visit twice.** If patient 7 was
+sampled at 1.2 hours *and* at 1.4 hours, those two times cannot be joined,
+because patient 7 genuinely attended two separate visits there. Joining them
+would not be masking; it would be **deleting one of patient 7's real
+observations**. This is the rule that does almost all the work here.
+
+**Rule 2 — never join across a gap wider than a typical within-patient gap.**
+Guards against an odd, isolated late observation dragging a whole early visit
+towards it. Set to the median gap between one patient's consecutive visits.
+
+Since both thresholds come from the data, both can be checked directly:
 
 ```{r thresholds}
 gaps_within <- unlist(lapply(split(times, subject),
@@ -127,9 +293,12 @@ c(merge_threshold_hours = stats::median(gaps_within),
   cohort_gaps_total = length(gaps_between))
 ```
 
-**Constraint 2 is barely binding** — 294 of 310 gaps are under the threshold. So
-the blocking is almost entirely constraint 1, and that is the finding that
-matters.
+**Rule 2 is barely doing anything** — 294 of the 310 gaps between adjacent times
+are under the threshold, so it permits almost every join it is asked about. The
+blocking is therefore almost entirely Rule 1: *the same patient is already in
+that visit.*
+
+Here is what the algorithm manages before it runs out of legal joins.
 
 ```{r grid-built}
 grid <- synpmx:::.derive_time_grid(times, subject)
@@ -143,16 +312,80 @@ c(distinct_times_before = length(unique(times)),
   cells_held_by_three_plus = sum(occupancy >= 3))
 ```
 
-Coarsening **does** run — 311 times collapse to about 98 cells. It is simply not
-enough, because about a quarter of the cells still hold exactly one patient, and
-a patient needs only one such cell to be alone.
+Coarsening **does** run: 311 separate times become about 98 visits. It is simply
+not nearly enough. About a quarter of those visits are still attended by exactly
+one patient, and **a patient needs only one such visit for their whole schedule to be unique.**
 
-And this is structural, not a tuning problem. Twelve patients contribute 24–28
-observations each. For the grid to reach ~26 shared cells, each cell would have
-to hold roughly one observation from each patient — and getting there requires
-repeatedly merging times that belong to the *same* patient, which constraint 1
-forbids. **The algorithm stops where it does because going further deletes real
-visits.**
+And the wall it hits is structural, not a setting. Work backwards from the
+target: to get down to ~27 shared visits, each visit would have to hold roughly
+one observation from each of the twelve patients. But every patient contributes
+about 27 observations spread across the study, so continuing to join would very
+soon mean joining two times belonging to the *same* patient — which is exactly
+what Rule 1 forbids, and forbids for a good reason.
+
+**The algorithm stops where it does because the next join would start deleting
+real observations rather than masking them.**
+
+### What a "visit set" and a "shape" actually are
+
+Two terms appear in the tables and are worth pinning down, because they decide
+what comes out of the generator.
+
+A **visit set** is which of the shared visits one patient actually had. Taking
+`warfarin`, whose PK visits land on a 13-point grid:
+
+```
+grid          0.5  1.2  2  3  6  9  12  24  36  48  72  96  120
+patient 1     0.5  1.2  2  3  6  9  12  24  36  48  72
+patient 2                                  24  36  48  72  96  120
+patient 3     0.5       2  3  6     12  24  36  48  72  96  120
+```
+
+Three patients, three different visit sets. Patient 2 was not sampled until
+hour 24; patient 3 missed the 1.2 and 9 hour draws.
+
+A **shape** is that same information with the specific visits forgotten — how
+many were missed and how they were arranged:
+
+| shape | meaning |
+|---|---|
+| `complete` | attended everything |
+| `trailing` | every miss is at the end — dropout |
+| `block` | the misses are one contiguous run — an interruption |
+| `scattered` | anything else |
+
+So patient 3 above is `scattered|2`. Shape exists because exact matching is
+almost always too strict: two patients who each missed one visit have different
+*visit sets* if they missed different visits, but the same *shape*, and two of
+them together clear a floor that neither clears alone.
+
+### So what does an avatar actually get?
+
+When an avatar needs a visit set, `synpmx` draws a shape first, then:
+
+- **if a real visit set of that shape is shared by enough patients, reuse it**
+  verbatim; otherwise
+- **place that many misses on the grid in that arrangement, choosing which
+  visits to miss fresh** — and reject the draw if it happens to land on a real
+  visit set too rare to have been reusable.
+
+The second case is what the `Invented` column counts. Continuing the example,
+here are three avatars from that same `warfarin` run:
+
+```
+AVATAR 34     24  36  48  72  96  120        <- patient 2's set, reused exactly
+AVATAR 36     3  6  12  24  36  72  96  120  <- a set no real patient had
+```
+
+Avatar 36 is the invented case. **It is still an ordinary, complete dataset** —
+real grid times, blended concentrations, valid dose and event structure, and it
+passes `validate_pmx()` like any other. Nothing about it is half-formed. The
+only synthetic part is *which* visits it attended: it missed as many visits, of
+the same kind, as some real patient did, but not the same ones.
+
+That is the whole trade. What survives is how much missingness a study has and
+of what kind. What is deliberately lost is which specific visits any one patient
+missed — because that is the part that points back at a person.
 
 ## 4. "So why not just coarsen further?"
 
@@ -175,19 +408,20 @@ knitr::kable(rbind(
 ), row.names = FALSE)
 ```
 
-**It helps, then stops helping, and it is not monotone.** A one-week grid takes
-unique-moment exposure to zero — but `Alone` does not follow it to zero, and
-both a two-day and a two-week grid are *worse* than the default.
+**Coarsening more sometimes helps and sometimes makes things worse.** A one-week
+grid takes unique-sample-time exposure to zero — but the headline count does not
+follow it to zero, and both a two-day and a two-week grid come out *worse* than
+the default. There is no "coarser is better" rule to follow.
 
 The reason is the trade between the two middle columns. Merging times removes
 unique-moment exposure by making every time shared, but it also changes which
 cells each patient occupies, and a patient whose merged occupancy is unique
-becomes alone on **unique visit set** instead — which no grid can fix. The
-exposure moves columns rather than disappearing.
+becomes unique on **set of visits** instead — which no grid can fix. The exposure
+moves from one column to the other rather than disappearing.
 
-That non-monotonicity is why `synpmx` does not simply retry at a coarser
-resolution until the number improves. There is no dial where coarser is reliably
-better.
+That is why `synpmx` does not simply retry at a coarser resolution until the
+number improves: it has no way to know whether the next step will help or hurt,
+and the step that helps the count can be the one that ruins the data.
 
 ### And coarser grids are not free
 
@@ -216,8 +450,8 @@ the same time. The one-week grid that zeroed unique-moment exposure buys it with
 **164 collisions**, cutting distinct sampling times per patient from 26.8 to
 13.1 — half the PK profile thrown away. The two-week grid leaves 7 of 27.
 
-**The default is not being timid. It is refusing to buy a better privacy number
-with data destruction.**
+**The default is not leaving easy gains on the table. It is refusing to buy a
+better privacy number by destroying data.**
 
 ## 5. The fix: construct the nominal time
 
@@ -301,17 +535,21 @@ knitr::kable(rbind(
 ), row.names = FALSE)
 ```
 
-- **Alone falls from 12 to 5**, and the grid is now reported as `nominal` rather
+- **Unique schedules fall from 12 to 5**, and the grid is reported as `nominal` rather
   than `derived` — snapping is exact instead of guessed.
-- **Unique-visit-set exposure is zero.** Every patient who is still alone is
-  alone for the one reason a grid can still address, not the one it cannot.
-- **Invented visit sets fall from 100% to about 17%.** Once patients share a
-  grid, real visit sets become reusable, so most avatars get a real one.
+- **Unique-visit-set exposure is zero.** Every patient still exposed is exposed
+  for the one reason a grid can address, not the one it cannot.
+- **Invented visit sets fall from 100% to about 17%.** Remember this one is a
+  symptom rather than a harm: it fell because patients now share visit sets with
+  each other, which is the thing that was missing.
 
-That last point is worth dwelling on, because the discard count alone would have
-hidden it: two visit sets are discarded either way. What changed is that the
-default had to *fabricate* every avatar's visit set from a shape, and the fix
-does not.
+That last point is the most sensitive indicator here, and it is the reason to
+watch it at all. **Two visit sets are discarded either way** — the discard count
+is 2 before the fix and 2 after, so on its own it would suggest nothing changed.
+The invented share is what reveals that the study went from "no two patients had
+a comparable schedule" to "most of them did". A number that does not move can
+hide a change this large, which is a general warning about reading any one of
+these columns alone.
 
 ### Why five patients are still exposed
 

@@ -16,7 +16,7 @@ A \code{pmx_skeleton_uniqueness} data frame, most-exposed first, one row
 per subject: \code{subject_id}, \code{n_obs}, \code{n_doses}, \code{signature_class},
 \code{obs_time_class}, \code{n_obs_class} (each counting the subjects sharing that
 key, including itself), and \code{alone} (\code{TRUE} when \code{obs_time_class == 1}).
-Attributes \code{n_alone}, \code{n_alone_signature}, \code{n_alone_n_obs}, and \code{min_class}
+Attributes \code{n_unique_schedule}, \code{n_alone_signature}, \code{n_alone_n_obs}, and \code{min_class}
 summarize the cohort.
 }
 \description{

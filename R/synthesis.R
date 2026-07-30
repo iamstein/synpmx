@@ -231,6 +231,37 @@
   }
   if (!any(is.finite(target))) return(none)
 
+  # `.derive_time_grid()` refuses any merge that would put one subject into a
+  # cell twice, because collapsing two of that subject's own visits deletes a
+  # real visit rather than hiding a schedule. `.snap_to_grid()` then assigns by
+  # *nearest centre*, which knows nothing about that constraint, so a time near
+  # a boundary can land in a neighbouring cell and undo it (`REV-031`). The
+  # damage is not the collision itself but what happens downstream: the doubled
+  # visit becomes a distinct attendance cell, enters the pool, and is drawn by
+  # many avatars -- on `warfarin`, 4 collisions in the source became 35 in the
+  # output. Any subject whose own visits would collide keeps its recorded times
+  # instead, which is the outcome the merge had already decided on.
+  #
+  # Only the derived grid is repaired. A declared `nominal_time` legitimately
+  # places two samples in one protocol slot -- two draws on the same study day
+  # are one visit by definition -- and that is the user's statement about their
+  # own study, not an artefact to undo.
+  if (any(outstanding)) {
+    endpoint <- .endpoint(source, roles)
+    key <- paste(as.character(source[[roles$id]]), endpoint,
+                 ifelse(.dose_rows(source, roles), "<dose>", "<obs>"),
+                 format(target, digits = 12, trim = TRUE))
+    collides <- outstanding & (duplicated(key) | duplicated(key, fromLast = TRUE))
+    # Only a genuine collapse counts: rows already recorded at the same time
+    # were never distinct visits and are left alone.
+    original <- paste(as.character(source[[roles$id]]), endpoint,
+                      format(time, digits = 12, trim = TRUE))
+    spurious <- collides &
+      !(duplicated(original) | duplicated(original, fromLast = TRUE))
+    target[spurious] <- NA_real_
+  }
+  if (!any(is.finite(target))) return(none)
+
   deviations <- (time - target)[finite & is.finite(target)]
   deviations <- deviations[is.finite(deviations)]
   # A source already on its nominal grid has nothing to remove and nothing to
@@ -1471,40 +1502,46 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # verbatim skeleton copy stays identifying. That is the safe failure, but it
     # is a silent one, and a caller who asked for `coarsen_time` and did not get
     # it should hear so rather than infer it from the absence of an alert.
-    exposure_alone <- NA_integer_
-    exposure_unique_moment <- NA_integer_
+    unique_schedule_n <- NA_integer_
+    unique_sample_time_n <- NA_integer_
     if (coarsen_time) {
       exposure <- skeleton_uniqueness(source, source_roles)
-      still_alone <- sum(exposure$alone)
+      still_unique <- sum(exposure$unique_schedule)
       # Two causes, opposite remedies, so the alert has to say which. A subject
-      # observed at a moment nobody else was is a grid failure -- declaring
-      # `nominal_time` fixes it. A subject whose every time is shared and whose
-      # *attendance pattern* is unique is dropout, and no grid however fine or
-      # coarse touches that; it is the outlier screen's problem.
+      # sampled at a moment nobody else was is a grid failure -- declaring
+      # `nominal_time` fixes it. A patient whose every time is shared and whose
+      # *set of attended visits* is unique is dropout, and no grid however fine
+      # or coarse touches that; it is the outlier screen's problem.
       unshared <- sum(exposure$min_time_share == 1L, na.rm = TRUE)
-      pattern_only <- max(still_alone - unshared, 0L)
-      exposure_alone <- still_alone
-      exposure_unique_moment <- unshared
+      pattern_only <- max(still_unique - unshared, 0L)
+      unique_schedule_n <- still_unique
+      unique_sample_time_n <- unshared
       if (unshared > 0L) {
         .loud_warn(sprintf(
-          paste0("`coarsen_time = TRUE` left %d of %d source subject%s observed ",
-                 "at a moment no other subject shares, so the grid could not ",
-                 "hide the schedule and an avatar anchored there carries it. ",
-                 "Declare a `nominal_time` role to snap to the protocol grid ",
-                 "exactly; `scripts/measure_skeleton_uniqueness.R` shows what ",
-                 "the grid did and did not collapse."),
+          paste0("%d of %d patient%s still have a UNIQUE SAMPLE TIME after ",
+                 "coarsening: each was sampled at a moment no other patient ",
+                 "was, so their list of observation times identifies them, and ",
+                 "an avatar built on them carries that schedule.\n",
+                 "  Coarsening exists to merge such times onto a shared visit ",
+                 "grid and could not find one here. Declaring a `nominal_time` ",
+                 "role snaps to the real protocol grid instead of a guessed ",
+                 "one and is the reliable fix; ",
+                 "`scripts/measure_skeleton_uniqueness.R` shows what the grid ",
+                 "did and did not collapse."),
           unshared, length(subjects), if (unshared == 1L) "" else "s"
         ))
       }
       if (pattern_only > 0L) {
         .loud_warn(sprintf(
-          paste0("%d of %d source subject%s share every observation time with ",
-                 "others but hold a unique *pattern* of which visits were ",
-                 "attended -- dropout, discontinuation, or missed visits. ",
-                 "Coarsening cannot change this, because the times are already ",
-                 "shared. Screen those subjects with ",
-                 "`flag_identifiable_subjects()` and ",
-                 "`remediate_identifiable_subjects()` if the pattern matters."),
+          paste0("%d of %d patient%s have a UNIQUE SET OF VISITS: they share ",
+                 "every individual observation time with somebody, but the ",
+                 "combination of visits they attended and missed is theirs ",
+                 "alone -- dropout, discontinuation, or a missed visit.\n",
+                 "  No grid can fix this, however fine or coarse, because the ",
+                 "times are already shared; a grid decides where the visits ",
+                 "are, not which ones a patient turned up for. Screen these ",
+                 "patients with `flag_identifiable_subjects()` and ",
+                 "`remediate_identifiable_subjects()` if it matters."),
           pattern_only, length(subjects), if (pattern_only == 1L) "" else "s"
         ))
       }
@@ -1804,10 +1841,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       dose_basis = if (is.null(dose_basis)) NA_character_ else
         dose_basis$covariate,
       dose_levels = if (is.null(dose_basis)) NA_real_ else dose_basis$levels,
-      exposure_alone = exposure_alone,
-      exposure_unique_moment = exposure_unique_moment,
-      exposure_unique_pattern = if (is.na(exposure_alone)) NA_integer_ else
-        exposure_alone - exposure_unique_moment,
+      unique_schedule_n = unique_schedule_n,
+      unique_sample_time_n = unique_sample_time_n,
+      unique_visit_set_n = if (is.na(unique_schedule_n)) NA_integer_ else
+        unique_schedule_n - unique_sample_time_n,
       time_deviation_sd = if (length(time_deviations)) {
         stats::sd(time_deviations)
       } else 0,
