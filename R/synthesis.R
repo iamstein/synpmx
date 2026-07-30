@@ -617,6 +617,12 @@
 # not attend are cloned from one of its own observation rows for that endpoint,
 # so compartment, MDV, and every carried column stay coherent; the DV itself is
 # filled by the donor blend afterwards, exactly as for a copied skeleton.
+#
+# The clone is the anchor's *nearest* observation of that endpoint, not its
+# first. Only `time` is rewritten here, so every other row-varying column --
+# nominal time, occasion, a per-row `keep` label -- arrives from whichever visit
+# it was attached to. Cloning one template row per endpoint stamped the first
+# visit's metadata onto all of them, which is `SIM-035`.
 .apply_attendance <- function(skeleton, roles, key) {
   observed <- .observation_rows(skeleton, roles, require_present = TRUE)
   if (!any(observed) || !nzchar(key)) return(skeleton)
@@ -624,16 +630,31 @@
   wanted_endpoint <- sub("@.*$", "", wanted)
   wanted_time <- as.numeric(sub("^.*@", "", wanted))
   endpoint <- .endpoint(skeleton, roles)
+  time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
 
-  template <- vapply(unique(wanted_endpoint), function(name) {
-    candidate <- which(observed & endpoint == name)
-    if (length(candidate)) candidate[1L] else NA_integer_
+  chosen <- vapply(seq_along(wanted), function(index) {
+    candidate <- which(observed & endpoint == wanted_endpoint[[index]])
+    if (!length(candidate)) return(NA_integer_)
+    distance <- abs(time[candidate] - wanted_time[[index]])
+    distance[!is.finite(distance)] <- Inf
+    candidate[[which.min(distance)]]
   }, integer(1))
-  names(template) <- unique(wanted_endpoint)
-  if (anyNA(template)) return(skeleton)
+  if (anyNA(chosen)) return(skeleton)
 
-  built <- skeleton[template[wanted_endpoint], , drop = FALSE]
+  built <- skeleton[chosen, , drop = FALSE]
   built[[roles$time]] <- wanted_time
+  # A source sitting on its nominal grid -- what `coarsen_time` produces from a
+  # declared `nominal_time` -- must have the visit label move with the visit, or
+  # `time` and the nominal column disagree in the output and any step that
+  # reconciles the two sees a contradiction the source never had.
+  if (!is.null(roles$nominal_time)) {
+    nominal <- suppressWarnings(as.numeric(skeleton[[roles$nominal_time]]))
+    gap <- abs(time[observed] - nominal[observed])
+    if (length(gap) && !anyNA(gap) &&
+        all(gap < sqrt(.Machine$double.eps))) {
+      built[[roles$nominal_time]] <- wanted_time
+    }
+  }
   rbind(skeleton[!observed, , drop = FALSE], built)
 }
 

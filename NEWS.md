@@ -103,3 +103,15 @@
 * `tad`, when declared, is recomputed from each avatar's own generated dose times
   rather than carried over from the anchor, where it described a schedule the
   avatar no longer has.
+
+* Attendance sampling now carries each visit's own row metadata. It had cloned a
+  single template row per endpoint — the anchor's *first* observation of it —
+  for every visit in the sampled pattern and rewritten only `time`, so every
+  other row-varying column arrived from that one row: with `nominal_time` and
+  `occasion` declared, the nominal column collapsed to one or two values while
+  `time` was correct, and the second dose interval was labelled occasion 1.
+  `tad` and `mdv` escaped only because they are rebuilt afterwards. The clone is
+  now the anchor's observation nearest the wanted visit, and where the source
+  sits on its nominal grid the nominal column follows the sampled time exactly.
+  **Generated output changes** for any source declaring `nominal_time` or
+  `occasion`; `SIM-035`.

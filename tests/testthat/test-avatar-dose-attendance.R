@@ -410,3 +410,36 @@ test_that("min_pattern_share is validated", {
     "`min_pattern_share` must be one integer of 1 or more"
   )
 })
+
+# SIM-035 -- attendance sampling cloned one template row per endpoint and
+# rewrote only TIME, so every sampled visit inherited the *first* visit's
+# nominal time, occasion, and any other row-varying column. The visit metadata
+# has to travel with the visit.
+test_that("sampled attendance carries each visit's own row metadata", {
+  source <- pmx_simulated_fixture(24)
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", dvid = "DVID", mdv = "MDV", nominal_time = "NTIME",
+    tad = "TAD", occasion = "OCC", covariates = "WT"
+  )
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 7)
+  ))
+
+  # The fixture is observed exactly on its nominal grid, so the two columns
+  # agree row for row in the source and must still agree in the output.
+  expect_true(all(abs(source$TIME - source$NTIME) < 1e-9))
+  expect_true(all(abs(synthetic$TIME - synthetic$NTIME) < 1e-9))
+
+  # Occasion is not recomputed anywhere, so it is the column that shows a
+  # stamped template most plainly: the second dose interval must still be
+  # occasion 2.
+  second <- synthetic$TIME >= 12
+  expect_true(any(second))
+  expect_true(all(synthetic$OCC[second] == 2L))
+  expect_true(all(synthetic$OCC[!second] == 1L))
+
+  # The defect collapsed the nominal column onto one or two values.
+  expect_gt(length(unique(synthetic$NTIME)), 10L)
+})
