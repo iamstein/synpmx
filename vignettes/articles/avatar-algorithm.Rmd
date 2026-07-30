@@ -78,6 +78,65 @@ one real subject's event structure) and the **donor blend** (its measurements
 are averaged from several real subjects, never copied from one). Keep those in
 mind and the rest is detail.
 
+## How you know whether it worked
+
+The masking is only half the story; the other half is measuring what it left
+behind. That measurement is not one number, because an avatar can point back at
+a real patient in three different ways, and they need three different tests.
+
+**Unique, extreme, or close.** A patient is *unique* when something about their
+schedule belongs to nobody else. A patient is *extreme* when they stand out from
+the cohort — the lone very long follow-up. A synthetic patient is *close* when
+their measurements landed nearer a real patient than real patients lie to each
+other. These are independent failures: a study can pass any one and fail
+another, so all three are reported and none substitutes for the rest.
+
+| Function | Asks | Run on | Target |
+|---|---|---|---|
+| `skeleton_uniqueness()` | Is anyone's **schedule** unique? | the **source**, before generating | 0 unique |
+| `flag_identifiable_subjects()` | Does anyone **stand out** from the cohort? | the **synthetic output** (or the source) | nothing flagged |
+| `compare_pmx_proximity()` | Did the **values** land too close? | the **pair**, after generating | near 0.5 |
+
+### The exposure counts
+
+`skeleton_uniqueness()` produces the numbers that `synpmx_avatar()` also records
+in `attr(x, "pmx_settings")`. There is **one headline count, split by cause**,
+and the split is what tells you what to do next:
+
+- **`unique_schedule_n`** — patients whose list of observation times no other
+  patient shares. An avatar anchored on one wears a schedule belonging to
+  exactly one real person, however carefully its measurements were blended. This
+  is the number to drive to zero. It always equals the sum of the next two.
+  - **`unique_sample_time_n`** — of those, the ones sampled at a clock time
+    nobody else was sampled at. **A grid can fix this**, and `coarsen_time`
+    exists to; a count above zero after coarsening means the inferred grid could
+    not find a shared schedule, and declaring `nominal_time` is the fix.
+  - **`unique_visit_set_n`** — of those, the ones who share every individual
+    time with somebody but attended a combination of visits nobody else did:
+    dropout, an interruption, a missed week. **No grid can fix this** at any
+    resolution, because the times are already shared. `min_pattern_share`
+    addresses it during generation; otherwise the response is to remediate or
+    accept.
+
+Two counts sit alongside these and answer narrower questions:
+`n_unique_dose_signature` (a dose structure or amount nobody else has, which
+coarsening cannot touch) and `n_unique_obs_count` (an observation count nobody
+else has, the residual left for the outlier screen).
+
+### Why measure rather than assert
+
+Every mechanism in this article costs something — discarded visit sets, excluded
+anchors, timing fidelity — and what it buys **depends entirely on the study**.
+The same defaults take `theo_md` from twelve unique schedules to zero and leave
+`nimoData` at twelve of twelve, because one study recorded a shared visit
+structure and the other did not. There is no headline "synpmx removes X% of the
+exposure", and any such claim would be about the datasets it was measured on
+rather than about yours.
+
+So every run reports its own numbers, loudly, and
+`scripts/explore_nimodata_coarsening.qmd` works one failure through to a fix to
+show what reading them looks like in practice.
+
 ## Every mechanism that obscures the source
 
 AVATAR offers no formal guarantee, so the only honest description of its
