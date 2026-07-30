@@ -530,3 +530,42 @@ test_that("a repeated endpoint and time is rebuilt as two rows, not one", {
   per_subject <- table(synthetic$ID[synthetic$TIME == 1 & synthetic$EVID == 0])
   expect_true(all(per_subject == 2L))
 })
+
+# An absent `dvid` is legitimate -- a single-endpoint study needs no endpoint
+# key -- but it is also how a multi-endpoint dataset gets silently pooled into
+# one endpoint, and where `cmt` is not declared nothing can detect that. The
+# note is the only defense, so it must fire whenever `dvid` is absent.
+test_that("an absent dvid is announced, and named when dvid is declared", {
+  source <- ek_source()
+  observed <- source$EVID == 0
+
+  # Single endpoint, no dvid: the note fires and says what is assumed.
+  single <- source[source$CMT != 3, ]
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+  expect_message(
+    suppressWarnings(synpmx_avatar(single, roles, seed = 1)),
+    "no `dvid` declared"
+  )
+
+  # Repeated subject-and-time observations are reported when present, since
+  # they are the visible hint that two endpoints may be in play. They are not
+  # refused: replicate measurements are ordinary.
+  no_roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                        evid = "EVID", covariates = "WT")
+  expect_message(
+    suppressWarnings(synpmx_avatar(source, no_roles, seed = 1)),
+    "share a subject and time"
+  )
+  expect_no_error(
+    suppressWarnings(suppressMessages(synpmx_avatar(source, no_roles, seed = 1)))
+  )
+
+  # Declaring the endpoint key silences it.
+  with_key <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                        evid = "EVID", cmt = "CMT", dvid = "CMT",
+                        covariates = "WT")
+  expect_no_message(
+    suppressWarnings(synpmx_avatar(source, with_key, seed = 1))
+  )
+})
