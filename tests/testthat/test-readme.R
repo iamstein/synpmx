@@ -1,48 +1,17 @@
 # README.md is hand-maintained: there is no README.Rmd knitting it, so nothing
-# re-runs its example when behavior changes. This test is what keeps the
-# example honest. It runs exactly the code shown under "A first synthetic
-# dataset" and asserts exactly the output printed beneath it.
+# re-runs its example when behavior changes. This test is what keeps the example
+# honest -- it runs exactly the code shown under "Running it on your own study"
+# and "The masking options, and their defaults", and asserts exactly the output
+# printed beneath it.
 #
 # If this fails, the README is telling readers something the package no longer
-# does. Fix the package or update the README — do not relax the test.
+# does. Fix the package or update the README -- do not relax the test.
 
-test_that("the README example produces the output the README shows", {
-  skip_if_not_installed("nlmixr2data")
-
-  data("theo_md", package = "nlmixr2data", envir = environment())
-
-  roles <- pmx_roles(
-    id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-    evid = "EVID", cmt = "CMT", covariates = "WT"
-  )
-
-  synthetic <- suppressWarnings(synpmx_avatar(theo_md, roles, seed = 101))
-
-  #> [1] TRUE
-  expect_true(validate_pmx(synthetic, roles)$valid)
-
-  # head(synthetic, 4), as printed in README.md.
-  expect_equal(names(synthetic),
-               c("ID", "TIME", "DV", "AMT", "EVID", "CMT", "WT"))
-
-  head4 <- head(synthetic, 4)
-  expect_equal(as.character(head4$ID), rep("13", 4))
-  expect_equal(head4$TIME, c(0.0000000, 0.0000000, 0.2816667, 0.5416667),
-               tolerance = 1e-6)
-  expect_equal(head4$DV,
-               c(0.000000, 0.000000, 2.861275, 3.600730),
-               tolerance = 1e-6)
-  expect_equal(head4$AMT, c(267.84, 0.00, 0.00, 0.00), tolerance = 1e-6)
-  expect_equal(head4$EVID, c(101L, 0L, 0L, 0L))
-  expect_equal(head4$CMT, c(1L, 2L, 2L, 2L))
-  expect_equal(head4$WT, rep(69.80615, 4), tolerance = 1e-5)
-})
-
-# The second and third blocks, "Declaring every column" and "The masking
-# options, and their defaults". These exist to show every role and every masking
-# argument at once, so the test's job is to prove that the full declaration is
-# still accepted and still produces the printed table -- an argument renamed or
-# a role dropped shows up here rather than in a reader's session.
+# The README has one worked example and it declares every role, because a reader
+# arriving here wants to run this on their own study rather than watch a demo.
+# So the test's job is to prove the full declaration is still accepted and still
+# produces the printed table -- an argument renamed or a role dropped shows up
+# here rather than in a reader's session.
 test_that("the README full-declaration example runs as shown", {
   study <- pmx_simulated_fixture(24)
   study$YTYPE <- ifelse(study$DVID == "cp", 1L, 2L)
