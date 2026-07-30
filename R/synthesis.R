@@ -783,6 +783,38 @@
        "\")", call. = FALSE)
 }
 
+# Say out loud what an absent `dvid` means. Where `cmt` is declared the check
+# above can refuse, but with no endpoint key at all there is nothing to test
+# against: two endpoints measured at disjoint times are indistinguishable from
+# one endpoint measured at all of them, and the package cannot tell. The note is
+# the only defense left, so it states the consequence rather than merely the
+# fact. Repeated subject-and-time observations are reported when present because
+# they are the one visible hint -- they are also perfectly ordinary as replicate
+# measurements, which is why this informs rather than refuses.
+.note_single_endpoint <- function(data, roles) {
+  if (!is.null(roles$dvid)) return(invisible(TRUE))
+  observed <- .observation_rows(data, roles, require_present = TRUE)
+  if (!any(observed)) return(invisible(TRUE))
+  lines <- paste0(
+    "synpmx_avatar(): no `dvid` declared, so every observation is treated as ",
+    "one endpoint.\n  Correct for a single-endpoint study; declare `dvid` if ",
+    "this one has more."
+  )
+  repeated <- sum(duplicated(paste(
+    as.character(data[[roles$id]][observed]),
+    format(suppressWarnings(as.numeric(data[[roles$time]][observed])),
+           digits = 12, trim = TRUE)
+  )))
+  if (repeated) {
+    lines <- paste0(lines, "\n  ", repeated, " observation row(s) share a ",
+                    "subject and time with another; that is ordinary for ",
+                    "replicate\n  measurements and expected if two endpoints ",
+                    "are being read at one visit.")
+  }
+  message(lines)
+  invisible(TRUE)
+}
+
 .reject_dp_only_roles <- function(roles) {
   guidance <- c(
     assigned_dose = "carry the column with `keep`",
@@ -1371,6 +1403,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   .assert_roles(data, roles)
   .reject_dp_only_roles(roles)
   .require_endpoint_key(data, roles)
+  .note_single_endpoint(data, roles)
   # Allowlist, not blocklist: keep only what a role names, so a column the user
   # never mentioned -- a secondary identifier, a site, a randomization date --
   # cannot ride out of a real subject into synthetic data by being forgotten.
