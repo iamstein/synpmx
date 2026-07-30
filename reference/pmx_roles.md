@@ -58,6 +58,19 @@ pmx_roles(
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   carries all of them through.
 
+  **`dvid` and `cmt` answer different questions.** `dvid` is which
+  endpoint a measurement is; `cmt` is which compartment a dose enters,
+  and it is read only on event rows. Nothing infers one from the other,
+  so a source with more than one endpoint needs `dvid` — without it
+  every measurement is treated as one endpoint, sharing a single value
+  transform and a single censoring boundary.
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  refuses rather than let that happen silently.
+
+  A NONMEM `CMT` usually does both jobs, so **one column may be named as
+  both roles**: `pmx_roles(..., cmt = "CMT", dvid = "CMT")`. This is the
+  only permitted overlap; every other collision is an error.
+
 - nominal_time, tad, occasion:
 
   Optional time metadata columns.

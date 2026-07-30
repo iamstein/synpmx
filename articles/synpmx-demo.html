@@ -744,7 +744,7 @@ whole event template from one anchor, so <code>DOSE</code> stays
 coherent with the doses when carried through with <code>keep</code>.</p>
 <pre><code><span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
@@ -1050,9 +1050,9 @@ counts those too rare to be reused.</caption>
 <tr class="odd">
 <td align="left">mavoglurant</td>
 <td align="right">120</td>
-<td align="right">64</td>
-<td align="right">1</td>
-<td align="right">1</td>
+<td align="right">69</td>
+<td align="right">2</td>
+<td align="right">2</td>
 <td align="left">—</td>
 </tr>
 </tbody>
@@ -1154,9 +1154,9 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 </tr>
 <tr class="even">
 <td align="left">warfarin</td>
-<td align="right">0.562</td>
-<td align="right">0.335</td>
-<td align="right">0.750</td>
+<td align="right">0.469</td>
+<td align="right">0.327</td>
+<td align="right">0.759</td>
 <td align="right">16</td>
 </tr>
 <tr class="odd">
@@ -1168,9 +1168,9 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 </tr>
 <tr class="even">
 <td align="left">mavoglurant</td>
-<td align="right">0.617</td>
-<td align="right">0.431</td>
-<td align="right">0.599</td>
+<td align="right">0.575</td>
+<td align="right">0.425</td>
+<td align="right">0.575</td>
 <td align="right">60</td>
 </tr>
 </tbody>

@@ -477,7 +477,7 @@ coherent with the doses when carried through with `keep`.
 
     #> SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
     #> SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
-    #> SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
 
 ![](synpmx-demo_files/figure-html/mavo-plot-1.png)
 
@@ -707,7 +707,7 @@ knitr::kable(
 | warfarin    |       32 |       14 |             2 |                 2 | wt         |
 | wbcSim      |       45 |       25 |             4 |                 4 | —          |
 | nimoData    |       12 |       12 |             2 |                 2 | —          |
-| mavoglurant |      120 |       64 |             1 |                 1 | —          |
+| mavoglurant |      120 |       69 |             2 |                 2 | —          |
 
 What the masking removed. `Patterns` counts the distinct attendance
 patterns in the source; `Patterns lost` counts those too rare to be
@@ -797,9 +797,9 @@ knitr::kable(
 | Dataset     | Adversarial accuracy | Null lower | Null upper | Per side |
 |:------------|---------------------:|-----------:|-----------:|---------:|
 | theo_md     |                0.500 |      0.167 |      0.773 |        6 |
-| warfarin    |                0.562 |      0.335 |      0.750 |       16 |
+| warfarin    |                0.469 |      0.327 |      0.759 |       16 |
 | wbcSim      |                0.455 |      0.341 |      0.649 |       22 |
-| mavoglurant |                0.617 |      0.431 |      0.599 |       60 |
+| mavoglurant |                0.575 |      0.425 |      0.575 |       60 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built
 from the source cohort itself. 0.5 is the target. {.table}

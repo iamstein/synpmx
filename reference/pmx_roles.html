@@ -114,7 +114,17 @@ compartment, missing-DV indicator, and infusion rate.</p></dd>
 the same endpoint two ways — a numeric <code>YTYPE</code> beside a character <code>NAME</code> —
 may declare both, <code>dvid = c("YTYPE", "NAME")</code>. The first is the grouping
 key; validation checks the rest are a consistent 1:1 mapping with it and
-errors if they disagree, and <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> carries all of them through.</p></dd>
+errors if they disagree, and <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> carries all of them through.</p>
+<p><strong><code>dvid</code> and <code>cmt</code> answer different questions.</strong> <code>dvid</code> is which endpoint a
+measurement is; <code>cmt</code> is which compartment a dose enters, and it is read
+only on event rows. Nothing infers one from the other, so a source with
+more than one endpoint needs <code>dvid</code> — without it every measurement is
+treated as one endpoint, sharing a single value transform and a single
+censoring boundary. <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> refuses rather than let that happen
+silently.</p>
+<p>A NONMEM <code>CMT</code> usually does both jobs, so <strong>one column may be named as both
+roles</strong>: <code>pmx_roles(..., cmt = "CMT", dvid = "CMT")</code>. This is the only
+permitted overlap; every other collision is an error.</p></dd>
 
 
 <dt id="arg-nominal-time-tad-occasion">nominal_time, tad, occasion<a class="anchor" aria-label="anchor" href="#arg-nominal-time-tad-occasion"></a></dt>

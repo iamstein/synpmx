@@ -170,7 +170,10 @@ roles <- pmx_roles(
   cmt                = "CMT",                   # compartment
   dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns
                                                 #   may label the same endpoint,
-                                                #   first is authoritative
+                                                #   first is authoritative. If
+                                                #   CMT is your only endpoint
+                                                #   key, name it twice:
+                                                #   cmt = "CMT", dvid = "CMT"
   mdv                = "MDV",                   # missing-DV indicator
   nominal_time       = "NTIME",                 # protocol visit time
   tad                = "TAD",                   # time after dose; recomputed
