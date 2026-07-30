@@ -441,9 +441,31 @@
   if (!any(observed)) return("")
   endpoint <- .endpoint(data, roles)[observed]
   time <- suppressWarnings(as.numeric(data[[roles$time]][observed]))
-  paste(sort(unique(paste0(endpoint, "@",
-                           format(time, digits = 12, trim = TRUE)))),
-        collapse = ";")
+  cells <- paste0(endpoint, "@", format(time, digits = 12, trim = TRUE))
+  # A subject can hold two observation rows with the same endpoint at the same
+  # time -- a duplicate record, or two compartments read at one visit where no
+  # `dvid` tells them apart. Collapsing them to one cell meant rebuilding the
+  # pattern returned fewer rows than the subject had, silently (`SIM-036`).
+  # Numbering repeats past the first keeps them distinct; a lone occurrence
+  # keeps its bare cell, so a source without repeats produces the keys it always
+  # did.
+  repeated <- stats::ave(seq_along(cells), cells, FUN = seq_along)
+  extra <- repeated > 1L
+  cells[extra] <- paste0(cells[extra], "#", repeated[extra])
+  paste(sort(unique(cells)), collapse = ";")
+}
+
+# The time a cell names, with any repeat marker removed.
+.cell_time <- function(cells) {
+  suppressWarnings(as.numeric(sub("#.*$", "", sub("^.*@", "", cells))))
+}
+
+# Which occurrence at that endpoint and time a cell names. 1 unless marked.
+.cell_repeat <- function(cells) {
+  marked <- grepl("#", cells, fixed = TRUE)
+  out <- rep(1L, length(cells))
+  out[marked] <- as.integer(sub("^.*#", "", cells[marked]))
+  out
 }
 
 # The pool an avatar may draw from, per stratum. Patterns are kept only when
@@ -520,8 +542,7 @@
 .attendance_cells <- function(keys) {
   cells <- unique(unlist(strsplit(keys, ";", fixed = TRUE), use.names = FALSE))
   cells <- cells[nzchar(cells)]
-  time <- suppressWarnings(as.numeric(sub("^.*@", "", cells)))
-  cells[order(time, cells)]
+  cells[order(.cell_time(cells), cells)]
 }
 
 # Describe a pattern by *how* it departs from full attendance rather than by
@@ -628,7 +649,8 @@
   if (!any(observed) || !nzchar(key)) return(skeleton)
   wanted <- strsplit(key, ";", fixed = TRUE)[[1L]]
   wanted_endpoint <- sub("@.*$", "", wanted)
-  wanted_time <- as.numeric(sub("^.*@", "", wanted))
+  wanted_time <- .cell_time(wanted)
+  wanted_repeat <- .cell_repeat(wanted)
   endpoint <- .endpoint(skeleton, roles)
   time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
 
@@ -637,7 +659,11 @@
     if (!length(candidate)) return(NA_integer_)
     distance <- abs(time[candidate] - wanted_time[[index]])
     distance[!is.finite(distance)] <- Inf
-    candidate[[which.min(distance)]]
+    # The n-th occurrence at a visit takes the n-th nearest row, so two cells
+    # that name the same endpoint and time clone two different source rows
+    # rather than the same one twice.
+    rank <- min(wanted_repeat[[index]], length(candidate))
+    candidate[[order(distance)[[rank]]]]
   }, integer(1))
   if (anyNA(chosen)) return(skeleton)
 
@@ -732,6 +758,31 @@
 # carry accounting semantics AVATAR has no equivalent for. Rather than silently
 # ignore them -- which is how a user ends up believing a treatment arm was
 # handled when it was not -- reject them and point at the role that does the job.
+# `cmt` says where a dose goes; `dvid` says which endpoint a measurement is.
+# Nothing infers the second from the first, so a dataset whose observations sit
+# in several compartments with no `dvid` has every measurement treated as one
+# endpoint: one value transform across both scales, one censoring boundary, and
+# one attendance cell per visit no matter how many endpoints were read at it.
+# That last one used to delete rows outright (`SIM-036`). Refusing is better
+# than guessing, because `CMT` is not reliably the endpoint -- two endpoints can
+# be read from one compartment, and plenty of datasets put every observation in
+# `CMT = 2` and separate endpoints only by `DVID`.
+.require_endpoint_key <- function(data, roles) {
+  if (!is.null(roles$dvid) || is.null(roles$cmt)) return(invisible(TRUE))
+  observed <- .observation_rows(data, roles, require_present = TRUE)
+  if (!any(observed)) return(invisible(TRUE))
+  compartments <- unique(as.character(data[[roles$cmt]][observed]))
+  compartments <- sort(compartments[!is.na(compartments)])
+  if (length(compartments) < 2L) return(invisible(TRUE))
+  stop("Observations occupy ", length(compartments), " compartments (",
+       paste(compartments, collapse = ", "), ") but no `dvid` is declared, so ",
+       "every measurement would be treated as one endpoint.\n",
+       "  Declare the endpoint key. One column may serve as both, which is ",
+       "what a NONMEM `CMT` usually is:\n",
+       "    pmx_roles(..., cmt = \"", roles$cmt, "\", dvid = \"", roles$cmt,
+       "\")", call. = FALSE)
+}
+
 .reject_dp_only_roles <- function(roles) {
   guidance <- c(
     assigned_dose = "carry the column with `keep`",
@@ -1319,6 +1370,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                                  call. = FALSE)
   .assert_roles(data, roles)
   .reject_dp_only_roles(roles)
+  .require_endpoint_key(data, roles)
   # Allowlist, not blocklist: keep only what a role names, so a column the user
   # never mentioned -- a secondary identifier, a site, a randomization date --
   # cannot ride out of a real subject into synthetic data by being forgotten.

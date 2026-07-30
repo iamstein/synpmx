@@ -443,3 +443,90 @@ test_that("sampled attendance carries each visit's own row metadata", {
   # The defect collapsed the nominal column onto one or two values.
   expect_gt(length(unique(synthetic$NTIME)), 10L)
 })
+
+# SIM-036 -- `cmt` says where a dose goes, `dvid` says which endpoint a row is,
+# and nothing infers the second from the first. A dataset whose observations sat
+# in two compartments with no `dvid` had every row labelled one endpoint, so two
+# endpoints read at one visit collapsed to a single attendance cell and one of
+# them was rebuilt away. 108 rows in, 60 out, no warning.
+ek_source <- function(n = 12L) {
+  do.call(rbind, lapply(seq_len(n), function(subject) {
+    evid <- c(1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L)
+    data.frame(
+      ID = subject,
+      TIME = c(0, 0, 0, 1, 1, 4, 4, 8, 8),
+      DV = c(0, 0, 50, 8, 40, 4, 30, 1, 45) * (1 + 0.1 * sin(subject)),
+      AMT = ifelse(evid != 0, 100, 0),
+      EVID = evid,
+      CMT = c(1L, 2L, 3L, 2L, 3L, 2L, 3L, 2L, 3L),
+      WT = 70 + subject,
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
+test_that("multi-compartment observations without dvid are refused", {
+  source <- ek_source()
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+
+  expect_error(synpmx_avatar(source, roles, seed = 1),
+               "Observations occupy 2 compartments")
+
+  # One compartment is unambiguous and must still be allowed.
+  single <- source[source$CMT != 3, ]
+  expect_no_error(
+    suppressWarnings(suppressMessages(synpmx_avatar(single, roles, seed = 1)))
+  )
+})
+
+test_that("one column may be both cmt and dvid, and keeps both endpoints", {
+  source <- ek_source()
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "CMT",
+                     covariates = "WT")
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 1)
+  ))
+
+  # No row is lost and no endpoint disappears.
+  expect_equal(nrow(synthetic), nrow(source))
+  expect_equal(sort(unique(synthetic$CMT)), sort(unique(source$CMT)))
+  expect_equal(as.integer(table(synthetic$CMT)),
+               as.integer(table(source$CMT)))
+
+  # Separated, not pooled: each endpoint keeps its own transform and its own
+  # scale rather than sharing one fitted across both.
+  expect_length(attr(synthetic, "pmx_settings")$endpoint_transforms, 2L)
+  observed <- synthetic$EVID == 0
+  expect_lt(max(synthetic$DV[observed & synthetic$CMT == 2]),
+            min(synthetic$DV[observed & synthetic$CMT == 3]))
+})
+
+test_that("a repeated endpoint and time is rebuilt as two rows, not one", {
+  # Genuine duplicate records, with dvid declared: the attendance cell for
+  # (cp, t = 1) is held twice and must come back twice.
+  source <- do.call(rbind, lapply(1:12, function(subject) {
+    evid <- c(1L, 0L, 0L, 0L, 0L)
+    data.frame(
+      ID = subject, TIME = c(0, 1, 1, 4, 8),
+      DV = c(0, 8, 8.2, 4, 1) * (1 + 0.1 * sin(subject)),
+      AMT = ifelse(evid != 0, 100, 0), EVID = evid,
+      CMT = c(1L, 2L, 2L, 2L, 2L),
+      DVID = factor("cp", levels = "cp"), WT = 70 + subject,
+      stringsAsFactors = FALSE
+    )
+  }))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "DVID",
+                     covariates = "WT")
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 1)
+  ))
+
+  expect_equal(nrow(synthetic), nrow(source))
+  per_subject <- table(synthetic$ID[synthetic$TIME == 1 & synthetic$EVID == 0])
+  expect_true(all(per_subject == 2L))
+})

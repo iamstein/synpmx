@@ -147,3 +147,25 @@ test_that("a declared column that does not exist is named, not ignored", {
     "Role columns not found in `data`: STUDYID, TRT"
   )
 })
+
+test_that("cmt and dvid may name the same column, other collisions may not", {
+  # NONMEM's CMT is the dosing compartment on event rows and the endpoint key on
+  # observation rows. Making the user copy the column to itself under another
+  # name declares nothing extra.
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "CMT")
+  expect_equal(roles$cmt, "CMT")
+  expect_equal(roles$dvid, "CMT")
+
+  # The overlap is exactly cmt/dvid; nothing else is loosened.
+  expect_error(
+    pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+              cmt = "CMT", covariates = "CMT"),
+    "A column cannot have multiple roles"
+  )
+  expect_error(
+    pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+              dvid = "CMT", keep = "CMT"),
+    "A column cannot have multiple roles"
+  )
+})

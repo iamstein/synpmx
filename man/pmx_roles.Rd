@@ -39,7 +39,19 @@ compartment, missing-DV indicator, and infusion rate.}
 the same endpoint two ways — a numeric \code{YTYPE} beside a character \code{NAME} —
 may declare both, \code{dvid = c("YTYPE", "NAME")}. The first is the grouping
 key; validation checks the rest are a consistent 1:1 mapping with it and
-errors if they disagree, and \code{\link[=synpmx_avatar]{synpmx_avatar()}} carries all of them through.}
+errors if they disagree, and \code{\link[=synpmx_avatar]{synpmx_avatar()}} carries all of them through.
+
+\strong{\code{dvid} and \code{cmt} answer different questions.} \code{dvid} is which endpoint a
+measurement is; \code{cmt} is which compartment a dose enters, and it is read
+only on event rows. Nothing infers one from the other, so a source with
+more than one endpoint needs \code{dvid} — without it every measurement is
+treated as one endpoint, sharing a single value transform and a single
+censoring boundary. \code{\link[=synpmx_avatar]{synpmx_avatar()}} refuses rather than let that happen
+silently.
+
+A NONMEM \code{CMT} usually does both jobs, so \strong{one column may be named as both
+roles}: \code{pmx_roles(..., cmt = "CMT", dvid = "CMT")}. This is the only
+permitted overlap; every other collision is an error.}
 
 \item{nominal_time, tad, occasion}{Optional time metadata columns.}
 
