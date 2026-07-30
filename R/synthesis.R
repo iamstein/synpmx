@@ -1515,15 +1515,27 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                                    as.integer(min_pattern_share))
     if (!is.null(attendance) && attendance$dropped_patterns > 0L) {
       .loud_warn(sprintf(
-        paste0("%d source attendance pattern(s), held by %d subject(s), were ",
-               "not shared by %d or more patients and so will not appear in ",
-               "the synthetic data. These are real dropout and dose-",
-               "interruption patterns, and losing them is what stops an avatar ",
-               "carrying a schedule traceable to one patient. To keep more of ",
-               "them, lower `min_pattern_share` (2 means no synthetic patient ",
-               "carries a schedule unique to a real one); `1` disables the ",
-               "mechanism and copies each anchor's own pattern."),
-        attendance$dropped_patterns, attendance$dropped_subjects,
+        paste0("%d patient%s in this study showed up for a combination of ",
+               "visits that no other patient matched.\n",
+               "  Once every patient is placed on a shared visit grid, what ",
+               "distinguishes them is which of those visits they actually ",
+               "attended and which they missed. For %s that exact combination ",
+               "of kept and missed visits is theirs alone.\n",
+               "  No synthetic patient is given one of those %d combination%s, ",
+               "because an avatar carrying it could be traced back to the one ",
+               "real patient who had it. What the synthetic data keeps instead ",
+               "is how many visits were missed and of what kind -- all at the ",
+               "end (dropout), a run in the middle (an interruption), or ",
+               "scattered. Which specific visits were missed is not preserved.\n",
+               "  Set `min_pattern_share = 1` to turn this off and copy each ",
+               "patient's exact set of visits instead. The current setting, ",
+               "%d, means no synthetic patient carries a visit combination ",
+               "unique to a real one."),
+        attendance$dropped_subjects,
+        if (attendance$dropped_subjects == 1L) "" else "s",
+        if (attendance$dropped_subjects == 1L) "that patient" else "each of them",
+        attendance$dropped_patterns,
+        if (attendance$dropped_patterns == 1L) "" else "s",
         as.integer(min_pattern_share)
       ))
     }
@@ -1645,12 +1657,19 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         ))
       }
     }
+    # Two mechanisms remove subjects from the anchor pool, for different reasons
+    # and with different consequences, and neither was counted anywhere. Both
+    # are recorded below so a run can say how many real patients it declined to
+    # build on and why.
+    anchors_route_excluded <- length(setdiff(seq_along(subjects), allowed))
+    anchors_screened_out <- 0L
     if (isTRUE(screen)) {
       excluded <- .structural_outlier_anchors(source, source_roles)
       # Tested against `allowed`, not the whole cohort: the route floor above
       # may already have removed anchors, and screening the rest to nothing
       # would leave no anchor to sample.
       if (length(excluded) && length(setdiff(allowed, excluded))) {
+        anchors_screened_out <- length(intersect(allowed, excluded))
         allowed <- setdiff(allowed, excluded)
       } else if (length(excluded)) {
         warning("Screening would exclude every eligible source subject as a ",
@@ -1745,6 +1764,21 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       residual_noise_sd = residual_noise_sd,
       residual_phi = residual_phi,
       time_jitter = time_jitter,
+      # Who was available to build on. `source_subjects` is the cohort as given;
+      # the two exclusions are real patients this run declined to anchor any
+      # avatar on, and `anchors_available` is what was left to sample from.
+      # Cohort *size* is unaffected -- `n_subjects` avatars are still built --
+      # so an excluded arm shows up as coverage lost, not as a shorter dataset.
+      # The `screen` flag itself is deliberately *not* recorded. A clean source
+      # must return byte-identical output whether screening is on or off
+      # (`test-avatar-screen.R`), and storing the flag would break that identity
+      # on the settings attribute while the data stayed the same. The count
+      # below carries the information that matters and is 0 either way when
+      # nothing was excluded.
+      source_subjects = length(subjects),
+      anchors_screened_out = as.integer(anchors_screened_out),
+      anchors_route_excluded = as.integer(anchors_route_excluded),
+      anchors_available = length(allowed),
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),

@@ -389,7 +389,13 @@ test_that("the cost of the floor is counted and reported", {
       invokeRestart("muffleWarning")
     }
   ))
-  expect_true(any(grepl("held by 2 subject(s), were not shared",
+  # The alert has to name the count and say plainly what was removed. It is
+  # written for a reader who has never heard the phrase "attendance pattern",
+  # so the assertion pins the meaning rather than any one turn of phrase.
+  expect_true(any(grepl(
+    "2 patients in this study showed up for a combination of visits",
+    raised, fixed = TRUE)))
+  expect_true(any(grepl("No synthetic patient is given one of those 2",
                         raised, fixed = TRUE)))
 
   # Nothing is dropped when the mechanism is off.
