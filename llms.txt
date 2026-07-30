@@ -49,10 +49,49 @@ data, and are not actively maintained.
 
 ## Installation
 
+`synpmx` is not on CRAN; install it from GitHub, then load it as usual:
+
 ``` r
 
-# install.packages("pak")
-pak::pak("iamstein/synpmx")
+# install.packages("remotes")
+remotes::install_github("iamstein/synpmx")
+
+library(synpmx)
+```
+
+`remotes` is the smallest thing that does the job, and it is already
+present in most environments. `pak::pak("iamstein/synpmx")` and
+`devtools::install_github("iamstein/synpmx")` do the same, if you
+already have either.
+
+To pin a branch or commit, append it:
+`remotes::install_github("iamstein/synpmx@main")`. Add
+`build_vignettes = TRUE` if you want
+[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+offline; otherwise the same material is on the
+[website](https://iamstein.github.io/synpmx/).
+
+**If your environment blocks installing from GitHub** — likely in the
+validated environments this package is meant for — download the source
+archive from
+`https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz`,
+move it across, and install from the file. This needs nothing but base
+R, and no compiler, since AVATAR is pure R:
+
+``` r
+
+install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
+```
+
+If you were given the repository as a **ZIP** rather than a tarball,
+unzip it first and install the resulting directory —
+[`install.packages()`](https://rdrr.io/r/utils/install.packages.html)
+cannot read a GitHub ZIP directly:
+
+``` r
+
+unzip("synpmx-main.zip")
+install.packages("synpmx-main", repos = NULL, type = "source")
 ```
 
 AVATAR needs nothing beyond base R. The other methods additionally
@@ -91,6 +130,142 @@ head(synthetic, 4)
 ```
 
 The output dataset keeps the same structure.
+
+## Declaring every column
+
+`theo_md` is a four-column dataset. A real study is not, so here is the
+full declaration. The roles are also the **manifest of what survives**:
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+drops every column no role names, so a column you forget is dropped
+rather than quietly copied out of a real patient.
+
+Only `id`, `time`, `dv`, and `evid` are required. Everything else is
+optional, and this example declares all of it at once:
+
+``` r
+
+library(synpmx)
+
+# A study carrying every declarable column. Yours will have a subset.
+study <- pmx_simulated_fixture(24)                  # 24 subjects, 2 endpoints
+study$YTYPE <- ifelse(study$DVID == "cp", 1L, 2L)   # endpoint key, numeric
+study$NAME  <- as.character(study$DVID)             # same endpoint, as text
+study$DVID  <- NULL
+study$TRTN  <- ifelse(study$ID %% 2L == 1L, 1L, 2L) # assigned arm, numeric
+study$TRT   <- ifelse(study$TRTN == 1L, "100 mg QD", "200 mg QD")
+study$AMT[study$EVID != 0] <- 100 * study$TRTN[study$EVID != 0]
+study$STUDYID <- "EXAMPLE-001"
+bloq <- study$EVID == 0 & study$NAME == "cp" & study$DV < 1.2
+study$DV[bloq]   <- 1.2                             # DV reports the limit
+study$CENS[bloq] <- 1L                              # 1 = left-censored (BLOQ)
+study$LIMIT <- ifelse(bloq, 0, NA_real_)            # the other boundary
+
+roles <- pmx_roles(
+  id                 = "ID",                    # subject identifier
+  time               = "TIME",                  # actual elapsed time, numeric
+  dv                 = "DV",                    # dependent variable
+  evid               = "EVID",                  # event identifier
+  amt                = "AMT",                   # dose amount
+  rate               = "RATE",                  # infusion rate
+  cmt                = "CMT",                   # compartment
+  dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns
+                                                #   may label the same endpoint,
+                                                #   first is authoritative
+  mdv                = "MDV",                   # missing-DV indicator
+  nominal_time       = "NTIME",                 # protocol visit time
+  tad                = "TAD",                   # time after dose; recomputed
+  occasion           = "OCC",                   # dosing occasion
+  cens               = "CENS",                  # 1 = BLOQ, -1 = above, 0 = not
+  limit              = "LIMIT",                 # the other interval boundary
+  covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
+  subject_properties = c("TRT", "TRTN"),        # assigned stratum; groups the
+                                                #   dose rule and visit patterns
+  keep               = "STUDYID"                # carried through verbatim
+  # addl, ii          -- accepted and carried, but not expanded; expand
+  #                      ADDL doses into explicit rows before synthesis
+  # assigned_dose, exclude -- differential-privacy engines only
+)
+
+validate_pmx(study, roles)$valid
+#> [1] TRUE
+```
+
+**Which role does a column want?** The three that are easy to confuse:
+
+- `covariates` are *measured* characteristics. They are **blended**
+  across the donors, so a synthetic subject’s weight is a new number
+  nobody had.
+- `subject_properties` are *assigned* strata — arm, dose group, cohort.
+  They are copied from the anchor, and the stratum is what groups the
+  dose rule and the pool of visit patterns an avatar may be given.
+- `keep` is the escape hatch, for anything else you want carried through
+  untouched: a study identifier, a randomization sequence, a units
+  column, a redundant label. A kept value is **one real subject’s real
+  value**, so keep only what the source data’s own access controls
+  already permit.
+
+## The masking options, and their defaults
+
+Every masking argument below is shown at its default, so this call
+behaves exactly like `synpmx_avatar(study, roles, seed = 2026)`:
+
+``` r
+
+synthetic <- synpmx_avatar(
+  study, roles,
+  n_subjects         = NULL,   # cohort size; NULL matches the source
+  seed               = 2026,
+  # --- how much of one real patient can reach one synthetic patient ---
+  k                  = 5,      # donors blended into each avatar (the floor)
+  max_donor_weight   = 0.50,   # no one donor is more than half an avatar
+  on_donor_shortfall = "drop", # a route arm below k + 1 subjects is dropped
+  # --- what structure is masked ---
+  screen             = TRUE,   # never anchor on a subject whose follow-up or
+                               #   dose count exceeds 2x the cohort's 90th pct
+  coarsen_time       = TRUE,   # snap times onto a shared visit grid, then
+                               #   resample pooled deviations back, so no avatar
+                               #   carries one real visit schedule. Uses
+                               #   `nominal_time` when declared; K-means centres
+                               #   of the pooled times otherwise
+  min_pattern_share  = 2L,     # an avatar's attended-visit pattern must be one
+                               #   at least 2 real subjects share, so no
+                               #   synthetic schedule is unique to one patient
+  # --- how much noise is added ---
+  subject_noise_sd   = 0.15,   # per-subject perturbation
+  residual_noise_sd  = 0.05,   # within-trajectory noise
+  residual_phi       = 0.6,    # AR(1) correlation in observation order
+  time_jitter        = 0,      # realism only, NOT privacy: jitter is clamped
+                               #   within half a gap of the source visit
+  pca_variance       = 0.90    # profile variance retained for donor distances
+)
+
+validate_pmx(synthetic, roles)$valid
+#> [1] TRUE
+dim(synthetic)
+#> [1] 384  21
+head(synthetic[, c("ID", "TIME", "NTIME", "OCC", "NAME", "DV", "CENS", "TRT")], 6)
+#>   ID TIME NTIME OCC NAME        DV CENS       TRT
+#> 1 25 0.00  0.00   1   cp  0.000000    0 100 mg QD
+#> 2 25 0.00  0.00   1   pd 90.823217    0 100 mg QD
+#> 3 25 0.25  0.25   1   cp  1.200000    1 100 mg QD
+#> 4 25 1.00  1.00   1   cp  8.249096    0 100 mg QD
+#> 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD
+#> 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD
+```
+
+Two things the defaults do that are worth knowing about. Where dosing is
+proportional to a covariate (mg/kg, mg/m²), each avatar’s `AMT` is
+**recomputed from its own blended covariate** rather than copied, so the
+synthetic patient’s dose matches the synthetic patient’s weight. And a
+source attendance pattern held by fewer than `min_pattern_share`
+subjects is **lost, not approximated** — that loss is the mechanism
+working, and every run reports how much of it happened.
+
+Measure what the masking achieved with
+[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+on the source and
+[`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
+on the pair.
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|

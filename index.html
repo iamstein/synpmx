@@ -122,18 +122,30 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p><code>synpmx</code> is not on CRAN; install it from GitHub, then load it as usual:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span></code></pre></div>
-<p>AVATAR needs nothing beyond base R. The other methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span></code></pre></div>
+<p><code>remotes</code> is the smallest thing that does the job, and it is already present in most environments. <code>pak::pak("iamstein/synpmx")</code> and <code>devtools::install_github("iamstein/synpmx")</code> do the same, if you already have either.</p>
+<p>To pin a branch or commit, append it: <code>remotes::install_github("iamstein/synpmx@main")</code>. Add <code>build_vignettes = TRUE</code> if you want <code><a href="articles/synpmx-method.html">vignette("synpmx-method")</a></code> offline; otherwise the same material is on the <a href="https://iamstein.github.io/synpmx/">website</a>.</p>
+<p><strong>If your environment blocks installing from GitHub</strong> — likely in the validated environments this package is meant for — download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code>, move it across, and install from the file. This needs nothing but base R, and no compiler, since AVATAR is pure R:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
+<p>If you were given the repository as a <strong>ZIP</strong> rather than a tarball, unzip it first and install the resulting directory — <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code> cannot read a GitHub ZIP directly:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span><span class="st">"synpmx-main.zip"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
+<p>AVATAR needs nothing beyond base R. The other methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="a-first-synthetic-dataset">A first synthetic dataset<a class="anchor" aria-label="anchor" href="#a-first-synthetic-dataset"></a>
 </h2>
 <p>The default AVATAR synthetic data algorithm needs only the data and a declaration of what the columns mean.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span></span>
@@ -152,6 +164,114 @@
 <span><span class="co">#&gt; 3 13 0.2816667 2.861275   0.00    0   2 69.80615</span></span>
 <span><span class="co">#&gt; 4 13 0.5416667 3.600730   0.00    0   2 69.80615</span></span></code></pre></div>
 <p>The output dataset keeps the same structure.</p>
+</div>
+<div class="section level2">
+<h2 id="declaring-every-column">Declaring every column<a class="anchor" aria-label="anchor" href="#declaring-every-column"></a>
+</h2>
+<p><code>theo_md</code> is a four-column dataset. A real study is not, so here is the full declaration. The roles are also the <strong>manifest of what survives</strong>: <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column no role names, so a column you forget is dropped rather than quietly copied out of a real patient.</p>
+<p>Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required. Everything else is optional, and this example declares all of it at once:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A study carrying every declarable column. Yours will have a subset.</span></span>
+<span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_simulated_fixture.html">pmx_simulated_fixture</a></span><span class="op">(</span><span class="fl">24</span><span class="op">)</span>                  <span class="co"># 24 subjects, 2 endpoints</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">YTYPE</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">DVID</span> <span class="op">==</span> <span class="st">"cp"</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span>   <span class="co"># endpoint key, numeric</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">NAME</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">DVID</span><span class="op">)</span>             <span class="co"># same endpoint, as text</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">DVID</span>  <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">TRTN</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">ID</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">%%</a></span> <span class="fl">2L</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span> <span class="co"># assigned arm, numeric</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">TRT</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">study</span><span class="op">$</span><span class="va">TRTN</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="st">"100 mg QD"</span>, <span class="st">"200 mg QD"</span><span class="op">)</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">AMT</span><span class="op">[</span><span class="va">study</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">100</span> <span class="op">*</span> <span class="va">study</span><span class="op">$</span><span class="va">TRTN</span><span class="op">[</span><span class="va">study</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">STUDYID</span> <span class="op">&lt;-</span> <span class="st">"EXAMPLE-001"</span></span>
+<span><span class="va">bloq</span> <span class="op">&lt;-</span> <span class="va">study</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">study</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"cp"</span> <span class="op">&amp;</span> <span class="va">study</span><span class="op">$</span><span class="va">DV</span> <span class="op">&lt;</span> <span class="fl">1.2</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">bloq</span><span class="op">]</span>   <span class="op">&lt;-</span> <span class="fl">1.2</span>                             <span class="co"># DV reports the limit</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">CENS</span><span class="op">[</span><span class="va">bloq</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1L</span>                              <span class="co"># 1 = left-censored (BLOQ)</span></span>
+<span><span class="va">study</span><span class="op">$</span><span class="va">LIMIT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">bloq</span>, <span class="fl">0</span>, <span class="cn">NA_real_</span><span class="op">)</span>            <span class="co"># the other boundary</span></span>
+<span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id                 <span class="op">=</span> <span class="st">"ID"</span>,                    <span class="co"># subject identifier</span></span>
+<span>  time               <span class="op">=</span> <span class="st">"TIME"</span>,                  <span class="co"># actual elapsed time, numeric</span></span>
+<span>  dv                 <span class="op">=</span> <span class="st">"DV"</span>,                    <span class="co"># dependent variable</span></span>
+<span>  evid               <span class="op">=</span> <span class="st">"EVID"</span>,                  <span class="co"># event identifier</span></span>
+<span>  amt                <span class="op">=</span> <span class="st">"AMT"</span>,                   <span class="co"># dose amount</span></span>
+<span>  rate               <span class="op">=</span> <span class="st">"RATE"</span>,                  <span class="co"># infusion rate</span></span>
+<span>  cmt                <span class="op">=</span> <span class="st">"CMT"</span>,                   <span class="co"># compartment</span></span>
+<span>  dvid               <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YTYPE"</span>, <span class="st">"NAME"</span><span class="op">)</span>,      <span class="co"># endpoint key; several columns</span></span>
+<span>                                                <span class="co">#   may label the same endpoint,</span></span>
+<span>                                                <span class="co">#   first is authoritative</span></span>
+<span>  mdv                <span class="op">=</span> <span class="st">"MDV"</span>,                   <span class="co"># missing-DV indicator</span></span>
+<span>  nominal_time       <span class="op">=</span> <span class="st">"NTIME"</span>,                 <span class="co"># protocol visit time</span></span>
+<span>  tad                <span class="op">=</span> <span class="st">"TAD"</span>,                   <span class="co"># time after dose; recomputed</span></span>
+<span>  occasion           <span class="op">=</span> <span class="st">"OCC"</span>,                   <span class="co"># dosing occasion</span></span>
+<span>  cens               <span class="op">=</span> <span class="st">"CENS"</span>,                  <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
+<span>  limit              <span class="op">=</span> <span class="st">"LIMIT"</span>,                 <span class="co"># the other interval boundary</span></span>
+<span>  covariates         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span>,   <span class="co"># measured; blended across donors</span></span>
+<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRT"</span>, <span class="st">"TRTN"</span><span class="op">)</span>,        <span class="co"># assigned stratum; groups the</span></span>
+<span>                                                <span class="co">#   dose rule and visit patterns</span></span>
+<span>  keep               <span class="op">=</span> <span class="st">"STUDYID"</span>                <span class="co"># carried through verbatim</span></span>
+<span>  <span class="co"># addl, ii          -- accepted and carried, but not expanded; expand</span></span>
+<span>  <span class="co">#                      ADDL doses into explicit rows before synthesis</span></span>
+<span>  <span class="co"># assigned_dose, exclude -- differential-privacy engines only</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">study</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><strong>Which role does a column want?</strong> The three that are easy to confuse:</p>
+<ul>
+<li>
+<code>covariates</code> are <em>measured</em> characteristics. They are <strong>blended</strong> across the donors, so a synthetic subject’s weight is a new number nobody had.</li>
+<li>
+<code>subject_properties</code> are <em>assigned</em> strata — arm, dose group, cohort. They are copied from the anchor, and the stratum is what groups the dose rule and the pool of visit patterns an avatar may be given.</li>
+<li>
+<code>keep</code> is the escape hatch, for anything else you want carried through untouched: a study identifier, a randomization sequence, a units column, a redundant label. A kept value is <strong>one real subject’s real value</strong>, so keep only what the source data’s own access controls already permit.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="the-masking-options-and-their-defaults">The masking options, and their defaults<a class="anchor" aria-label="anchor" href="#the-masking-options-and-their-defaults"></a>
+</h2>
+<p>Every masking argument below is shown at its default, so this call behaves exactly like <code>synpmx_avatar(study, roles, seed = 2026)</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
+<span>  <span class="va">study</span>, <span class="va">roles</span>,</span>
+<span>  n_subjects         <span class="op">=</span> <span class="cn">NULL</span>,   <span class="co"># cohort size; NULL matches the source</span></span>
+<span>  seed               <span class="op">=</span> <span class="fl">2026</span>,</span>
+<span>  <span class="co"># --- how much of one real patient can reach one synthetic patient ---</span></span>
+<span>  k                  <span class="op">=</span> <span class="fl">5</span>,      <span class="co"># donors blended into each avatar (the floor)</span></span>
+<span>  max_donor_weight   <span class="op">=</span> <span class="fl">0.50</span>,   <span class="co"># no one donor is more than half an avatar</span></span>
+<span>  on_donor_shortfall <span class="op">=</span> <span class="st">"drop"</span>, <span class="co"># a route arm below k + 1 subjects is dropped</span></span>
+<span>  <span class="co"># --- what structure is masked ---</span></span>
+<span>  screen             <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># never anchor on a subject whose follow-up or</span></span>
+<span>                               <span class="co">#   dose count exceeds 2x the cohort's 90th pct</span></span>
+<span>  coarsen_time       <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># snap times onto a shared visit grid, then</span></span>
+<span>                               <span class="co">#   resample pooled deviations back, so no avatar</span></span>
+<span>                               <span class="co">#   carries one real visit schedule. Uses</span></span>
+<span>                               <span class="co">#   `nominal_time` when declared; K-means centres</span></span>
+<span>                               <span class="co">#   of the pooled times otherwise</span></span>
+<span>  min_pattern_share  <span class="op">=</span> <span class="fl">2L</span>,     <span class="co"># an avatar's attended-visit pattern must be one</span></span>
+<span>                               <span class="co">#   at least 2 real subjects share, so no</span></span>
+<span>                               <span class="co">#   synthetic schedule is unique to one patient</span></span>
+<span>  <span class="co"># --- how much noise is added ---</span></span>
+<span>  subject_noise_sd   <span class="op">=</span> <span class="fl">0.15</span>,   <span class="co"># per-subject perturbation</span></span>
+<span>  residual_noise_sd  <span class="op">=</span> <span class="fl">0.05</span>,   <span class="co"># within-trajectory noise</span></span>
+<span>  residual_phi       <span class="op">=</span> <span class="fl">0.6</span>,    <span class="co"># AR(1) correlation in observation order</span></span>
+<span>  time_jitter        <span class="op">=</span> <span class="fl">0</span>,      <span class="co"># realism only, NOT privacy: jitter is clamped</span></span>
+<span>                               <span class="co">#   within half a gap of the source visit</span></span>
+<span>  pca_variance       <span class="op">=</span> <span class="fl">0.90</span>    <span class="co"># profile variance retained for donor distances</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 384  21</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"NTIME"</span>, <span class="st">"OCC"</span>, <span class="st">"NAME"</span>, <span class="st">"DV"</span>, <span class="st">"CENS"</span>, <span class="st">"TRT"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">6</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   ID TIME NTIME OCC NAME        DV CENS       TRT</span></span>
+<span><span class="co">#&gt; 1 25 0.00  0.00   1   cp  0.000000    0 100 mg QD</span></span>
+<span><span class="co">#&gt; 2 25 0.00  0.00   1   pd 90.823217    0 100 mg QD</span></span>
+<span><span class="co">#&gt; 3 25 0.25  0.25   1   cp  1.200000    1 100 mg QD</span></span>
+<span><span class="co">#&gt; 4 25 1.00  1.00   1   cp  8.249096    0 100 mg QD</span></span>
+<span><span class="co">#&gt; 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD</span></span>
+<span><span class="co">#&gt; 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD</span></span></code></pre></div>
+<p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. And a source attendance pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong> — that loss is the mechanism working, and every run reports how much of it happened.</p>
+<p>Measure what the masking achieved with <code><a href="reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> on the source and <code><a href="reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> on the pair.</p>
 <table class="table">
 <colgroup>
 <col width="20%">
