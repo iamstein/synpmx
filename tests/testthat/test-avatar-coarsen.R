@@ -45,15 +45,15 @@ timing_vector_copied <- function(source, synthetic, roles) {
   }, logical(1)))
 }
 
-test_that("actual recorded times leave every subject alone in its class", {
+test_that("actual recorded times give every patient a unique schedule", {
   report <- skeleton_uniqueness(crs_source(), crs_roles())
   # The premise of the whole mechanism: under actual times the schedule token is
   # unique per subject, so the verbatim skeleton copy is identifying.
-  expect_equal(attr(report, "n_alone"), 12L)
+  expect_equal(attr(report, "n_unique_schedule"), 12L)
   expect_true(all(report$obs_time_class == 1L))
   # The event signature does *not* include observation times, so it is blind to
   # this: one dose at a shared amount puts all twelve in one signature class.
-  expect_equal(attr(report, "n_alone_signature"), 0L)
+  expect_equal(attr(report, "n_unique_dose_signature"), 0L)
   # ... while the observation count is shared by everyone. That asymmetry is why
   # coarsening and the outlier screen do different jobs.
   expect_true(all(report$n_obs_class == 12L))
@@ -210,4 +210,84 @@ test_that("coarsen_time is validated and recorded", {
   )
   expect_true(settings$coarsen_time)
   expect_identical(settings$time_grid, "derived")
+})
+
+# REV-031 -- `.derive_time_grid()` refuses any merge that would put one subject
+# in a cell twice, but `.snap_to_grid()` assigns by nearest centre and knew
+# nothing about that, so a time near a boundary could land in a neighbouring
+# cell and undo it. The doubled visit then became its own attendance cell and
+# was drawn by many avatars.
+test_that("coarsening never collapses two of one subject's own visits", {
+  # Two visits close enough that a nearest-centre snap pulls them together,
+  # against a cohort whose spacing makes the surrounding merges legal.
+  source <- do.call(rbind, lapply(1:10, function(subject) {
+    drift <- (subject - 5) * 0.05
+    time <- c(0, 1 + drift, 1.45 + drift, 4 + drift, 8 + drift)
+    evid <- c(1L, 0L, 0L, 0L, 0L)
+    data.frame(
+      ID = subject, TIME = time,
+      DV = c(0, 8, 7.5, 4, 1) * (1 + 0.05 * sin(subject)),
+      AMT = ifelse(evid != 0, 100, 0), EVID = evid,
+      CMT = c(1L, 2L, 2L, 2L, 2L), WT = 70 + subject,
+      stringsAsFactors = FALSE
+    )
+  }))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+
+  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
+  observed <- coarsened$EVID == 0
+  key <- paste(coarsened$ID[observed], coarsened$TIME[observed])
+  expect_false(any(duplicated(key)))
+
+  # Every subject keeps all five of its rows, and its observation times stay
+  # distinct: the repair keeps recorded times rather than dropping a visit.
+  per_subject <- table(coarsened$ID)
+  expect_true(all(per_subject == 5L))
+})
+
+test_that("genuine duplicate records are left alone by the repair", {
+  # Two observations recorded at the *same* time are not a collapse the grid
+  # caused, so coarsening must not invent a difference between them.
+  source <- do.call(rbind, lapply(1:10, function(subject) {
+    evid <- c(1L, 0L, 0L, 0L)
+    data.frame(
+      ID = subject, TIME = c(0, 1, 1, 4),
+      DV = c(0, 8, 8.1, 4) * (1 + 0.05 * sin(subject)),
+      AMT = ifelse(evid != 0, 100, 0), EVID = evid,
+      CMT = c(1L, 2L, 2L, 2L), WT = 70 + subject, stringsAsFactors = FALSE
+    )
+  }))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+
+  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
+  observed <- coarsened$EVID == 0
+  key <- paste(coarsened$ID[observed], coarsened$TIME[observed])
+  expect_equal(sum(duplicated(key)), 10L)
+})
+
+# A rename once left `sum(exposure$alone)` reading a column that no longer
+# existed, so the reported exposure silently became 0 while the alerts still
+# fired off the right number. Pin the settings against the screen they come
+# from, so the two cannot drift apart again.
+test_that("reported exposure agrees with skeleton_uniqueness on the coarsened source", {
+  source <- crs_source()
+  roles <- crs_roles()
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 4)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
+  screen <- skeleton_uniqueness(coarsened, roles)
+
+  expect_equal(settings$unique_schedule_n, sum(screen$unique_schedule))
+  expect_equal(settings$unique_sample_time_n,
+               sum(screen$min_time_share == 1L, na.rm = TRUE))
+  # The split is exhaustive: a unique schedule is either a unique sample time
+  # or a unique set of visits, never neither and never both.
+  expect_equal(settings$unique_schedule_n,
+               settings$unique_sample_time_n + settings$unique_visit_set_n)
+  expect_gte(settings$unique_visit_set_n, 0L)
 })
