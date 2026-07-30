@@ -12,8 +12,37 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/TEST_SIM.md` — **evidence**, for simulation defects and their gates. `SIM-###`.
 - `design/METHOD_DISCUSSION.md` — **tradeoffs**, AVATAR blending vs formal DP,
   and why AVATAR is the trajectory-level analogue of synadam.
+- `design/PRIVACY_EVAL.md` — **program**, the proposed empirical
+  disclosure-risk evaluation. Phased, not yet started.
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
+
+## The owner's five next steps (2026-07-29)
+
+Stated by the owner, in their order. Everything below this section is detail
+that one of these five owns; if a task further down does not serve one of them,
+it is not next.
+
+1. [ ] **Land the dose-fingerprint masking and prove it on real data.** The
+       mechanisms are built (anchor screen, `coarsen_time`, `min_pattern_share`,
+       dose recomputed from the avatar's own covariate); what is unproven is all
+       of it on a real study, and what is still copied is the *sequence* of dose
+       levels an anchor climbed. Detail in "Open on the two new mechanisms"
+       below; measurement is `skeleton_uniqueness()` and
+       `compare_pmx_proximity()`.
+2. [ ] **Schedule the meeting with David Zhang.** Presentation following their
+       template; Greg Pinhault possibly after.
+3. [ ] **Simulation study to evaluate privacy.** Scoped 2026-07-29 into
+       "Next: empirical disclosure-risk evaluation" below and
+       `design/PRIVACY_EVAL.md`.
+4. [ ] **Trinity Metrics blog post: how to try `synpmx`.** New, nothing written
+       yet. Source belongs in `communications/` (`.Rbuildignore`d, and see
+       `communications/README.md` — public or fixture data only, internal review
+       before it goes out). Largest reusable input is `README.md`'s runnable
+       example; the post is the shortest path from "installed" to "ran it on my
+       own data", not another method explanation.
+5. [ ] **Make the ACoP poster.** `communications/2026-acop-poster-notes.md`.
+       Still gated on the abstract's acceptance status and the deadline.
 
 ## Next Steps: adoption, external validation, and the ACoP poster
 
@@ -139,6 +168,11 @@ Present it.
 
 - [ ] Follow up with David Zhang: a presentation following their template. Then
       potentially with Greg Pinhault.
+- [ ] Trinity Metrics blog post — instructions for trying the package. Draft in
+      `communications/`, aimed at someone who has not installed it yet: install,
+      declare roles on their own dataset, run `synpmx_avatar()`, read the
+      warnings. Point at the pkgdown site for the method rather than restating
+      it. Public or fixture data only, and internal review before posting.
 - [ ] Confirm the ACoP abstract status and the poster deadline. The abstract is
       drafted (`communications/2026-acop-abstract.md`) — is it submitted and
       accepted, and by when is the poster due? This gates everything above.
@@ -309,6 +343,25 @@ instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
 - [ ] Literature check before claiming novelty: DP + non-compartmental analysis,
       DP + popPK, DP synthetic data under informative structural priors.
 
+## Next: empirical disclosure-risk evaluation (proposed 2026-07-29)
+
+Raised by the owner. Measure whether an attacker can actually recover anything
+from released synthetic data — membership inference, singling out, linkability,
+attribute inference — rather than only arguing from the trust boundary. The
+program, its phasing, what already exists, and why a cohort of 30 limits what
+any of it can conclude are in `design/PRIVACY_EVAL.md`. Not started, and it
+competes with the ACoP poster and the real-data validation above for the same
+weeks.
+
+- [ ] Decide what it is for — internal defensibility, the poster, or a paper.
+      That sets the depth, and nothing else here starts until it is answered.
+- [ ] P1: read the attack literature and Guillaudeux 2023's own metrics, and
+      settle whether the attacks run on the profile vector or get restated for
+      event tables. Shares the paper read already queued below.
+- [ ] P2: train/holdout membership inference over the public datasets, with the
+      verbatim-copy positive control and `synpmx_prior()` as negative control.
+      The cheap slice that says whether the rest is worth building.
+
 ## Next: covariate relationships and covariance
 
 Raised by the owner 2026-07-28, after the pyrazinamide example
@@ -394,6 +447,10 @@ either --- two correlated covariates come out independent.
       spent. Either restrict to `delta = 0` or wire it to a real mechanism.
 - [ ] `REV-002` Pre-flight feasibility check, so an infeasible `(N, epsilon, d)`
       is refused before budget is spent rather than discovered in a plot.
+- [ ] `REV-030` `addl`/`ii` are accepted, carried, and never read, so a source
+      encoding repeated dosing as `ADDL` presents to AVATAR as a single-dose
+      study. Refuse the roles with a message telling the user to expand first,
+      or expand and re-collapse around synthesis. Found 2026-07-30.
 - [ ] `REV-020` `pmx_structural_model(rx = )` is stored but never used; it now
       warns. Either wire it through `rxode2::rxSolve()` with a regression test
       against the analytic solution, or reject it outright. (Was stranded in the
@@ -407,8 +464,11 @@ either --- two correlated covariates come out independent.
       done too: `flag_identifiable_subjects()` screens follow-up time, dose
       count, dose magnitude, and DV. Closed out 2026-07-27 with the route
       barrier (IV/bolus/oral never blended; short route arms dropped from the
-      anchor pool) and `max_donor_weight` 0.80 -> 0.30 enforced on every donor,
-      which measurement showed costs almost no between-subject variability.
+      anchor pool) and `max_donor_weight` 0.80 -> 0.50 enforced on every donor.
+      0.50 was chosen on how often the cap fires (68%, effective donors 2.90):
+      0.30 fires on 99% and *is* the weighting scheme rather than a guardrail,
+      and it cost too much between-subject variability; 0.80 fires on 15% and
+      still lets one real patient be most of a synthetic one.
       Tests in `test-avatar-pooling.R`, `test-avatar-weights.R`; algorithm
       written out in `articles/avatar-algorithm.Rmd` Steps 6-7.
       Still open: whether the headline floor should exceed 5 -- now the weaker
