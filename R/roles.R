@@ -15,6 +15,18 @@
 #'   may declare both, `dvid = c("YTYPE", "NAME")`. The first is the grouping
 #'   key; validation checks the rest are a consistent 1:1 mapping with it and
 #'   errors if they disagree, and [synpmx_avatar()] carries all of them through.
+#'
+#'   **`dvid` and `cmt` answer different questions.** `dvid` is which endpoint a
+#'   measurement is; `cmt` is which compartment a dose enters, and it is read
+#'   only on event rows. Nothing infers one from the other, so a source with
+#'   more than one endpoint needs `dvid` — without it every measurement is
+#'   treated as one endpoint, sharing a single value transform and a single
+#'   censoring boundary. [synpmx_avatar()] refuses rather than let that happen
+#'   silently.
+#'
+#'   A NONMEM `CMT` usually does both jobs, so **one column may be named as both
+#'   roles**: `pmx_roles(..., cmt = "CMT", dvid = "CMT")`. This is the only
+#'   permitted overlap; every other collision is an error.
 #' @param nominal_time,tad,occasion Optional time metadata columns.
 #' @param cens,limit Optional Monolix-style censoring indicator and other
 #'   interval-boundary columns.
@@ -109,6 +121,13 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
 
   modeled <- unlist(roles[setdiff(names(roles), "exclude")],
                     use.names = FALSE)
+  # One column may be both `cmt` and `dvid`. NONMEM's `CMT` routinely does both
+  # jobs -- the dosing compartment on event rows, the endpoint key on
+  # observation rows -- and the alternative is making the user copy the column
+  # to itself under another name, which declares nothing extra and helps nobody.
+  # Every other collision stays an error.
+  shared <- intersect(roles$cmt, roles$dvid)
+  if (length(shared)) modeled <- modeled[-match(shared, modeled)]
   duplicated_roles <- unique(modeled[duplicated(modeled)])
   if (length(duplicated_roles)) {
     stop("A column cannot have multiple roles: ",
