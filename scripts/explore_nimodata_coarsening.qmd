@@ -622,6 +622,44 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 ```
 
+## 6b. A different question: did the *values* land too close?
+
+Everything above is about **structure** — whose schedule is identifiable.
+`compare_pmx_proximity()` asks the other half: are the synthetic patients'
+*measurements* sitting too close to real ones? It puts both cohorts in one
+profile space and asks, for each patient, whether their nearest neighbour is in
+their own dataset or the other one.
+
+- **near 0.5** — a synthetic patient is no more like a real patient than one
+  real patient is like another. The target.
+- **toward 0** — synthetic patients sit closer to real ones than to each other.
+  That is memorisation, and it is the failure.
+- **toward 1** — the two sets have separated. Privacy fine, utility not.
+
+```{r proximity}
+compare_pmx_proximity(nimo_fixed, fitted, nimo_roles("NTIME"), replicates = 30)
+```
+
+**Read the null interval before the estimate, and then read the cohort size.**
+Six patients per side is almost nothing, and the null is correspondingly wide —
+it spans most of the range the statistic can take. A value inside it means
+*nothing was detected*, which is not the same as nothing being there. What this
+would catch is a blatant leak: a synthetic patient sitting on top of a real one
+drives the statistic toward 0, and the package's own regression test hands the
+function a verbatim copy and requires it to object.
+
+So on this study the honest summary is: **the schedule check found a real
+problem and the value check found nothing, but the value check at n = 12 could
+only have found something egregious.** The two are not interchangeable and
+neither substitutes for the other:
+
+| Check | Question | On `nimoData` |
+|---|---|---|
+| `skeleton_uniqueness()`, the exposure counts | Is anyone's *schedule* identifying? | Yes — 12 of 12, fixed down to 5 |
+| `compare_pmx_proximity()` | Did anyone's *values* land too close? | Nothing detected, but underpowered |
+
+A dataset can fail either one on its own. Run both.
+
 ## 7. What to take from this
 
 1. **An inferred grid can fail completely, and it says so.** The alert is not
