@@ -128,7 +128,7 @@ dose being a verbatim real value (which under mg/kg dosing discloses the anchor'
 weight exactly) and repairs a coherence defect: previously every avatar violated
 the mg/kg rule its own data claims to follow. See `REV-027`.
 
-**5. Sampling the attendance pattern** (`min_pattern_share`, default 2). Once
+**5. Sampling which visits were attended** (`min_pattern_share`, default 2). Once
 coarsening has put every subject on a shared visit grid, what remains of a
 schedule is which of those visits each subject attended. Every time is then
 shared, so no single visit is identifying — the *combination of absences* is,
@@ -155,7 +155,7 @@ wide — it catches a blatant leak, not a subtle one.
 **6. Checking for unique event skeletons** (`skeleton_uniqueness()`, run
 manually on the **source**, before generating). A measurement, not a mitigation.
 It reports how many other subjects share each subject's observation time vector,
-observation count, and event signature — and, for the subjects that are alone,
+observation count, and event signature — and, for patients whose schedule is unique,
 *why*: because they were observed at a moment nobody else was (mechanism 3's
 job) or because every time is shared and only the pattern of attendance is
 unique (mechanism 2's job). `scripts/measure_skeleton_uniqueness.R` runs the
@@ -166,7 +166,7 @@ before-and-after over the public datasets.
 An exact pattern — the precise set of endpoint-and-time cells a subject was
 observed at — is a strict thing to match. Two patients who each missed exactly
 one visit have *different* patterns if they missed different visits, so
-attendance patterns arrive as one common pattern and a long tail of singletons,
+set of attended visitss arrive as one common pattern and a long tail of singletons,
 with almost nothing in between. `warfarin` after coarsening has 32 subjects
 across 14 patterns, distributed 18, 2, and then twelve patterns of one patient
 each. Matching only exact patterns would therefore discard almost all of them.
@@ -205,6 +205,37 @@ patterns alone would have kept two. Most avatars still receive a real pattern �
 the generated column is the minority — because generation is a fallback, not the
 mechanism.
 
+### What is invented, and what never is
+
+This mechanism is the only one that produces structure no real patient had, so
+it is worth stating its limits exactly. A reader who takes "an arrangement is
+generated" to mean the generator makes up a regimen will be alarmed, and wrongly.
+
+**Sampling structure can be invented. Dose structure never is.**
+`.apply_attendance()` rebuilds only observation rows; every dose row is carried
+through exactly as the anchor had it, so an avatar's number of doses, their
+times and their amounts are all copied. Dose events are deliberately never
+sampled, because a drawn regimen could be one no protocol permits.
+
+So the invented part, when it happens, is precisely: *which of the shared
+sampling visits this avatar attended*. It attended as many as some real patient
+did, missing them in the same arrangement — trailing, block or scattered — but
+not necessarily the same ones.
+
+Concretely, on `warfarin`, whose PK visits sit on a 13-point grid:
+
+```
+grid           0.5  1.2  2  3  6  9  12  24  36  48  72  96  120
+patient 2                                  24  36  48  72  96  120
+avatar  34                                 24  36  48  72  96  120   <- reused
+avatar  36           3  6  12  24  36  72  96  120                   <- generated
+```
+
+Avatar 36 holds a set of visits no real patient held. It is still an ordinary,
+complete dataset: real grid times, blended concentrations, the anchor's dose
+record, and it passes `validate_pmx(..., strict = TRUE)` like every other run.
+Nothing about it is partial or provisional.
+
 What is genuinely lost is *resolution*. The output keeps how much missingness
 there was and what kind, and loses which specific visits each patient missed. For
 developing code against realistic-looking data that is the right trade; for
@@ -224,7 +255,7 @@ copying each anchor's own pattern, giving up the guarantee above.
 
 Being explicit about the gaps is what makes the list worth anything.
 
-- **Rare attendance patterns, when nothing is shared widely enough.** Mechanism
+- **Rare set of attended visitss, when nothing is shared widely enough.** Mechanism
   5 needs a pool: where no pattern reaches `min_pattern_share` — `nimoData`, where
   all twelve subjects hold a distinct one — anchors keep their own and the run
   alerts. The cost when it *does* apply is the opposite problem: on `warfarin`
@@ -1420,7 +1451,8 @@ $$
 
 MDV is re-derived from that rule in the synthetic data and restored to its original
 class. For any nonstandard source-wide MDV convention, anchor values are left
-as copied. Missing observation positions are not invented or removed.
+as copied. *This step* neither invents nor removes observation positions --
+which ones an avatar has was already settled by mechanism 5 above.
 
 Finally, `validate_pmx(..., strict = TRUE)` is run on the assembled result. A
 generation call cannot silently return an output that fails the package's own
