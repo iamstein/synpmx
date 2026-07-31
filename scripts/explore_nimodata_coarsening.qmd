@@ -86,7 +86,7 @@ A schedule can be unique for two different reasons. Every table below splits the
 count between them, because they call for opposite responses.
 
 **Seen at a unique moment.** The patient was observed at a clock time nobody
-else was observed at. Sampling recorded to the minute does this to everybody —
+else was observed at. Times recorded at full precision do this to everybody —
 PK sampled at 1.28 hours when nobody else was sampled at exactly 1.28 hours, and
 the list is already unique. **Fixable**: place everyone on a shared visit grid,
 so 1.28 and 1.31 and 1.19 all become "the 1-hour visit". That is exactly what
@@ -473,7 +473,7 @@ Read the `OCC` and `TAD` columns together and the design is visible. `OCC` is
 the infusion number, 1 to 10. `TAD` is time since that infusion started, and it
 resets to 0 at each one. Subject 1's first occasion is sampled at TAD 1.28,
 23.16, 46.91, 95.21, 144.13, 167.16 — which is days 0, 1, 2, 4, 6, 7, recorded
-to the minute.
+at full precision.
 
 **So the protocol is: infusions a week apart, sampled on nominal days within
 each week.** Neither the week nor the day is stored, but both are recoverable.

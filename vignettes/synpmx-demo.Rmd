@@ -335,25 +335,27 @@ caller's random-number state is left untouched; reproducibility comes from the
 
 ## What the masking does, and what it costs
 
-Enough happens by default that it is worth naming the mechanisms before looking
+Enough happens by default that it is worth naming the five mechanisms before looking
 at any data. The AVATAR algorithm article walks through each in detail. AVATAR blends every avatar's **measurements** from several real
 donors, so no single patient's numbers survive. But the **event skeleton** — the
 pattern of when a patient was dosed and sampled — is copied verbatim from one
 real anchor, and blending never touches it. Five mechanisms act on that
 skeleton, and every one of them works by *removing* something:
 
-The article numbers them **M1 to M7, in the order they run**; the same order is
+The article numbers them **M1 to M5, in the order they run**; the same order is
 used here.
 
 | | Mechanism | Acts on | Why |
 |---|---|---|---|
-| **M1** | Snap every time onto a shared visit grid (`coarsen_time`) | **all times** — dose events *and* DV observations | Recorded to the minute, one patient's list of times is a fingerprint |
+| **M1** | Snap every time onto a shared visit grid, then add deviations back from a cohort-wide pool (`coarsen_time`) | **all times** — dose events *and* DV observations | As recorded, one patient's list of times is very often unique to them. A *pooled* deviation restores realism without giving the patient their own back |
 | **M2** | Drop patients from the **anchor pool** (`screen`, `on_donor_shortfall`) | whole source patients | Follow-up or dose count over **2× the cohort's 90th percentile** would give any avatar a conspicuous skeleton; a route arm under `k + 1` has too few donors to blend with |
 | **M3** | Redraw which visits an avatar attended (`min_pattern_share`) | **DV observations only** — dose events untouched | A combination of missed visits held by one patient is a fingerprint made of gaps |
-| **M4** | Add timing deviations back (`coarsen_time`) | **all times**, as M1 | Restores realistic scatter, drawn from the cohort rather than the anchor |
-| **M5** | Blend covariates and DV from donors, capped (`k`, `max_donor_weight`) | measured values | No avatar's numbers come from one real patient |
-| **M6** | Recompute the dose amount (automatic) | dose amounts, under **weight-based** (mg/kg) or BSA (mg/m²) dosing | A copied dose under mg/kg discloses the anchor's weight exactly |
-| **M7** | Screen the finished data, remediate (**manual**) | whole synthetic patients | Blending can create a conspicuous avatar from unremarkable donors |
+| **M4** | Blend covariates and DV from donors, capped (`k`, `max_donor_weight`) | measured values | No avatar's numbers come from one real patient |
+| **M5** | Recompute the dose amount (automatic) | dose amounts, under **weight-based** (mg/kg) or BSA (mg/m²) dosing | A copied dose under mg/kg discloses the anchor's weight exactly |
+
+`flag_identifiable_subjects()` runs after generation and is deliberately **not**
+in this table: it is a plausibility check rather than a masking step, and
+`synpmx_avatar()` does not run it for you. The algorithm article explains why.
 
 ### How you check whether it worked
 
@@ -455,8 +457,8 @@ below the donor floor, so all twelve subjects were available to anchor on and
 twelve avatars were built.
 
 The interesting row is the schedule pair. **All twelve patients start out with a
-unique observation schedule** — their observation times are recorded to the minute and
-no two patients were sampled at exactly the same moment, so every one of them
+unique observation schedule** — their observation times are recorded at full
+precision and no two patients were sampled at exactly the same moment, so every one of them
 holds a list of times nobody else shares. After coarsening the count is **zero**. The inferred
 grid found the shared visit structure underneath the recorded times and pulled
 everyone onto it. That is the coarsening mechanism doing its entire job.

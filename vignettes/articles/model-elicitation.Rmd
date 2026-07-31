@@ -62,7 +62,7 @@ budget; a narrow dishonest one costs the guarantee.
 | More than ~1000, and you want empirical shape rather than a structural model | **Empirical mode.** Version 2 dense grid. Different document |
 | No privacy claim needed at all | **Prior mode.** Simpler, and honest |
 
-`vignette("synpmx-method")` is the full selection guide, including how many
+`vignette("synpmx-4-methods")` is the full selection guide, including how many
 parameters each mode learns from the data.
 
 Prior mode still needs Q1-Q5. It just never runs a private fit. **Most of this
