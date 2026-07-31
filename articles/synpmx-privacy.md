@@ -11,7 +11,7 @@ promise, how to choose between methods and if a private mode is chosen,
 how to choose an epsilon.
 
 The companion vignettes are
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+[`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
 (the four generation modes) and
 [`vignette("synpmx-demo")`](https://iamstein.github.io/synpmx/articles/synpmx-demo.md)
 (the practical workflow).
@@ -246,7 +246,7 @@ fact taken from real patients, and the privacy claim weakens by exactly
 that much.
 
 For all three run end to end on `theo_md`, with code and output, see
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md).
+[`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md).
 
 ## The decision rule
 
@@ -457,7 +457,7 @@ prints the realized accounting.
   size](https://iamstein.github.io/synpmx/articles/feasibility.html) —
   the complete measured frontier, and why small cohorts are hard for any
   formal method.
-- [`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+- [`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
   — the four generation modes and why AVATAR is the default. Note that
   it splits public-model simulation and the two DP engines into three
   separate *modes*, where this vignette groups the DP engines into one

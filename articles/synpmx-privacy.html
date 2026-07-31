@@ -34,12 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-method.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
@@ -92,7 +92,7 @@ families of method that protect patients in fundamentally different
 ways. This vignette explains what each one actually is, what
 differential privacy does and does not promise, how to choose between
 methods and if a private mode is chosen, how to choose an epsilon.</p>
-<p>The companion vignettes are <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>
+<p>The companion vignettes are <code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code>
 (the four generation modes) and <code><a href="../articles/synpmx-demo.html">vignette("synpmx-demo")</a></code>
 (the practical workflow).</p>
 </div>
@@ -372,7 +372,7 @@ get.</strong> Each step down this list trades an assertion you would
 have had to defend for a fact taken from real patients, and the privacy
 claim weakens by exactly that much.</p>
 <p>For all three run end to end on <code>theo_md</code>, with code and
-output, see <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>.</p>
+output, see <code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-decision-rule">The decision rule<a class="anchor" aria-label="anchor" href="#the-decision-rule"></a>
@@ -602,8 +602,8 @@ privacy argument</a> — the formal argument, for a reviewer.</li>
 by cohort size</a> — the complete measured frontier, and why small
 cohorts are hard for any formal method.</li>
 <li>
-<code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code> — the four generation modes
-and why AVATAR is the default. Note that it splits public-model
+<code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> — the four generation
+modes and why AVATAR is the default. Note that it splits public-model
 simulation and the two DP engines into three separate <em>modes</em>,
 where this vignette groups the DP engines into one <em>family</em>; four
 modes, three families, same functions.</li>

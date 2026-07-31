@@ -178,6 +178,80 @@ source_synthetic_preview <- function(source, synthetic, n = 6L) {
   rownames(out) <- NULL
   out[, c(".dataset", columns), drop = FALSE]
 }
+
+# The full masking accounting for one run, read off `pmx_settings` and a
+# `skeleton_uniqueness()` pass over the source. Every number a run can report
+# about what it removed, in one table, so each dataset below can be read on its
+# own instead of only in comparison with the others.
+masking_report <- function(source, roles, synthetic) {
+  settings <- attr(synthetic, "pmx_settings")
+  before <- skeleton_uniqueness(source, roles)
+  pct <- function(x) if (is.null(x) || is.na(x)) "--" else paste0(round(100 * x), "%")
+  num <- function(x) if (is.null(x) || is.na(x)) "--" else format(x)
+
+  rows <- list(
+    c("**Who was available to build on**", "", ""),
+    c("Subjects in the source", num(settings$source_subjects), ""),
+    c("Excluded as structural outliers", num(settings$anchors_screened_out),
+      "`screen`: follow-up or dose count over twice the cohort's 90th pct"),
+    c("Excluded below the donor floor", num(settings$anchors_route_excluded),
+      "`on_donor_shortfall`: a route arm with fewer than k + 1 subjects"),
+    c("Anchors available", num(settings$anchors_available), ""),
+    c("Avatars built", num(settings$n_subjects),
+      "cohort size is unaffected by the exclusions above"),
+
+    c("**How much of one patient reaches one avatar**", "", ""),
+    c("Donor floor (k)", num(settings$k), "real patients blended into each avatar"),
+    c("Largest share of one donor", num(settings$max_donor_weight),
+      "`max_donor_weight`"),
+    c("Cap actually bound on", pct(settings$cap_binding_fraction), "of avatars"),
+    c("Effective donors, mean", num(round(settings$mean_effective_donors, 2)),
+      "1 / sum(w^2); the floor means little without this"),
+
+    c("**Visit schedule**", "", ""),
+    c("Grid used", num(settings$time_grid),
+      "`nominal` where a `nominal_time` role was declared, else inferred"),
+    c("Unique observation schedule, before coarsening",
+      num(attr(before, "n_unique_schedule")),
+      "patients whose list of observation times nobody else shares"),
+    c("Unique observation schedule, after", num(settings$unique_schedule_n), ""),
+    c("&nbsp;&nbsp;unique observation time", num(settings$unique_obs_time_n),
+      "sampled when nobody else was; the grid's job, fixed by `nominal_time`"),
+    c("&nbsp;&nbsp;unique set of visits", num(settings$unique_visit_set_n),
+      "every time shared; dropout, and no grid can fix it"),
+
+    c("**Which visits each patient attended**", "", ""),
+    c("Distinct visit sets in the source", num(settings$patterns_total),
+      "a visit set is which of the shared visits one patient actually had"),
+    c("Held by one patient, so discarded", num(settings$patterns_dropped),
+      "`min_pattern_share`; lost, not approximated"),
+    c("Patients holding those", num(settings$subjects_with_dropped_pattern),
+      "they stay in the cohort as donors"),
+    c("Avatars given a real patient's visit set",
+      pct(settings$pattern_sampled_fraction), ""),
+    c("&nbsp;&nbsp;which visits were missed, invented",
+      pct(settings$pattern_generated_fraction),
+      "how many and what kind of misses reused; which ones placed fresh"),
+
+    c("**Dose**", "", ""),
+    c("Recomputed from a covariate",
+      if (is.na(settings$dose_basis)) "no" else paste0("yes, from `",
+                                                       settings$dose_basis, "`"),
+      "detected only where the ratio collapses; fails closed")
+  )
+  out <- as.data.frame(do.call(rbind, rows), stringsAsFactors = FALSE)
+  names(out) <- c("Quantity", "Value", "What it means")
+  out
+}
+
+masking_table <- function(source, roles, synthetic, label) {
+  knitr::kable(
+    masking_report(source, roles, synthetic),
+    caption = paste0("Everything ", label,
+                     "'s run removed, and what was left to build on."),
+    align = c("l", "r", "l")
+  )
+}
 ```
 
 ## What this package is for
@@ -252,6 +326,91 @@ Every example follows the same three steps:
 Identifiers, schema, classes, and factor levels are restored on output.
 The caller’s random-number state is left untouched; reproducibility
 comes from the `seed` argument.
+
+## What the masking does, and what it costs
+
+Enough happens by default that it is worth naming the five mechanisms
+before looking at any data. The AVATAR algorithm article walks through
+each in detail. AVATAR blends every avatar’s **measurements** from
+several real donors, so no single patient’s numbers survive. But the
+**event skeleton** — the pattern of when a patient was dosed and sampled
+— is copied verbatim from one real anchor, and blending never touches
+it. Five mechanisms act on that skeleton, and every one of them works by
+*removing* something:
+
+The article numbers them **M1 to M5, in the order they run**; the same
+order is used here.
+
+|  | Mechanism | Acts on | Why |
+|----|----|----|----|
+| **M1** | Snap every time onto a shared visit grid, then add deviations back from a cohort-wide pool (`coarsen_time`) | **all times** — dose events *and* DV observations | As recorded, one patient’s list of times is very often unique to them. A *pooled* deviation restores realism without giving the patient their own back |
+| **M2** | Drop patients from the **anchor pool** (`screen`, `on_donor_shortfall`) | whole source patients | Follow-up or dose count over **2× the cohort’s 90th percentile** would give any avatar a conspicuous skeleton; a route arm under `k + 1` has too few donors to blend with |
+| **M3** | Redraw which visits an avatar attended (`min_pattern_share`) | **DV observations only** — dose events untouched | A combination of missed visits held by one patient is a fingerprint made of gaps |
+| **M4** | Blend covariates and DV from donors, capped (`k`, `max_donor_weight`) | measured values | No avatar’s numbers come from one real patient |
+| **M5** | Recompute the dose amount (automatic) | dose amounts, under **weight-based** (mg/kg) or BSA (mg/m²) dosing | A copied dose under mg/kg discloses the anchor’s weight exactly |
+
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+runs after generation and is deliberately **not** in this table: it is a
+plausibility check rather than a masking step, and
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+does not run it for you. The algorithm article explains why.
+
+### How you check whether it worked
+
+Three measurements, because an avatar can point back at a real patient
+in three independent ways. A study can pass one and fail another, so
+none substitutes for the rest.
+
+| Function | Asks | Run on | Target |
+|----|----|----|----|
+| [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md) | Is anyone’s **observation schedule** unique — the list of times they were sampled at? Separately, is anyone’s **dosing** unique? | source, before generating | 0 unique |
+| [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | Does anyone **stand out** on follow-up length, dose count, dose size, or peak DV? | synthetic output | nothing flagged |
+| [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | Did a synthetic patient’s **covariates and DV trajectory together** land nearer a real patient than real patients lie to each other? | the pair, after | near 0.5 |
+
+Sampling and dosing are scored separately and only the first is what
+“schedule” means here: the observation time vector excludes dose rows
+entirely. Dosing uniqueness is a different number, and **coarsening does
+not touch it** — a study with weight-based dosing leaves patients unique
+on dose however good the visit grid is.
+
+The headline count is **one number split by cause**, and the split says
+what to do next:
+
+- **unique observation schedule** — patients whose list of observation
+  times nobody else shares. Drive this to zero. It is always the sum of
+  the next two.
+  - **unique observation time** — sampled at a clock time nobody else
+    was. *A grid can fix this*; that is what `coarsen_time` is for, and
+    a nonzero count after coarsening means declaring `nominal_time` is
+    the fix.
+  - **unique set of visits** — every time shared, but this combination
+    of attended and missed visits is theirs. *No grid can fix this* at
+    any resolution. `min_pattern_share` addresses it during generation;
+    otherwise remediate or accept.
+
+None of this is free, and the costs differ sharply by dataset. So **each
+dataset below ends with its own full accounting** — how many patients
+were excluded and why, how many visit sets were lost and who held them,
+how many subjects still hold a schedule nobody shares. The tables are
+deliberately verbose. Reading one takes a minute; not reading it means
+shipping a dataset without knowing what came out of it.
+
+Two quantities are worth learning to read first, because they are the
+ones that surprise people:
+
+- **“Unique observation schedule”** — a patient whose list of
+  observation times no other patient shares. An avatar anchored on such
+  a patient wears a schedule belonging to exactly one real person,
+  however carefully its concentrations were blended. The count is split
+  by cause, because the two causes have different answers: a *unique
+  observation time* is the grid’s job and is fixed by declaring
+  `nominal_time`, while a *unique set of visits* is dropout and no grid
+  can fix it.
+- **“Patterns discarded”** — a real dropout or dose-interruption pattern
+  that will not appear in the output at all. That loss is the mechanism
+  working, not a bug: it is what stops an avatar carrying a schedule
+  traceable to one person. Whether the cost is acceptable is a per-study
+  judgment, which is why every run reports it.
 
 ## Theophylline: repeated dosing, dose-relative PK
 
@@ -331,33 +490,86 @@ knitr::kable(theo_dist$covariates_numeric, digits = 2,
 
 Baseline weight distribution, source versus synthetic {.table}
 
-For a per-subject re-identification check,
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-scores each synthetic subject for being a structural outlier, and
-[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-removes or shortens the ones it flags.
+### What the masking did to theophylline
 
-Those find subjects that are *extreme*.
+``` r
+
+masking_table(theo_md, theo_roles, theo_synth, "theophylline")
+```
+
+| Quantity | Value | What it means |
+|:---|---:|:---|
+| **Who was available to build on** |  |  |
+| Subjects in the source | 12 |  |
+| Excluded as structural outliers | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th pct |
+| Excluded below the donor floor | 0 | `on_donor_shortfall`: a route arm with fewer than k + 1 subjects |
+| Anchors available | 12 |  |
+| Avatars built | 12 | cohort size is unaffected by the exclusions above |
+| **How much of one patient reaches one avatar** |  |  |
+| Donor floor (k) | 5 | real patients blended into each avatar |
+| Largest share of one donor | 0.5 | `max_donor_weight` |
+| Cap actually bound on | 67% | of avatars |
+| Effective donors, mean | 3.08 | 1 / sum(w^2); the floor means little without this |
+| **Visit schedule** |  |  |
+| Grid used | derived | `nominal` where a `nominal_time` role was declared, else inferred |
+| Unique observation schedule, before coarsening | 12 | patients whose list of observation times nobody else shares |
+| Unique observation schedule, after | 0 |  |
+|   unique observation time | 0 | sampled when nobody else was; the grid’s job, fixed by `nominal_time` |
+|   unique set of visits | 0 | every time shared; dropout, and no grid can fix it |
+| **Which visits each patient attended** |  |  |
+| Distinct visit sets in the source | 3 | a visit set is which of the shared visits one patient actually had |
+| Held by one patient, so discarded | 0 | `min_pattern_share`; lost, not approximated |
+| Patients holding those | 0 | they stay in the cohort as donors |
+| Avatars given a real patient’s visit set | 100% |  |
+|   which visits were missed, invented | 0% | how many and what kind of misses reused; which ones placed fresh |
+| **Dose** |  |  |
+| Recomputed from a covariate | no | detected only where the ratio collapses; fails closed |
+
+Everything theophylline’s run removed, and what was left to build on.
+{.table}
+
+**This is the easy case, and it is worth understanding why.** Nothing
+was excluded: no subject is structurally extreme, and with one route
+there is no arm below the donor floor, so all twelve subjects were
+available to anchor on and twelve avatars were built.
+
+The interesting row is the schedule pair. **All twelve patients start
+out with a unique observation schedule** — their observation times are
+recorded at full precision and no two patients were sampled at exactly
+the same moment, so every one of them holds a list of times nobody else
+shares. After coarsening the count is **zero**. The inferred grid found
+the shared visit structure underneath the recorded times and pulled
+everyone onto it. That is the coarsening mechanism doing its entire job.
+
+The visit-set rows follow from it. Before coarsening every subject holds
+its own visit set — twelve for twelve subjects, since no two were
+sampled at the same moments. Afterwards there are three, each shared by
+several subjects, so **nothing had to be discarded** and no arrangement
+had to be invented. This is the ideal case: coarsening removes the
+timing exposure, and visit-set sampling then has a real pool to draw
+from and costs nothing.
+
+Dose is not recomputed here. Theophylline is dosed by weight, but its
+dose-to-weight ratio varies by about 15% across subjects, and detection
+deliberately fails closed rather than impose a multiplier the study did
+not actually use.
+
 [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
-finds subjects that are *alone* — run on the **source**, before
-generating, it reports how many others share each subject’s observation
-time vector, observation count, and event signature. That matters
-because the event skeleton is copied verbatim from one anchor, so a
-subject holding the only copy of its visit schedule passes it to every
-avatar anchored on it. `synpmx_avatar(coarsen_time = TRUE)`, the
-default, is what collapses the schedule case.
+is what produced the “before” number, and it can be read directly for
+the per-subject detail behind the summary:
 
 ``` r
 
 skeleton_uniqueness(theo_md, theo_roles)
-#> Restricted PMX skeleton-uniqueness screen: 12 of 12 subjects alone
-#> Alone = the only subject with this observation time vector (100% here).
+#> Restricted PMX schedule-uniqueness screen: 12 of 12 patients
+#> have a UNIQUE OBSERVATION SCHEDULE (100%): no other patient shares their
+#> list of observation times, so the schedule works as an identifier.
 #> 
-#>   obs times alone:  12  <- of which:
-#>     visited a moment nobody else did:  12  <- the grid's job
-#>     every time shared, pattern unique:   0  <- dropout; the screen's
-#>   n_obs alone:       0  <- the residual it leaves, for the screen
-#>   signature alone:  10  <- dose structure/amount; coarsening does not change it
+#>   unique observation schedule:   12  <- of which:
+#>     unique observation time:       12  <- sampled when nobody else was; the grid's job
+#>     unique set of visits:      0  <- every time shared; dropout, the screen's job
+#>   unique observation count:    0  <- the residual that leaves, for the screen
+#>   unique dose signature:      10  <- dose structure/amount; coarsening cannot change it
 #> 
 #> By class size:
 #>  subject_id n_obs n_doses signature_class obs_time_class min_time_share
@@ -373,22 +585,31 @@ skeleton_uniqueness(theo_md, theo_roles)
 #>           9    22       7               1              1              1
 #>           3    22       7               2              1              1
 #>           8    22       7               2              1              1
-#>  n_obs_class alone
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
-#>           12  TRUE
+#>  n_obs_class unique_schedule
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
+#>           12            TRUE
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.
 ```
+
+For a per-subject check on the *generated* data rather than the source,
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+scores each synthetic subject for being a structural outlier and
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+removes or shortens the ones it flags. Those find subjects that are
+*extreme*;
+[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+finds patients whose *schedule is unique*.
 
 ![](synpmx-demo_files/figure-html/theo-plot-1.png)
 
@@ -404,31 +625,97 @@ profiles rather than inventing a shape.
 and `pca`) with factor covariates. Both endpoints and all subjects are
 retained.
 
-    #> SYNPMX ALERT: `coarsen_time = TRUE` left 2 of 32 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
-    #> Warning: `coarsen_time = TRUE` left 2 of 32 source subjects observed at a
-    #> moment no other subject shares, so the grid could not hide the schedule and an
-    #> avatar anchored there carries it. Declare a `nominal_time` role to snap to the
-    #> protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the
-    #> grid did and did not collapse.
-    #> SYNPMX ALERT: 10 of 32 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
-    #> Warning: 10 of 32 source subjects share every observation time with others but
-    #> hold a unique *pattern* of which visits were attended -- dropout,
-    #> discontinuation, or missed visits. Coarsening cannot change this, because the
-    #> times are already shared. Screen those subjects with
-    #> `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the
-    #> pattern matters.
-    #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
-    #> Warning: 2 source attendance pattern(s), held by 2 subject(s), were not shared
-    #> by 2 or more patients and so will not appear in the synthetic data. These are
-    #> real dropout and dose-interruption patterns, and losing them is what stops an
-    #> avatar carrying a schedule traceable to one patient. To keep more of them,
-    #> lower `min_pattern_share` (2 means no synthetic patient carries a schedule
-    #> unique to a real one); `1` disables the mechanism and copies each anchor's own
-    #> pattern.
+    #> SYNPMX ALERT: 2 of 32 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> Warning: 2 of 32 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> SYNPMX ALERT: 10 of 32 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.
+    #>   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.
+    #> Warning: 10 of 32 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.
+    #>   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.
+    #> SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
+    #> Warning: 2 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
     #> Warning: Synthetic generation used documented small-group/profile fallbacks:
     #> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.
 
 ![](synpmx-demo_files/figure-html/warfarin-plot-1.png)
+
+### What the masking did to warfarin
+
+``` r
+
+masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
+```
+
+| Quantity | Value | What it means |
+|:---|---:|:---|
+| **Who was available to build on** |  |  |
+| Subjects in the source | 32 |  |
+| Excluded as structural outliers | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th pct |
+| Excluded below the donor floor | 0 | `on_donor_shortfall`: a route arm with fewer than k + 1 subjects |
+| Anchors available | 32 |  |
+| Avatars built | 32 | cohort size is unaffected by the exclusions above |
+| **How much of one patient reaches one avatar** |  |  |
+| Donor floor (k) | 5 | real patients blended into each avatar |
+| Largest share of one donor | 0.5 | `max_donor_weight` |
+| Cap actually bound on | 69% | of avatars |
+| Effective donors, mean | 2.88 | 1 / sum(w^2); the floor means little without this |
+| **Visit schedule** |  |  |
+| Grid used | derived | `nominal` where a `nominal_time` role was declared, else inferred |
+| Unique observation schedule, before coarsening | 14 | patients whose list of observation times nobody else shares |
+| Unique observation schedule, after | 12 |  |
+|   unique observation time | 2 | sampled when nobody else was; the grid’s job, fixed by `nominal_time` |
+|   unique set of visits | 10 | every time shared; dropout, and no grid can fix it |
+| **Which visits each patient attended** |  |  |
+| Distinct visit sets in the source | 14 | a visit set is which of the shared visits one patient actually had |
+| Held by one patient, so discarded | 2 | `min_pattern_share`; lost, not approximated |
+| Patients holding those | 2 | they stay in the cohort as donors |
+| Avatars given a real patient’s visit set | 100% |  |
+|   which visits were missed, invented | 25% | how many and what kind of misses reused; which ones placed fresh |
+| **Dose** |  |  |
+| Recomputed from a covariate | yes, from `wt` | detected only where the ratio collapses; fails closed |
+
+Everything warfarin’s run removed, and what was left to build on.
+{.table}
+
+**This is where the costs start to show.** Again nothing was excluded —
+all 32 subjects were available to anchor on — but the schedule rows tell
+a different story from theophylline’s.
+
+**Twelve patients still have a unique schedule after coarsening, and
+only two of them for a reason the grid can address.** The other ten
+share every one of their observation times with somebody; what singles
+them out is *which* of those shared visits they attended. Warfarin has
+subjects with 13, 14, 16, 17, 18, 19 and 25 observations, and the rarer
+counts pick those subjects out on their own. No grid resolution helps,
+because the times are already shared.
+
+**Two of fourteen visit sets were discarded, each held by one patient.**
+Those two patients stay in the cohort and keep contributing measurements
+as donors — only their distinctive absences stop being reproduced. Note
+that patterns discarded and patients holding them are equal: at the
+default floor of 2, a pattern is discarded exactly when one patient
+holds it, so the two numbers must agree. They diverge only at a floor of
+3 or more.
+
+**A quarter of avatars had their missed visits placed fresh.** The
+*shape* of the missingness — how many visits were missed and whether the
+misses were terminal, contiguous, or scattered — came from real patients
+who share it, but the specific visits missed were placed fresh, and
+rejected and redrawn if the placement happened to land on a pattern too
+rare to reuse. This is what keeps the loss at 2 patterns instead of 12;
+see the section on pattern strictness below.
+
+**Dose was recomputed from weight.** Warfarin is dosed at 1.5 mg/kg to
+within 0.1%, tight enough for detection to fire, so each avatar’s `amt`
+comes from its own blended weight rather than from its anchor. Without
+this, a copied `amt` would disclose the anchor’s weight exactly.
 
 ## WBC: infusion, a delayed response, and structural screening
 
@@ -450,11 +737,77 @@ are kept, and `screen = FALSE` keeps every subject.
     #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.
     #>   Declare a column in `keep` to carry it through verbatim.
-    #> SYNPMX ALERT: `coarsen_time = TRUE` left 6 of 45 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
-    #> SYNPMX ALERT: 11 of 45 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
-    #> SYNPMX ALERT: 4 source attendance pattern(s), held by 4 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> SYNPMX ALERT: 6 of 45 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> SYNPMX ALERT: 11 of 45 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.
+    #>   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.
+    #> SYNPMX ALERT: 4 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 4 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
 
 ![](synpmx-demo_files/figure-html/wbc-plot-1.png)
+
+### What the masking did to wbcSim
+
+``` r
+
+masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
+```
+
+| Quantity | Value | What it means |
+|:---|---:|:---|
+| **Who was available to build on** |  |  |
+| Subjects in the source | 45 |  |
+| Excluded as structural outliers | 2 | `screen`: follow-up or dose count over twice the cohort’s 90th pct |
+| Excluded below the donor floor | 0 | `on_donor_shortfall`: a route arm with fewer than k + 1 subjects |
+| Anchors available | 43 |  |
+| Avatars built | 45 | cohort size is unaffected by the exclusions above |
+| **How much of one patient reaches one avatar** |  |  |
+| Donor floor (k) | 5 | real patients blended into each avatar |
+| Largest share of one donor | 0.5 | `max_donor_weight` |
+| Cap actually bound on | 62% | of avatars |
+| Effective donors, mean | 2.87 | 1 / sum(w^2); the floor means little without this |
+| **Visit schedule** |  |  |
+| Grid used | derived | `nominal` where a `nominal_time` role was declared, else inferred |
+| Unique observation schedule, before coarsening | 30 | patients whose list of observation times nobody else shares |
+| Unique observation schedule, after | 17 |  |
+|   unique observation time | 6 | sampled when nobody else was; the grid’s job, fixed by `nominal_time` |
+|   unique set of visits | 11 | every time shared; dropout, and no grid can fix it |
+| **Which visits each patient attended** |  |  |
+| Distinct visit sets in the source | 25 | a visit set is which of the shared visits one patient actually had |
+| Held by one patient, so discarded | 4 | `min_pattern_share`; lost, not approximated |
+| Patients holding those | 4 | they stay in the cohort as donors |
+| Avatars given a real patient’s visit set | 100% |  |
+|   which visits were missed, invented | 4% | how many and what kind of misses reused; which ones placed fresh |
+| **Dose** |  |  |
+| Recomputed from a covariate | no | detected only where the ratio collapses; fails closed |
+
+Everything wbcSim’s run removed, and what was left to build on. {.table}
+
+**This is the only public dataset where the anchor screen actually
+fires.** Two of the 45 subjects are followed far enough beyond the rest
+to exceed twice the cohort’s 90th percentile, so no avatar is built on
+them. Read the next two rows together: **43 anchors available, 45
+avatars built.** The screen does not shrink the cohort — it removes
+those two from the pool that avatars are *drawn from*, and the other 43
+are sampled with replacement to fill the same 45 slots. The two screened
+subjects also remain donors, so their measurements still contribute.
+What is lost is not their data but the possibility of an avatar wearing
+their distinctive follow-up length.
+
+**Seventeen patients have a unique schedule, split six and eleven.** The
+six with a unique observation time are the ones worth acting on:
+`wbcSim` carries no nominal-time column, so the grid was inferred, and
+declaring a real one would likely clear them. The eleven with a unique
+set of attended visits are past the grid’s reach.
+
+**Four of 25 patterns were discarded.** A larger absolute number than
+warfarin’s two but a much smaller share, because 45 subjects on a common
+infusion schedule produce more repetition than 32 warfarin subjects do.
+
+Dose is not recomputed: `wbcSim` has no baseline covariate for the
+amount to be proportional to, so there is nothing to detect.
 
 ## NimoData: infusions, occasions, and a dose group
 
@@ -468,10 +821,84 @@ simply left undeclared, so AVATAR drops it.
     #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
     #>   Declare a column in `keep` to carry it through verbatim.
-    #> SYNPMX ALERT: `coarsen_time = TRUE` left 12 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
-    #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> SYNPMX ALERT: 12 of 12 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
 
 ![](synpmx-demo_files/figure-html/nimo-plot-1.png)
+
+### What the masking did to nimoData
+
+``` r
+
+masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
+```
+
+| Quantity | Value | What it means |
+|:---|---:|:---|
+| **Who was available to build on** |  |  |
+| Subjects in the source | 12 |  |
+| Excluded as structural outliers | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th pct |
+| Excluded below the donor floor | 0 | `on_donor_shortfall`: a route arm with fewer than k + 1 subjects |
+| Anchors available | 12 |  |
+| Avatars built | 12 | cohort size is unaffected by the exclusions above |
+| **How much of one patient reaches one avatar** |  |  |
+| Donor floor (k) | 5 | real patients blended into each avatar |
+| Largest share of one donor | 0.5 | `max_donor_weight` |
+| Cap actually bound on | 58% | of avatars |
+| Effective donors, mean | 2.94 | 1 / sum(w^2); the floor means little without this |
+| **Visit schedule** |  |  |
+| Grid used | derived | `nominal` where a `nominal_time` role was declared, else inferred |
+| Unique observation schedule, before coarsening | 12 | patients whose list of observation times nobody else shares |
+| Unique observation schedule, after | 12 |  |
+|   unique observation time | 12 | sampled when nobody else was; the grid’s job, fixed by `nominal_time` |
+|   unique set of visits | 0 | every time shared; dropout, and no grid can fix it |
+| **Which visits each patient attended** |  |  |
+| Distinct visit sets in the source | 12 | a visit set is which of the shared visits one patient actually had |
+| Held by one patient, so discarded | 2 | `min_pattern_share`; lost, not approximated |
+| Patients holding those | 2 | they stay in the cohort as donors |
+| Avatars given a real patient’s visit set | 100% |  |
+|   which visits were missed, invented | 100% | how many and what kind of misses reused; which ones placed fresh |
+| **Dose** |  |  |
+| Recomputed from a covariate | no | detected only where the ratio collapses; fails closed |
+
+Everything nimoData’s run removed, and what was left to build on.
+{.table}
+
+**This is the failure case, and it is the most instructive table in the
+vignette.** Read the schedule rows: **12 of 12 unique before coarsening,
+12 of 12 unique after, every one of them on a unique observation time.**
+The grid achieved *nothing*.
+
+The reason is the study design. Ten roughly-weekly infusions per subject
+over a long follow-up means no two subjects were ever dosed or sampled
+close enough together for the inferred grid to merge them. Every subject
+is observed at moments that are theirs alone, so every avatar carries a
+real visit schedule.
+
+The visit-set rows show the same failure from the other side, and they
+are the clearest illustration in the vignette of what the shape fallback
+does. **No two of the twelve subjects attended the same set of visits**,
+so exact matching has nothing to reuse — yet only two patterns are
+recorded as discarded. The difference is the fallback: patterns that
+share a *shape* (how many visits were missed, and whether the misses
+were terminal, contiguous, or scattered) clear the floor together even
+though no individual pattern does. Hence the row that gives the game
+away: **every avatar’s arrangement was invented rather than reused,
+100%.** The shape survives; which specific visits each patient missed
+does not.
+
+The two failures have one cause and one fix, and `nimoData` gets that
+fix demonstrated later in this vignette: constructing a nominal time
+from the protocol grid takes the unique-schedule count from 12 to 5 and
+gives coarsening something to work with.
+
+A dataset that produces this table should not be shipped as-is. Either
+declare or construct `nominal_time`, or treat the avatars as carrying
+real schedules.
 
 ## Mavoglurant: occasion-reset clock and a carried dose column
 
@@ -485,11 +912,75 @@ coherent with the doses when carried through with `keep`.
     #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #>   800 observation row(s) share a subject and time with another; that is ordinary for replicate
     #>   measurements and expected if two endpoints are being read at one visit.
-    #> SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
-    #> SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.
-    #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> SYNPMX ALERT: 11 of 120 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> SYNPMX ALERT: 53 of 120 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.
+    #>   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.
+    #> SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
 
 ![](synpmx-demo_files/figure-html/mavo-plot-1.png)
+
+### What the masking did to mavoglurant
+
+``` r
+
+masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
+```
+
+| Quantity | Value | What it means |
+|:---|---:|:---|
+| **Who was available to build on** |  |  |
+| Subjects in the source | 120 |  |
+| Excluded as structural outliers | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th pct |
+| Excluded below the donor floor | 0 | `on_donor_shortfall`: a route arm with fewer than k + 1 subjects |
+| Anchors available | 120 |  |
+| Avatars built | 120 | cohort size is unaffected by the exclusions above |
+| **How much of one patient reaches one avatar** |  |  |
+| Donor floor (k) | 5 | real patients blended into each avatar |
+| Largest share of one donor | 0.5 | `max_donor_weight` |
+| Cap actually bound on | 64% | of avatars |
+| Effective donors, mean | 2.96 | 1 / sum(w^2); the floor means little without this |
+| **Visit schedule** |  |  |
+| Grid used | derived | `nominal` where a `nominal_time` role was declared, else inferred |
+| Unique observation schedule, before coarsening | 72 | patients whose list of observation times nobody else shares |
+| Unique observation schedule, after | 64 |  |
+|   unique observation time | 11 | sampled when nobody else was; the grid’s job, fixed by `nominal_time` |
+|   unique set of visits | 53 | every time shared; dropout, and no grid can fix it |
+| **Which visits each patient attended** |  |  |
+| Distinct visit sets in the source | 73 | a visit set is which of the shared visits one patient actually had |
+| Held by one patient, so discarded | 2 | `min_pattern_share`; lost, not approximated |
+| Patients holding those | 2 | they stay in the cohort as donors |
+| Avatars given a real patient’s visit set | 100% |  |
+|   which visits were missed, invented | 0% | how many and what kind of misses reused; which ones placed fresh |
+| **Dose** |  |  |
+| Recomputed from a covariate | no | detected only where the ratio collapses; fails closed |
+
+Everything mavoglurant’s run removed, and what was left to build on.
+{.table}
+
+**The largest cohort here, and the one where the residual is largest in
+absolute terms.** Nothing was excluded from the anchor pool. The grid
+did essentially everything it could: of the patients still unique
+afterwards, **only one has a unique observation time.** The rest share
+every observation time with somebody and differ only in which of those
+visits they attended.
+
+That leaves the largest absolute residual in the vignette — 58 of 120
+subjects whose set of attended visits nobody else matches — and no grid
+setting moves it. This is what the “unique pattern” row is for: it
+separates a problem you can fix by declaring `nominal_time` from one you
+can only address by dropping, remediating, or accepting.
+
+The pattern rows show the shape fallback working hard. Mavoglurant has
+by far the most distinct visit sets of any dataset here — 69 after
+coarsening, 59 of them held by a single patient. Exact matching alone
+would have discarded all 59. Instead **two are discarded**, because the
+rest share a shape with somebody, and no arrangement had to be invented
+at all: for every avatar, a real pattern of the right shape was
+available to reuse.
 
 ## The model-based path on the same data
 
@@ -596,38 +1087,12 @@ Everything above shows that the synthetic data *looks* right. This
 section asks the other question: how much of each real patient is still
 visible in it?
 
-### What is being counted, and why
+### All five side by side
 
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-blends every avatar’s **measurements** from at least five real donors,
-so no single patient’s numbers survive. But it copies the **event
-skeleton** — the pattern of when that patient was dosed and sampled —
-verbatim from one real anchor. Blending never touches it.
-
-So the question that matters is: **does any real subject have a visit
-schedule that no other subject in the cohort shares?** If yes, an avatar
-built on that subject wears a schedule belonging to exactly one real
-person, however carefully their concentrations were blended. Call such a
-subject **alone**.
-
-[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
-counts them, and `coarsen_time = TRUE` (the default) is the mechanism
-that tries to fix it, by snapping every subject onto a shared visit grid
-before any avatar is built. A subject can end up alone for two reasons,
-and they have different answers:
-
-- **Seen at a unique moment.** The subject was observed at a time no
-  other subject was observed at all — a one-off visit. The grid is
-  supposed to absorb this by pulling nearby times together, so a nonzero
-  count here means the inferred grid could not find a shared schedule.
-  **The fix is to declare a `nominal_time` role**, which snaps to the
-  real protocol grid instead of a guessed one.
-- **Unique pattern of visits.** Every one of the subject’s times is
-  shared with somebody — but the particular *combination* they attended
-  is theirs alone. This is dropout, early discontinuation, or a missed
-  sample. **No grid can fix it**, however fine or coarse, because the
-  times are already shared. Only dropping or remediating the subject
-  helps.
+Each dataset above carries its own accounting. This section puts the
+same quantities in one place, because the *contrast* between datasets is
+what shows how much the answer depends on study design rather than on
+the package.
 
 ``` r
 
@@ -637,10 +1102,10 @@ exposure_row <- function(label, source, roles, synthetic) {
   data.frame(
     Dataset = label,
     Subjects = nrow(before),
-    `Alone before` = attr(before, "n_alone"),
-    `Alone after` = after$exposure_alone,
-    `Unique moment` = after$exposure_unique_moment,
-    `Unique pattern` = after$exposure_unique_pattern,
+    `Unique before` = attr(before, "n_unique_schedule"),
+    `Unique after` = after$unique_schedule_n,
+    `Unique observation time` = after$unique_obs_time_n,
+    `Unique visit set` = after$unique_visit_set_n,
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }
@@ -662,13 +1127,13 @@ knitr::kable(
 )
 ```
 
-| Dataset     | Subjects | Alone before | Alone after | Unique moment | Unique pattern |
-|:------------|---------:|-------------:|------------:|--------------:|---------------:|
-| theo_md     |       12 |           12 |           0 |             0 |              0 |
-| warfarin    |       32 |           14 |          12 |             2 |             10 |
-| wbcSim      |       45 |           30 |          17 |             6 |             11 |
-| nimoData    |       12 |           12 |          12 |            12 |              0 |
-| mavoglurant |      120 |           72 |          59 |             1 |             58 |
+| Dataset | Subjects | Unique before | Unique after | Unique observation time | Unique visit set |
+|:---|---:|---:|---:|---:|---:|
+| theo_md | 12 | 12 | 0 | 0 | 0 |
+| warfarin | 32 | 14 | 12 | 2 | 10 |
+| wbcSim | 45 | 30 | 17 | 6 | 11 |
+| nimoData | 12 | 12 | 12 | 12 | 0 |
+| mavoglurant | 120 | 72 | 64 | 11 | 53 |
 
 Source subjects holding a visit schedule no other subject shares, before
 and after time coarsening. The last two columns split the ‘after’ count
@@ -686,7 +1151,10 @@ cost_row <- function(label, source, roles, synthetic) {
   settings <- attr(synthetic, "pmx_settings")
   data.frame(
     Dataset = label,
-    Patients = length(unique(source[[roles$id]])),
+    Patients = settings$source_subjects,
+    `Screened out` = settings$anchors_screened_out,
+    `Below donor floor` = settings$anchors_route_excluded,
+    `Anchors left` = settings$anchors_available,
     `Patterns` = settings$patterns_total,
     `Patterns lost` = settings$patterns_dropped,
     `Patients affected` = settings$subjects_with_dropped_pattern,
@@ -704,26 +1172,33 @@ knitr::kable(
     cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth)
   ),
   caption = paste(
-    "What the masking removed. `Patterns` counts the distinct attendance",
-    "patterns in the source; `Patterns lost` counts those too rare to be",
-    "reused."
+    "What the masking removed. The first three counts are patients excluded",
+    "from the anchor pool; `Patterns` counts distinct visit sets in",
+    "the source and `Patterns lost` those too rare to be reused."
   )
 )
 ```
 
-| Dataset     | Patients | Patterns | Patterns lost | Patients affected | Dose basis |
-|:------------|---------:|---------:|--------------:|------------------:|:-----------|
-| theo_md     |       12 |        3 |             0 |                 0 | —          |
-| warfarin    |       32 |       14 |             2 |                 2 | wt         |
-| wbcSim      |       45 |       25 |             4 |                 4 | —          |
-| nimoData    |       12 |       12 |             2 |                 2 | —          |
-| mavoglurant |      120 |       69 |             2 |                 2 | —          |
+| Dataset | Patients | Screened out | Below donor floor | Anchors left | Patterns | Patterns lost | Patients affected | Dose basis |
+|:---|---:|---:|---:|---:|---:|---:|---:|:---|
+| theo_md | 12 | 0 | 0 | 12 | 3 | 0 | 0 | — |
+| warfarin | 32 | 0 | 0 | 32 | 14 | 2 | 2 | wt |
+| wbcSim | 45 | 2 | 0 | 43 | 25 | 4 | 4 | — |
+| nimoData | 12 | 0 | 0 | 12 | 12 | 2 | 2 | — |
+| mavoglurant | 120 | 0 | 0 | 120 | 73 | 2 | 2 | — |
 
-What the masking removed. `Patterns` counts the distinct attendance
-patterns in the source; `Patterns lost` counts those too rare to be
-reused. {.table}
+What the masking removed. The first three counts are patients excluded
+from the anchor pool; `Patterns` counts distinct visit sets in the
+source and `Patterns lost` those too rare to be reused. {.table}
 
-Two things in this table look wrong at first and are not.
+Three things in this table look wrong at first and are not.
+
+**Only `wbcSim` loses any patient from the anchor pool, and the cohort
+is still full size.** Screening removes a subject from the pool avatars
+are *drawn from*, not from the cohort: the remaining anchors are sampled
+with replacement to fill every slot, and the screened subjects still
+contribute measurements as donors. An exclusion costs coverage of a
+structure, never sample size.
 
 **`Patterns lost` equals `Patients affected` in every row.** That is an
 identity, not a coincidence. At the default floor of 2, a pattern is
@@ -733,11 +1208,11 @@ holder and the two columns must agree. They only diverge at a floor of 3
 or more, where a pattern held by two patients is also dropped.
 
 **`nimoData` loses all twelve patterns, held by all twelve patients.**
-Also correct: no two of its subjects share an attendance pattern at all,
-so nothing qualifies and there is no pool to draw from. Every avatar
-keeps its anchor’s own pattern — the safe failure, and the run alerts —
-which is the same underlying problem as its inferred-grid failure and
-has the same fix, shown below.
+Also correct: no two of its subjects attended the same set of visits, so
+nothing qualifies and there is no pool to draw from. Every avatar keeps
+its anchor’s own pattern — the safe failure, and the run alerts — which
+is the same underlying problem as its inferred-grid failure and has the
+same fix, shown below.
 
 ### Is a “pattern” too strictly defined?
 
@@ -745,8 +1220,9 @@ Reasonably asked, and the answer is yes, deliberately. A pattern here is
 the **exact** set of endpoint-and-time pairs a subject was observed at.
 Two patients who each missed exactly one visit have *different* patterns
 if they missed different visits. That is why singletons dominate so
-heavily — 12 of warfarin’s 14, 54 of mavoglurant’s 64 — and therefore
-why so much is discarded.
+heavily — after coarsening, 12 of warfarin’s 14 patterns are held by one
+patient, and 59 of mavoglurant’s 69 — and therefore why exact matching
+alone would discard so much.
 
 The strictness is what makes the guarantee exact: reusing a pattern that
 one real patient holds would reproduce that patient’s schedule, so
@@ -760,8 +1236,14 @@ contiguous (an interruption), or scattered — and both of those patients
 share one. Within the shape a real pattern is reused if one clears the
 floor; only otherwise is an arrangement generated, and a generated one
 is rejected and redrawn if it happens to land on a pattern too rare to
-have been reusable. On `warfarin` that takes the loss from 12 patterns
-to the 2 shown above.
+have been reusable.
+
+The per-dataset tables show how much this rescues. On `warfarin` the
+loss falls from 12 patterns to 2; on `mavoglurant` from 59 to 2; on
+`nimoData`, where *no* pattern is shared by even two subjects, from 12
+to 2. The price appears in the “arrangement invented” row: `nimoData`
+pays it in full at 100%, `warfarin` at 25%, and `mavoglurant` not at
+all.
 
 What remains lost is *resolution*: how much missingness there was and
 what kind survive; which specific visits each patient missed does not.
@@ -808,8 +1290,8 @@ knitr::kable(
 |:------------|---------------------:|-----------:|-----------:|---------:|
 | theo_md     |                0.500 |      0.167 |      0.773 |        6 |
 | warfarin    |                0.469 |      0.327 |      0.759 |       16 |
-| wbcSim      |                0.455 |      0.341 |      0.649 |       22 |
-| mavoglurant |                0.575 |      0.425 |      0.575 |       60 |
+| wbcSim      |                0.568 |      0.357 |      0.665 |       22 |
+| mavoglurant |                0.575 |      0.415 |      0.583 |       60 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built
 from the source cohort itself. 0.5 is the target. {.table}
@@ -823,54 +1305,43 @@ sitting on top of a real one drives the statistic to zero, which the
 package’s own regression test confirms by handing the function a
 verbatim copy and requiring it to object.
 
-### Reading the table
+### Reading the tables across datasets
 
-**“Alone after” is the number of patients you would consider dropping**,
-and the last two columns say why — which decides whether dropping is
-even the right response.
+**The unique-schedule count after coarsening is the number of patients
+you would consider dropping**, and the split by cause decides whether
+dropping is even the right response. Each dataset section above works
+through its own numbers; the pattern across all five is what matters
+here.
 
-- **`theo_md` — nothing to do.** All twelve subjects start out alone,
-  because their sampling times are recorded to the minute and no two
-  patients were bled at exactly the same moment. Coarsening pulls those
-  onto a shared grid and the count goes to zero. This is the mechanism
-  working exactly as intended.
-- **`warfarin` — consider dropping 12 of 32, but the reason matters.**
-  Only two are alone because of a unique moment; the other ten share
-  every one of their times and are alone purely on *which* visits they
-  attended. Warfarin has subjects with 13, 14, 16, 17, 18, 19 and 25
-  observations, and the rarer counts single those subjects out.
-  Coarsening cannot help them.
-- **`wbcSim` — 17 of 45, split 6 and 11.** The six unique-moment
-  subjects are the ones to look at first; declaring a nominal-time
-  column would likely clear them.
-- **`nimoData` — 12 of 12, and coarsening achieved nothing.** All twelve
-  are alone on a unique moment. This is a genuine failure of the
-  inferred grid: with ten roughly-weekly infusions per subject over a
-  long follow-up, no two subjects were ever dosed or sampled close
-  enough together for the grid to merge them. This dataset needs
-  `nominal_time` declared, or its avatars should be treated as carrying
-  real visit schedules.
-- **`mavoglurant` — 59 of 120, but only one from a unique moment.** The
-  grid did essentially all it could. The remaining 58 differ in which of
-  the shared visits they attended.
+The spread runs from **`theo_md`, where coarsening takes 12 unique
+schedules to 0 and there is nothing left to do**, through
+**`mavoglurant`, where the grid does everything it can and still leaves
+58 of 120 patients unique on their visit set**, to **`nimoData`, where
+the grid achieves nothing at all**. Same package, same defaults, same
+seed discipline — the difference is entirely in how the studies were
+designed and how their times were recorded.
+
+That is the point of reporting these per dataset rather than quoting a
+headline number. There is no “synpmx removes X% of the exposure.” There
+is only what it removed from *your* study, which is why every run
+reports it and why the sequence below starts with a question about your
+data rather than about a setting.
 
 ### What the other mechanisms leave behind
 
-Two of the six mechanisms act on the columns this table does not show,
-and it is worth knowing which residual belongs to which.
+One residual belongs to a mechanism these tables do not have a column
+for.
 
-**Dose.** Under dosing proportional to a baseline covariate, each
-avatar’s `AMT` is recomputed from its *own* blended weight rather than
-copied from its anchor, so the amount is neither a real patient’s real
-dose nor inconsistent with the avatar’s own covariates. `warfarin` is
-recognised this way (1.5 mg/kg to within 0.1%); `theo_md` is not,
-because its dose-to-weight ratio varies by 15% and detection
-deliberately fails closed. Where the dose sequence is instead
-outcome-adaptive — intra-patient escalation driven by a subject’s own
-tolerability — nothing here touches it, because the sequence *is* that
-subject’s response.
+**Dose sequence.** The dose *amount* is handled: under dosing
+proportional to a baseline covariate, each avatar’s amount is recomputed
+from its own blended covariate, as the per-dataset tables report. What
+is still copied is the *sequence of levels* an anchor climbed. Where
+escalation is outcome-adaptive — driven by a subject’s own tolerability
+— that sequence encodes the subject’s response, and nothing here touches
+it. No public dataset in this vignette has that shape, so it does not
+appear in any table above; a dose-escalation oncology study would.
 
-**Attendance.** The `Unique pattern` column above is what
+**Which visits were attended.** The unique-visit-set row above is what
 `min_pattern_share` (default 2) addresses: an avatar’s set of attended
 visits is drawn from patterns at least that many source subjects share,
 so no synthetic patient carries a schedule unique to a real one. No
@@ -878,16 +1349,20 @@ subject is removed from the cohort to achieve it — a patient with a rare
 pattern still contributes measurements as a donor.
 
 What *is* lost is the rare patterns themselves. They are discarded
-rather than approximated, so real dropout and dose-interruption patterns
-will not appear in the output. On `warfarin` the default excludes 12 of
-the 14 observed patterns, held by 12 of 32 patients, leaving 2 distinct
-sample counts where the source had 6. Raising the floor to 3 would leave
-exactly 1. Every run reports the figures — `patterns_dropped` and
-`subjects_with_dropped_pattern` in the settings, plus a loud alert — so
-this can be judged per study instead of assumed. On `nimoData` no
-pattern is shared by even two subjects, so there is no pool at all and
-each anchor keeps its own; constructing a nominal time, below, is what
-gives sampling something to draw from.
+rather than approximated, so those specific dropout and
+dose-interruption patterns will not appear in the output. With the shape
+fallback the loss is small on every dataset here — two patterns each on
+`warfarin`, `nimoData`, and `mavoglurant`, four on `wbcSim` — but it is
+never zero except where coarsening has already made the patterns common,
+as on `theo_md`.
+
+Every run reports the figures, and the per-dataset tables above print
+them: `patterns_total`, `patterns_dropped`, and
+`subjects_with_dropped_pattern` in the settings, plus a loud alert. Read
+them together with `pattern_generated_fraction`, because a small discard
+count can be bought with a large share of invented arrangements —
+`nimoData` discards only two patterns and invents the arrangement for
+every single avatar.
 
 ### What to do about it
 
@@ -927,23 +1402,32 @@ care, not a blocker. The sequence worth following is:
     #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> synpmx_avatar(): dropped 1 undeclared column(s): WGT.
     #>   Declare a column in `keep` to carry it through verbatim.
-    #> SYNPMX ALERT: `coarsen_time = TRUE` left 5 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
-    #> SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.
+    #> SYNPMX ALERT: 5 of 12 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.
+    #>   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.
+    #> SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.
+    #>   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.
+    #>   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.
+    #>   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.
     unlist(attr(nimo_fixed, "pmx_settings")[
-      c("time_grid", "exposure_alone", "exposure_unique_moment")
+      c("time_grid", "unique_schedule_n", "unique_obs_time_n")
     ])
-    #>              time_grid         exposure_alone exposure_unique_moment 
-    #>              "nominal"                    "5"                    "5"
+    #>         time_grid unique_schedule_n unique_obs_time_n 
+    #>         "nominal"               "5"               "5"
     ```
 
-    Subjects alone fall from 12 of 12 to 5, all in the long washout tail
-    after the last dose, where a follow-up visit at 240 or 624 hours
-    belongs to one patient. Coarsening that tail further does not help —
-    at a two-week grid the count goes back up, because merging genuinely
-    distinct visits creates new *pattern* uniqueness. Just as important,
-    attendance sampling now has a pool at all: with the inferred grid no
-    two subjects shared a pattern, so `min_pattern_share` had nothing to
-    draw from.
+    Unique schedules fall from 12 of 12 to 5, all in the long washout
+    tail after the last dose, where a follow-up visit at 240 or 624
+    hours belongs to one patient. Coarsening that tail further does not
+    help — at a two-week grid the count goes back up, because merging
+    genuinely distinct visits creates new *pattern* uniqueness.
+
+    Visit-set sampling improves just as much, though the discard count
+    does not show it. With the inferred grid no two subjects shared a
+    pattern, so every avatar’s arrangement had to be invented from a
+    shape; on the nominal grid the twelve patterns collapse to eight,
+    real ones become reusable, and the invented share falls from **100%
+    to 17%**. Two patterns are discarded either way. This is why the
+    discard count should never be read alone.
 
 2.  **Then re-run this table.** If the unique-moment count is at or near
     zero, the grid has done its whole job and no amount of tuning will

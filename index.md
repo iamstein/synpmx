@@ -67,7 +67,7 @@ already have either.
 To pin a branch or commit, append it:
 `remotes::install_github("iamstein/synpmx@main")`. Add
 `build_vignettes = TRUE` if you want
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+[`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
 offline; otherwise the same material is on the
 [website](https://iamstein.github.io/synpmx/).
 
@@ -267,7 +267,7 @@ On the other hand, if the synthetic data will reach those who do not
 have access to the original data, then more formal methods with
 mathematical trust guarantees are the appropriate methods of choice.
 
-[`vignette("synpmx-method")`](https://iamstein.github.io/synpmx/articles/synpmx-method.md)
+[`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
 runs all four methods on the same dataset and shows the results side by
 side.
 
@@ -297,7 +297,7 @@ has been called once in the session.
 
 | Document | Question it answers |
 |----|----|
-| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-method.html) | What are the modes, and which one do I want? **Start here.** |
+| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? **Start here.** |
 | [Demo; Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 

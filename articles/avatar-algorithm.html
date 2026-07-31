@@ -34,12 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-method.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
@@ -72,398 +72,298 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>The AVATAR Algorithm</h1>
+                        <h4 data-toc-skip class="author">Andrew
+Stein</h4>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/iamstein/synpmx/blob/main/vignettes/articles/avatar-algorithm.Rmd" class="external-link"><code>vignettes/articles/avatar-algorithm.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/iamstein/synpmx/blob/main/vignettes/avatar-algorithm.Rmd" class="external-link"><code>vignettes/avatar-algorithm.Rmd</code></a></small>
       <div class="d-none name"><code>avatar-algorithm.Rmd</code></div>
     </div>
 
     
     
-<p>This article is the full specification of the default AVATAR
-generator [1, 2]: every step from role declaration to the restored
-output schema, with the mathematics, the edge cases, and a worked
-example.</p>
+<p>This article is the full specification of the AVATAR synthetic data
+generator [1, 2] that has been implemented in this package. ple.</p>
 <p>“AVATAR” is a method name rather than an initialism, from the
 patient-centric <em>avatarization</em> literature in which each
 synthetic record is built from the local neighborhood of real records.
-The original method is due to Guillaudeux and colleagues [2]; Destere
-and colleagues benchmark a modified AVATAR for population PK [1]. What
+The original method [2] was extended to population PK datasets [1]. What
 this package does differently is set out under <a href="#relationship-to-avatar">Relationship to AVATAR</a> below.</p>
-<p>It is the companion to <code><a href="../articles/synpmx-method.html">vignette("synpmx-method")</a></code>, which
-introduces all four generation modes at a high level and says which one
-to reach for. Read that first. Come here when you need to defend, debug,
-or review what <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> actually did.</p>
 <div class="section level2">
 <h2 id="the-process-at-a-glance">The process at a glance<a class="anchor" aria-label="anchor" href="#the-process-at-a-glance"></a>
 </h2>
 <p>Before the step-by-step detail, here is the whole pipeline in one
 place. Each synthetic subject is built from one real <em>anchor</em>
-subject’s event structure, filled with measurements blended from several
-similar real subjects.</p>
+subject’s dosing event structure, then filled with measurements blended
+from several similar real subjects.</p>
 <p>The generator works on <strong>any number of endpoints</strong> — a
 PK concentration alongside one or more PD measures, declared through the
 <code>dvid</code> role. Each endpoint gets its own transformation and
 its own interpolation grid, and they are then combined into a single
-per-subject profile, so one donor set serves them all. Step 5 gives the
-details, including which endpoint ends up dominating the choice of
-donors and why.</p>
-<p>The pipeline has six <strong>stages</strong>, lettered (a) to (f).
-The rest of the article walks through ten numbered
-<strong>Steps</strong>, and each stage below says which Steps it covers
-— two stages span several Steps, which is why the two are lettered and
-numbered separately rather than sharing one sequence.</p>
+per-subject profile.</p>
+<p>The pipeline has six <strong>stages</strong>, lettered (a) to
+(f).</p>
 <ul>
-<li>
-<strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
+<li><p><strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
 say which column is the id, the time, the dose, the measurement, and so
-on. Only named columns survive.</li>
+on. Only named columns survive.</p></li>
 <li>
-<strong>(b) Split structure from values</strong> — <em>Step 2</em>.
-Each subject’s rows divide into a fixed <em>event skeleton</em> — when
-doses and observations happen — and the measured DV values that fill
-it.</li>
-<li>
-<strong>(c) Put every subject on a comparable footing</strong> —
+<p><strong>(b) Split dosing structure from DV values</strong> —
+<em>Step 2</em>. A way of <em>thinking</em> about each patient’s rows
+rather than an operation that runs. Every patient’s table divides into
+two things AVATAR treats completely differently: the <strong>event
+skeleton</strong> — <em>when</em> things happened, meaning the dose
+events and the times of the DV observations, with no measured values at
+all — and the <strong>values</strong>, meaning the DV numbers that fill
+those observation slots plus the baseline covariates.</p>
+<p><strong>The skeleton is copied from one real patient; the values are
+blended from several.</strong> That asymmetry is the whole method, and
+it is where the privacy problem lives: blending protects the values
+thoroughly and does nothing whatever for the skeleton, which is why M1,
+M2 and M3 all exist.</p>
+<p>Mechanically there is no splitting step. Step 2 starts each avatar as
+a copy of its anchor’s rows, and later steps overwrite the DV and
+covariate columns in place. Copying whole rows rather than drawing TIME,
+EVID, AMT, RATE and CMT independently is deliberate: independently drawn
+event fields produce impossible records, such as an infusion rate on an
+oral dose. <strong>Before this, <code>M1</code> has already snapped
+every source time — dose events and DV observations alike — onto a
+shared visit grid</strong>, banking the removed deviations in a cohort
+pool that M1’s second half draws from later.</p>
+</li>
+<li><p><strong>(c) Put every subject on a comparable footing</strong> —
 <em>Steps 3, 4, and 5</em>. Align time to the first event, choose an
 endpoint transformation, and reduce each subject to one numeric
 <em>profile</em> — baseline covariates plus its trajectory on a common
 grid — then to a handful of principal-component coordinates for
-measuring who resembles whom.</li>
-<li>
-<strong>(d) Build each synthetic subject</strong> — <em>Steps 6, 7,
-8, and 9</em>. Copy a real anchor’s event skeleton — but by default do
-not anchor on a source subject whose structure is a gross outlier (a
-lone very long follow-up), so no avatar looks structurally extreme
-(<code>screen = TRUE</code>). Then pick the <code>k</code> (default 5)
-nearest donors, borrowing across dose/schedule groups when the anchor’s
-own group is too small — but never across route of administration; blend
-the donors’ trajectories onto the skeleton’s observation times, capping
-any one donor’s share at <code>max_donor_weight</code> (default 0.50);
-add subject-level and within-subject noise; and reconstruct any
-below-limit (BLOQ) censoring.</li>
-<li>
-<strong>(e) Restore the original shape</strong> — <em>Step 10</em>.
-Put back the source schema, column types, and conventions, and attach a
-record of what was done.</li>
-<li>
-<strong>(f) Screen the result</strong> — <em>after generation</em>,
-so it has no Step number. Because the event skeleton is copied from one
+measuring who resembles whom.</p></li>
+<li><p><strong>(d) Build each synthetic subject</strong> — <em>Steps 6,
+7, 8, and 9</em>. Copy a real anchor’s event skeleton, in mechanism
+order <strong>M2 → M3 → M4 → M5</strong>. Do not anchor on a source
+subject whose structure is an outlier, nor on one whose route arm is too
+small to blend within (<strong>M2</strong>). Draw which visits the
+avatar attended from sets at least two real patients share
+(<strong>M3</strong>). Give it timing deviations resampled from the
+cohort pool (<strong>M1</strong>, second half). Pick the <code>k</code>
+(default 5) nearest donors, borrowing across dose/schedule groups when
+the anchor’s own group is too small — but never across route of
+administration — and blend their covariates and trajectories onto the
+skeleton, capping any one donor’s share at <code>max_donor_weight</code>
+(default 0.50) and adding subject-level and within-subject noise
+(<strong>M4</strong>). Recompute the dose from the avatar’s own blended
+covariate where dosing is proportional to one (<strong>M5</strong>), and
+reconstruct any below-limit (BLOQ) censoring.</p></li>
+<li><p><strong>(e) Restore the original shape</strong> — <em>Step
+10</em>. Nothing here is about reassembling doses and observations:
+those have travelled together as rows of one table the whole way. This
+restores the <strong>table’s</strong> shape — the source’s column order,
+each column’s type and factor levels, and the container class, so a
+tibble comes back a tibble. Fresh subject IDs are assigned,
+<code>MDV</code> is re-derived where the source used the standard
+convention, and a record of every choice made is attached as
+<code>attr(x, "pmx_settings")</code>.</p></li>
+<li><p><strong>(f) Screen the result</strong> — <em>Step 11</em>, and
+the post-generation screen, the one step <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
+does not run for you. Because the event skeleton is copied from one
 anchor, a structurally unusual source subject yields a structurally
 unusual — and identifiable — avatar. A per-subject screen flags those,
-and a remediation step truncates, drops, or replaces them.</li>
+and a remediation step truncates, drops, or replaces them.</p></li>
 </ul>
-<p>The two ideas that carry the most weight are the
-<strong>anchor</strong> (each avatar keeps one real subject’s event
-structure) and the <strong>donor blend</strong> (its measurements are
-averaged from several real subjects, never copied from one). Keep those
-in mind and the rest is detail.</p>
+<p>The two key ideas are the <strong>anchor</strong> (each avatar keeps
+one real subject’s event structure) and the <strong>donor blend</strong>
+(its measurements are averaged from several real subjects, never copied
+from one). Keep those in mind and the rest is detail.</p>
 </div>
 <div class="section level2">
-<h2 id="every-mechanism-that-obscures-the-source">Every mechanism that obscures the source<a class="anchor" aria-label="anchor" href="#every-mechanism-that-obscures-the-source"></a>
+<h2 id="the-words-this-article-uses">The words this article uses<a class="anchor" aria-label="anchor" href="#the-words-this-article-uses"></a>
 </h2>
-<p>AVATAR offers no formal guarantee, so the only honest description of
-its protection is a list of the mechanisms with what each one does —
-and, just as importantly, what it does not. There are four. Three run by
-default; the fourth is a measurement you run yourself.</p>
+<p>Five terms carry most of the weight. They appear in the tables below,
+so they are worth fixing first.</p>
 <table class="table">
 <colgroup>
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
+<col width="50%">
+<col width="50%">
 </colgroup>
 <thead><tr class="header">
-<th>#</th>
-<th>Mechanism</th>
-<th>Protects</th>
-<th>Cannot protect</th>
-<th>Control</th>
+<th>Term</th>
+<th>Meaning</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>1</td>
-<td><strong>Donor blending</strong></td>
-<td>The measured values</td>
-<td>Anything structural</td>
-<td>
-<code>k</code>, <code>max_donor_weight</code>
-</td>
+<td><strong>dose event</strong></td>
+<td>A row where <code>EVID</code> is not 0: when drug was given, how
+much, at what rate.</td>
 </tr>
 <tr class="even">
-<td>2</td>
-<td><strong>Screening extreme subjects</strong></td>
-<td>Against being conspicuous</td>
-<td>Being merely unique</td>
-<td>
-<code>screen</code>, <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>
-</td>
+<td><strong>DV observation</strong></td>
+<td>A row where <code>EVID</code> is 0 and a measurement is present:
+when the patient was observed and what came back.</td>
 </tr>
 <tr class="odd">
-<td>3</td>
-<td><strong>Coarsening and re-refining time</strong></td>
-<td>The visit schedule</td>
-<td>Which visits were attended</td>
+<td><strong>avatar</strong></td>
+<td>One synthetic patient in the output.</td>
+</tr>
+<tr class="even">
+<td><strong>anchor</strong></td>
+<td>The single real patient whose <strong>event skeleton</strong> an
+avatar copies. Each avatar has exactly one, and it is chosen by sampling
+with replacement from the pool of eligible source patients.</td>
+</tr>
+<tr class="odd">
+<td><strong>event skeleton</strong></td>
+<td>
+<em>When</em> things happened to a patient, with no measured values:
+the dose events and the times of the DV observations. This is what gets
+copied from the anchor; the values that fill it do not.</td>
+</tr>
+<tr class="even">
+<td><strong>donor</strong></td>
+<td>A real patient whose <em>measurements</em> contribute to an avatar.
+Each avatar blends at least <code>k</code> (default 5) of them, and no
+single donor may exceed <code>max_donor_weight</code> (default 0.50) of
+the blend. An avatar’s anchor is usually also one of its donors, but the
+two roles are separate: the anchor supplies structure, donors supply
+values.</td>
+</tr>
+<tr class="odd">
+<td><strong>visit set</strong></td>
+<td>Which of the study’s shared visits one patient actually had — the
+pattern of attended and missed DV observations, once every patient is on
+a common grid.</td>
+</tr>
+</tbody>
+</table>
+<p>The single most important thing to keep straight: <strong>structure
+comes from one patient, values come from many.</strong></p>
+</div>
+<div class="section level2">
+<h2 id="the-masking-in-the-order-it-happens">The masking, in the order it happens<a class="anchor" aria-label="anchor" href="#the-masking-in-the-order-it-happens"></a>
+</h2>
+<p>The stages above describe how a synthetic dataset gets
+<em>built</em>. Cutting across them are five <strong>masking
+mechanisms</strong>, M1 to M5, each existing to stop some specific piece
+of a real patient reaching the output. They do not line up neatly with
+the stages — the first runs before any avatar exists and the last runs
+after all of them do — so they are numbered separately, in the order
+they actually execute.</p>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Mechanism</th>
+<th>Acts on</th>
+<th>Runs</th>
+<th>Control</th>
+<th>Why</th>
+<th>What it cannot do</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><strong>M1</strong></td>
+<td>Snap every time onto a shared visit grid, then add deviations back
+from a <strong>cohort-wide pool</strong>
+</td>
+<td>
+<strong>all times</strong> — dose events <em>and</em> DV
+observations</td>
+<td>snapping before generation; the deviations go back per avatar</td>
 <td><code>coarsen_time</code></td>
+<td>As recorded, one patient’s list of times is very often unique to
+them, and so works as a fingerprint. Restoring a <em>pooled</em>
+deviation keeps the data realistic without giving the patient their own
+back</td>
+<td>Change <em>which</em> visits a patient attended</td>
 </tr>
 <tr class="even">
-<td>4</td>
-<td><strong>Dose recomputed from a blended covariate</strong></td>
-<td>The dose amount, under mg/kg dosing at any number of levels</td>
-<td>Dosing unrelated to a covariate</td>
-<td>automatic</td>
+<td><strong>M2</strong></td>
+<td>Drop patients from the <strong>anchor pool</strong>
+</td>
+<td>whole source patients</td>
+<td>before generation</td>
+<td>
+<code>screen</code>, <code>on_donor_shortfall</code>
+</td>
+<td>(i) a patient whose follow-up or dose count exceeds <strong>2× the
+cohort’s 90th percentile</strong> would hand any avatar built on them a
+conspicuous skeleton that value-blending cannot hide; (ii) a patient in
+a route arm with fewer than <code>k + 1</code> patients has too few
+same-route donors, so their avatar would be a near-copy of one real
+person</td>
+<td>Help a patient who is merely <em>unique</em> rather than
+<em>extreme</em>
+</td>
 </tr>
 <tr class="odd">
-<td>5</td>
-<td><strong>Attendance-pattern sampling</strong></td>
-<td>Which visits were attended</td>
-<td>Dose events, deliberately</td>
+<td><strong>M3</strong></td>
+<td>Redraw which visits an avatar attended</td>
+<td>
+<strong>DV observations only</strong> — dose events are never
+touched</td>
+<td>per avatar</td>
 <td>
 <code>min_pattern_share</code> (2)</td>
+<td>A combination of attended and missed visits held by one patient is a
+fingerprint made of gaps, and no grid can hide it</td>
+<td>Touch dose events, deliberately — a drawn regimen could be one no
+protocol permits</td>
 </tr>
 <tr class="even">
-<td>7</td>
-<td><strong>Proximity measurement</strong></td>
-<td>Nothing — it measures</td>
-<td>—</td>
-<td><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code></td>
+<td><strong>M4</strong></td>
+<td>Blend covariates and DV from several donors, capped, plus noise</td>
+<td>measured values</td>
+<td>per avatar</td>
+<td>
+<code>k</code>, <code>max_donor_weight</code>,
+<code>subject_noise_sd</code>, <code>residual_noise_sd</code>
+</td>
+<td>So no avatar’s numbers come from one real patient</td>
+<td>Protect anything structural — the skeleton is copied, not
+blended</td>
 </tr>
 <tr class="odd">
-<td>6</td>
-<td><strong>Skeleton-uniqueness checking</strong></td>
-<td>Nothing — it measures</td>
-<td>—</td>
-<td><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code></td>
+<td><strong>M5</strong></td>
+<td>Recompute the dose amount from the avatar’s own blended
+covariate</td>
+<td>dose amounts, under <strong>weight-based dosing</strong> (mg/kg) or
+body-surface-area dosing (mg/m²)</td>
+<td>per avatar</td>
+<td>automatic</td>
+<td>A copied dose under mg/kg discloses the anchor’s weight exactly, and
+leaves the avatar violating the mg/kg rule its own data claims to
+follow</td>
+<td>Help where dosing is unrelated to a covariate; detection fails
+closed</td>
 </tr>
 </tbody>
 </table>
-<p><strong>1. Blending across donors</strong> (Steps 6–9). No avatar’s
-measurements come from one real patient: each is a distance-weighted
-blend of at least <code>k</code> = 5 compatible donors, with
-<code>max_donor_weight</code> = 0.50 capping any single donor at half
-the blend. This is the only mechanism whose strength grows with cohort
-size, which is why a source with fewer than <code>k + 1</code> subjects
-raises a loud alert instead of quietly producing near-copies.</p>
-<p><strong>2. Screening structurally extreme subjects</strong> (stage d,
-and after generation). A source subject whose follow-up length or dose
-count exceeds twice the cohort’s 90th percentile is never used as an
-anchor. After generation, <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>
-scores four axes — follow-up time, dose count, dose magnitude, peak DV —
-and <code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> truncates, drops, or
-replaces what it finds. This catches subjects who are
-<strong>extreme</strong>.</p>
-<p><strong>3. Coarsening the visit grid, then re-refining it</strong>
-(<code>coarsen_time = TRUE</code>, before Step 5). Source times are
-collapsed onto a shared visit grid, and the per-visit deviations are
-pooled across the cohort and resampled independently onto each avatar.
-This protects the <strong>schedule</strong>, which blending never
-touches: the skeleton is copied verbatim from one anchor, and under
-actual recorded times almost every subject holds the only copy of their
-visit vector. The order is the mechanism — snapping is many-to-one and
-<em>destroys</em> the deviation, whereas perturbing a time in place
-leaves it recoverable. Note that <code>time_jitter</code> is therefore
-not an alternative: its clamp holds every time inside its own Voronoi
-cell, so at any magnitude a visit stays within half a gap of the source
-value.</p>
-<p><strong>4. Recomputing the dose from a blended covariate</strong>
-(automatic). Under dosing proportional to a baseline covariate, the
-multiplier is a protocol property the stratum shares and the covariate
-is individual — and already blended. Keeping the multiplier and
-recomputing the amount from the avatar’s own covariate stops the dose
-being a verbatim real value (which under mg/kg dosing discloses the
-anchor’s weight exactly) and repairs a coherence defect: previously
-every avatar violated the mg/kg rule its own data claims to follow. See
-<code>REV-027</code>.</p>
-<p><strong>5. Sampling the attendance pattern</strong>
-(<code>min_pattern_share</code>, default 2). Once coarsening has put
-every subject on a shared visit grid, what remains of a schedule is
-which of those visits each subject attended. Every time is then shared,
-so no single visit is identifying — the <em>combination of absences</em>
-is, and a patient who missed weeks 2 and 3 is singled out by a
-fingerprint made of gaps. No grid fixes this at any resolution, because
-the grid decides where the visits are and not which ones a subject has.
-So the pattern is drawn from ones at least
-<code>min_pattern_share</code> subjects hold.</p>
-<p>The default of 2 is the smallest value that means anything, and what
-it means is exact: <strong>no synthetic patient carries a schedule
-unique to a real patient.</strong> An attacker who links a reproduced
-pattern to a participant gets at least two candidates, never one. Three
-is more conservative but no more defensible as a sentence, and it costs
-sharply more — see the section on what this loses below.</p>
-<p><strong>7. Measuring how close the values landed</strong>
-(<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code>, run after generating). The
-counterpart to mechanism 6, and the measurement for mechanism 1:
-blending protects the <em>values</em>, and this asks whether they landed
-too close to somebody real. Each subject’s nearest neighbour is either
-in its own dataset or the other one; under the ideal it is a coin flip.
-The null comes from splitting the source cohort in half and running the
-identical statistic, so small-sample artefacts cancel. At pharmacometric
-cohort sizes that interval is wide — it catches a blatant leak, not a
-subtle one.</p>
-<p><strong>6. Checking for unique event skeletons</strong>
-(<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code>, run manually on the
-<strong>source</strong>, before generating). A measurement, not a
-mitigation. It reports how many other subjects share each subject’s
-observation time vector, observation count, and event signature — and,
-for the subjects that are alone, <em>why</em>: because they were
-observed at a moment nobody else was (mechanism 3’s job) or because
-every time is shared and only the pattern of attendance is unique
-(mechanism 2’s job). <code>scripts/measure_skeleton_uniqueness.R</code>
-runs the before-and-after over the public datasets.</p>
-<div class="section level3">
-<h3 id="what-sampling-the-pattern-costs">What sampling the pattern costs<a class="anchor" aria-label="anchor" href="#what-sampling-the-pattern-costs"></a>
-</h3>
-<p>An exact pattern — the precise set of endpoint-and-time cells a
-subject was observed at — is a strict thing to match. Two patients who
-each missed exactly one visit have <em>different</em> patterns if they
-missed different visits, so attendance patterns arrive as one common
-pattern and a long tail of singletons, with almost nothing in between.
-<code>warfarin</code> after coarsening has 32 subjects across 14
-patterns, distributed 18, 2, and then twelve patterns of one patient
-each. Matching only exact patterns would therefore discard almost all of
-them.</p>
-<p>So the pattern is drawn in two stages. First a <strong>shape</strong>
-— how many visits were missed, and how they were arranged:</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>shape</th>
-<th>meaning</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code>complete</code></td>
-<td>attended everything</td>
-</tr>
-<tr class="even">
-<td><code>trailing</code></td>
-<td>every miss is at the end — dropout or early discontinuation</td>
-</tr>
-<tr class="odd">
-<td><code>block</code></td>
-<td>the misses are contiguous but not terminal — an interruption</td>
-</tr>
-<tr class="even">
-<td><code>scattered</code></td>
-<td>anything else</td>
-</tr>
-</tbody>
-</table>
-<p>Two patients who each missed one mid-study visit are the <em>same
-shape</em> even when they missed different ones, so together they clear
-a floor neither clears alone. Then, within that shape, a real pattern is
-reused if one clears the floor on its own; only if none does is an
-arrangement generated, by placing the misses on the grid. Generated
-placements are <strong>rejected and redrawn</strong> if they happen to
-land on a source pattern too rare to have been reusable — without that
-check the guarantee would quietly weaken from “no synthetic patient
-carries a schedule unique to a real one” to merely “nothing was copied
-on purpose”, and an attacker cannot tell those apart.</p>
-<p>Measured on <code>warfarin</code>, which is the hardest of the public
-sets:</p>
-<table class="table">
-<colgroup>
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
-</colgroup>
-<thead><tr class="header">
-<th><code>min_pattern_share</code></th>
-<th>patterns lost</th>
-<th>patients affected</th>
-<th>placements generated</th>
-<th>distinct sample counts surviving</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>1 (off)</td>
-<td>0</td>
-<td>0</td>
-<td>0%</td>
-<td>6</td>
-</tr>
-<tr class="even">
-<td><strong>2 (default)</strong></td>
-<td><strong>2</strong></td>
-<td><strong>2</strong></td>
-<td>28%</td>
-<td>5</td>
-</tr>
-<tr class="odd">
-<td>3</td>
-<td>6</td>
-<td>6</td>
-<td>34%</td>
-<td>3</td>
-</tr>
-<tr class="even">
-<td>5</td>
-<td>9</td>
-<td>9</td>
-<td>22%</td>
-<td>2</td>
-</tr>
-</tbody>
-</table>
-<p>The source has six distinct sample counts; the default keeps five.
-Matching exact patterns alone would have kept two. Most avatars still
-receive a real pattern — the generated column is the minority — because
-generation is a fallback, not the mechanism.</p>
-<p>What is genuinely lost is <em>resolution</em>. The output keeps how
-much missingness there was and what kind, and loses which specific
-visits each patient missed. For developing code against
-realistic-looking data that is the right trade; for studying
-visit-specific dropout it is not.</p>
-<p>Because the loss is real, <strong>every run reports it</strong>: a
-loud alert naming how many source patterns were excluded and how many
-patients held them, and the same figures as <code>patterns_total</code>,
-<code>patterns_dropped</code> and
-<code>subjects_with_dropped_pattern</code> in
-<code>attr(x, "pmx_settings")</code>, alongside
-<code>pattern_generated_fraction</code> for how often an arrangement had
-to be invented. Note that at the default floor a discarded pattern is by
-definition held by exactly one patient, so the lost and affected counts
-agree; they diverge only at 3 or more. Lower the floor to keep more;
-<code>1</code> disables the mechanism and restores copying each anchor’s
-own pattern, giving up the guarantee above.</p>
-</div>
-<div class="section level3">
-<h3 id="what-the-six-leave-uncovered">What the six leave uncovered<a class="anchor" aria-label="anchor" href="#what-the-six-leave-uncovered"></a>
-</h3>
-<p>Being explicit about the gaps is what makes the list worth
-anything.</p>
-<ul>
-<li>
-<strong>Rare attendance patterns, when nothing is shared widely
-enough.</strong> Mechanism 5 needs a pool: where no pattern reaches
-<code>min_pattern_share</code> — <code>nimoData</code>, where all twelve
-subjects hold a distinct one — anchors keep their own and the run
-alerts. The cost when it <em>does</em> apply is the opposite problem: on
-<code>warfarin</code> and <code>theo_md</code> only one pattern clears a
-floor of 3, so the cohort’s missingness distribution collapses to
-complete attendance.</li>
-<li>
-<strong>Which dose level a patient reached.</strong> Mechanism 4
-recomputes the <em>amount</em> from the avatar’s own covariate, at any
-number of levels and including intra-patient escalation. What it does
-not change is the <em>sequence of levels</em> the anchor climbed. Where
-escalation is outcome-adaptive — driven by a subject’s own tolerability
-— that sequence encodes their response, and it is copied.</li>
-<li>
-<strong>Membership.</strong> None of the four defends against an
-adversary who already holds a suspected participant’s record and only
-wants to confirm they were in the study. They reduce the ways that
-attack succeeds without bounding how often it does. That is what
-differential privacy provides, and it is why the trust-boundary question
-— not the length of this list — decides the mode.</li>
-</ul>
-</div>
+<p><strong>Each mechanism is explained once, in the step that fires
+it</strong> — M2 and M3 in Step 2, M1 in Step 3, M4 in Step 7, M5 in
+Step 9. They are numbered by when they start, and every stage above
+lists an ascending run. Two notes. <strong>M1 happens in two
+parts</strong> — the snapping runs once before any avatar exists, and
+the pooled deviations are added back while each avatar is built — but it
+is one mechanism under one argument, so it gets one number. And
+<strong>M5 sits inside M4</strong> rather than after it: recomputing the
+dose needs the avatar’s blended covariate, so it runs once the
+covariates are blended and before the trajectories are.</p>
+<p><strong>Restoring the deviations is not itself masking</strong>,
+which is why it does not get its own row. It repairs the realism that
+snapping costs. It matters to the privacy argument only in the negative:
+if each avatar got <em>its own anchor’s</em> deviation back instead of a
+pooled one, the snapping would be undone and M1 would achieve
+nothing.</p>
+<p>All five run by default. A sixth thing exists and is
+<strong>not</strong> in this table —
+<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, discussed below — because on
+inspection it is a plausibility check rather than a masking step.</p>
 </div>
 <div class="section level2">
 <h2 id="step-1-declare-the-meaning-of-the-columns">Step 1: declare the meaning of the columns<a class="anchor" aria-label="anchor" href="#step-1-declare-the-meaning-of-the-columns"></a>
@@ -659,6 +559,64 @@ synthetic subject;</li>
 anchor-template values. Consequently, users should not place a
 semantically important column in the input and assume the package
 understands it merely because it is present.</p>
+<div class="section level3">
+<h3 id="m2-which-patients-may-be-used-as-an-anchor">M2 — which patients may be used as an anchor<a class="anchor" aria-label="anchor" href="#m2-which-patients-may-be-used-as-an-anchor"></a>
+</h3>
+<p>Runs before generation. Two exclusions, both acting on the pool of
+source subjects an avatar may be built from. A subject whose follow-up
+length or dose count exceeds twice the cohort’s 90th percentile is never
+used as an anchor (<code>screen</code>), so no avatar inherits a
+conspicuous skeleton. And a subject in a route arm holding fewer than
+<code>k + 1</code> subjects has no legal donor set, so by default it is
+dropped from the pool too (<code>on_donor_shortfall</code>).</p>
+<p>Neither shrinks the cohort: the remaining anchors are sampled with
+replacement to fill every slot, and excluded subjects still contribute
+measurements as donors. What is lost is coverage of that structure, not
+sample size. This catches subjects who are <strong>extreme</strong>; the
+post-generation screen below is a different thing, and not a masking
+step.</p>
+</div>
+<div class="section level3">
+<h3 id="m3-redrawing-which-visits-the-avatar-attended">M3 — redrawing which visits the avatar attended<a class="anchor" aria-label="anchor" href="#m3-redrawing-which-visits-the-avatar-attended"></a>
+</h3>
+<p>Once coarsening has put every subject on a shared visit grid, what
+remains of a schedule is which of those visits each subject attended.
+Every time is then shared, so no single visit is identifying — the
+<em>combination of absences</em> is, and a patient who missed weeks 2
+and 3 is singled out by a fingerprint made of gaps. No grid fixes this
+at any resolution, because the grid decides where the visits are and not
+which ones a subject has. So the pattern is drawn from ones at least
+<code>min_pattern_share</code> subjects hold.</p>
+<p>The default of 2 is the smallest value that means anything, and what
+it means is exact: <strong>no synthetic patient carries a schedule
+unique to a real patient.</strong> An attacker who links a reproduced
+pattern to a participant gets at least two candidates, never one. Three
+is more conservative but no more defensible as a sentence, and it costs
+sharply more — see the section on what this loses below.</p>
+<p>“Sample which visits were attended” is the most easily misread row in
+that table, so here it is concretely. <strong>It concerns DV
+observations only. Dose events are never redrawn</strong> — an avatar’s
+doses, their times and their amounts come verbatim from its anchor,
+because a drawn regimen could be one no protocol permits.</p>
+<p>After M1, every patient sits on the same grid of visit times. What
+still differs between patients is which of those visits each one
+actually turned up for:</p>
+<pre><code>grid            wk1  wk2  wk3  wk4  wk5  wk6
+patient A        x    x    x    x    x    x     attended everything
+patient B        x    x    x    x                dropped out after week 4
+patient C        x    x         x    x    x      missed week 3</code></pre>
+<p>Patient B’s and patient C’s rows are <em>visit sets</em>. If only
+patient C ever missed week 3, then “attended everything except week 3”
+points at patient C as surely as an unusual sampling time would — a
+fingerprint made of gaps rather than of times.</p>
+<p>So M3 redraws that row. The avatar keeps its anchor’s doses and the
+grid’s visit times, and only the <strong>pattern of x’s</strong> is
+replaced by one drawn from patients who share it, or built fresh with
+the same <em>shape</em> (how many misses, and whether they run to the
+end, sit in a block, or scatter). What survives is how much missingness
+the study had and of what kind; what is lost is which specific weeks any
+one patient missed.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-3-align-time-without-pretending-every-subject-was-sampled-identically">Step 3: align time without pretending every subject was sampled
@@ -792,6 +750,48 @@ receive the same
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>u</mi><mi>l</mi><mo>′</mo></msubsup><annotation encoding="application/x-tex">u'_l</annotation></semantics></math>,
 so a dose and observation tied at a nominal time remain tied and time
 ordering cannot cross.</p>
+</div>
+<div class="section level3">
+<h3 id="m1-coarsening-the-times-and-putting-the-scatter-back">M1 — coarsening the times, and putting the scatter back<a class="anchor" aria-label="anchor" href="#m1-coarsening-the-times-and-putting-the-scatter-back"></a>
+</h3>
+<p>(<code>coarsen_time = TRUE</code>, before Step 5). Source times are
+collapsed onto a shared visit grid, and the per-visit deviations are
+pooled across the cohort and resampled independently onto each avatar.
+This protects the <strong>schedule</strong>, which blending never
+touches: the skeleton is copied verbatim from one anchor, and under
+actual recorded times almost every subject holds the only copy of their
+visit vector. The order is the mechanism — snapping is many-to-one and
+<em>destroys</em> the deviation, whereas perturbing a time in place
+leaves it recoverable. Note that <code>time_jitter</code> is therefore
+not an alternative: its clamp holds every time inside its own Voronoi
+cell, so at any magnitude a visit stays within half a gap of the source
+value.</p>
+<p>M1 is the only mechanism that both removes something and then
+restores part of it, so it is worth separating the two halves.</p>
+<p><strong>Snapping</strong>, before any avatar exists, replaces each
+recorded time with its visit’s grid time. The deviation removed is not
+discarded — it goes into one pool shared by the whole cohort.</p>
+<p><strong>Restoring</strong>, while each avatar is built, draws a
+deviation from that pool and adds it back. Without this the output would
+sit exactly on a tidy grid, which no real study does, and any analysis
+code that reconciles actual against nominal time would have nothing to
+reconcile.</p>
+<p>The restoration is <strong>not itself masking</strong>, and it does
+not undo the masking either. That distinction is the whole point: an
+avatar gets a deviation drawn from the cohort, never the one its own
+anchor had. The scatter comes back; the fingerprint does not.</p>
+<p>Each drawn offset is clamped inside its own visit’s cell, so no time
+moves more than half the gap to the neighbouring visit, and resampling
+can neither reorder visits nor stretch follow-up. A dose event and a DV
+observation recorded at the same time receive the same offset and stay
+together.</p>
+<p><strong>This is why <code>time_jitter</code> is not an
+alternative.</strong> Jitter perturbs times without ever destroying the
+original, and its clamp holds every value within half a gap of <em>the
+source patient’s own</em> value at any setting — so the source schedule
+stays recoverable. Jitter is a realism control. M1 is the privacy one,
+and the difference is that M1 throws the real deviation away before
+drawing a new one.</p>
 </div>
 </div>
 <div class="section level2">
@@ -1665,6 +1665,17 @@ w_{rj}^{*}=\frac{w_r I_{rj}}
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mrow><mi>r</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">I_{rj}=1</annotation></semantics></math>
 when the value is finite and zero otherwise.</p>
 </div>
+<div class="section level3">
+<h3 id="m4-why-blending-is-the-mechanism-that-protects-the-values">M4 — why blending is the mechanism that protects the values<a class="anchor" aria-label="anchor" href="#m4-why-blending-is-the-mechanism-that-protects-the-values"></a>
+</h3>
+<p>Spanning Steps 6-9. No avatar’s measurements come from one real
+patient: each is a distance-weighted blend of at least <code>k</code> =
+5 compatible donors, with <code>max_donor_weight</code> = 0.50 capping
+any single donor at half the blend. This is the only mechanism whose
+strength grows with cohort size, which is why a source with fewer than
+<code>k + 1</code> subjects raises a loud alert instead of quietly
+producing near-copies.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-8-synthesize-baseline-covariates">Step 8: synthesize baseline covariates<a class="anchor" aria-label="anchor" href="#step-8-synthesize-baseline-covariates"></a>
@@ -1788,7 +1799,7 @@ residual model.</p>
 endpoint, two baseline covariates, and deliberately different
 observation times. It is large enough to have non-anchor neighbors but
 small enough to inspect.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">make_subject</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">id</span>, <span class="va">observation_time</span>, <span class="va">wt</span>, <span class="va">sex</span>, <span class="va">peak</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">observation_time</span><span class="op">)</span></span>
 <span>  <span class="va">evid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">observation_time</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -2035,21 +2046,18 @@ transformed DVs after interpolation to the anchor times. The following
 table shows the exact pre-noise blend used by the implementation.</p>
 <pre><code><span><span class="co">#&gt; synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span></span>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 3 of 6 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; Warning: 3 of 6 source subjects share every observation time with others but</span></span>
-<span><span class="co">#&gt; hold a unique *pattern* of which visits were attended -- dropout,</span></span>
-<span><span class="co">#&gt; discontinuation, or missed visits. Coarsening cannot change this, because the</span></span>
-<span><span class="co">#&gt; times are already shared. Screen those subjects with</span></span>
-<span><span class="co">#&gt; `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the</span></span>
-<span><span class="co">#&gt; pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 1 source attendance pattern(s), held by 1 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
-<span><span class="co">#&gt; Warning: 1 source attendance pattern(s), held by 1 subject(s), were not shared</span></span>
-<span><span class="co">#&gt; by 2 or more patients and so will not appear in the synthetic data. These are</span></span>
-<span><span class="co">#&gt; real dropout and dose-interruption patterns, and losing them is what stops an</span></span>
-<span><span class="co">#&gt; avatar carrying a schedule traceable to one patient. To keep more of them,</span></span>
-<span><span class="co">#&gt; lower `min_pattern_share` (2 means no synthetic patient carries a schedule</span></span>
-<span><span class="co">#&gt; unique to a real one); `1` disables the mechanism and copies each anchor's own</span></span>
-<span><span class="co">#&gt; pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 3 of 6 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; Warning: 3 of 6 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 1 patient in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For that patient that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 1 combination, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span>
+<span><span class="co">#&gt; Warning: 1 patient in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For that patient that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 1 combination, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span></code></pre>
 <table style="width:100%;" class="table">
 <caption>Interpolation and blending for the anchor endpoint; z is the
 endpoint working scale</caption>
@@ -2126,7 +2134,7 @@ endpoint working scale</caption>
 <code>final_synthetic_DV</code> also contains the one subject shift and
 AR(1) residual sequence. The event rows, new ID, and subject-constant
 synthesized covariates can be inspected directly:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">worked_synthetic</span>, digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
@@ -2293,6 +2301,28 @@ schedules; normalized observation-window fallback</td>
 <td align="left">TRUE</td>
 </tr></tbody>
 </table>
+<div class="section level3">
+<h3 id="m5-recomputing-the-dose-from-the-blended-covariate">M5 — recomputing the dose from the blended covariate<a class="anchor" aria-label="anchor" href="#m5-recomputing-the-dose-from-the-blended-covariate"></a>
+</h3>
+<p>Runs automatically. Under dosing proportional to a baseline
+covariate, the multiplier is a protocol property the stratum shares and
+the covariate is individual — and already blended. Keeping the
+multiplier and recomputing the amount from the avatar’s own covariate
+stops the dose being a verbatim real value (which under mg/kg dosing
+discloses the anchor’s weight exactly) and repairs a coherence defect:
+previously every avatar violated the mg/kg rule its own data claims to
+follow. See <code>REV-027</code>.</p>
+<p><strong>The post-generation screen. Screening the finished data, and
+remediating</strong> (<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, after
+generation). The only mechanism <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does
+<strong>not</strong> run for you. It scores each synthetic subject on
+four axes — follow-up time, dose count, dose magnitude, peak DV — and
+<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> truncates, drops, or
+replaces what it flags, refilling the cohort so the size is preserved.
+M2 keeps extreme <em>source</em> patients from becoming anchors; this
+catches whatever still looks implausible once everything else has run.
+Run it before the data leaves the source’s access controls.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-10-restore-pmx-schema-and-deterministic-conventions">Step 10: restore PMX schema and deterministic conventions<a class="anchor" aria-label="anchor" href="#step-10-restore-pmx-schema-and-deterministic-conventions"></a>
@@ -2319,8 +2349,9 @@ relationship</p>
 </annotation></semantics></math></p>
 <p>MDV is re-derived from that rule in the synthetic data and restored
 to its original class. For any nonstandard source-wide MDV convention,
-anchor values are left as copied. Missing observation positions are not
-invented or removed.</p>
+anchor values are left as copied. <em>This step</em> neither invents nor
+removes observation positions – which ones an avatar has was already
+settled by mechanism 5 above.</p>
 <p>Finally, <code>validate_pmx(..., strict = TRUE)</code> is run on the
 assembled result. A generation call cannot silently return an output
 that fails the package’s own structural requirements.</p>
@@ -2362,6 +2393,50 @@ model fidelity.</p>
 <div class="section level2">
 <h2 id="after-generation-screening-for-identifiable-subjects">After generation: screening for identifiable subjects<a class="anchor" aria-label="anchor" href="#after-generation-screening-for-identifiable-subjects"></a>
 </h2>
+<div class="section level3">
+<h3 id="it-is-a-plausibility-check-not-a-masking-step">It is a plausibility check, not a masking step<a class="anchor" aria-label="anchor" href="#it-is-a-plausibility-check-not-a-masking-step"></a>
+</h3>
+<p><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> and
+<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> exist, run after
+generation, and are <strong>not</strong> in the table above. That is a
+deliberate demotion, and worth explaining because an earlier version of
+this article listed them as a seventh mechanism.</p>
+<p>The screen scores each finished avatar on four axes — follow-up time,
+dose count, dose magnitude, peak DV — and flags outliers on a robust
+median/MAD statistic. The argument for calling it masking was that
+blending might <em>create</em> a conspicuous avatar even from
+unremarkable donors. On inspection that argument does not hold up:</p>
+<ul>
+<li>
+<strong>On the two structural axes, M2 has already done the
+work.</strong> An avatar’s follow-up length and dose count come from its
+anchor, unchanged. If no extreme patient was used as an anchor, no
+avatar has an extreme skeleton.</li>
+<li>
+<strong>On the two value axes, being conspicuous does not identify
+anyone.</strong> A high peak DV in an avatar is a blend of several
+donors plus noise. It can exceed every real value in the study precisely
+<em>because</em> it belongs to nobody. An attacker who spots it learns
+that the generator added noise.</li>
+</ul>
+<p>What it does catch is <strong>implausibility</strong>: an avatar that
+looks wrong sitting next to the rest of the cohort. That is worth
+catching — output that looks extreme undermines confidence in the whole
+dataset — but it is a realism check, not a privacy one.</p>
+<p><strong>And the two use different statistics, which is a
+trap.</strong> M2 cuts at twice the cohort’s 90th percentile,
+deliberately loose, so only gross outliers are excluded. The screen uses
+median/MAD at 3.5, which is much tighter and behaves badly on a bimodal
+cohort. On <code>mavoglurant</code> — half the patients have one dosing
+period and half have two — the MAD is tiny and <strong>75 of 120 avatars
+are flagged</strong>, on follow-up time and dose count, the very axes M2
+already screened. Almost none of that is exposure; it is the statistic
+reacting to a two-humped distribution.</p>
+<p>That number is also the answer to “why not just run it
+automatically”: on this dataset it would discard 63% of the cohort, for
+a reason that is largely an artefact. Run it, read what it flags, and
+decide — which is why it takes a threshold argument and why nothing runs
+it for you.</p>
 <p>The blending in Steps 6–9 protects the <em>measurements</em>: every
 avatar’s DV values are averaged from at least <code>k</code> real
 subjects, so no one person’s numbers survive verbatim. It does
@@ -2441,6 +2516,7 @@ preventing structural outliers at generation time. A more thorough
 approach would sample each avatar’s event skeleton from the cohort, so
 no avatar carries any one real subject’s unique structure; that is a
 possible future direction, not current behavior.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="edge-cases-and-documented-fallbacks">Edge cases and documented fallbacks<a class="anchor" aria-label="anchor" href="#edge-cases-and-documented-fallbacks"></a>
@@ -2655,6 +2731,141 @@ warnings</td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level2">
+<h2 id="how-you-know-whether-it-worked">How you know whether it worked<a class="anchor" aria-label="anchor" href="#how-you-know-whether-it-worked"></a>
+</h2>
+<p>Because there are no formal guarantees with this method, after the
+synthetic dataset is created, it is useful to check back whether the
+synthetic patients can point back to the real patient. There are there
+different tests for this:</p>
+<p><strong>Unique, extreme, or close.</strong> A patient is
+<em>unique</em> when something about their schedule belongs to nobody
+else. A patient is <em>extreme</em> when they stand out from the cohort
+— the lone very long follow-up. A synthetic patient is <em>close</em>
+when their measurements landed nearer a real patient than real patients
+lie to each other. These are independent failures: a study can pass any
+one and fail another, so all three are reported and none substitutes for
+the rest.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>Function</th>
+<th>Asks</th>
+<th>Run on</th>
+<th>Target</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code></td>
+<td>Is anyone’s <strong>DV observation schedule</strong> unique?
+Separately, is anyone’s <strong>dosing</strong> unique?</td>
+<td>the <strong>source</strong>, before generating</td>
+<td>0 unique</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code></td>
+<td>Does anyone <strong>stand out</strong> from the cohort on follow-up
+length, dose count, dose size, or peak DV?</td>
+<td>the <strong>synthetic output</strong> (or the source)</td>
+<td>nothing flagged</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code></td>
+<td>Did a synthetic patient’s <strong>covariates and DV trajectory
+together</strong> land nearer a real patient than real patients lie to
+each other?</td>
+<td>the <strong>pair</strong>, after generating</td>
+<td>near 0.5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sampling and dosing are scored separately</strong>
+<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> builds two different keys per
+patient:</p>
+<ul>
+<li>the <strong>observation time vector</strong> — the sorted list of
+times that patient was <em>sampled</em> at. Dose rows are excluded. This
+is what <code>unique_schedule_n</code> counts and what
+<code>coarsen_time</code> acts on.</li>
+<li>the <strong>event signature</strong> — the dosing side: how many
+doses, their amounts and rates, the intervals between them, and which
+endpoints were measured. Observation times are deliberately <em>not</em>
+in it. This is what <code>n_unique_dose_signature</code> counts, and
+<strong>coarsening does not touch it</strong>: a study with weight-based
+dosing or per-patient titration leaves patients unique on dose however
+good the visit grid is. <code>REV-027</code>’s dose recomputation is the
+mechanism that addresses that side.</li>
+</ul>
+<p>So a patient can be unique on sampling, on dosing, on both, or on
+neither, and the two have different remedies.</p>
+<p><strong>“Values” means the whole profile, not just DV.</strong>
+<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> compares patients in the space
+<code>.build_profiles()</code> builds, which is each patient’s
+<strong>baseline covariates together with their DV trajectory</strong>
+on a common grid, reduced to principal components. So a synthetic
+patient can be flagged as too close because their weight and age nearly
+match a real patient’s, not only because their concentrations do.</p>
+<div class="section level3">
+<h3 id="the-exposure-counts">The exposure counts<a class="anchor" aria-label="anchor" href="#the-exposure-counts"></a>
+</h3>
+<p><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> produces the numbers that
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> also records in
+<code>attr(x, "pmx_settings")</code>. There is <strong>one headline
+count, split by cause</strong>, and the split is what tells you what to
+do next:</p>
+<ul>
+<li>
+<strong><code>unique_schedule_n</code></strong> — patients whose
+list of observation times no other patient shares. An avatar anchored on
+one wears a schedule belonging to exactly one real person, however
+carefully its measurements were blended. This is the number to drive to
+zero. It always equals the sum of the next two.
+<ul>
+<li>
+<strong><code>unique_obs_time_n</code></strong> — of those, the ones
+sampled at a clock time nobody else was sampled at. <strong>A grid can
+fix this</strong>, and <code>coarsen_time</code> exists to; a count
+above zero after coarsening means the inferred grid could not find a
+shared schedule, and declaring <code>nominal_time</code> is the
+fix.</li>
+<li>
+<strong><code>unique_visit_set_n</code></strong> — of those, the
+ones who share every individual time with somebody but attended a
+combination of visits nobody else did: dropout, an interruption, a
+missed week. <strong>No grid can fix this</strong> at any resolution,
+because the times are already shared. <code>min_pattern_share</code>
+addresses it during generation; otherwise the response is to remediate
+or accept.</li>
+</ul>
+</li>
+</ul>
+<p>Two counts sit alongside these and answer narrower questions:
+<code>n_unique_dose_signature</code> (a dose structure or amount nobody
+else has, which coarsening cannot touch) and
+<code>n_unique_obs_count</code> (an observation count nobody else has,
+the residual left for the outlier screen).</p>
+</div>
+<div class="section level3">
+<h3 id="why-measure-rather-than-assert">Why measure rather than assert<a class="anchor" aria-label="anchor" href="#why-measure-rather-than-assert"></a>
+</h3>
+<p>Every mechanism in this article costs something — discarded visit
+sets, excluded anchors, timing fidelity — and what it buys
+<strong>depends entirely on the study</strong>. The same defaults take
+<code>theo_md</code> from twelve unique schedules to zero and leave
+<code>nimoData</code> at twelve of twelve, because one study recorded a
+shared visit structure and the other did not. There is no headline
+“synpmx removes X% of the exposure”, and any such claim would be about
+the datasets it was measured on rather than about yours.</p>
+<p>So every run reports its own numbers, loudly, and
+<code>scripts/explore_nimodata_coarsening.qmd</code> works one failure
+through to a fix to show what reading them looks like in practice.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

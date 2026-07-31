@@ -16,9 +16,9 @@
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
+- [The four generation
+  modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
 - [Demo: Using synpmx AVATAR with 5
   datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.md):
-- [The four generation
-  modes](https://iamstein.github.io/synpmx/articles/synpmx-method.md):
 - [Privacy in
   synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):

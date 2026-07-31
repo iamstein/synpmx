@@ -32,8 +32,8 @@ A `pmx_skeleton_uniqueness` data frame, most-exposed first, one row per
 subject: `subject_id`, `n_obs`, `n_doses`, `signature_class`,
 `obs_time_class`, `n_obs_class` (each counting the subjects sharing that
 key, including itself), and `alone` (`TRUE` when `obs_time_class == 1`).
-Attributes `n_alone`, `n_alone_signature`, `n_alone_n_obs`, and
-`min_class` summarize the cohort.
+Attributes `n_unique_schedule`, `n_alone_signature`, `n_alone_n_obs`,
+and `min_class` summarize the cohort.
 
 ## Details
 
@@ -80,14 +80,15 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = "WT"
 )
 skeleton_uniqueness(data, roles)
-#> Restricted PMX skeleton-uniqueness screen: 0 of 30 subjects alone
-#> Alone = the only subject with this observation time vector (0% here).
+#> Restricted PMX schedule-uniqueness screen: 0 of 30 patients
+#> have a UNIQUE OBSERVATION SCHEDULE (0%): no other patient shares their
+#> list of observation times, so the schedule works as an identifier.
 #> 
-#>   obs times alone:   0  <- of which:
-#>     visited a moment nobody else did:   0  <- the grid's job
-#>     every time shared, pattern unique:   0  <- dropout; the screen's
-#>   n_obs alone:       0  <- the residual it leaves, for the screen
-#>   signature alone:  30  <- dose structure/amount; coarsening does not change it
+#>   unique observation schedule:    0  <- of which:
+#>     unique observation time:        0  <- sampled when nobody else was; the grid's job
+#>     unique set of visits:      0  <- every time shared; dropout, the screen's job
+#>   unique observation count:    0  <- the residual that leaves, for the screen
+#>   unique dose signature:      30  <- dose structure/amount; coarsening cannot change it
 #> 
 #> Twelve most exposed:
 #>  subject_id n_obs n_doses signature_class obs_time_class min_time_share
@@ -103,19 +104,19 @@ skeleton_uniqueness(data, roles)
 #>          18    14       2               1             30             30
 #>          19    14       2               1             30             30
 #>           2    14       2               1             30             30
-#>  n_obs_class alone
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
-#>           30 FALSE
+#>  n_obs_class unique_schedule
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
+#>           30           FALSE
 #> ... 18 more row(s) in the returned table.
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.

@@ -34,12 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-method.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
@@ -257,6 +257,80 @@ Plotting helpers used throughout this vignette
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">source_rows</span>, <span class="va">synthetic_rows</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
 <span>  <span class="va">out</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">".dataset"</span>, <span class="va">columns</span><span class="op">)</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># The full masking accounting for one run, read off `pmx_settings` and a</span></span>
+<span><span class="co"># `skeleton_uniqueness()` pass over the source. Every number a run can report</span></span>
+<span><span class="co"># about what it removed, in one table, so each dataset below can be read on its</span></span>
+<span><span class="co"># own instead of only in comparison with the others.</span></span>
+<span><span class="va">masking_report</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
+<span>  <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span>  <span class="va">pct</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="st">"--"</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="va">x</span><span class="op">)</span>, <span class="st">"%"</span><span class="op">)</span></span>
+<span>  <span class="va">num</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="st">"--"</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"**Who was available to build on**"</span>, <span class="st">""</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Subjects in the source"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">source_subjects</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Excluded as structural outliers"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">anchors_screened_out</span><span class="op">)</span>,</span>
+<span>      <span class="st">"`screen`: follow-up or dose count over twice the cohort's 90th pct"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Excluded below the donor floor"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">anchors_route_excluded</span><span class="op">)</span>,</span>
+<span>      <span class="st">"`on_donor_shortfall`: a route arm with fewer than k + 1 subjects"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Anchors available"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">anchors_available</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Avatars built"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">n_subjects</span><span class="op">)</span>,</span>
+<span>      <span class="st">"cohort size is unaffected by the exclusions above"</span><span class="op">)</span>,</span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"**How much of one patient reaches one avatar**"</span>, <span class="st">""</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Donor floor (k)"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">k</span><span class="op">)</span>, <span class="st">"real patients blended into each avatar"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Largest share of one donor"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">max_donor_weight</span><span class="op">)</span>,</span>
+<span>      <span class="st">"`max_donor_weight`"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Cap actually bound on"</span>, <span class="fu">pct</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">cap_binding_fraction</span><span class="op">)</span>, <span class="st">"of avatars"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Effective donors, mean"</span>, <span class="fu">num</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">mean_effective_donors</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      <span class="st">"1 / sum(w^2); the floor means little without this"</span><span class="op">)</span>,</span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"**Visit schedule**"</span>, <span class="st">""</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Grid used"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">time_grid</span><span class="op">)</span>,</span>
+<span>      <span class="st">"`nominal` where a `nominal_time` role was declared, else inferred"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Unique observation schedule, before coarsening"</span>,</span>
+<span>      <span class="fu">num</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">before</span>, <span class="st">"n_unique_schedule"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      <span class="st">"patients whose list of observation times nobody else shares"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Unique observation schedule, after"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">unique_schedule_n</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"&amp;nbsp;&amp;nbsp;unique observation time"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">unique_obs_time_n</span><span class="op">)</span>,</span>
+<span>      <span class="st">"sampled when nobody else was; the grid's job, fixed by `nominal_time`"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"&amp;nbsp;&amp;nbsp;unique set of visits"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">unique_visit_set_n</span><span class="op">)</span>,</span>
+<span>      <span class="st">"every time shared; dropout, and no grid can fix it"</span><span class="op">)</span>,</span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"**Which visits each patient attended**"</span>, <span class="st">""</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Distinct visit sets in the source"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">patterns_total</span><span class="op">)</span>,</span>
+<span>      <span class="st">"a visit set is which of the shared visits one patient actually had"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Held by one patient, so discarded"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">patterns_dropped</span><span class="op">)</span>,</span>
+<span>      <span class="st">"`min_pattern_share`; lost, not approximated"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Patients holding those"</span>, <span class="fu">num</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">subjects_with_dropped_pattern</span><span class="op">)</span>,</span>
+<span>      <span class="st">"they stay in the cohort as donors"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Avatars given a real patient's visit set"</span>,</span>
+<span>      <span class="fu">pct</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">pattern_sampled_fraction</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"&amp;nbsp;&amp;nbsp;which visits were missed, invented"</span>,</span>
+<span>      <span class="fu">pct</span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">pattern_generated_fraction</span><span class="op">)</span>,</span>
+<span>      <span class="st">"how many and what kind of misses reused; which ones placed fresh"</span><span class="op">)</span>,</span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"**Dose**"</span>, <span class="st">""</span>, <span class="st">""</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Recomputed from a covariate"</span>,</span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span><span class="op">)</span><span class="op">)</span> <span class="st">"no"</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"yes, from `"</span>,</span>
+<span>                                                       <span class="va">settings</span><span class="op">$</span><span class="va">dose_basis</span>, <span class="st">"`"</span><span class="op">)</span>,</span>
+<span>      <span class="st">"detected only where the ratio collapses; fails closed"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">rows</span><span class="op">)</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Quantity"</span>, <span class="st">"Value"</span>, <span class="st">"What it means"</span><span class="op">)</span></span>
+<span>  <span class="va">out</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">masking_table</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>    <span class="fu">masking_report</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span>,</span>
+<span>    caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Everything "</span>, <span class="va">label</span>,</span>
+<span>                     <span class="st">"'s run removed, and what was left to build on."</span><span class="op">)</span>,</span>
+<span>    align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"l"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </details><div class="section level2">
 <h2 id="what-this-package-is-for">What this package is for<a class="anchor" aria-label="anchor" href="#what-this-package-is-for"></a>
@@ -326,6 +400,184 @@ the source.</li>
 <p>Identifiers, schema, classes, and factor levels are restored on
 output. The caller’s random-number state is left untouched;
 reproducibility comes from the <code>seed</code> argument.</p>
+</div>
+<div class="section level2">
+<h2 id="what-the-masking-does-and-what-it-costs">What the masking does, and what it costs<a class="anchor" aria-label="anchor" href="#what-the-masking-does-and-what-it-costs"></a>
+</h2>
+<p>Enough happens by default that it is worth naming the five mechanisms
+before looking at any data. The AVATAR algorithm article walks through
+each in detail. AVATAR blends every avatar’s
+<strong>measurements</strong> from several real donors, so no single
+patient’s numbers survive. But the <strong>event skeleton</strong> — the
+pattern of when a patient was dosed and sampled — is copied verbatim
+from one real anchor, and blending never touches it. Five mechanisms act
+on that skeleton, and every one of them works by <em>removing</em>
+something:</p>
+<p>The article numbers them <strong>M1 to M5, in the order they
+run</strong>; the same order is used here.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Mechanism</th>
+<th>Acts on</th>
+<th>Why</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><strong>M1</strong></td>
+<td>Snap every time onto a shared visit grid, then add deviations back
+from a cohort-wide pool (<code>coarsen_time</code>)</td>
+<td>
+<strong>all times</strong> — dose events <em>and</em> DV
+observations</td>
+<td>As recorded, one patient’s list of times is very often unique to
+them. A <em>pooled</em> deviation restores realism without giving the
+patient their own back</td>
+</tr>
+<tr class="even">
+<td><strong>M2</strong></td>
+<td>Drop patients from the <strong>anchor pool</strong>
+(<code>screen</code>, <code>on_donor_shortfall</code>)</td>
+<td>whole source patients</td>
+<td>Follow-up or dose count over <strong>2× the cohort’s 90th
+percentile</strong> would give any avatar a conspicuous skeleton; a
+route arm under <code>k + 1</code> has too few donors to blend with</td>
+</tr>
+<tr class="odd">
+<td><strong>M3</strong></td>
+<td>Redraw which visits an avatar attended
+(<code>min_pattern_share</code>)</td>
+<td>
+<strong>DV observations only</strong> — dose events untouched</td>
+<td>A combination of missed visits held by one patient is a fingerprint
+made of gaps</td>
+</tr>
+<tr class="even">
+<td><strong>M4</strong></td>
+<td>Blend covariates and DV from donors, capped (<code>k</code>,
+<code>max_donor_weight</code>)</td>
+<td>measured values</td>
+<td>No avatar’s numbers come from one real patient</td>
+</tr>
+<tr class="odd">
+<td><strong>M5</strong></td>
+<td>Recompute the dose amount (automatic)</td>
+<td>dose amounts, under <strong>weight-based</strong> (mg/kg) or BSA
+(mg/m²) dosing</td>
+<td>A copied dose under mg/kg discloses the anchor’s weight exactly</td>
+</tr>
+</tbody>
+</table>
+<p><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> runs after generation and
+is deliberately <strong>not</strong> in this table: it is a plausibility
+check rather than a masking step, and <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does
+not run it for you. The algorithm article explains why.</p>
+<div class="section level3">
+<h3 id="how-you-check-whether-it-worked">How you check whether it worked<a class="anchor" aria-label="anchor" href="#how-you-check-whether-it-worked"></a>
+</h3>
+<p>Three measurements, because an avatar can point back at a real
+patient in three independent ways. A study can pass one and fail
+another, so none substitutes for the rest.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>Function</th>
+<th>Asks</th>
+<th>Run on</th>
+<th>Target</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code></td>
+<td>Is anyone’s <strong>observation schedule</strong> unique — the list
+of times they were sampled at? Separately, is anyone’s
+<strong>dosing</strong> unique?</td>
+<td>source, before generating</td>
+<td>0 unique</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code></td>
+<td>Does anyone <strong>stand out</strong> on follow-up length, dose
+count, dose size, or peak DV?</td>
+<td>synthetic output</td>
+<td>nothing flagged</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code></td>
+<td>Did a synthetic patient’s <strong>covariates and DV trajectory
+together</strong> land nearer a real patient than real patients lie to
+each other?</td>
+<td>the pair, after</td>
+<td>near 0.5</td>
+</tr>
+</tbody>
+</table>
+<p>Sampling and dosing are scored separately and only the first is what
+“schedule” means here: the observation time vector excludes dose rows
+entirely. Dosing uniqueness is a different number, and
+<strong>coarsening does not touch it</strong> — a study with
+weight-based dosing leaves patients unique on dose however good the
+visit grid is.</p>
+<p>The headline count is <strong>one number split by cause</strong>, and
+the split says what to do next:</p>
+<ul>
+<li>
+<strong>unique observation schedule</strong> — patients whose list
+of observation times nobody else shares. Drive this to zero. It is
+always the sum of the next two.
+<ul>
+<li>
+<strong>unique observation time</strong> — sampled at a clock time
+nobody else was. <em>A grid can fix this</em>; that is what
+<code>coarsen_time</code> is for, and a nonzero count after coarsening
+means declaring <code>nominal_time</code> is the fix.</li>
+<li>
+<strong>unique set of visits</strong> — every time shared, but this
+combination of attended and missed visits is theirs. <em>No grid can fix
+this</em> at any resolution. <code>min_pattern_share</code> addresses it
+during generation; otherwise remediate or accept.</li>
+</ul>
+</li>
+</ul>
+<p>None of this is free, and the costs differ sharply by dataset. So
+<strong>each dataset below ends with its own full accounting</strong> —
+how many patients were excluded and why, how many visit sets were lost
+and who held them, how many subjects still hold a schedule nobody
+shares. The tables are deliberately verbose. Reading one takes a minute;
+not reading it means shipping a dataset without knowing what came out of
+it.</p>
+<p>Two quantities are worth learning to read first, because they are the
+ones that surprise people:</p>
+<ul>
+<li>
+<strong>“Unique observation schedule”</strong> — a patient whose
+list of observation times no other patient shares. An avatar anchored on
+such a patient wears a schedule belonging to exactly one real person,
+however carefully its concentrations were blended. The count is split by
+cause, because the two causes have different answers: a <em>unique
+observation time</em> is the grid’s job and is fixed by declaring
+<code>nominal_time</code>, while a <em>unique set of visits</em> is
+dropout and no grid can fix it.</li>
+<li>
+<strong>“Patterns discarded”</strong> — a real dropout or
+dose-interruption pattern that will not appear in the output at all.
+That loss is the mechanism working, not a bug: it is what stops an
+avatar carrying a schedule traceable to one person. Whether the cost is
+acceptable is a per-study judgment, which is why every run reports
+it.</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
 <h2 id="theophylline-repeated-dosing-dose-relative-pk">Theophylline: repeated dosing, dose-relative PK<a class="anchor" aria-label="anchor" href="#theophylline-repeated-dosing-dose-relative-pk"></a>
@@ -608,30 +860,205 @@ access controls.</p>
 </tr>
 </tbody>
 </table>
-<p>For a per-subject re-identification check,
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> scores each synthetic subject
-for being a structural outlier, and
-<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> removes or shortens the
-ones it flags.</p>
-<p>Those find subjects that are <em>extreme</em>.
-<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> finds subjects that are
-<em>alone</em> — run on the <strong>source</strong>, before generating,
-it reports how many others share each subject’s observation time vector,
-observation count, and event signature. That matters because the event
-skeleton is copied verbatim from one anchor, so a subject holding the
-only copy of its visit schedule passes it to every avatar anchored on
-it. <code>synpmx_avatar(coarsen_time = TRUE)</code>, the default, is
-what collapses the schedule case.</p>
+<div class="section level3">
+<h3 id="what-the-masking-did-to-theophylline">What the masking did to theophylline<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-theophylline"></a>
+</h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="va">theo_synth</span>, <span class="st">"theophylline"</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Everything theophylline’s run removed, and what was left to
+build on.</caption>
+<colgroup>
+<col width="37%">
+<col width="6%">
+<col width="56%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Quantity</th>
+<th align="right">Value</th>
+<th align="left">What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Who was available to build on</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Subjects in the source</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Excluded as structural outliers</td>
+<td align="right">0</td>
+<td align="left">
+<code>screen</code>: follow-up or dose count over twice
+the cohort’s 90th pct</td>
+</tr>
+<tr class="even">
+<td align="left">Excluded below the donor floor</td>
+<td align="right">0</td>
+<td align="left">
+<code>on_donor_shortfall</code>: a route arm with fewer
+than k + 1 subjects</td>
+</tr>
+<tr class="odd">
+<td align="left">Anchors available</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Avatars built</td>
+<td align="right">12</td>
+<td align="left">cohort size is unaffected by the exclusions above</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>How much of one patient reaches one
+avatar</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Donor floor (k)</td>
+<td align="right">5</td>
+<td align="left">real patients blended into each avatar</td>
+</tr>
+<tr class="odd">
+<td align="left">Largest share of one donor</td>
+<td align="right">0.5</td>
+<td align="left"><code>max_donor_weight</code></td>
+</tr>
+<tr class="even">
+<td align="left">Cap actually bound on</td>
+<td align="right">67%</td>
+<td align="left">of avatars</td>
+</tr>
+<tr class="odd">
+<td align="left">Effective donors, mean</td>
+<td align="right">3.08</td>
+<td align="left">1 / sum(w^2); the floor means little without this</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Visit schedule</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Grid used</td>
+<td align="right">derived</td>
+<td align="left">
+<code>nominal</code> where a <code>nominal_time</code>
+role was declared, else inferred</td>
+</tr>
+<tr class="even">
+<td align="left">Unique observation schedule, before coarsening</td>
+<td align="right">12</td>
+<td align="left">patients whose list of observation times nobody else
+shares</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique observation schedule, after</td>
+<td align="right">0</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">  unique observation time</td>
+<td align="right">0</td>
+<td align="left">sampled when nobody else was; the grid’s job, fixed by
+<code>nominal_time</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">  unique set of visits</td>
+<td align="right">0</td>
+<td align="left">every time shared; dropout, and no grid can fix it</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Which visits each patient
+attended</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Distinct visit sets in the source</td>
+<td align="right">3</td>
+<td align="left">a visit set is which of the shared visits one patient
+actually had</td>
+</tr>
+<tr class="even">
+<td align="left">Held by one patient, so discarded</td>
+<td align="right">0</td>
+<td align="left">
+<code>min_pattern_share</code>; lost, not
+approximated</td>
+</tr>
+<tr class="odd">
+<td align="left">Patients holding those</td>
+<td align="right">0</td>
+<td align="left">they stay in the cohort as donors</td>
+</tr>
+<tr class="even">
+<td align="left">Avatars given a real patient’s visit set</td>
+<td align="right">100%</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">  which visits were missed, invented</td>
+<td align="right">0%</td>
+<td align="left">how many and what kind of misses reused; which ones
+placed fresh</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Dose</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Recomputed from a covariate</td>
+<td align="right">no</td>
+<td align="left">detected only where the ratio collapses; fails
+closed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is the easy case, and it is worth understanding
+why.</strong> Nothing was excluded: no subject is structurally extreme,
+and with one route there is no arm below the donor floor, so all twelve
+subjects were available to anchor on and twelve avatars were built.</p>
+<p>The interesting row is the schedule pair. <strong>All twelve patients
+start out with a unique observation schedule</strong> — their
+observation times are recorded at full precision and no two patients
+were sampled at exactly the same moment, so every one of them holds a
+list of times nobody else shares. After coarsening the count is
+<strong>zero</strong>. The inferred grid found the shared visit
+structure underneath the recorded times and pulled everyone onto it.
+That is the coarsening mechanism doing its entire job.</p>
+<p>The visit-set rows follow from it. Before coarsening every subject
+holds its own visit set — twelve for twelve subjects, since no two were
+sampled at the same moments. Afterwards there are three, each shared by
+several subjects, so <strong>nothing had to be discarded</strong> and no
+arrangement had to be invented. This is the ideal case: coarsening
+removes the timing exposure, and visit-set sampling then has a real pool
+to draw from and costs nothing.</p>
+<p>Dose is not recomputed here. Theophylline is dosed by weight, but its
+dose-to-weight ratio varies by about 15% across subjects, and detection
+deliberately fails closed rather than impose a multiplier the study did
+not actually use.</p>
+<p><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> is what produced the “before”
+number, and it can be read directly for the per-subject detail behind
+the summary:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Restricted PMX skeleton-uniqueness screen: 12 of 12 subjects alone</span></span>
-<span><span class="co">#&gt; Alone = the only subject with this observation time vector (100% here).</span></span>
+<span><span class="co">#&gt; Restricted PMX schedule-uniqueness screen: 12 of 12 patients</span></span>
+<span><span class="co">#&gt; have a UNIQUE OBSERVATION SCHEDULE (100%): no other patient shares their</span></span>
+<span><span class="co">#&gt; list of observation times, so the schedule works as an identifier.</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   obs times alone:  12  &lt;- of which:</span></span>
-<span><span class="co">#&gt;     visited a moment nobody else did:  12  &lt;- the grid's job</span></span>
-<span><span class="co">#&gt;     every time shared, pattern unique:   0  &lt;- dropout; the screen's</span></span>
-<span><span class="co">#&gt;   n_obs alone:       0  &lt;- the residual it leaves, for the screen</span></span>
-<span><span class="co">#&gt;   signature alone:  10  &lt;- dose structure/amount; coarsening does not change it</span></span>
+<span><span class="co">#&gt;   unique observation schedule:   12  &lt;- of which:</span></span>
+<span><span class="co">#&gt;     unique observation time:       12  &lt;- sampled when nobody else was; the grid's job</span></span>
+<span><span class="co">#&gt;     unique set of visits:      0  &lt;- every time shared; dropout, the screen's job</span></span>
+<span><span class="co">#&gt;   unique observation count:    0  &lt;- the residual that leaves, for the screen</span></span>
+<span><span class="co">#&gt;   unique dose signature:      10  &lt;- dose structure/amount; coarsening cannot change it</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; By class size:</span></span>
 <span><span class="co">#&gt;  subject_id n_obs n_doses signature_class obs_time_class min_time_share</span></span>
@@ -647,26 +1074,34 @@ what collapses the schedule case.</p>
 <span><span class="co">#&gt;           9    22       7               1              1              1</span></span>
 <span><span class="co">#&gt;           3    22       7               2              1              1</span></span>
 <span><span class="co">#&gt;           8    22       7               2              1              1</span></span>
-<span><span class="co">#&gt;  n_obs_class alone</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
-<span><span class="co">#&gt;           12  TRUE</span></span>
+<span><span class="co">#&gt;  n_obs_class unique_schedule</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
+<span><span class="co">#&gt;           12            TRUE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Source-derived; not releasable unless separately public or privately budgeted.</span></span></code></pre></div>
+<p>For a per-subject check on the <em>generated</em> data rather than
+the source, <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> scores each
+synthetic subject for being a structural outlier and
+<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> removes or shortens the
+ones it flags. Those find subjects that are <em>extreme</em>;
+<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> finds patients whose <em>schedule is
+unique</em>.</p>
 <p><img src="synpmx-demo_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>A dose-relative display makes the coarse curve shape easier to see.
 AVATAR preserves the rise-and-fall because it blends real subject
 profiles rather than inventing a shape.</p>
 <p><img src="synpmx-demo_files/figure-html/theo-tad-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="warfarin-separate-pk-and-pd-endpoints">Warfarin: separate PK and PD endpoints<a class="anchor" aria-label="anchor" href="#warfarin-separate-pk-and-pd-endpoints"></a>
@@ -674,30 +1109,220 @@ profiles rather than inventing a shape.</p>
 <p><code>warfarin</code> has a lower-case schema, one dose, and two
 endpoints (<code>cp</code> and <code>pca</code>) with factor covariates.
 Both endpoints and all subjects are retained.</p>
-<pre><code><span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 2 of 32 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; Warning: `coarsen_time = TRUE` left 2 of 32 source subjects observed at a</span></span>
-<span><span class="co">#&gt; moment no other subject shares, so the grid could not hide the schedule and an</span></span>
-<span><span class="co">#&gt; avatar anchored there carries it. Declare a `nominal_time` role to snap to the</span></span>
-<span><span class="co">#&gt; protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the</span></span>
-<span><span class="co">#&gt; grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 10 of 32 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; Warning: 10 of 32 source subjects share every observation time with others but</span></span>
-<span><span class="co">#&gt; hold a unique *pattern* of which visits were attended -- dropout,</span></span>
-<span><span class="co">#&gt; discontinuation, or missed visits. Coarsening cannot change this, because the</span></span>
-<span><span class="co">#&gt; times are already shared. Screen those subjects with</span></span>
-<span><span class="co">#&gt; `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the</span></span>
-<span><span class="co">#&gt; pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
-<span><span class="co">#&gt; Warning: 2 source attendance pattern(s), held by 2 subject(s), were not shared</span></span>
-<span><span class="co">#&gt; by 2 or more patients and so will not appear in the synthetic data. These are</span></span>
-<span><span class="co">#&gt; real dropout and dose-interruption patterns, and losing them is what stops an</span></span>
-<span><span class="co">#&gt; avatar carrying a schedule traceable to one patient. To keep more of them,</span></span>
-<span><span class="co">#&gt; lower `min_pattern_share` (2 means no synthetic patient carries a schedule</span></span>
-<span><span class="co">#&gt; unique to a real one); `1` disables the mechanism and copies each anchor's own</span></span>
-<span><span class="co">#&gt; pattern.</span></span>
+<pre><code><span><span class="co">#&gt; SYNPMX ALERT: 2 of 32 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; Warning: 2 of 32 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 10 of 32 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; Warning: 10 of 32 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span>
+<span><span class="co">#&gt; Warning: 2 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span>
 <span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
 <span><span class="co">#&gt; - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="section level3">
+<h3 id="what-the-masking-did-to-warfarin">What the masking did to warfarin<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-warfarin"></a>
+</h3>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="va">warfarin_synth</span>, <span class="st">"warfarin"</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Everything warfarin’s run removed, and what was left to build
+on.</caption>
+<colgroup>
+<col width="35%">
+<col width="11%">
+<col width="53%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Quantity</th>
+<th align="right">Value</th>
+<th align="left">What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Who was available to build on</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Subjects in the source</td>
+<td align="right">32</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Excluded as structural outliers</td>
+<td align="right">0</td>
+<td align="left">
+<code>screen</code>: follow-up or dose count over twice
+the cohort’s 90th pct</td>
+</tr>
+<tr class="even">
+<td align="left">Excluded below the donor floor</td>
+<td align="right">0</td>
+<td align="left">
+<code>on_donor_shortfall</code>: a route arm with fewer
+than k + 1 subjects</td>
+</tr>
+<tr class="odd">
+<td align="left">Anchors available</td>
+<td align="right">32</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Avatars built</td>
+<td align="right">32</td>
+<td align="left">cohort size is unaffected by the exclusions above</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>How much of one patient reaches one
+avatar</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Donor floor (k)</td>
+<td align="right">5</td>
+<td align="left">real patients blended into each avatar</td>
+</tr>
+<tr class="odd">
+<td align="left">Largest share of one donor</td>
+<td align="right">0.5</td>
+<td align="left"><code>max_donor_weight</code></td>
+</tr>
+<tr class="even">
+<td align="left">Cap actually bound on</td>
+<td align="right">69%</td>
+<td align="left">of avatars</td>
+</tr>
+<tr class="odd">
+<td align="left">Effective donors, mean</td>
+<td align="right">2.88</td>
+<td align="left">1 / sum(w^2); the floor means little without this</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Visit schedule</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Grid used</td>
+<td align="right">derived</td>
+<td align="left">
+<code>nominal</code> where a <code>nominal_time</code>
+role was declared, else inferred</td>
+</tr>
+<tr class="even">
+<td align="left">Unique observation schedule, before coarsening</td>
+<td align="right">14</td>
+<td align="left">patients whose list of observation times nobody else
+shares</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique observation schedule, after</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">  unique observation time</td>
+<td align="right">2</td>
+<td align="left">sampled when nobody else was; the grid’s job, fixed by
+<code>nominal_time</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">  unique set of visits</td>
+<td align="right">10</td>
+<td align="left">every time shared; dropout, and no grid can fix it</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Which visits each patient
+attended</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Distinct visit sets in the source</td>
+<td align="right">14</td>
+<td align="left">a visit set is which of the shared visits one patient
+actually had</td>
+</tr>
+<tr class="even">
+<td align="left">Held by one patient, so discarded</td>
+<td align="right">2</td>
+<td align="left">
+<code>min_pattern_share</code>; lost, not
+approximated</td>
+</tr>
+<tr class="odd">
+<td align="left">Patients holding those</td>
+<td align="right">2</td>
+<td align="left">they stay in the cohort as donors</td>
+</tr>
+<tr class="even">
+<td align="left">Avatars given a real patient’s visit set</td>
+<td align="right">100%</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">  which visits were missed, invented</td>
+<td align="right">25%</td>
+<td align="left">how many and what kind of misses reused; which ones
+placed fresh</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Dose</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Recomputed from a covariate</td>
+<td align="right">yes, from <code>wt</code>
+</td>
+<td align="left">detected only where the ratio collapses; fails
+closed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is where the costs start to show.</strong> Again nothing
+was excluded — all 32 subjects were available to anchor on — but the
+schedule rows tell a different story from theophylline’s.</p>
+<p><strong>Twelve patients still have a unique schedule after
+coarsening, and only two of them for a reason the grid can
+address.</strong> The other ten share every one of their observation
+times with somebody; what singles them out is <em>which</em> of those
+shared visits they attended. Warfarin has subjects with 13, 14, 16, 17,
+18, 19 and 25 observations, and the rarer counts pick those subjects out
+on their own. No grid resolution helps, because the times are already
+shared.</p>
+<p><strong>Two of fourteen visit sets were discarded, each held by one
+patient.</strong> Those two patients stay in the cohort and keep
+contributing measurements as donors — only their distinctive absences
+stop being reproduced. Note that patterns discarded and patients holding
+them are equal: at the default floor of 2, a pattern is discarded
+exactly when one patient holds it, so the two numbers must agree. They
+diverge only at a floor of 3 or more.</p>
+<p><strong>A quarter of avatars had their missed visits placed
+fresh.</strong> The <em>shape</em> of the missingness — how many visits
+were missed and whether the misses were terminal, contiguous, or
+scattered — came from real patients who share it, but the specific
+visits missed were placed fresh, and rejected and redrawn if the
+placement happened to land on a pattern too rare to reuse. This is what
+keeps the loss at 2 patterns instead of 12; see the section on pattern
+strictness below.</p>
+<p><strong>Dose was recomputed from weight.</strong> Warfarin is dosed
+at 1.5 mg/kg to within 0.1%, tight enough for detection to fire, so each
+avatar’s <code>amt</code> comes from its own blended weight rather than
+from its anchor. Without this, a copied <code>amt</code> would disclose
+the anchor’s weight exactly.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="wbc-infusion-a-delayed-response-and-structural-screening">WBC: infusion, a delayed response, and structural screening<a class="anchor" aria-label="anchor" href="#wbc-infusion-a-delayed-response-and-structural-screening"></a>
@@ -717,10 +1342,201 @@ privacy guarantee; ordinary long follow-ups are kept, and
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
 <span><span class="co">#&gt; synpmx_avatar(): dropped 4 undeclared column(s): RATE, V2I, V1I, CLI.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 6 of 45 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 11 of 45 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 4 source attendance pattern(s), held by 4 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 6 of 45 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 11 of 45 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 4 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 4 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="section level3">
+<h3 id="what-the-masking-did-to-wbcsim">What the masking did to wbcSim<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-wbcsim"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span>, <span class="st">"wbcSim"</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Everything wbcSim’s run removed, and what was left to build
+on.</caption>
+<colgroup>
+<col width="37%">
+<col width="6%">
+<col width="56%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Quantity</th>
+<th align="right">Value</th>
+<th align="left">What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Who was available to build on</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Subjects in the source</td>
+<td align="right">45</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Excluded as structural outliers</td>
+<td align="right">2</td>
+<td align="left">
+<code>screen</code>: follow-up or dose count over twice
+the cohort’s 90th pct</td>
+</tr>
+<tr class="even">
+<td align="left">Excluded below the donor floor</td>
+<td align="right">0</td>
+<td align="left">
+<code>on_donor_shortfall</code>: a route arm with fewer
+than k + 1 subjects</td>
+</tr>
+<tr class="odd">
+<td align="left">Anchors available</td>
+<td align="right">43</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Avatars built</td>
+<td align="right">45</td>
+<td align="left">cohort size is unaffected by the exclusions above</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>How much of one patient reaches one
+avatar</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Donor floor (k)</td>
+<td align="right">5</td>
+<td align="left">real patients blended into each avatar</td>
+</tr>
+<tr class="odd">
+<td align="left">Largest share of one donor</td>
+<td align="right">0.5</td>
+<td align="left"><code>max_donor_weight</code></td>
+</tr>
+<tr class="even">
+<td align="left">Cap actually bound on</td>
+<td align="right">62%</td>
+<td align="left">of avatars</td>
+</tr>
+<tr class="odd">
+<td align="left">Effective donors, mean</td>
+<td align="right">2.87</td>
+<td align="left">1 / sum(w^2); the floor means little without this</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Visit schedule</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Grid used</td>
+<td align="right">derived</td>
+<td align="left">
+<code>nominal</code> where a <code>nominal_time</code>
+role was declared, else inferred</td>
+</tr>
+<tr class="even">
+<td align="left">Unique observation schedule, before coarsening</td>
+<td align="right">30</td>
+<td align="left">patients whose list of observation times nobody else
+shares</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique observation schedule, after</td>
+<td align="right">17</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">  unique observation time</td>
+<td align="right">6</td>
+<td align="left">sampled when nobody else was; the grid’s job, fixed by
+<code>nominal_time</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">  unique set of visits</td>
+<td align="right">11</td>
+<td align="left">every time shared; dropout, and no grid can fix it</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Which visits each patient
+attended</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Distinct visit sets in the source</td>
+<td align="right">25</td>
+<td align="left">a visit set is which of the shared visits one patient
+actually had</td>
+</tr>
+<tr class="even">
+<td align="left">Held by one patient, so discarded</td>
+<td align="right">4</td>
+<td align="left">
+<code>min_pattern_share</code>; lost, not
+approximated</td>
+</tr>
+<tr class="odd">
+<td align="left">Patients holding those</td>
+<td align="right">4</td>
+<td align="left">they stay in the cohort as donors</td>
+</tr>
+<tr class="even">
+<td align="left">Avatars given a real patient’s visit set</td>
+<td align="right">100%</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">  which visits were missed, invented</td>
+<td align="right">4%</td>
+<td align="left">how many and what kind of misses reused; which ones
+placed fresh</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Dose</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Recomputed from a covariate</td>
+<td align="right">no</td>
+<td align="left">detected only where the ratio collapses; fails
+closed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is the only public dataset where the anchor screen
+actually fires.</strong> Two of the 45 subjects are followed far enough
+beyond the rest to exceed twice the cohort’s 90th percentile, so no
+avatar is built on them. Read the next two rows together: <strong>43
+anchors available, 45 avatars built.</strong> The screen does not shrink
+the cohort — it removes those two from the pool that avatars are
+<em>drawn from</em>, and the other 43 are sampled with replacement to
+fill the same 45 slots. The two screened subjects also remain donors, so
+their measurements still contribute. What is lost is not their data but
+the possibility of an avatar wearing their distinctive follow-up
+length.</p>
+<p><strong>Seventeen patients have a unique schedule, split six and
+eleven.</strong> The six with a unique observation time are the ones
+worth acting on: <code>wbcSim</code> carries no nominal-time column, so
+the grid was inferred, and declaring a real one would likely clear them.
+The eleven with a unique set of attended visits are past the grid’s
+reach.</p>
+<p><strong>Four of 25 patterns were discarded.</strong> A larger
+absolute number than warfarin’s two but a much smaller share, because 45
+subjects on a common infusion schedule produce more repetition than 32
+warfarin subjects do.</p>
+<p>Dose is not recomputed: <code>wbcSim</code> has no baseline covariate
+for the amount to be proportional to, so there is nothing to detect.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="nimodata-infusions-occasions-and-a-dose-group">NimoData: infusions, occasions, and a dose group<a class="anchor" aria-label="anchor" href="#nimodata-infusions-occasions-and-a-dose-group"></a>
@@ -735,9 +1551,205 @@ undeclared, so AVATAR drops it.</p>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
 <span><span class="co">#&gt; synpmx_avatar(): dropped 1 undeclared column(s): WGT.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 12 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 12 of 12 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="section level3">
+<h3 id="what-the-masking-did-to-nimodata">What the masking did to nimoData<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-nimodata"></a>
+</h3>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span>, <span class="st">"nimoData"</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Everything nimoData’s run removed, and what was left to build
+on.</caption>
+<colgroup>
+<col width="37%">
+<col width="6%">
+<col width="56%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Quantity</th>
+<th align="right">Value</th>
+<th align="left">What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Who was available to build on</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Subjects in the source</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Excluded as structural outliers</td>
+<td align="right">0</td>
+<td align="left">
+<code>screen</code>: follow-up or dose count over twice
+the cohort’s 90th pct</td>
+</tr>
+<tr class="even">
+<td align="left">Excluded below the donor floor</td>
+<td align="right">0</td>
+<td align="left">
+<code>on_donor_shortfall</code>: a route arm with fewer
+than k + 1 subjects</td>
+</tr>
+<tr class="odd">
+<td align="left">Anchors available</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Avatars built</td>
+<td align="right">12</td>
+<td align="left">cohort size is unaffected by the exclusions above</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>How much of one patient reaches one
+avatar</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Donor floor (k)</td>
+<td align="right">5</td>
+<td align="left">real patients blended into each avatar</td>
+</tr>
+<tr class="odd">
+<td align="left">Largest share of one donor</td>
+<td align="right">0.5</td>
+<td align="left"><code>max_donor_weight</code></td>
+</tr>
+<tr class="even">
+<td align="left">Cap actually bound on</td>
+<td align="right">58%</td>
+<td align="left">of avatars</td>
+</tr>
+<tr class="odd">
+<td align="left">Effective donors, mean</td>
+<td align="right">2.94</td>
+<td align="left">1 / sum(w^2); the floor means little without this</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Visit schedule</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Grid used</td>
+<td align="right">derived</td>
+<td align="left">
+<code>nominal</code> where a <code>nominal_time</code>
+role was declared, else inferred</td>
+</tr>
+<tr class="even">
+<td align="left">Unique observation schedule, before coarsening</td>
+<td align="right">12</td>
+<td align="left">patients whose list of observation times nobody else
+shares</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique observation schedule, after</td>
+<td align="right">12</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">  unique observation time</td>
+<td align="right">12</td>
+<td align="left">sampled when nobody else was; the grid’s job, fixed by
+<code>nominal_time</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">  unique set of visits</td>
+<td align="right">0</td>
+<td align="left">every time shared; dropout, and no grid can fix it</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Which visits each patient
+attended</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Distinct visit sets in the source</td>
+<td align="right">12</td>
+<td align="left">a visit set is which of the shared visits one patient
+actually had</td>
+</tr>
+<tr class="even">
+<td align="left">Held by one patient, so discarded</td>
+<td align="right">2</td>
+<td align="left">
+<code>min_pattern_share</code>; lost, not
+approximated</td>
+</tr>
+<tr class="odd">
+<td align="left">Patients holding those</td>
+<td align="right">2</td>
+<td align="left">they stay in the cohort as donors</td>
+</tr>
+<tr class="even">
+<td align="left">Avatars given a real patient’s visit set</td>
+<td align="right">100%</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">  which visits were missed, invented</td>
+<td align="right">100%</td>
+<td align="left">how many and what kind of misses reused; which ones
+placed fresh</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Dose</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Recomputed from a covariate</td>
+<td align="right">no</td>
+<td align="left">detected only where the ratio collapses; fails
+closed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is the failure case, and it is the most instructive
+table in the vignette.</strong> Read the schedule rows: <strong>12 of 12
+unique before coarsening, 12 of 12 unique after, every one of them on a
+unique observation time.</strong> The grid achieved
+<em>nothing</em>.</p>
+<p>The reason is the study design. Ten roughly-weekly infusions per
+subject over a long follow-up means no two subjects were ever dosed or
+sampled close enough together for the inferred grid to merge them. Every
+subject is observed at moments that are theirs alone, so every avatar
+carries a real visit schedule.</p>
+<p>The visit-set rows show the same failure from the other side, and
+they are the clearest illustration in the vignette of what the shape
+fallback does. <strong>No two of the twelve subjects attended the same
+set of visits</strong>, so exact matching has nothing to reuse — yet
+only two patterns are recorded as discarded. The difference is the
+fallback: patterns that share a <em>shape</em> (how many visits were
+missed, and whether the misses were terminal, contiguous, or scattered)
+clear the floor together even though no individual pattern does. Hence
+the row that gives the game away: <strong>every avatar’s arrangement was
+invented rather than reused, 100%.</strong> The shape survives; which
+specific visits each patient missed does not.</p>
+<p>The two failures have one cause and one fix, and
+<code>nimoData</code> gets that fix demonstrated later in this vignette:
+constructing a nominal time from the protocol grid takes the
+unique-schedule count from 12 to 5 and gives coarsening something to
+work with.</p>
+<p>A dataset that produces this table should not be shipped as-is.
+Either declare or construct <code>nominal_time</code>, or treat the
+avatars as carrying real schedules.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="mavoglurant-occasion-reset-clock-and-a-carried-dose-column">Mavoglurant: occasion-reset clock and a carried dose column<a class="anchor" aria-label="anchor" href="#mavoglurant-occasion-reset-clock-and-a-carried-dose-column"></a>
@@ -752,10 +1764,197 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
 <span><span class="co">#&gt;   800 observation row(s) share a subject and time with another; that is ordinary for replicate</span></span>
 <span><span class="co">#&gt;   measurements and expected if two endpoints are being read at one visit.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 1 of 120 source subject observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 58 of 120 source subjects share every observation time with others but hold a unique *pattern* of which visits were attended -- dropout, discontinuation, or missed visits. Coarsening cannot change this, because the times are already shared. Screen those subjects with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if the pattern matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: 11 of 120 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 53 of 120 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="section level3">
+<h3 id="what-the-masking-did-to-mavoglurant">What the masking did to mavoglurant<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-mavoglurant"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Everything mavoglurant’s run removed, and what was left to
+build on.</caption>
+<colgroup>
+<col width="37%">
+<col width="6%">
+<col width="56%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Quantity</th>
+<th align="right">Value</th>
+<th align="left">What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Who was available to build on</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Subjects in the source</td>
+<td align="right">120</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Excluded as structural outliers</td>
+<td align="right">0</td>
+<td align="left">
+<code>screen</code>: follow-up or dose count over twice
+the cohort’s 90th pct</td>
+</tr>
+<tr class="even">
+<td align="left">Excluded below the donor floor</td>
+<td align="right">0</td>
+<td align="left">
+<code>on_donor_shortfall</code>: a route arm with fewer
+than k + 1 subjects</td>
+</tr>
+<tr class="odd">
+<td align="left">Anchors available</td>
+<td align="right">120</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Avatars built</td>
+<td align="right">120</td>
+<td align="left">cohort size is unaffected by the exclusions above</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>How much of one patient reaches one
+avatar</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Donor floor (k)</td>
+<td align="right">5</td>
+<td align="left">real patients blended into each avatar</td>
+</tr>
+<tr class="odd">
+<td align="left">Largest share of one donor</td>
+<td align="right">0.5</td>
+<td align="left"><code>max_donor_weight</code></td>
+</tr>
+<tr class="even">
+<td align="left">Cap actually bound on</td>
+<td align="right">64%</td>
+<td align="left">of avatars</td>
+</tr>
+<tr class="odd">
+<td align="left">Effective donors, mean</td>
+<td align="right">2.96</td>
+<td align="left">1 / sum(w^2); the floor means little without this</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Visit schedule</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Grid used</td>
+<td align="right">derived</td>
+<td align="left">
+<code>nominal</code> where a <code>nominal_time</code>
+role was declared, else inferred</td>
+</tr>
+<tr class="even">
+<td align="left">Unique observation schedule, before coarsening</td>
+<td align="right">72</td>
+<td align="left">patients whose list of observation times nobody else
+shares</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique observation schedule, after</td>
+<td align="right">64</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">  unique observation time</td>
+<td align="right">11</td>
+<td align="left">sampled when nobody else was; the grid’s job, fixed by
+<code>nominal_time</code>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">  unique set of visits</td>
+<td align="right">53</td>
+<td align="left">every time shared; dropout, and no grid can fix it</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Which visits each patient
+attended</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Distinct visit sets in the source</td>
+<td align="right">73</td>
+<td align="left">a visit set is which of the shared visits one patient
+actually had</td>
+</tr>
+<tr class="even">
+<td align="left">Held by one patient, so discarded</td>
+<td align="right">2</td>
+<td align="left">
+<code>min_pattern_share</code>; lost, not
+approximated</td>
+</tr>
+<tr class="odd">
+<td align="left">Patients holding those</td>
+<td align="right">2</td>
+<td align="left">they stay in the cohort as donors</td>
+</tr>
+<tr class="even">
+<td align="left">Avatars given a real patient’s visit set</td>
+<td align="right">100%</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">  which visits were missed, invented</td>
+<td align="right">0%</td>
+<td align="left">how many and what kind of misses reused; which ones
+placed fresh</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Dose</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Recomputed from a covariate</td>
+<td align="right">no</td>
+<td align="left">detected only where the ratio collapses; fails
+closed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The largest cohort here, and the one where the residual is
+largest in absolute terms.</strong> Nothing was excluded from the anchor
+pool. The grid did essentially everything it could: of the patients
+still unique afterwards, <strong>only one has a unique observation
+time.</strong> The rest share every observation time with somebody and
+differ only in which of those visits they attended.</p>
+<p>That leaves the largest absolute residual in the vignette — 58 of 120
+subjects whose set of attended visits nobody else matches — and no grid
+setting moves it. This is what the “unique pattern” row is for: it
+separates a problem you can fix by declaring <code>nominal_time</code>
+from one you can only address by dropping, remediating, or
+accepting.</p>
+<p>The pattern rows show the shape fallback working hard. Mavoglurant
+has by far the most distinct visit sets of any dataset here — 69 after
+coarsening, 59 of them held by a single patient. Exact matching alone
+would have discarded all 59. Instead <strong>two are discarded</strong>,
+because the rest share a shape with somebody, and no arrangement had to
+be invented at all: for every avatar, a real pattern of the right shape
+was available to reuse.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="the-model-based-path-on-the-same-data">The model-based path on the same data<a class="anchor" aria-label="anchor" href="#the-model-based-path-on-the-same-data"></a>
@@ -772,10 +1971,10 @@ budget share is an explicit public input.
 refuses to run until <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been
 called once in the session, acknowledging the maintenance status covered
 in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
 <span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
@@ -820,7 +2019,7 @@ in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is called. The release it produced
 travels with the returned dataset, so any number of further datasets can
 be drawn from it as post-processing, without spending more budget:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">theo_private</span>, seed <span class="op">=</span> <span class="fl">708</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
 <p>Reach for <code><a href="../reference/synpmx_generate.html">synpmx_generate()</a></code> rather than calling
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> a second time — a second call is a
@@ -842,51 +2041,23 @@ the introduction vignette runs it on this same dataset.</p>
 This section asks the other question: how much of each real patient is
 still visible in it?</p>
 <div class="section level3">
-<h3 id="what-is-being-counted-and-why">What is being counted, and why<a class="anchor" aria-label="anchor" href="#what-is-being-counted-and-why"></a>
+<h3 id="all-five-side-by-side">All five side by side<a class="anchor" aria-label="anchor" href="#all-five-side-by-side"></a>
 </h3>
-<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> blends every avatar’s
-<strong>measurements</strong> from at least five real donors, so no
-single patient’s numbers survive. But it copies the <strong>event
-skeleton</strong> — the pattern of when that patient was dosed and
-sampled — verbatim from one real anchor. Blending never touches it.</p>
-<p>So the question that matters is: <strong>does any real subject have a
-visit schedule that no other subject in the cohort shares?</strong> If
-yes, an avatar built on that subject wears a schedule belonging to
-exactly one real person, however carefully their concentrations were
-blended. Call such a subject <strong>alone</strong>.</p>
-<p><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> counts them, and
-<code>coarsen_time = TRUE</code> (the default) is the mechanism that
-tries to fix it, by snapping every subject onto a shared visit grid
-before any avatar is built. A subject can end up alone for two reasons,
-and they have different answers:</p>
-<ul>
-<li>
-<strong>Seen at a unique moment.</strong> The subject was observed
-at a time no other subject was observed at all — a one-off visit. The
-grid is supposed to absorb this by pulling nearby times together, so a
-nonzero count here means the inferred grid could not find a shared
-schedule. <strong>The fix is to declare a <code>nominal_time</code>
-role</strong>, which snaps to the real protocol grid instead of a
-guessed one.</li>
-<li>
-<strong>Unique pattern of visits.</strong> Every one of the
-subject’s times is shared with somebody — but the particular
-<em>combination</em> they attended is theirs alone. This is dropout,
-early discontinuation, or a missed sample. <strong>No grid can fix
-it</strong>, however fine or coarse, because the times are already
-shared. Only dropping or remediating the subject helps.</li>
-</ul>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<p>Each dataset above carries its own accounting. This section puts the
+same quantities in one place, because the <em>contrast</em> between
+datasets is what shows how much the answer depends on study design
+rather than on the package.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exposure_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span>  <span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    Dataset <span class="op">=</span> <span class="va">label</span>,</span>
 <span>    Subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">before</span><span class="op">)</span>,</span>
-<span>    `Alone before` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">before</span>, <span class="st">"n_alone"</span><span class="op">)</span>,</span>
-<span>    `Alone after` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">exposure_alone</span>,</span>
-<span>    `Unique moment` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">exposure_unique_moment</span>,</span>
-<span>    `Unique pattern` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">exposure_unique_pattern</span>,</span>
+<span>    `Unique before` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">before</span>, <span class="st">"n_unique_schedule"</span><span class="op">)</span>,</span>
+<span>    `Unique after` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">unique_schedule_n</span>,</span>
+<span>    `Unique observation time` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">unique_obs_time_n</span>,</span>
+<span>    `Unique visit set` <span class="op">=</span> <span class="va">after</span><span class="op">$</span><span class="va">unique_visit_set_n</span>,</span>
 <span>    check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
@@ -911,20 +2082,20 @@ shared. Only dropping or remediating the subject helps.</li>
 shares, before and after time coarsening. The last two columns split the
 ‘after’ count by cause.</caption>
 <colgroup>
-<col width="16%">
-<col width="12%">
-<col width="17%">
-<col width="16%">
-<col width="18%">
-<col width="20%">
+<col width="13%">
+<col width="10%">
+<col width="15%">
+<col width="14%">
+<col width="26%">
+<col width="19%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dataset</th>
 <th align="right">Subjects</th>
-<th align="right">Alone before</th>
-<th align="right">Alone after</th>
-<th align="right">Unique moment</th>
-<th align="right">Unique pattern</th>
+<th align="right">Unique before</th>
+<th align="right">Unique after</th>
+<th align="right">Unique observation time</th>
+<th align="right">Unique visit set</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -963,9 +2134,9 @@ shares, before and after time coarsening. The last two columns split the
 <td align="left">mavoglurant</td>
 <td align="right">120</td>
 <td align="right">72</td>
-<td align="right">59</td>
-<td align="right">1</td>
-<td align="right">58</td>
+<td align="right">64</td>
+<td align="right">11</td>
+<td align="right">53</td>
 </tr>
 </tbody>
 </table>
@@ -976,12 +2147,15 @@ shares, before and after time coarsening. The last two columns split the
 <p>Exposure is only half the story. The mechanisms that reduce it do so
 by <em>removing</em> things, and the removals are worth seeing next to
 the numbers above.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    Dataset <span class="op">=</span> <span class="va">label</span>,</span>
-<span>    Patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    Patients <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">source_subjects</span>,</span>
+<span>    `Screened out` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">anchors_screened_out</span>,</span>
+<span>    `Below donor floor` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">anchors_route_excluded</span>,</span>
+<span>    `Anchors left` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">anchors_available</span>,</span>
 <span>    `Patterns` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">patterns_total</span>,</span>
 <span>    `Patterns lost` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">patterns_dropped</span>,</span>
 <span>    `Patients affected` <span class="op">=</span> <span class="va">settings</span><span class="op">$</span><span class="va">subjects_with_dropped_pattern</span>,</span>
@@ -999,26 +2173,33 @@ the numbers above.</p>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
-<span>    <span class="st">"What the masking removed. `Patterns` counts the distinct attendance"</span>,</span>
-<span>    <span class="st">"patterns in the source; `Patterns lost` counts those too rare to be"</span>,</span>
-<span>    <span class="st">"reused."</span></span>
+<span>    <span class="st">"What the masking removed. The first three counts are patients excluded"</span>,</span>
+<span>    <span class="st">"from the anchor pool; `Patterns` counts distinct visit sets in"</span>,</span>
+<span>    <span class="st">"the source and `Patterns lost` those too rare to be reused."</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>What the masking removed. <code>Patterns</code> counts the
-distinct attendance patterns in the source; <code>Patterns lost</code>
-counts those too rare to be reused.</caption>
+<caption>What the masking removed. The first three counts are patients
+excluded from the anchor pool; <code>Patterns</code> counts distinct
+visit sets in the source and <code>Patterns lost</code> those too rare
+to be reused.</caption>
 <colgroup>
-<col width="16%">
-<col width="12%">
-<col width="12%">
-<col width="19%">
-<col width="24%">
+<col width="10%">
+<col width="7%">
+<col width="11%">
 <col width="15%">
+<col width="11%">
+<col width="7%">
+<col width="11%">
+<col width="15%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dataset</th>
 <th align="right">Patients</th>
+<th align="right">Screened out</th>
+<th align="right">Below donor floor</th>
+<th align="right">Anchors left</th>
 <th align="right">Patterns</th>
 <th align="right">Patterns lost</th>
 <th align="right">Patients affected</th>
@@ -1028,6 +2209,9 @@ counts those too rare to be reused.</caption>
 <tr class="odd">
 <td align="left">theo_md</td>
 <td align="right">12</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">12</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1035,6 +2219,9 @@ counts those too rare to be reused.</caption>
 </tr>
 <tr class="even">
 <td align="left">warfarin</td>
+<td align="right">32</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">32</td>
 <td align="right">14</td>
 <td align="right">2</td>
@@ -1044,6 +2231,9 @@ counts those too rare to be reused.</caption>
 <tr class="odd">
 <td align="left">wbcSim</td>
 <td align="right">45</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">43</td>
 <td align="right">25</td>
 <td align="right">4</td>
 <td align="right">4</td>
@@ -1051,6 +2241,9 @@ counts those too rare to be reused.</caption>
 </tr>
 <tr class="even">
 <td align="left">nimoData</td>
+<td align="right">12</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">12</td>
 <td align="right">12</td>
 <td align="right">2</td>
@@ -1060,14 +2253,23 @@ counts those too rare to be reused.</caption>
 <tr class="odd">
 <td align="left">mavoglurant</td>
 <td align="right">120</td>
-<td align="right">69</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">120</td>
+<td align="right">73</td>
 <td align="right">2</td>
 <td align="right">2</td>
 <td align="left">—</td>
 </tr>
 </tbody>
 </table>
-<p>Two things in this table look wrong at first and are not.</p>
+<p>Three things in this table look wrong at first and are not.</p>
+<p><strong>Only <code>wbcSim</code> loses any patient from the anchor
+pool, and the cohort is still full size.</strong> Screening removes a
+subject from the pool avatars are <em>drawn from</em>, not from the
+cohort: the remaining anchors are sampled with replacement to fill every
+slot, and the screened subjects still contribute measurements as donors.
+An exclusion costs coverage of a structure, never sample size.</p>
 <p><strong><code>Patterns lost</code> equals
 <code>Patients affected</code> in every row.</strong> That is an
 identity, not a coincidence. At the default floor of 2, a pattern is
@@ -1076,8 +2278,8 @@ is, when exactly one does. So every discarded pattern has precisely one
 holder and the two columns must agree. They only diverge at a floor of 3
 or more, where a pattern held by two patients is also dropped.</p>
 <p><strong><code>nimoData</code> loses all twelve patterns, held by all
-twelve patients.</strong> Also correct: no two of its subjects share an
-attendance pattern at all, so nothing qualifies and there is no pool to
+twelve patients.</strong> Also correct: no two of its subjects attended
+the same set of visits, so nothing qualifies and there is no pool to
 draw from. Every avatar keeps its anchor’s own pattern — the safe
 failure, and the run alerts — which is the same underlying problem as
 its inferred-grid failure and has the same fix, shown below.</p>
@@ -1089,8 +2291,9 @@ its inferred-grid failure and has the same fix, shown below.</p>
 is the <strong>exact</strong> set of endpoint-and-time pairs a subject
 was observed at. Two patients who each missed exactly one visit have
 <em>different</em> patterns if they missed different visits. That is why
-singletons dominate so heavily — 12 of warfarin’s 14, 54 of
-mavoglurant’s 64 — and therefore why so much is discarded.</p>
+singletons dominate so heavily — after coarsening, 12 of warfarin’s 14
+patterns are held by one patient, and 59 of mavoglurant’s 69 — and
+therefore why exact matching alone would discard so much.</p>
 <p>The strictness is what makes the guarantee exact: reusing a pattern
 that one real patient holds would reproduce that patient’s schedule, so
 nothing short of exact matching would support the claim. The cost is
@@ -1102,9 +2305,14 @@ terminal (dropout), contiguous (an interruption), or scattered — and
 both of those patients share one. Within the shape a real pattern is
 reused if one clears the floor; only otherwise is an arrangement
 generated, and a generated one is rejected and redrawn if it happens to
-land on a pattern too rare to have been reusable. On
-<code>warfarin</code> that takes the loss from 12 patterns to the 2
-shown above.</p>
+land on a pattern too rare to have been reusable.</p>
+<p>The per-dataset tables show how much this rescues. On
+<code>warfarin</code> the loss falls from 12 patterns to 2; on
+<code>mavoglurant</code> from 59 to 2; on <code>nimoData</code>, where
+<em>no</em> pattern is shared by even two subjects, from 12 to 2. The
+price appears in the “arrangement invented” row: <code>nimoData</code>
+pays it in full at 100%, <code>warfarin</code> at 25%, and
+<code>mavoglurant</code> not at all.</p>
 <p>What remains lost is <em>resolution</em>: how much missingness there
 was and what kind survive; which specific visits each patient missed
 does not.</p>
@@ -1119,7 +2327,7 @@ each subject’s nearest neighbour lies in its own dataset or the other
 one. Near 0.5 means a synthetic subject is no more like a real subject
 than one real subject is like another, which is the target; toward 0
 means memorisation.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -1171,16 +2379,16 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 </tr>
 <tr class="odd">
 <td align="left">wbcSim</td>
-<td align="right">0.455</td>
-<td align="right">0.341</td>
-<td align="right">0.649</td>
+<td align="right">0.568</td>
+<td align="right">0.357</td>
+<td align="right">0.665</td>
 <td align="right">22</td>
 </tr>
 <tr class="even">
 <td align="left">mavoglurant</td>
 <td align="right">0.575</td>
-<td align="right">0.425</td>
-<td align="right">0.575</td>
+<td align="right">0.415</td>
+<td align="right">0.583</td>
 <td align="right">60</td>
 </tr>
 </tbody>
@@ -1195,60 +2403,42 @@ the statistic to zero, which the package’s own regression test confirms
 by handing the function a verbatim copy and requiring it to object.</p>
 </div>
 <div class="section level3">
-<h3 id="reading-the-table">Reading the table<a class="anchor" aria-label="anchor" href="#reading-the-table"></a>
+<h3 id="reading-the-tables-across-datasets">Reading the tables across datasets<a class="anchor" aria-label="anchor" href="#reading-the-tables-across-datasets"></a>
 </h3>
-<p><strong>“Alone after” is the number of patients you would consider
-dropping</strong>, and the last two columns say why — which decides
-whether dropping is even the right response.</p>
-<ul>
-<li>
-<strong><code>theo_md</code> — nothing to do.</strong> All twelve
-subjects start out alone, because their sampling times are recorded to
-the minute and no two patients were bled at exactly the same moment.
-Coarsening pulls those onto a shared grid and the count goes to zero.
-This is the mechanism working exactly as intended.</li>
-<li>
-<strong><code>warfarin</code> — consider dropping 12 of 32, but the
-reason matters.</strong> Only two are alone because of a unique moment;
-the other ten share every one of their times and are alone purely on
-<em>which</em> visits they attended. Warfarin has subjects with 13, 14,
-16, 17, 18, 19 and 25 observations, and the rarer counts single those
-subjects out. Coarsening cannot help them.</li>
-<li>
-<strong><code>wbcSim</code> — 17 of 45, split 6 and 11.</strong> The
-six unique-moment subjects are the ones to look at first; declaring a
-nominal-time column would likely clear them.</li>
-<li>
-<strong><code>nimoData</code> — 12 of 12, and coarsening achieved
-nothing.</strong> All twelve are alone on a unique moment. This is a
-genuine failure of the inferred grid: with ten roughly-weekly infusions
-per subject over a long follow-up, no two subjects were ever dosed or
-sampled close enough together for the grid to merge them. This dataset
-needs <code>nominal_time</code> declared, or its avatars should be
-treated as carrying real visit schedules.</li>
-<li>
-<strong><code>mavoglurant</code> — 59 of 120, but only one from a
-unique moment.</strong> The grid did essentially all it could. The
-remaining 58 differ in which of the shared visits they attended.</li>
-</ul>
+<p><strong>The unique-schedule count after coarsening is the number of
+patients you would consider dropping</strong>, and the split by cause
+decides whether dropping is even the right response. Each dataset
+section above works through its own numbers; the pattern across all five
+is what matters here.</p>
+<p>The spread runs from <strong><code>theo_md</code>, where coarsening
+takes 12 unique schedules to 0 and there is nothing left to do</strong>,
+through <strong><code>mavoglurant</code>, where the grid does everything
+it can and still leaves 58 of 120 patients unique on their visit
+set</strong>, to <strong><code>nimoData</code>, where the grid achieves
+nothing at all</strong>. Same package, same defaults, same seed
+discipline — the difference is entirely in how the studies were designed
+and how their times were recorded.</p>
+<p>That is the point of reporting these per dataset rather than quoting
+a headline number. There is no “synpmx removes X% of the exposure.”
+There is only what it removed from <em>your</em> study, which is why
+every run reports it and why the sequence below starts with a question
+about your data rather than about a setting.</p>
 </div>
 <div class="section level3">
 <h3 id="what-the-other-mechanisms-leave-behind">What the other mechanisms leave behind<a class="anchor" aria-label="anchor" href="#what-the-other-mechanisms-leave-behind"></a>
 </h3>
-<p>Two of the six mechanisms act on the columns this table does not
-show, and it is worth knowing which residual belongs to which.</p>
-<p><strong>Dose.</strong> Under dosing proportional to a baseline
-covariate, each avatar’s <code>AMT</code> is recomputed from its
-<em>own</em> blended weight rather than copied from its anchor, so the
-amount is neither a real patient’s real dose nor inconsistent with the
-avatar’s own covariates. <code>warfarin</code> is recognised this way
-(1.5 mg/kg to within 0.1%); <code>theo_md</code> is not, because its
-dose-to-weight ratio varies by 15% and detection deliberately fails
-closed. Where the dose sequence is instead outcome-adaptive —
-intra-patient escalation driven by a subject’s own tolerability —
-nothing here touches it, because the sequence <em>is</em> that subject’s
-response.</p>
-<p><strong>Attendance.</strong> The <code>Unique pattern</code> column
+<p>One residual belongs to a mechanism these tables do not have a column
+for.</p>
+<p><strong>Dose sequence.</strong> The dose <em>amount</em> is handled:
+under dosing proportional to a baseline covariate, each avatar’s amount
+is recomputed from its own blended covariate, as the per-dataset tables
+report. What is still copied is the <em>sequence of levels</em> an
+anchor climbed. Where escalation is outcome-adaptive — driven by a
+subject’s own tolerability — that sequence encodes the subject’s
+response, and nothing here touches it. No public dataset in this
+vignette has that shape, so it does not appear in any table above; a
+dose-escalation oncology study would.</p>
+<p><strong>Which visits were attended.</strong> The unique-visit-set row
 above is what <code>min_pattern_share</code> (default 2) addresses: an
 avatar’s set of attended visits is drawn from patterns at least that
 many source subjects share, so no synthetic patient carries a schedule
@@ -1256,17 +2446,20 @@ unique to a real one. No subject is removed from the cohort to achieve
 it — a patient with a rare pattern still contributes measurements as a
 donor.</p>
 <p>What <em>is</em> lost is the rare patterns themselves. They are
-discarded rather than approximated, so real dropout and
-dose-interruption patterns will not appear in the output. On
-<code>warfarin</code> the default excludes 12 of the 14 observed
-patterns, held by 12 of 32 patients, leaving 2 distinct sample counts
-where the source had 6. Raising the floor to 3 would leave exactly 1.
-Every run reports the figures — <code>patterns_dropped</code> and
+discarded rather than approximated, so those specific dropout and
+dose-interruption patterns will not appear in the output. With the shape
+fallback the loss is small on every dataset here — two patterns each on
+<code>warfarin</code>, <code>nimoData</code>, and
+<code>mavoglurant</code>, four on <code>wbcSim</code> — but it is never
+zero except where coarsening has already made the patterns common, as on
+<code>theo_md</code>.</p>
+<p>Every run reports the figures, and the per-dataset tables above print
+them: <code>patterns_total</code>, <code>patterns_dropped</code>, and
 <code>subjects_with_dropped_pattern</code> in the settings, plus a loud
-alert — so this can be judged per study instead of assumed. On
-<code>nimoData</code> no pattern is shared by even two subjects, so
-there is no pool at all and each anchor keeps its own; constructing a
-nominal time, below, is what gives sampling something to draw from.</p>
+alert. Read them together with <code>pattern_generated_fraction</code>,
+because a small discard count can be bought with a large share of
+invented arrangements — <code>nimoData</code> discards only two patterns
+and invents the arrangement for every single avatar.</p>
 </div>
 <div class="section level3">
 <h3 id="what-to-do-about-it">What to do about it<a class="anchor" aria-label="anchor" href="#what-to-do-about-it"></a>
@@ -1287,7 +2480,7 @@ because its inferred grid fails completely. Its design is ten
 roughly-weekly infusions with a declared occasion and time-after-dose,
 so the protocol grid is the occasion number times the nominal interval,
 plus the visit’s nominal time after dose:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
 <span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">168</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span>, <span class="fl">0</span><span class="op">)</span></span>
@@ -1305,21 +2498,29 @@ plus the visit’s nominal time after dose:</p>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
 <span><span class="co">#&gt; synpmx_avatar(): dropped 1 undeclared column(s): WGT.</span></span>
 <span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: `coarsen_time = TRUE` left 5 of 12 source subjects observed at a moment no other subject shares, so the grid could not hide the schedule and an avatar anchored there carries it. Declare a `nominal_time` role to snap to the protocol grid exactly; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 2 source attendance pattern(s), held by 2 subject(s), were not shared by 2 or more patients and so will not appear in the synthetic data. These are real dropout and dose-interruption patterns, and losing them is what stops an avatar carrying a schedule traceable to one patient. To keep more of them, lower `min_pattern_share` (2 means no synthetic patient carries a schedule unique to a real one); `1` disables the mechanism and copies each anchor's own pattern.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 5 of 12 patients still have a UNIQUE OBSERVATION TIME after coarsening: each was sampled at a moment no other patient was, so their list of observation times identifies them, and an avatar built on them carries that schedule.</span></span>
+<span><span class="co">#&gt;   Coarsening exists to merge such times onto a shared visit grid and could not find one here. Declaring a `nominal_time` role snaps to the real protocol grid instead of a guessed one and is the reliable fix; `scripts/measure_skeleton_uniqueness.R` shows what the grid did and did not collapse.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: 2 patients in this study showed up for a combination of visits that no other patient matched.</span></span>
+<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For each of them that exact combination of kept and missed visits is theirs alone.</span></span>
+<span><span class="co">#&gt;   No synthetic patient is given one of those 2 combinations, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
+<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">nimo_fixed</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">[</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time_grid"</span>, <span class="st">"exposure_alone"</span>, <span class="st">"exposure_unique_moment"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time_grid"</span>, <span class="st">"unique_schedule_n"</span>, <span class="st">"unique_obs_time_n"</span><span class="op">)</span></span>
 <span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;              time_grid         exposure_alone exposure_unique_moment </span></span>
-<span><span class="co">#&gt;              "nominal"                    "5"                    "5"</span></span></code></pre></div>
-<p>Subjects alone fall from 12 of 12 to 5, all in the long washout tail
-after the last dose, where a follow-up visit at 240 or 624 hours belongs
-to one patient. Coarsening that tail further does not help — at a
-two-week grid the count goes back up, because merging genuinely distinct
-visits creates new <em>pattern</em> uniqueness. Just as important,
-attendance sampling now has a pool at all: with the inferred grid no two
-subjects shared a pattern, so <code>min_pattern_share</code> had nothing
-to draw from.</p>
+<span><span class="co">#&gt;         time_grid unique_schedule_n unique_obs_time_n </span></span>
+<span><span class="co">#&gt;         "nominal"               "5"               "5"</span></span></code></pre></div>
+<p>Unique schedules fall from 12 of 12 to 5, all in the long washout
+tail after the last dose, where a follow-up visit at 240 or 624 hours
+belongs to one patient. Coarsening that tail further does not help — at
+a two-week grid the count goes back up, because merging genuinely
+distinct visits creates new <em>pattern</em> uniqueness.</p>
+<p>Visit-set sampling improves just as much, though the discard count
+does not show it. With the inferred grid no two subjects shared a
+pattern, so every avatar’s arrangement had to be invented from a shape;
+on the nominal grid the twelve patterns collapse to eight, real ones
+become reusable, and the invented share falls from <strong>100% to
+17%</strong>. Two patterns are discarded either way. This is why the
+discard count should never be read alone.</p>
 </li>
 <li><p><strong>Then re-run this table.</strong> If the unique-moment
 count is at or near zero, the grid has done its whole job and no amount

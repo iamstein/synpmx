@@ -29,12 +29,12 @@ every avatar anchored on it."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-method.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four generation modes</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy in synpmx</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Method</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
@@ -94,7 +94,7 @@ every avatar anchored on it.</p>
 per subject: <code>subject_id</code>, <code>n_obs</code>, <code>n_doses</code>, <code>signature_class</code>,
 <code>obs_time_class</code>, <code>n_obs_class</code> (each counting the subjects sharing that
 key, including itself), and <code>alone</code> (<code>TRUE</code> when <code>obs_time_class == 1</code>).
-Attributes <code>n_alone</code>, <code>n_alone_signature</code>, <code>n_alone_n_obs</code>, and <code>min_class</code>
+Attributes <code>n_unique_schedule</code>, <code>n_alone_signature</code>, <code>n_alone_n_obs</code>, and <code>min_class</code>
 summarize the cohort.</p>
     </div>
     <div class="section level2">
@@ -131,14 +131,15 @@ a privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-in"><span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"DVID"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">skeleton_uniqueness</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Restricted PMX skeleton-uniqueness screen: 0 of 30 subjects alone</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Alone = the only subject with this observation time vector (0% here).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Restricted PMX schedule-uniqueness screen: 0 of 30 patients</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> have a UNIQUE OBSERVATION SCHEDULE (0%): no other patient shares their</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> list of observation times, so the schedule works as an identifier.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   obs times alone:   0  &lt;- of which:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     visited a moment nobody else did:   0  &lt;- the grid's job</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     every time shared, pattern unique:   0  &lt;- dropout; the screen's</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   n_obs alone:       0  &lt;- the residual it leaves, for the screen</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   signature alone:  30  &lt;- dose structure/amount; coarsening does not change it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   unique observation schedule:    0  &lt;- of which:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     unique observation time:        0  &lt;- sampled when nobody else was; the grid's job</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     unique set of visits:      0  &lt;- every time shared; dropout, the screen's job</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   unique observation count:    0  &lt;- the residual that leaves, for the screen</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   unique dose signature:      30  &lt;- dose structure/amount; coarsening cannot change it</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Twelve most exposed:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  subject_id n_obs n_doses signature_class obs_time_class min_time_share</span>
@@ -154,19 +155,19 @@ a privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          18    14       2               1             30             30</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          19    14       2               1             30             30</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           2    14       2               1             30             30</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  n_obs_class alone</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           30 FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  n_obs_class unique_schedule</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           30           FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ... 18 more row(s) in the returned table.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Source-derived; not releasable unless separately public or privately budgeted.</span>
