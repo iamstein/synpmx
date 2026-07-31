@@ -336,20 +336,24 @@ caller's random-number state is left untouched; reproducibility comes from the
 ## What the masking does, and what it costs
 
 Enough happens by default that it is worth naming the mechanisms before looking
-at any data. AVATAR blends every avatar's **measurements** from several real
+at any data. The AVATAR algorithm article walks through each in detail. AVATAR blends every avatar's **measurements** from several real
 donors, so no single patient's numbers survive. But the **event skeleton** — the
 pattern of when a patient was dosed and sampled — is copied verbatim from one
 real anchor, and blending never touches it. Five mechanisms act on that
 skeleton, and every one of them works by *removing* something:
 
-| Mechanism | Default | What it removes |
-|---|---|---|
-| Donor blending, capped | `k = 5`, `max_donor_weight = 0.50` | Any one patient's measurements. No real patient is more than half of any avatar. |
-| Anchor screen | `screen = TRUE` | Structurally extreme patients, from the *anchor pool*. Nobody is dropped from the cohort — they still donate measurements. |
-| Donor floor by route | `on_donor_shortfall = "drop"` | Whole route arms too small to blend within. The synthetic cohort then does not represent that arm. |
-| Time coarsening | `coarsen_time = TRUE` | Each patient's exact visit times, by snapping onto a shared grid and resampling pooled deviations back. |
-| Visit-set sampling | `min_pattern_share = 2` | Combinations of attended and missed visits that only one patient had — real dropout and interruption, discarded rather than approximated. |
-| Dose recomputation | automatic | The anchor's literal dose amount, where dosing is proportional to a covariate. Recomputed from the avatar's own blended covariate. |
+The article numbers them **M1 to M7, in the order they run**; the same order is
+used here.
+
+| | Mechanism | Default | What it removes |
+|---|---|---|---|
+| **M1** | Coarsen the source times | `coarsen_time = TRUE` | Each patient's exact times, for **both** dose events and DV observations, by snapping onto a shared visit grid. |
+| **M2** | Exclude anchors that cannot be masked | `screen = TRUE`, `on_donor_shortfall = "drop"` | Structurally extreme patients, and route arms too small to blend within, from the *anchor pool*. Nobody leaves the cohort — they still donate measurements. |
+| **M3** | Sample which visits were attended | `min_pattern_share = 2` | Combinations of attended and missed visits only one patient had — real dropout and interruption, discarded rather than approximated. |
+| **M4** | Restore timing deviations | `coarsen_time = TRUE` | *Nothing* — this is M1's second half, putting realism back from a cohort-wide pool of deviations. |
+| **M5** | Blend donors, capped, plus noise | `k = 5`, `max_donor_weight = 0.50` | Any one patient's measurements and covariates. No real patient is more than half of any avatar. |
+| **M6** | Recompute the dose from the blended covariate | automatic | The anchor's literal dose amount, where dosing is proportional to a covariate. |
+| **M7** | Screen the finished data, remediate | **manual** | Whatever M1–M6 left standing out. `synpmx_avatar()` does not run this for you — see below. |
 
 ### How you check whether it worked
 
