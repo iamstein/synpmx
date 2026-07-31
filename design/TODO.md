@@ -148,7 +148,7 @@ Understand it well enough to defend it.
 - [ ] Read the original AVATAR paper (`references/Guillaudeux23.pdf`). Feeds the
       novelty positioning owed under "Verification owed" below.
 - [ ] Write my own mental map of how AVATAR works, checked against
-      `vignettes/articles/avatar-algorithm.Rmd`, to confirm my understanding.
+      `vignettes/avatar-algorithm.Rmd`, to confirm my understanding.
 
 Documentation the owner asked for (2026-07-25). Both are writing tasks that
 depend on inputs not yet in hand, so they are queued, not started:
@@ -203,7 +203,7 @@ this section is stale. `AGENTS.md` now records the resulting three-tier rule.
       high level), `synpmx-demo`, `synpmx-privacy`. `synpmx-intro` and
       `synpmx-epsilon-exploration` were merged away.
 - [x] Deep AVATAR mathematics moved out of the method vignette into
-      `vignettes/articles/avatar-algorithm.Rmd`.
+      `vignettes/avatar-algorithm.Rmd`.
 - [x] Five design documents moved to `vignettes/articles/`: feasibility,
       privacy background, privacy argument, model and data elicitation.
 - [x] Every citation into `design/` removed from shipped documentation and
@@ -405,7 +405,7 @@ either --- two correlated covariates come out independent.
       space of PMX models is unbounded, every study wants something
       idiosyncratic, and a user is better served writing the model they want in
       `rxode2`/`nlmixr2` --- with an LLM and a skill file as the assistant ---
-      than by this package growing a model language. `vignettes/synpmx-method.Rmd`
+      than by this package growing a model language. `vignettes/synpmx-4-methods.Rmd`
       now says so outright ("The built-in models are illustrative, and
       deliberately so"). If that holds, this item closes as *documented, not
       built*, and the work is to keep the documentation honest.
@@ -470,7 +470,7 @@ either --- two correlated covariates come out independent.
       and it cost too much between-subject variability; 0.80 fires on 15% and
       still lets one real patient be most of a synthetic one.
       Tests in `test-avatar-pooling.R`, `test-avatar-weights.R`; algorithm
-      written out in `articles/avatar-algorithm.Rmd` Steps 6-7.
+      written out in `vignettes/avatar-algorithm.Rmd` Steps 6-7.
       Still open: whether the headline floor should exceed 5 -- now the weaker
       of the two constraints, since the cap binds first. Judge on PIT565.
 - [ ] `REV-026` **Consider, not committed (2026-07-25 decision).** "Skeleton

@@ -18,15 +18,15 @@ navbar:
       menu:
       - text: "Guides"
       - text: The four generation modes
-        href: articles/synpmx-method.html
+        href: articles/synpmx-4-methods.html
+      - text: The AVATAR Algorithm
+        href: articles/avatar-algorithm.html
       - text: "Demo: Using synpmx AVATAR with 5 datasets"
         href: articles/synpmx-demo.html
       - text: Privacy in synpmx
         href: articles/synpmx-privacy.html
       - text: -------
       - text: "Method"
-      - text: The AVATAR Algorithm
-        href: articles/avatar-algorithm.html
       - text: "Example: are relationships preserved?"
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------

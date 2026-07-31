@@ -23,7 +23,10 @@ and roxygen comments must not reference one.
 change.** Keep this set small; each one is a recurring cost, not just a
 document.
 
-- `synpmx-method.Rmd` — the four generation modes at a high level.
+- `synpmx-4-methods.Rmd` — the four generation modes at a high level.
+- `avatar-algorithm.Rmd` — the default generator step by step, and the seven
+  masking mechanisms M1-M7. Promoted from `articles/` on 2026-07-31 because it
+  is the method reference, not supporting evidence.
 - `synpmx-demo.Rmd` — the worked workflow over the public datasets.
 - `synpmx-privacy.Rmd` — the trust-boundary decision rule and choosing epsilon.
 
@@ -33,7 +36,6 @@ in the tarball. Use this tier for teaching and evidence that does not need to be
 rebuilt on every change. Note that pkgdown *executes* article code, so a broken
 article fails the site build.
 
-- `avatar-algorithm.Rmd` — the default generator step by step.
 - `privacy-background.Rmd` — `d`, `f`, sensitivity, the error law.
 - `privacy-argument.Rmd` — the formal mechanism-level argument, for a reviewer.
 - `feasibility.Rmd` — what is achievable at which cohort size.
