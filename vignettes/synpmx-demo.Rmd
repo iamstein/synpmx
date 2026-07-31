@@ -351,6 +351,37 @@ skeleton, and every one of them works by *removing* something:
 | Visit-set sampling | `min_pattern_share = 2` | Combinations of attended and missed visits that only one patient had — real dropout and interruption, discarded rather than approximated. |
 | Dose recomputation | automatic | The anchor's literal dose amount, where dosing is proportional to a covariate. Recomputed from the avatar's own blended covariate. |
 
+### How you check whether it worked
+
+Three measurements, because an avatar can point back at a real patient in three
+independent ways. A study can pass one and fail another, so none substitutes for
+the rest.
+
+| Function | Asks | Run on | Target |
+|---|---|---|---|
+| `skeleton_uniqueness()` | Is anyone's **sampling schedule** unique — the list of times they were sampled at? Separately, is anyone's **dosing** unique? | source, before generating | 0 unique |
+| `flag_identifiable_subjects()` | Does anyone **stand out** on follow-up length, dose count, dose size, or peak DV? | synthetic output | nothing flagged |
+| `compare_pmx_proximity()` | Did a synthetic patient's **covariates and DV trajectory together** land nearer a real patient than real patients lie to each other? | the pair, after | near 0.5 |
+
+Sampling and dosing are scored separately and only the first is what "schedule"
+means here: the observation time vector excludes dose rows entirely. Dosing
+uniqueness is a different number, and **coarsening does not touch it** — a study
+with weight-based dosing leaves patients unique on dose however good the visit
+grid is.
+
+The headline count is **one number split by cause**, and the split says what to
+do next:
+
+- **unique sampling schedule** — patients whose list of observation times nobody
+  else shares. Drive this to zero. It is always the sum of the next two.
+  - **unique sample time** — sampled at a clock time nobody else was. *A grid
+    can fix this*; that is what `coarsen_time` is for, and a nonzero count after
+    coarsening means declaring `nominal_time` is the fix.
+  - **unique set of visits** — every time shared, but this combination of
+    attended and missed visits is theirs. *No grid can fix this* at any
+    resolution. `min_pattern_share` addresses it during generation; otherwise
+    remediate or accept.
+
 None of this is free, and the costs differ sharply by dataset. So **each dataset
 below ends with its own full accounting** — how many patients were excluded and
 why, how many visit sets were lost and who held them, how many subjects

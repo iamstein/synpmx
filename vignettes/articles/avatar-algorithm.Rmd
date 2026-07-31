@@ -93,9 +93,36 @@ another, so all three are reported and none substitutes for the rest.
 
 | Function | Asks | Run on | Target |
 |---|---|---|---|
-| `skeleton_uniqueness()` | Is anyone's **schedule** unique? | the **source**, before generating | 0 unique |
-| `flag_identifiable_subjects()` | Does anyone **stand out** from the cohort? | the **synthetic output** (or the source) | nothing flagged |
-| `compare_pmx_proximity()` | Did the **values** land too close? | the **pair**, after generating | near 0.5 |
+| `skeleton_uniqueness()` | Is anyone's **sampling schedule** unique? Separately, is anyone's **dosing** unique? | the **source**, before generating | 0 unique |
+| `flag_identifiable_subjects()` | Does anyone **stand out** from the cohort on follow-up length, dose count, dose size, or peak DV? | the **synthetic output** (or the source) | nothing flagged |
+| `compare_pmx_proximity()` | Did a synthetic patient's **covariates and DV trajectory together** land nearer a real patient than real patients lie to each other? | the **pair**, after generating | near 0.5 |
+
+Two of those need spelling out, because the short names are ambiguous.
+
+**Sampling and dosing are scored separately, and only sampling is what
+"schedule" refers to above.** `skeleton_uniqueness()` builds two different keys
+per patient:
+
+- the **observation time vector** — the sorted list of times that patient was
+  *sampled* at. Dose rows are excluded. This is what `unique_schedule_n` counts
+  and what `coarsen_time` acts on.
+- the **event signature** — the dosing side: how many doses, their amounts and
+  rates, the intervals between them, and which endpoints were measured.
+  Observation times are deliberately *not* in it. This is what
+  `n_unique_dose_signature` counts, and **coarsening does not touch it**: a
+  study with weight-based dosing or per-patient titration leaves patients unique
+  on dose however good the visit grid is. `REV-027`'s dose recomputation is the
+  mechanism that addresses that side.
+
+So a patient can be unique on sampling, on dosing, on both, or on neither, and
+the two have different remedies.
+
+**"Values" means the whole profile, not just DV.** `compare_pmx_proximity()`
+compares patients in the space `.build_profiles()` builds, which is each
+patient's **baseline covariates together with their DV trajectory** on a common
+grid, reduced to principal components. So a synthetic patient can be flagged as
+too close because their weight and age nearly match a real patient's, not only
+because their concentrations do.
 
 ### The exposure counts
 
