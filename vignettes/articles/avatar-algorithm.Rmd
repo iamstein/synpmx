@@ -41,20 +41,32 @@ The pipeline has six **stages**, lettered (a) to (f)
   a common grid — then to a handful of principal-component coordinates for
   measuring who resembles whom.
 - **(d) Build each synthetic subject** — *Steps 6, 7, 8, and 9*. Copy a real
-  anchor's event skeleton — but by default do not anchor on a source subject
-  whose structure is an outlier (a lone very long follow-up), so no avatar
-  looks structurally extreme (**M2**, `screen = TRUE`). Draw which visits the
-  avatar attended from sets at least two real patients share (**M3**), and give
-  it timing deviations resampled from the cohort pool (**M1**, second half). Then pick the `k` (default 5)
+  anchor's event skeleton, in mechanism order **M2 → M3 → M4 → M5 → M6**. Do not
+  anchor on a source subject whose structure is an outlier, nor on one whose
+  route arm is too small to blend within (**M2**). Draw which visits the avatar
+  attended from sets at least two real patients share (**M3**). Give it timing
+  deviations resampled from the cohort pool (**M4**). Pick the `k` (default 5)
+  nearest donors, borrowing across dose/schedule groups when the anchor's own
+  group is too small — but never across route of administration — and blend
+  their covariates and trajectories onto the skeleton, capping any one donor's
+  share at `max_donor_weight` (default 0.50) and adding subject-level and
+  within-subject noise (**M5**). Recompute the dose from the avatar's own
+  blended covariate where dosing is proportional to one (**M6**), and
+  reconstruct any below-limit (BLOQ) censoring. Then pick the `k` (default 5)
   nearest donors, borrowing across dose/schedule groups when the anchor's own
   group is too small — but never across route of administration; blend the
   donors' trajectories onto the skeleton's observation times, capping any one
   donor's share at `max_donor_weight` (default 0.50); add subject-level and
   within-subject noise; and reconstruct any below-limit (BLOQ) censoring.
-- **(e) Restore the original shape** — *Step 10*. Put back the source schema,
-  column types, and conventions, and attach a record of what was done.
-- **(f) Screen the result** — *Step 11*, and mechanism **M6**, which is the one
-  step `synpmx_avatar()` does not run for you. Because the event skeleton is
+- **(e) Restore the original shape** — *Step 10*. Nothing here is about
+  reassembling doses and observations: those have travelled together as rows of
+  one table the whole way. This restores the **table's** shape — the source's
+  column order, each column's type and factor levels, and the container class,
+  so a tibble comes back a tibble. Fresh subject IDs are assigned, `MDV` is
+  re-derived where the source used the standard convention, and a record of every
+  choice made is attached as `attr(x, "pmx_settings")`.
+- **(f) Screen the result** — *Step 11*, and mechanism **M7**, the one step
+  `synpmx_avatar()` does not run for you. Because the event skeleton is
   copied from one anchor, a structurally unusual source subject yields a
   structurally unusual — and identifiable — avatar. A per-subject screen flags
   those, and a remediation step truncates, drops, or replaces them.
@@ -67,7 +79,7 @@ mind and the rest is detail.
 ## The masking, in the order it happens
 
 The stages above describe how a synthetic dataset gets *built*. Cutting across
-them are six **masking mechanisms**, M1 to M6, each existing to stop some
+them are seven **masking mechanisms**, M1 to M7, each existing to stop some
 specific piece of a real patient reaching the output. They do not line up neatly
 with the stages — the first runs before any avatar exists and the last runs
 after all of them do — so they are numbered separately, in the order they
@@ -75,16 +87,78 @@ actually execute.
 
 | | Mechanism | Runs | Stage | Argument | What it stops reaching the output |
 |---|---|---|---|---|---|
-| **M1** | Coarsen the times, then un-coarsen them | before generation, **and again** per avatar | before (b), then (d) | `coarsen_time` | one patient's exact times, for **both** dose events and DV observations |
-| **M2** | Exclude anchors that cannot be masked | before generation | before (d) | `screen`, `on_donor_shortfall` | a structurally extreme patient's skeleton |
+| **M1** | Coarsen the source times onto a shared visit grid | once, before generation | before (b) | `coarsen_time` | one patient's exact times, for **both** dose events and DV observations |
+| **M2** | Exclude anchors that cannot be masked | once, before generation | before (d) | `screen`, `on_donor_shortfall` | a structurally extreme patient's skeleton, and route arms too small to blend within |
 | **M3** | Sample which visits each avatar attended | per avatar | (d) | `min_pattern_share` | one patient's unique pattern of missed visits |
-| **M4** | Blend measurements from several donors, capped, then add noise | per avatar | (d) | `k`, `max_donor_weight`, `subject_noise_sd`, `residual_noise_sd` | any one patient's measurements |
-| **M5** | Recompute the dose from the avatar's own covariate | per avatar | (d) | automatic | a real dose amount, which under mg/kg discloses a real weight |
-| **M6** | Screen the finished data and remediate | after generation, **manual** | (f) | `flag_identifiable_subjects()` | whatever the first five left standing out |
+| **M4** | Restore timing deviations from the cohort pool | per avatar | (d) | `coarsen_time` | *(this is M1's second half — it puts realism back)* |
+| **M5** | Blend donors, capped, plus noise | per avatar | (d) | `k`, `max_donor_weight`, `subject_noise_sd`, `residual_noise_sd` | any one patient's measurements and covariates |
+| **M6** | Recompute the dose from the avatar's blended covariate | per avatar | (d) | automatic | a real dose amount, which under mg/kg discloses a real weight |
+| **M7** | Screen the finished data and remediate | after generation, **manual** | (f) | `flag_identifiable_subjects()` | whatever the first six left standing out |
 
-Only M1–M5 are automatic. **M6 is opt-in**: `synpmx_avatar()` never calls
+**They are numbered by when they start, and every stage below lists an ascending
+run.** Two consequences worth noting. **M1 and M4 are one mechanism**, the single
+`coarsen_time` switch, split because its two halves happen at opposite ends of
+the pipeline — M1 removes the timing deviations before any avatar exists, M4
+draws replacements from the pool while each avatar is built. And **M6 sits inside
+M5** rather than after it: recomputing the dose needs the avatar's blended
+covariate, so it runs once the covariates are blended and before the trajectories
+are.
+
+Only M1–M6 are automatic. **M7 is opt-in**: `synpmx_avatar()` never calls
 `flag_identifiable_subjects()` or `remediate_identifiable_subjects()` for you; it
 only points at them.
+
+### M2 versus M7: the same idea at opposite ends
+
+These two are easy to confuse, because both remove "unusual" patients. The
+difference is *which* patients, and *when*.
+
+| | M2 | M7 |
+|---|---|---|
+| Looks at | the **source** patients | the **synthetic** avatars |
+| Runs | before any avatar exists | after all of them are built |
+| Effect | that patient is not used as an **anchor** | that avatar is truncated, dropped, or replaced |
+| Cohort size | unchanged — remaining anchors are sampled with replacement | restored by replacement, if you ask for it |
+| Screens on | follow-up length, dose count | follow-up length, dose count, dose magnitude, peak DV |
+| Automatic | yes | **no** |
+
+**Why both, rather than just one?** Because M2 cannot see everything M7 can.
+
+M2 only knows the source. But blending *creates* avatars, and an avatar can end
+up conspicuous even when every patient it was built from was unremarkable — it
+draws donors from the top of the DV range, or gets a visit set that happens to
+run long. M2 also screens on two axes only; M7 screens on four, adding dose
+magnitude and peak DV, which are the ones blending can move.
+
+So M2 is **prevention on the input** and M7 is **detection on the output**.
+Neither makes the other redundant.
+
+### Why M7 is not run for you
+
+The honest answer is that it is a judgement call the package declines to make on
+your behalf, for three reasons — and one of them is a defect rather than a
+principle.
+
+1. **It drops real cohort members.** Remediation truncates or removes avatars,
+   and the ones it removes are disproportionately the interesting tail: the long
+   follow-up, the high exposure. For code development that tail is often exactly
+   what you want to exercise. Running it silently would quietly narrow every
+   dataset the package produces.
+2. **It has a threshold nobody has chosen.** `flag_identifiable_subjects()`
+   defaults to a robust `threshold = 3.5` on a median/MAD statistic. That is a
+   reasonable default, not a right answer, and how many patients it flags varies
+   sharply by study. Applying it automatically would drop patients on the basis
+   of a number the user never saw.
+3. **`REV-028` is open.** `remediate_identifiable_subjects()` screens each batch
+   of replacements against *itself* rather than against the cohort it is joining,
+   so a replacement can be clean within its batch and an outlier once merged.
+   Until that is fixed, running it automatically would bake a known gap into
+   every run.
+
+Point 3 is fixable and should be fixed. Points 1 and 2 are arguments for
+reporting rather than acting: `synpmx_avatar()` alerts loudly whenever it has
+left exposure behind, and the decision about what to do belongs to whoever knows
+where the data is going.
 
 ### Naming the two kinds of row
 
@@ -101,7 +175,7 @@ already doing a different job in M3, where visit sets are statistically
 *sampled* from a pool. Keeping "observations" for the clinical sense avoids
 reading the same word two ways on one page.)
 
-### M1 has two halves, and the second is the one people miss
+### M1 and M4 are one mechanism, and the second half is the one people miss
 
 Coarsening is not a single pass, and its second half is what keeps the output
 usable rather than obviously synthetic.
@@ -252,13 +326,13 @@ rather than about yours.
 So every run reports its own numbers, loudly, and
 `scripts/explore_nimodata_coarsening.qmd` works one failure through to a fix to
 show what reading them looks like in practice.
-## Every mechanism that obscures the source, M1 to M6
+## Every mechanism that obscures the source, M1 to M7
 
 AVATAR offers no formal guarantee, so the only honest description of its
 protection is a list of the mechanisms with what each one does — and, just as
 importantly, what it does not. They are numbered **in the order they run**, so
-M1 has already finished before any avatar exists and M6 has not started until
-every avatar is built. Five run by default; **M6 you run yourself**.
+M1 has already finished before any avatar exists and M7 has not started until
+every avatar is built. Six run by default; **M7 you run yourself**.
 
 The two measurements that go with them — `skeleton_uniqueness()` and
 `compare_pmx_proximity()` — are not mechanisms and are covered under "How you
@@ -266,15 +340,16 @@ know whether it worked" above.
 
 | | Mechanism | Protects | Cannot protect | Control |
 |---|---|---|---|---|
-| **M1** | Coarsening and re-refining time | The sampling schedule | Which visits were attended | `coarsen_time` |
+| **M1** | Coarsening the source times | The exact times of dose events and DV observations | Which visits were attended | `coarsen_time` |
 | **M2** | Excluding anchors that cannot be masked | Against being conspicuous | Being merely unique | `screen`, `on_donor_shortfall` |
 | **M3** | Sampling which visits were attended | The pattern of missed visits | Dose events, deliberately | `min_pattern_share` (2) |
-| **M4** | Donor blending, capped, plus noise | The measured values | Anything structural | `k`, `max_donor_weight` |
-| **M5** | Dose recomputed from a blended covariate | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
-| **M6** | Post-generation screen and remediation | Whatever M1–M5 left standing out | Anything you do not run it on | `flag_identifiable_subjects()` |
+| **M4** | Restoring timing deviations | *(nothing — it restores realism M1 removed)* | — | `coarsen_time` |
+| **M5** | Donor blending, capped, plus noise | The measured values and covariates | Anything structural | `k`, `max_donor_weight` |
+| **M6** | Dose recomputed from a blended covariate | The dose amount, under mg/kg dosing at any number of levels | Dosing unrelated to a covariate | automatic |
+| **M7** | Post-generation screen and remediation | Whatever M1–M6 left standing out | Anything you do not run it on | `flag_identifiable_subjects()` |
 
 
-**M1. Coarsening the visit grid, then re-refining it** (`coarsen_time = TRUE`,
+**M1 and M4. Coarsening the source times, then restoring the deviations** (`coarsen_time = TRUE`,
 before Step 5). Source times are collapsed onto a shared visit grid, and the
 per-visit deviations are pooled across the cohort and resampled independently
 onto each avatar. This protects the **schedule**, which blending never touches:
@@ -296,7 +371,7 @@ subjects has no legal donor set, so by default it is dropped from the pool too
 Neither shrinks the cohort: the remaining anchors are sampled with replacement to
 fill every slot, and excluded subjects still contribute measurements as donors.
 What is lost is coverage of that structure, not sample size. This catches
-subjects who are **extreme**; the post-generation counterpart is M6.
+subjects who are **extreme**; the post-generation counterpart is M7.
 
 **M3. Sampling which visits were attended** (`min_pattern_share`, default 2). Once
 coarsening has put every subject on a shared visit grid, what remains of a
@@ -313,14 +388,14 @@ attacker who links a reproduced pattern to a participant gets at least two
 candidates, never one. Three is more conservative but no more defensible as a
 sentence, and it costs sharply more — see the section on what this loses below.
 
-**M4. Blending across donors** (Steps 6–9). No avatar's measurements come from
+**M5. Blending across donors** (Steps 6–9). No avatar's measurements come from
 one real patient: each is a distance-weighted blend of at least `k` = 5
 compatible donors, with `max_donor_weight` = 0.50 capping any single donor at
 half the blend. This is the only mechanism whose strength grows with cohort
 size, which is why a source with fewer than `k + 1` subjects raises a loud
 alert instead of quietly producing near-copies.
 
-**M5. Recomputing the dose from a blended covariate** (automatic). Under dosing
+**M6. Recomputing the dose from a blended covariate** (automatic). Under dosing
 proportional to a baseline covariate, the multiplier is a protocol property the
 stratum shares and the covariate is individual — and already blended. Keeping the
 multiplier and recomputing the amount from the avatar's own covariate stops the
@@ -328,12 +403,12 @@ dose being a verbatim real value (which under mg/kg dosing discloses the anchor'
 weight exactly) and repairs a coherence defect: previously every avatar violated
 the mg/kg rule its own data claims to follow. See `REV-027`.
 
-**M6. Screening the finished data, and remediating** (`flag_identifiable_subjects()`,
+**M7. Screening the finished data, and remediating** (`flag_identifiable_subjects()`,
 after generation). The only mechanism `synpmx_avatar()` does **not** run for you.
 It scores each synthetic subject on four axes — follow-up time, dose count, dose
 magnitude, peak DV — and `remediate_identifiable_subjects()` truncates, drops, or
 replaces what it flags, refilling the cohort so the size is preserved. M2 keeps
-extreme *source* subjects from becoming anchors; M6 catches whatever still looks
+extreme *source* subjects from becoming anchors; M7 catches whatever still looks
 extreme once everything else has run. Run it before the data leaves the source's
 access controls.
 
