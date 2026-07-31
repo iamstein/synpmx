@@ -283,11 +283,11 @@ test_that("reported exposure agrees with skeleton_uniqueness on the coarsened so
   screen <- skeleton_uniqueness(coarsened, roles)
 
   expect_equal(settings$unique_schedule_n, sum(screen$unique_schedule))
-  expect_equal(settings$unique_sample_time_n,
+  expect_equal(settings$unique_obs_time_n,
                sum(screen$min_time_share == 1L, na.rm = TRUE))
   # The split is exhaustive: a unique schedule is either a unique sample time
   # or a unique set of visits, never neither and never both.
   expect_equal(settings$unique_schedule_n,
-               settings$unique_sample_time_n + settings$unique_visit_set_n)
+               settings$unique_obs_time_n + settings$unique_visit_set_n)
   expect_gte(settings$unique_visit_set_n, 0L)
 })

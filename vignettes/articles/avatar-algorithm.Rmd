@@ -85,15 +85,15 @@ with the stages — the first runs before any avatar exists and the last runs
 after all of them do — so they are numbered separately, in the order they
 actually execute.
 
-| | Mechanism | Runs | Stage | Argument | What it stops reaching the output |
-|---|---|---|---|---|---|
-| **M1** | Coarsen the source times onto a shared visit grid | once, before generation | before (b) | `coarsen_time` | one patient's exact times, for **both** dose events and DV observations |
-| **M2** | Exclude anchors that cannot be masked | once, before generation | before (d) | `screen`, `on_donor_shortfall` | a structurally extreme patient's skeleton, and route arms too small to blend within |
-| **M3** | Sample which visits each avatar attended | per avatar | (d) | `min_pattern_share` | one patient's unique pattern of missed visits |
-| **M4** | Restore timing deviations from the cohort pool | per avatar | (d) | `coarsen_time` | *(this is M1's second half — it puts realism back)* |
-| **M5** | Blend donors, capped, plus noise | per avatar | (d) | `k`, `max_donor_weight`, `subject_noise_sd`, `residual_noise_sd` | any one patient's measurements and covariates |
-| **M6** | Recompute the dose from the avatar's blended covariate | per avatar | (d) | automatic | a real dose amount, which under mg/kg discloses a real weight |
-| **M7** | Screen the finished data and remediate | after generation, **manual** | (f) | `flag_identifiable_subjects()` | whatever the first six left standing out |
+| | Mechanism | Acts on | Runs | Why |
+|---|---|---|---|---|
+| **M1** | Snap every time onto a shared visit grid | **all times** — dose events *and* DV observations | before generation | Recorded to the minute, one patient's list of times is a fingerprint nobody else shares |
+| **M2** | Drop patients from the **anchor pool** | whole source patients | before generation | Two reasons: (i) a patient whose follow-up or dose count exceeds **2× the cohort's 90th percentile** would hand any avatar built on them a conspicuous skeleton that value-blending cannot hide; (ii) a patient in a route arm with fewer than `k + 1` patients has too few same-route donors to blend with, so their avatar would be a near-copy of one real person |
+| **M3** | Redraw which visits an avatar attended | **DV observations only** — dose events are never touched | per avatar | A combination of attended and missed visits held by one patient is a fingerprint made of gaps, and no grid can hide it |
+| **M4** | Add timing deviations back | **all times**, as M1 | per avatar | M1's snapping makes the data look artificially tidy; this restores the scatter, drawn from the cohort rather than from the anchor |
+| **M5** | Blend covariates and DV from several donors, capped, plus noise | measured values | per avatar | So no avatar's numbers come from one real patient |
+| **M6** | Recompute the dose amount from the avatar's own blended covariate | dose amounts, under **weight-based dosing** (mg/kg) or body-surface-area dosing (mg/m²) | per avatar | A copied dose under mg/kg discloses the anchor's weight exactly, and leaves the avatar violating the mg/kg rule its own data claims to follow |
+| **M7** | Screen the finished data and remediate | whole synthetic patients | after generation, **manual** | Blending can *create* a conspicuous avatar even from unremarkable donors |
 
 **They are numbered by when they start, and every stage below lists an ascending
 run.** Two consequences worth noting. **M1 and M4 are one mechanism**, the single
@@ -107,6 +107,36 @@ are.
 Only M1–M6 are automatic. **M7 is opt-in**: `synpmx_avatar()` never calls
 `flag_identifiable_subjects()` or `remediate_identifiable_subjects()` for you; it
 only points at them.
+
+### What M3 actually redraws
+
+"Sample which visits were attended" is the most easily misread row in that
+table, so here it is concretely. **It concerns DV observations only. Dose events
+are never redrawn** — an avatar's doses, their times and their amounts come
+verbatim from its anchor, because a drawn regimen could be one no protocol
+permits.
+
+After M1, every patient sits on the same grid of visit times. What still differs
+between patients is which of those visits each one actually turned up for:
+
+```
+grid            wk1  wk2  wk3  wk4  wk5  wk6
+patient A        x    x    x    x    x    x     attended everything
+patient B        x    x    x    x                dropped out after week 4
+patient C        x    x         x    x    x      missed week 3
+```
+
+Patient B's and patient C's rows are *visit sets*. If only patient C ever missed
+week 3, then "attended everything except week 3" points at patient C as surely
+as an unusual sampling time would — a fingerprint made of gaps rather than of
+times.
+
+So M3 redraws that row. The avatar keeps its anchor's doses and the grid's visit
+times, and only the **pattern of x's** is replaced by one drawn from patients who
+share it, or built fresh with the same *shape* (how many misses, and whether
+they run to the end, sit in a block, or scatter). What survives is how much
+missingness the study had and of what kind; what is lost is which specific weeks
+any one patient missed.
 
 ### M2 versus M7: the same idea at opposite ends
 
@@ -259,7 +289,7 @@ another, so all three are reported and none substitutes for the rest.
 
 | Function | Asks | Run on | Target |
 |---|---|---|---|
-| `skeleton_uniqueness()` | Is anyone's **DV sampling schedule** unique? Separately, is anyone's **dosing** unique? | the **source**, before generating | 0 unique |
+| `skeleton_uniqueness()` | Is anyone's **DV observation schedule** unique? Separately, is anyone's **dosing** unique? | the **source**, before generating | 0 unique |
 | `flag_identifiable_subjects()` | Does anyone **stand out** from the cohort on follow-up length, dose count, dose size, or peak DV? | the **synthetic output** (or the source) | nothing flagged |
 | `compare_pmx_proximity()` | Did a synthetic patient's **covariates and DV trajectory together** land nearer a real patient than real patients lie to each other? | the **pair**, after generating | near 0.5 |
 
@@ -297,7 +327,7 @@ and the split is what tells you what to do next:
   patient shares. An avatar anchored on one wears a schedule belonging to
   exactly one real person, however carefully its measurements were blended. This
   is the number to drive to zero. It always equals the sum of the next two.
-  - **`unique_sample_time_n`** — of those, the ones sampled at a clock time
+  - **`unique_obs_time_n`** — of those, the ones sampled at a clock time
     nobody else was sampled at. **A grid can fix this**, and `coarsen_time`
     exists to; a count above zero after coarsening means the inferred grid could
     not find a shared schedule, and declaring `nominal_time` is the fix.

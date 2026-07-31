@@ -642,16 +642,16 @@ print.pmx_skeleton_uniqueness <- function(x, ...) {
     unique_schedule, n, if (n == 1L) "" else "s"
   ))
   cat(sprintf(
-    paste0("have a UNIQUE SAMPLING SCHEDULE (%.0f%%): no other patient shares ",
+    paste0("have a UNIQUE OBSERVATION SCHEDULE (%.0f%%): no other patient shares ",
            "their\nlist of observation times, so the schedule works as an ",
            "identifier.\n\n"),
     if (n) 100 * unique_schedule / n else 0
   ))
   unshared <- attr(x, "n_unshared_time") %||% sum(x$min_time_share == 1L,
                                                   na.rm = TRUE)
-  cat(sprintf("  unique sampling schedule:  %3d  <- of which:\n",
+  cat(sprintf("  unique observation schedule:  %3d  <- of which:\n",
               unique_schedule))
-  cat(sprintf("    unique sample time:      %3d  <- sampled when nobody else was; the grid's job\n",
+  cat(sprintf("    unique observation time:      %3d  <- sampled when nobody else was; the grid's job\n",
               unshared))
   cat(sprintf("    unique set of visits:    %3d  <- every time shared; dropout, the screen's job\n",
               max(unique_schedule - unshared, 0L)))
