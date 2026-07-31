@@ -1503,7 +1503,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # is a silent one, and a caller who asked for `coarsen_time` and did not get
     # it should hear so rather than infer it from the absence of an alert.
     unique_schedule_n <- NA_integer_
-    unique_sample_time_n <- NA_integer_
+    unique_obs_time_n <- NA_integer_
     if (coarsen_time) {
       exposure <- skeleton_uniqueness(source, source_roles)
       still_unique <- sum(exposure$unique_schedule)
@@ -1515,10 +1515,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       unshared <- sum(exposure$min_time_share == 1L, na.rm = TRUE)
       pattern_only <- max(still_unique - unshared, 0L)
       unique_schedule_n <- still_unique
-      unique_sample_time_n <- unshared
+      unique_obs_time_n <- unshared
       if (unshared > 0L) {
         .loud_warn(sprintf(
-          paste0("%d of %d patient%s still have a UNIQUE SAMPLE TIME after ",
+          paste0("%d of %d patient%s still have a UNIQUE OBSERVATION TIME after ",
                  "coarsening: each was sampled at a moment no other patient ",
                  "was, so their list of observation times identifies them, and ",
                  "an avatar built on them carries that schedule.\n",
@@ -1842,9 +1842,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         dose_basis$covariate,
       dose_levels = if (is.null(dose_basis)) NA_real_ else dose_basis$levels,
       unique_schedule_n = unique_schedule_n,
-      unique_sample_time_n = unique_sample_time_n,
+      unique_obs_time_n = unique_obs_time_n,
       unique_visit_set_n = if (is.na(unique_schedule_n)) NA_integer_ else
-        unique_schedule_n - unique_sample_time_n,
+        unique_schedule_n - unique_obs_time_n,
       time_deviation_sd = if (length(time_deviations)) {
         stats::sd(time_deviations)
       } else 0,

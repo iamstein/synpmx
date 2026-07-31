@@ -14,15 +14,15 @@ data("nimoData", package = "nlmixr2data")
 
 ## The one term you need first
 
-Everything below counts patients with a **unique sampling schedule**, so here is
+Everything below counts patients with a **unique observation schedule**, so here is
 what that means before anything else.
 
-> A patient has a **unique sampling schedule** when the list of times they were
+> A patient has a **unique observation schedule** when the list of times they were
 > observed at is not shared by any other patient in the study.
 
 Say a study enrols ten patients. Nine of them had PK sampled at hours 1, 4, 24
 and 48. The tenth was sampled at hours 1, 4, 24 and 49. That tenth patient is
-the one with a unique sampling schedule: their list of times belongs to nobody
+the one with a unique observation schedule: their list of times belongs to nobody
 else, so it works as a fingerprint.
 Anyone
 holding that patient's real visit records can pick their synthetic counterpart
@@ -45,7 +45,7 @@ Two things it does **not** mean:
 
 `nimoData` is the one public dataset where `coarsen_time = TRUE` — the default
 mechanism for fixing this — accomplishes **nothing**. All twelve patients have a
-unique sampling schedule before coarsening, and all twelve still do after.
+unique observation schedule before coarsening, and all twelve still do after.
 
 This walks through that failure, diagnoses it with measurements, and then fixes
 it by constructing the nominal visit time the dataset does not record. **The fix
@@ -71,7 +71,7 @@ exposure <- function(data, roles, label) {
     Run = label,
     Grid = s$time_grid,
     `Unique schedule` = s$unique_schedule_n,
-    `Unique sample time` = s$unique_sample_time_n,
+    `Unique observation time` = s$unique_obs_time_n,
     `Unique visit set` = s$unique_visit_set_n,
     `Visit sets` = s$patterns_total,
     `Invented` = paste0(round(100 * s$pattern_generated_fraction), "%"),
@@ -126,16 +126,16 @@ This table appears repeatedly below, so it is worth reading the columns once.
 | Column | Meaning | Want |
 |---|---|---|
 | **Unique schedule** | Patients out of 12 whose list of observation times nobody else shares. The headline number. | 0 |
-| **Unique sample time** | Of those, how many are unique because they were sampled at a clock time nobody else was. | 0 — a grid can fix these |
+| **Unique observation time** | Of those, how many are unique because they were sampled at a clock time nobody else was. | 0 — a grid can fix these |
 | **Unique visit set** | Of those, how many share every individual time with somebody but attended a combination of visits nobody else did. | no grid fixes these |
 | **Visit sets** | How many distinct combinations of attended visits exist in the study, after coarsening. | — |
 | **Invented** | Share of avatars whose missed visits were placed fresh instead of copied from a real patient. | — (see below) |
 
-`Unique schedule` is always `Unique sample time` + `Unique visit set`.
+`Unique schedule` is always `Unique observation time` + `Unique visit set`.
 
 ### Reading this row
 
-**All twelve patients have a unique sampling schedule.** Every patient has a list
+**All twelve patients have a unique observation schedule.** Every patient has a list
 of observation times that no other patient shares, so every avatar built from
 this data wears a schedule belonging to exactly one real person. That is the
 failure, and it is total.
