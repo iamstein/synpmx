@@ -75,7 +75,7 @@ actually execute.
 
 | | Mechanism | Runs | Stage | Argument | What it stops reaching the output |
 |---|---|---|---|---|---|
-| **M1** | Coarsen the visit times | before generation, **and again** per avatar | before (b), then (d) | `coarsen_time` | one patient's exact sampling times |
+| **M1** | Coarsen the times, then un-coarsen them | before generation, **and again** per avatar | before (b), then (d) | `coarsen_time` | one patient's exact times, for **both** dose events and DV observations |
 | **M2** | Exclude anchors that cannot be masked | before generation | before (d) | `screen`, `on_donor_shortfall` | a structurally extreme patient's skeleton |
 | **M3** | Sample which visits each avatar attended | per avatar | (d) | `min_pattern_share` | one patient's unique pattern of missed visits |
 | **M4** | Blend measurements from several donors, capped, then add noise | per avatar | (d) | `k`, `max_donor_weight`, `subject_noise_sd`, `residual_noise_sd` | any one patient's measurements |
@@ -85,6 +85,21 @@ actually execute.
 Only M1–M5 are automatic. **M6 is opt-in**: `synpmx_avatar()` never calls
 `flag_identifiable_subjects()` or `remediate_identifiable_subjects()` for you; it
 only points at them.
+
+### Naming the two kinds of row
+
+Two terms are used throughout and it is worth fixing them, because almost
+everything in M1 and M3 turns on the distinction:
+
+- **dose events** — rows where `EVID` is not 0. When drug was given, how much,
+  at what rate.
+- **DV observations** — rows where `EVID` is 0 and a measurement is present.
+  When the patient was sampled and what came back.
+
+("DV sampling events" works equally well for the second, but *sampling* is
+already doing a different job in M3, where visit sets are statistically
+*sampled* from a pool. Keeping "observations" for the clinical sense avoids
+reading the same word two ways on one page.)
 
 ### M1 has two halves, and the second is the one people miss
 
@@ -112,6 +127,44 @@ had. The realism survives; the fingerprint does not.
 Each drawn offset is clamped inside its own visit's cell, so no time moves more
 than half the gap to the neighbouring visit and resampling can neither reorder
 visits nor stretch follow-up.
+
+#### Which rows M1 touches
+
+**Both halves act on the whole time column — dose events and DV observations
+alike.** Neither is exempt, and it is worth seeing what that means on real data.
+
+| | `theo_md` | `nimoData` |
+|---|---|---|
+| dose event times moved by half one | 0 of 120 rows | **53 of 120 rows** |
+| DV observation times moved by half one | 240 of 264 rows | **231 of 321 rows** |
+| distinct dose event times in the output | 7 → **53** | — |
+| distinct DV observation times in the output | 156 → **201** | — |
+
+`theo_md`'s dose times did not move during snapping because its Q12H regimen
+already puts every patient's doses on the same clock — there was nothing to
+merge. `nimoData`'s did move, because its weekly infusions drift apart. **That
+is a property of each study, not a rule of the algorithm**: half one snaps
+whatever is not already shared.
+
+Half two then offsets everything, including dose times that half one left alone —
+which is why `theo_md` ends with 53 distinct dose times rather than 7. A synthetic
+Q12H regimen therefore doses at 12.03 and 24.07 rather than exactly 12 and 24.
+That is deliberate and realistic, but it is worth knowing if downstream code
+assumes exact nominal dosing intervals.
+
+**A dose event and a DV observation recorded at the same time stay together.**
+The offset is drawn per distinct *time value*, not per row, so a trough drawn
+immediately before a dose does not end up on the wrong side of it:
+
+```
+skeleton before   0        0        1        4
+                  (dose)   (DV)     (DV)     (DV)
+after one offset  0.37     0.37     1.37     4.37
+```
+
+That coherence is why observations keep their relationship to the dosing they
+belong to, and why `tad` is recomputed from the avatar's own moved dose times
+rather than carried over from its anchor.
 
 **This is also why `time_jitter` is not an alternative.** Jitter perturbs times
 without ever destroying the original, and its clamp holds every value within half
