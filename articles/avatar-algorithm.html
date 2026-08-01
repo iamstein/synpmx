@@ -85,8 +85,8 @@ Stein</h4>
 <p>This article is the full specification of the AVATAR synthetic data
 generator, which builds synthetic records from the local neighborhood of
 real records. The original method [2] was extended to population PK
-datasets [1] and here, further extensions are provided so that it works
-well with more realistic datasets.</p>
+datasets in [1] and here, further extensions are provided so that it
+works well with more realistic datasets.</p>
 <div class="section level2">
 <h2 id="the-process-at-a-glance">The process at a glance<a class="anchor" aria-label="anchor" href="#the-process-at-a-glance"></a>
 </h2>
@@ -95,8 +95,9 @@ subject’s dosing event structure, then filled with measurements blended
 from several similar real subjects. The generator works on <strong>any
 number of endpoints</strong> — one can have multiple PK profiles
 alongside multiple PD measures, declared through the <code>dvid</code>
-role. The pipeline has six <strong>stages</strong>, lettered (a) to
-(f).</p>
+role. The pipeline has six <strong>stages</strong>, lettered (a) to (f).
+There are 5 different masking methods employed and they are denoted
+<strong>M1</strong> to <strong>M5</strong>.</p>
 <ul>
 <li>
 <strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
@@ -104,135 +105,65 @@ say which column is the id, the time, the dose, the measurement, and so
 on. Only named columns survive.</li>
 <li>
 <strong>(b) Start each avatar from one real patient</strong> —
-<em>Step 2</em>. Sample an <strong>anchor</strong> with replacement from
-the eligible source patients and copy its rows wholesale: every TIME,
-EVID, AMT, RATE and CMT it had. Later steps overwrite the DV and
-covariate columns in place. Copying whole rows rather than drawing the
-event fields independently is deliberate — independently drawn fields
-produce impossible records, such as an infusion rate on an oral dose.
-This is also where <strong>M2</strong> decides which patients are
-eligible to anchor on, and <strong>M3</strong> redraws which visits the
-avatar attended.</li>
+<em>Step 2</em>. Sample an <strong>anchor patient</strong> with
+replacement from the eligible source patients and copy its rows
+entirely: every TIME, EVID, AMT, RATE and CMT. Later steps will
+overwrite the DV and covariate columns and also alter TIME and AMT.
+Starting from an actual patient’s event table rather than drawing the
+event fields independently is a deliberate choice because independently
+drawn fields produce impossible records, such as an infusion rate on an
+oral dose. TIME is snapped to a grid of times, based on nominal time
+when available, to reduce the ability to identify a subject from the
+time of dosing and data collection (<strong>M1</strong>). At the end,
+time is refined by adding some variability back to each time point.</li>
 <li>
 <strong>(c) Put every subject on a comparable footing</strong> —
-<em>Steps 3, 4, and 5</em>. Align time to the first event, choose an
-endpoint transformation, and reduce each subject to one numeric
-<em>profile</em> — baseline covariates plus its trajectory on a common
-grid — then to a handful of principal-component coordinates for
-measuring who resembles whom.</li>
+<em>Steps 3, 4, and 5</em>. Align time to the first event, choose a
+transformation for each DVID, and reduce each subject to one numeric
+<em>profile</em> (baseline covariates plus its trajectory on a common
+time-grid), then reduce the the data further then to a handful of
+principal-component coordinates for measuring the similarity between two
+patients.</li>
 <li>
 <strong>(d) Build each synthetic subject</strong> — <em>Steps 6, 7,
-8, and 9</em>. Copy a real anchor’s event skeleton, in mechanism order
-<strong>M2 → M3 → M4 → M5</strong>. Do not anchor on a source subject
-whose structure is an outlier, nor on one whose route arm is too small
-to blend within (<strong>M2</strong>). Draw which visits the avatar
-attended from sets at least two real patients share
-(<strong>M3</strong>). Give it timing deviations resampled from the
-cohort pool (<strong>M1</strong>, second half). Pick the <code>k</code>
-(default 5) nearest donors, borrowing across dose/schedule groups when
-the anchor’s own group is too small — but never across route of
-administration — and blend their covariates and trajectories onto the
-skeleton, capping any one donor’s share at <code>max_donor_weight</code>
-(default 0.50) and adding subject-level and within-subject noise
-(<strong>M4</strong>). Recompute the dose from the avatar’s own blended
-covariate where dosing is proportional to one (<strong>M5</strong>), and
-reconstruct any below-limit (BLOQ) censoring.</li>
+8, and 9</em>. Copy a real anchor’s event skeleton. Do not anchor on a
+source subject whose structure is an outlier, nor on one whose route arm
+is too small to blend within (<strong>M2</strong>). Draw which visits
+the avatar attended from sets at least two real patients share
+(<strong>M3</strong>). Pick the <code>k</code> (default 5) nearest
+donors, borrowing across dose/schedule groups when the anchor’s own
+group is too small — but never across route of administration — and
+blend their covariates and trajectories onto the skeleton, capping any
+one donor’s share at <code>max_donor_weight</code> (default 0.50) and
+adding subject-level and within-subject noise (<strong>M4</strong>).
+Recompute the dose from the avatar’s own blended covariate when in the
+original dataset dosing is proportional to a covariate, as it is for
+weight-based dosing (<strong>M5</strong>). Then reconstruct any
+below-limit (BLOQ) censoring, using an automatically detected LOQ for
+each DVID</li>
 <li>
-<strong>(e) Restore the original shape</strong> — <em>Step 10</em>.
-Nothing here is about reassembling doses and observations: those have
-travelled together as rows of one table the whole way. This restores the
-<strong>table’s</strong> shape — the source’s column order, each
-column’s type and factor levels, and the container class, so a tibble
-comes back a tibble. Fresh subject IDs are assigned, <code>MDV</code> is
-re-derived where the source used the standard convention, and a record
-of every choice made is attached as
-<code>attr(x, "pmx_settings")</code>.</li>
+<strong>(e) Recompile the dataset</strong> — <em>Step 10</em>.
+Restore the source’s column order, each column’s type and factor levels,
+and the container class, so a tibble comes back a tibble. Fresh subject
+IDs are assigned, <code>MDV</code> is re-derived and a record of every
+choice made is attached as <code>attr(x, "pmx_settings")</code>.</li>
 <li>
-<strong>(f) Screen the result</strong> — <em>Step 11</em>, and the
-post-generation screen, the one step <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does
-not run for you. Because the event skeleton is copied from one anchor, a
-structurally unusual source subject yields a structurally unusual — and
-identifiable — avatar. A per-subject screen flags those, and a
-remediation step truncates, drops, or replaces them.</li>
+<strong>(f) Screen the result</strong> — <em>Step 11</em>. Because
+the event skeleton is copied from one anchor, a structurally unusual
+source subject yields a structurally unusual — and identifiable —
+avatar. A per-subject screen flags those, and a remediation step
+truncates, drops, or replaces them. This is a separate step run manually
+by the user.</li>
 </ul>
 <p>Underneath all six stages is one idea. Every patient’s rows hold two
-very different things: the <strong>event skeleton</strong> —
-<em>when</em> things happened, meaning the dose events and the times of
-the DV observations — and the <strong>values</strong>, meaning the DV
-numbers filling those observation slots plus the baseline
-covariates.</p>
-<p><strong>The skeleton is copied from one real patient; the values are
-blended from several.</strong> No step splits them apart — the skeleton
-is simply the anchor’s rows, and the value columns get overwritten in
-place — but the asymmetry is the whole method, and it is where the
-privacy problem lives. Blending protects the values thoroughly and does
-nothing whatever for the skeleton, which is why M1, M2 and M3 all
-exist.</p>
-<p>So: the <strong>anchor</strong> supplies structure, the
-<strong>donors</strong> supply values. Keep that in mind and the rest is
-detail.</p>
-</div>
-<div class="section level2">
-<h2 id="the-words-this-article-uses">The words this article uses<a class="anchor" aria-label="anchor" href="#the-words-this-article-uses"></a>
-</h2>
-<p>Five terms carry most of the weight. They appear in the tables below,
-so they are worth fixing first.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>Term</th>
-<th>Meaning</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><strong>dose event</strong></td>
-<td>A row where <code>EVID</code> is not 0: when drug was given, how
-much, at what rate.</td>
-</tr>
-<tr class="even">
-<td><strong>DV observation</strong></td>
-<td>A row where <code>EVID</code> is 0 and a measurement is present:
-when the patient was observed and what came back.</td>
-</tr>
-<tr class="odd">
-<td><strong>avatar</strong></td>
-<td>One synthetic patient in the output.</td>
-</tr>
-<tr class="even">
-<td><strong>anchor</strong></td>
-<td>The single real patient whose <strong>event skeleton</strong> an
-avatar copies. Each avatar has exactly one, and it is chosen by sampling
-with replacement from the pool of eligible source patients.</td>
-</tr>
-<tr class="odd">
-<td><strong>event skeleton</strong></td>
-<td>
-<em>When</em> things happened to a patient, with no measured values:
-the dose events and the times of the DV observations. This is what gets
-copied from the anchor; the values that fill it do not.</td>
-</tr>
-<tr class="even">
-<td><strong>donor</strong></td>
-<td>A real patient whose <em>measurements</em> contribute to an avatar.
-Each avatar blends at least <code>k</code> (default 5) of them, and no
-single donor may exceed <code>max_donor_weight</code> (default 0.50) of
-the blend. An avatar’s anchor is usually also one of its donors, but the
-two roles are separate: the anchor supplies structure, donors supply
-values.</td>
-</tr>
-<tr class="odd">
-<td><strong>visit set</strong></td>
-<td>Which of the study’s shared visits one patient actually had — the
-pattern of attended and missed DV observations, once every patient is on
-a common grid.</td>
-</tr>
-</tbody>
-</table>
-<p>The single most important thing to keep straight: <strong>structure
-comes from one patient, values come from many.</strong></p>
+very different things: the <strong>event skeleton</strong>
+(<em>when</em> the dose events and DV observations happen) and the
+<strong>values</strong>, the DV numbers filling those observation slots
+plus the baseline covariates.</p>
+<p>The skeleton is copied from one real patient with some masking and
+the values are blended from several. The <strong>anchor</strong>
+supplies event skeleton, and multiple <strong>donors</strong> help
+inform DV values.</p>
 </div>
 <div class="section level2">
 <h2 id="the-masking-in-the-order-it-happens">The masking, in the order it happens<a class="anchor" aria-label="anchor" href="#the-masking-in-the-order-it-happens"></a>
@@ -240,10 +171,7 @@ comes from one patient, values come from many.</strong></p>
 <p>The stages above describe how a synthetic dataset gets
 <em>built</em>. Cutting across them are five <strong>masking
 mechanisms</strong>, M1 to M5, each existing to stop some specific piece
-of a real patient reaching the output. They do not line up neatly with
-the stages — the first runs before any avatar exists and the last runs
-after all of them do — so they are numbered separately, in the order
-they actually execute.</p>
+of a real patient data from reaching the synthetic dataset.</p>
 <table style="width:100%;" class="table">
 <colgroup>
 <col width="14%">
@@ -2864,6 +2792,66 @@ the datasets it was measured on rather than about yours.</p>
 <code>scripts/explore_nimodata_coarsening.qmd</code> works one failure
 through to a fix to show what reading them looks like in practice.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="glossary">Glossary<a class="anchor" aria-label="anchor" href="#glossary"></a>
+</h2>
+<p>Collected here rather than up front, since each term is introduced
+where it first matters. This is for looking one back up.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Term</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><strong>dose event</strong></td>
+<td>A row where <code>EVID</code> is not 0: when drug was given, how
+much, at what rate.</td>
+</tr>
+<tr class="even">
+<td><strong>DV observation</strong></td>
+<td>A row where <code>EVID</code> is 0 and a measurement is present:
+when the patient was observed and what came back.</td>
+</tr>
+<tr class="odd">
+<td><strong>avatar</strong></td>
+<td>One synthetic patient in the output.</td>
+</tr>
+<tr class="even">
+<td><strong>anchor</strong></td>
+<td>The single real patient whose <strong>event skeleton</strong> an
+avatar copies. Each avatar has exactly one, and it is chosen by sampling
+with replacement from the pool of eligible source patients.</td>
+</tr>
+<tr class="odd">
+<td><strong>event skeleton</strong></td>
+<td>
+<em>When</em> things happened to a patient, with no measured values:
+the dose events and the times of the DV observations. This is what gets
+copied from the anchor; the values that fill it do not.</td>
+</tr>
+<tr class="even">
+<td><strong>donor</strong></td>
+<td>A real patient whose <em>measurements</em> contribute to an avatar.
+Each avatar blends at least <code>k</code> (default 5) of them, and no
+single donor may exceed <code>max_donor_weight</code> (default 0.50) of
+the blend. An avatar’s anchor is usually also one of its donors, but the
+two roles are separate: the anchor supplies structure, donors supply
+values.</td>
+</tr>
+<tr class="odd">
+<td><strong>visit set</strong></td>
+<td>Which of the study’s shared visits one patient actually had — the
+pattern of attended and missed DV observations, once every patient is on
+a common grid.</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
