@@ -170,126 +170,38 @@ inform DV values.</p>
 </h2>
 <p>The stages above describe how a synthetic dataset gets
 <em>built</em>. Cutting across them are five <strong>masking
-mechanisms</strong>, M1 to M5, each existing to stop some specific piece
-of a real patient data from reaching the synthetic dataset.</p>
-<table style="width:100%;" class="table">
-<colgroup>
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
-</colgroup>
-<thead><tr class="header">
-<th></th>
-<th>Mechanism</th>
-<th>Acts on</th>
-<th>Runs</th>
-<th>Control</th>
-<th>Why</th>
-<th>What it cannot do</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><strong>M1</strong></td>
-<td>Snap every time onto a shared visit grid, then add deviations back
-from a <strong>cohort-wide pool</strong>
-</td>
-<td>
-<strong>all times</strong> — dose events <em>and</em> DV
-observations</td>
-<td>snapping before generation; the deviations go back per avatar</td>
-<td><code>coarsen_time</code></td>
-<td>As recorded, one patient’s list of times is very often unique to
-them, and so works as a fingerprint. Restoring a <em>pooled</em>
-deviation keeps the data realistic without giving the patient their own
-back</td>
-<td>Change <em>which</em> visits a patient attended</td>
-</tr>
-<tr class="even">
-<td><strong>M2</strong></td>
-<td>Drop patients from the <strong>anchor pool</strong>
-</td>
-<td>whole source patients</td>
-<td>before generation</td>
-<td>
-<code>screen</code>, <code>on_donor_shortfall</code>
-</td>
-<td>(i) a patient whose follow-up or dose count exceeds <strong>2× the
-cohort’s 90th percentile</strong> would hand any avatar built on them a
-conspicuous skeleton that value-blending cannot hide; (ii) a patient in
-a route arm with fewer than <code>k + 1</code> patients has too few
-same-route donors, so their avatar would be a near-copy of one real
-person</td>
-<td>Help a patient who is merely <em>unique</em> rather than
-<em>extreme</em>
-</td>
-</tr>
-<tr class="odd">
-<td><strong>M3</strong></td>
-<td>Redraw which visits an avatar attended</td>
-<td>
-<strong>DV observations only</strong> — dose events are never
-touched</td>
-<td>per avatar</td>
-<td>
-<code>min_pattern_share</code> (2)</td>
-<td>A combination of attended and missed visits held by one patient is a
-fingerprint made of gaps, and no grid can hide it</td>
-<td>Touch dose events, deliberately — a drawn regimen could be one no
-protocol permits</td>
-</tr>
-<tr class="even">
-<td><strong>M4</strong></td>
-<td>Blend covariates and DV from several donors, capped, plus noise</td>
-<td>measured values</td>
-<td>per avatar</td>
-<td>
-<code>k</code>, <code>max_donor_weight</code>,
-<code>subject_noise_sd</code>, <code>residual_noise_sd</code>
-</td>
-<td>So no avatar’s numbers come from one real patient</td>
-<td>Protect anything structural — the skeleton is copied, not
-blended</td>
-</tr>
-<tr class="odd">
-<td><strong>M5</strong></td>
-<td>Recompute the dose amount from the avatar’s own blended
-covariate</td>
-<td>dose amounts, under <strong>weight-based dosing</strong> (mg/kg) or
-body-surface-area dosing (mg/m²)</td>
-<td>per avatar</td>
-<td>automatic</td>
-<td>A copied dose under mg/kg discloses the anchor’s weight exactly, and
-leaves the avatar violating the mg/kg rule its own data claims to
-follow</td>
-<td>Help where dosing is unrelated to a covariate; detection fails
-closed</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Each mechanism is explained once, in the step that fires
-it</strong> — M2 and M3 in Step 2, M1 in Step 3, M4 in Step 7, M5 in
-Step 9. They are numbered by when they start, and every stage above
-lists an ascending run. Two notes. <strong>M1 happens in two
-parts</strong> — the snapping runs once before any avatar exists, and
-the pooled deviations are added back while each avatar is built — but it
-is one mechanism under one argument, so it gets one number. And
-<strong>M5 sits inside M4</strong> rather than after it: recomputing the
-dose needs the avatar’s blended covariate, so it runs once the
-covariates are blended and before the trajectories are.</p>
-<p><strong>Restoring the deviations is not itself masking</strong>,
-which is why it does not get its own row. It repairs the realism that
-snapping costs. It matters to the privacy argument only in the negative:
-if each avatar got <em>its own anchor’s</em> deviation back instead of a
-pooled one, the snapping would be undone and M1 would achieve
-nothing.</p>
-<p>All five run by default. A sixth thing exists and is
-<strong>not</strong> in this table —
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, discussed below — because on
-inspection it is a plausibility check rather than a masking step.</p>
+mechanisms</strong>, numbered in the order they run. Each one is
+explained in full at the step that fires it.</p>
+<ul>
+<li>
+<strong>M1 — coarsen the times.</strong> Snap every time onto a
+shared visit grid, then add deviations back from a cohort-wide pool.
+Acts on dose events and DV observations alike. <em>Step 3.</em>
+</li>
+<li>
+<strong>M2 — restrict who can be an anchor.</strong> Drop patients
+whose structure no amount of blending would hide, and patients in a
+route arm too small to blend within. <em>Step 2.</em>
+</li>
+<li>
+<strong>M3 — redraw which visits the avatar attended.</strong> DV
+observations only; dose events are never touched. <em>Step 2.</em>
+</li>
+<li>
+<strong>M4 — blend the values across several donors.</strong>
+Covariates and DV, capped so no one donor dominates, plus noise.
+<em>Step 7.</em>
+</li>
+<li>
+<strong>M5 — recompute the dose from the avatar’s own
+covariate.</strong> Only where dosing is weight- or BSA-based. <em>Step
+9.</em>
+</li>
+</ul>
+<p>All five run by default. <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>
+runs after generation and is deliberately absent from this list: it is a
+plausibility check rather than a masking step, for reasons given under
+“After generation”.</p>
 </div>
 <div class="section level2">
 <h2 id="step-1-declare-the-meaning-of-the-columns">Step 1: declare the meaning of the columns<a class="anchor" aria-label="anchor" href="#step-1-declare-the-meaning-of-the-columns"></a>

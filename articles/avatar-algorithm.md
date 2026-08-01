@@ -74,39 +74,27 @@ and multiple **donors** help inform DV values.
 ## The masking, in the order it happens
 
 The stages above describe how a synthetic dataset gets *built*. Cutting
-across them are five **masking mechanisms**, M1 to M5, each existing to
-stop some specific piece of a real patient data from reaching the
-synthetic dataset.
+across them are five **masking mechanisms**, numbered in the order they
+run. Each one is explained in full at the step that fires it.
 
-|  | Mechanism | Acts on | Runs | Control | Why | What it cannot do |
-|----|----|----|----|----|----|----|
-| **M1** | Snap every time onto a shared visit grid, then add deviations back from a **cohort-wide pool** | **all times** — dose events *and* DV observations | snapping before generation; the deviations go back per avatar | `coarsen_time` | As recorded, one patient’s list of times is very often unique to them, and so works as a fingerprint. Restoring a *pooled* deviation keeps the data realistic without giving the patient their own back | Change *which* visits a patient attended |
-| **M2** | Drop patients from the **anchor pool** | whole source patients | before generation | `screen`, `on_donor_shortfall` | \(i\) a patient whose follow-up or dose count exceeds **2× the cohort’s 90th percentile** would hand any avatar built on them a conspicuous skeleton that value-blending cannot hide; (ii) a patient in a route arm with fewer than `k + 1` patients has too few same-route donors, so their avatar would be a near-copy of one real person | Help a patient who is merely *unique* rather than *extreme* |
-| **M3** | Redraw which visits an avatar attended | **DV observations only** — dose events are never touched | per avatar | `min_pattern_share` (2) | A combination of attended and missed visits held by one patient is a fingerprint made of gaps, and no grid can hide it | Touch dose events, deliberately — a drawn regimen could be one no protocol permits |
-| **M4** | Blend covariates and DV from several donors, capped, plus noise | measured values | per avatar | `k`, `max_donor_weight`, `subject_noise_sd`, `residual_noise_sd` | So no avatar’s numbers come from one real patient | Protect anything structural — the skeleton is copied, not blended |
-| **M5** | Recompute the dose amount from the avatar’s own blended covariate | dose amounts, under **weight-based dosing** (mg/kg) or body-surface-area dosing (mg/m²) | per avatar | automatic | A copied dose under mg/kg discloses the anchor’s weight exactly, and leaves the avatar violating the mg/kg rule its own data claims to follow | Help where dosing is unrelated to a covariate; detection fails closed |
+- **M1 — coarsen the times.** Snap every time onto a shared visit grid,
+  then add deviations back from a cohort-wide pool. Acts on dose events
+  and DV observations alike. *Step 3.*
+- **M2 — restrict who can be an anchor.** Drop patients whose structure
+  no amount of blending would hide, and patients in a route arm too
+  small to blend within. *Step 2.*
+- **M3 — redraw which visits the avatar attended.** DV observations
+  only; dose events are never touched. *Step 2.*
+- **M4 — blend the values across several donors.** Covariates and DV,
+  capped so no one donor dominates, plus noise. *Step 7.*
+- **M5 — recompute the dose from the avatar’s own covariate.** Only
+  where dosing is weight- or BSA-based. *Step 9.*
 
-**Each mechanism is explained once, in the step that fires it** — M2 and
-M3 in Step 2, M1 in Step 3, M4 in Step 7, M5 in Step 9. They are
-numbered by when they start, and every stage above lists an ascending
-run. Two notes. **M1 happens in two parts** — the snapping runs once
-before any avatar exists, and the pooled deviations are added back while
-each avatar is built — but it is one mechanism under one argument, so it
-gets one number. And **M5 sits inside M4** rather than after it:
-recomputing the dose needs the avatar’s blended covariate, so it runs
-once the covariates are blended and before the trajectories are.
-
-**Restoring the deviations is not itself masking**, which is why it does
-not get its own row. It repairs the realism that snapping costs. It
-matters to the privacy argument only in the negative: if each avatar got
-*its own anchor’s* deviation back instead of a pooled one, the snapping
-would be undone and M1 would achieve nothing.
-
-All five run by default. A sixth thing exists and is **not** in this
-table —
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md),
-discussed below — because on inspection it is a plausibility check
-rather than a masking step.
+All five run by default.
+[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
+runs after generation and is deliberately absent from this list: it is a
+plausibility check rather than a masking step, for reasons given under
+“After generation”.
 
 ## Step 1: declare the meaning of the columns
 
