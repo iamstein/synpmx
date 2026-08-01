@@ -1,4 +1,4 @@
-# Privacy in synpmx
+# Privacy
 
 ## Scope
 

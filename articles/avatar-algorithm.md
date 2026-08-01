@@ -1,4 +1,4 @@
-# The AVATAR Algorithm
+# The synpmx AVATAR Algorithm
 
 This article is the full specification of the AVATAR synthetic data
 generator, which builds synthetic records from the local neighborhood of
@@ -77,24 +77,21 @@ The stages above describe how a synthetic dataset gets *built*. Cutting
 across them are five **masking mechanisms**, numbered in the order they
 run. Each one is explained in full at the step that fires it.
 
-- **M1 — coarsen the times.** Snap every time onto a shared visit grid,
-  then add deviations back from a cohort-wide pool. Acts on dose events
-  and DV observations alike. *Step 3.*
+- **M1 — coarsen the times.** Snap every time onto a shared visit grid.
+  Then later add deviations back from a cohort-wide pool. This prevents
+  identifying a patient from their TIME vector.
 - **M2 — restrict who can be an anchor.** Drop patients whose structure
-  no amount of blending would hide, and patients in a route arm too
-  small to blend within. *Step 2.*
-- **M3 — redraw which visits the avatar attended.** DV observations
-  only; dose events are never touched. *Step 2.*
+  no amount of blending would hide (e.g. patients followed twice as long
+  as everyone else) and patients in a route arm too small to blend
+  within. *Step 2.*
+- **M3 — redraw which visits the avatar attended.** Reselect which DV
+  values at which time points were collected, in case a patient has a
+  unique set of missing visits *Step 2.*
 - **M4 — blend the values across several donors.** Covariates and DV,
   capped so no one donor dominates, plus noise. *Step 7.*
-- **M5 — recompute the dose from the avatar’s own covariate.** Only
-  where dosing is weight- or BSA-based. *Step 9.*
-
-All five run by default.
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-runs after generation and is deliberately absent from this list: it is a
-plausibility check rather than a masking step, for reasons given under
-“After generation”.
+- **M5 — recompute the dose from the avatar’s own covariate.** Done when
+  the dosing is weight- or BSA-based, so that subjects do not have
+  uniquely identifying doses. *Step 9.*
 
 ## Step 1: declare the meaning of the columns
 

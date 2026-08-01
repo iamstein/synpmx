@@ -1,4 +1,4 @@
-# The four generation modes
+# The four synpmx data generation algorithms
 
 ## What this package does
 

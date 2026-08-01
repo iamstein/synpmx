@@ -467,7 +467,7 @@ Fully public example datasets for testing and demonstration.
 
 ### All vignettes
 
-- [The AVATAR
+- [The synpmx AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
@@ -481,9 +481,8 @@ Fully public example datasets for testing and demonstration.
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
-- [The four generation
-  modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
+- [The four synpmx data generation
+  algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
 - [Demo: Using synpmx AVATAR with 5
   datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.md):
-- [Privacy in
-  synpmx](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
+- [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
