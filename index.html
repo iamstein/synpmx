@@ -253,11 +253,10 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 </ul>
 <p>Both are <strong>scaled to the endpoint</strong>, not measured in its units. On a log-transformed endpoint — the usual case for concentrations — the value applies on the log scale, so <code>0.15</code> is roughly a 15% multiplicative shift. On an untransformed endpoint it is a fraction of the standard deviation of the source values. That is why the same defaults work across endpoints on wildly different scales.</p>
 <p><code>time_jitter</code> is not in this group: it perturbs observation <em>times</em> rather than values, and as noted above it is a realism control rather than a privacy one.</p>
-<p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. And a source attendance pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong> — that loss is the mechanism working, and every run reports how much of it happened.</p>
-<p>Measure what the masking achieved with <code><a href="reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> on the source and <code><a href="reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> on the pair.</p>
+<p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. And a time of DV collection pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong>, and instead such a pattern is sampled from the patients who share this data collection patterns with others .</p>
 </div>
 <div class="section level2">
-<h2 id="the-four-modes">The four modes<a class="anchor" aria-label="anchor" href="#the-four-modes"></a>
+<h2 id="the-four-modes-for-generating-synthetic-data">The four modes for generating synthetic data<a class="anchor" aria-label="anchor" href="#the-four-modes-for-generating-synthetic-data"></a>
 </h2>
 <table class="table">
 <colgroup>
@@ -309,8 +308,8 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 </tbody>
 </table>
 <p><strong>The trust boundary decides whether you need differential privacy.</strong></p>
-<p>If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn’t require the specification of a model.</p>
-<p>On the other hand, if the synthetic data will reach those who do not have access to the original data, then more formal methods with mathematical trust guarantees are the appropriate methods of choice.</p>
+<p>If the generated data will not be accessible to anyone who cannot access the original data and formal privacy guarantees are not needed, then the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn’t require the specification of a model.</p>
+<p>On the other hand, if the synthetic data will reach those who do not have access to the original data, then more formal methods with mathematical trust guarantees are the appropriate methods of choice, as they offer concrete privacy guarantees.</p>
 <p><code><a href="articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> runs all four methods on the same dataset and shows the results side by side.</p>
 </div>
 <div class="section level2">
