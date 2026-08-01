@@ -227,15 +227,12 @@ values, and as noted above it is a realism control rather than a privacy one.
 Two things the defaults do that are worth knowing about. Where dosing is
 proportional to a covariate (mg/kg, mg/m²), each avatar's `AMT` is **recomputed
 from its own blended covariate** rather than copied, so the synthetic patient's
-dose matches the synthetic patient's weight. And a source attendance pattern
-held by fewer than `min_pattern_share` subjects is **lost, not approximated** —
-that loss is the mechanism working, and every run reports how much of it
-happened.
+dose matches the synthetic patient's weight. And a time of DV collection pattern
+held by fewer than `min_pattern_share` subjects is **lost, not approximated**, and instead
+such a pattern is sampled from the patients who share this data collection patterns with others 
+\appened.
 
-Measure what the masking achieved with `skeleton_uniqueness()` on the source and
-`compare_pmx_proximity()` on the pair.
-
-## The four modes
+## The four modes for generating synthetic data
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|
@@ -246,9 +243,9 @@ Measure what the masking achieved with `skeleton_uniqueness()` on the source and
 
 **The trust boundary decides whether you need differential privacy.**
 
-If the generated data will not be accessible to anyone who cannot access the original data, formal privacy guarantees are not needed and the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn't require the specification of a model.  
+If the generated data will not be accessible to anyone who cannot access the original data and formal privacy guarantees are not needed, then the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn't require the specification of a model.  
 
-On the other hand, if the synthetic data will reach those who do not have access to the original data, then  more formal methods with mathematical trust guarantees are the appropriate methods of choice.  
+On the other hand, if the synthetic data will reach those who do not have access to the original data, then  more formal methods with mathematical trust guarantees are the appropriate methods of choice, as they offer concrete privacy guarantees.  
 
 `vignette("synpmx-4-methods")` runs all four methods on the same dataset and shows the results side by side.
 
