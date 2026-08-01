@@ -95,14 +95,14 @@ ROLES <- pmx_roles(
   nominal_time = NULL, # e.g. "NTIME"
   tad      = NULL,     # time-after-dose column; recomputed after generation
   # ASSIGNED STRATUM -- treatment arm, dose group, cohort. Carried verbatim like
-  # `keep`, and additionally used to group the pool of attendance patterns an
+  # `keep`, and additionally used to group the pool of visit sets an
   # avatar may draw from, so an avatar only inherits a visit pattern from its own
   # arm. Not a blending barrier: donors are still borrowed across strata to reach
   # the donor floor, because only route of administration is absolute.
   #
   # Whether to declare an arm here is a real trade, not an obvious win. Declaring
   # it is more faithful -- arms with different visit schedules stay separate --
-  # but it splits the pattern pools, so fewer patterns clear `min_pattern_share`
+  # but it splits the visit-set pools, so fewer visit sets clear `min_pattern_share`
   # and more real dropout patterns are discarded. The run reports how many were
   # lost either way; try it both ways and compare.
   # Gaps are fine here too: subjects with no recorded value form their own
@@ -111,7 +111,7 @@ ROLES <- pmx_roles(
   # in this study is also an error, naming itself: the two PIT565 parts do not
   # carry identical columns, so check this block against the study you are
   # running rather than assuming it carries over.
-  subject_properties = NULL,   # e.g. "TRT", or c("TRT", "COHORT")
+  subject_properties = c("TRT", "TRTN"),  # set NULL to compare pooled pattern pools
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
   # If the data has below-limit-of-quantification (BLQ) records, declare cens
@@ -131,7 +131,7 @@ ROLES <- pmx_roles(
   # a study id, a character label. An assigned *stratum* (treatment arm, dose
   # group) is better declared in `subject_properties` above, which carries it
   # the same way and also groups the attendance-pattern pools.
-  keep     = c("STUDYIDN", "STUDYID", "TRT", "TRTN")
+  keep     = c("STUDYIDN", "STUDYID")
   # Every column NOT named by a role above is dropped. That is deliberate: a
   # secondary identifier you forget cannot leak out of a real subject. The run
   # prints exactly which columns it dropped.
@@ -213,21 +213,31 @@ cost. Copy these into the study inventory in `scripts_private/README.md`.
 settings <- attr(synthetic, "pmx_settings")
 data.frame(
   quantity = c(
+    "source patients",
+    "  ... excluded as structural outliers (M2, screen)",
+    "  ... excluded below the donor floor (M2, route arm)",
+    "  ... left available to anchor on",
+    "route arms / compatible event groups",
     "time grid used",
-    "subjects still alone after coarsening",
-    "  ... seen at a unique moment (declare nominal_time to fix)",
-    "  ... unique attendance pattern (dropout; min_pattern_share's job)",
+    "patients with a unique observation schedule, after coarsening",
+    "  ... unique observation time (declare nominal_time to fix)",
+    "  ... unique visit set (dropout; M3's job)",
     "dose basis detected",
     "dose levels found",
-    "attendance patterns in the source",
+    "distinct visit sets in the source",
     "  ... discarded as too rare to reuse",
     "  ... real subjects who held those",
-    "avatars given a sampled pattern",
-    "  ... of those, arrangement generated not reused",
+    "avatars given a real patient's visit set",
+    "  ... of those, which visits were missed was invented",
     "donor floor: mean effective donors",
     "donor cap binding fraction"
   ),
   value = c(
+    settings$source_subjects,
+    settings$anchors_screened_out,
+    settings$anchors_route_excluded,
+    settings$anchors_available,
+    paste(settings$routes, "/", settings$compatible_event_groups),
     settings$time_grid,
     settings$unique_schedule_n,
     settings$unique_obs_time_n,
@@ -313,6 +323,32 @@ means **nothing was detected**, not that nothing is there.
 #| label: proximity
 compare_pmx_proximity(raw, synthetic, roles)
 ```
+
+### Post-generation screen (optional, not run for you)
+
+`flag_identifiable_subjects()` scores each **synthetic** patient on four axes --
+follow-up time, dose count, dose magnitude, peak DV -- and flags robust
+outliers. It is a **plausibility check rather than a masking step**: M2 has
+already kept structurally extreme *source* patients out of the anchor pool, and
+a conspicuous blended value identifies nobody because it belongs to no one.
+
+Read what it flags before acting on it. Its median/MAD statistic behaves badly
+on a bimodal cohort -- on `mavoglurant`, where half the patients have one dosing
+period and half have two, it flags 75 of 120 avatars on axes M2 already
+screened. If this study has two clearly different groups, expect the same and do
+not simply drop what it returns.
+
+```{r}
+#| label: flag-identifiable
+flagged <- flag_identifiable_subjects(synthetic, roles)
+sum(flagged$flagged)
+knitr::kable(utils::head(flagged[flagged$flagged, ], 10))
+```
+
+`remediate_identifiable_subjects()` will truncate, drop, or replace them and
+refill the cohort. Note `REV-028`: replacements are screened against their own
+batch rather than the merged cohort, so a replacement can be clean in its batch
+and an outlier once joined.
 
 ### Restricted diagnostic: source vs synthetic
 
