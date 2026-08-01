@@ -83,66 +83,50 @@ Stein</h4>
     
     
 <p>This article is the full specification of the AVATAR synthetic data
-generator [1, 2] that has been implemented in this package. ple.</p>
-<p>“AVATAR” is a method name rather than an initialism, from the
-patient-centric <em>avatarization</em> literature in which each
-synthetic record is built from the local neighborhood of real records.
-The original method [2] was extended to population PK datasets [1]. What
-this package does differently is set out under <a href="#relationship-to-avatar">Relationship to AVATAR</a> below.</p>
+generator, which builds synthetic records from the local neighborhood of
+real records. The original method [2] was extended to population PK
+datasets [1] and here, further extensions are provided so that it works
+well with more realistic datasets.</p>
 <div class="section level2">
 <h2 id="the-process-at-a-glance">The process at a glance<a class="anchor" aria-label="anchor" href="#the-process-at-a-glance"></a>
 </h2>
-<p>Before the step-by-step detail, here is the whole pipeline in one
-place. Each synthetic subject is built from one real <em>anchor</em>
+<p>Each synthetic subject is built from one real <em>anchor</em>
 subject’s dosing event structure, then filled with measurements blended
-from several similar real subjects.</p>
-<p>The generator works on <strong>any number of endpoints</strong> — a
-PK concentration alongside one or more PD measures, declared through the
-<code>dvid</code> role. Each endpoint gets its own transformation and
-its own interpolation grid, and they are then combined into a single
-per-subject profile.</p>
-<p>The pipeline has six <strong>stages</strong>, lettered (a) to
+from several similar real subjects. The generator works on <strong>any
+number of endpoints</strong> — one can have multiple PK profiles
+alongside multiple PD measures, declared through the <code>dvid</code>
+role. The pipeline has six <strong>stages</strong>, lettered (a) to
 (f).</p>
 <ul>
-<li><p><strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
-say which column is the id, the time, the dose, the measurement, and so
-on. Only named columns survive.</p></li>
 <li>
-<p><strong>(b) Split dosing structure from DV values</strong> —
-<em>Step 2</em>. A way of <em>thinking</em> about each patient’s rows
-rather than an operation that runs. Every patient’s table divides into
-two things AVATAR treats completely differently: the <strong>event
-skeleton</strong> — <em>when</em> things happened, meaning the dose
-events and the times of the DV observations, with no measured values at
-all — and the <strong>values</strong>, meaning the DV numbers that fill
-those observation slots plus the baseline covariates.</p>
-<p><strong>The skeleton is copied from one real patient; the values are
-blended from several.</strong> That asymmetry is the whole method, and
-it is where the privacy problem lives: blending protects the values
-thoroughly and does nothing whatever for the skeleton, which is why M1,
-M2 and M3 all exist.</p>
-<p>Mechanically there is no splitting step. Step 2 starts each avatar as
-a copy of its anchor’s rows, and later steps overwrite the DV and
-covariate columns in place. Copying whole rows rather than drawing TIME,
-EVID, AMT, RATE and CMT independently is deliberate: independently drawn
-event fields produce impossible records, such as an infusion rate on an
-oral dose. <strong>Before this, <code>M1</code> has already snapped
-every source time — dose events and DV observations alike — onto a
-shared visit grid</strong>, banking the removed deviations in a cohort
-pool that M1’s second half draws from later.</p>
-</li>
-<li><p><strong>(c) Put every subject on a comparable footing</strong> —
+<strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
+say which column is the id, the time, the dose, the measurement, and so
+on. Only named columns survive.</li>
+<li>
+<strong>(b) Start each avatar from one real patient</strong> —
+<em>Step 2</em>. Sample an <strong>anchor</strong> with replacement from
+the eligible source patients and copy its rows wholesale: every TIME,
+EVID, AMT, RATE and CMT it had. Later steps overwrite the DV and
+covariate columns in place. Copying whole rows rather than drawing the
+event fields independently is deliberate — independently drawn fields
+produce impossible records, such as an infusion rate on an oral dose.
+This is also where <strong>M2</strong> decides which patients are
+eligible to anchor on, and <strong>M3</strong> redraws which visits the
+avatar attended.</li>
+<li>
+<strong>(c) Put every subject on a comparable footing</strong> —
 <em>Steps 3, 4, and 5</em>. Align time to the first event, choose an
 endpoint transformation, and reduce each subject to one numeric
 <em>profile</em> — baseline covariates plus its trajectory on a common
 grid — then to a handful of principal-component coordinates for
-measuring who resembles whom.</p></li>
-<li><p><strong>(d) Build each synthetic subject</strong> — <em>Steps 6,
-7, 8, and 9</em>. Copy a real anchor’s event skeleton, in mechanism
-order <strong>M2 → M3 → M4 → M5</strong>. Do not anchor on a source
-subject whose structure is an outlier, nor on one whose route arm is too
-small to blend within (<strong>M2</strong>). Draw which visits the
-avatar attended from sets at least two real patients share
+measuring who resembles whom.</li>
+<li>
+<strong>(d) Build each synthetic subject</strong> — <em>Steps 6, 7,
+8, and 9</em>. Copy a real anchor’s event skeleton, in mechanism order
+<strong>M2 → M3 → M4 → M5</strong>. Do not anchor on a source subject
+whose structure is an outlier, nor on one whose route arm is too small
+to blend within (<strong>M2</strong>). Draw which visits the avatar
+attended from sets at least two real patients share
 (<strong>M3</strong>). Give it timing deviations resampled from the
 cohort pool (<strong>M1</strong>, second half). Pick the <code>k</code>
 (default 5) nearest donors, borrowing across dose/schedule groups when
@@ -152,27 +136,41 @@ skeleton, capping any one donor’s share at <code>max_donor_weight</code>
 (default 0.50) and adding subject-level and within-subject noise
 (<strong>M4</strong>). Recompute the dose from the avatar’s own blended
 covariate where dosing is proportional to one (<strong>M5</strong>), and
-reconstruct any below-limit (BLOQ) censoring.</p></li>
-<li><p><strong>(e) Restore the original shape</strong> — <em>Step
-10</em>. Nothing here is about reassembling doses and observations:
-those have travelled together as rows of one table the whole way. This
-restores the <strong>table’s</strong> shape — the source’s column order,
-each column’s type and factor levels, and the container class, so a
-tibble comes back a tibble. Fresh subject IDs are assigned,
-<code>MDV</code> is re-derived where the source used the standard
-convention, and a record of every choice made is attached as
-<code>attr(x, "pmx_settings")</code>.</p></li>
-<li><p><strong>(f) Screen the result</strong> — <em>Step 11</em>, and
-the post-generation screen, the one step <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-does not run for you. Because the event skeleton is copied from one
-anchor, a structurally unusual source subject yields a structurally
-unusual — and identifiable — avatar. A per-subject screen flags those,
-and a remediation step truncates, drops, or replaces them.</p></li>
+reconstruct any below-limit (BLOQ) censoring.</li>
+<li>
+<strong>(e) Restore the original shape</strong> — <em>Step 10</em>.
+Nothing here is about reassembling doses and observations: those have
+travelled together as rows of one table the whole way. This restores the
+<strong>table’s</strong> shape — the source’s column order, each
+column’s type and factor levels, and the container class, so a tibble
+comes back a tibble. Fresh subject IDs are assigned, <code>MDV</code> is
+re-derived where the source used the standard convention, and a record
+of every choice made is attached as
+<code>attr(x, "pmx_settings")</code>.</li>
+<li>
+<strong>(f) Screen the result</strong> — <em>Step 11</em>, and the
+post-generation screen, the one step <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does
+not run for you. Because the event skeleton is copied from one anchor, a
+structurally unusual source subject yields a structurally unusual — and
+identifiable — avatar. A per-subject screen flags those, and a
+remediation step truncates, drops, or replaces them.</li>
 </ul>
-<p>The two key ideas are the <strong>anchor</strong> (each avatar keeps
-one real subject’s event structure) and the <strong>donor blend</strong>
-(its measurements are averaged from several real subjects, never copied
-from one). Keep those in mind and the rest is detail.</p>
+<p>Underneath all six stages is one idea. Every patient’s rows hold two
+very different things: the <strong>event skeleton</strong> —
+<em>when</em> things happened, meaning the dose events and the times of
+the DV observations — and the <strong>values</strong>, meaning the DV
+numbers filling those observation slots plus the baseline
+covariates.</p>
+<p><strong>The skeleton is copied from one real patient; the values are
+blended from several.</strong> No step splits them apart — the skeleton
+is simply the anchor’s rows, and the value columns get overwritten in
+place — but the asymmetry is the whole method, and it is where the
+privacy problem lives. Blending protects the values thoroughly and does
+nothing whatever for the skeleton, which is why M1, M2 and M3 all
+exist.</p>
+<p>So: the <strong>anchor</strong> supplies structure, the
+<strong>donors</strong> supply values. Keep that in mind and the rest is
+detail.</p>
 </div>
 <div class="section level2">
 <h2 id="the-words-this-article-uses">The words this article uses<a class="anchor" aria-label="anchor" href="#the-words-this-article-uses"></a>
@@ -525,7 +523,7 @@ value.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="step-2-split-structure-from-values">Step 2: split structure from values<a class="anchor" aria-label="anchor" href="#step-2-split-structure-from-values"></a>
+<h2 id="step-2-copy-one-anchors-rows">Step 2: copy one anchor’s rows<a class="anchor" aria-label="anchor" href="#step-2-copy-one-anchors-rows"></a>
 </h2>
 <p>Let subject
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>

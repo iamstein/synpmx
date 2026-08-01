@@ -1,64 +1,37 @@
 # The AVATAR Algorithm
 
 This article is the full specification of the AVATAR synthetic data
-generator \[1, 2\] that has been implemented in this package. ple.
-
-“AVATAR” is a method name rather than an initialism, from the
-patient-centric *avatarization* literature in which each synthetic
-record is built from the local neighborhood of real records. The
-original method \[2\] was extended to population PK datasets \[1\]. What
-this package does differently is set out under [Relationship to
-AVATAR](#relationship-to-avatar) below.
+generator, which builds synthetic records from the local neighborhood of
+real records. The original method \[2\] was extended to population PK
+datasets \[1\] and here, further extensions are provided so that it
+works well with more realistic datasets.
 
 ## The process at a glance
 
-Before the step-by-step detail, here is the whole pipeline in one place.
 Each synthetic subject is built from one real *anchor* subject’s dosing
 event structure, then filled with measurements blended from several
-similar real subjects.
-
-The generator works on **any number of endpoints** — a PK concentration
-alongside one or more PD measures, declared through the `dvid` role.
-Each endpoint gets its own transformation and its own interpolation
-grid, and they are then combined into a single per-subject profile.
-
-The pipeline has six **stages**, lettered (a) to (f).
+similar real subjects. The generator works on **any number of
+endpoints** — one can have multiple PK profiles alongside multiple PD
+measures, declared through the `dvid` role. The pipeline has six
+**stages**, lettered (a) to (f).
 
 - **(a) Declare the columns** — *Step 1*. Roles say which column is the
   id, the time, the dose, the measurement, and so on. Only named columns
   survive.
-
-- **(b) Split dosing structure from DV values** — *Step 2*. A way of
-  *thinking* about each patient’s rows rather than an operation that
-  runs. Every patient’s table divides into two things AVATAR treats
-  completely differently: the **event skeleton** — *when* things
-  happened, meaning the dose events and the times of the DV
-  observations, with no measured values at all — and the **values**,
-  meaning the DV numbers that fill those observation slots plus the
-  baseline covariates.
-
-  **The skeleton is copied from one real patient; the values are blended
-  from several.** That asymmetry is the whole method, and it is where
-  the privacy problem lives: blending protects the values thoroughly and
-  does nothing whatever for the skeleton, which is why M1, M2 and M3 all
-  exist.
-
-  Mechanically there is no splitting step. Step 2 starts each avatar as
-  a copy of its anchor’s rows, and later steps overwrite the DV and
-  covariate columns in place. Copying whole rows rather than drawing
-  TIME, EVID, AMT, RATE and CMT independently is deliberate:
-  independently drawn event fields produce impossible records, such as
-  an infusion rate on an oral dose. **Before this, `M1` has already
-  snapped every source time — dose events and DV observations alike —
-  onto a shared visit grid**, banking the removed deviations in a cohort
-  pool that M1’s second half draws from later.
-
+- **(b) Start each avatar from one real patient** — *Step 2*. Sample an
+  **anchor** with replacement from the eligible source patients and copy
+  its rows wholesale: every TIME, EVID, AMT, RATE and CMT it had. Later
+  steps overwrite the DV and covariate columns in place. Copying whole
+  rows rather than drawing the event fields independently is deliberate
+  — independently drawn fields produce impossible records, such as an
+  infusion rate on an oral dose. This is also where **M2** decides which
+  patients are eligible to anchor on, and **M3** redraws which visits
+  the avatar attended.
 - **(c) Put every subject on a comparable footing** — *Steps 3, 4, and
   5*. Align time to the first event, choose an endpoint transformation,
   and reduce each subject to one numeric *profile* — baseline covariates
   plus its trajectory on a common grid — then to a handful of
   principal-component coordinates for measuring who resembles whom.
-
 - **(d) Build each synthetic subject** — *Steps 6, 7, 8, and 9*. Copy a
   real anchor’s event skeleton, in mechanism order **M2 → M3 → M4 →
   M5**. Do not anchor on a source subject whose structure is an outlier,
@@ -73,7 +46,6 @@ The pipeline has six **stages**, lettered (a) to (f).
   and within-subject noise (**M4**). Recompute the dose from the
   avatar’s own blended covariate where dosing is proportional to one
   (**M5**), and reconstruct any below-limit (BLOQ) censoring.
-
 - **(e) Restore the original shape** — *Step 10*. Nothing here is about
   reassembling doses and observations: those have travelled together as
   rows of one table the whole way. This restores the **table’s** shape —
@@ -82,7 +54,6 @@ The pipeline has six **stages**, lettered (a) to (f).
   IDs are assigned, `MDV` is re-derived where the source used the
   standard convention, and a record of every choice made is attached as
   `attr(x, "pmx_settings")`.
-
 - **(f) Screen the result** — *Step 11*, and the post-generation screen,
   the one step
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -91,10 +62,21 @@ The pipeline has six **stages**, lettered (a) to (f).
   unusual — and identifiable — avatar. A per-subject screen flags those,
   and a remediation step truncates, drops, or replaces them.
 
-The two key ideas are the **anchor** (each avatar keeps one real
-subject’s event structure) and the **donor blend** (its measurements are
-averaged from several real subjects, never copied from one). Keep those
-in mind and the rest is detail.
+Underneath all six stages is one idea. Every patient’s rows hold two
+very different things: the **event skeleton** — *when* things happened,
+meaning the dose events and the times of the DV observations — and the
+**values**, meaning the DV numbers filling those observation slots plus
+the baseline covariates.
+
+**The skeleton is copied from one real patient; the values are blended
+from several.** No step splits them apart — the skeleton is simply the
+anchor’s rows, and the value columns get overwritten in place — but the
+asymmetry is the whole method, and it is where the privacy problem
+lives. Blending protects the values thoroughly and does nothing whatever
+for the skeleton, which is why M1, M2 and M3 all exist.
+
+So: the **anchor** supplies structure, the **donors** supply values.
+Keep that in mind and the rest is detail.
 
 ## The words this article uses
 
@@ -283,7 +265,7 @@ O_{ij} = [\mathrm{EVID}_{ij}=0]
 Rows with EVID equal to zero but missing DV, or with nonzero MDV, remain
 in the sampled template but do not contribute a measurement value.
 
-## Step 2: split structure from values
+## Step 2: copy one anchor’s rows
 
 Let subject $`i`$ have source rows $`D_i`$. For every requested
 synthetic subject, the generator samples an **anchor** $`a`$ with
