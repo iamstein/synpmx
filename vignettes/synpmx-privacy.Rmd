@@ -1,11 +1,11 @@
 ---
-title: "Privacy in synpmx"
+title: "Privacy"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Privacy in synpmx}
+  %\VignetteIndexEntry{Privacy}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

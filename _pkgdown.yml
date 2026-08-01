@@ -17,32 +17,26 @@ navbar:
       text: Articles
       menu:
       - text: "Guides"
-      - text: The four generation modes
-        href: articles/synpmx-4-methods.html
-      - text: The AVATAR Algorithm
+      - text: The synpmx AVATAR Algorithm
         href: articles/avatar-algorithm.html
       - text: "Demo: Using synpmx AVATAR with 5 datasets"
         href: articles/synpmx-demo.html
-      - text: Privacy in synpmx
+      - text: The four synpmx data generation algorithms
+        href: articles/synpmx-4-methods.html
+      - text: Privacy
         href: articles/synpmx-privacy.html
       - text: -------
-      - text: "Method"
+      - text: "AVATAR method exploration"
       - text: "Example: are relationships preserved?"
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
-      - text: "Privacy"
+      - text: "Differential privacy background"
       - text: Privacy background
         href: articles/privacy-background.html
       - text: Formal privacy argument
         href: articles/privacy-argument.html
       - text: Feasibility by cohort size
         href: articles/feasibility.html
-      - text: -------
-      - text: "Preparing public inputs"
-      - text: Model elicitation
-        href: articles/model-elicitation.html
-      - text: Data elicitation
-        href: articles/data-elicitation.html
 
 reference:
 - title: Generating data
