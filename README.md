@@ -12,10 +12,10 @@ There are many reasons to generate "synthetic data."  It is important to be be e
 | **Develop code.** You need data with the right *shape* — schema, event grammar, covariates, dosing and sampling pattern.  You'll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.  | **Yes — this is what the package is for.** |
 | **Send data past a trust boundary.** The output will reach people who cannot see the real data: a partner, a publication, a public repository. | **Only with care.** This needs a formal guarantee; see the privacy modes below, which are illustrative rather than audited. |
 | **Answer the scientific question.** Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm. | **No.**   Use the real data for this. |
-| **Teach and compare.** Show what the different synthetic data generation methods do. | **Yes**, secondarily; that is why the non-default modes ship. |
+| **Teach and compare.** Show what the different synthetic data generation methods do. | **Yes**, secondarily. |
 
 The use case this package was built for: sharing realistic-looking study data
-outside the GxP (Good Practice regulated) computing environment but still within
+outside the GxP computing environment but still within
 the organization, so that code development can happen without the real data. In
 some cases the GxP environment does not permit the most advanced agentic coding
 tools, because of the risk of misalignment or unintended agent behavior. Working
@@ -24,15 +24,15 @@ data.
 
 ## The main deliverable: AVATAR method
 
-The main deliverable of the package is an implementation of the AVATAR method
-[1, 2], which offers some masking but no formal privacy guarantee. AVATAR works
+The main deliverable of this package is an implementation of the AVATAR method
+[1, 2], which offers some data masking but no formal privacy guarantee. AVATAR works
 by blending together patient profiles, and requires no model to be
-specified. "AVATAR" is a method name rather than an initialism, from the
-patient-centric *avatarization* literature: the original method was developed in
+specified. The original method was developed in
 Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified
-AVATAR for population PK [1]. Destere et al [1], did not test their method using
+AVATAR for population PK datasets [1]. However, they did not test their method using
 pharmacometrics dataset from actual clinical trials.  We have done here, and in the process
-we have added features such as handling BLOQ data and masking patients with unique dosing schedules.  The key function is `synpmx_avatar()`.
+we have added features such as handling BLOQ data and masking patients with unique dosing schedules.  
+The key function is `synpmx_avatar()`.
 
 The package also provides code for other data masking methods: trial simulation
 from prior knowledge, and two differential privacy (DP) methods that give more formal
@@ -60,26 +60,15 @@ Add `build_vignettes = TRUE` if you want `vignette("synpmx-4-methods")` offline;
 otherwise the same material is on the
 [website](https://iamstein.github.io/synpmx/).
 
-**If your environment blocks installing from GitHub** — likely in the validated
-environments this package is meant for — download the source archive from
-`https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz`, move it
-across, and install from the file. This needs nothing but base R, and no
-compiler, since AVATAR is pure R:
+**If your environment blocks installing from GitHub** , then download the source archive from
+`https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz` and install from the file. 
+This package needs nothing but base R, and no compiler, since AVATAR is pure R:
 
 ``` r
 install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
 ```
 
-If you were given the repository as a **ZIP** rather than a tarball, unzip it
-first and install the resulting directory — `install.packages()` cannot read a
-GitHub ZIP directly:
-
-``` r
-unzip("synpmx-main.zip")
-install.packages("synpmx-main", repos = NULL, type = "source")
-```
-
-AVATAR needs nothing beyond base R. The other methods 
+AVATAR needs nothing beyond base R. The DP methods 
 additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
@@ -92,7 +81,7 @@ AVATAR needs two things: the data, and a declaration of what its columns mean.
 There is no model to specify and nothing to fit.
 
 The declaration is also the **manifest of what survives**. `synpmx_avatar()`
-drops every column no role names, so a column you forget is dropped rather than
+drops every column with no role names, so a column you forget is dropped rather than
 quietly copied out of a real patient. Only `id`, `time`, `dv`, and `evid` are
 required; everything else is optional.
 
@@ -149,7 +138,7 @@ validate_pmx(study, roles)$valid
 #> [1] TRUE
 ```
 
-**Which role does a column want?** The three that are easy to confuse:
+**Covariates and Subject Properties** are easy roles to confuse:
 
 - `covariates` are *measured* characteristics. They are **blended** across the
   donors, so a synthetic subject's weight is a new number nobody had.
@@ -183,13 +172,15 @@ synthetic <- synpmx_avatar(
                                #   carries one real visit schedule. Uses
                                #   `nominal_time` when declared; K-means centres
                                #   of the pooled times otherwise
-  min_pattern_share  = 2L,     # an avatar's attended-visit pattern must be one
-                               #   at least 2 real subjects share, so no
+  min_pattern_share  = 2L,     # an avatar's attended-visit pattern when DV is collected
+                               # must be one that at least 2 real subjects share, so no
                                #   synthetic schedule is unique to one patient
-  # --- how much noise is added ---
-  subject_noise_sd   = 0.15,   # per-subject perturbation
-  residual_noise_sd  = 0.05,   # within-trajectory noise
-  residual_phi       = 0.6,    # AR(1) correlation in observation order
+  # --- how much noise is added on top of the blend ---
+  subject_noise_sd   = 0.15,   # one draw per avatar: shifts that avatar's whole
+                               #   curve up or down together
+  residual_noise_sd  = 0.05,   # point-to-point scatter within one avatar's curve
+  residual_phi       = 0.6,    # how much consecutive points wander together:
+                               #   0 = independent scatter, toward 1 = smooth drift
   time_jitter        = 0,      # realism only, NOT privacy: jitter is clamped
                                #   within half a gap of the source visit
   pca_variance       = 0.90    # profile variance retained for donor distances
@@ -208,6 +199,30 @@ head(synthetic[, c("ID", "TIME", "NTIME", "OCC", "NAME", "DV", "CENS", "TRT")], 
 #> 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD
 #> 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD
 ```
+
+**The three noise settings do different jobs, and none of them is an absolute
+amount.** Blending several donors averages their curves together, which pulls
+every avatar toward the cohort mean and shrinks the spread between subjects — so
+noise is added back deliberately, in two layers:
+
+- `subject_noise_sd` is **one draw per avatar per endpoint**, added to that
+  avatar's entire trajectory. It moves the whole curve up or down, which is what
+  restores between-subject variability.
+- `residual_noise_sd` is added **point by point** along the curve, and
+  `residual_phi` decides how much each point inherits from the one before it.
+  At `0` you get independent scatter, which looks like assay noise; toward `1`
+  the noise drifts smoothly, which looks like a real biological wander. The
+  default 0.6 sits between the two.
+
+Both are **scaled to the endpoint**, not measured in its units. On a
+log-transformed endpoint — the usual case for concentrations — the value applies
+on the log scale, so `0.15` is roughly a 15% multiplicative shift. On an
+untransformed endpoint it is a fraction of the standard deviation of the source
+values. That is why the same defaults work across endpoints on wildly different
+scales.
+
+`time_jitter` is not in this group: it perturbs observation *times* rather than
+values, and as noted above it is a realism control rather than a privacy one.
 
 Two things the defaults do that are worth knowing about. Where dosing is
 proportional to a covariate (mg/kg, mg/m²), each avatar's `AMT` is **recomputed
