@@ -229,9 +229,9 @@ data.frame(
   ),
   value = c(
     settings$time_grid,
-    settings$exposure_alone,
-    settings$exposure_unique_moment,
-    settings$exposure_unique_pattern,
+    settings$unique_schedule_n,
+    settings$unique_obs_time_n,
+    settings$unique_visit_set_n,
     ifelse(is.na(settings$dose_basis), "none (amounts left alone)",
            settings$dose_basis),
     ifelse(is.na(settings$dose_basis), "-",
