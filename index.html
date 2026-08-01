@@ -103,16 +103,17 @@
 <td>
 <strong>Teach and compare.</strong> Show what the different synthetic data generation methods do.</td>
 <td>
-<strong>Yes</strong>, secondarily; that is why the non-default modes ship.</td>
+<strong>Yes</strong>, secondarily.</td>
 </tr>
 </tbody>
 </table>
-<p>The use case this package was built for: sharing realistic-looking study data outside the GxP (Good Practice regulated) computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
+<p>The use case this package was built for: sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
 <h2 id="the-main-deliverable-avatar-method">The main deliverable: AVATAR method<a class="anchor" aria-label="anchor" href="#the-main-deliverable-avatar-method"></a>
 </h2>
-<p>The main deliverable of the package is an implementation of the AVATAR method [1, 2], which offers some masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and requires no model to be specified. “AVATAR” is a method name rather than an initialism, from the patient-centric <em>avatarization</em> literature: the original method was developed in Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK [1]. Destere et al [1], did not test their method using pharmacometrics dataset from actual clinical trials. We have done here, and in the process we have added features such as handling BLOQ data and masking patients with unique dosing schedules. The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</p>
+<p>The main deliverable of this package is an implementation of the AVATAR method [1, 2], which offers some data masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and requires no model to be specified. The original method was developed in Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK datasets [1]. However, they did not test their method using pharmacometrics dataset from actual clinical trials. We have done here, and in the process we have added features such as handling BLOQ data and masking patients with unique dosing schedules.<br>
+The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</p>
 <p>The package also provides code for other data masking methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. These methods are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
 </div>
 <div class="section level2">
@@ -126,24 +127,20 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span></code></pre></div>
 <p><code>remotes</code> is the smallest thing that does the job, and it is already present in most environments. <code>pak::pak("iamstein/synpmx")</code> and <code>devtools::install_github("iamstein/synpmx")</code> do the same, if you already have either.</p>
 <p>To pin a branch or commit, append it: <code>remotes::install_github("iamstein/synpmx@main")</code>. Add <code>build_vignettes = TRUE</code> if you want <code><a href="articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> offline; otherwise the same material is on the <a href="https://iamstein.github.io/synpmx/">website</a>.</p>
-<p><strong>If your environment blocks installing from GitHub</strong> — likely in the validated environments this package is meant for — download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code>, move it across, and install from the file. This needs nothing but base R, and no compiler, since AVATAR is pure R:</p>
+<p><strong>If your environment blocks installing from GitHub</strong> , then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file. This package needs nothing but base R, and no compiler, since AVATAR is pure R:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
-<p>If you were given the repository as a <strong>ZIP</strong> rather than a tarball, unzip it first and install the resulting directory — <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code> cannot read a GitHub ZIP directly:</p>
+<p>AVATAR needs nothing beyond base R. The DP methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span><span class="st">"synpmx-main.zip"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
-<p>AVATAR needs nothing beyond base R. The other methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="running-it-on-your-own-study">Running it on your own study<a class="anchor" aria-label="anchor" href="#running-it-on-your-own-study"></a>
 </h2>
 <p>AVATAR needs two things: the data, and a declaration of what its columns mean. There is no model to specify and nothing to fit.</p>
-<p>The declaration is also the <strong>manifest of what survives</strong>. <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column no role names, so a column you forget is dropped rather than quietly copied out of a real patient. Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required; everything else is optional.</p>
+<p>The declaration is also the <strong>manifest of what survives</strong>. <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column with no role names, so a column you forget is dropped rather than quietly copied out of a real patient. Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required; everything else is optional.</p>
 <p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the role names to match your columns. It is built to carry every declarable column at once, so most studies will use a subset:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_simulated_fixture.html">pmx_simulated_fixture</a></span><span class="op">(</span><span class="fl">24</span><span class="op">)</span>                  <span class="co"># 24 subjects, 2 endpoints</span></span>
@@ -190,7 +187,7 @@
 <span></span>
 <span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">study</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p><strong>Which role does a column want?</strong> The three that are easy to confuse:</p>
+<p><strong>Covariates and Subject Properties</strong> are easy roles to confuse:</p>
 <ul>
 <li>
 <code>covariates</code> are <em>measured</em> characteristics. They are <strong>blended</strong> across the donors, so a synthetic subject’s weight is a new number nobody had.</li>
@@ -204,7 +201,7 @@
 <h2 id="the-masking-options-and-their-defaults">The masking options, and their defaults<a class="anchor" aria-label="anchor" href="#the-masking-options-and-their-defaults"></a>
 </h2>
 <p>Every masking argument below is shown at its default, so this call behaves exactly like <code>synpmx_avatar(study, roles, seed = 2026)</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
 <span>  <span class="va">study</span>, <span class="va">roles</span>,</span>
 <span>  n_subjects         <span class="op">=</span> <span class="cn">NULL</span>,   <span class="co"># cohort size; NULL matches the source</span></span>
@@ -221,13 +218,15 @@
 <span>                               <span class="co">#   carries one real visit schedule. Uses</span></span>
 <span>                               <span class="co">#   `nominal_time` when declared; K-means centres</span></span>
 <span>                               <span class="co">#   of the pooled times otherwise</span></span>
-<span>  min_pattern_share  <span class="op">=</span> <span class="fl">2L</span>,     <span class="co"># an avatar's attended-visit pattern must be one</span></span>
-<span>                               <span class="co">#   at least 2 real subjects share, so no</span></span>
+<span>  min_pattern_share  <span class="op">=</span> <span class="fl">2L</span>,     <span class="co"># an avatar's attended-visit pattern when DV is collected</span></span>
+<span>                               <span class="co"># must be one that at least 2 real subjects share, so no</span></span>
 <span>                               <span class="co">#   synthetic schedule is unique to one patient</span></span>
-<span>  <span class="co"># --- how much noise is added ---</span></span>
-<span>  subject_noise_sd   <span class="op">=</span> <span class="fl">0.15</span>,   <span class="co"># per-subject perturbation</span></span>
-<span>  residual_noise_sd  <span class="op">=</span> <span class="fl">0.05</span>,   <span class="co"># within-trajectory noise</span></span>
-<span>  residual_phi       <span class="op">=</span> <span class="fl">0.6</span>,    <span class="co"># AR(1) correlation in observation order</span></span>
+<span>  <span class="co"># --- how much noise is added on top of the blend ---</span></span>
+<span>  subject_noise_sd   <span class="op">=</span> <span class="fl">0.15</span>,   <span class="co"># one draw per avatar: shifts that avatar's whole</span></span>
+<span>                               <span class="co">#   curve up or down together</span></span>
+<span>  residual_noise_sd  <span class="op">=</span> <span class="fl">0.05</span>,   <span class="co"># point-to-point scatter within one avatar's curve</span></span>
+<span>  residual_phi       <span class="op">=</span> <span class="fl">0.6</span>,    <span class="co"># how much consecutive points wander together:</span></span>
+<span>                               <span class="co">#   0 = independent scatter, toward 1 = smooth drift</span></span>
 <span>  time_jitter        <span class="op">=</span> <span class="fl">0</span>,      <span class="co"># realism only, NOT privacy: jitter is clamped</span></span>
 <span>                               <span class="co">#   within half a gap of the source visit</span></span>
 <span>  pca_variance       <span class="op">=</span> <span class="fl">0.90</span>    <span class="co"># profile variance retained for donor distances</span></span>
@@ -245,6 +244,15 @@
 <span><span class="co">#&gt; 4 25 1.00  1.00   1   cp  8.249096    0 100 mg QD</span></span>
 <span><span class="co">#&gt; 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD</span></span>
 <span><span class="co">#&gt; 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD</span></span></code></pre></div>
+<p><strong>The three noise settings do different jobs, and none of them is an absolute amount.</strong> Blending several donors averages their curves together, which pulls every avatar toward the cohort mean and shrinks the spread between subjects — so noise is added back deliberately, in two layers:</p>
+<ul>
+<li>
+<code>subject_noise_sd</code> is <strong>one draw per avatar per endpoint</strong>, added to that avatar’s entire trajectory. It moves the whole curve up or down, which is what restores between-subject variability.</li>
+<li>
+<code>residual_noise_sd</code> is added <strong>point by point</strong> along the curve, and <code>residual_phi</code> decides how much each point inherits from the one before it. At <code>0</code> you get independent scatter, which looks like assay noise; toward <code>1</code> the noise drifts smoothly, which looks like a real biological wander. The default 0.6 sits between the two.</li>
+</ul>
+<p>Both are <strong>scaled to the endpoint</strong>, not measured in its units. On a log-transformed endpoint — the usual case for concentrations — the value applies on the log scale, so <code>0.15</code> is roughly a 15% multiplicative shift. On an untransformed endpoint it is a fraction of the standard deviation of the source values. That is why the same defaults work across endpoints on wildly different scales.</p>
+<p><code>time_jitter</code> is not in this group: it perturbs observation <em>times</em> rather than values, and as noted above it is a realism control rather than a privacy one.</p>
 <p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. And a source attendance pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong> — that loss is the mechanism working, and every run reports how much of it happened.</p>
 <p>Measure what the masking achieved with <code><a href="reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> on the source and <code><a href="reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> on the pair.</p>
 </div>
