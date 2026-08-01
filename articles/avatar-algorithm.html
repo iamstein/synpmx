@@ -262,7 +262,7 @@ identifier — <code>USUBJID</code>, a site number, a randomization date —
 left undeclared would otherwise ride a real subject’s real value
 straight into the synthetic data. Dropping by default means a column you
 forget fails safe, toward removal, rather than leaking.</p>
-<p>That leaves four ways a column is treated, and the difference
+<p>That leaves five ways a column is treated, and the difference
 matters:</p>
 <table class="table">
 <colgroup>
@@ -288,12 +288,19 @@ matters:</p>
 <td>baselines you want <em>synthesized</em> — weight, age</td>
 </tr>
 <tr class="odd">
-<td><code>keep</code></td>
-<td>Copied verbatim from the one anchor subject</td>
-<td>assigned values you want kept faithful to that subject’s dosing —
-arm, dose group, a redundant endpoint label</td>
+<td><code>subject_properties</code></td>
+<td>Copied verbatim from the anchor, <strong>and used to group two
+mechanisms</strong>
+</td>
+<td>assigned strata — treatment arm, dose group, cohort</td>
 </tr>
 <tr class="even">
+<td><code>keep</code></td>
+<td>Copied verbatim from the anchor, and otherwise inert</td>
+<td>assigned values you want kept faithful to that subject’s dosing — a
+redundant endpoint label, a study identifier</td>
+</tr>
+<tr class="odd">
 <td><em>(undeclared)</em></td>
 <td>Dropped</td>
 <td>anything you do not need</td>
@@ -311,6 +318,31 @@ the doses AVATAR copied from the same anchor — <code>keep</code> is
 correct, precisely because it never leaves that anchor’s side. Because a
 kept value is a real subject’s real value, output containing it must
 stay within the source data’s own access controls and obligations.</p>
+<p><strong><code>subject_properties</code> carries a column the same way
+<code>keep</code> does, and then uses it.</strong> Both copy the
+anchor’s value verbatim, so the choice between them is not about what
+appears in the output — it is about whether that column should also
+<em>partition the cohort</em>. A <code>subject_properties</code> column
+must be constant within a subject, and the combination across such
+columns defines a stratum that two mechanisms group by:</p>
+<ul>
+<li>
+<strong>M5</strong>, the dose recomputation, looks for a
+covariate-proportional dose <em>within each stratum</em>. A study dosing
+one arm at 1 mg/kg and another at 2 mg/kg only looks proportional once
+the arms are separated; pooled, the ratios do not collapse onto a few
+levels and detection fails closed.</li>
+<li>
+<strong>M3</strong> draws each avatar’s visit set from patterns held
+by other patients <em>in the same stratum</em>, so an avatar on a weekly
+schedule is never handed a daily arm’s pattern.</li>
+</ul>
+<p>It is deliberately <strong>not</strong> a blending barrier — donors
+are still borrowed across strata to reach the floor, since only route of
+administration blocks that. So declare a treatment arm as
+<code>subject_properties</code> rather than <code>keep</code> whenever
+the arms differ in dose rule or visit schedule, and use
+<code>keep</code> for a label that carries no such structure.</p>
 <p>Redundant endpoint labels have their own handling. A dataset that
 carries both a numeric <code>YTYPE</code> and a character
 <code>NAME</code> for the same endpoint declares <strong>both</strong>
