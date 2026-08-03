@@ -54,6 +54,28 @@ From the owner reading the alerts on `pit565b1`.
 - [x] Alerts no longer advise declaring `nominal_time` to someone who has.
 - [x] Report wording: "floor" named, "stay in the cohort as donors" clarified.
 
+Open on the dose side, from 2026-08-03:
+
+- [ ] **Dose truncation as a shape.** A patient who stopped dosing early is not
+      built upon, so the regimen disappears: nineteen patients on three doses,
+      one on two and one on one came out as twenty-one on three. Truncating a
+      shared schedule to a prefix is protocol-valid in a way that resampling
+      dose times is not, so the `.place_attendance()` treatment applies --
+      truncate at a depth held by `min_pattern_share` patients, or by nobody,
+      walking outward as `.miss_counts()` does. It does NOT rescue a
+      21-patient cohort with three dose slots, where depths 1 and 2 have one
+      holder each and there is no free depth between them; that case is
+      genuinely unmaskable and the report now says so. It is the oncology case
+      -- many patients, many stopping depths, plenty free -- that it would fix.
+- [ ] **Dose times on their own grid.** `nimoData` is 12 of 12 identifying
+      purely because dose times are recorded actuals: doses are weekly, but
+      165.70 / 167.24 / 168.05 are three cells, and 86 of 97 dose times after
+      coarsening are held by one patient. They do not merge because the grid is
+      shared with densely sampled observations. Deriving a dose-only grid would
+      merge them immediately, since a patient's ten doses are far apart. The
+      risk to check first is ordering: a pre-dose sample and its dose could snap
+      to different cells and swap.
+
 Still open from this pass:
 
 - [x] Documentation for `dose_covariate`: `README.md` (and its pinned test), the

@@ -861,22 +861,27 @@
          character(1))
 }
 
-.dose_schedule_sharing <- function(source, roles, min_pattern_share) {
+# Each patient's dose schedule as a text key, on whatever grid the data is on.
+.dose_schedule_keys <- function(source, roles) {
   subjects <- .unique_in_order(source[[roles$id]])
-  if (!length(subjects)) return(logical())
   time <- suppressWarnings(as.numeric(source[[roles$time]]))
-  id <- factor(as.character(source[[roles$id]]),
-               levels = as.character(subjects))
+  id <- as.character(source[[roles$id]])
   dosed <- .dose_rows(source, roles) & is.finite(time)
-  keys <- vapply(split(time[dosed], droplevels(id[dosed], exclude = NULL)),
+  keys <- vapply(split(time[dosed], id[dosed]),
                  function(t) paste(.time_key(sort(unique(t))), collapse = ","),
                  character(1))[as.character(subjects)]
   keys[is.na(keys)] <- ""
+  stats::setNames(keys, as.character(subjects))
+}
+
+.dose_schedule_sharing <- function(source, roles, min_pattern_share) {
+  keys <- .dose_schedule_keys(source, roles)
+  if (!length(keys)) return(logical())
   shared <- table(keys[nzchar(keys)])
-  out <- rep(FALSE, length(subjects))
+  out <- rep(FALSE, length(keys))
   present <- nzchar(keys)
   out[present] <- as.integer(shared[keys[present]]) < as.integer(min_pattern_share)
-  stats::setNames(out, as.character(subjects))
+  stats::setNames(out, names(keys))
 }
 
 .attendance_choice <- function(anchor, attendance) {
@@ -2390,6 +2395,19 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # simply IS its anchor's, and the question is whether that anchor's was one
     # nobody shared.
     identifying_dose_schedules <- sum(dose_identifying[anchors])
+    # What declining to build on those patients COST. Not building on a patient
+    # whose dose schedule nobody shares is the only safe answer, but it removes
+    # that regimen from the output entirely, and until now nothing said so: a
+    # cohort of nineteen patients on three doses, one on two and one on one came
+    # out as twenty-one patients on three doses, silently.
+    dose_regimens_source <- length(unique(
+      .dose_schedule_keys(source, source_roles)
+    ))
+    dose_regimens_represented <- length(unique(
+      .dose_schedule_keys(source, source_roles)[
+        as.character(subjects)[unique(anchors)]
+      ]
+    ))
     if (identifying_visit_sets > 0L) {
       .loud_warn(
         "avatars carrying a visit set nobody else shares",
@@ -2453,6 +2471,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # is the number the guarantee is stated in terms of, and it must be 0.
       identifying_visit_sets = as.integer(identifying_visit_sets),
       identifying_dose_schedules = as.integer(identifying_dose_schedules),
+      dose_regimens_source = as.integer(dose_regimens_source),
+      dose_regimens_represented = as.integer(dose_regimens_represented),
       pattern_reanchored_fraction = mean(pattern_reanchored),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
