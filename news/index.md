@@ -31,7 +31,11 @@
   conservative inference, which fails closed on studies that escalate
   within patient or dispense in vials, and holds each dose row’s own
   ratio, so intra-patient escalation is preserved exactly. The column
-  must also be named in `covariates`.
+  must also be named in `covariates`. `theo_md` is the public
+  demonstration: it is dosed by weight, its recorded mg/kg runs 3.1 to
+  5.9, inference declines, and declaring `WT` takes avatars on a real
+  dosing course from 0% to 100%
+  (`tests/testthat/test-integration-nlmixr2data.R`).
 
 - Alerts no longer print twice in a knitted report. The signalled
   condition carried the `warning` class, which `knitr` renders in

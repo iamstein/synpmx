@@ -496,10 +496,63 @@ had to be invented. This is the ideal case: coarsening removes the
 timing exposure, and visit-set sampling then has a real pool to draw
 from and costs nothing.
 
-Dose is not recomputed here. Theophylline is dosed by weight, but its
-dose-to-weight ratio varies by about 15% across subjects, and detection
-deliberately fails closed rather than impose a multiplier the study did
-not actually use.
+**Dose is not recomputed here, and this is the case that shows why you
+should say so explicitly.** Theophylline *is* dosed by weight, but the
+recorded milligrams per kilogram range from 3.1 to 5.9 across subjects —
+8 distinct ratio levels for 11 distinct amounts. Detection deliberately
+fails closed on that rather than impose a multiplier the study did not
+actually use, which is the right call for an inference engine and the
+wrong answer for this study. The run report says so rather than leaving
+a blank:
+
+``` r
+
+attr(theo_synth, "pmx_settings")$dose_basis_note
+#> [1] "the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts -- too many to be a protocol)"
+```
+
+Naming the covariate in
+[`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
+skips the inference and holds each dose row’s own ratio:
+
+``` r
+
+theo_roles_dosed <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", covariates = "WT", dose_covariate = "WT"
+)
+theo_declared <- suppressWarnings(
+  synpmx_avatar(theo_md, theo_roles_dosed, seed = 303)
+)
+#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
+#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
+per_kg <- function(x) {
+  dosed <- x[x$EVID != 0, ]
+  range(dosed$AMT / dosed$WT)
+}
+data.frame(
+  dataset = c("source", "synthetic, inferred", "synthetic, declared"),
+  rbind(per_kg(theo_md), per_kg(theo_synth), per_kg(theo_declared))
+) |> setNames(c("dataset", "min mg/kg", "max mg/kg")) |>
+  knitr::kable(digits = 2, caption = paste(
+    "Dose per kilogram. Declared, each avatar carries its anchor's own ratio,",
+    "so the synthetic cohort spans the source's range; inferred, the amount is",
+    "the anchor's milligrams over the avatar's blended weight."))
+```
+
+| dataset             | min mg/kg | max mg/kg |
+|:--------------------|----------:|----------:|
+| source              |      3.10 |      5.86 |
+| synthetic, inferred |      3.65 |      5.50 |
+| synthetic, declared |      3.10 |      5.86 |
+
+Dose per kilogram. Declared, each avatar carries its anchor’s own ratio,
+so the synthetic cohort spans the source’s range; inferred, the amount
+is the anchor’s milligrams over the avatar’s blended weight. {.table}
+
+Two costs of leaving it inferred, both visible above. The synthetic
+mg/kg no longer matches the study’s own dosing rule, and the copied
+milligrams still encode one real patient’s weight exactly.
 
 [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
 is what produced the “before” number. Read it directly and it summarizes

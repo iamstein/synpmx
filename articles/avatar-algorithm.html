@@ -132,11 +132,11 @@ group is too small — but never across route of administration — and
 blend their covariates and trajectories onto the skeleton, capping any
 one donor’s share at <code>max_donor_weight</code> (default 0.50) and
 adding subject-level and within-subject noise (<strong>M4</strong>).
-Recompute the dose from the avatar’s own blended covariate when in the
-original dataset dosing is proportional to a covariate, as it is for
-weight-based dosing (<strong>M5</strong>). Then reconstruct any
-below-limit (BLOQ) censoring, using an automatically detected LOQ for
-each DVID</li>
+Recompute the dose from the avatar’s own blended covariate where dosing
+is proportional to one — weight-based or body-surface-area dosing —
+either because <code>dose_covariate</code> said so or because the run
+inferred it (<strong>M5</strong>). Then reconstruct any below-limit
+(BLOQ) censoring, using an automatically detected LOQ for each DVID</li>
 <li>
 <strong>(e) Recompile the dataset</strong> — <em>Step 10</em>.
 Restore the source’s column order, each column’s type and factor levels,
@@ -216,6 +216,7 @@ user must declare them with <code><a href="../reference/pmx_roles.html">pmx_role
 <span>  cens <span class="op">=</span> <span class="st">"CENS"</span>,           <span class="co"># below-limit indicator, if the study has BLQ data</span></span>
 <span>  limit <span class="op">=</span> <span class="st">"LIMIT"</span>,         <span class="co"># the other end of an interval, when used</span></span>
 <span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span>,</span>
+<span>  dose_covariate <span class="op">=</span> <span class="st">"WT"</span>,   <span class="co"># dose is mg/kg; say so rather than let it be inferred</span></span>
 <span>  keep <span class="op">=</span> <span class="st">"ARM"</span>             <span class="co"># carried verbatim; see the allowlist below</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">roles</span></span>
@@ -237,9 +238,26 @@ user must declare them with <code><a href="../reference/pmx_roles.html">pmx_role
 <span><span class="co">#&gt;   addl: &lt;absent&gt;</span></span>
 <span><span class="co">#&gt;   ii: &lt;absent&gt;</span></span>
 <span><span class="co">#&gt;   assigned_dose: &lt;absent&gt;</span></span>
-<span><span class="co">#&gt;   dose_covariate: &lt;absent&gt;</span></span>
+<span><span class="co">#&gt;   dose_covariate: WT</span></span>
 <span><span class="co">#&gt;   covariates: WT, AGE, SEX</span></span>
 <span><span class="co">#&gt;   keep: ARM</span></span></code></pre></div>
+<p><strong><code>dose_covariate</code> is worth declaring wherever it
+applies.</strong> It names the covariate the dose is a fixed multiple
+of, and it is the one role that replaces an <em>inference</em> rather
+than adding information the package could not have. Left
+<code>NULL</code>, M5 has to work out for itself whether the study is
+dose-proportional, and it does that conservatively on purpose: the
+dose-to-covariate ratio must collapse onto a handful of levels within
+2%, because recomputing amounts on a study that is <em>not</em>
+proportional would be a worse error than leaving them alone. Two
+entirely ordinary things defeat that test — dispensing in vials, and
+patients escalating by factors that are not identical across the cohort
+— so a genuinely weight-based study can come through with M5 silently
+doing nothing. <code>theo_md</code> is exactly that case: it is dosed by
+weight, its recorded mg/kg runs from 3.1 to 5.9, and inference declines.
+Declaring the covariate also changes <em>how</em> the amount is rebuilt
+— each dose row’s own ratio is held rather than snapped to a shared
+level — so intra-patient escalation survives exactly.</p>
 <p><code>id</code>, <code>time</code>, <code>dv</code>, and
 <code>evid</code> are required; the rest are optional. <code>amt</code>,
 <code>cmt</code>, <code>mdv</code>, <code>rate</code>,
@@ -2199,6 +2217,75 @@ inference and holds <strong>each dose row’s own ratio</strong> rather
 than snapping to shared levels, so intra-patient escalation survives
 exactly. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> says which path ran and, when
 inference declined, what it tried. See <code>SIM-040</code>.</p>
+<p>The difference on a study that dispenses in vials and escalates
+within patient, which is the shape inference cannot recover:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Three doses per patient at 1, 2 and 4 mg/kg -- but dispensed in 25 mg vials,</span></span>
+<span><span class="co"># so the recorded mg/kg is smeared and the ratios do not cluster.</span></span>
+<span><span class="va">m5_source</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">wt</span> <span class="op">&lt;-</span> <span class="fl">52</span> <span class="op">+</span> <span class="va">i</span> <span class="op">*</span> <span class="fl">2.3</span></span>
+<span>  <span class="va">amt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">4</span><span class="op">)</span> <span class="op">*</span> <span class="va">wt</span> <span class="op">/</span> <span class="fl">25</span><span class="op">)</span> <span class="op">*</span> <span class="fl">25</span></span>
+<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">i</span>, TIME <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">336</span>, <span class="fl">1008</span><span class="op">)</span>, DV <span class="op">=</span> <span class="cn">NA_real_</span>, AMT <span class="op">=</span> <span class="va">amt</span>,</span>
+<span>               EVID <span class="op">=</span> <span class="fl">1L</span>, CMT <span class="op">=</span> <span class="fl">1L</span>, WT <span class="op">=</span> <span class="va">wt</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">i</span>, TIME <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">24</span>, <span class="fl">360</span>, <span class="fl">1032</span><span class="op">)</span>, DV <span class="op">=</span> <span class="fl">5</span> <span class="op">+</span> <span class="va">i</span> <span class="op">/</span> <span class="fl">10</span>, AMT <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>               EVID <span class="op">=</span> <span class="fl">0L</span>, CMT <span class="op">=</span> <span class="fl">2L</span>, WT <span class="op">=</span> <span class="va">wt</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">out</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">TIME</span>, <span class="op">-</span><span class="va">out</span><span class="op">$</span><span class="va">EVID</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">m5_roles</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">declare</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">args</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>               cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">declare</span><span class="op">)</span> <span class="va">args</span><span class="op">$</span><span class="va">dose_covariate</span> <span class="op">&lt;-</span> <span class="st">"WT"</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmx_roles</span>, <span class="va">args</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Each patient's course as a dose-per-kilogram profile. The question M5 exists</span></span>
+<span><span class="co"># to answer is whether a synthetic patient's profile is one a real patient</span></span>
+<span><span class="co"># could have been given -- not whether the numbers look plausible.</span></span>
+<span><span class="va">m5_profiles</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">dosed</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">[</span><span class="va">x</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">dosed</span><span class="op">$</span><span class="va">AMT</span> <span class="op">/</span> <span class="va">dosed</span><span class="op">$</span><span class="va">WT</span>, <span class="fl">2</span><span class="op">)</span>, <span class="va">dosed</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span>,</span>
+<span>         <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">r</span>, collapse <span class="op">=</span> <span class="st">" / "</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">m5_coherent</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">declare</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">m5_source</span>, <span class="fu">m5_roles</span><span class="op">(</span><span class="va">declare</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu">m5_profiles</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu">m5_profiles</span><span class="op">(</span><span class="va">m5_source</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  `dose_covariate` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NULL (inferred)"</span>, <span class="st">"\"WT\" (declared)"</span><span class="op">)</span>,</span>
+<span>  `avatars on a real dosing profile` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">m5_coherent</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span>, <span class="fu">m5_coherent</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="st">"%"</span><span class="op">)</span>,</span>
+<span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
+<span>  <span class="st">"Whether each avatar's course of mg/kg is one the protocol actually gave."</span>,</span>
+<span>  <span class="st">"Inference declines here, so the amounts are copied and each avatar ends up"</span>,</span>
+<span>  <span class="st">"at its anchor's milligrams over its *own* blended weight -- a dose per"</span>,</span>
+<span>  <span class="st">"kilogram nobody was prescribed."</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Whether each avatar’s course of mg/kg is one the protocol
+actually gave. Inference declines here, so the amounts are copied and
+each avatar ends up at its anchor’s milligrams over its <em>own</em>
+blended weight – a dose per kilogram nobody was prescribed.</caption>
+<thead><tr class="header">
+<th align="left">dose_covariate</th>
+<th align="left">avatars on a real dosing profile</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">NULL (inferred)</td>
+<td align="left">0%</td>
+</tr>
+<tr class="even">
+<td align="left">“WT” (declared)</td>
+<td align="left">100%</td>
+</tr>
+</tbody>
+</table>
 <p><strong>The post-generation screen. Screening the finished data, and
 remediating</strong> (<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, after
 generation). The only mechanism <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does

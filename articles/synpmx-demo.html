@@ -1027,10 +1027,72 @@ several subjects, so <strong>nothing had to be discarded</strong> and no
 arrangement had to be invented. This is the ideal case: coarsening
 removes the timing exposure, and visit-set sampling then has a real pool
 to draw from and costs nothing.</p>
-<p>Dose is not recomputed here. Theophylline is dosed by weight, but its
-dose-to-weight ratio varies by about 15% across subjects, and detection
-deliberately fails closed rather than impose a multiplier the study did
-not actually use.</p>
+<p><strong>Dose is not recomputed here, and this is the case that shows
+why you should say so explicitly.</strong> Theophylline <em>is</em>
+dosed by weight, but the recorded milligrams per kilogram range from 3.1
+to 5.9 across subjects — 8 distinct ratio levels for 11 distinct
+amounts. Detection deliberately fails closed on that rather than impose
+a multiplier the study did not actually use, which is the right call for
+an inference engine and the wrong answer for this study. The run report
+says so rather than leaving a blank:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">theo_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">$</span><span class="va">dose_basis_note</span></span>
+<span><span class="co">#&gt; [1] "the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts -- too many to be a protocol)"</span></span></code></pre></div>
+<p>Naming the covariate in <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code> skips the inference
+and holds each dose row’s own ratio:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">theo_roles_dosed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span>, dose_covariate <span class="op">=</span> <span class="st">"WT"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">theo_declared</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles_dosed</span>, seed <span class="op">=</span> <span class="fl">303</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span></span>
+<span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
+<span><span class="va">per_kg</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">dosed</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">[</span><span class="va">x</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">dosed</span><span class="op">$</span><span class="va">AMT</span> <span class="op">/</span> <span class="va">dosed</span><span class="op">$</span><span class="va">WT</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  dataset <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"source"</span>, <span class="st">"synthetic, inferred"</span>, <span class="st">"synthetic, declared"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">per_kg</span><span class="op">(</span><span class="va">theo_md</span><span class="op">)</span>, <span class="fu">per_kg</span><span class="op">(</span><span class="va">theo_synth</span><span class="op">)</span>, <span class="fu">per_kg</span><span class="op">(</span><span class="va">theo_declared</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset"</span>, <span class="st">"min mg/kg"</span>, <span class="st">"max mg/kg"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">2</span>, caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
+<span>    <span class="st">"Dose per kilogram. Declared, each avatar carries its anchor's own ratio,"</span>,</span>
+<span>    <span class="st">"so the synthetic cohort spans the source's range; inferred, the amount is"</span>,</span>
+<span>    <span class="st">"the anchor's milligrams over the avatar's blended weight."</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Dose per kilogram. Declared, each avatar carries its anchor’s
+own ratio, so the synthetic cohort spans the source’s range; inferred,
+the amount is the anchor’s milligrams over the avatar’s blended
+weight.</caption>
+<thead><tr class="header">
+<th align="left">dataset</th>
+<th align="right">min mg/kg</th>
+<th align="right">max mg/kg</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">source</td>
+<td align="right">3.10</td>
+<td align="right">5.86</td>
+</tr>
+<tr class="even">
+<td align="left">synthetic, inferred</td>
+<td align="right">3.65</td>
+<td align="right">5.50</td>
+</tr>
+<tr class="odd">
+<td align="left">synthetic, declared</td>
+<td align="right">3.10</td>
+<td align="right">5.86</td>
+</tr>
+</tbody>
+</table>
+<p>Two costs of leaving it inferred, both visible above. The synthetic
+mg/kg no longer matches the study’s own dosing rule, and the copied
+milligrams still encode one real patient’s weight exactly.</p>
 <p><code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> is what produced the “before”
 number. Read it directly and it summarizes the cohort two ways: how many
 patients are unique and why, and how crowded each schedule is. Every
@@ -1040,7 +1102,7 @@ means “nobody else”. By default it scores the recorded times as given;
 <code>coarsen_time = TRUE</code> scores the shared visit grid
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds, so running it both ways shows what
 coarsening removed.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Schedule-uniqueness screen.</strong> Scored on the recorded
 times AS GIVEN, before any coarsening. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
@@ -1119,7 +1181,7 @@ it):</p>
 <p><em>One row per patient is in the returned data frame;
 <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same cohort. Source-derived;
 not releasable unless separately public or privately budgeted.</em></p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, coarsen_time <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Schedule-uniqueness screen.</strong> Scored AFTER coarsening,
 on the shared visit grid <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds. These are
@@ -1207,7 +1269,7 @@ patient, one mark per event, with the visit grid underneath. A protocol
 grid reads as vertical stripes and dropout as a ragged right edge, so a
 count that looks alarming and one that is ordinary look completely
 different.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="synpmx-demo_files/figure-html/theo-schedule-map-1.png" class="r-plt" alt="" width="768" style="display: block; margin: auto;"></p>
 <p>For a per-subject check on the <em>generated</em> data rather than
@@ -1260,7 +1322,7 @@ Both endpoints and all subjects are retained.</p>
 <div class="section level3">
 <h3 id="what-the-masking-did-to-warfarin">What the masking did to warfarin<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-warfarin"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="va">warfarin_synth</span>, <span class="st">"warfarin"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Everything warfarin’s run removed, and what was left to build
@@ -1550,7 +1612,7 @@ privacy guarantee; ordinary long follow-ups are kept, and
 <div class="section level3">
 <h3 id="what-the-masking-did-to-wbcsim">What the masking did to wbcSim<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-wbcsim"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span>, <span class="st">"wbcSim"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Everything wbcSim’s run removed, and what was left to build
@@ -1817,7 +1879,7 @@ undeclared, so AVATAR drops it.</p>
 <div class="section level3">
 <h3 id="what-the-masking-did-to-nimodata">What the masking did to nimoData<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-nimodata"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span>, <span class="st">"nimoData"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Everything nimoData’s run removed, and what was left to build
@@ -2103,7 +2165,7 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 <div class="section level3">
 <h3 id="what-the-masking-did-to-mavoglurant">What the masking did to mavoglurant<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-mavoglurant"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Everything mavoglurant’s run removed, and what was left to
@@ -2348,10 +2410,10 @@ budget share is an explicit public input.
 refuses to run until <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been
 called once in the session, acknowledging the maintenance status covered
 in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
 <span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
@@ -2396,7 +2458,7 @@ in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is called. The release it produced
 travels with the returned dataset, so any number of further datasets can
 be drawn from it as post-processing, without spending more budget:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">theo_private</span>, seed <span class="op">=</span> <span class="fl">708</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
 <p>Reach for <code><a href="../reference/synpmx_generate.html">synpmx_generate()</a></code> rather than calling
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> a second time — a second call is a
@@ -2424,7 +2486,7 @@ still visible in it?</p>
 same quantities in one place, because the <em>contrast</em> between
 datasets is what shows how much the answer depends on study design
 rather than on the package.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exposure_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span>  <span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
@@ -2524,7 +2586,7 @@ shares, before and after time coarsening. The last two columns split the
 <p>Exposure is only half the story. The mechanisms that reduce it do so
 by <em>removing</em> things, and the removals are worth seeing next to
 the numbers above.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -2704,7 +2766,7 @@ each subject’s nearest neighbour lies in its own dataset or the other
 one. Near 0.5 means a synthetic subject is no more like a real subject
 than one real subject is like another, which is the target; toward 0
 means memorisation.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -2857,7 +2919,7 @@ because its inferred grid fails completely. Its design is ten
 roughly-weekly infusions with a declared occasion and time-after-dose,
 so the protocol grid is the occasion number times the nominal interval,
 plus the visit’s nominal time after dose:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
 <span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">168</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span>, <span class="fl">0</span><span class="op">)</span></span>
