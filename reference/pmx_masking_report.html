@@ -232,6 +232,12 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       have observations belongs to one real patient. It is non-zero only</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       when the schedule group has no shared set to substitute; the run</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       alerts when it happens</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Distinct dose schedules in the source            1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     represented in the synthetic cohort            1 (100%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       a regimen only one patient received cannot be given to an avatar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       without pointing at them, so it is not represented at all. This is</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the cost of the guarantee below, and on a small cohort it is</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       unavoidable rather than a setting to tune</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a dose schedule nobody else shares 0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       **must also be 0%.** Dose events are copied from the anchor verbatim,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       so patients whose dose times nobody shares are not built upon.</span>

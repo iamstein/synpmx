@@ -7,6 +7,14 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+  reports how many of the source’s distinct dose regimens are
+  represented in the synthetic cohort. Declining to build on a patient
+  whose dose schedule nobody shares is the only safe answer, but it
+  removes that regimen from the output entirely, and that was silent:
+  nineteen patients on three doses, one on two and one on one came out
+  as twenty-one on three, with nothing saying so.
+
 - **The dose side of the guarantee (`SIM-043`).**
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   now also guarantees that no avatar carries a set of dose times only

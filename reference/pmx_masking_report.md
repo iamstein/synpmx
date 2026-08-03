@@ -186,6 +186,12 @@ pmx_masking_report(synthetic, data, roles)
 #>       have observations belongs to one real patient. It is non-zero only
 #>       when the schedule group has no shared set to substitute; the run
 #>       alerts when it happens
+#>   Distinct dose schedules in the source            1
+#>     represented in the synthetic cohort            1 (100%)
+#>       a regimen only one patient received cannot be given to an avatar
+#>       without pointing at them, so it is not represented at all. This is
+#>       the cost of the guarantee below, and on a small cohort it is
+#>       unavoidable rather than a setting to tune
 #>   Avatars carrying a dose schedule nobody else shares 0 (0%)
 #>       **must also be 0%.** Dose events are copied from the anchor verbatim,
 #>       so patients whose dose times nobody shares are not built upon.
