@@ -122,6 +122,76 @@ Still open from this pass:
       are run interactively (now covered by `/output_*/`); the ignore allowlist
       still named `try_avatar.R`, which no longer exists.
 
+## Why is there a `tad` role at all?
+
+Raised by the owner 2026-08-03: "Why is there a TAD role? Can't that just be
+rederived? I guess it could perform a check if it was derived correctly?"
+
+Investigated rather than answered from memory, and the answer is worse than the
+question assumes: **the role means three different things in three places.**
+
+- **AVATAR ignores the declared values entirely.** `.recompute_tad()` overwrites
+  the column from generated `TIME` and the generated dose rows. Declaring `tad`
+  does exactly two things: names the column to overwrite, and keeps it in the
+  output. The source's TAD values are never read.
+- **`validate_pmx()` barely checks it.** Finite and non-negative on observation
+  rows. It does *not* check that TAD agrees with `TIME` minus the most recent
+  dose time — which is the only thing that makes it a TAD.
+- **The DP path trusts it.** `.subject_clock()` in `representation.R` derives
+  TAD from time and dose times and then *overrides* the derived value with the
+  declared one wherever it is finite.
+
+So the two engines disagree with each other about whether the column is input or
+output, and nothing reconciles them.
+
+**Measured on `nimoData`, which is in our own registry: the declared TAD
+disagrees with what `.recompute_tad()` derives on 143 of 321 observation rows
+(45%), with a maximum disagreement of 311.94 hours.** Example rows:
+
+| ID | TIME | declared TAD | derived TAD |
+|---|---|---|---|
+| 3 | 166.27 | 0.00 | 0.57 |
+| 3 | 332.35 | 166.08 | 166.65 |
+| 3 | 333.10 | 0.00 | 0.70 |
+
+The cause is not diagnosed. The offsets look systematic rather than random, so
+plausible explanations are that nimoData measures TAD from the end of an
+infusion rather than its start, or from a nominal dose time rather than the
+recorded one. Whatever it is, generating from nimoData today silently replaces
+one TAD convention with another on nearly half its rows, and no check notices.
+
+Two further problems found while looking:
+
+- **`.recompute_tad()` is wrong for any dataset using `ADDL`/`II`.** It reads
+  explicit dose *rows* via `findInterval`, and `synpmx` accepts `addl`/`ii`
+  without expanding them. TAD would then be measured from the last written
+  dose rather than the last actual one. No dataset under test exercises this;
+  `nlmixr2data::nmtest` would (see the inventory in `design/TEST_SIM.md`).
+- **Pre-dose samples get TAD 0.** The code comments that zero is "the only
+  value `validate_pmx()` accepts and the only one that is not a fiction". A
+  baseline sample taken before any dose has *no* time-after-dose, and 0 is a
+  fiction; `validate_pmx()` rejecting negatives is what forces it. Worth
+  deciding rather than inheriting.
+
+Decide what the role is *for*, then make all three places agree:
+
+- [ ] **Option A — check-only.** TAD is always derived; declaring the role
+      means "verify my column agrees with the derivation, and tell me where it
+      does not". This is the owner's suggestion and is the most useful of the
+      three, because a disagreement is a real finding every time: a data error,
+      a different TAD convention, or a bug in our derivation. It also supplies
+      category C of `design/SYNTHETIC_DATA_CHECKS.md` — a trough staying a
+      trough is exactly a statement about TAD.
+- [ ] **Option B — authoritative.** The declared column is the truth and the
+      generator carries it through the same transformation as `TIME`. Harder,
+      and it makes the DP path right and the AVATAR path wrong today.
+- [ ] **Option C — drop the role.** Derive TAD always, name the column with
+      `keep` if you want it carried. Simplest, and it loses the check.
+
+Whichever, `.recompute_tad()` needs the `ADDL`/`II` case handled or explicitly
+refused, and the pre-dose convention stated in the roxygen rather than in a
+comment.
+
 ## Next big piece: a vignette of the checks on synthetic data
 
 Scoped 2026-08-03 with the owner. **The specification is

@@ -239,7 +239,10 @@ anyone; it produces data nobody can develop against.
 
 - **Semantic ordering.** A trough sample must stay a trough. Concretely: the
   sign and rough magnitude of time-after-dose per observation, dose/observation
-  ordering within subject, occasion assignment. This is the owner's own example
+  ordering within subject, occasion assignment. **`TAD` is the natural carrier
+  of this check and is currently unused for it** — see the `tad` role item in
+  `design/TODO.md`, where the declared column turns out to disagree with the
+  derived one on 45% of `nimoData`'s observation rows with nobody noticing. This is the owner's own example
   and it is the check that would have caught the first two attempts at the
   dose-authoritative grid (see `design/TODO.md`), both of which put a dose
   *before* the sample that preceded it.
