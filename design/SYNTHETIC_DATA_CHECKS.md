@@ -103,13 +103,125 @@ close to a real patient's.
 - Extend to DV vectors and to covariate rows. Cheap, and it is the check that
   catches a whole class of plumbing mistakes.
 
-**B5 — rare covariate combinations. NOT IMPLEMENTED; a genuine gap.**
-The only 85-year-old female on arm C is identifiable by her covariates alone,
-whatever the schedule machinery did. This is ordinary k-anonymity on the
-cross-tabulation of `covariates` and `subject_properties`, `synpmx` does not
-check it, and it should. Blending makes it *less* likely than in the source —
-covariates are new numbers nobody had — but categorical covariates are
-resampled, not blended, so a rare combination can survive intact.
+**B5 — rare categories and rare combinations. NOT IMPLEMENTED; a genuine gap,
+and not the one it first looks like.** Measured 2026-08-03 rather than assumed,
+after the owner asked why blending does not already handle it.
+
+*The mechanism.* `.synthesize_covariates()` treats the two kinds of covariate
+completely differently, and only one of them is blended:
+
+- **Numeric** covariates are a weighted mean of the donors' values plus noise.
+  The result is a new number nobody had.
+- **Categorical** covariates are `sample()`d from the donors' values. That is
+  not blending and there is no averaging available: a synthetic patient's
+  category is always **some real patient's actual category**, copied.
+- **`subject_properties`** (arm, dose group) are copied verbatim from the
+  anchor — exact by design, since they are protocol facts.
+
+*The first experiment was wrong about the risk, in an instructive way.* A
+fixture with a singleton category (one patient of forty coded `RACE = "Other"`)
+and an isolated numeric pair (two patients at 138 and 141 kg among 60--80)
+produced **zero** leakage into 200 avatars: no avatar carried the singleton
+category, and no avatar's weight came within 5 kg of the isolated pair. The
+reason is worth understanding, because it inverts the intuition. Donors are the
+*nearest* patients in profile space, and a patient who is unusual on their
+covariates is nobody's nearest neighbour — so they are rarely selected as a
+donor, and a patient is always excluded from their own donor set. **Being an
+outlier is self-protecting under this design.**
+
+*The real risk is the opposite shape, and it is the owner's example.* A patient
+who is **typical in every way except one rare category** — an ultra-rare
+mutation status, say — sits right in the middle of the profile space, is
+selected as a donor constantly, and their category is copied out. The same
+fixture with two otherwise-ordinary patients of forty carrying
+`MUT = "TP53-R248W"` put that value on 2 of 200 avatars. Blending never touched
+it, because there is nothing to average.
+
+*Why that matters more than dataset-uniqueness.* The disclosure is not "this
+value is unique in the dataset". It is that **the value may be rare in the
+world**. If five people alive carry a mutation, a synthetic dataset containing
+it discloses that someone with that mutation was in this study, which for a
+named trial with public inclusion criteria can be nearly identifying on its own.
+No amount of cohort size helps, and `min_pattern_share` — which protects visit
+sets — has no analogue here.
+
+*Combinations make it worse and unenumerable.* Any subset of covariates can be a
+quasi-identifier: arm x sex x age band x mutation. With `d` covariates there are
+`2^d` subsets and no principled way to know in advance which ones single someone
+out in the presence of external data. One mitigation is already accidentally
+present: each covariate is sampled **independently** in the loop, so `SEX` may
+come from one donor and `RACE` from another, and a rare *joint* combination is
+less likely to be reproduced whole than any of its parts. That is a fidelity
+cost (real correlations between covariates are broken) doing double duty as a
+weak privacy benefit, and it should be stated as such rather than claimed as a
+mechanism.
+
+*What to build.* A cross-tabulation of `covariates` and `subject_properties`
+with a minimum cell count, source and synthetic side by side, plus a per-level
+report of the rarest categories reaching the output. It cannot enumerate all
+combinations, and the vignette should say so plainly rather than implying the
+check is complete.
+
+*Two reproducible fixtures* for whoever builds it, both under 40 lines and both
+run on 2026-08-03:
+
+```r
+# (a) the self-protecting case: a singleton category on an OUTLIER patient.
+#     Expect 0 of 200 avatars to carry it -- outliers are nobody's donor.
+# (b) the leaking case: a rare category on TYPICAL patients.
+#     Expect it to propagate at roughly its source frequency.
+mk <- function(i) {
+  t <- c(0, 1, 2, 4, 8, 24)
+  data.frame(
+    ID = i, TIME = c(0, t), NTIME = c(0, t),
+    DV = c(NA, round(10 * exp(-0.1 * t) + rnorm(length(t), 0, .3), 3)),
+    AMT = c(100, rep(0, length(t))), EVID = c(1L, rep(0L, length(t))),
+    CMT = c(1L, rep(2L, length(t))),
+    WT = round(runif(1, 60, 85), 1),                       # (b): all typical
+    MUT = if (i %in% c(17, 23)) "TP53-R248W" else "wild-type",
+    stringsAsFactors = FALSE)
+}
+raw <- do.call(rbind, lapply(1:40, mk))
+roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                   evid = "EVID", cmt = "CMT", nominal_time = "NTIME",
+                   covariates = c("WT", "MUT"))
+syn <- synpmx_avatar(raw, roles, n_subjects = 200, seed = 9)
+# 2 of 40 source patients carry it; 2 of 200 avatars did.
+```
+
+For (a), give the rare patient an outlying weight as well (138 and 141 kg among
+60--80) and a singleton `RACE` level; nothing propagates.
+
+*Does differential privacy cover this?* **Yes, and it is the strongest argument
+for the DP modes.** This is precisely the difference between the two families.
+AVATAR's protections are *enumerated* — visit sets, dose schedules, extremes,
+proximity — so a risk nobody named is a risk nobody covered, and B5 is exactly
+such a risk. An (epsilon, delta) guarantee is *unenumerated*: it bounds the
+influence of any one individual on **any** function of the output, so it holds
+for combinations nobody thought to check, including ones an attacker constructs
+later with data that does not exist yet.
+
+Concretely, `synpmx`'s DP path never copies a category. `pmx_covariate(levels =)`
+releases a noisy **count vector** over the levels (L1 sensitivity 1, since one
+subject occupies one level), normalises it to probabilities, and generation
+draws from that distribution. A level held by two patients out of forty is
+swamped by noise at any sensible epsilon, and `.support_threshold()` gates
+weakly-supported cells out entirely.
+
+Three honest caveats, all of which belong in the vignette:
+
+1. **The level set must be public.** `pmx_covariate()` requires `levels` and a
+   `source` citation for where that public knowledge came from — precisely
+   because a domain derived from the data leaks the domain. For mutation status
+   that is a real constraint: "the mutations observed in this trial" is itself
+   disclosive, so the level set has to be pre-specified from outside.
+2. **Delta matters here more than usual.** (epsilon, delta)-DP permits the
+   guarantee to fail with probability delta, and for a category held by one or
+   two people that is the failure that matters. Keep delta well below 1/n.
+3. **DP bounds the mechanism, not the world.** If a trial's inclusion criteria
+   are public and only a handful of people could qualify, membership may be
+   inferable regardless. DP still holds — that is its point — but a large
+   epsilon buys little absolute protection in that setting.
 
 **B6 — deterministic proxies.** A column that is a function of a covariate
 discloses that covariate exactly.
@@ -239,7 +351,7 @@ Two corollaries, both learned the hard way and both worth writing down:
 | B2 | `flag_identifiable_subjects()`, `remediate_identifiable_subjects()` | no |
 | B3 | `compare_pmx_proximity()` | yes |
 | B4 | `SIM-014` gate — in tests only, no exported helper | yes |
-| B5 | **nothing** | — |
+| B5 | **nothing.** Mechanism pinned by `tests/testthat/test-avatar-relationships.R` | — |
 | B6 | `dose_basis` / `dose_basis_note` in `pmx_masking_report()` | (recorded) |
 | C | `pmx_masking_report()`, `compare_pmx()` | yes |
 | C | semantic ordering — **nothing exported** | — |
@@ -251,10 +363,14 @@ Two corollaries, both learned the hard way and both worth writing down:
 Writing it will be the fastest way to find what is missing. From the inventory,
 three gaps are already visible:
 
-1. **B5, rare covariate combinations.** The clearest gap and probably the most
-   valuable single addition. A cross-tabulation of `covariates` and
+1. **B5, rare categories and combinations.** The clearest gap and probably the
+   most valuable single addition. A cross-tabulation of `covariates` and
    `subject_properties` with a minimum cell count, source and synthetic side by
-   side.
+   side, plus a per-level report of the rarest categories reaching the output.
+   Two tests in `tests/testthat/test-avatar-relationships.R` already pin the
+   mechanism it has to change: a categorical covariate is copied from a donor
+   and never blended, and an outlying patient is self-protecting only as a side
+   effect of donor selection.
 2. **C, semantic ordering.** An exported check that time-after-dose sign and
    dose/observation ordering are preserved per patient. It is the check the
    dose-grid work needed and did not have.

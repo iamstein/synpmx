@@ -125,3 +125,64 @@ test_that("covariates and endpoints are filled from one donor draw", {
   # would break every relationship test above.
   expect_equal(lengths(regmatches(body_text, gregexpr("\\.select_donors", body_text))), 1L)
 })
+
+# B5 in design/SYNTHETIC_DATA_CHECKS.md: rare categories. These pin the
+# MECHANISM rather than a rate, because the mechanism is the thing any future
+# protection has to change, and because the rate is a property of the fixture.
+rare_category_source <- function(rare_ids, outlying = FALSE) {
+  set.seed(4)
+  do.call(rbind, lapply(1:40, function(i) {
+    t <- c(0, 1, 2, 4, 8, 24)
+    data.frame(
+      ID = i, TIME = c(0, t), NTIME = c(0, t),
+      DV = c(NA, round(10 * exp(-0.1 * t) + stats::rnorm(length(t), 0, .3), 3)),
+      AMT = c(100, rep(0, length(t))), EVID = c(1L, rep(0L, length(t))),
+      CMT = c(1L, rep(2L, length(t))),
+      WT = if (outlying && i %in% rare_ids) 140 else round(60 + (i %% 21), 1),
+      MUT = if (i %in% rare_ids) "rare" else "common",
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
+rare_category_roles <- function() {
+  pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+            cmt = "CMT", nominal_time = "NTIME", covariates = c("WT", "MUT"))
+}
+
+first_value <- function(d, column) {
+  vapply(split(d[[column]], d$ID), function(x) x[[1L]], d[[column]][1L])
+}
+
+test_that("a categorical covariate is copied from a donor, never blended", {
+  # There is no averaging available for a category, so a synthetic patient's
+  # value is always some real patient's actual value. That is the whole of B5.
+  source <- rare_category_source(rare_ids = c(17L, 23L))
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, rare_category_roles(), n_subjects = 200, seed = 9)
+  ))
+  expect_true(all(first_value(synthetic, "MUT") %in%
+                    unique(first_value(source, "MUT"))))
+  # A rare level carried by otherwise-typical patients reaches the output:
+  # they sit in the middle of profile space and are selected as donors.
+  expect_gt(sum(first_value(synthetic, "MUT") == "rare"), 0L)
+
+  # A numeric covariate, by contrast, is genuinely new: blended values need not
+  # equal any source value.
+  weights <- first_value(synthetic, "WT")
+  expect_false(all(weights %in% first_value(source, "WT")))
+})
+
+test_that("an outlying patient is self-protecting, which is not a mechanism", {
+  # Donors are the NEAREST patients in profile space, so a patient who is
+  # unusual on their covariates is nobody's neighbour and rarely donates. This
+  # is worth pinning precisely because it is easy to mistake for protection:
+  # it is a side effect of donor selection and it disappears the moment the
+  # rare patient is otherwise ordinary, as the test above shows.
+  source <- rare_category_source(rare_ids = 40L, outlying = TRUE)
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, rare_category_roles(), n_subjects = 200, seed = 9)
+  ))
+  expect_equal(sum(first_value(synthetic, "MUT") == "rare"), 0L)
+  expect_lt(max(first_value(synthetic, "WT")), 140)
+})
