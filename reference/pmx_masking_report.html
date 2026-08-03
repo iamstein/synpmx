@@ -148,12 +148,12 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Who was available to build on</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Patients in the source                           30</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     excluded as structurally extreme               0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     excluded as structurally extreme               0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       `screen`: follow-up or dose count over twice the cohort's 90th</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       percentile</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     excluded, route arm too small                  0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     excluded, route arm too small                  0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       `on_donor_shortfall`: a route arm holding fewer than k + 1 patients</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     left to anchor avatars on                      30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     left to anchor avatars on                      30 (100%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       an excluded patient still contributes as a donor</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars built                                    30</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       cohort size is unaffected by the exclusions above</span>
@@ -172,7 +172,7 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       real patients blended into each avatar</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Largest share one donor may hold                 0.5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       `max_donor_weight`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     that cap actually bound on                     70%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     that cap actually bound on                     21 of 30 (70%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       of avatars. Near 100% means the cap, not distance, is setting the</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       weights</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Effective donors per avatar, mean                2.86</span>
@@ -183,13 +183,13 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Visit grid used                                  derived</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       no usable `nominal_time`, so a grid was inferred from the recorded</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       times themselves. Declaring `nominal_time` is better</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Unique observation schedules, before coarsening  0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Unique observation schedules, before coarsening  0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       patients whose list of observation times nobody else shares</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Unique observation schedules, after coarsening   0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Unique observation schedules, after coarsening   0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the count that matters: an avatar copies its anchor's times verbatim</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     because of a one-off observation time          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     because of a one-off observation time          0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       sampled when nobody else was. Declaring `nominal_time` is the fix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     because of which visits they attended          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     because of which visits they attended          0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       every time is shared. The visits themselves are missing -- a missed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       visit, a discontinuation, or follow-up that has not reached them --</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       and no grid can fix that</span>
@@ -198,32 +198,36 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Distinct visit sets in the source                1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       a visit set is which of the shared grid visits one patient actually</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       had</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     held by fewer than 2 patients, so not reused   0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     held by fewer than 2 patients, so not reused   0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       `min_pattern_share` is that threshold. These visit sets are lost, not</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       approximated</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     real patients holding those                    0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     real patients holding those                    0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       those patients are NOT removed -- they still anchor avatars and still</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       act as donors. Only their particular pattern of absences stops being</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       copied</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars given a visit set from the pool          100%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars given a visit set from the pool          30 of 30 (100%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       drawn from the sets that cleared the threshold, or built from their</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       shape -- never from their own anchor alone</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, misses placed fresh                  0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, misses placed fresh                  0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the kind of missingness was reused; exactly which visits were missed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       was invented</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, miss count moved                     0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, miss count moved                     0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       no arrangement at the wanted number of missing visits was free, so</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the count moved by a visit or two. Misses at the END of a record are</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the case that forces it, because for a given count there is exactly</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       one such arrangement</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, a rare set swapped for a shared one  0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, a rare set swapped for a shared one  0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the anchor's own set was held by nobody else and no arrangement was</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       free, so the group's most widely held set was used instead -- less</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       faithful to that avatar, and it discloses nothing</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars keeping their anchor's own visit set     0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, moved to a different anchor          0 of 30 (0%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the first anchor's own set was shared by nobody and nothing legal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       could be placed, so this avatar was anchored elsewhere. Every source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       patient stays a donor and stays available to anchor others</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars keeping their anchor's own visit set     0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       not a problem in itself: if several real patients share that set,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       copying it identifies nobody. Only the next row is a disclosure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a visit set nobody else shares  0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a visit set nobody else shares  0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       **this is the row that must be 0%.** That pattern of which visits</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       have observations belongs to one real patient. It is non-zero only</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       when the schedule group has no shared set to substitute; the run</span>

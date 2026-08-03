@@ -828,21 +828,21 @@ build on.</caption>
 </tr>
 <tr class="odd">
 <td align="left">  excluded as structurally extreme</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>screen</code>: follow-up or dose count over twice
 the cohort’s 90th percentile</td>
 </tr>
 <tr class="even">
 <td align="left">  excluded, route arm too small</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>on_donor_shortfall</code>: a route arm holding
 fewer than k + 1 patients</td>
 </tr>
 <tr class="odd">
 <td align="left">  left to anchor avatars on</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">an excluded patient still contributes as a donor</td>
 </tr>
 <tr class="even">
@@ -887,7 +887,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">67%</td>
+<td align="right">8 of 12 (67%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -912,25 +912,25 @@ inferred from the recorded times themselves. Declaring
 </tr>
 <tr class="odd">
 <td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">patients whose list of observation times nobody else
 shares</td>
 </tr>
 <tr class="even">
 <td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">the count that matters: an avatar copies its anchor’s
 times verbatim</td>
 </tr>
 <tr class="odd">
 <td align="left">  because of a one-off observation time</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">sampled when nobody else was. Declaring
 <code>nominal_time</code> is the fix</td>
 </tr>
 <tr class="even">
 <td align="left">  because of which visits they attended</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">every time is shared. The visits themselves are missing
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
@@ -949,33 +949,33 @@ patient actually had</td>
 </tr>
 <tr class="odd">
 <td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>min_pattern_share</code> is that threshold. These
 visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">those patients are NOT removed – they still anchor
 avatars and still act as donors. Only their particular pattern of
 absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
-<td align="right">100%</td>
+<td align="right">12 of 12 (100%)</td>
 <td align="left">drawn from the sets that cleared the threshold, or
 built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -983,41 +983,49 @@ exactly one such arrangement</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">the anchor’s own set was held by nobody else and no
 arrangement was free, so the group’s most widely held set was used
 instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
+<td align="left">  of those, moved to a different anchor</td>
+<td align="right">0 of 12 (0%)</td>
+<td align="left">the first anchor’s own set was shared by nobody and
+nothing legal could be placed, so this avatar was anchored elsewhere.
+Every source patient stays a donor and stays available to anchor
+others</td>
+</tr>
+<tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">not a problem in itself: if several real patients share
 that set, copying it identifies nobody. Only the next row is a
 disclosure</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a visit set nobody else
 shares</strong></td>
-<td align="right">0%</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
 It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 11 distinct dose amounts are not a fixed multiple
 of any declared covariate: WT (8 ratio levels for 11 distinct amounts –
 too many to be a protocol)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -1387,21 +1395,21 @@ on.</caption>
 </tr>
 <tr class="odd">
 <td align="left">  excluded as structurally extreme</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>screen</code>: follow-up or dose count over twice
 the cohort’s 90th percentile</td>
 </tr>
 <tr class="even">
 <td align="left">  excluded, route arm too small</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>on_donor_shortfall</code>: a route arm holding
 fewer than k + 1 patients</td>
 </tr>
 <tr class="odd">
 <td align="left">  left to anchor avatars on</td>
-<td align="right">32</td>
+<td align="right">32 (100%)</td>
 <td align="left">an excluded patient still contributes as a donor</td>
 </tr>
 <tr class="even">
@@ -1446,7 +1454,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">66%</td>
+<td align="right">21 of 32 (66%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -1471,25 +1479,25 @@ inferred from the recorded times themselves. Declaring
 </tr>
 <tr class="odd">
 <td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">14</td>
+<td align="right">14 (44%)</td>
 <td align="left">patients whose list of observation times nobody else
 shares</td>
 </tr>
 <tr class="even">
 <td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">12</td>
+<td align="right">12 (38%)</td>
 <td align="left">the count that matters: an avatar copies its anchor’s
 times verbatim</td>
 </tr>
 <tr class="odd">
 <td align="left">  because of a one-off observation time</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">sampled when nobody else was. Declaring
 <code>nominal_time</code> is the fix</td>
 </tr>
 <tr class="even">
 <td align="left">  because of which visits they attended</td>
-<td align="right">12</td>
+<td align="right">12 (38%)</td>
 <td align="left">every time is shared. The visits themselves are missing
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
@@ -1508,33 +1516,33 @@ patient actually had</td>
 </tr>
 <tr class="odd">
 <td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">4</td>
+<td align="right">4 (29%)</td>
 <td align="left">
 <code>min_pattern_share</code> is that threshold. These
 visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
-<td align="right">4</td>
+<td align="right">4 (12%)</td>
 <td align="left">those patients are NOT removed – they still anchor
 avatars and still act as donors. Only their particular pattern of
 absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
-<td align="right">100%</td>
+<td align="right">32 of 32 (100%)</td>
 <td align="left">drawn from the sets that cleared the threshold, or
 built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">22%</td>
+<td align="right">7 of 32 (22%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0%</td>
+<td align="right">0 of 32 (0%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -1542,34 +1550,42 @@ exactly one such arrangement</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0%</td>
+<td align="right">0 of 32 (0%)</td>
 <td align="left">the anchor’s own set was held by nobody else and no
 arrangement was free, so the group’s most widely held set was used
 instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
+<td align="left">  of those, moved to a different anchor</td>
+<td align="right">0 of 32 (0%)</td>
+<td align="left">the first anchor’s own set was shared by nobody and
+nothing legal could be placed, so this avatar was anchored elsewhere.
+Every source patient stays a donor and stays available to anchor
+others</td>
+</tr>
+<tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0%</td>
+<td align="right">0 of 32 (0%)</td>
 <td align="left">not a problem in itself: if several real patients share
 that set, copying it identifies nobody. Only the next row is a
 disclosure</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a visit set nobody else
 shares</strong></td>
-<td align="right">0%</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
 It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right">
 <strong>yes</strong>, from <code>wt</code>
@@ -1577,7 +1593,7 @@ substitute; the run alerts when it happens</td>
 <td align="left">the 20 distinct dose amounts are a fixed multiple of
 <code>wt</code>, at 1 protocol level(s)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  protocol levels found</td>
 <td align="right">1.5</td>
 <td align="left">dose per unit of <code>wt</code>; every amount was
@@ -1697,21 +1713,21 @@ on.</caption>
 </tr>
 <tr class="odd">
 <td align="left">  excluded as structurally extreme</td>
-<td align="right">2</td>
+<td align="right">2 (4%)</td>
 <td align="left">
 <code>screen</code>: follow-up or dose count over twice
 the cohort’s 90th percentile</td>
 </tr>
 <tr class="even">
 <td align="left">  excluded, route arm too small</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>on_donor_shortfall</code>: a route arm holding
 fewer than k + 1 patients</td>
 </tr>
 <tr class="odd">
 <td align="left">  left to anchor avatars on</td>
-<td align="right">43</td>
+<td align="right">43 (96%)</td>
 <td align="left">an excluded patient still contributes as a donor</td>
 </tr>
 <tr class="even">
@@ -1756,7 +1772,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">67%</td>
+<td align="right">30 of 45 (67%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -1781,25 +1797,25 @@ inferred from the recorded times themselves. Declaring
 </tr>
 <tr class="odd">
 <td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">30</td>
+<td align="right">30 (67%)</td>
 <td align="left">patients whose list of observation times nobody else
 shares</td>
 </tr>
 <tr class="even">
 <td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">17</td>
+<td align="right">17 (38%)</td>
 <td align="left">the count that matters: an avatar copies its anchor’s
 times verbatim</td>
 </tr>
 <tr class="odd">
 <td align="left">  because of a one-off observation time</td>
-<td align="right">2</td>
+<td align="right">2 (4%)</td>
 <td align="left">sampled when nobody else was. Declaring
 <code>nominal_time</code> is the fix</td>
 </tr>
 <tr class="even">
 <td align="left">  because of which visits they attended</td>
-<td align="right">15</td>
+<td align="right">15 (33%)</td>
 <td align="left">every time is shared. The visits themselves are missing
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
@@ -1818,33 +1834,33 @@ patient actually had</td>
 </tr>
 <tr class="odd">
 <td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">5</td>
+<td align="right">5 (20%)</td>
 <td align="left">
 <code>min_pattern_share</code> is that threshold. These
 visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
-<td align="right">5</td>
+<td align="right">5 (11%)</td>
 <td align="left">those patients are NOT removed – they still anchor
 avatars and still act as donors. Only their particular pattern of
 absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
-<td align="right">100%</td>
+<td align="right">45 of 45 (100%)</td>
 <td align="left">drawn from the sets that cleared the threshold, or
 built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">4%</td>
+<td align="right">2 of 45 (4%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0%</td>
+<td align="right">0 of 45 (0%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -1852,40 +1868,48 @@ exactly one such arrangement</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0%</td>
+<td align="right">0 of 45 (0%)</td>
 <td align="left">the anchor’s own set was held by nobody else and no
 arrangement was free, so the group’s most widely held set was used
 instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
+<td align="left">  of those, moved to a different anchor</td>
+<td align="right">0 of 45 (0%)</td>
+<td align="left">the first anchor’s own set was shared by nobody and
+nothing legal could be placed, so this avatar was anchored elsewhere.
+Every source patient stays a donor and stays available to anchor
+others</td>
+</tr>
+<tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0%</td>
+<td align="right">0 of 45 (0%)</td>
 <td align="left">not a problem in itself: if several real patients share
 that set, copying it identifies nobody. Only the next row is a
 disclosure</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a visit set nobody else
 shares</strong></td>
-<td align="right">0%</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
 It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">no <code>covariates</code> are declared, so there is
 nothing to test the amounts against</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -1983,21 +2007,21 @@ on.</caption>
 </tr>
 <tr class="odd">
 <td align="left">  excluded as structurally extreme</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>screen</code>: follow-up or dose count over twice
 the cohort’s 90th percentile</td>
 </tr>
 <tr class="even">
 <td align="left">  excluded, route arm too small</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>on_donor_shortfall</code>: a route arm holding
 fewer than k + 1 patients</td>
 </tr>
 <tr class="odd">
 <td align="left">  left to anchor avatars on</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">an excluded patient still contributes as a donor</td>
 </tr>
 <tr class="even">
@@ -2042,7 +2066,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">75%</td>
+<td align="right">9 of 12 (75%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -2067,25 +2091,25 @@ inferred from the recorded times themselves. Declaring
 </tr>
 <tr class="odd">
 <td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">patients whose list of observation times nobody else
 shares</td>
 </tr>
 <tr class="even">
 <td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">the count that matters: an avatar copies its anchor’s
 times verbatim</td>
 </tr>
 <tr class="odd">
 <td align="left">  because of a one-off observation time</td>
-<td align="right">12</td>
+<td align="right">12 (100%)</td>
 <td align="left">sampled when nobody else was. Declaring
 <code>nominal_time</code> is the fix</td>
 </tr>
 <tr class="even">
 <td align="left">  because of which visits they attended</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">every time is shared. The visits themselves are missing
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
@@ -2104,33 +2128,33 @@ patient actually had</td>
 </tr>
 <tr class="odd">
 <td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">2</td>
+<td align="right">2 (17%)</td>
 <td align="left">
 <code>min_pattern_share</code> is that threshold. These
 visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
-<td align="right">2</td>
+<td align="right">2 (17%)</td>
 <td align="left">those patients are NOT removed – they still anchor
 avatars and still act as donors. Only their particular pattern of
 absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
-<td align="right">100%</td>
+<td align="right">12 of 12 (100%)</td>
 <td align="left">drawn from the sets that cleared the threshold, or
 built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">100%</td>
+<td align="right">12 of 12 (100%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -2138,34 +2162,42 @@ exactly one such arrangement</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">the anchor’s own set was held by nobody else and no
 arrangement was free, so the group’s most widely held set was used
 instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
+<td align="left">  of those, moved to a different anchor</td>
+<td align="right">0 of 12 (0%)</td>
+<td align="left">the first anchor’s own set was shared by nobody and
+nothing legal could be placed, so this avatar was anchored elsewhere.
+Every source patient stays a donor and stays available to anchor
+others</td>
+</tr>
+<tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0%</td>
+<td align="right">0 of 12 (0%)</td>
 <td align="left">not a problem in itself: if several real patients share
 that set, copying it identifies nobody. Only the next row is a
 disclosure</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a visit set nobody else
 shares</strong></td>
-<td align="right">0%</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
 It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 4 distinct dose amounts are not a fixed multiple of
@@ -2174,7 +2206,7 @@ too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts
 – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts
 – too many to be a protocol)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2267,7 +2299,7 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 <caption>Everything mavoglurant’s run removed, and what was left to
 build on.</caption>
 <colgroup>
-<col width="19%">
+<col width="18%">
 <col width="5%">
 <col width="75%">
 </colgroup>
@@ -2289,21 +2321,21 @@ build on.</caption>
 </tr>
 <tr class="odd">
 <td align="left">  excluded as structurally extreme</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>screen</code>: follow-up or dose count over twice
 the cohort’s 90th percentile</td>
 </tr>
 <tr class="even">
 <td align="left">  excluded, route arm too small</td>
-<td align="right">0</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <code>on_donor_shortfall</code>: a route arm holding
 fewer than k + 1 patients</td>
 </tr>
 <tr class="odd">
 <td align="left">  left to anchor avatars on</td>
-<td align="right">120</td>
+<td align="right">120 (100%)</td>
 <td align="left">an excluded patient still contributes as a donor</td>
 </tr>
 <tr class="even">
@@ -2348,7 +2380,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">64%</td>
+<td align="right">77 of 120 (64%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -2373,25 +2405,25 @@ inferred from the recorded times themselves. Declaring
 </tr>
 <tr class="odd">
 <td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">72</td>
+<td align="right">72 (60%)</td>
 <td align="left">patients whose list of observation times nobody else
 shares</td>
 </tr>
 <tr class="even">
 <td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">64</td>
+<td align="right">64 (53%)</td>
 <td align="left">the count that matters: an avatar copies its anchor’s
 times verbatim</td>
 </tr>
 <tr class="odd">
 <td align="left">  because of a one-off observation time</td>
-<td align="right">11</td>
+<td align="right">11 (9%)</td>
 <td align="left">sampled when nobody else was. Declaring
 <code>nominal_time</code> is the fix</td>
 </tr>
 <tr class="even">
 <td align="left">  because of which visits they attended</td>
-<td align="right">53</td>
+<td align="right">53 (44%)</td>
 <td align="left">every time is shared. The visits themselves are missing
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
@@ -2410,33 +2442,33 @@ patient actually had</td>
 </tr>
 <tr class="odd">
 <td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">2</td>
+<td align="right">2 (3%)</td>
 <td align="left">
 <code>min_pattern_share</code> is that threshold. These
 visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
-<td align="right">2</td>
+<td align="right">2 (2%)</td>
 <td align="left">those patients are NOT removed – they still anchor
 avatars and still act as donors. Only their particular pattern of
 absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
-<td align="right">100%</td>
+<td align="right">120 of 120 (100%)</td>
 <td align="left">drawn from the sets that cleared the threshold, or
 built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">0%</td>
+<td align="right">0 of 120 (0%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0%</td>
+<td align="right">0 of 120 (0%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -2444,34 +2476,42 @@ exactly one such arrangement</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0%</td>
+<td align="right">0 of 120 (0%)</td>
 <td align="left">the anchor’s own set was held by nobody else and no
 arrangement was free, so the group’s most widely held set was used
 instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
+<td align="left">  of those, moved to a different anchor</td>
+<td align="right">0 of 120 (0%)</td>
+<td align="left">the first anchor’s own set was shared by nobody and
+nothing legal could be placed, so this avatar was anchored elsewhere.
+Every source patient stays a donor and stays available to anchor
+others</td>
+</tr>
+<tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0%</td>
+<td align="right">0 of 120 (0%)</td>
 <td align="left">not a problem in itself: if several real patients share
 that set, copying it identifies nobody. Only the next row is a
 disclosure</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a visit set nobody else
 shares</strong></td>
-<td align="right">0%</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
 It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 3 distinct dose amounts are not a fixed multiple of
@@ -2479,7 +2519,7 @@ any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels
 for 3 distinct amounts – too many to be a protocol); WT (ratios do not
 cluster); HT (ratios do not cluster)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its

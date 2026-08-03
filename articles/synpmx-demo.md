@@ -442,9 +442,9 @@ masking_table(theo_md, theo_roles, theo_synth, "theophylline")
 |:---|---:|:---|
 | **Who was available to build on** |  |  |
 | Patients in the source | 12 |  |
-|   excluded as structurally extreme | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
-|   excluded, route arm too small | 0 | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
-|   left to anchor avatars on | 12 | an excluded patient still contributes as a donor |
+|   excluded as structurally extreme | 0 (0%) | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
+|   excluded, route arm too small | 0 (0%) | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
+|   left to anchor avatars on | 12 (100%) | an excluded patient still contributes as a donor |
 | Avatars built | 12 | cohort size is unaffected by the exclusions above |
 | **Donor pools: who may be blended with whom** |  |  |
 | Administration routes | 1 | oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool |
@@ -452,24 +452,25 @@ masking_table(theo_md, theo_roles, theo_synth, "theophylline")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 67% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 8 of 12 (67%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 3.08 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
-| Unique observation schedules, before coarsening | 12 | patients whose list of observation times nobody else shares |
-| Unique observation schedules, after coarsening | 0 | the count that matters: an avatar copies its anchor’s times verbatim |
-|   because of a one-off observation time | 0 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 0 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
+| Unique observation schedules, before coarsening | 12 (100%) | patients whose list of observation times nobody else shares |
+| Unique observation schedules, after coarsening | 0 (0%) | the count that matters: an avatar copies its anchor’s times verbatim |
+|   because of a one-off observation time | 0 (0%) | sampled when nobody else was. Declaring `nominal_time` is the fix |
+|   because of which visits they attended | 0 (0%) | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 3 | a visit set is which of the shared grid visits one patient actually had |
-|   held by fewer than 2 patients, so not reused | 0 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
-|   real patients holding those | 0 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
-|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+|   held by fewer than 2 patients, so not reused | 0 (0%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 0 (0%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 12 of 12 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 0 of 12 (0%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0 of 12 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0 of 12 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+|   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+| Avatars keeping their anchor’s own visit set | 0 of 12 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -731,9 +732,9 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 |:---|---:|:---|
 | **Who was available to build on** |  |  |
 | Patients in the source | 32 |  |
-|   excluded as structurally extreme | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
-|   excluded, route arm too small | 0 | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
-|   left to anchor avatars on | 32 | an excluded patient still contributes as a donor |
+|   excluded as structurally extreme | 0 (0%) | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
+|   excluded, route arm too small | 0 (0%) | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
+|   left to anchor avatars on | 32 (100%) | an excluded patient still contributes as a donor |
 | Avatars built | 32 | cohort size is unaffected by the exclusions above |
 | **Donor pools: who may be blended with whom** |  |  |
 | Administration routes | 1 | oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool |
@@ -741,24 +742,25 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 66% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 21 of 32 (66%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 2.87 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
-| Unique observation schedules, before coarsening | 14 | patients whose list of observation times nobody else shares |
-| Unique observation schedules, after coarsening | 12 | the count that matters: an avatar copies its anchor’s times verbatim |
-|   because of a one-off observation time | 0 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 12 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
+| Unique observation schedules, before coarsening | 14 (44%) | patients whose list of observation times nobody else shares |
+| Unique observation schedules, after coarsening | 12 (38%) | the count that matters: an avatar copies its anchor’s times verbatim |
+|   because of a one-off observation time | 0 (0%) | sampled when nobody else was. Declaring `nominal_time` is the fix |
+|   because of which visits they attended | 12 (38%) | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 14 | a visit set is which of the shared grid visits one patient actually had |
-|   held by fewer than 2 patients, so not reused | 4 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
-|   real patients holding those | 4 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 22% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
-|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+|   held by fewer than 2 patients, so not reused | 4 (29%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 4 (12%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 32 of 32 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 7 of 32 (22%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0 of 32 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0 of 32 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+|   of those, moved to a different anchor | 0 of 32 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+| Avatars keeping their anchor’s own visit set | 0 of 32 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **yes**, from `wt` (inferred) | the 20 distinct dose amounts are a fixed multiple of `wt`, at 1 protocol level(s) |
 |   protocol levels found | 1.5 | dose per unit of `wt`; every amount was snapped to the nearest of these |
@@ -862,9 +864,9 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 |:---|---:|:---|
 | **Who was available to build on** |  |  |
 | Patients in the source | 45 |  |
-|   excluded as structurally extreme | 2 | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
-|   excluded, route arm too small | 0 | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
-|   left to anchor avatars on | 43 | an excluded patient still contributes as a donor |
+|   excluded as structurally extreme | 2 (4%) | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
+|   excluded, route arm too small | 0 (0%) | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
+|   left to anchor avatars on | 43 (96%) | an excluded patient still contributes as a donor |
 | Avatars built | 45 | cohort size is unaffected by the exclusions above |
 | **Donor pools: who may be blended with whom** |  |  |
 | Administration routes | 1 | oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool |
@@ -872,24 +874,25 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 67% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 30 of 45 (67%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 2.89 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
-| Unique observation schedules, before coarsening | 30 | patients whose list of observation times nobody else shares |
-| Unique observation schedules, after coarsening | 17 | the count that matters: an avatar copies its anchor’s times verbatim |
-|   because of a one-off observation time | 2 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 15 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
+| Unique observation schedules, before coarsening | 30 (67%) | patients whose list of observation times nobody else shares |
+| Unique observation schedules, after coarsening | 17 (38%) | the count that matters: an avatar copies its anchor’s times verbatim |
+|   because of a one-off observation time | 2 (4%) | sampled when nobody else was. Declaring `nominal_time` is the fix |
+|   because of which visits they attended | 15 (33%) | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 25 | a visit set is which of the shared grid visits one patient actually had |
-|   held by fewer than 2 patients, so not reused | 5 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
-|   real patients holding those | 5 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 4% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
-|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+|   held by fewer than 2 patients, so not reused | 5 (20%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 5 (11%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 45 of 45 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 2 of 45 (4%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0 of 45 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0 of 45 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+|   of those, moved to a different anchor | 0 of 45 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+| Avatars keeping their anchor’s own visit set | 0 of 45 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | no `covariates` are declared, so there is nothing to test the amounts against |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -964,9 +967,9 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 |:---|---:|:---|
 | **Who was available to build on** |  |  |
 | Patients in the source | 12 |  |
-|   excluded as structurally extreme | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
-|   excluded, route arm too small | 0 | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
-|   left to anchor avatars on | 12 | an excluded patient still contributes as a donor |
+|   excluded as structurally extreme | 0 (0%) | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
+|   excluded, route arm too small | 0 (0%) | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
+|   left to anchor avatars on | 12 (100%) | an excluded patient still contributes as a donor |
 | Avatars built | 12 | cohort size is unaffected by the exclusions above |
 | **Donor pools: who may be blended with whom** |  |  |
 | Administration routes | 1 | oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool |
@@ -974,24 +977,25 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 75% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 9 of 12 (75%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 2.97 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
-| Unique observation schedules, before coarsening | 12 | patients whose list of observation times nobody else shares |
-| Unique observation schedules, after coarsening | 12 | the count that matters: an avatar copies its anchor’s times verbatim |
-|   because of a one-off observation time | 12 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 0 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
+| Unique observation schedules, before coarsening | 12 (100%) | patients whose list of observation times nobody else shares |
+| Unique observation schedules, after coarsening | 12 (100%) | the count that matters: an avatar copies its anchor’s times verbatim |
+|   because of a one-off observation time | 12 (100%) | sampled when nobody else was. Declaring `nominal_time` is the fix |
+|   because of which visits they attended | 0 (0%) | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 12 | a visit set is which of the shared grid visits one patient actually had |
-|   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
-|   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 100% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
-|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+|   held by fewer than 2 patients, so not reused | 2 (17%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 2 (17%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 12 of 12 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 12 of 12 (100%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0 of 12 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0 of 12 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+|   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+| Avatars keeping their anchor’s own visit set | 0 of 12 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 4 distinct dose amounts are not a fixed multiple of any declared covariate: BSA (10 ratio levels for 4 distinct amounts – too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1086,9 +1090,9 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 |:---|---:|:---|
 | **Who was available to build on** |  |  |
 | Patients in the source | 120 |  |
-|   excluded as structurally extreme | 0 | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
-|   excluded, route arm too small | 0 | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
-|   left to anchor avatars on | 120 | an excluded patient still contributes as a donor |
+|   excluded as structurally extreme | 0 (0%) | `screen`: follow-up or dose count over twice the cohort’s 90th percentile |
+|   excluded, route arm too small | 0 (0%) | `on_donor_shortfall`: a route arm holding fewer than k + 1 patients |
+|   left to anchor avatars on | 120 (100%) | an excluded patient still contributes as a donor |
 | Avatars built | 120 | cohort size is unaffected by the exclusions above |
 | **Donor pools: who may be blended with whom** |  |  |
 | Administration routes | 1 | oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool |
@@ -1096,24 +1100,25 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 64% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 77 of 120 (64%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 2.96 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
-| Unique observation schedules, before coarsening | 72 | patients whose list of observation times nobody else shares |
-| Unique observation schedules, after coarsening | 64 | the count that matters: an avatar copies its anchor’s times verbatim |
-|   because of a one-off observation time | 11 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 53 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
+| Unique observation schedules, before coarsening | 72 (60%) | patients whose list of observation times nobody else shares |
+| Unique observation schedules, after coarsening | 64 (53%) | the count that matters: an avatar copies its anchor’s times verbatim |
+|   because of a one-off observation time | 11 (9%) | sampled when nobody else was. Declaring `nominal_time` is the fix |
+|   because of which visits they attended | 53 (44%) | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 73 | a visit set is which of the shared grid visits one patient actually had |
-|   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
-|   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
-|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+|   held by fewer than 2 patients, so not reused | 2 (3%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 2 (2%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 120 of 120 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 0 of 120 (0%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0 of 120 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0 of 120 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+|   of those, moved to a different anchor | 0 of 120 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+| Avatars keeping their anchor’s own visit set | 0 of 120 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 3 distinct dose amounts are not a fixed multiple of any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels for 3 distinct amounts – too many to be a protocol); WT (ratios do not cluster); HT (ratios do not cluster) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |

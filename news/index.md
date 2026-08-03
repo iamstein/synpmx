@@ -7,6 +7,24 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- **Bug fix (`SIM-042`), changes generated output.** An avatar could
+  still be emitted carrying a visit set exactly one real patient holds.
+  A schedule group of one – a single patient measuring a different set
+  of endpoints from everybody else – has no shared visit set to draw
+  from and nothing to substitute, and the loop then copied the anchor’s
+  own. Now: a group with no pool of its own borrows from any group
+  measuring the same endpoints; the visit set is decided before the
+  avatar is built, so an anchor that cannot be masked causes that
+  **avatar** to be re-anchored rather than the **patient** to be
+  dropped; and a final check on the finished table records
+  `identifying_visit_sets`, which must be 0. It is 0 across every public
+  dataset the demo uses.
+
+- [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+  shows a count and a share on every row that counts patients or
+  avatars. Neither reads on its own: “5%” of 21 patients is one patient,
+  and “15” means nothing without the cohort size beside it.
+
 - **Bug fix (`SIM-041`).**
   [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
   flagged nearly every patient who stopped early. Its robust scale is
