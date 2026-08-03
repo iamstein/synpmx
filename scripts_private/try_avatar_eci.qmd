@@ -1,5 +1,5 @@
 ---
-title: "AVATAR synthesis on CPIT565A1 modeling data"
+title: "AVATAR synthesis on ECI modeling data"
 format: html
 ---
 
@@ -42,15 +42,15 @@ library(synpmx)
 
 Everything you edit is in this chunk.
 
-```{r, fig.width = 10}
+```{r}
 #| label: config
 user <- Sys.getenv("USER")
 gps_prefix <- paste0("/view/", user, "_view/vob/")
-filename   <- file.path(gps_prefix, "CPIT565A1/mas/mas_1/data/output_001/", "mt96714_poppkpd.csv")
+filename   <- file.path(gps_prefix, "/CECI830A1/mas/mas_1/data/output_001/MT28454_R.csv")
 data_in    <- read.csv(filename, stringsAsFactors = FALSE)
 
-DATA       <- data_in |> filter(NAME %in% c("PIT565 Dose", "PIT565 PK", "CRP"), STUDYID == "CPIT565A12101")
-OUT_DIR   <- "output_pit565a"
+DATA       <- data_in
+OUT_DIR   <- "output_eci"
 SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
 
 # plot initial data
@@ -70,7 +70,7 @@ like everything else.
 ```{r}
 #| label: roles
 ROLES <- pmx_roles(
-  id       = "USUBJID",
+  id       = "ID",
   time     = "TIME",
   dv       = "LIDV",
   amt      = "AMT",

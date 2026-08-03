@@ -3,22 +3,9 @@ title: "AVATAR synthesis on CPIT565B1 modeling data"
 format: html
 ---
 
-Try the AVATAR blending generator on a real modeling dataset.
-
-This is the **default** method. Use it when the synthetic data *reaches no one
-the source data could not* -- the same access controls and confidentiality
-obligations still apply, which includes carrying it to your own workstation for
-model development. It resamples and blends whole source subject
-trajectories -- more faithful and far less ceremony than the differentially
-private path -- but makes **no** formal privacy guarantee. If the data may reach
-someone new, use `try_dp_calibrated.R` instead. See the `synpmx-privacy`
-vignette for the decision rule (which method when).
-
-This document runs in the safe computing environment, in a gitignored folder so
-nothing here can be committed.
+Try the AVATAR blending generator on a real modeling dataset using the default AVATAR method. 
 
 Workflow:
-
 1. fill in the CONFIG chunk (just the column roles)
 2. compare the synthetic table to the source
 
@@ -42,7 +29,7 @@ library(synpmx)
 
 Everything you edit is in this chunk.
 
-```{r}
+```{r, fig.width = 14, fig.height = 5}
 #| label: config
 user <- Sys.getenv("USER")
 gps_prefix <- paste0("/view/", user, "_view/vob/")
@@ -57,7 +44,7 @@ SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
 ggplot(DATA |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = ID, color = TRT)) + 
   geom_point(alpha = 0.5) + 
   geom_line(alpha = 0.5) + 
-  facet_wrap(~NAME) + 
+  facet_grid(NAME~TRT, scales = "free_y", switch = "y") + 
   xgx_scale_x_time_units("days") +
   xgx_scale_y_log10()
 ```
@@ -75,66 +62,18 @@ ROLES <- pmx_roles(
   dv       = "LIDV",
   amt      = "AMT",
   evid     = "EVID",
-  # Two columns encode the same endpoint: numeric YTYPE and character NAME.
-  # Declare both. YTYPE (first) is the grouping key; validation checks NAME is a
-  # consistent 1:1 mapping with it and errors if not, and both are carried out.
   dvid     = c("YTYPE", "NAME"),
   cmt      = "CMT",
   mdv      = "MDV",
-
-  # DECLARE NOMINAL TIME IF THE STUDY HAS IT. `coarsen_time = TRUE` (the
-  # default) collapses subjects onto a shared visit grid so no avatar carries one
-  # real subject's exact visit schedule. With `nominal_time` declared it snaps to
-  # the protocol grid exactly; without it the grid is inferred from the pooled
-  # times, which is best-effort and alerts loudly when it cannot collapse a
-  # subject. Under ACTUAL recorded times this is the difference between the
-  # mechanism working and not working -- see `skeleton_uniqueness()`.
-  # Gaps are fine: rows with no nominal time fall back to the inferred grid,
-  # and the run reports the grid as "mixed". A column that is entirely missing
-  # should be left undeclared instead.
-  nominal_time = NULL, # e.g. "NTIME"
+  nominal_time = "NOMTIME", # e.g. "NTIME"
   tad      = NULL,     # time-after-dose column; recomputed after generation
-  # ASSIGNED STRATUM -- treatment arm, dose group, cohort. Carried verbatim like
-  # `keep`, and additionally used to group the pool of visit sets an
-  # avatar may draw from, so an avatar only inherits a visit pattern from its own
-  # arm. Not a blending barrier: donors are still borrowed across strata to reach
-  # the donor floor, because only route of administration is absolute.
-  #
-  # Whether to declare an arm here is a real trade, not an obvious win. Declaring
-  # it is more faithful -- arms with different visit schedules stay separate --
-  # but it splits the visit-set pools, so fewer visit sets clear `min_pattern_share`
-  # and more real dropout patterns are discarded. The run reports how many were
-  # lost either way; try it both ways and compare.
-  # Gaps are fine here too: subjects with no recorded value form their own
-  # stratum and the run warns. A column that *varies* within a subject is an
-  # error -- it is not that subject's assignment. A column that does not exist
-  # in this study is also an error, naming itself: the two PIT565 parts do not
-  # carry identical columns, so check this block against the study you are
-  # running rather than assuming it carries over.
   subject_properties = c("TRT", "TRTN"),  # set NULL to compare pooled pattern pools
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
-  # If the data has below-limit-of-quantification (BLQ) records, declare cens
-  # (and limit, if intervals are used). AVATAR then reconstructs censoring
-  # coherently -- DV at the limit, CENS/LIMIT agreeing -- instead of copying a
-  # flag that no longer matches the blended DV. Leave NULL if there is no BLQ.
   cens     = "CENS",           # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
   limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
-  # BLENDED into new values across donors. B0 (baseline B cells) is deliberately
-  # left out: it is the same quantity as the Circ B Cells endpoint, and AVATAR
-  # blends covariates and endpoints independently, so a synthetic B0 would not
-  # match its own generated trajectory (REV-022). Read the baseline off the
-  # trajectory instead if you need it.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
-  # keep = copied verbatim from the subject that supplied the doses, so it stays
-  # coherent with them. Use it for pass-through values with no other meaning --
-  # a study id, a character label. An assigned *stratum* (treatment arm, dose
-  # group) is better declared in `subject_properties` above, which carries it
-  # the same way and also groups the attendance-pattern pools.
   keep     = c("STUDYIDN", "STUDYID")
-  # Every column NOT named by a role above is dropped. That is deliberate: a
-  # secondary identifier you forget cannot leak out of a real subject. The run
-  # prints exactly which columns it dropped.
 )
 
 # Number of synthetic subjects. NULL keeps the source cohort size.
@@ -354,7 +293,7 @@ and an outlier once joined.
 
 Source-derived. Keep it in the safe environment; do not export the figure.
 
-```{r}
+```{r, fig.width = 14, fig.height = 5}
 #| label: diagnostic
 
   raw_keep = raw[,names(synthetic)]
@@ -362,18 +301,13 @@ Source-derived. Keep it in the safe environment; do not export the figure.
   compare = rbind(raw_keep |> mutate(DATA = "source"), 
                   synthetic |> mutate(DATA = "synthetic"))
   
-  g = ggplot(compare |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = USUBJID, color = TRT)) + 
+  g = ggplot(compare |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = USUBJID, color = DATA)) + 
     geom_point(alpha = 0.5) + 
     geom_line(alpha = 0.5) + 
-    facet_wrap(DATA~NAME) + 
+    facet_grid(NAME~TRT, scales = "free_y", switch = "y") + 
     xgx_scale_x_time_units("days") +
     xgx_scale_y_log10()
-
-  g
-  
-  #ggsave(file.path(OUT_DIR, "RESTRICTED_source_vs_synthetic.pdf"), g, 
-  #       width = 7, height = 6, dpi = 110)
-  
+    g
 ```
 
 The synthetic table carries no formal privacy guarantee; it is built by blending
