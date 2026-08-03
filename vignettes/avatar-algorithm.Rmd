@@ -1582,16 +1582,24 @@ undermines confidence in the whole dataset — but it is a realism check, not a
 privacy one.
 
 **And the two use different statistics, which is a trap.** M2 cuts at twice the
-cohort's 90th percentile, deliberately loose, so only gross outliers are excluded.
-The screen uses median/MAD at 3.5, which is much tighter and behaves badly on a
-bimodal cohort. On `mavoglurant` — half the patients have one dosing period and
-half have two — the MAD is tiny and **75 of 120 avatars are flagged**, on
-follow-up time and dose count, the very axes M2 already screened. Almost none of
-that is exposure; it is the statistic reacting to a two-humped distribution.
+cohort's 90th percentile, deliberately loose, so only gross outliers are
+excluded. The screen uses a modified z-score at 3.5, which is much tighter and
+reacts badly to a clustered cohort.
 
-That number is also the answer to "why not just run it automatically": on this
-dataset it would discard 63% of the cohort, for a reason that is largely an
-artefact. Run it, read what it flags, and decide — which is why it takes a
+The worst version of that was a defect and is fixed (`SIM-041`): the median
+absolute deviation is **zero** whenever more than half a cohort shares one exact
+value, which on trial data is the ordinary case rather than a degenerate one —
+most patients complete the protocol and stop at the same visit. Every departure
+from the median was then scored as infinitely extreme, so every patient who
+stopped even slightly early was flagged. On a 21-patient study that meant 10 of
+21 avatars flagged on follow-up time, two of them agreeing to three decimal
+places. The scale now falls back to the mean absolute deviation from the median,
+which is zero only when nothing varies at all. `mavoglurant` went from 63 of 120
+flagged to 17.
+
+Even so, this is a screen to read rather than to apply. A genuinely two-humped
+cohort will still produce flags that are the shape of the distribution rather
+than exposure. Run it, read what it flags, and decide — which is why it takes a
 threshold argument and why nothing runs it for you.
 
 
