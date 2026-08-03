@@ -42,7 +42,7 @@ rule is doing any work.
   that the metric must reject, on the reasoning that a privacy metric never seen
   to fire is an untested branch. The owner's "intentionally leaky datasets"
   point is already house rule for one metric; the work is to generalize it.
-- **`skeleton_uniqueness()`.** Exact structural uniqueness — `min_time_share`,
+- **`skeleton_uniqueness()`.** Exact structural uniqueness — `n_share_rarest_time`,
   attendance patterns, dose counts. Not an attack, but the ground truth an
   attack can be checked against: where uniqueness is known to be total, an
   attack that scores at chance is a broken attack.

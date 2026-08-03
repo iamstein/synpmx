@@ -40,6 +40,12 @@
 
 .unique_in_order <- function(x) x[!duplicated(x)]
 
+# A text key for one time value, chosen so that equal values always key equally
+# no matter what else was in the vector. `format(digits = 12)` does not have
+# that property -- it fixes one layout for the whole vector -- and `%.12g` is
+# element-wise, which is what a lookup keyed on individual visits needs.
+.time_key <- function(x) sprintf("%.12g", x)
+
 .with_local_seed <- function(seed, code) {
   if (length(seed) != 1L || is.na(seed) || !is.numeric(seed) ||
       !is.finite(seed) || seed < 0 || seed > .Machine$integer.max ||
@@ -342,6 +348,61 @@
   env$messages <- character()
   env$add <- function(message) env$messages <- unique(c(env$messages, message))
   env
+}
+
+# Alert layout ---------------------------------------------------------------
+#
+# These alerts are read in two places that both refuse to wrap a long line for
+# you: a terminal, and the knitted HTML of a report. Written as one `sprintf()`
+# paragraph they arrive as a single 600-character line behind a horizontal
+# scrollbar, which is how a reader ends up skipping the one thing the run was
+# trying to tell them. So the shape is fixed here rather than at each call
+# site: a short title naming the mechanism, the count, why it matters, and the
+# one thing to do about it, each wrapped to a fixed width with a hanging
+# indent. Call sites supply sentences, never layout.
+.alert_width <- 76L
+
+# `strwrap()` drops a lone newline, so paragraphs are wrapped one at a time and
+# rejoined; a call site that wants a break writes "\n" and gets one.
+.wrap_alert_field <- function(text, initial, prefix) {
+  paragraphs <- strsplit(paste(text, collapse = " "), "\n", fixed = TRUE)[[1L]]
+  paragraphs <- paragraphs[nzchar(trimws(paragraphs))]
+  first <- TRUE
+  out <- character()
+  for (paragraph in paragraphs) {
+    out <- c(out, strwrap(paragraph, width = .alert_width,
+                          initial = if (first) initial else prefix,
+                          prefix = prefix))
+    first <- FALSE
+  }
+  out
+}
+
+# `kind` separates the two things that used to look identical. An "ALERT" is a
+# property of the source that raises re-identification risk and that the caller
+# can act on. A "NOTE" is a masking mechanism reporting what it cost -- the
+# package working as intended -- and needs no action. Ranking them is most of
+# what makes a run's output skimmable.
+.alert_text <- function(title, what, why = NULL, fix = NULL, kind = "ALERT") {
+  lines <- c(
+    paste0("SYNPMX ", kind, ": ", title),
+    .wrap_alert_field(what, "  ", "  ")
+  )
+  if (!is.null(why)) {
+    lines <- c(lines, .wrap_alert_field(paste("Why it matters:", why),
+                                        "  ", "    "))
+  }
+  if (!is.null(fix)) {
+    label <- if (identical(kind, "NOTE")) "What to do:" else "Fix:"
+    lines <- c(lines, .wrap_alert_field(paste(label, fix), "  ", "    "))
+  }
+  paste(lines, collapse = "\n")
+}
+
+# Wrap a message that is already a finished sentence, for the collected
+# end-of-run warning, which has the same one-long-line problem.
+.wrap_plain <- function(text, initial = "", prefix = "") {
+  paste(.wrap_alert_field(text, initial, prefix), collapse = "\n")
 }
 
 .weighted_available <- function(values, weights) {

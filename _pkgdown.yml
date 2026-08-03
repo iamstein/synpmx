@@ -93,6 +93,8 @@ reference:
   - compare_pmx
   - compare_pmx_distributions
   - skeleton_uniqueness
+  - plot_pmx_schedule
+  - pmx_masking_report
   - compare_pmx_proximity
   - flag_identifiable_subjects
   - remediate_identifiable_subjects

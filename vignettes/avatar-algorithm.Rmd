@@ -1748,6 +1748,20 @@ Two counts sit alongside these and answer narrower questions:
 coarsening cannot touch) and `n_unique_obs_count` (an observation count nobody
 else has, the residual left for the outlier screen).
 
+The per-patient columns `skeleton_uniqueness()` returns are all the same kind
+of number — how many patients share that property, the patient included, so `1`
+means "nobody else": `n_share_schedule`, `n_share_rarest_time`,
+`n_share_obs_count`, and `n_share_dosing`. By default it scores the recorded
+times as given; `coarsen_time = TRUE` scores the grid `synpmx_avatar()` builds,
+which is where the `pmx_settings` counts above come from.
+
+A count on its own does not say whether a study is in trouble, because twelve
+unique schedules can be twelve one-off sampling times (fixable) or twelve
+ordinary dropouts (not, and not a problem).
+[`plot_pmx_schedule()`](../reference/plot_pmx_schedule.html) draws the cohort —
+one row per patient, one mark per event, with a per-visit histogram
+underneath — and the two cases look nothing alike.
+
 ### Why measure rather than assert
 
 Every mechanism in this article costs something — discarded visit sets, excluded

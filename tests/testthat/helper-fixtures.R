@@ -131,3 +131,24 @@ fit_public_fixture <- function(data = private_fixture(), ...) {
     ))
   )
 }
+
+# Alerts and the collected end-of-run warning are wrapped to a fixed width so
+# they are readable in a terminal and in knitted HTML, which means any phrase
+# can land across a line break. Assertions on their wording go through this,
+# so a test pins the meaning rather than where the wrap happened to fall.
+squish <- function(x) gsub("[[:space:]]+", " ", x)
+
+# Every condition `expr` raises, as one whitespace-normalized character vector.
+# `.loud_warn()` signals rather than raises, so a calling handler is needed to
+# see it; `expect_warning()` would not.
+raised_alerts <- function(expr) {
+  raised <- character()
+  suppressMessages(withCallingHandlers(
+    expr,
+    warning = function(w) {
+      raised <<- c(raised, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  ))
+  squish(raised)
+}

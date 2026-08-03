@@ -125,7 +125,10 @@ this folder, so anything written here leaves the environment.
 ### What to record per study
 
 Run `scripts/measure_skeleton_uniqueness.R`'s `measure()` against the study and
-record the structural properties below. They are what decide whether the default
+record the structural properties below. `pmx_masking_report(synthetic, raw,
+roles)` reports the same quantities for one run with an explanation beside each
+number, and `plot_pmx_schedule(raw, roles)` shows the schedule the counts are
+describing. They are what decide whether the default
 mechanisms do anything, and they are cheap to compute:
 
 Design, which decides whether the mechanisms can do anything at all:
@@ -146,15 +149,19 @@ Exposure, in the same terms the demo vignette's table uses:
   This is the grid's job, and declaring `nominal_time` is what fixes it
 - **`unique_pattern`** — of those, the ones whose every time is shared and only
   whose combination of attended visits is unique. Dropout; no grid touches it
-- **`signature_alone`** — unique dose structure or amount. Weight-based dosing
+- **`unique_dosing`** — unique dose structure or amount. Weight-based dosing
   keeps this high regardless of what the grid does
-- **`dose_basis`** (from `attr(synthetic, "pmx_settings")`) — the covariate the
-  dose was found proportional to, or `NA`. `NA` on a study you believe is
-  weight-based means the ratio was not constant within stratum; check whether a
-  dose group needs declaring in `subject_properties`
-- **`pattern_sampled_fraction`** — how many avatars got a sampled attendance
-  pattern rather than their anchor's. Below 1 means some stratum had no pattern
-  shared by `min_pattern_share` subjects, and the run will have alerted
+- **`dose_basis`** — whether dose amounts were recomputed from a covariate. The
+  **Dose** section of `pmx_masking_report()` answers this in words and, when
+  the answer is no, states which covariates were tried and what failed. "No" on
+  a study you believe is weight-based usually means the dose-to-covariate ratio
+  did not collapse onto a small number of protocol levels; check whether a dose
+  group needs declaring in `subject_properties`
+- **Avatars keeping their anchor's own visit set** — the complement of
+  `pattern_sampled_fraction`. Above 0 means some stratum had no visit set
+  shared by `min_pattern_share` subjects, and the run will have alerted. Those
+  avatars carry one real patient's absences, so read it against the discarded
+  count directly above it in the report
 
 Also record the existing utility metrics on the same row —
 `compare_pmx_distributions()`, `flag_identifiable_subjects()` counts,

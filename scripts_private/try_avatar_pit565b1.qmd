@@ -1,9 +1,17 @@
 ---
 title: "AVATAR synthesis on CPIT565B1 modeling data"
-format: html
+format:
+  html:
+    toc: true
+    # Everything except the configuration and the generation call is reporting
+    # code, and reading it is not the point of this document. Folded, not
+    # hidden: click "Show code" on any block to see exactly what produced a
+    # number. The chunks worth reading unfolded set `code-fold: false`.
+    code-fold: true
+    code-summary: "Show code"
 ---
 
-Try the AVATAR blending generator on a real modeling dataset using the default AVATAR method. 
+Try the AVATAR blending generator on a real modeling dataset using the default AVATAR method.
 
 Workflow:
 1. fill in the CONFIG chunk (just the column roles)
@@ -12,6 +20,7 @@ Workflow:
 ```{r}
 #| label: setup
 #| message: false
+#| code-fold: false
 library(tidyverse)
 library(xgxr)
 xgx_theme_set()
@@ -31,6 +40,7 @@ Everything you edit is in this chunk.
 
 ```{r, fig.width = 14, fig.height = 5}
 #| label: config
+#| code-fold: false
 user <- Sys.getenv("USER")
 gps_prefix <- paste0("/view/", user, "_view/vob/")
 filename   <- file.path(gps_prefix, "CPIT565A1/mas/mas_1/data/output_001/", "mt96714_poppkpd.csv")
@@ -56,6 +66,7 @@ like everything else.
 
 ```{r}
 #| label: roles
+#| code-fold: false
 ROLES <- pmx_roles(
   id       = "USUBJID",
   time     = "TIME",
@@ -104,35 +115,79 @@ if (!report$valid) {
 message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 ```
 
-### Source skeleton exposure
+### How identifying is this study's visit schedule?
 
-Run before generating. The event skeleton is copied verbatim from one anchor, so
-a subject holding the only copy of its observation time vector hands that
-schedule to every avatar anchored on it.
+Run before generating. `synpmx_avatar()` copies its anchor's event skeleton
+**verbatim**, so a patient holding the only copy of their observation time
+vector hands that schedule to every avatar anchored on them. This section asks
+how many such patients there are, and whether that is a problem worth acting
+on.
 
-Read `alone` first, then why:
+Two runs, because the answer differs:
 
-- `min_time_share == 1` -- observed at a moment no other subject was. This is
-  what `coarsen_time` collapses, and a residue here means the *inferred* grid
-  found no shared schedule. Declaring `nominal_time` is the fix.
-- `min_time_share >= 2` but `alone` -- every time is shared and only the
-  *pattern* of attended visits is unique. Dropout and missed visits. No grid
-  touches this; `min_pattern_share` is what stops it being reproduced.
-- `n_obs_class == 1` -- a sample count nobody else has.
-- `signature_class == 1` -- dose structure or amount nobody else has.
+- **as given** -- the recorded times, before anything is done to them.
+- **after coarsening** -- the shared visit grid `synpmx_avatar()` actually
+  builds and generates on. *These are the numbers that matter.* The difference
+  between the two is what coarsening bought.
 
-Record these in `scripts_private/README.md`'s study inventory.
+Every column is the same kind of number: **how many patients share this
+property with me, me included**, so `1` always means "nobody else". Read the
+first table's headline row, then its two sub-rows, which have opposite
+remedies.
 
 ```{r}
-#| label: skeleton-uniqueness
-exposure <- skeleton_uniqueness(raw, roles)
+#| label: skeleton-uniqueness-before
+exposure_before <- skeleton_uniqueness(raw, roles)
+exposure_before
+```
+
+```{r}
+#| label: skeleton-uniqueness-after
+exposure <- skeleton_uniqueness(raw, roles, coarsen_time = TRUE)
 exposure
 ```
+
+**Is a high percentage bad?** Not on its own, and this is the part that is easy
+to misread. Split it by cause:
+
+- **a one-off observation time** -- this patient was sampled at a moment
+  nobody else was. It *is* a problem, and it is fixable: declaring
+  `nominal_time` snaps visits onto the real protocol grid. A count above zero
+  here means the inferred grid could not find a shared schedule.
+- **the set of visits attended** -- every one of this patient's times is shared
+  with somebody; what singles them out is which of those visits they turned up
+  for. This is dropout, and **no grid at any resolution can change it**. It is
+  handled downstream by `min_pattern_share`, which refuses to give any avatar a
+  visit set that only one real patient had. A large count here with a small
+  count above is the *normal* result for a study with dropout, not a failure.
+
+The picture says in one look what the counts say in numbers -- whether this is
+a protocol grid with a few stragglers or an ad-hoc schedule the grid could not
+rescue.
+
+```{r, fig.width = 12, fig.height = 9}
+#| label: schedule-map
+plot_pmx_schedule(raw, roles)
+```
+
+Read the map top to bottom: vertical stripes mean patients share visits, and a
+ragged right edge is dropout. In the lower panel, a bar of height one is a
+moment only one patient was ever sampled at -- exactly what would be copied
+onto an avatar -- and those are drawn in red. Compare against the uncoarsened
+version to see what the grid merged.
+
+```{r, fig.width = 12, fig.height = 9}
+#| label: schedule-map-raw
+plot_pmx_schedule(raw, roles, coarsen_time = FALSE)
+```
+
+Record these in `scripts_private/README.md`'s study inventory.
 
 ### Synthesize (AVATAR blending)
 
 ```{r}
 #| label: synthesize
+#| code-fold: false
 synthetic <- synpmx_avatar(raw, roles, seed = SEED)
 stopifnot(validate_pmx(synthetic, roles)$valid)
 message("  generated ", nrow(synthetic), " rows for ",
@@ -144,71 +199,47 @@ write.csv(synthetic, file.path(OUT_DIR, "avatar_synthetic.csv"), row.names = FAL
 
 ### What the mechanisms actually did
 
-Every masking mechanism records what it did, and two of them record what it
-cost. Copy these into the study inventory in `scripts_private/README.md`.
+Every masking mechanism records what it did, and several record what it cost.
+Each row carries the sentence that says what its number means, because none of
+them mean anything on their own. Copy this into the study inventory in
+`scripts_private/README.md`.
 
 ```{r}
 #| label: mechanism-report
-settings <- attr(synthetic, "pmx_settings")
-data.frame(
-  quantity = c(
-    "source patients",
-    "  ... excluded as structural outliers (M2, screen)",
-    "  ... excluded below the donor floor (M2, route arm)",
-    "  ... left available to anchor on",
-    "route arms / compatible event groups",
-    "time grid used",
-    "patients with a unique observation schedule, after coarsening",
-    "  ... unique observation time (declare nominal_time to fix)",
-    "  ... unique visit set (dropout; M3's job)",
-    "dose basis detected",
-    "dose levels found",
-    "distinct visit sets in the source",
-    "  ... discarded as too rare to reuse",
-    "  ... real subjects who held those",
-    "avatars given a real patient's visit set",
-    "  ... of those, which visits were missed was invented",
-    "donor floor: mean effective donors",
-    "donor cap binding fraction"
-  ),
-  value = c(
-    settings$source_subjects,
-    settings$anchors_screened_out,
-    settings$anchors_route_excluded,
-    settings$anchors_available,
-    paste(settings$routes, "/", settings$compatible_event_groups),
-    settings$time_grid,
-    settings$unique_schedule_n,
-    settings$unique_obs_time_n,
-    settings$unique_visit_set_n,
-    ifelse(is.na(settings$dose_basis), "none (amounts left alone)",
-           settings$dose_basis),
-    ifelse(is.na(settings$dose_basis), "-",
-           paste(signif(settings$dose_levels, 4), collapse = ", ")),
-    settings$patterns_total,
-    settings$patterns_dropped,
-    settings$subjects_with_dropped_pattern,
-    settings$pattern_sampled_fraction,
-    round(settings$pattern_generated_fraction, 2),
-    round(settings$mean_effective_donors, 2),
-    round(settings$cap_binding_fraction, 2)
-  ),
-  stringsAsFactors = FALSE
-) |> knitr::kable()
+pmx_masking_report(synthetic, raw, roles)
 ```
 
-At the default floor of 2, `discarded` and `real subjects who held those` are
-necessarily equal: a pattern is discarded exactly when fewer than two patients
-share it, so every discarded pattern has exactly one holder. They diverge only at
-a floor of 3 or more.
+Four rows are worth stopping on.
 
-`discarded as too rare to reuse` is the one to look at hardest. Those are real
-dropout and dose-interruption patterns that will not appear in the synthetic
-data, because too few patients shared them. Discarding them is what stops an
-avatar carrying a schedule traceable to one person, but if this study's
-interruptions matter, lower `min_pattern_share` (2 is the lowest value that
-still guarantees no synthetic patient has a schedule unique to a real one) or
-set it to `1` to keep every pattern and give up that guarantee.
+**Did it detect weight-based dosing?** The **Dose** section says so outright:
+either "**yes**, from `WEIGHT0`" with the protocol levels it found, or
+"**no**" together with the reason it declined. If this study doses on weight
+and the answer is no, the reason names which covariates were tried and what
+failed -- most often that the dose-to-covariate ratio did not collapse onto a
+small number of protocol levels, which is the conservative test the detector
+uses to avoid rewriting amounts in a study that is not dose-proportional. When
+the answer is no, `AMT` is copied verbatim from the anchor, which means each
+avatar's implied mg/kg is wrong and the amount still encodes one real patient's
+weight.
+
+**Shared by too few patients, so not reused.** These are real dropout and
+dose-interruption patterns that will not appear in the synthetic data. Refusing
+them is what stops an avatar carrying a schedule traceable to one person. If
+this study's interruptions matter, lower `min_pattern_share`; `2` is the lowest
+value that still guarantees no synthetic patient has a visit set unique to a
+real one, and `1` keeps every pattern and gives up the guarantee.
+
+At the default floor of 2, that row and **real patients holding those** are
+necessarily equal: a set is discarded exactly when fewer than two patients
+share it, so every discarded set has exactly one holder. They diverge only at a
+floor of 3 or more.
+
+**Avatars keeping their anchor's own visit set.** Read this against the row
+above it. A high percentage means the schedule groups had nothing shareable to
+draw from, so those avatars carry one real patient's pattern of absences --
+which undoes what discarding the rare sets was for. If it is high, the run also
+raises the "no shared visit set to draw from" alert, and the fix is the same:
+declare `nominal_time`, or lower `min_pattern_share`.
 
 ### Restricted diagnostic: distribution summary
 
@@ -248,15 +279,26 @@ kable_distributions(compare_pmx_distributions(raw, synthetic, roles))
 ### Restricted diagnostic: how close did the values land?
 
 Everything above concerns structure. Blending is what protects the **values**,
-and this is its measurement: does each subject's nearest neighbour lie in its own
-dataset or the other one? Near 0.5 means a synthetic subject is no more like a
-real subject than one real subject is like another -- the target. Toward 0 means
-memorisation.
+and this is its measurement. It answers one question: **is a synthetic patient
+closer to a real patient than real patients are to each other?**
 
-Read the null interval before the point estimate. It is built by splitting *this*
-source cohort in half and running the identical statistic, so every small-sample
-artefact cancels -- but at a few dozen subjects it is wide. Inside the interval
-means **nothing was detected**, not that nothing is there.
+The way to read it is to compare two numbers, not to interpret one:
+
+- **Measured** -- the statistic on this run. `0.5` is the target, not the
+  maximum: it means a synthetic patient is no more like a real patient than one
+  real patient is like another. Toward `0` means memorisation, which is the
+  failure. Toward `1` means the two sets have separated, which costs utility
+  rather than privacy.
+- **Expected** -- what that statistic comes out at when nothing is wrong. It is
+  not assumed. The same calculation is run repeatedly on two halves of the real
+  cohort, so every small-sample artefact is present in the null and in the
+  measurement alike and cancels. Each half has the same number of patients as
+  the synthetic set being tested, which is what the *"patients per half"*
+  figure is: the size of one side of the comparison, matched on all three arms
+  so the counts are comparable.
+
+At a few dozen patients that expected range is wide. Inside it means **nothing
+was detected**, never that nothing is there.
 
 ```{r}
 #| label: proximity

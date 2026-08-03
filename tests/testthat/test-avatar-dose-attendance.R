@@ -261,25 +261,30 @@ test_that("a stratum with nothing shared widely enough alerts rather than copyin
   }))
   # This fixture legitimately trips the coarsening alerts too, so collect every
   # warning and assert the pattern one is among them rather than muffling all.
-  raised <- character()
-  suppressMessages(withCallingHandlers(
-    synpmx_avatar(source, da_roles(), n_subjects = 6, seed = 13),
-    warning = function(w) {
-      raised <<- c(raised, conditionMessage(w))
-      invokeRestart("muffleWarning")
-    }
-  ))
-  expect_true(any(grepl("no attendance pattern is shared by 2 or more subjects",
+  raised <- raised_alerts(
+    synpmx_avatar(source, da_roles(), n_subjects = 6, seed = 13)
+  )
+  expect_true(any(grepl("no visit set is shared by 2 or more patients",
                         raised, fixed = TRUE)))
 })
 
-test_that("a shape rescues patterns no single subject shares", {
-  # Six subjects each miss exactly one visit, but a different one, so every
-  # *exact* pattern is held by one subject and the strict rule discards all six.
-  # As shapes they are one group of six: "one visit missed, mid-study".
-  grid <- c(0.5, 1, 2, 4, 8, 12)
-  source <- do.call(rbind, lapply(1:6, function(i) {
-    kept <- grid[-i]
+# Six subjects, each missing exactly one *interior* visit, so every exact
+# pattern has a single holder while all six share the shape "one visit missed,
+# not at the end".
+#
+# The grid is ten visits and not six on purpose. The shape fallback can only
+# rescue a pattern if there is somewhere to put the miss that no real subject
+# already occupies: `.place_attendance()` rejects any placement reproducing a
+# pattern too rare to reuse. With six visits and six subjects every placement is
+# somebody's, the draw fails, and each avatar keeps its anchor's own visit set
+# -- correct behaviour, but it demonstrates the opposite of what these two tests
+# are about. Ten visits leaves free placements.
+one_miss_grid <- function() c(0.5, 1, 2, 4, 6, 8, 10, 12, 16, 24)
+
+one_miss_source <- function() {
+  grid <- one_miss_grid()
+  do.call(rbind, lapply(1:6, function(i) {
+    kept <- grid[-(i + 1L)]
     data.frame(
       ID = as.character(i), TIME = c(0, kept),
       DV = c(0, 5 * exp(-0.2 * kept)),
@@ -289,6 +294,14 @@ test_that("a shape rescues patterns no single subject shares", {
       WT = 70 + i, stringsAsFactors = FALSE
     )
   }))
+}
+
+test_that("a shape rescues patterns no single subject shares", {
+  # Six subjects each miss exactly one visit, but a different one, so every
+  # *exact* pattern is held by one subject and the strict rule discards all six.
+  # As shapes they are one group of six: "one visit missed, mid-study".
+  grid <- one_miss_grid()
+  source <- one_miss_source()
   synthetic <- suppressWarnings(
     synpmx_avatar(source, da_roles(), n_subjects = 12, seed = 21)
   )
@@ -308,18 +321,8 @@ test_that("a generated placement never reproduces a pattern too rare to reuse", 
   # The guarantee the rejection check defends. Every exact pattern here is held
   # by one subject, so every one of them is off limits; the shape they share is
   # not. No avatar may come out holding any source subject's exact visit set.
-  grid <- c(0.5, 1, 2, 4, 8, 12)
-  source <- do.call(rbind, lapply(1:6, function(i) {
-    kept <- grid[-i]
-    data.frame(
-      ID = as.character(i), TIME = c(0, kept),
-      DV = c(0, 5 * exp(-0.2 * kept)),
-      AMT = c(100, rep(0, length(kept))),
-      EVID = c(1L, rep(0L, length(kept))),
-      CMT = c(1L, rep(2L, length(kept))),
-      WT = 70 + i, stringsAsFactors = FALSE
-    )
-  }))
+  grid <- one_miss_grid()
+  source <- one_miss_source()
   roles <- da_roles()
   coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
   rare <- vapply(unique(as.character(coarsened$ID)), function(id) {
@@ -381,22 +384,15 @@ test_that("the cost of the floor is counted and reported", {
   expect_equal(settings$patterns_dropped, 2L)
   expect_equal(settings$subjects_with_dropped_pattern, 2L)
 
-  raised <- character()
-  suppressMessages(withCallingHandlers(
-    synpmx_avatar(source, da_roles(), n_subjects = 20, seed = 14),
-    warning = function(w) {
-      raised <<- c(raised, conditionMessage(w))
-      invokeRestart("muffleWarning")
-    }
-  ))
+  raised <- raised_alerts(
+    synpmx_avatar(source, da_roles(), n_subjects = 20, seed = 14)
+  )
   # The alert has to name the count and say plainly what was removed. It is
   # written for a reader who has never heard the phrase "attendance pattern",
   # so the assertion pins the meaning rather than any one turn of phrase.
   expect_true(any(grepl(
-    "2 patients in this study showed up for a combination of visits",
-    raised, fixed = TRUE)))
-  expect_true(any(grepl("No synthetic patient is given one of those 2",
-                        raised, fixed = TRUE)))
+    "2 of 3 distinct visit sets, held by 2 patients", raised, fixed = TRUE)))
+  expect_true(any(grepl("are given to no avatar", raised, fixed = TRUE)))
 
   # Nothing is dropped when the mechanism is off.
   off <- suppressWarnings(

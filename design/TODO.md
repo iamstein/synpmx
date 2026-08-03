@@ -17,6 +17,37 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
+## Done 2026-08-03: run-report readability, and `SIM-038` behind it
+
+Raised by the owner reading `try_avatar_pit565b1`'s output: the alerts were too
+long to read, the exposure table's column names were unintelligible, the
+mechanism table's rows could not be interpreted, and there was no way to tell
+whether weight-based dosing had been detected.
+
+- [x] Alerts wrapped to a fixed width, split `ALERT` / `NOTE`, emitted once
+      (signalled rather than raised, so the text stopped printing twice).
+- [x] `skeleton_uniqueness()` columns renamed to one consistent question, given
+      `coarsen_time`, and reprinted as a verdict plus two summary tables. It now
+      states which side of coarsening it scored, which was the owner's question.
+- [x] New `plot_pmx_schedule()`. A count cannot distinguish one-off sampling
+      times from ordinary dropout; the picture can.
+- [x] New `pmx_masking_report()`, replacing five hand-built copies of the same
+      table. Says outright whether dose amounts were recomputed and, when not,
+      why not.
+- [x] `SIM-038`: `format(x, digits = 12)` is vector-dependent, so identical
+      visit sets keyed differently and nearly every pattern looked unique.
+      Found by drawing the schedule next to the table and seeing them disagree.
+
+Still open from this pass:
+
+- [ ] Run the four `scripts_private/` templates against the real studies again
+      now that `SIM-038` is fixed. The discarded-visit-set counts those reports
+      showed (15 of 17 on `pit565b1`) were inflated by the keying bug, and the
+      "avatars keeping their anchor's own visit set" row is the one to check.
+- [ ] `compare_pmx_distributions()` still prints rather than knitting to a
+      table; the study templates each carry a local `kable_distributions()`
+      helper. Give it a `knit_print()` method and delete the four copies.
+
 ## Owver's next steps: 2026-08-03
 
 - Try out on real data and apply checks 

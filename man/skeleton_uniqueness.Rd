@@ -2,55 +2,80 @@
 % Please edit documentation in R/compare.R
 \name{skeleton_uniqueness}
 \alias{skeleton_uniqueness}
-\title{Score how many subjects share each subject's event skeleton}
+\title{Score how many patients share each patient's event skeleton}
 \usage{
-skeleton_uniqueness(data, roles)
+skeleton_uniqueness(data, roles, coarsen_time = FALSE)
 }
 \arguments{
 \item{data}{A PMX dataset -- normally the source.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
+
+\item{coarsen_time}{Score the coarsened visit grid \code{\link[=synpmx_avatar]{synpmx_avatar()}} would
+build (\code{TRUE}) or the recorded times as given (\code{FALSE}, the default).}
 }
 \value{
 A \code{pmx_skeleton_uniqueness} data frame, most-exposed first, one row
-per subject: \code{subject_id}, \code{n_obs}, \code{n_doses}, \code{signature_class},
-\code{obs_time_class}, \code{n_obs_class} (each counting the subjects sharing that
-key, including itself), and \code{alone} (\code{TRUE} when \code{obs_time_class == 1}).
-Attributes \code{n_unique_schedule}, \code{n_alone_signature}, \code{n_alone_n_obs}, and \code{min_class}
-summarize the cohort.
+per patient: \code{subject_id}, \code{n_obs}, \code{n_doses}, \code{n_share_dosing},
+\code{n_share_schedule}, \code{n_share_rarest_time}, \code{n_share_obs_count} (each
+counting the patients sharing that property, including this one),
+\code{unique_schedule} (\code{TRUE} when \code{n_share_schedule == 1}), and \code{why_unique}.
+Attributes \code{n_unique_schedule}, \code{n_unique_dose_signature},
+\code{n_unique_obs_count}, \code{n_unshared_time}, \code{min_class}, and \code{coarsened}
+summarize the cohort; \code{summary_table} and \code{sharing_table} hold the two
+tables \code{print()} shows.
 }
 \description{
-A source-side screen for subjects that are \strong{alone}, the complement to
-\code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}}, which finds subjects that are \strong{extreme}. A
+A source-side screen for patients that are \strong{alone}, the complement to
+\code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}}, which finds patients that are \strong{extreme}. A
 patient can be perfectly ordinary on every distribution and still hold the
 only copy of their visit schedule, and \code{\link[=synpmx_avatar]{synpmx_avatar()}} copies the anchor's
-event skeleton verbatim, so such a subject hands an identifying schedule to
+event skeleton verbatim, so such a patient hands an identifying schedule to
 every avatar anchored on it.
 }
 \details{
-Three equivalence classes are scored per subject:
+Three questions are asked of every patient, and the answer to each is a
+count of how many patients share that property, the patient included. A
+count of 1 means "nobody else":
 \itemize{
-\item \strong{\code{obs_time}} -- subjects sharing the exact observation time vector. This
-is the fingerprint, because \code{\link[=synpmx_avatar]{synpmx_avatar()}} copies the anchor's event
-skeleton verbatim. Under nominal visit times the class is large, since the
-schedule is protocol-driven; under actual recorded times it is
-near-universally of size one. \code{coarsen_time = TRUE} collapses the second
-case into the first, and \code{alone} reports this class.
-\item \strong{\code{n_obs}} -- subjects sharing the observation count. Coarsening cannot
-change a count, so this is what survives it: dropout, early
-discontinuation, and missed visits. That residual is the outlier screen's
-job rather than the grid's.
-\item \strong{\code{signature}} -- subjects sharing the full \code{\link[=pmx_roles]{pmx_roles()}} event signature:
-dose structure, dose amounts, and endpoint set. Note this does \emph{not} include
-observation times -- it is the key donor compatibility uses. Weight-based
-dosing or per-subject titration makes it unique regardless of schedule, and
-coarsening does not change that either.
+\item \strong{\code{n_share_schedule}} -- who else was observed at exactly this list of
+times? This is the fingerprint, because \code{\link[=synpmx_avatar]{synpmx_avatar()}} copies the
+anchor's event skeleton verbatim. Under nominal visit times the count is
+large, since the schedule is protocol-driven; under actual recorded times
+it is near-universally 1. Coarsening collapses the second case into the
+first.
+\item \strong{\code{n_share_obs_count}} -- who else has this many observations? Coarsening
+cannot change a count, so this is what survives it: dropout, early
+discontinuation, and missed visits.
+\item \strong{\code{n_share_dosing}} -- who else has this dose structure and these dose
+amounts? This is the full \code{\link[=pmx_roles]{pmx_roles()}} event signature and it does \emph{not}
+include observation times; it is the key donor compatibility uses.
+Weight-based dosing or per-patient titration makes it unique regardless of
+schedule, and coarsening does not change that either.
 }
 
-Run it on the \strong{source}, before generating, to decide whether coarsening is
-needed and what is left over once it is applied. It is a heuristic screen, not
-a privacy guarantee, and is marked \code{"restricted_not_releasable"}.
+\code{n_share_rarest_time} splits the schedule count by cause, which matters
+because the two causes have opposite remedies. A patient whose schedule is
+unique \strong{and} whose rarest single time was shared with nobody
+(\code{n_share_rarest_time == 1}) was sampled at a one-off moment: a time grid is
+meant to absorb that, and declaring \code{nominal_time} is the fix. A patient
+whose schedule is unique while every individual time is shared
+(\code{n_share_rarest_time >= 2}) is a dropout or missed-visit pattern, and no
+grid at any resolution touches it. \code{why_unique} states which.
 }
+\section{Before or after coarsening}{
+By default this scores the times \strong{exactly as they appear in \code{data}}.
+\code{\link[=synpmx_avatar]{synpmx_avatar()}} snaps the source onto a shared visit grid first
+(\code{coarsen_time = TRUE}, its default) and the numbers it records in
+\code{pmx_settings} are therefore post-coarsening. Pass \code{coarsen_time = TRUE}
+here to score the same grid the generator would build, and run it both ways
+to see how much of the exposure coarsening actually removed. The printed
+header always says which of the two you are looking at.
+
+Run it on the \strong{source}, before generating. It is a heuristic screen, not a
+privacy guarantee, and is marked \code{"restricted_not_releasable"}.
+}
+
 \examples{
 data <- pmx_simulated_fixture(30)
 roles <- pmx_roles(
@@ -58,7 +83,9 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = "WT"
 )
 skeleton_uniqueness(data, roles)
+skeleton_uniqueness(data, roles, coarsen_time = TRUE)
 }
 \seealso{
+\code{\link[=plot_pmx_schedule]{plot_pmx_schedule()}} for the same information as a picture,
 \code{\link[=flag_identifiable_subjects]{flag_identifiable_subjects()}}, \code{\link[=synpmx_avatar]{synpmx_avatar()}}.
 }
