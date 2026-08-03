@@ -1405,6 +1405,24 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
 }
 
 .masking_rows <- function(settings, before = NULL) {
+  # Every row that counts patients or avatars shows both the count and the
+  # share, because neither is readable alone: "5%" of a 21-patient cohort is one
+  # patient, and "15" means nothing without the cohort size next to it.
+  n_source <- settings$source_subjects
+  n_built <- settings$n_subjects
+  both <- function(count, total) {
+    if (is.null(count) || length(count) != 1L || is.na(count)) return("--")
+    if (is.null(total) || is.na(total) || !total) return(format(count))
+    sprintf("%s (%.0f%%)", format(count), 100 * count / total)
+  }
+  # Same, from the other direction: a fraction, shown with the count it implies.
+  share <- function(x, total) {
+    if (is.null(x) || is.na(x)) return("--")
+    if (is.null(total) || is.na(total) || !total) {
+      return(paste0(round(100 * x), "%"))
+    }
+    sprintf("%d of %d (%.0f%%)", round(x * total), total, 100 * x)
+  }
   pct <- function(x) if (is.null(x) || is.na(x)) "--" else
     paste0(round(100 * x), "%")
   num <- function(x) if (is.null(x) || length(x) != 1L || is.na(x)) "--" else
@@ -1415,12 +1433,13 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
     header("Who was available to build on"),
     c("Patients in the source", num(settings$source_subjects), ""),
     c("&nbsp;&nbsp;excluded as structurally extreme",
-      num(settings$anchors_screened_out),
+      both(settings$anchors_screened_out, n_source),
       "`screen`: follow-up or dose count over twice the cohort's 90th percentile"),
     c("&nbsp;&nbsp;excluded, route arm too small",
-      num(settings$anchors_route_excluded),
+      both(settings$anchors_route_excluded, n_source),
       "`on_donor_shortfall`: a route arm holding fewer than k + 1 patients"),
-    c("&nbsp;&nbsp;left to anchor avatars on", num(settings$anchors_available),
+    c("&nbsp;&nbsp;left to anchor avatars on",
+      both(settings$anchors_available, n_source),
       "an excluded patient still contributes as a donor"),
     c("Avatars built", num(settings$n_subjects),
       "cohort size is unaffected by the exclusions above"),
@@ -1437,7 +1456,7 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
     c("Largest share one donor may hold", num(settings$max_donor_weight),
       "`max_donor_weight`"),
     c("&nbsp;&nbsp;that cap actually bound on",
-      pct(settings$cap_binding_fraction),
+      share(settings$cap_binding_fraction, n_built),
       "of avatars. Near 100% means the cap, not distance, is setting the weights"),
     c("Effective donors per avatar, mean",
       num(round(settings$mean_effective_donors, 2)),
@@ -1447,17 +1466,17 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
     c("Visit grid used", num(settings$time_grid), .grid_explanation(settings)),
     if (!is.null(before)) {
       c("Unique observation schedules, before coarsening",
-        num(attr(before, "n_unique_schedule")),
+        both(attr(before, "n_unique_schedule"), n_source),
         "patients whose list of observation times nobody else shares")
     },
     c("Unique observation schedules, after coarsening",
-      num(settings$unique_schedule_n),
+      both(settings$unique_schedule_n, n_source),
       "the count that matters: an avatar copies its anchor's times verbatim"),
     c("&nbsp;&nbsp;because of a one-off observation time",
-      num(settings$unique_obs_time_n),
+      both(settings$unique_obs_time_n, n_source),
       "sampled when nobody else was. Declaring `nominal_time` is the fix"),
     c("&nbsp;&nbsp;because of which visits they attended",
-      num(settings$unique_visit_set_n),
+      both(settings$unique_visit_set_n, n_source),
       "every time is shared. The visits themselves are missing -- a missed visit, a discontinuation, or follow-up that has not reached them -- and no grid can fix that"),
 
     header("Visit sets: WHICH of those visits each patient attended"),
@@ -1465,28 +1484,31 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       "a visit set is which of the shared grid visits one patient actually had"),
     c(sprintf("&nbsp;&nbsp;held by fewer than %s patients, so not reused",
               num(settings$min_pattern_share)),
-      num(settings$patterns_dropped),
+      both(settings$patterns_dropped, settings$patterns_total),
       "`min_pattern_share` is that threshold. These visit sets are lost, not approximated"),
     c("&nbsp;&nbsp;real patients holding those",
-      num(settings$subjects_with_dropped_pattern),
+      both(settings$subjects_with_dropped_pattern, n_source),
       "those patients are NOT removed -- they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied"),
     c("Avatars given a visit set from the pool",
-      pct(settings$pattern_sampled_fraction),
+      share(settings$pattern_sampled_fraction, n_built),
       "drawn from the sets that cleared the threshold, or built from their shape -- never from their own anchor alone"),
     c("&nbsp;&nbsp;of those, misses placed fresh",
-      pct(settings$pattern_generated_fraction),
+      share(settings$pattern_generated_fraction, n_built),
       "the kind of missingness was reused; exactly which visits were missed was invented"),
     c("&nbsp;&nbsp;of those, miss count moved",
-      pct(settings$pattern_shifted_fraction),
+      share(settings$pattern_shifted_fraction, n_built),
       "no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement"),
     c("&nbsp;&nbsp;of those, a rare set swapped for a shared one",
-      pct(settings$pattern_substituted_fraction),
+      share(settings$pattern_substituted_fraction, n_built),
       "the anchor's own set was held by nobody else and no arrangement was free, so the group's most widely held set was used instead -- less faithful to that avatar, and it discloses nothing"),
+    c("&nbsp;&nbsp;of those, moved to a different anchor",
+      share(settings$pattern_reanchored_fraction, n_built),
+      "the first anchor's own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others"),
     c("Avatars keeping their anchor's own visit set",
-      pct(1 - (settings$pattern_sampled_fraction %||% NA_real_)),
+      share(1 - (settings$pattern_sampled_fraction %||% NA_real_), n_built),
       "not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure"),
     c("**Avatars carrying a visit set nobody else shares**",
-      pct(settings$pattern_identifying_fraction),
+      both(settings$identifying_visit_sets, n_built),
       "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens"),
 
     header("Dose"),

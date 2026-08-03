@@ -767,3 +767,53 @@ test_that("dose_covariate is validated against the roles and the data", {
     "missing or non-positive on 1 dose row"
   )
 })
+
+# SIM-042. The guarantee, asserted on the finished table rather than inferred
+# from the mechanisms that built it. Every leak in this area so far leaked
+# because each mechanism was correct on its own terms and nobody asked the whole
+# question afterwards, so the whole question is asked here.
+test_that("no avatar is emitted with a visit set only one real patient has", {
+  # One patient measuring a different set of endpoints from everybody else is a
+  # schedule group of one, which can never hold a shared visit set. Nothing can
+  # be substituted for it, so an avatar anchored there used to wear that
+  # patient's exact pattern.
+  visits <- c(0, 1, 2, 7, 14, 28, 56, 84)
+  mk <- function(i) {
+    pk <- if (i == 12L) NULL else
+      data.frame(NTIME = visits[c(1:4, 4 + which(i %% c(2, 3, 4) == 0))],
+                 YTYPE = 1L, CMT = 2L)
+    obs <- rbind(data.frame(NTIME = visits, YTYPE = 2L, CMT = 3L), pk)
+    obs <- obs[order(obs$NTIME, obs$YTYPE), ]
+    rbind(
+      data.frame(ID = i, TIME = 0, NTIME = 0, DV = NA_real_, AMT = 100,
+                 EVID = 1L, CMT = 1L, YTYPE = 0L, WT = 60 + i),
+      data.frame(ID = i, TIME = obs$NTIME, NTIME = obs$NTIME,
+                 DV = round(5 + i / 10, 2), AMT = 0, EVID = 0L,
+                 CMT = obs$CMT, YTYPE = obs$YTYPE, WT = 60 + i))
+  }
+  source <- do.call(rbind, lapply(1:12, mk))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "YTYPE",
+                     nominal_time = "NTIME", covariates = "WT")
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, n_subjects = 24, seed = 5)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  # The number the guarantee is stated in, measured on the output.
+  expect_equal(settings$identifying_visit_sets, 0L)
+  # Independently of the settings, recomputed here from the tables themselves.
+  cells <- function(d) {
+    observed <- d$EVID == 0
+    vapply(split(paste0(d$YTYPE[observed], "@", d$TIME[observed]),
+                 as.character(d$ID[observed])),
+           function(x) paste(sort(unique(x)), collapse = ";"), character(1))
+  }
+  source_sets <- cells(source)
+  rare <- names(which(table(source_sets) < 2L))
+  expect_equal(sum(cells(synthetic) %in% source_sets[source_sets %in% rare]), 0L)
+  # The lone-endpoint-set patient is still a donor and still in the cohort; it
+  # is the avatar that moved, not the patient that was removed.
+  expect_equal(settings$anchors_available, 12L)
+})
