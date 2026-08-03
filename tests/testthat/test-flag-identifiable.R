@@ -114,3 +114,32 @@ test_that("a real AVATAR run over a public fixture is screenable end to end", {
   expect_true(all(c("subject_id", "follow_up_time", "n_doses", "max_dose",
                     "max_dv", "outlier_axes", "flagged") %in% names(report)))
 })
+
+# SIM-041. The median absolute deviation is zero whenever more than half a
+# cohort shares one exact value, which on trial data is the ordinary case, not a
+# degenerate one: most patients complete the protocol and end at the same visit.
+# Treating every departure from the median as infinitely extreme then flagged
+# every patient who stopped even slightly early.
+test_that("a cohort clustered on one follow-up time does not flag everyone", {
+  z <- synpmx:::.modified_z(c(rep(145, 11), 8, 8, 10, 11, 37, 82, 93, 109, 109))
+  expect_true(all(is.finite(z)))
+  expect_equal(sum(abs(z) > 3.5), 0L)
+  # Two patients agreeing to three decimal places must not both be outliers,
+  # which is what gave the defect away on a real study.
+  expect_equal(z[[length(z)]], z[[length(z) - 1L]])
+})
+
+test_that("the zero-MAD fallback still fires on a genuine extreme", {
+  # wbcSim's shape: a cohort at ~650 hours with one patient at 4580.
+  z <- synpmx:::.modified_z(c(rep(650, 18), 1730, 4580))
+  expect_gt(abs(z[[length(z)]]), 3.5)
+  # A count axis behaves the same way: three doses for nearly everyone, and a
+  # single-dose patient is genuinely distinctive.
+  doses <- synpmx:::.modified_z(c(rep(3, 19), 1, 2))
+  expect_gt(abs(doses[[20L]]), 3.5)
+})
+
+test_that("no variation at all yields no outliers rather than infinities", {
+  z <- synpmx:::.modified_z(rep(7, 10))
+  expect_true(all(z == 0))
+})

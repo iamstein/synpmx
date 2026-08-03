@@ -286,11 +286,12 @@ screen has already kept structurally extreme *source* patients from anchoring an
 avatar (the "excluded as structurally extreme" row of the report above), and a
 conspicuous *blended* value identifies nobody, because it belongs to no one.
 
-Read what it flags before acting on it. Its median/MAD statistic behaves badly
-on a bimodal cohort -- on `mavoglurant`, where half the patients have one dosing
-period and half have two, it flags 75 of 120 avatars on the same axes the anchor
-screen had already handled. If this study has two clearly different groups,
-expect the same and do not simply drop what it returns.
+Read what it flags before acting on it. Its modified z-score reacts to the shape
+of the distribution as well as to genuine outliers: on a two-humped cohort such
+as `mavoglurant`, where half the patients have one dosing period and half have
+two, it flags 17 of 120 avatars on the same axes the anchor screen had already
+handled. If this study has two clearly different groups, expect some of that and
+do not simply drop what it returns.
 
 ```{r}
 #| label: flag-identifiable

@@ -5,6 +5,16 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **Bug fix (`SIM-041`).** `flag_identifiable_subjects()` flagged nearly every
+  patient who stopped early. Its robust scale is the median absolute deviation,
+  which is zero whenever more than half a cohort shares one exact value -- the
+  ordinary case on trial data, since most patients complete the protocol and
+  stop at the same visit -- and the zero branch then scored every other value
+  as infinitely extreme. It now falls back to the mean absolute deviation from
+  the median, which is zero only when nothing varies at all. On a clustered
+  21-patient cohort this goes from 10 flagged to 0 while a genuine extreme
+  still scores far past the threshold; `mavoglurant` goes from 63 of 120 to 17.
+
 * "Avatars keeping their anchor's own visit set" was reported as a number to
   drive to zero, and it is not one. Copying an anchor's visit set discloses
   nothing when several real patients share that set; it is a problem only when

@@ -369,14 +369,28 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
   if (sum(finite) < 2L) return(z)
   centre <- stats::median(x[finite])
   spread <- stats::median(abs(x[finite] - centre))
-  if (!is.finite(spread) || spread == 0) {
-    # No robust spread: nearly everyone shares one value, so any departure from
-    # it is the outlier signal.
-    z[finite] <- ifelse(x[finite] == centre, 0,
-                        sign(x[finite] - centre) * Inf)
-  } else {
+  if (is.finite(spread) && spread > 0) {
     z[finite] <- 0.6745 * (x[finite] - centre) / spread
+    return(z)
   }
+  # The median absolute deviation is zero, which on trial data is the ordinary
+  # case rather than a degenerate one: more than half a cohort completing the
+  # protocol share one exact follow-up time, so the MAD collapses. Treating
+  # every departure from the median as infinitely extreme -- which is what this
+  # used to do -- then flags every patient who stopped early, however ordinary
+  # their follow-up. Measured on a 21-patient study, 10 of 21 avatars were
+  # flagged on follow-up time alone, including two agreeing to three decimal
+  # places.
+  #
+  # The standard fallback (Iglewicz and Hoaglin) is the MEAN absolute deviation
+  # from the median, which is zero only when every value is identical -- and
+  # then there is nothing that departs from it to flag.
+  average <- mean(abs(x[finite] - centre))
+  if (!is.finite(average) || average == 0) {
+    z[finite] <- 0
+    return(z)
+  }
+  z[finite] <- (x[finite] - centre) / (1.253314 * average)
   z
 }
 
