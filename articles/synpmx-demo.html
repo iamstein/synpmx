@@ -1014,18 +1014,28 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left"><strong>Avatars carrying a dose schedule nobody else
+shares</strong></td>
+<td align="right">0 (0%)</td>
+<td align="left">
+<strong>must also be 0%.</strong> Dose events are
+copied from the anchor verbatim, so patients whose dose times nobody
+shares are not built upon. Non-zero only when EVERY patient is in that
+position, which individualised dosing can cause</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 11 distinct dose amounts are not a fixed multiple
 of any declared covariate: WT (8 ratio levels for 11 distinct amounts –
 too many to be a protocol)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -1581,11 +1591,21 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left"><strong>Avatars carrying a dose schedule nobody else
+shares</strong></td>
+<td align="right">0 (0%)</td>
+<td align="left">
+<strong>must also be 0%.</strong> Dose events are
+copied from the anchor verbatim, so patients whose dose times nobody
+shares are not built upon. Non-zero only when EVERY patient is in that
+position, which individualised dosing can cause</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right">
 <strong>yes</strong>, from <code>wt</code>
@@ -1593,7 +1613,7 @@ substitute; the run alerts when it happens</td>
 <td align="left">the 20 distinct dose amounts are a fixed multiple of
 <code>wt</code>, at 1 protocol level(s)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  protocol levels found</td>
 <td align="right">1.5</td>
 <td align="left">dose per unit of <code>wt</code>; every amount was
@@ -1680,6 +1700,15 @@ privacy guarantee; ordinary long follow-ups are kept, and
 <span><span class="co">#&gt;     missed is not preserved.</span></span>
 <span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
 <span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
+<span><span class="co">#&gt;     guarantee.</span></span>
+<span><span class="co">#&gt; SYNPMX NOTE: patients whose dose schedule nobody else shares</span></span>
+<span><span class="co">#&gt;   3 of 45 patients (7%) have a set of dose times no other patient has.</span></span>
+<span><span class="co">#&gt;   Why it matters: dose events are copied from the anchor verbatim, so an</span></span>
+<span><span class="co">#&gt;     avatar built on one of these would carry that patient's exact dosing.</span></span>
+<span><span class="co">#&gt;     No avatar is anchored on them; they still contribute as donors, so</span></span>
+<span><span class="co">#&gt;     their measurements still shape the output.</span></span>
+<span><span class="co">#&gt;   What to do: nothing, unless those regimens need to appear in the</span></span>
+<span><span class="co">#&gt;     synthetic data. `min_pattern_share = 1` keeps them and gives up the</span></span>
 <span><span class="co">#&gt;     guarantee.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="section level3">
@@ -1772,13 +1801,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">30 of 45 (67%)</td>
+<td align="right">28 of 45 (62%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.89</td>
+<td align="right">3.05</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -1854,7 +1883,7 @@ built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">2 of 45 (4%)</td>
+<td align="right">1 of 45 (2%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
@@ -1875,7 +1904,7 @@ instead – less faithful to that avatar, and it discloses nothing</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, moved to a different anchor</td>
-<td align="right">0 of 45 (0%)</td>
+<td align="right">1 of 45 (2%)</td>
 <td align="left">the first anchor’s own set was shared by nobody and
 nothing legal could be placed, so this avatar was anchored elsewhere.
 Every source patient stays a donor and stays available to anchor
@@ -1899,17 +1928,27 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left"><strong>Avatars carrying a dose schedule nobody else
+shares</strong></td>
+<td align="right">0 (0%)</td>
+<td align="left">
+<strong>must also be 0%.</strong> Dose events are
+copied from the anchor verbatim, so patients whose dose times nobody
+shares are not built upon. Non-zero only when EVERY patient is in that
+position, which individualised dosing can cause</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">no <code>covariates</code> are declared, so there is
 nothing to test the amounts against</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -1974,7 +2013,18 @@ undeclared, so AVATAR drops it.</p>
 <span><span class="co">#&gt;     missed is not preserved.</span></span>
 <span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
 <span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
-<span><span class="co">#&gt;     guarantee.</span></span></code></pre>
+<span><span class="co">#&gt;     guarantee.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: no dose schedule can be masked</span></span>
+<span><span class="co">#&gt;   all 12 patients have a set of dose times nobody else shares.</span></span>
+<span><span class="co">#&gt;   Why it matters: a dose schedule is copied from its anchor verbatim --</span></span>
+<span><span class="co">#&gt;     resampling dose events would emit regimens the protocol never permitted</span></span>
+<span><span class="co">#&gt;     -- so every avatar carries one real patient's exact dosing. There is no</span></span>
+<span><span class="co">#&gt;     patient to build on instead, because every one of them is in this</span></span>
+<span><span class="co">#&gt;     position.</span></span>
+<span><span class="co">#&gt;   Fix: nothing within this study. Declaring `nominal_time` helps only if</span></span>
+<span><span class="co">#&gt;     the dose times are protocol times recorded loosely. Otherwise treat the</span></span>
+<span><span class="co">#&gt;     output as individually identifying on dosing, and use the</span></span>
+<span><span class="co">#&gt;     observation-side guarantee for what it does cover.</span></span></code></pre>
 <p><img src="synpmx-demo_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="section level3">
 <h3 id="what-the-masking-did-to-nimodata">What the masking did to nimoData<a class="anchor" aria-label="anchor" href="#what-the-masking-did-to-nimodata"></a>
@@ -2193,11 +2243,21 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left"><strong>Avatars carrying a dose schedule nobody else
+shares</strong></td>
+<td align="right">12 (100%)</td>
+<td align="left">
+<strong>must also be 0%.</strong> Dose events are
+copied from the anchor verbatim, so patients whose dose times nobody
+shares are not built upon. Non-zero only when EVERY patient is in that
+position, which individualised dosing can cause</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 4 distinct dose amounts are not a fixed multiple of
@@ -2206,7 +2266,7 @@ too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts
 – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts
 – too many to be a protocol)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2507,11 +2567,21 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left"><strong>Avatars carrying a dose schedule nobody else
+shares</strong></td>
+<td align="right">0 (0%)</td>
+<td align="left">
+<strong>must also be 0%.</strong> Dose events are
+copied from the anchor verbatim, so patients whose dose times nobody
+shares are not built upon. Non-zero only when EVERY patient is in that
+position, which individualised dosing can cause</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 3 distinct dose amounts are not a fixed multiple of
@@ -2519,7 +2589,7 @@ any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels
 for 3 distinct amounts – too many to be a protocol); WT (ratios do not
 cluster); HT (ratios do not cluster)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2973,9 +3043,9 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 </tr>
 <tr class="odd">
 <td align="left">wbcSim</td>
-<td align="right">0.477</td>
-<td align="right">0.361</td>
-<td align="right">0.632</td>
+<td align="right">0.568</td>
+<td align="right">0.328</td>
+<td align="right">0.655</td>
 <td align="right">22</td>
 </tr>
 <tr class="even">

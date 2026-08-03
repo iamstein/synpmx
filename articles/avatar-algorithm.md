@@ -6,6 +6,49 @@ real records. The original method \[2\] was extended to population PK
 datasets in \[1\] and here, further extensions are provided so that it
 works well with more realistic datasets.
 
+## What the defaults guarantee
+
+Two properties hold **by construction** at the default settings, and a
+run verifies both on its own output rather than inferring them from the
+mechanisms that produced it:
+
+> **No synthetic patient carries a set of observation times, or a set of
+> dose times, that only one real patient has.**
+
+The two halves are enforced differently, because they can be. Which
+visits an avatar *has observations at* is redrawn from sets that at
+least `min_pattern_share` real patients share, so a pattern held by one
+person is never handed on. Dose events are **not** redrawn — resampling
+them would emit regimens the protocol never permitted, which is a worse
+error than the one it would fix — so instead a patient whose dose
+schedule nobody shares is simply not built upon. In both cases it is the
+*avatar* that moves to a different anchor, never the patient that is
+removed: every source patient keeps contributing as a donor, so their
+measurements still shape the output.
+
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+records the result as `identifying_visit_sets` and
+`identifying_dose_schedules` on `attr(x, "pmx_settings")`, and
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+prints them. Both are 0 for `theo_md`, `warfarin`, `wbcSim` and
+`mavoglurant`.
+
+**Where it cannot hold, the run says so rather than pretending.** The
+guarantee needs somewhere safe to move an avatar to, and a study can
+fail to provide one: `nimoData`, whose dosing is individualised, gives
+all twelve patients a dose schedule nobody else shares, so there is no
+patient to build on instead and all twelve avatars inherit one. That run
+alerts, and reports 12. Setting `min_pattern_share = 1` turns the
+guarantee off deliberately.
+
+Two limits worth stating plainly. This is about a schedule being
+*reproduced*, not about it being similar — an avatar whose visits sit
+near a real patient’s is not covered, and nothing here bounds what an
+adversary learns overall (see “Why measure rather than assert” below,
+and the differentially private modes for guarantees of that kind). And
+it covers the *timing* structure only: dose **amounts** are handled
+separately by M5, and the values themselves by the blending in M4.
+
 ## The process at a glance
 
 Each synthetic subject is built from one real *anchor* subject’s dosing

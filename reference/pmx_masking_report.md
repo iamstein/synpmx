@@ -186,6 +186,11 @@ pmx_masking_report(synthetic, data, roles)
 #>       have observations belongs to one real patient. It is non-zero only
 #>       when the schedule group has no shared set to substitute; the run
 #>       alerts when it happens
+#>   Avatars carrying a dose schedule nobody else shares 0 (0%)
+#>       **must also be 0%.** Dose events are copied from the anchor verbatim,
+#>       so patients whose dose times nobody shares are not built upon.
+#>       Non-zero only when EVERY patient is in that position, which
+#>       individualised dosing can cause
 #> 
 #> Dose
 #>   Amounts recomputed from a covariate              yes, from `WT` (inferred)

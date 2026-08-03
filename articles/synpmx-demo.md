@@ -471,6 +471,7 @@ masking_table(theo_md, theo_roles, theo_synth, "theophylline")
 |   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 12 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -761,6 +762,7 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 |   of those, moved to a different anchor | 0 of 32 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 32 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **yes**, from `wt` (inferred) | the 20 distinct dose amounts are a fixed multiple of `wt`, at 1 protocol level(s) |
 |   protocol levels found | 1.5 | dose per unit of `wt`; every amount was snapped to the nearest of these |
@@ -850,6 +852,15 @@ are kept, and `screen = FALSE` keeps every subject.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
+    #> SYNPMX NOTE: patients whose dose schedule nobody else shares
+    #>   3 of 45 patients (7%) have a set of dose times no other patient has.
+    #>   Why it matters: dose events are copied from the anchor verbatim, so an
+    #>     avatar built on one of these would carry that patient's exact dosing.
+    #>     No avatar is anchored on them; they still contribute as donors, so
+    #>     their measurements still shape the output.
+    #>   What to do: nothing, unless those regimens need to appear in the
+    #>     synthetic data. `min_pattern_share = 1` keeps them and gives up the
+    #>     guarantee.
 
 ![](synpmx-demo_files/figure-html/wbc-plot-1.png)
 
@@ -874,8 +885,8 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 30 of 45 (67%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.89 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 28 of 45 (62%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 3.05 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
 | Unique observation schedules, before coarsening | 30 (67%) | patients whose list of observation times nobody else shares |
@@ -887,12 +898,13 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 |   held by fewer than 2 patients, so not reused | 5 (20%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 5 (11%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 45 of 45 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 2 of 45 (4%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, misses placed fresh | 1 of 45 (2%) | the kind of missingness was reused; exactly which visits were missed was invented |
 |   of those, miss count moved | 0 of 45 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 45 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-|   of those, moved to a different anchor | 0 of 45 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+|   of those, moved to a different anchor | 1 of 45 (2%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 45 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | no `covariates` are declared, so there is nothing to test the amounts against |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -953,6 +965,17 @@ simply left undeclared, so AVATAR drops it.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
+    #> SYNPMX ALERT: no dose schedule can be masked
+    #>   all 12 patients have a set of dose times nobody else shares.
+    #>   Why it matters: a dose schedule is copied from its anchor verbatim --
+    #>     resampling dose events would emit regimens the protocol never permitted
+    #>     -- so every avatar carries one real patient's exact dosing. There is no
+    #>     patient to build on instead, because every one of them is in this
+    #>     position.
+    #>   Fix: nothing within this study. Declaring `nominal_time` helps only if
+    #>     the dose times are protocol times recorded loosely. Otherwise treat the
+    #>     output as individually identifying on dosing, and use the
+    #>     observation-side guarantee for what it does cover.
 
 ![](synpmx-demo_files/figure-html/nimo-plot-1.png)
 
@@ -996,6 +1019,7 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 |   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 12 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a dose schedule nobody else shares** | 12 (100%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 4 distinct dose amounts are not a fixed multiple of any declared covariate: BSA (10 ratio levels for 4 distinct amounts – too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1119,6 +1143,7 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 |   of those, moved to a different anchor | 0 of 120 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 120 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 3 distinct dose amounts are not a fixed multiple of any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels for 3 distinct amounts – too many to be a protocol); WT (ratios do not cluster); HT (ratios do not cluster) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1455,7 +1480,7 @@ knitr::kable(
 |:------------|---------------------:|-----------:|-----------:|---------:|
 | theo_md     |                0.500 |      0.167 |      0.773 |        6 |
 | warfarin    |                0.531 |      0.295 |      0.719 |       16 |
-| wbcSim      |                0.477 |      0.361 |      0.632 |       22 |
+| wbcSim      |                0.568 |      0.328 |      0.655 |       22 |
 | mavoglurant |                0.575 |      0.421 |      0.586 |       60 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built

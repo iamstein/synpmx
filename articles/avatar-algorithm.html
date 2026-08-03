@@ -84,6 +84,50 @@ real records. The original method [2] was extended to population PK
 datasets in [1] and here, further extensions are provided so that it
 works well with more realistic datasets.</p>
 <div class="section level2">
+<h2 id="what-the-defaults-guarantee">What the defaults guarantee<a class="anchor" aria-label="anchor" href="#what-the-defaults-guarantee"></a>
+</h2>
+<p>Two properties hold <strong>by construction</strong> at the default
+settings, and a run verifies both on its own output rather than
+inferring them from the mechanisms that produced it:</p>
+<blockquote>
+<p><strong>No synthetic patient carries a set of observation times, or a
+set of dose times, that only one real patient has.</strong></p>
+</blockquote>
+<p>The two halves are enforced differently, because they can be. Which
+visits an avatar <em>has observations at</em> is redrawn from sets that
+at least <code>min_pattern_share</code> real patients share, so a
+pattern held by one person is never handed on. Dose events are
+<strong>not</strong> redrawn — resampling them would emit regimens the
+protocol never permitted, which is a worse error than the one it would
+fix — so instead a patient whose dose schedule nobody shares is simply
+not built upon. In both cases it is the <em>avatar</em> that moves to a
+different anchor, never the patient that is removed: every source
+patient keeps contributing as a donor, so their measurements still shape
+the output.</p>
+<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> records the result as
+<code>identifying_visit_sets</code> and
+<code>identifying_dose_schedules</code> on
+<code>attr(x, "pmx_settings")</code>, and <a href="../reference/pmx_masking_report.html"><code>pmx_masking_report()</code></a>
+prints them. Both are 0 for <code>theo_md</code>, <code>warfarin</code>,
+<code>wbcSim</code> and <code>mavoglurant</code>.</p>
+<p><strong>Where it cannot hold, the run says so rather than
+pretending.</strong> The guarantee needs somewhere safe to move an
+avatar to, and a study can fail to provide one: <code>nimoData</code>,
+whose dosing is individualised, gives all twelve patients a dose
+schedule nobody else shares, so there is no patient to build on instead
+and all twelve avatars inherit one. That run alerts, and reports 12.
+Setting <code>min_pattern_share = 1</code> turns the guarantee off
+deliberately.</p>
+<p>Two limits worth stating plainly. This is about a schedule being
+<em>reproduced</em>, not about it being similar — an avatar whose visits
+sit near a real patient’s is not covered, and nothing here bounds what
+an adversary learns overall (see “Why measure rather than assert” below,
+and the differentially private modes for guarantees of that kind). And
+it covers the <em>timing</em> structure only: dose
+<strong>amounts</strong> are handled separately by M5, and the values
+themselves by the blending in M4.</p>
+</div>
+<div class="section level2">
 <h2 id="the-process-at-a-glance">The process at a glance<a class="anchor" aria-label="anchor" href="#the-process-at-a-glance"></a>
 </h2>
 <p>Each synthetic subject is built from one real <em>anchor</em>
