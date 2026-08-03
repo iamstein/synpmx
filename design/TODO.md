@@ -17,6 +17,17 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
+## Owver's next steps: 2026-08-03
+
+- Try out on real data and apply checks 
+- If happy with real data, then Go though the demo file and apply to all 5 examples
+- If happy with all above, then go through full avatar algorithm page
+- Identify a few places to spot check the code. Think about if/how to document.  Or think about other validation mechanisms
+- Email authors of recent paper AVATAR to share
+
+- In parallel - Meet with David (mid august)
+- Make poster (due Sept 28 for online submission)
+
 ## The owner's five next steps (2026-07-29)
 
 Stated by the owner, in their order. Everything below this section is detail
