@@ -249,7 +249,8 @@ Record these in `scripts_private/README.md`'s study inventory.
 ```{r}
 #| label: synthesize
 #| code-fold: false
-synthetic <- synpmx_avatar(raw, roles, seed = SEED)
+synthetic <- synpmx_avatar(raw, roles, n_subjects = N_SUBJECTS,
+                           seed = SEED)
 stopifnot(validate_pmx(synthetic, roles)$valid)
 message("  generated ", nrow(synthetic), " rows for ",
         length(unique(synthetic[[roles$id]])), " subjects; new identifiers: ",
@@ -313,28 +314,7 @@ match exactly, since AVATAR does not reproduce the source distribution.
 
 ```{r}
 #| label: distribution-summary
-#| results: asis
-# Rendered with knitr::kable() so the tables come out as tables when this
-# document is knitted, and stay readable when run chunk-by-chunk. Rounding is
-# for display only; the returned object keeps the exact values.
-kable_distributions <- function(x) {
-  section <- function(df, caption) {
-    if (is.null(df)) return(invisible())
-    numeric_cols <- vapply(df, is.numeric, logical(1))
-    df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = 4)
-    print(knitr::kable(df, caption = caption))
-    cat("\n")
-  }
-  section(x$endpoints,
-          "RESTRICTED -- endpoints (dependent variable on observation rows)")
-  section(x$covariates_numeric,
-          "RESTRICTED -- continuous covariates (baseline, per subject)")
-  section(x$covariates_categorical,
-          "RESTRICTED -- categorical covariates (baseline, per subject)")
-  invisible(x)
-}
-
-kable_distributions(compare_pmx_distributions(raw, synthetic, roles))
+compare_pmx_distributions(raw, synthetic, roles)
 ```
 
 ### Restricted diagnostic: how close did the values land?
@@ -370,15 +350,16 @@ compare_pmx_proximity(raw, synthetic, roles)
 
 `flag_identifiable_subjects()` scores each **synthetic** patient on four axes --
 follow-up time, dose count, dose magnitude, peak DV -- and flags robust
-outliers. It is a **plausibility check rather than a masking step**: M2 has
-already kept structurally extreme *source* patients out of the anchor pool, and
-a conspicuous blended value identifies nobody because it belongs to no one.
+outliers. It is a **plausibility check rather than a masking step**: the anchor
+screen has already kept structurally extreme *source* patients from anchoring an
+avatar (the "excluded as structurally extreme" row of the report above), and a
+conspicuous *blended* value identifies nobody, because it belongs to no one.
 
 Read what it flags before acting on it. Its median/MAD statistic behaves badly
 on a bimodal cohort -- on `mavoglurant`, where half the patients have one dosing
-period and half have two, it flags 75 of 120 avatars on axes M2 already
-screened. If this study has two clearly different groups, expect the same and do
-not simply drop what it returns.
+period and half have two, it flags 75 of 120 avatars on the same axes the anchor
+screen had already handled. If this study has two clearly different groups,
+expect the same and do not simply drop what it returns.
 
 ```{r}
 #| label: flag-identifiable

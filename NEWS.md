@@ -41,6 +41,10 @@
   demo vignette and the study templates under `scripts_private/` all use it, so
   the labels are maintained in one place.
 
+* `compare_pmx_distributions()` gains a `knit_print()` method, so its tables
+  come out as tables when knitted. Each of the four study templates under
+  `scripts_private/` had carried its own copy of that display code.
+
 * New `plot_pmx_schedule()` draws a cohort's dosing and observation schedule:
   one row per patient, one mark per event, with a per-visit patient count
   underneath and unique schedules marked in red. A uniqueness *count* cannot

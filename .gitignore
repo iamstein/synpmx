@@ -73,10 +73,17 @@ references/private/
 !/scripts_private/.gitignore
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
-!/scripts_private/try_avatar.R
+!/scripts_private/try_avatar.qmd
 !/scripts_private/try_avatar_pit565a1.qmd
 !/scripts_private/try_avatar_pit565b1.qmd
 !/scripts_private/try_avatar_eci.qmd
+
+# The study templates write their synthetic CSV to a relative `OUT_DIR`, which
+# lands beside the .qmd when Quarto renders it (already covered above) but at
+# the REPOSITORY ROOT when the chunks are run interactively with the project as
+# the working directory -- the normal way these are used. That output is derived
+# from real patients, so it must not be one `git add -A` away from a commit.
+/output_*/
 
 # Local Claude Code settings
 .claude/
