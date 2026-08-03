@@ -51,7 +51,10 @@ OUT_DIR   <- "output_pit565b"
 SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
 
 # plot initial data
-ggplot(DATA |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = ID, color = TRT)) + 
+# Observation rows only. This used to exclude the dose endpoint by name, which
+# is the previous study's name on a copied template; EVID says the same thing
+# for any study.
+ggplot(DATA |> filter(EVID == 0, !is.na(LIDV)), aes(x = TIME, y = LIDV, group = ID, color = TRT)) + 
   geom_point(alpha = 0.5) + 
   geom_line(alpha = 0.5) + 
   facet_grid(NAME~TRT, scales = "free_y", switch = "y") + 
@@ -318,19 +321,45 @@ Source-derived. Keep it in the safe environment; do not export the figure.
 
 ```{r, fig.width = 14, fig.height = 5}
 #| label: diagnostic
+#| fig-width: 14
+#| fig-height: 5
+# Read from `roles`, not from literal column names. This chunk was copied
+# between studies and kept the previous one's columns: the ECI report grouped
+# by `USUBJID` where its `id` role is `ID`, and filtered out `"PIT565 Dose"` on
+# a study that has no such endpoint. Naming roles instead cannot drift, and the
+# facets grow a column per endpoint on their own, whatever this study has.
+label_col <- if (length(roles$dvid) > 1L) {
+  roles$dvid[[length(roles$dvid)]]
+} else if (!is.null(roles$dvid)) roles$dvid[[1L]] else NULL
 
-  raw_keep = raw[,names(synthetic)]
+frame <- function(d, label) {
+  keep <- d[[roles$evid]] == 0 & !is.na(d[[roles$dv]])   # observations only
+  out <- data.frame(
+    DATA     = label,
+    id       = d[[roles$id]][keep],
+    time     = as.numeric(d[[roles$time]][keep]),
+    dv       = as.numeric(d[[roles$dv]][keep]),
+    endpoint = if (is.null(label_col)) "DV" else
+      as.character(d[[label_col]][keep]),
+    stringsAsFactors = FALSE
+  )
+  # Colour by the first declared subject property (treatment arm) when there is
+  # one, so this works unchanged on a study with no arms.
+  arm <- roles$subject_properties[[1L]]
+  out$arm <- if (is.null(arm)) "all" else as.character(d[[arm]][keep])
+  out
+}
+compare <- rbind(frame(raw, "source"), frame(synthetic, "synthetic"))
 
-  compare = rbind(raw_keep |> mutate(DATA = "source"), 
-                  synthetic |> mutate(DATA = "synthetic"))
-  
-  g = ggplot(compare |> filter(NAME != "PIT565 Dose"), aes(x = TIME, y = LIDV, group = USUBJID, color = DATA)) + 
-    geom_point(alpha = 0.5) + 
-    geom_line(alpha = 0.5) + 
-    facet_grid(NAME~TRT, scales = "free_y", switch = "y") + 
-    xgx_scale_x_time_units("days") +
-    xgx_scale_y_log10()
-    g
+g <- ggplot(compare, aes(x = time, y = dv, group = id, color = arm)) +
+  geom_point(alpha = 0.5) +
+  geom_line(alpha = 0.5) +
+  facet_grid(DATA ~ endpoint, scales = "free_y") +
+  xgx_scale_x_time_units("days") +
+  xgx_scale_y_log10() +
+  labs(title = "RESTRICTED: source vs AVATAR synthetic",
+       subtitle = "do not export", x = "Time", y = "DV", color = "Arm")
+g
 ```
 
 The synthetic table carries no formal privacy guarantee; it is built by blending
