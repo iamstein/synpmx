@@ -86,23 +86,14 @@ ROLES <- pmx_roles(
   subject_properties = c("TRT", "TRTN"),  # NULL pools the arms
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
-  cens     = "CENS",         # Monolix: 1 = below, -1 = above
+  cens     = "CENS",         # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
   limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
-  # Blended across donors. Leave out any baseline that is the same quantity as
-  # an endpoint -- the two are blended independently, so they would disagree
-  # (REV-022). Read that baseline off the generated trajectory instead.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
-  # DECLARE THIS IF THE STUDY DOSES ON WEIGHT OR BSA. Names the covariate the
-  # amount is a fixed multiple of, so each avatar's dose is rebuilt from its own
-  # blended value. Left NULL the run tries to infer it, and infers conservatively
-  # -- vial rounding or patients escalating by different factors defeat the test,
-  # and then amounts are copied verbatim and still encode one real patient's
-  # weight. Must also appear in `covariates` above. The run report says which
-  # path was taken.
+  # DECLARE IF THE STUDY DOSES ON WEIGHT OR BSA -- must also be in `covariates`.
+  # Left NULL the run infers it, and inference fails closed on vial rounding or
+  # uneven escalation, leaving amounts copied verbatim. The report says which.
   dose_covariate = NULL,   # e.g. "WEIGHT0"
   keep     = c("STUDYIDN", "STUDYID")  # pass-through only; a stratum belongs above
-  # Any column no role names is dropped, so a forgotten identifier cannot ride
-  # out of a real patient. The run prints which columns went.
 )
 
 # Number of synthetic subjects. NULL keeps the source cohort size.
@@ -334,8 +325,3 @@ ggplot(compare |> filter(EVID == 0, !is.na(LIDV)),
   xgx_scale_x_time_units("days") +
   xgx_scale_y_log10()
 ```
-
-The synthetic table carries no formal privacy guarantee; it is built by blending
-real subject trajectories, so it stays under the source data's own access
-controls and obligations wherever it is used — your own workstation included, a
-partner or vendor not.
