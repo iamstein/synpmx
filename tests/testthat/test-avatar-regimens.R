@@ -79,13 +79,10 @@ test_that("a route arm below the donor floor is dropped, loudly", {
                      rate = "RATE", evid = "EVID", cmt = "CMT",
                      covariates = "WT")
 
-  raised <- character()
-  synthetic <- withCallingHandlers(
-    suppressMessages(synpmx_avatar(source, roles, seed = 13)),
-    warning = function(w) {
-      raised <<- c(raised, conditionMessage(w))
-      invokeRestart("muffleWarning")
-    })
+  synthetic <- NULL
+  raised <- raised_alerts(
+    synthetic <- synpmx_avatar(source, roles, seed = 13)
+  )
 
   expect_equal(attr(synthetic, "pmx_settings")$routes, 2L)
   expect_equal(attr(synthetic, "pmx_settings")$anchors_route_excluded, 4L)

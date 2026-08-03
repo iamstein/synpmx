@@ -38,12 +38,31 @@ whether weight-based dosing had been detected.
       visit sets keyed differently and nearly every pattern looked unique.
       Found by drawing the schedule next to the table and seeing them disagree.
 
+## Done 2026-08-03 (second pass): the 86% fallback, and declared dosing
+
+From the owner reading the alerts on `INTERNAL_STUDY`.
+
+- [x] `SIM-039`: 86% of avatars kept their anchor's own visit set. Deterministic
+      `trailing` placements retried 24 times, and staggered discontinuation gave
+      every (kind, count) shape a single holder so the group got no pool. Both
+      fixed; 21 of 21 -> 0 of 21 on a staggered fixture.
+- [x] `SIM-040`: `pmx_roles(dose_covariate = )`, so a weight-based study can be
+      declared instead of inferred. Holds each dose row's own ratio, so
+      intra-patient escalation survives.
+- [x] Alerts printed twice in knitted reports (the condition carried the
+      `warning` class, which knitr renders alongside the message).
+- [x] Alerts no longer advise declaring `nominal_time` to someone who has.
+- [x] Report wording: "floor" named, "stay in the cohort as donors" clarified.
+
 Still open from this pass:
 
 - [ ] Run the four `scripts_private/` templates against the real studies again
-      now that `SIM-038` is fixed. The discarded-visit-set counts those reports
-      showed (15 of 17 on `INTERNAL_STUDY`) were inflated by the keying bug, and the
-      "avatars keeping their anchor's own visit set" row is the one to check.
+      now that `SIM-038`, `SIM-039` and `SIM-040` are fixed. Check the
+      "avatars keeping their anchor's own visit set" row is near 0, and set
+      `dose_covariate` on the weight-based studies.
+- [ ] Consolidate the four templates into one shared body plus a per-study
+      config chunk. Agreed in principle; the owner wants one template in good
+      shape first.
 - [x] `compare_pmx_distributions()` gained a `knit_print()` method and the four
       local `kable_distributions()` copies are gone.
 - [x] Template audit: `N_SUBJECTS` was set in three templates and never passed

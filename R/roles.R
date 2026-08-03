@@ -48,6 +48,28 @@
 #'
 #'   The differential-privacy engines model the same columns jointly with the
 #'   regimen as a released category domain.
+#' @param dose_covariate The covariate the dose is a fixed multiple of, for
+#'   weight-based or body-surface-area dosing: name the **covariate**, not the
+#'   amount. Declaring it tells [synpmx_avatar()] to recompute each avatar's
+#'   `amt` from the avatar's own blended covariate at the anchor's own
+#'   milligrams-per-unit, instead of copying the anchor's milligrams.
+#'
+#'   This matters twice over. An avatar's covariates are blended while its `amt`
+#'   would otherwise be copied verbatim, so under proportional dosing the
+#'   avatar's own mg/kg comes out wrong — every generated patient violates the
+#'   protocol it claims to follow. And a copied amount is one real patient's
+#'   real dose, which under proportional dosing discloses that patient's weight
+#'   exactly.
+#'
+#'   Left `NULL`, [synpmx_avatar()] tries to *infer* the relationship, and that
+#'   inference deliberately fails closed: it requires the dose-to-covariate
+#'   ratio to collapse onto a handful of protocol levels, so a study that
+#'   rounds doses to vial sizes, or escalates within a patient by ratios that
+#'   are not quite equal, is refused and the amounts are left alone. Declaring
+#'   the covariate skips inference entirely and holds each dose row's own
+#'   ratio, so **intra-patient escalation is preserved exactly** — three doses
+#'   at 1, 2 and 4 mg/kg stay at 1, 2 and 4 mg/kg. The run report says which
+#'   path was taken and, when inference declined, why.
 #' @param assigned_dose Differential-privacy engines only. A nominal
 #'   assigned-dose column reconstructed from the generated regimen.
 #'   [synpmx_avatar()] does not use this — carry the column with `keep`.
@@ -86,12 +108,14 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
                       covariates = NULL, subject_properties = NULL,
-                      assigned_dose = NULL, keep = NULL, exclude = NULL) {
+                      dose_covariate = NULL, assigned_dose = NULL,
+                      keep = NULL, exclude = NULL) {
   roles <- list(
     id = id, time = time, nominal_time = nominal_time, tad = tad,
     occasion = occasion, dv = dv, amt = amt, evid = evid, cmt = cmt,
     dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
     addl = addl, ii = ii, assigned_dose = assigned_dose,
+    dose_covariate = dose_covariate,
     covariates = covariates, subject_properties = subject_properties,
     keep = keep, exclude = exclude
   )
@@ -128,6 +152,20 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
   # Every other collision stays an error.
   shared <- intersect(roles$cmt, roles$dvid)
   if (length(shared)) modeled <- modeled[-match(shared, modeled)]
+  # `dose_covariate` must name a column that is ALSO in `covariates`, and that
+  # is the whole mechanism rather than an oversight: the avatar's amount is
+  # rebuilt from its own *blended* value, so the column has to be blended, which
+  # means it has to be declared as a covariate. Requiring the user to copy the
+  # column to itself under a second name would declare nothing extra.
+  dose_shared <- intersect(roles$dose_covariate, roles$covariates)
+  if (length(dose_shared)) modeled <- modeled[-match(dose_shared, modeled)]
+  if (!is.null(roles$dose_covariate) &&
+      !roles$dose_covariate %in% roles$covariates) {
+    stop("`dose_covariate` (\"", roles$dose_covariate, "\") must also be ",
+         "named in `covariates`. The avatar's amount is recomputed from its ",
+         "own blended value of that column, so the column has to be blended.",
+         call. = FALSE)
+  }
   duplicated_roles <- unique(modeled[duplicated(modeled)])
   if (length(duplicated_roles)) {
     stop("A column cannot have multiple roles: ",

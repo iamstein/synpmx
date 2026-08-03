@@ -239,14 +239,61 @@ test_that("dose rows are untouched by attendance sampling", {
   expect_true(all(synthetic$AMT[synthetic$EVID != 0] == 100))
 })
 
-test_that("a stratum with nothing shared widely enough alerts rather than copying", {
-  # Every subject on their own schedule: no pattern can qualify, so anchors keep
-  # their own pattern. That is the safe failure, but it must be loud, because it
-  # is exactly what the mechanism was asked to prevent.
-  # Neither an exact pattern nor a shape can qualify here: each subject misses a
-  # *different number* of visits, so every shape is held by one subject too. A
-  # fixture where only the exact patterns differ would now be rescued by the
-  # shape fallback, which is the point of that fallback.
+# Visit sets that no patient shares -----------------------------------------
+#
+# Three outcomes, and the fixtures differ only in how much ROOM there is on the
+# grid. `.place_attendance()` may not hand an avatar a visit set that a real
+# patient holds, so what matters is whether any legal arrangement is left over.
+
+visit_sets <- function(d) {
+  observed <- d$EVID == 0
+  vapply(split(d$TIME[observed], as.character(d$ID[observed])),
+         function(x) paste(sort(x), collapse = ","), character(1))
+}
+
+# n patients, each discontinuing after a different number of visits on a grid of
+# `visits` points. Every exact pattern has one holder and so does every
+# (kind, count) shape.
+staggered_source <- function(n, visits) {
+  grid <- c(0, seq_len(visits - 1L) * 24)
+  do.call(rbind, lapply(seq_len(n), function(i) {
+    kept <- grid[seq_len(min(i + 1L, visits))]
+    data.frame(
+      ID = as.character(i), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.02 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + i, stringsAsFactors = FALSE
+    )
+  }))
+}
+
+test_that("staggered discontinuation is rescued by the kind-only fallback", {
+  # SIM-039. No exact pattern is shared AND no (kind, count) shape is either,
+  # because every dropout depth has one holder. The group used to get no pool at
+  # all and every avatar kept its anchor's own visit set -- the one thing the
+  # mechanism exists to prevent. "These patients dropped out" is shared by all
+  # of them, and with room on the grid that is enough to build from.
+  source <- staggered_source(21L, 30L)
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, da_roles(), n_subjects = 21, seed = 13)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  expect_equal(settings$pattern_sampled_fraction, 1)
+  expect_equal(sum(visit_sets(synthetic) %in% visit_sets(source)), 0L)
+  # Reaching a legal placement required moving the number of missed visits: a
+  # discontinuation at a given depth has exactly one possible placement, so
+  # without that the draw fails however many times it is retried.
+  expect_gt(settings$pattern_shifted_fraction, 0)
+})
+
+test_that("a saturated grid alerts instead of quietly copying the anchor", {
+  # The union here is exactly six cells and the six patients occupy every depth
+  # over it -- one complete attender and trailing 1 through 5 -- so no legal
+  # arrangement is left at any depth. Keeping the anchor's own set is then the
+  # honest outcome, but it must be loud rather than silent.
   grid <- c(0.5, 1, 2, 4, 8, 12, 24)
   source <- do.call(rbind, lapply(1:6, function(i) {
     kept <- utils::head(grid, length(grid) - i)
@@ -259,10 +306,32 @@ test_that("a stratum with nothing shared widely enough alerts rather than copyin
       WT = 70 + i, stringsAsFactors = FALSE
     )
   }))
-  # This fixture legitimately trips the coarsening alerts too, so collect every
-  # warning and assert the pattern one is among them rather than muffling all.
   raised <- raised_alerts(
     synpmx_avatar(source, da_roles(), n_subjects = 6, seed = 13)
+  )
+  expect_true(any(grepl("kept their anchor's own visit set", raised,
+                        fixed = TRUE)))
+})
+
+test_that("a stratum with nothing shared at all still alerts rather than copying", {
+  # The residue the kind-only fallback cannot reach: two patients, one complete
+  # and one who missed a middle visit. The kinds are "complete" and "block",
+  # one holder each, so not even the coarsest abstraction clears a floor of 2
+  # and the group gets no pool.
+  grid <- c(0.5, 1, 2, 4, 8, 12, 24)
+  source <- do.call(rbind, lapply(1:2, function(i) {
+    kept <- if (i == 1L) grid else grid[-3L]
+    data.frame(
+      ID = as.character(i), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.2 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + i, stringsAsFactors = FALSE
+    )
+  }))
+  raised <- raised_alerts(
+    synpmx_avatar(source, da_roles(), n_subjects = 4, seed = 13)
   )
   expect_true(any(grepl("no visit set is shared by 2 or more patients",
                         raised, fixed = TRUE)))
@@ -569,5 +638,98 @@ test_that("an absent dvid is announced, and named when dvid is declared", {
                         covariates = "WT")
   expect_no_message(
     suppressWarnings(synpmx_avatar(source, with_key, seed = 1))
+  )
+})
+
+# Declared dose basis --------------------------------------------------------
+#
+# `.detect_dose_basis()` has to guess that a study is dose-proportional, and it
+# guesses conservatively. A study that escalates within a patient and rounds the
+# milligrams -- the ordinary oncology shape -- fails that test, correctly, and
+# then every avatar's amount is its anchor's milligrams over its own blended
+# weight, which is nobody's protocol. `dose_covariate` says it outright.
+
+escalating_source <- function(n = 21L) {
+  # Three doses per patient, escalating "mostly 2x" -- not every patient by the
+  # same factor -- and dispensed in 25 mg vials. Both of those are ordinary, and
+  # together they are what stops the ratios collapsing onto a few levels.
+  steps <- list(c(1, 2, 4), c(1, 2, 3), c(1, 1.5, 3), c(1, 2, 4))
+  do.call(rbind, lapply(seq_len(n), function(i) {
+    wt <- 52 + i * 2.3
+    amt <- round(steps[[(i %% 4L) + 1L]] * wt / 25) * 25
+    dose_t <- c(0, 336, 1008)
+    obs_t <- c(24, 360, 1032)
+    out <- rbind(
+      data.frame(ID = i, TIME = dose_t, DV = NA_real_, AMT = amt, EVID = 1L,
+                 CMT = 1L, WT = wt),
+      data.frame(ID = i, TIME = obs_t, DV = round(5 + i / 10, 2), AMT = 0,
+                 EVID = 0L, CMT = 2L, WT = wt))
+    out[order(out$TIME, -out$EVID), ]
+  }))
+}
+
+escalating_roles <- function(declare = FALSE) {
+  args <- list(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+               cmt = "CMT", covariates = "WT")
+  if (declare) args$dose_covariate <- "WT"
+  do.call(pmx_roles, args)
+}
+
+test_that("inference declines rounded intra-patient escalation, and says why", {
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(escalating_source(), escalating_roles(), seed = 2)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+  expect_true(is.na(settings$dose_basis))
+  # The reason has to name the covariate that was tried, or "not detected" and
+  # "never attempted" are the same blank in a report.
+  expect_match(settings$dose_basis_note, "WT")
+})
+
+test_that("a declared dose_covariate holds each dose row's own ratio", {
+  source <- escalating_source()
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, escalating_roles(declare = TRUE), seed = 2)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+  expect_equal(settings$dose_basis, "WT")
+  expect_true(settings$dose_basis_declared)
+
+  # Each avatar's mg/kg must match its own anchor's, dose row for dose row.
+  # Nothing is snapped to a shared level, which is what lets a study where
+  # patients escalate by different factors come through intact.
+  ratio <- function(d) {
+    dosed <- d[d$EVID == 1L, ]
+    lapply(split(round(dosed$AMT / dosed$WT, 2), as.character(dosed$ID)),
+           unname)
+  }
+  source_ratios <- unique(ratio(source))
+  for (r in ratio(synthetic)) {
+    expect_true(any(vapply(source_ratios,
+                           function(s) isTRUE(all.equal(s, r, tolerance = 0.02)),
+                           logical(1))))
+    expect_true(r[[2L]] > r[[1L]] && r[[3L]] > r[[2L]])   # still escalating
+  }
+})
+
+test_that("dose_covariate is validated against the roles and the data", {
+  # It must be blended, so it must be a covariate.
+  expect_error(
+    pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+              covariates = "WT", dose_covariate = "BSA"),
+    "must also be named in `covariates`"
+  )
+  # Naming it twice is not a role collision.
+  expect_no_error(
+    pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+              covariates = "WT", dose_covariate = "WT")
+  )
+  # A covariate that is missing where a dose is given cannot be divided by.
+  source <- escalating_source()
+  source$WT[source$EVID == 1L][3L] <- NA_real_
+  expect_error(
+    suppressMessages(synpmx_avatar(source, escalating_roles(declare = TRUE),
+                                   seed = 2)),
+    "missing or non-positive on 1 dose row"
   )
 })
