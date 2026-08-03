@@ -16,6 +16,8 @@ and roxygen comments must not reference one.
 - `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
 - `design/METHOD_DISCUSSION.md` — AVATAR-versus-DP tradeoffs, `synadam` parity.
 - `design/PROTOTYPE_SPEC.md` — the specification being implemented.
+- `design/SYNTHETIC_DATA_CHECKS.md` — the taxonomy of checks to run on
+  generated data, and the specification for the vignette that will present it.
 - `design/BUILD_DOCUMENTATION.md` — every build command, where the rendered
   HTML lands, and which check catches what.
 
