@@ -38,9 +38,7 @@ library(tidyverse)
 library(xgxr)
 xgx_theme_set()
 
-# If not installed here: devtools::load_all("/path/to/synpmx")
-# This load_all line only needs to be run once, so you may comment out if you're 
-# Trying this out on your own dataset
+# Only needed once per session; comment out if synpmx is installed.
 
 devtools::load_all()
 library(synpmx)
@@ -64,9 +62,7 @@ OUT_DIR   <- "output_pit565a"
 SEED      <- 1234        # reproducibility seed; the caller's RNG is untouched
 
 # plot initial data
-# Observation rows only. This used to exclude the dose endpoint by name, which
-# is the previous study's name on a copied template; EVID says the same thing
-# for any study.
+# Observation rows only.
 ggplot(DATA |> filter(EVID == 0, !is.na(LIDV)), aes(x = TIME, y = LIDV, group = ID, color = TRT)) + 
   geom_point(alpha = 0.5) + 
   geom_line(alpha = 0.5) + 
@@ -89,66 +85,30 @@ ROLES <- pmx_roles(
   dv       = "LIDV",
   amt      = "AMT",
   evid     = "EVID",
-  # Two columns encode the same endpoint: numeric YTYPE and character NAME.
-  # Declare both. YTYPE (first) is the grouping key; validation checks NAME is a
-  # consistent 1:1 mapping with it and errors if not, and both are carried out.
-  dvid     = c("YTYPE", "NAME"),
+  dvid     = c("YTYPE", "NAME"),  # first is the key; the rest checked 1:1 against it
   cmt      = "CMT",
   mdv      = "MDV",
-
-  # DECLARE NOMINAL TIME IF THE STUDY HAS IT. `coarsen_time = TRUE` (the
-  # default) collapses subjects onto a shared visit grid so no avatar carries one
-  # real subject's exact visit schedule. With `nominal_time` declared it snaps to
-  # the protocol grid exactly; without it the grid is inferred from the pooled
-  # times, which is best-effort and alerts loudly when it cannot collapse a
-  # subject. Under ACTUAL recorded times this is the difference between the
-  # mechanism working and not working -- see `skeleton_uniqueness()`.
-  # Gaps are fine: rows with no nominal time fall back to the inferred grid,
-  # and the run reports the grid as "mixed". A column that is entirely missing
-  # should be left undeclared instead.
+  # Declare it if the study has it. Rows that are missing one fall back to an
+  # inferred grid, and the run then reports the grid as "mixed".
   nominal_time = NULL, # e.g. "NTIME"
   tad      = NULL,     # time-after-dose column; recomputed after generation
-  # ASSIGNED STRATUM -- treatment arm, dose group, cohort. Carried verbatim like
-  # `keep`, and additionally used to group the pool of visit sets an
-  # avatar may draw from, so an avatar only inherits a visit pattern from its own
-  # arm. Not a blending barrier: donors are still borrowed across strata to reach
-  # the donor floor, because only route of administration is absolute.
-  #
-  # Whether to declare an arm here is a real trade, not an obvious win. Declaring
-  # it is more faithful -- arms with different visit schedules stay separate --
-  # but it splits the visit-set pools, so fewer visit sets clear `min_pattern_share`
-  # and more real dropout patterns are discarded. The run reports how many were
-  # lost either way; try it both ways and compare.
-  # Gaps are fine here too: subjects with no recorded value form their own
-  # stratum and the run warns. A column that *varies* within a subject is an
-  # error -- it is not that subject's assignment. A column that does not exist
-  # in this study is also an error, naming itself: the two PIT565 parts do not
-  # carry identical columns, so check this block against the study you are
-  # running rather than assuming it carries over.
-  subject_properties = c("TRT", "TRTN"),  # set NULL to compare pooled pattern pools
+  # Treatment arm / dose group. Also splits the pool of visit sets an avatar may
+  # draw from: declaring it is more faithful, but more rare visit sets are then
+  # too thinly held to reuse. Try it both ways and compare the run reports.
+  subject_properties = c("TRT", "TRTN"),  # NULL pools the arms
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
-  # If the data has below-limit-of-quantification (BLQ) records, declare cens
-  # (and limit, if intervals are used). AVATAR then reconstructs censoring
-  # coherently -- DV at the limit, CENS/LIMIT agreeing -- instead of copying a
-  # flag that no longer matches the blended DV. Leave NULL if there is no BLQ.
-  cens     = "CENS",           # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
+  # Declared, censoring is rebuilt to agree with the blended DV; left NULL, a
+  # BLQ flag would survive that no longer matches its own value.
+  cens     = "CENS",           # Monolix: 1 = below, -1 = above
   limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
-  # BLENDED into new values across donors. B0 (baseline B cells) is deliberately
-  # left out: it is the same quantity as the Circ B Cells endpoint, and AVATAR
-  # blends covariates and endpoints independently, so a synthetic B0 would not
-  # match its own generated trajectory (REV-022). Read the baseline off the
-  # trajectory instead if you need it.
+  # Blended across donors. Leave out any baseline that is the same quantity as
+  # an endpoint -- the two are blended independently, so they would disagree
+  # (REV-022). Read that baseline off the generated trajectory instead.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
-  # keep = copied verbatim from the subject that supplied the doses, so it stays
-  # coherent with them. Use it for pass-through values with no other meaning --
-  # a study id, a character label. An assigned *stratum* (treatment arm, dose
-  # group) is better declared in `subject_properties` above, which carries it
-  # the same way and also groups the attendance-pattern pools.
-  keep     = c("STUDYIDN", "STUDYID")
-  # Every column NOT named by a role above is dropped. That is deliberate: a
-  # secondary identifier you forget cannot leak out of a real subject. The run
-  # prints exactly which columns it dropped.
+  keep     = c("STUDYIDN", "STUDYID")  # pass-through only; a stratum belongs above
+  # Any column no role names is dropped, so a forgotten identifier cannot ride
+  # out of a real patient. The run prints which columns went.
 )
 
 # Number of synthetic subjects. NULL keeps the source cohort size.
@@ -181,23 +141,11 @@ message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 
 ### How identifying is this study's visit schedule?
 
-Run before generating. `synpmx_avatar()` copies its anchor's event skeleton
-**verbatim**, so a patient holding the only copy of their observation time
-vector hands that schedule to every avatar anchored on them. This section asks
-how many such patients there are, and whether that is a problem worth acting
-on.
-
-Two runs, because the answer differs:
-
-- **as given** -- the recorded times, before anything is done to them.
-- **after coarsening** -- the shared visit grid `synpmx_avatar()` actually
-  builds and generates on. *These are the numbers that matter.* The difference
-  between the two is what coarsening bought.
-
-Every column is the same kind of number: **how many patients share this
-property with me, me included**, so `1` always means "nobody else". Read the
-first table's headline row, then its two sub-rows, which have opposite
-remedies.
+`synpmx_avatar()` copies its anchor's event skeleton **verbatim**, so a patient
+holding the only copy of their observation times hands that schedule to every
+avatar anchored on them. Run it twice: on the times as given, and on the grid
+the generator actually builds. The second is the one that matters, and the
+difference between them is what coarsening bought.
 
 ```{r}
 #| label: skeleton-uniqueness-before
@@ -211,34 +159,21 @@ exposure <- skeleton_uniqueness(raw, roles, coarsen_time = TRUE)
 exposure
 ```
 
-**Is a high percentage bad?** Not on its own, and this is the part that is easy
-to misread. Split it by cause:
+Split the headline by cause before deciding it is bad. **A one-off observation
+time** is a real problem and a fixable one -- declare `nominal_time`. **A
+unique set of attended visits** is dropout: no grid at any resolution touches
+it, and `min_pattern_share` handles it downstream. A large count there with a
+small count above is the normal result for a study with dropout, not a failure.
 
-- **a one-off observation time** -- this patient was sampled at a moment
-  nobody else was. It *is* a problem, and it is fixable: declaring
-  `nominal_time` snaps visits onto the real protocol grid. A count above zero
-  here means the inferred grid could not find a shared schedule.
-- **the set of visits attended** -- every one of this patient's times is shared
-  with somebody; what singles them out is which of those visits they turned up
-  for. This is dropout, and **no grid at any resolution can change it**. It is
-  handled downstream by `min_pattern_share`, which refuses to give any avatar a
-  visit set that only one real patient had. A large count here with a small
-  count above is the *normal* result for a study with dropout, not a failure.
-
-The picture says in one look what the counts say in numbers -- whether this is
-a protocol grid with a few stragglers or an ad-hoc schedule the grid could not
-rescue.
+The picture answers the same question faster. Vertical stripes mean patients
+share visits, a ragged right edge is dropout, and a red bar in the lower panel
+is a moment only one patient was ever sampled at -- exactly what would be
+copied onto an avatar.
 
 ```{r, fig.width = 12, fig.height = 9}
 #| label: schedule-map
 plot_pmx_schedule(raw, roles)
 ```
-
-Read the map top to bottom: vertical stripes mean patients share visits, and a
-ragged right edge is dropout. In the lower panel, a bar of height one is a
-moment only one patient was ever sampled at -- exactly what would be copied
-onto an avatar -- and those are drawn in red. Compare against the uncoarsened
-version to see what the grid merged.
 
 ```{r, fig.width = 12, fig.height = 9}
 #| label: schedule-map-raw
@@ -264,47 +199,34 @@ write.csv(synthetic, file.path(OUT_DIR, "avatar_synthetic.csv"), row.names = FAL
 
 ### What the mechanisms actually did
 
-Every masking mechanism records what it did, and several record what it cost.
-Each row carries the sentence that says what its number means, because none of
-them mean anything on their own. Copy this into the study inventory in
-`scripts_private/README.md`.
+Each row carries the sentence that says what its number means. Copy this into
+the study inventory in `scripts_private/README.md`.
 
 ```{r}
 #| label: mechanism-report
 pmx_masking_report(synthetic, raw, roles)
 ```
 
-Four rows are worth stopping on.
+Three rows to stop on.
 
-**Did it detect weight-based dosing?** The **Dose** section says so outright:
-either "**yes**, from `WEIGHT0`" with the protocol levels it found, or
-"**no**" together with the reason it declined. If this study doses on weight
-and the answer is no, the reason names which covariates were tried and what
-failed -- most often that the dose-to-covariate ratio did not collapse onto a
-small number of protocol levels, which is the conservative test the detector
-uses to avoid rewriting amounts in a study that is not dose-proportional. When
-the answer is no, `AMT` is copied verbatim from the anchor, which means each
-avatar's implied mg/kg is wrong and the amount still encodes one real patient's
-weight.
+**Amounts recomputed from a covariate** answers "did it find the weight-based
+dosing?" outright, and when the answer is no it names which covariates were
+tried and what failed. Detection is deliberately conservative -- it refuses
+rather than rewrite amounts in a study that is not dose-proportional. A "no" on
+a study that *is* weight-based means `AMT` is copied verbatim from the anchor,
+so each avatar's implied mg/kg is wrong and the amount still encodes one real
+patient's weight.
 
-**Shared by too few patients, so not reused.** These are real dropout and
-dose-interruption patterns that will not appear in the synthetic data. Refusing
-them is what stops an avatar carrying a schedule traceable to one person. If
-this study's interruptions matter, lower `min_pattern_share`; `2` is the lowest
-value that still guarantees no synthetic patient has a visit set unique to a
-real one, and `1` keeps every pattern and gives up the guarantee.
+**Shared by too few patients, so not reused** is the fidelity cost: real
+dropout and interruption patterns that will not appear in the output. Refusing
+them is what stops an avatar carrying a schedule traceable to one person.
+`min_pattern_share = 2` is the lowest value that keeps that guarantee; `1` gives
+it up. At 2 this row necessarily equals the one below it, since a set is
+discarded exactly when one patient holds it.
 
-At the default floor of 2, that row and **real patients holding those** are
-necessarily equal: a set is discarded exactly when fewer than two patients
-share it, so every discarded set has exactly one holder. They diverge only at a
-floor of 3 or more.
-
-**Avatars keeping their anchor's own visit set.** Read this against the row
-above it. A high percentage means the schedule groups had nothing shareable to
-draw from, so those avatars carry one real patient's pattern of absences --
-which undoes what discarding the rare sets was for. If it is high, the run also
-raises the "no shared visit set to draw from" alert, and the fix is the same:
-declare `nominal_time`, or lower `min_pattern_share`.
+**Avatars keeping their anchor's own visit set** undoes the row above when it is
+high: those avatars carry one real patient's absences. The run alerts past 10%,
+and the fix is `nominal_time` or a lower `min_pattern_share`.
 
 ### Restricted diagnostic: distribution summary
 
@@ -322,26 +244,20 @@ compare_pmx_distributions(raw, synthetic, roles)
 
 ### Restricted diagnostic: how close did the values land?
 
-Everything above concerns structure. Blending is what protects the **values**,
-and this is its measurement. It answers one question: **is a synthetic patient
-closer to a real patient than real patients are to each other?**
+Everything above concerns structure. Blending protects the **values**, and this
+measures it: is a synthetic patient closer to a real patient than real patients
+are to each other?
 
-The way to read it is to compare two numbers, not to interpret one:
+Compare two numbers rather than interpreting one. **Measured** is the run;
+`0.5` is the target, not the maximum -- it means a synthetic patient is no more
+like a real patient than one real patient is like another. Toward `0` is
+memorisation, the failure; toward `1` the sets have separated, which costs
+utility. **Expected** is what that statistic comes out at when nothing is
+wrong, and it is not assumed: the same calculation runs repeatedly on two
+halves of the real cohort, each half the size of the synthetic set being tested
+(that is the "patients per half"), so small-sample artefacts cancel.
 
-- **Measured** -- the statistic on this run. `0.5` is the target, not the
-  maximum: it means a synthetic patient is no more like a real patient than one
-  real patient is like another. Toward `0` means memorisation, which is the
-  failure. Toward `1` means the two sets have separated, which costs utility
-  rather than privacy.
-- **Expected** -- what that statistic comes out at when nothing is wrong. It is
-  not assumed. The same calculation is run repeatedly on two halves of the real
-  cohort, so every small-sample artefact is present in the null and in the
-  measurement alike and cancels. Each half has the same number of patients as
-  the synthetic set being tested, which is what the *"patients per half"*
-  figure is: the size of one side of the comparison, matched on all three arms
-  so the counts are comparable.
-
-At a few dozen patients that expected range is wide. Inside it means **nothing
+At a few dozen patients the expected range is wide. Inside it means **nothing
 was detected**, never that nothing is there.
 
 ```{r}
@@ -384,11 +300,8 @@ Source-derived. Keep it in the safe environment; do not export the figure.
 #| label: diagnostic
 #| fig-width: 14
 #| fig-height: 5
-# Read from `roles`, not from literal column names. This chunk was copied
-# between studies and kept the previous one's columns: the ECI report grouped
-# by `USUBJID` where its `id` role is `ID`, and filtered out `"PIT565 Dose"` on
-# a study that has no such endpoint. Naming roles instead cannot drift, and the
-# facets grow a column per endpoint on their own, whatever this study has.
+# Named roles, not literal columns, so this survives being copied to another
+# study. The facets grow a column per endpoint on their own.
 label_col <- if (length(roles$dvid) > 1L) {
   roles$dvid[[length(roles$dvid)]]
 } else if (!is.null(roles$dvid)) roles$dvid[[1L]] else NULL
