@@ -156,3 +156,52 @@ test_that("wbcSim creates coherent generalized infusion and recovery", {
   expect_lt(min(first$DV), first$DV[1L])
   expect_gt(first$DV[nrow(first)], min(first$DV))
 })
+
+# SIM-040, on a public dataset. `theo_md` is genuinely dosed by weight and is
+# exactly the case inference cannot recover: the recorded mg/kg runs from 3.1 to
+# 5.9, which is eight ratio levels for eleven distinct amounts, so detection
+# declines. Pinned here because it is the public evidence for the claim the
+# demo and the algorithm vignette both make.
+test_that("theo_md: inference declines weight-based dosing, declaring it does not", {
+  skip_if_not_installed("nlmixr2data")
+  source <- load_nlmixr2_dataset("theo_md")
+  roles <- function(declare) {
+    args <- list(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                 evid = "EVID", cmt = "CMT", covariates = "WT")
+    if (declare) args$dose_covariate <- "WT"
+    do.call(pmx_roles, args)
+  }
+  per_kg <- function(x) {
+    dosed <- x[x$EVID != 0, ]
+    dosed$AMT / dosed$WT
+  }
+  # Each patient's whole course, as the thing M5 has to keep coherent.
+  profiles <- function(x) {
+    dosed <- x[x$EVID != 0, ]
+    vapply(split(round(per_kg(x), 4), dosed$ID),
+           function(r) paste(r, collapse = "/"), character(1))
+  }
+
+  inferred <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles(FALSE), seed = 303)
+  ))
+  declared <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles(TRUE), seed = 303)
+  ))
+
+  # Inference declines, and says so rather than leaving a blank.
+  expect_true(is.na(attr(inferred, "pmx_settings")$dose_basis))
+  expect_match(attr(inferred, "pmx_settings")$dose_basis_note, "WT")
+  # So every avatar carries its anchor's milligrams over its own blended
+  # weight -- a dose per kilogram the study never prescribed.
+  expect_lt(mean(profiles(inferred) %in% profiles(source)), 0.5)
+
+  expect_equal(attr(declared, "pmx_settings")$dose_basis, "WT")
+  expect_true(attr(declared, "pmx_settings")$dose_basis_declared)
+  # Declared, every avatar is on a course some real patient was given.
+  expect_equal(mean(profiles(declared) %in% profiles(source)), 1)
+  # And the cohort spans the source's own mg/kg range rather than a shrunken
+  # one, which is the visible symptom in the demo vignette.
+  expect_equal(range(per_kg(declared)), range(per_kg(source)),
+               tolerance = 1e-8)
+})

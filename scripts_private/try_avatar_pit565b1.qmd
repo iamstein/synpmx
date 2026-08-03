@@ -92,7 +92,9 @@ ROLES <- pmx_roles(
   # DECLARE IF THE STUDY DOSES ON WEIGHT OR BSA -- must also be in `covariates`.
   # Left NULL the run infers it, and inference fails closed on vial rounding or
   # uneven escalation, leaving amounts copied verbatim. The report says which.
-  dose_covariate = NULL,   # e.g. "WEIGHT0"
+  # This study is weight-based with intra-patient escalation, which inference
+  # declined, so it is declared.
+  dose_covariate = "WEIGHT0",
   keep     = c("STUDYIDN", "STUDYID")  # pass-through only; a stratum belongs above
 )
 
