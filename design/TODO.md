@@ -57,16 +57,42 @@ From the owner reading the alerts on `INTERNAL_STUDY`.
 Open on the dose side, from 2026-08-03:
 
 - [x] **Dose truncation as a shape.** Done as `SIM-044`.
-- [ ] **Dose times on their own grid — TRIED, does not work naively.** A
-      dose-only grid does merge `nimoData`'s dose times exactly as hoped: 104
-      distinct dose times collapse to 10 cells, one per weekly dose. But the
-      ordering risk is not hypothetical and is not rare — it fires on **every
-      one of the 12 subjects**. An observation at 167.16 snaps to 167.10 while
-      its dose at 167.20 snaps to 166.73, so the dose lands *before* the sample
-      that preceded it. Guarded per subject (accept the split grid only where
-      row order survives, else fall back to the shared grid), the guard reverts
-      all twelve and the change is a no-op on every public dataset, so it was
-      reverted rather than shipped as dead complexity.
+- [ ] **Dose times on their own grid — THREE ATTEMPTS, none shippable.** The
+      goal is right and the diagnosis is certain: `nimoData` is 12 of 12
+      identifying purely because dose times are recorded actuals. Doses are
+      weekly but 165.70 / 167.24 / 168.05 are three cells, and 86 of 97 dose
+      times after coarsening are held by one patient. A dose-only grid merges
+      them perfectly — 104 distinct times collapse to 10 weekly cells — and
+      every attempt below fixes `nimoData` to 0. What none of them survives is
+      what happens to the observations around a dose that has just moved.
+
+      1. *Independent observation grid.* An observation at 167.16 snaps to
+         167.10 while its dose at 167.20 snaps to 166.73, so the dose lands
+         before the sample that preceded it. Fires on all 12 subjects; guarded
+         per subject it reverts all 12 and is a no-op everywhere.
+      2. *Clamp observations between neighbouring dose cells.* Measured
+         strictly better on all five public sets (`nimoData` dose 12 to 0,
+         `wbcSim` observation-unique 17 to 13, nothing worse) — but it drags
+         every POST-dose sample forward onto the dose when the dose moves far,
+         collapsing three real visits into one. The existing spurious-collision
+         repair then reverts those rows, leaving a mixed state that can itself
+         reorder. Passes the public numbers, fails a dense-PK fixture.
+      3. *Carry samples with their dose, preserving time-after-dose.* The
+         conceptually right one, and what the owner described. Fixes `nimoData`
+         and produces identical schedules on a dense-PK fixture. Regresses
+         `theo_md` from 0 to 12 unique observation schedules, because the
+         elapsed-time axis is unstable at interval boundaries: a trough drawn a
+         minute before a dose is 23.9 h after the previous one, the same trough
+         drawn a minute after is 0.02 h after this one. Referring each sample to
+         the NEAREST dose rather than the preceding one was tried and does not
+         fix it.
+
+      Attempt 3 is the one to finish. The remaining problem is entirely the
+      boundary: it needs the elapsed-time grid derived per dose interval, or a
+      reference rule that cannot straddle. Whatever is tried must be measured on
+      all five public sets plus `case1_pkpd` before it ships — attempt 2 shows
+      that passing the public numbers is not sufficient evidence.
+
 
       What would work is making **doses authoritative**: derive the dose grid
       first, then clamp each observation into the interval between its

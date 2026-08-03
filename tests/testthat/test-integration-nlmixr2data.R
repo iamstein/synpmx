@@ -205,3 +205,75 @@ test_that("theo_md: inference declines weight-based dosing, declaring it does no
   expect_equal(range(per_kg(declared)), range(per_kg(source)),
                tolerance = 1e-8)
 })
+
+# Coverage the nlmixr2data five do not give us. None of theo_md, warfarin,
+# wbcSim, nimoData or mavoglurant has a declared `nominal_time`, a `cens` role,
+# more than two endpoints, or treatment arms to stratify on -- which is to say
+# every feature a real study report exercises was untested on public data.
+# `xgxr` is already a Suggests dependency and its datasets have all four.
+test_that("xgxr case1_pkpd: nominal grid, two endpoints, six arms, 180 patients", {
+  skip_if_not_installed("xgxr")
+  source <- as.data.frame(
+    get(utils::data(list = "case1_pkpd", package = "xgxr"))
+  )
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
+    subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+    keep = "STUDY"
+  )
+  expect_true(validate_pmx(source, roles)$valid)
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 1)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  # A declared nominal time is the case the whole coarsening design is aimed
+  # at, and it should leave nothing exposed on the schedule axis.
+  expect_equal(settings$time_grid, "nominal")
+  expect_equal(settings$unique_schedule_n, 0L)
+  expect_equal(settings$identifying_visit_sets, 0L)
+  expect_equal(settings$identifying_dose_schedules, 0L)
+  # Six arms, and an avatar never leaves the arm it was anchored in.
+  expect_equal(length(unique(synthetic$TRTACT)),
+               length(unique(source$TRTACT)))
+})
+
+test_that("xgxr mad: six endpoints, including ordinal, count and binary", {
+  skip_if_not_installed("xgxr")
+  source <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+    subject_properties = c("TRTACT", "DOSE"),
+    covariates = c("WEIGHTB", "SEX")
+  )
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 2)
+  ))
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  # Nothing is lost: six endpoints in, six endpoints out. Endpoint loss is the
+  # `SIM-036` failure mode and it is invisible without a multi-endpoint source.
+  expect_setequal(unique(as.character(synthetic$NAME)),
+                  unique(as.character(source$NAME)))
+  expect_equal(attr(synthetic, "pmx_settings")$identifying_visit_sets, 0L)
+})
+
+test_that("pheno_sd: 59 real patients whose dosing genuinely cannot be masked", {
+  skip_if_not_installed("nlmixr2data")
+  source <- load_nlmixr2_dataset("pheno_sd")
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", covariates = c("WT", "APGR"))
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 3)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  # The observation-side guarantee holds even here.
+  expect_equal(settings$identifying_visit_sets, 0L)
+  # The dose side does not, and the run must say so rather than quietly pass:
+  # neonatal phenobarbital dosing is individualised, so most patients have a
+  # dose schedule nobody shares and there is nobody safe to build on instead.
+  expect_gt(settings$identifying_dose_schedules, 0L)
+})
