@@ -56,25 +56,25 @@ From the owner reading the alerts on `INTERNAL_STUDY`.
 
 Open on the dose side, from 2026-08-03:
 
-- [ ] **Dose truncation as a shape.** A patient who stopped dosing early is not
-      built upon, so the regimen disappears: nineteen patients on three doses,
-      one on two and one on one came out as twenty-one on three. Truncating a
-      shared schedule to a prefix is protocol-valid in a way that resampling
-      dose times is not, so the `.place_attendance()` treatment applies --
-      truncate at a depth held by `min_pattern_share` patients, or by nobody,
-      walking outward as `.miss_counts()` does. It does NOT rescue a
-      21-patient cohort with three dose slots, where depths 1 and 2 have one
-      holder each and there is no free depth between them; that case is
-      genuinely unmaskable and the report now says so. It is the oncology case
-      -- many patients, many stopping depths, plenty free -- that it would fix.
-- [ ] **Dose times on their own grid.** `nimoData` is 12 of 12 identifying
-      purely because dose times are recorded actuals: doses are weekly, but
-      165.70 / 167.24 / 168.05 are three cells, and 86 of 97 dose times after
-      coarsening are held by one patient. They do not merge because the grid is
-      shared with densely sampled observations. Deriving a dose-only grid would
-      merge them immediately, since a patient's ten doses are far apart. The
-      risk to check first is ordering: a pre-dose sample and its dose could snap
-      to different cells and swap.
+- [x] **Dose truncation as a shape.** Done as `SIM-044`.
+- [ ] **Dose times on their own grid — TRIED, does not work naively.** A
+      dose-only grid does merge `nimoData`'s dose times exactly as hoped: 104
+      distinct dose times collapse to 10 cells, one per weekly dose. But the
+      ordering risk is not hypothetical and is not rare — it fires on **every
+      one of the 12 subjects**. An observation at 167.16 snaps to 167.10 while
+      its dose at 167.20 snaps to 166.73, so the dose lands *before* the sample
+      that preceded it. Guarded per subject (accept the split grid only where
+      row order survives, else fall back to the shared grid), the guard reverts
+      all twelve and the change is a no-op on every public dataset, so it was
+      reverted rather than shipped as dead complexity.
+
+      What would work is making **doses authoritative**: derive the dose grid
+      first, then clamp each observation into the interval between its
+      neighbouring snapped dose times, so a pre-dose sample ties with its dose
+      rather than crossing it. That keeps dose cells shared, which is the whole
+      point. It touches coarsening for every dataset, so it needs its own
+      before/after on all five public sets plus the SIM-014 timing gates before
+      it can be trusted. Not attempted yet.
 
 Still open from this pass:
 

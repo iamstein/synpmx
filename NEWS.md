@@ -5,6 +5,16 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **Dosing that stopped early is now represented rather than dropped
+  (`SIM-044`).** Protecting a patient who stopped dosing at a point nobody else
+  did meant not building on them, which removed the regimen from the output.
+  Dose *times* are still never moved or invented -- that would emit a regimen no
+  protocol permits -- but truncating a schedule at one of its own dose times
+  yields a regimen the study did give someone, so an avatar now stops at a depth
+  several patients used, or one nobody used. On a 32-patient fixture with four
+  patients stopping at depths 4, 6, 7 and 9, the output carries depths 5, 8 and
+  10 instead of pushing every avatar onto the full schedule.
+
 * `pmx_masking_report()` reports how many of the source's distinct dose
   regimens are represented in the synthetic cohort. Declining to build on a
   patient whose dose schedule nobody shares is the only safe answer, but it
