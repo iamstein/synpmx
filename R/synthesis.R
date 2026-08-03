@@ -735,7 +735,25 @@
     identifying[member] <- nzchar(keys[member]) &
       as.integer(shared[keys[member]]) < min_pattern_share
   }
-  list(pool = pool, group = group, keys = keys, identifying = identifying,
+  # A second pool keyed on the ENDPOINT SET alone, ignoring the stratum. Groups
+  # are (stratum x endpoint set), and splitting by stratum is what makes a small
+  # arm hold too few patients to share anything. Donors already cross strata to
+  # reach the floor -- only route of administration is absolute -- so a visit set
+  # may cross one too. The endpoint set may not: an avatar must never be handed a
+  # set naming an endpoint its anchor does not have.
+  endpoint_of <- function(name) sub("^.*\r", "", name)
+  endpoint_pool <- list()
+  for (set in unique(endpoint_of(names(pool)))) {
+    candidates <- pool[endpoint_of(names(pool)) == set]
+    # The one with the most widely held set is the safest to borrow from.
+    best <- which.max(vapply(candidates, function(p) {
+      if (is.na(p$common)) 0 else max(p$shape_weight)
+    }, numeric(1)))
+    endpoint_pool[[set]] <- candidates[[best]]
+  }
+
+  list(pool = pool, endpoint_pool = endpoint_pool, endpoint_of = endpoint_of,
+       group = group, keys = keys, identifying = identifying,
        total_patterns = total_patterns, dropped_patterns = dropped_patterns,
        dropped_subjects = dropped_subjects)
 }
@@ -803,6 +821,41 @@
     "scattered"
   }
   paste0(kind, "|", length(missed))
+}
+
+# The visit set an avatar anchored here would be given, and whether it would be
+# identifying. Split out of the generation loop so the loop can ASK before it
+# builds, and pick a different anchor when the answer is bad.
+.attendance_choice <- function(anchor, attendance) {
+  none <- list(key = NA_character_, generated = FALSE, shifted = FALSE,
+               substituted = FALSE,
+               identifying = isTRUE(attendance$identifying[[anchor]]))
+  # The anchor's own schedule group first; failing that, any group measuring
+  # the same endpoints, which is what rescues a small arm. The endpoint set may
+  # never be crossed -- an avatar must not be handed a set naming an endpoint
+  # its anchor does not have.
+  available <- attendance$pool[[attendance$group[[anchor]]]]
+  if (is.null(available)) {
+    available <- attendance$endpoint_pool[[
+      attendance$endpoint_of(attendance$group[[anchor]])
+    ]]
+  }
+  if (is.null(available)) return(none)
+
+  drawn <- .draw_attendance(available)
+  if (!is.na(drawn$key)) {
+    return(list(key = drawn$key, generated = drawn$generated,
+                shifted = isTRUE(drawn$shifted), substituted = FALSE,
+                identifying = FALSE))
+  }
+  # Nothing legal was placed. Keeping the anchor's own set is fine unless that
+  # set is one nobody else has, in which case the group's most widely held set
+  # goes in instead: less faithful to this avatar, and it discloses nothing.
+  if (none$identifying && !is.na(available$common)) {
+    return(list(key = available$common, generated = FALSE, shifted = FALSE,
+                substituted = TRUE, identifying = FALSE))
+  }
+  none
 }
 
 .attendance_key_from <- function(cells, missed) {
@@ -2074,39 +2127,43 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # made an ordinary shared schedule look like a failure.
     pattern_substituted <- logical(n_subjects)
     pattern_identifying <- logical(n_subjects)
+    # Avatars moved to a different anchor because their first one could not be
+    # given a visit set that masks it.
+    pattern_reanchored <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
+      # Decide the visit set BEFORE building anything. An anchor whose own set
+      # nobody shares, and for whom nothing legal can be placed, cannot be
+      # masked -- any avatar built on it wears that one real patient's exact
+      # pattern of which visits have observations. Rather than emit it, or drop
+      # the patient from the cohort entirely, this avatar is simply anchored
+      # somewhere else. Only the avatar moves; every source patient stays a
+      # donor and stays available to anchor other avatars.
+      choice <- NULL
+      if (!is.null(attendance)) {
+        for (attempt in seq_len(12L)) {
+          choice <- .attendance_choice(anchor, attendance)
+          if (!isTRUE(choice$identifying)) break
+          candidates <- setdiff(allowed, anchor)
+          if (!length(candidates)) break
+          anchor <- candidates[[sample.int(length(candidates), 1L)]]
+          pattern_reanchored[synthetic_index] <- TRUE
+        }
+        anchors[synthetic_index] <- anchor
+      }
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
       if (!is.null(attendance)) {
-        available <- attendance$pool[[attendance$group[[anchor]]]]
-        drawn <- if (is.null(available)) list(key = NA_character_) else
-          .draw_attendance(available)
-        if (!is.na(drawn$key)) {
-          skeleton <- .apply_attendance(skeleton, source_roles, drawn$key)
+        if (!is.na(choice$key)) {
+          skeleton <- .apply_attendance(skeleton, source_roles, choice$key)
           original_order <- seq_len(nrow(skeleton))
           pattern_sampled[synthetic_index] <- TRUE
-          pattern_generated[synthetic_index] <- drawn$generated
-          pattern_shifted[synthetic_index] <- isTRUE(drawn$shifted)
-        } else if (isTRUE(attendance$identifying[[anchor]])) {
-          # Nothing legal was found and this anchor's own visit set is one no
-          # other patient shares, so leaving the skeleton alone would put that
-          # patient's exact pattern of absences into the output -- the one
-          # outcome `min_pattern_share` exists to prevent. Substitute the most
-          # widely held set in the group instead. It is less faithful to this
-          # avatar and discloses nothing, which is the right trade to make
-          # without being asked; where the group has no widely held set either,
-          # there is nothing to substitute and the run alerts.
-          if (!is.na(available$common %||% NA_character_)) {
-            skeleton <- .apply_attendance(skeleton, source_roles,
-                                          available$common)
-            original_order <- seq_len(nrow(skeleton))
-            pattern_sampled[synthetic_index] <- TRUE
-            pattern_substituted[synthetic_index] <- TRUE
-          } else {
-            pattern_identifying[synthetic_index] <- TRUE
-          }
+          pattern_generated[synthetic_index] <- choice$generated
+          pattern_shifted[synthetic_index] <- isTRUE(choice$shifted)
+          pattern_substituted[synthetic_index] <- isTRUE(choice$substituted)
+        } else if (isTRUE(choice$identifying)) {
+          pattern_identifying[synthetic_index] <- TRUE
         }
       }
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
@@ -2162,18 +2219,45 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # could be substituted, because that pattern of absences belongs to exactly
     # one real person. Alerting on the wrong one of these made an ordinary run
     # look like a failure.
-    identifying <- mean(pattern_identifying)
-    if (identifying > 0) {
+
+    result <- do.call(rbind, generated)
+    rownames(result) <- NULL
+
+    # The end-to-end check, run on the finished table rather than inferred from
+    # the mechanisms that built it.
+    #
+    # Every leak found in this area so far leaked because each mechanism was
+    # correct on its own terms and nobody asked the whole question afterwards:
+    # placements were rejected properly but the caller then copied the anchor;
+    # the pool was built properly but a one-patient group never got one. This
+    # asks the question directly -- does any avatar's set of (endpoint, time)
+    # cells match a source patient's set that fewer than `min_pattern_share`
+    # patients share? -- so a future mechanism that gets it wrong is caught here
+    # instead of in a report somebody reads months later.
+    identifying_visit_sets <- 0L
+    if (!is.null(attendance)) {
+      rare_source <- unique(attendance$keys[attendance$identifying])
+      rare_source <- rare_source[nzchar(rare_source)]
+      if (length(rare_source)) {
+        produced <- vapply(
+          split(seq_len(nrow(result)), as.character(result[[source_roles$id]])),
+          function(rows) .attendance_key(result, source_roles,
+                                         seq_len(nrow(result)) %in% rows),
+          character(1)
+        )
+        identifying_visit_sets <- sum(produced %in% rare_source)
+      }
+    }
+    if (identifying_visit_sets > 0L) {
       .loud_warn(
         "avatars carrying a visit set nobody else shares",
-        sprintf(paste("%.0f%% of avatars (%d of %d) were emitted with their",
-                      "anchor's own set of visits, which no other patient has."),
-                100 * identifying, sum(pattern_identifying), n_subjects),
-        why = paste("that exact pattern of which visits do and do not have",
-                    "observations belongs to one real patient, so an avatar",
-                    "carrying it can be traced back to them. Nothing legal was",
-                    "available to put in its place: the schedule group has no",
-                    "visit set shared by `min_pattern_share` patients at all."),
+        sprintf(paste("%d of %d avatars were emitted holding a set of visits",
+                      "that exactly one real patient has."),
+                identifying_visit_sets, n_subjects),
+        why = paste("that pattern of which visits have observations belongs to",
+                    "one real person, so an avatar carrying it can be traced",
+                    "back to them. Nothing legal was available to put in its",
+                    "place."),
         fix = paste0(paste(.schedule_advice(source_roles, min_pattern_share,
                                             coarsened$grid),
                            collapse = "; "),
@@ -2182,8 +2266,6 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       )
     }
 
-    result <- do.call(rbind, generated)
-    rownames(result) <- NULL
     result <- .restore_schema(result, source, source_roles)
     settings <- list(
       seed = as.integer(seed),
@@ -2225,6 +2307,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # The number that must be zero: avatars emitted carrying a visit set no
       # real patient shares. Everything above is fidelity; this is disclosure.
       pattern_identifying_fraction = mean(pattern_identifying),
+      # Measured on the finished table, not inferred from the mechanisms. This
+      # is the number the guarantee is stated in terms of, and it must be 0.
+      identifying_visit_sets = as.integer(identifying_visit_sets),
+      pattern_reanchored_fraction = mean(pattern_reanchored),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
       # Note that at the default floor of 2 a dropped pattern is *by definition*
