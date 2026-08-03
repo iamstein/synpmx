@@ -52,6 +52,11 @@
   vignette and the study templates under `scripts_private/` all use it,
   so the labels are maintained in one place.
 
+- [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
+  gains a `knit_print()` method, so its tables come out as tables when
+  knitted. Each of the four study templates under `scripts_private/` had
+  carried its own copy of that display code.
+
 - New
   [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
   draws a cohort’s dosing and observation schedule: one row per patient,
