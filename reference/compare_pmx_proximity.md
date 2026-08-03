@@ -55,7 +55,8 @@ compare_pmx_proximity(
 
 A one-row `pmx_proximity` data frame: `adversarial_accuracy`,
 `null_lower` / `null_upper` (the central 95% of the split-half null),
-`verdict`, `n_compared`, and the 5th-percentile nearest-neighbour
+`verdict`, `n_compared` (patients per side, the same on both arms and in
+the null), `n_null_replicates`, and the 5th-percentile nearest-neighbour
 distances `synthetic_to_source_q05` and `source_to_source_q05`.
 
 ## Details
@@ -106,13 +107,22 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #>   Declare a column in `keep` to carry it through verbatim.
 compare_pmx_proximity(data, synthetic, roles, replicates = 10)
 #> Restricted PMX nearest-neighbour proximity check
-#>   adversarial accuracy 0.800   null 0.356 to 0.666 (20 per side)
-#>   above the null: the two sets have separated, which is a utility concern
-#>   5th-pct nearest distance: synthetic-to-source 0.588, source-to-source 0.106
 #> 
-#> 0.5 is the target: a synthetic subject no more like a real subject than
-#> one real subject is like another. Toward 0 is memorisation. The null is
-#> wide at small cohorts, so 'within' means nothing detected, not nothing there.
+#>   Question: is a synthetic patient closer to a real patient than real
+#>     patients are to each other?
+#>   Measured 0.800, on a scale where 0.5 means 'no closer' and is the target;
+#>     0 would mean every synthetic patient is glued to a real one.
+#>   Expected 0.356 to 0.666 if nothing were wrong. That interval is not
+#>     assumed -- it is the same statistic run 10 times on two halves of the
+#>     real cohort, 20 patients per half, which is also how many synthetic
+#>     patients were compared.
+#>   Verdict: Too far apart. The two sets have separated, so a classifier
+#>     could tell them apart. That is a utility problem, not a privacy one.
+#>   For context, distance to the nearest neighbour (5th percentile, so the
+#>     closest pairs): synthetic-to-real 0.588 versus real-to-real 0.106.
+#>     These are only comparable to each other; the units are PCA profile
+#>     space.
 #> 
-#> Source-derived; not releasable unless separately public or privately budgeted.
+#> Source-derived; not releasable unless separately public or privately
+#> budgeted.
 ```

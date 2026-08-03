@@ -445,7 +445,13 @@ Structural checks on generated data, and restricted comparisons.
   synthetic
 
 - [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
-  : Score how many subjects share each subject's event skeleton
+  : Score how many patients share each patient's event skeleton
+
+- [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
+  : Draw a cohort's dosing and observation schedule
+
+- [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+  : Report what each masking mechanism did, and what it cost
 
 - [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
   : Are synthetic subjects sitting too close to real ones?

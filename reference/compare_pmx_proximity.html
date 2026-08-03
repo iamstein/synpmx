@@ -110,8 +110,9 @@ common profile space. Default 0.90, matching <code><a href="synpmx_avatar.html">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A one-row <code>pmx_proximity</code> data frame: <code>adversarial_accuracy</code>,
 <code>null_lower</code> / <code>null_upper</code> (the central 95% of the split-half null),
-<code>verdict</code>, <code>n_compared</code>, and the 5th-percentile nearest-neighbour distances
-<code>synthetic_to_source_q05</code> and <code>source_to_source_q05</code>.</p>
+<code>verdict</code>, <code>n_compared</code> (patients per side, the same on both arms and in
+the null), <code>n_null_replicates</code>, and the 5th-percentile nearest-neighbour
+distances <code>synthetic_to_source_q05</code> and <code>source_to_source_q05</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -153,15 +154,24 @@ subtle one. Treat a value inside the interval as "nothing detected", never as
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Declare a column in `keep` to carry it through verbatim.</span>
 <span class="r-in"><span><span class="fu">compare_pmx_proximity</span><span class="op">(</span><span class="va">data</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Restricted PMX nearest-neighbour proximity check</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   adversarial accuracy 0.800   null 0.356 to 0.666 (20 per side)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   above the null: the two sets have separated, which is a utility concern</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5th-pct nearest distance: synthetic-to-source 0.588, source-to-source 0.106</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 0.5 is the target: a synthetic subject no more like a real subject than</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> one real subject is like another. Toward 0 is memorisation. The null is</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> wide at small cohorts, so 'within' means nothing detected, not nothing there.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Question: is a synthetic patient closer to a real patient than real</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     patients are to each other?</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Measured 0.800, on a scale where 0.5 means 'no closer' and is the target;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     0 would mean every synthetic patient is glued to a real one.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Expected 0.356 to 0.666 if nothing were wrong. That interval is not</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     assumed -- it is the same statistic run 10 times on two halves of the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     real cohort, 20 patients per half, which is also how many synthetic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     patients were compared.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Verdict: Too far apart. The two sets have separated, so a classifier</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     could tell them apart. That is a utility problem, not a privacy one.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   For context, distance to the nearest neighbour (5th percentile, so the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     closest pairs): synthetic-to-real 0.588 versus real-to-real 0.106.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     These are only comparable to each other; the units are PCA profile</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     space.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Source-derived; not releasable unless separately public or privately budgeted.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Source-derived; not releasable unless separately public or privately</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> budgeted.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

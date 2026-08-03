@@ -1,18 +1,18 @@
-# Score how many subjects share each subject's event skeleton
+# Score how many patients share each patient's event skeleton
 
-A source-side screen for subjects that are **alone**, the complement to
+A source-side screen for patients that are **alone**, the complement to
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md),
-which finds subjects that are **extreme**. A patient can be perfectly
+which finds patients that are **extreme**. A patient can be perfectly
 ordinary on every distribution and still hold the only copy of their
 visit schedule, and
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-copies the anchor's event skeleton verbatim, so such a subject hands an
+copies the anchor's event skeleton verbatim, so such a patient hands an
 identifying schedule to every avatar anchored on it.
 
 ## Usage
 
 ``` r
-skeleton_uniqueness(data, roles)
+skeleton_uniqueness(data, roles, coarsen_time = FALSE)
 ```
 
 ## Arguments
@@ -26,48 +26,78 @@ skeleton_uniqueness(data, roles)
   Explicit roles from
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md).
 
+- coarsen_time:
+
+  Score the coarsened visit grid
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  would build (`TRUE`) or the recorded times as given (`FALSE`, the
+  default).
+
 ## Value
 
 A `pmx_skeleton_uniqueness` data frame, most-exposed first, one row per
-subject: `subject_id`, `n_obs`, `n_doses`, `signature_class`,
-`obs_time_class`, `n_obs_class` (each counting the subjects sharing that
-key, including itself), and `alone` (`TRUE` when `obs_time_class == 1`).
-Attributes `n_unique_schedule`, `n_alone_signature`, `n_alone_n_obs`,
-and `min_class` summarize the cohort.
+patient: `subject_id`, `n_obs`, `n_doses`, `n_share_dosing`,
+`n_share_schedule`, `n_share_rarest_time`, `n_share_obs_count` (each
+counting the patients sharing that property, including this one),
+`unique_schedule` (`TRUE` when `n_share_schedule == 1`), and
+`why_unique`. Attributes `n_unique_schedule`, `n_unique_dose_signature`,
+`n_unique_obs_count`, `n_unshared_time`, `min_class`, and `coarsened`
+summarize the cohort; `summary_table` and `sharing_table` hold the two
+tables [`print()`](https://rdrr.io/r/base/print.html) shows.
 
 ## Details
 
-Three equivalence classes are scored per subject:
+Three questions are asked of every patient, and the answer to each is a
+count of how many patients share that property, the patient included. A
+count of 1 means "nobody else":
 
-- **`obs_time`** – subjects sharing the exact observation time vector.
-  This is the fingerprint, because
+- **`n_share_schedule`** – who else was observed at exactly this list of
+  times? This is the fingerprint, because
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   copies the anchor's event skeleton verbatim. Under nominal visit times
-  the class is large, since the schedule is protocol-driven; under
-  actual recorded times it is near-universally of size one.
-  `coarsen_time = TRUE` collapses the second case into the first, and
-  `alone` reports this class.
+  the count is large, since the schedule is protocol-driven; under
+  actual recorded times it is near-universally 1. Coarsening collapses
+  the second case into the first.
 
-- **`n_obs`** – subjects sharing the observation count. Coarsening
-  cannot change a count, so this is what survives it: dropout, early
-  discontinuation, and missed visits. That residual is the outlier
-  screen's job rather than the grid's.
+- **`n_share_obs_count`** – who else has this many observations?
+  Coarsening cannot change a count, so this is what survives it:
+  dropout, early discontinuation, and missed visits.
 
-- **`signature`** – subjects sharing the full
+- **`n_share_dosing`** – who else has this dose structure and these dose
+  amounts? This is the full
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
-  event signature: dose structure, dose amounts, and endpoint set. Note
-  this does *not* include observation times – it is the key donor
-  compatibility uses. Weight-based dosing or per-subject titration makes
-  it unique regardless of schedule, and coarsening does not change that
-  either.
+  event signature and it does *not* include observation times; it is the
+  key donor compatibility uses. Weight-based dosing or per-patient
+  titration makes it unique regardless of schedule, and coarsening does
+  not change that either.
 
-Run it on the **source**, before generating, to decide whether
-coarsening is needed and what is left over once it is applied. It is a
-heuristic screen, not a privacy guarantee, and is marked
-`"restricted_not_releasable"`.
+`n_share_rarest_time` splits the schedule count by cause, which matters
+because the two causes have opposite remedies. A patient whose schedule
+is unique **and** whose rarest single time was shared with nobody
+(`n_share_rarest_time == 1`) was sampled at a one-off moment: a time
+grid is meant to absorb that, and declaring `nominal_time` is the fix. A
+patient whose schedule is unique while every individual time is shared
+(`n_share_rarest_time >= 2`) is a dropout or missed-visit pattern, and
+no grid at any resolution touches it. `why_unique` states which.
+
+## Before or after coarsening
+
+By default this scores the times **exactly as they appear in `data`**.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+snaps the source onto a shared visit grid first (`coarsen_time = TRUE`,
+its default) and the numbers it records in `pmx_settings` are therefore
+post-coarsening. Pass `coarsen_time = TRUE` here to score the same grid
+the generator would build, and run it both ways to see how much of the
+exposure coarsening actually removed. The printed header always says
+which of the two you are looking at.
+
+Run it on the **source**, before generating. It is a heuristic screen,
+not a privacy guarantee, and is marked `"restricted_not_releasable"`.
 
 ## See also
 
+[`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
+for the same information as a picture,
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md),
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md).
 
@@ -80,44 +110,48 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = "WT"
 )
 skeleton_uniqueness(data, roles)
-#> Restricted PMX schedule-uniqueness screen: 0 of 30 patients
-#> have a UNIQUE OBSERVATION SCHEDULE (0%): no other patient shares their
-#> list of observation times, so the schedule works as an identifier.
+#> Restricted PMX schedule-uniqueness screen
+#> Scored on the recorded times AS GIVEN, before any coarsening.
+#> `synpmx_avatar()` coarsens first by default, so run this again with
+#> `coarsen_time = TRUE` to see what the grid removes.
 #> 
-#>   unique observation schedule:    0  <- of which:
-#>     unique observation time:        0  <- sampled when nobody else was; the grid's job
-#>     unique set of visits:      0  <- every time shared; dropout, the screen's job
-#>   unique observation count:    0  <- the residual that leaves, for the screen
-#>   unique dose signature:      30  <- dose structure/amount; coarsening cannot change it
+#> Every patient shares their observation schedule with somebody. Nothing to
+#> do.
 #> 
-#> Twelve most exposed:
-#>  subject_id n_obs n_doses signature_class obs_time_class min_time_share
-#>           1    14       2               1             30             30
-#>          10    14       2               1             30             30
-#>          11    14       2               1             30             30
-#>          12    14       2               1             30             30
-#>          13    14       2               1             30             30
-#>          14    14       2               1             30             30
-#>          15    14       2               1             30             30
-#>          16    14       2               1             30             30
-#>          17    14       2               1             30             30
-#>          18    14       2               1             30             30
-#>          19    14       2               1             30             30
-#>           2    14       2               1             30             30
-#>  n_obs_class unique_schedule
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#>           30           FALSE
-#> ... 18 more row(s) in the returned table.
+#>                    Patients whose ...  n % of cohort
+#>  Observation schedule nobody else has  0           0
+#>        ... a one-off observation time  0           0
+#>        ... the set of visits attended  0           0
+#>     Observation count nobody else has  0           0
+#>                Dosing nobody else has 30         100
 #> 
-#> Source-derived; not releasable unless separately public or privately budgeted.
+#> How crowded is each schedule (1 = nobody else has it):
+#>  Patients sharing that schedule Patients % of cohort
+#>                              30       30         100
+#> 
+#> One row per patient is in the returned data frame; `plot_pmx_schedule()`
+#> draws the same cohort. Source-derived; not releasable unless separately
+#> public or privately budgeted.
+skeleton_uniqueness(data, roles, coarsen_time = TRUE)
+#> Restricted PMX schedule-uniqueness screen
+#> Scored AFTER coarsening, on the shared visit grid `synpmx_avatar()` builds.
+#> These are the numbers a run reports.
+#> 
+#> Every patient shares their observation schedule with somebody. Nothing to
+#> do.
+#> 
+#>                    Patients whose ...  n % of cohort
+#>  Observation schedule nobody else has  0           0
+#>        ... a one-off observation time  0           0
+#>        ... the set of visits attended  0           0
+#>     Observation count nobody else has  0           0
+#>                Dosing nobody else has 30         100
+#> 
+#> How crowded is each schedule (1 = nobody else has it):
+#>  Patients sharing that schedule Patients % of cohort
+#>                              30       30         100
+#> 
+#> One row per patient is in the returned data frame; `plot_pmx_schedule()`
+#> draws the same cohort. Source-derived; not releasable unless separately
+#> public or privately budgeted.
 ```

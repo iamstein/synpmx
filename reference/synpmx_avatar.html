@@ -336,12 +336,41 @@ amounts and is refused. The covariate and the levels found are recorded as
 <span class="r-in"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu">synpmx_avatar</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, n_subjects <span class="op">=</span> <span class="fl">2</span>, seed <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Correct for a single-endpoint study; declare `dvid` if this one has more.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> SYNPMX ALERT: the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>the source has 3 subjects, so every avatar is blended from at most 2 real patients -- fewer than the floor of 5. This markedly raises re-identifiability; use a larger source or treat the output as individually identifying.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> SYNPMX ALERT: 3 subjects in 1 route arm below the donor floor of 5: 1:1:bolus (n=3). Donors are never blended across routes, so these subjects have no legal donor set. Dropping every arm would leave nothing to generate, so generation proceeded as if `on_donor_shortfall = "noise"`. Treat the output as individually identifying.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 subjects in 1 route arm below the donor floor of 5: 1:1:bolus (n=3). Donors are never blended across routes, so these subjects have no legal donor set. Dropping every arm would leave nothing to generate, so generation proceeded as if `on_donor_shortfall = "noise"`. Treat the output as individually identifying.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> SYNPMX ALERT: source too small for the donor floor</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   the source has 3 patients, so every avatar is blended from at most 2 real</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   patients -- fewer than the floor of k = 5.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Why it matters: blending across few patients leaves each avatar close to</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     an individual, which markedly raises re-identifiability.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Fix: use a larger source, or treat the output as individually identifying</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     and keep it under the source's own access controls.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>SYNPMX ALERT: source too small for the donor floor</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   the source has 3 patients, so every avatar is blended from at most 2 real</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   patients -- fewer than the floor of k = 5.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Why it matters: blending across few patients leaves each avatar close to</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     an individual, which markedly raises re-identifiability.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Fix: use a larger source, or treat the output as individually identifying</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     and keep it under the source's own access controls.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> SYNPMX ALERT: every route arm is below the donor floor</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   3 patients sit in 1 route arm holding fewer than the donor floor of k =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   5: 1:1:bolus (n=3).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Why it matters: donors are never blended across routes, so these patients</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     have no legal donor set. Dropping every arm would leave nothing to</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     generate, so generation proceeded as if `on_donor_shortfall = "noise"`.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Fix: treat the whole output as individually identifying, or use a larger</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     source.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>SYNPMX ALERT: every route arm is below the donor floor</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   3 patients sit in 1 route arm holding fewer than the donor floor of k =</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   5: 1:1:bolus (n=3).</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Why it matters: donors are never blended across routes, so these patients</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     have no legal donor set. Dropping every arm would leave nothing to</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     generate, so generation proceeded as if `on_donor_shortfall = "noise"`.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Fix: treat the whole output as individually identifying, or use a larger</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     source.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Synthetic generation used documented small-group/profile fallbacks:</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> - Fewer than 5 same-schedule donors were available for at least one subject; the nearest donors from other dose/schedule groups on the same route were borrowed to reach the floor, so some measurements are blended across doses.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> - Fewer than 5 same-schedule donors were available for at least one</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   subject; the nearest donors from other dose/schedule groups on the same</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   route were borrowed to reach the floor, so some measurements are blended</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   across doses.</span>
 <span class="r-in"><span><span class="fu"><a href="validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 </code></pre></div>

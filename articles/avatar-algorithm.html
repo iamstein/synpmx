@@ -1910,18 +1910,48 @@ transformed DVs after interpolation to the anchor times. The following
 table shows the exact pre-noise blend used by the implementation.</p>
 <pre><code><span><span class="co">#&gt; synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span></span>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 3 of 6 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
-<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
-<span><span class="co">#&gt; Warning: 3 of 6 patients have a UNIQUE SET OF VISITS: they share every individual observation time with somebody, but the combination of visits they attended and missed is theirs alone -- dropout, discontinuation, or a missed visit.</span></span>
-<span><span class="co">#&gt;   No grid can fix this, however fine or coarse, because the times are already shared; a grid decides where the visits are, not which ones a patient turned up for. Screen these patients with `flag_identifiable_subjects()` and `remediate_identifiable_subjects()` if it matters.</span></span>
-<span><span class="co">#&gt; SYNPMX ALERT: 1 patient in this study showed up for a combination of visits that no other patient matched.</span></span>
-<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For that patient that exact combination of kept and missed visits is theirs alone.</span></span>
-<span><span class="co">#&gt;   No synthetic patient is given one of those 1 combination, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
-<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span>
-<span><span class="co">#&gt; Warning: 1 patient in this study showed up for a combination of visits that no other patient matched.</span></span>
-<span><span class="co">#&gt;   Once every patient is placed on a shared visit grid, what distinguishes them is which of those visits they actually attended and which they missed. For that patient that exact combination of kept and missed visits is theirs alone.</span></span>
-<span><span class="co">#&gt;   No synthetic patient is given one of those 1 combination, because an avatar carrying it could be traced back to the one real patient who had it. What the synthetic data keeps instead is how many visits were missed and of what kind -- all at the end (dropout), a run in the middle (an interruption), or scattered. Which specific visits were missed is not preserved.</span></span>
-<span><span class="co">#&gt;   Set `min_pattern_share = 1` to turn this off and copy each patient's exact set of visits instead. The current setting, 2, means no synthetic patient carries a visit combination unique to a real one.</span></span></code></pre>
+<span><span class="co">#&gt; SYNPMX ALERT: unique visit sets</span></span>
+<span><span class="co">#&gt;   3 of 6 patients (50%) share every individual observation time with</span></span>
+<span><span class="co">#&gt;   somebody, but the set of visits they attended is theirs alone -- dropout,</span></span>
+<span><span class="co">#&gt;   discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
+<span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
+<span><span class="co">#&gt;     for.</span></span>
+<span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
+<span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
+<span><span class="co">#&gt;     it still matters.</span></span>
+<span><span class="co">#&gt; Warning: SYNPMX ALERT: unique visit sets</span></span>
+<span><span class="co">#&gt;   3 of 6 patients (50%) share every individual observation time with</span></span>
+<span><span class="co">#&gt;   somebody, but the set of visits they attended is theirs alone -- dropout,</span></span>
+<span><span class="co">#&gt;   discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
+<span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
+<span><span class="co">#&gt;     for.</span></span>
+<span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
+<span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
+<span><span class="co">#&gt;     it still matters.</span></span>
+<span><span class="co">#&gt; SYNPMX NOTE: rare visit sets not reused</span></span>
+<span><span class="co">#&gt;   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2</span></span>
+<span><span class="co">#&gt;   patients and is given to no avatar.</span></span>
+<span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
+<span><span class="co">#&gt;     could be traced back to them. Kept instead: how many visits were missed</span></span>
+<span><span class="co">#&gt;     and of what kind -- all at the end (dropout), a run in the middle (an</span></span>
+<span><span class="co">#&gt;     interruption), or scattered. Which specific visits were missed is not</span></span>
+<span><span class="co">#&gt;     preserved.</span></span>
+<span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
+<span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
+<span><span class="co">#&gt;     guarantee.</span></span>
+<span><span class="co">#&gt; Warning: SYNPMX NOTE: rare visit sets not reused</span></span>
+<span><span class="co">#&gt;   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2</span></span>
+<span><span class="co">#&gt;   patients and is given to no avatar.</span></span>
+<span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
+<span><span class="co">#&gt;     could be traced back to them. Kept instead: how many visits were missed</span></span>
+<span><span class="co">#&gt;     and of what kind -- all at the end (dropout), a run in the middle (an</span></span>
+<span><span class="co">#&gt;     interruption), or scattered. Which specific visits were missed is not</span></span>
+<span><span class="co">#&gt;     preserved.</span></span>
+<span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
+<span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
+<span><span class="co">#&gt;     guarantee.</span></span></code></pre>
 <table style="width:100%;" class="table">
 <caption>Interpolation and blending for the anchor endpoint; z is the
 endpoint working scale</caption>
@@ -2714,6 +2744,21 @@ or accept.</li>
 else has, which coarsening cannot touch) and
 <code>n_unique_obs_count</code> (an observation count nobody else has,
 the residual left for the outlier screen).</p>
+<p>The per-patient columns <code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> returns
+are all the same kind of number — how many patients share that property,
+the patient included, so <code>1</code> means “nobody else”:
+<code>n_share_schedule</code>, <code>n_share_rarest_time</code>,
+<code>n_share_obs_count</code>, and <code>n_share_dosing</code>. By
+default it scores the recorded times as given;
+<code>coarsen_time = TRUE</code> scores the grid
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds, which is where the
+<code>pmx_settings</code> counts above come from.</p>
+<p>A count on its own does not say whether a study is in trouble,
+because twelve unique schedules can be twelve one-off sampling times
+(fixable) or twelve ordinary dropouts (not, and not a problem). <a href="../reference/plot_pmx_schedule.html"><code>plot_pmx_schedule()</code></a>
+draws the cohort — one row per patient, one mark per event, with a
+per-visit histogram underneath — and the two cases look nothing
+alike.</p>
 </div>
 <div class="section level3">
 <h3 id="why-measure-rather-than-assert">Why measure rather than assert<a class="anchor" aria-label="anchor" href="#why-measure-rather-than-assert"></a>
