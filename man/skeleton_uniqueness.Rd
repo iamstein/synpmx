@@ -19,11 +19,30 @@ A \code{pmx_skeleton_uniqueness} data frame, most-exposed first, one row
 per patient: \code{subject_id}, \code{n_obs}, \code{n_doses}, \code{n_share_dosing},
 \code{n_share_schedule}, \code{n_share_rarest_time}, \code{n_share_obs_count} (each
 counting the patients sharing that property, including this one),
+\code{n_visits} and \code{nearest_set_diff} (how many visit slots -- one endpoint at
+one time -- separate this patient from the closest other one),
 \code{unique_schedule} (\code{TRUE} when \code{n_share_schedule == 1}), and \code{why_unique}.
 Attributes \code{n_unique_schedule}, \code{n_unique_dose_signature},
 \code{n_unique_obs_count}, \code{n_unshared_time}, \code{min_class}, and \code{coarsened}
-summarize the cohort; \code{summary_table} and \code{sharing_table} hold the two
-tables \code{print()} shows.
+summarize the cohort; \code{summary_table}, \code{sharing_table} and \code{by_endpoint}
+hold the tables \code{print()} shows.Reading the count
+
+\code{n_share_schedule == 1} is exact-set equality, and on a real study that is a
+harsh test: with forty visit slots and twenty patients, two patients who
+differ by one missed sample score as "unique" exactly like two with nothing
+in common. \code{nearest_set_diff} is what separates those cases, and the printed
+output states it alongside the count. A cohort can read 15 of 21 unique while
+every one of those 15 is a single missing sample away from somebody else.
+
+The \code{by_endpoint} table says \emph{which} endpoint is responsible, since a
+schedule is only as shared as its least shared part: a study measuring a
+biomarker at every visit and PK at some of them is unique on the pooled
+schedule the moment one PK sample is missing.
+
+None of this is something generation can lower — it is a property of the
+source. What generation controls is whether an avatar ends up \emph{carrying} one
+of these schedules, which \code{\link[=pmx_masking_report]{pmx_masking_report()}} reports as "avatars keeping
+their anchor's own visit set".
 }
 \description{
 A source-side screen for patients that are \strong{alone}, the complement to

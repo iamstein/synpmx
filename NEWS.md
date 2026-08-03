@@ -5,6 +5,25 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* `plot_pmx_schedule()` no longer overloads red. The endpoint palette was
+  red-free-adjacent at best -- the second endpoint was orange, which at screen
+  distance is the same colour as the red used for a unique schedule and for a
+  singleton visit time, so a red dot could mean an endpoint or a warning.
+  Endpoint colours are now red-free, red means only "this identifies somebody",
+  unique-schedule patients are a shaded band rather than coloured label text,
+  and endpoints are offset within each row so two measured at the same visits
+  no longer hide each other.
+
+* `skeleton_uniqueness()` gains `nearest_set_diff` and `n_visits`, and reports
+  which endpoint drives the count. `n_share_schedule == 1` is exact-set
+  equality, which on a real study is harsh: two patients differing by one
+  missed sample score as unique exactly like two with nothing in common. A
+  cohort reading 15 of 21 unique can have every one of those 15 a single
+  missing sample from somebody else, and the count alone cannot say so. The
+  printed output also states that the count is a property of the *source* and
+  that what generation controls is the run report's "avatars keeping their
+  anchor's own visit set".
+
 * **Bug fix (`SIM-039`), changes generated output.** Avatars kept their anchor's
   own visit set far too often -- 86% on a real 21-patient study -- which copies
   one real patient's exact pattern of absences and is what `min_pattern_share`
