@@ -137,7 +137,7 @@ number of endpoints</strong> — one can have multiple PK profiles
 alongside multiple PD measures, declared through the <code>dvid</code>
 role. The pipeline has six <strong>stages</strong>, lettered (a) to (f).
 There are 5 different masking methods employed and they are denoted
-<strong>M1</strong> to <strong>M5</strong>.</p>
+<strong>M1</strong> to <strong>M6</strong>.</p>
 <ul>
 <li>
 <strong>(a) Declare the columns</strong> — <em>Step 1</em>. Roles
@@ -226,7 +226,14 @@ blend within. <em>Step 2.</em>
 <li>
 <strong>M3 — redraw which visits the avatar attended.</strong>
 Reselect which DV values at which time points were collected, in case a
-patient has a unique set of missing visits <em>Step 2.</em>
+patient has a unique set of missing visits. <em>Step 2.</em>
+</li>
+<li>
+<strong>M6 — redraw where dosing stopped.</strong> Where a patient
+stopped dosing at a point nobody else did, the avatar stops at a
+different one. Dose <em>times</em> are never moved or invented — that
+would emit a regimen the protocol never permitted — so this only ever
+truncates a real schedule earlier. <em>Step 2.</em>
 </li>
 <li>
 <strong>M4 — blend the values across several donors.</strong>
@@ -496,12 +503,27 @@ used as an anchor (<code>screen</code>), so no avatar inherits a
 conspicuous skeleton. And a subject in a route arm holding fewer than
 <code>k + 1</code> subjects has no legal donor set, so by default it is
 dropped from the pool too (<code>on_donor_shortfall</code>).</p>
-<p>Neither shrinks the cohort: the remaining anchors are sampled with
-replacement to fill every slot, and excluded subjects still contribute
-measurements as donors. What is lost is coverage of that structure, not
-sample size. This catches subjects who are <strong>extreme</strong>; the
-post-generation screen below is a different thing, and not a masking
-step.</p>
+<p>A third exclusion enforces the guarantee stated at the top of this
+page. A patient whose set of observation times, or set of dose times, is
+shared by nobody and cannot be exchanged for a safe one is not built
+upon — any avatar anchored there would wear that one person’s schedule.
+This one is decided <strong>per avatar rather than per patient</strong>:
+the avatar is re-anchored somewhere else, and the patient stays in the
+pool for every other avatar. An earlier version excluded such patients
+outright and removed 48% of a cohort to fix a single avatar, which is
+why.</p>
+<p>None of the three shrinks the cohort: the remaining anchors are
+sampled with replacement to fill every slot, and excluded subjects still
+contribute measurements as donors. What is lost is coverage of that
+structure, not sample size — and <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> now
+says how much, as the share of the source’s distinct dose regimens that
+survive into the output. On a cohort of nineteen patients on three
+doses, one on two and one on one, that reads 1 of 3: “stopped after one
+dose” cannot be represented without pointing at the one person who
+did.</p>
+<p>The first exclusion catches subjects who are
+<strong>extreme</strong>; the post-generation screen below is a
+different thing, and not a masking step.</p>
 </div>
 <div class="section level3">
 <h3 id="m3-redrawing-which-visits-the-avatar-attended">M3 — redrawing which visits the avatar attended<a class="anchor" aria-label="anchor" href="#m3-redrawing-which-visits-the-avatar-attended"></a>
@@ -543,6 +565,53 @@ the same <em>shape</em> (how many misses, and whether they run to the
 end, sit in a block, or scatter). What survives is how much missingness
 the study had and of what kind; what is lost is which specific weeks any
 one patient missed.</p>
+<p>Three details of how the shape is placed are worth stating, because
+each was a defect first and each is now a regression test:</p>
+<ul>
+<li>
+<strong>A shape is placed by enumerating the legal arrangements, not
+by resampling.</strong> Misses that run to the end have exactly
+<em>one</em> arrangement for a given count, so redrawing at random
+proposes the same rejected arrangement over and over. Where nothing at
+the wanted count is free, the count moves outward by a visit or
+two.</li>
+<li>
+<strong>When no (kind, count) shape is shared either</strong>, the
+kind alone is used — “these patients have visits missing at the end” is
+plainly shared even when every stopping depth has a single holder, which
+is what a study with staggered follow-up looks like.</li>
+<li>
+<strong>Misses are only ever placed on endpoints that actually go
+missing.</strong> An endpoint every patient has at every visit is
+complete by construction, and putting a miss on one of its cells invents
+missingness the study does not have rather than masking any.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="m6-redrawing-where-dosing-stopped">M6 — redrawing where dosing stopped<a class="anchor" aria-label="anchor" href="#m6-redrawing-where-dosing-stopped"></a>
+</h3>
+<p>M3’s counterpart on the dose side, and the reason it is separate is
+the sentence above: dose events are never redrawn, because a drawn
+regimen could be one no protocol permits. There is exactly one edit that
+escapes that objection. Truncating a schedule at one of its own dose
+times yields a regimen the study did give someone — a patient who
+stopped early. Moving a dose, or inventing one, does not.</p>
+<p>So where a patient stopped dosing at a depth nobody else used, the
+avatar stops at a different depth: one that several patients used, or
+one that nobody did. A stopping point nobody reached identifies nobody.
+The walk is <strong>downward only</strong> — truncation removes dose
+rows and cannot add one, so a deeper target would silently leave the
+schedule exactly where it was.</p>
+<p>This does not rescue every cohort, and the arithmetic says which.
+Nineteen patients on three doses, one on two and one on one gives
+stopping depths
+<code>{1: one patient, 2: one patient, 3: nineteen}</code>: both early
+depths have a single holder and there is no free depth between them, so
+“stopped after one dose” cannot be represented at all. That cohort falls
+back to M2 — those patients are not built upon — and the report shows
+the regimen coverage it cost. A study with many patients stopping at
+many depths, which is the ordinary oncology shape, has free depths and
+is fully served.</p>
 </div>
 </div>
 <div class="section level2">

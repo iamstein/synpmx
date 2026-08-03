@@ -1014,11 +1014,19 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left">  of those, dosing re-truncated</td>
+<td align="right">0 of 12 (0%)</td>
+<td align="left">the anchor stopped dosing at a depth nobody else used,
+so the avatar stops at a different one – shared, or used by nobody.
+Truncating a schedule to a real dose time is protocol-valid in a way
+that moving dose times is not</td>
+</tr>
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">1</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">1 (100%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -1026,7 +1034,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -1036,19 +1044,19 @@ copied from the anchor verbatim, so patients whose dose times nobody
 shares are not built upon. Non-zero only when EVERY patient is in that
 position, which individualised dosing can cause</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 11 distinct dose amounts are not a fixed multiple
 of any declared covariate: WT (8 ratio levels for 11 distinct amounts –
 too many to be a protocol)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -1604,11 +1612,19 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left">  of those, dosing re-truncated</td>
+<td align="right">0 of 32 (0%)</td>
+<td align="left">the anchor stopped dosing at a depth nobody else used,
+so the avatar stops at a different one – shared, or used by nobody.
+Truncating a schedule to a real dose time is protocol-valid in a way
+that moving dose times is not</td>
+</tr>
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">1</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">1 (100%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -1616,7 +1632,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -1626,12 +1642,12 @@ copied from the anchor verbatim, so patients whose dose times nobody
 shares are not built upon. Non-zero only when EVERY patient is in that
 position, which individualised dosing can cause</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right">
 <strong>yes</strong>, from <code>wt</code>
@@ -1639,7 +1655,7 @@ position, which individualised dosing can cause</td>
 <td align="left">the 20 distinct dose amounts are a fixed multiple of
 <code>wt</code>, at 1 protocol level(s)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  protocol levels found</td>
 <td align="right">1.5</td>
 <td align="left">dose per unit of <code>wt</code>; every amount was
@@ -1954,11 +1970,19 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left">  of those, dosing re-truncated</td>
+<td align="right">0 of 45 (0%)</td>
+<td align="left">the anchor stopped dosing at a depth nobody else used,
+so the avatar stops at a different one – shared, or used by nobody.
+Truncating a schedule to a real dose time is protocol-valid in a way
+that moving dose times is not</td>
+</tr>
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">4</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">1 (25%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -1966,7 +1990,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -1976,18 +2000,18 @@ copied from the anchor verbatim, so patients whose dose times nobody
 shares are not built upon. Non-zero only when EVERY patient is in that
 position, which individualised dosing can cause</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">no <code>covariates</code> are declared, so there is
 nothing to test the amounts against</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2282,11 +2306,19 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left">  of those, dosing re-truncated</td>
+<td align="right">0 of 12 (0%)</td>
+<td align="left">the anchor stopped dosing at a depth nobody else used,
+so the avatar stops at a different one – shared, or used by nobody.
+Truncating a schedule to a real dose time is protocol-valid in a way
+that moving dose times is not</td>
+</tr>
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">12</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">7 (58%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -2294,7 +2326,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">12 (100%)</td>
@@ -2304,12 +2336,12 @@ copied from the anchor verbatim, so patients whose dose times nobody
 shares are not built upon. Non-zero only when EVERY patient is in that
 position, which individualised dosing can cause</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 4 distinct dose amounts are not a fixed multiple of
@@ -2318,7 +2350,7 @@ too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts
 – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts
 – too many to be a protocol)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2619,11 +2651,19 @@ It is non-zero only when the schedule group has no shared set to
 substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
+<td align="left">  of those, dosing re-truncated</td>
+<td align="right">0 of 120 (0%)</td>
+<td align="left">the anchor stopped dosing at a depth nobody else used,
+so the avatar stops at a different one – shared, or used by nobody.
+Truncating a schedule to a real dose time is protocol-valid in a way
+that moving dose times is not</td>
+</tr>
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">1</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">1 (100%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -2631,7 +2671,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -2641,12 +2681,12 @@ copied from the anchor verbatim, so patients whose dose times nobody
 shares are not built upon. Non-zero only when EVERY patient is in that
 position, which individualised dosing can cause</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 3 distinct dose amounts are not a fixed multiple of
@@ -2654,7 +2694,7 @@ any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels
 for 3 distinct amounts – too many to be a protocol); WT (ratios do not
 cluster); HT (ratios do not cluster)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its

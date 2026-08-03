@@ -186,6 +186,11 @@ pmx_masking_report(synthetic, data, roles)
 #>       have observations belongs to one real patient. It is non-zero only
 #>       when the schedule group has no shared set to substitute; the run
 #>       alerts when it happens
+#>     of those, dosing re-truncated                  0 of 30 (0%)
+#>       the anchor stopped dosing at a depth nobody else used, so the avatar
+#>       stops at a different one -- shared, or used by nobody. Truncating a
+#>       schedule to a real dose time is protocol-valid in a way that moving
+#>       dose times is not
 #>   Distinct dose schedules in the source            1
 #>     represented in the synthetic cohort            1 (100%)
 #>       a regimen only one patient received cannot be given to an avatar

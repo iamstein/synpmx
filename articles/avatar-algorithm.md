@@ -57,7 +57,7 @@ similar real subjects. The generator works on **any number of
 endpoints** — one can have multiple PK profiles alongside multiple PD
 measures, declared through the `dvid` role. The pipeline has six
 **stages**, lettered (a) to (f). There are 5 different masking methods
-employed and they are denoted **M1** to **M5**.
+employed and they are denoted **M1** to **M6**.
 
 - **(a) Declare the columns** — *Step 1*. Roles say which column is the
   id, the time, the dose, the measurement, and so on. Only named columns
@@ -130,7 +130,12 @@ run. Each one is explained in full at the step that fires it.
   within. *Step 2.*
 - **M3 — redraw which visits the avatar attended.** Reselect which DV
   values at which time points were collected, in case a patient has a
-  unique set of missing visits *Step 2.*
+  unique set of missing visits. *Step 2.*
+- **M6 — redraw where dosing stopped.** Where a patient stopped dosing
+  at a point nobody else did, the avatar stops at a different one. Dose
+  *times* are never moved or invented — that would emit a regimen the
+  protocol never permitted — so this only ever truncates a real schedule
+  earlier. *Step 2.*
 - **M4 — blend the values across several donors.** Covariates and DV,
   capped so no one donor dominates, plus noise. *Step 7.*
 - **M5 — recompute the dose from the avatar’s own covariate.** Done when
@@ -353,10 +358,26 @@ skeleton. And a subject in a route arm holding fewer than `k + 1`
 subjects has no legal donor set, so by default it is dropped from the
 pool too (`on_donor_shortfall`).
 
-Neither shrinks the cohort: the remaining anchors are sampled with
-replacement to fill every slot, and excluded subjects still contribute
-measurements as donors. What is lost is coverage of that structure, not
-sample size. This catches subjects who are **extreme**; the
+A third exclusion enforces the guarantee stated at the top of this page.
+A patient whose set of observation times, or set of dose times, is
+shared by nobody and cannot be exchanged for a safe one is not built
+upon — any avatar anchored there would wear that one person’s schedule.
+This one is decided **per avatar rather than per patient**: the avatar
+is re-anchored somewhere else, and the patient stays in the pool for
+every other avatar. An earlier version excluded such patients outright
+and removed 48% of a cohort to fix a single avatar, which is why.
+
+None of the three shrinks the cohort: the remaining anchors are sampled
+with replacement to fill every slot, and excluded subjects still
+contribute measurements as donors. What is lost is coverage of that
+structure, not sample size — and
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+now says how much, as the share of the source’s distinct dose regimens
+that survive into the output. On a cohort of nineteen patients on three
+doses, one on two and one on one, that reads 1 of 3: “stopped after one
+dose” cannot be represented without pointing at the one person who did.
+
+The first exclusion catches subjects who are **extreme**; the
 post-generation screen below is a different thing, and not a masking
 step.
 
@@ -404,6 +425,49 @@ drawn from patients who share it, or built fresh with the same *shape*
 (how many misses, and whether they run to the end, sit in a block, or
 scatter). What survives is how much missingness the study had and of
 what kind; what is lost is which specific weeks any one patient missed.
+
+Three details of how the shape is placed are worth stating, because each
+was a defect first and each is now a regression test:
+
+- **A shape is placed by enumerating the legal arrangements, not by
+  resampling.** Misses that run to the end have exactly *one*
+  arrangement for a given count, so redrawing at random proposes the
+  same rejected arrangement over and over. Where nothing at the wanted
+  count is free, the count moves outward by a visit or two.
+- **When no (kind, count) shape is shared either**, the kind alone is
+  used — “these patients have visits missing at the end” is plainly
+  shared even when every stopping depth has a single holder, which is
+  what a study with staggered follow-up looks like.
+- **Misses are only ever placed on endpoints that actually go missing.**
+  An endpoint every patient has at every visit is complete by
+  construction, and putting a miss on one of its cells invents
+  missingness the study does not have rather than masking any.
+
+### M6 — redrawing where dosing stopped
+
+M3’s counterpart on the dose side, and the reason it is separate is the
+sentence above: dose events are never redrawn, because a drawn regimen
+could be one no protocol permits. There is exactly one edit that escapes
+that objection. Truncating a schedule at one of its own dose times
+yields a regimen the study did give someone — a patient who stopped
+early. Moving a dose, or inventing one, does not.
+
+So where a patient stopped dosing at a depth nobody else used, the
+avatar stops at a different depth: one that several patients used, or
+one that nobody did. A stopping point nobody reached identifies nobody.
+The walk is **downward only** — truncation removes dose rows and cannot
+add one, so a deeper target would silently leave the schedule exactly
+where it was.
+
+This does not rescue every cohort, and the arithmetic says which.
+Nineteen patients on three doses, one on two and one on one gives
+stopping depths `{1: one patient, 2: one patient, 3: nineteen}`: both
+early depths have a single holder and there is no free depth between
+them, so “stopped after one dose” cannot be represented at all. That
+cohort falls back to M2 — those patients are not built upon — and the
+report shows the regimen coverage it cost. A study with many patients
+stopping at many depths, which is the ordinary oncology shape, has free
+depths and is fully served.
 
 ## Step 3: align time without pretending every subject was sampled identically
 
