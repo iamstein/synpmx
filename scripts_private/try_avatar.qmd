@@ -108,6 +108,14 @@ ROLES <- pmx_roles(
   # covariates and endpoints are blended independently, so the two would not
   # agree (see the AVATAR mathematics article, and REV-022).
   covariates = c("WT", "AGE", "SEX"),
+  # DECLARE THIS IF THE STUDY DOSES ON WEIGHT OR BSA. Names the covariate the
+  # amount is a fixed multiple of, so each avatar's dose is rebuilt from its own
+  # blended value. Left NULL the run tries to infer it, and infers conservatively
+  # -- vial rounding or patients escalating by different factors defeat the test,
+  # and then amounts are copied verbatim and still encode one real patient's
+  # weight. Must also appear in `covariates` above. The run report says which
+  # path was taken.
+  dose_covariate = NULL,   # e.g. "WEIGHT0"
 
   # COPIED verbatim from the subject that supplied the doses, so it stays
   # coherent with them -- a study id, a character endpoint label. A kept value is

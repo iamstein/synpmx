@@ -138,13 +138,15 @@ fit_public_fixture <- function(data = private_fixture(), ...) {
 # so a test pins the meaning rather than where the wrap happened to fall.
 squish <- function(x) gsub("[[:space:]]+", " ", x)
 
-# Every condition `expr` raises, as one whitespace-normalized character vector.
-# `.loud_warn()` signals rather than raises, so a calling handler is needed to
-# see it; `expect_warning()` would not.
+# Every alert and warning `expr` emits, as one whitespace-normalized character
+# vector. `.loud_warn()` signals a `synpmx_alert` condition that is not a
+# warning -- carrying the warning class made knitr print each alert twice -- so
+# both handlers are needed and `expect_warning()` sees only the second kind.
 raised_alerts <- function(expr) {
   raised <- character()
   suppressMessages(withCallingHandlers(
     expr,
+    synpmx_alert = function(a) raised <<- c(raised, conditionMessage(a)),
     warning = function(w) {
       raised <<- c(raised, conditionMessage(w))
       invokeRestart("muffleWarning")

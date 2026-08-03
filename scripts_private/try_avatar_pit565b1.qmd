@@ -86,18 +86,20 @@ ROLES <- pmx_roles(
   subject_properties = c("TRT", "TRTN"),  # NULL pools the arms
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
-<<<<<<< HEAD
-  cens     = "CENS",         # e.g. "CENS"  (Monolix: 1 = below, -1 = above)
-=======
-  # Declared, censoring is rebuilt to agree with the blended DV; left NULL, a
-  # BLQ flag would survive that no longer matches its own value.
   cens     = "CENS",         # Monolix: 1 = below, -1 = above
->>>>>>> 9d8fd18d0ebca1232ac8896596db1843ade6ddbf
   limit    = NULL,           # e.g. "LIMIT" (other end of an interval)
   # Blended across donors. Leave out any baseline that is the same quantity as
   # an endpoint -- the two are blended independently, so they would disagree
   # (REV-022). Read that baseline off the generated trajectory instead.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
+  # DECLARE THIS IF THE STUDY DOSES ON WEIGHT OR BSA. Names the covariate the
+  # amount is a fixed multiple of, so each avatar's dose is rebuilt from its own
+  # blended value. Left NULL the run tries to infer it, and infers conservatively
+  # -- vial rounding or patients escalating by different factors defeat the test,
+  # and then amounts are copied verbatim and still encode one real patient's
+  # weight. Must also appear in `covariates` above. The run report says which
+  # path was taken.
+  dose_covariate = NULL,   # e.g. "WEIGHT0"
   keep     = c("STUDYIDN", "STUDYID")  # pass-through only; a stratum belongs above
   # Any column no role names is dropped, so a forgotten identifier cannot ride
   # out of a real patient. The run prints which columns went.
@@ -133,10 +135,12 @@ message("  valid; ", length(unique(raw[[roles$id]])), " subjects")
 
 ### How identifying is this study's visit schedule?
 
-<<<<<<< HEAD
-Assessed by function `skeleton_uniqueness()` and run twice generating the synthetic data, in order to assess the uniqueness of each patient's visit schedule.  If many patients have unique schedules, a coarsening step is run first, snapping patients to a nominal time grid to reduce identifiability by the observation time.  
+`skeleton_uniqueness()` assesses how unique each patient's visit schedule is.
+Run it before generating. If many patients have unique schedules, coarsening
+snaps them onto a nominal time grid first, to reduce identifiability by
+observation time.
 
-The visit schedule is assessed twice
+The visit schedule is assessed twice:
 
 - **as given** -- the recorded times, before anything is done to them.
 - **after coarsening** -- the shared visit grid `synpmx_avatar()` actually
@@ -147,13 +151,6 @@ Every column is the same kind of number: **how many patients share this
 property with me, me included**, so `1` always means "nobody else". Read the
 first table's headline row, then its two sub-rows, which have opposite
 remedies.
-=======
-`synpmx_avatar()` copies its anchor's event skeleton **verbatim**, so a patient
-holding the only copy of their observation times hands that schedule to every
-avatar anchored on them. Run it twice: on the times as given, and on the grid
-the generator actually builds. The second is the one that matters, and the
-difference between them is what coarsening bought.
->>>>>>> 9d8fd18d0ebca1232ac8896596db1843ade6ddbf
 
 ```{r}
 #| label: skeleton-uniqueness-before
@@ -167,19 +164,16 @@ exposure_after_coarsening <- skeleton_uniqueness(raw, roles, coarsen_time = TRUE
 exposure_after_coarsening
 ```
 
-Split the headline by cause before deciding it is bad. **A one-off observation
-time** is a real problem and a fixable one -- declare `nominal_time`. **A
-unique set of attended visits** is dropout: no grid at any resolution touches
-it, and `min_pattern_share` handles it downstream. A large count there with a
-small count above is the normal result for a study with dropout, not a failure.
+Split the headline by cause before deciding it is bad.
 
-<<<<<<< HEAD
 - **a one-off observation time** -- this patient was sampled at a moment
   nobody else was. It *is* a problem, and it is fixable: declaring
   `nominal_time` snaps visits onto the real protocol grid. A count above zero
   here means the inferred grid could not find a shared schedule.
 - **the set of visits attended** -- every one of this patient's times is shared
-  with somebody; what singles them out is which of those visits thave observations. This is due to either drop-out or that the patient's follow-up time was not long enough, and **no grid at any resolution can change it**. It is
+  with somebody; what singles them out is which of those visits have
+  observations. This is due to either drop-out or the patient's follow-up not
+  being long enough, and **no grid at any resolution can change it**. It is
   handled downstream by `min_pattern_share`, which refuses to give any avatar a
   visit set that only one real patient had. A large count here with a small
   count above is the *normal* result for a study with dropout, not a failure.
@@ -193,17 +187,11 @@ ragged right edge is dropout. In the lower panel, a bar of height one is a
 moment only one patient was ever sampled at -- exactly what would be copied
 onto an avatar -- and those are drawn in red. Compare against the uncoarsened
 version to see what the grid merged.
-=======
-The picture answers the same question faster. Vertical stripes mean patients
-share visits, a ragged right edge is dropout, and a red bar in the lower panel
-is a moment only one patient was ever sampled at -- exactly what would be
-copied onto an avatar.
 
 ```{r, fig.width = 12, fig.height = 9}
 #| label: schedule-map
 plot_pmx_schedule(raw, roles)
 ```
->>>>>>> 9d8fd18d0ebca1232ac8896596db1843ade6ddbf
 
 ```{r, fig.width = 12, fig.height = 9}
 #| label: schedule-map-raw
@@ -328,40 +316,23 @@ Source-derived. Keep it in the safe environment; do not export the figure.
 #| label: diagnostic
 #| fig-width: 14
 #| fig-height: 5
-# Named roles, not literal columns, so this survives being copied to another
-# study. The facets grow a column per endpoint on their own.
-label_col <- if (length(roles$dvid) > 1L) {
-  roles$dvid[[length(roles$dvid)]]
-} else if (!is.null(roles$dvid)) roles$dvid[[1L]] else NULL
+# The CONFIG plot again, with source and synthetic overlaid and coloured by
+# which. `raw[, names(synthetic)]` lines the two up: generation keeps exactly
+# the columns the roles named, so this compares every column that survived.
+# Source and synthetic IDs are disjoint by construction, so grouping on the ID
+# alone never joins a real patient's line to an avatar's.
+compare <- rbind(
+  raw[, names(synthetic)] |> mutate(DATA = "source"),
+  synthetic               |> mutate(DATA = "synthetic")
+)
 
-frame <- function(d, label) {
-  keep <- d[[roles$evid]] == 0 & !is.na(d[[roles$dv]])   # observations only
-  out <- data.frame(
-    DATA     = label,
-    id       = d[[roles$id]][keep],
-    time     = as.numeric(d[[roles$time]][keep]),
-    dv       = as.numeric(d[[roles$dv]][keep]),
-    endpoint = if (is.null(label_col)) "DV" else
-      as.character(d[[label_col]][keep]),
-    stringsAsFactors = FALSE
-  )
-  # Colour by the first declared subject property (treatment arm) when there is
-  # one, so this works unchanged on a study with no arms.
-  arm <- roles$subject_properties[[1L]]
-  out$arm <- if (is.null(arm)) "all" else as.character(d[[arm]][keep])
-  out
-}
-compare <- rbind(frame(raw, "source"), frame(synthetic, "synthetic"))
-
-g <- ggplot(compare, aes(x = time, y = dv, group = id, color = arm)) +
+ggplot(compare |> filter(EVID == 0, !is.na(LIDV)),
+       aes(x = TIME, y = LIDV, group = USUBJID, color = DATA)) +
   geom_point(alpha = 0.5) +
   geom_line(alpha = 0.5) +
-  facet_grid(DATA ~ endpoint, scales = "free_y") +
+  facet_grid(NAME ~ TRT, scales = "free_y", switch = "y") +
   xgx_scale_x_time_units("days") +
-  xgx_scale_y_log10() +
-  labs(title = "RESTRICTED: source vs AVATAR synthetic",
-       subtitle = "do not export", x = "Time", y = "DV", color = "Arm")
-g
+  xgx_scale_y_log10()
 ```
 
 The synthetic table carries no formal privacy guarantee; it is built by blending

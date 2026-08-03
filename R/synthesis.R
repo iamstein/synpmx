@@ -341,6 +341,59 @@
 # prints it. `NULL` still means "leave the amounts alone"; the note says why.
 .dose_basis_none <- function(note) list(covariate = NULL, note = note)
 
+# Declared beats inferred. `.detect_dose_basis()` has to *guess* that a study is
+# dose-proportional, and it guesses conservatively: the dose-to-covariate ratio
+# has to collapse onto a handful of protocol levels. A study that rounds doses
+# to vial sizes, or escalates within a patient by ratios that are not quite
+# equal, fails that test and has its amounts left alone -- correctly, because
+# rewriting amounts on a study that is not proportional would be worse. But a
+# caller who *knows* their study is weight-based should not have to argue with
+# an inference engine, so `dose_covariate` says it outright.
+#
+# The declared path also keeps each dose row's OWN ratio rather than snapping to
+# clustered levels, so intra-patient escalation survives exactly: three doses at
+# 1, 2 and 4 mg/kg stay at 1, 2 and 4 mg/kg even though no clustering step would
+# have recovered those three levels from rounded milligrams.
+.dose_basis_for <- function(source, roles) {
+  declared <- roles$dose_covariate
+  if (is.null(declared)) return(.detect_dose_basis(source, roles))
+  if (is.null(roles$amt)) {
+    stop("`dose_covariate` is declared but no `amt` role is, so there is no ",
+         "amount to recompute.", call. = FALSE)
+  }
+  if (!declared %in% names(source)) {
+    stop("`dose_covariate` names a column that is not in the data: `",
+         declared, "`.", call. = FALSE)
+  }
+  amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
+  values <- suppressWarnings(as.numeric(source[[declared]]))
+  usable <- .dose_rows(source, roles) & is.finite(amount) & amount > 0
+  if (!any(usable)) {
+    return(.dose_basis_none(sprintf(
+      "`dose_covariate = \"%s\"` is declared, but no dose row carries a positive amount",
+      declared)))
+  }
+  bad <- usable & (!is.finite(values) | values <= 0)
+  if (any(bad)) {
+    stop(sprintf(paste("`dose_covariate` (`%s`) is missing or non-positive on",
+                       "%d dose row(s). It must be positive wherever a dose is",
+                       "given, since the amount is divided by it."),
+                 declared, sum(bad)), call. = FALSE)
+  }
+  ratio <- amount[usable] / values[usable]
+  list(
+    covariate = declared,
+    # NULL levels is what marks the declared path for `.dose_levels_for()`:
+    # hold the anchor's own per-row ratio instead of snapping to a level.
+    levels = NULL,
+    note = sprintf(paste("declared with `dose_covariate`, so no inference was",
+                         "run. Each avatar's amount is rebuilt from its own",
+                         "`%s` at its anchor's dose per unit (%s to %s across",
+                         "the source)"),
+                   declared, signif(min(ratio), 4), signif(max(ratio), 4))
+  )
+}
+
 .detect_dose_basis <- function(source, roles, tolerance = 0.02,
                                max_levels = 10L) {
   if (is.null(roles$amt)) {
@@ -448,9 +501,15 @@
   if (!any(dosed)) return(NULL)
   level <- rep(NA_real_, length(amount))
   ratio <- amount[dosed] / covariate
-  level[dosed] <- basis$levels[
-    max.col(-abs(outer(ratio, basis$levels, "-")), ties.method = "first")
-  ]
+  level[dosed] <- if (is.null(basis$levels)) {
+    # Declared basis: this row's own dose per unit, so a titration or an
+    # escalation is carried through as it stands rather than rounded to the
+    # nearest level some clustering step happened to find.
+    ratio
+  } else {
+    basis$levels[max.col(-abs(outer(ratio, basis$levels, "-")),
+                         ties.method = "first")]
+  }
   level
 }
 
@@ -601,8 +660,43 @@
     shape_counts <- tapply(as.integer(counts), shapes, sum)
     shape_kept <- shape_counts[shape_counts >= min_pattern_share]
 
-    # What is lost is now what neither an exact pattern nor its shape can carry.
-    lost <- !kept & !(shapes %in% names(shape_kept))
+    # A third, coarser abstraction, reached only when the second cleared
+    # nothing: the KIND of missingness alone, ignoring how many visits it cost.
+    #
+    # Staggered discontinuation is the case that needs it, and it is the normal
+    # shape of a real study: twenty-one patients who each stopped at a different
+    # visit share no exact pattern AND no (kind, count) shape, because each
+    # count has exactly one holder. The group then got no pool at all and every
+    # avatar in it kept its anchor's own visit set -- one real patient's
+    # absences, copied. "These patients dropped out" is plainly a property
+    # twenty-one of them share, so it is enough to build from; the placement
+    # search picks a depth that is not any single patient's.
+    # A pattern survives if it can be reproduced itself, or if its shape can.
+    carried <- kept | (shapes %in% names(shape_kept))
+    if (!length(shape_kept)) {
+      kinds <- sub("\\|.*$", "", shapes)
+      kind_counts <- tapply(as.integer(counts), kinds, sum)
+      kind_kept <- kind_counts[kind_counts >= min_pattern_share]
+      if (length(kind_kept)) {
+        # Request the typical depth for that kind; `.place_attendance()` moves
+        # it when the exact depth belongs to somebody.
+        typical <- vapply(names(kind_kept), function(k) {
+          max(1L, as.integer(round(stats::median(
+            as.integer(sub("^.*\\|", "", shapes[kinds == k]))
+          ))))
+        }, integer(1))
+        shape_kept <- kind_kept
+        names(shape_kept) <- paste0(names(kind_kept), "|", typical)
+        carried <- kinds %in% names(kind_kept)
+        # `kept` is necessarily all FALSE here -- an exact pattern clearing the
+        # floor would have carried its own shape through above -- so renaming
+        # the shapes invalidates no `exact` mapping.
+        shapes <- rep(NA_character_, length(shapes))
+      }
+    }
+
+    # What is lost is what none of the three abstractions can carry.
+    lost <- !carried
     dropped_patterns <- dropped_patterns + sum(lost)
     dropped_subjects <- dropped_subjects + sum(as.integer(counts[lost]))
     if (!length(shape_kept)) next
@@ -665,43 +759,86 @@
   paste(sort(cells[-missed]), collapse = ";")
 }
 
+# Every way of placing `n_miss` misses of this kind over `n` cells, in the order
+# they should be tried. `trailing` yields exactly one, which is the fact the
+# caller is built around.
+.attendance_placements <- function(kind, n_miss, n, tries) {
+  if (n_miss < 1L || n_miss >= n) return(list())
+  switch(
+    kind,
+    trailing = list(seq.int(n - n_miss + 1L, n)),
+    block = {
+      # Contiguous but not terminal, so a block stays distinguishable from
+      # dropout. Enumerated and shuffled rather than sampled with replacement:
+      # the same start was previously drawn several times out of 24 tries while
+      # other legal starts went untried.
+      last_start <- n - n_miss
+      if (last_start < 1L) return(list())
+      lapply(sample(seq_len(last_start)), function(start) {
+        seq.int(start, start + n_miss - 1L)
+      })
+    },
+    scattered = {
+      # choose(n, n_miss) is far too large to enumerate, so this one stays a
+      # sample. A draw that came out contiguous or terminal is a different
+      # shape, so it is discarded rather than returned.
+      out <- list()
+      for (attempt in seq_len(tries)) {
+        missed <- sort(sample.int(n, n_miss))
+        if (all(diff(missed) == 1L) || all(missed > n - n_miss)) next
+        out[[length(out) + 1L]] <- missed
+      }
+      out
+    },
+    list()
+  )
+}
+
+# The requested number of misses first, then outward: k, k+1, k-1, k+2, ...
+.miss_counts <- function(wanted, n) {
+  outward <- as.vector(rbind(wanted + seq_len(n), wanted - seq_len(n)))
+  candidates <- c(wanted, outward)
+  unique(candidates[candidates >= 1L & candidates < n])
+}
+
 # Place a shape's misses on the grid without copying anyone's arrangement, and
 # refuse any placement that happens to reproduce a pattern too rare to have been
 # reusable. Without that rejection the guarantee would weaken from "no synthetic
 # patient carries a schedule unique to a real one" to merely "nothing was copied
 # on purpose", and an attacker cannot tell those apart.
+#
+# The number of misses is allowed to move if, and only if, nothing at the
+# requested number is legal. `trailing` is why: a dropout of exactly k visits
+# has ONE possible placement, and if any real patient dropped out at that depth
+# then that placement is rare and there is nothing else at that depth to try.
+# The old loop retried the identical placement 24 times, failed, and the caller
+# then let the avatar keep its ANCHOR's visit set -- copying one real patient's
+# absences exactly, which is worse on every axis than a dropout a visit deeper.
+# Dropout is the commonest kind of missingness, so this was the normal outcome
+# rather than an edge case: 86% of avatars on a real 21-patient study.
 .place_attendance <- function(cells, shape, rare, tries = 24L) {
   parts <- strsplit(shape, "|", fixed = TRUE)[[1L]]
   kind <- parts[[1L]]
-  n_miss <- as.integer(parts[[2L]])
+  wanted <- as.integer(parts[[2L]])
   n <- length(cells)
-  if (kind == "complete" || n_miss < 1L) return(paste(sort(cells), collapse = ";"))
-  if (n_miss >= n) return(NA_character_)
-
-  for (attempt in seq_len(tries)) {
-    missed <- switch(
-      kind,
-      trailing = seq.int(n - n_miss + 1L, n),
-      block = {
-        # Contiguous but not terminal, so a block stays distinguishable from
-        # dropout.
-        last_start <- n - n_miss
-        if (last_start < 1L) return(NA_character_)
-        start <- sample.int(last_start, 1L)
-        seq.int(start, start + n_miss - 1L)
-      },
-      scattered = sort(sample.int(n, n_miss)),
-      return(NA_character_)
-    )
-    if (kind == "scattered") {
-      # Keep the kind honest: a scattered draw that came out contiguous or
-      # terminal is a different shape, so redraw.
-      if (all(diff(missed) == 1L) || all(missed > n - n_miss)) next
-    }
-    key <- .attendance_key_from(cells, missed)
-    if (!(key %in% rare)) return(key)
+  complete <- paste(sort(cells), collapse = ";")
+  if (kind == "complete" || wanted < 1L) {
+    return(list(key = complete, shifted = FALSE))
   }
-  NA_character_
+
+  for (n_miss in .miss_counts(wanted, n)) {
+    for (missed in .attendance_placements(kind, n_miss, n, tries)) {
+      key <- .attendance_key_from(cells, missed)
+      if (!(key %in% rare)) {
+        return(list(key = key, shifted = !identical(n_miss, wanted)))
+      }
+    }
+  }
+  # Last resort before the caller falls back to the anchor's own visit set:
+  # attend everything. Legal unless exactly one real patient was the sole
+  # complete attender, in which case it is that patient's pattern.
+  if (!(complete %in% rare)) return(list(key = complete, shifted = TRUE))
+  list(key = NA_character_, shifted = FALSE)
 }
 
 # Draw one attendance pattern for an avatar. A real pattern is used wherever
@@ -716,10 +853,11 @@
   if (length(exact)) {
     weight <- available$exact_weight[[shape]]
     return(list(key = exact[[sample.int(length(exact), 1L, prob = weight)]],
-                generated = FALSE))
+                generated = FALSE, shifted = FALSE))
   }
-  key <- .place_attendance(available$cells, shape, available$rare)
-  list(key = key, generated = !is.na(key))
+  placed <- .place_attendance(available$cells, shape, available$rare)
+  list(key = placed$key, generated = !is.na(placed$key),
+       shifted = isTRUE(placed$shifted))
 }
 
 # Rebuild the skeleton's observation rows to match a sampled pattern, keeping
@@ -1150,6 +1288,32 @@
   skeleton
 }
 
+# Advice that depends on what the caller already did. Three alerts used to end
+# with "declare a `nominal_time` role" unconditionally, which is worse than
+# useless to somebody who declared it on the first line of their script: it
+# reads as though the run did not notice. When the grid is already nominal the
+# remaining levers are the pool split and the floor, so say those instead.
+.schedule_advice <- function(source_roles, min_pattern_share, grid) {
+  nominal <- identical(grid, "nominal")
+  strata <- source_roles$subject_properties
+  c(
+    if (!nominal) {
+      paste("declare a `nominal_time` role so coarsening puts more patients on",
+            "the same visits")
+    },
+    if (identical(grid, "mixed")) {
+      paste("fill in `nominal_time` on the rows that are missing it -- the run",
+            "reports how many were snapped to an inferred grid instead")
+    },
+    if (length(strata)) {
+      sprintf(paste("drop `subject_properties` (%s) so the arms share one pool",
+                    "of visit sets instead of one each"),
+              paste(strata, collapse = ", "))
+    },
+    sprintf("lower `min_pattern_share` from %d", as.integer(min_pattern_share))
+  )
+}
+
 # A deliberately loud, immediate alert for what a run cannot fix on its own --
 # a source with fewer subjects than the donor floor, a schedule the grid could
 # not collapse. Unlike the collected end-of-run warning() (which
@@ -1157,25 +1321,25 @@
 # banner survives suppressWarnings and prints at once, in red on an interactive
 # console.
 #
-# The condition is *signalled* rather than raised with `warning()`. Raising it
-# printed the identical paragraph a second time, immediately below the banner,
-# which doubled the volume a reader had to get through for no added
-# information. Signalling keeps every handler that matters -- `tryCatch(warning
-# = )` sees it, `suppressWarnings()` muffles it through the restart below, and
-# `message()` already puts the human-readable text on stderr for a
-# non-interactive log. It does not trip `options(warn = 2)`, which needs the
-# default handler; the banner is the channel to rely on.
+# `message()` is the only channel that prints. A condition is also signalled so
+# a caller can react programmatically, but it is deliberately NOT a `warning`
+# subclass, and that detail is the whole point: `warning()`, and equally a
+# signalled condition carrying the `warning` class, is picked up by knitr's
+# calling handler and rendered *in addition to* the message, so every alert
+# appeared twice in a knitted report -- which is exactly the volume this
+# formatting exists to cut. A plain `synpmx_alert` condition is invisible to
+# knitr, to `suppressWarnings()`, and to `options(warn = 2)`; handle it with
+# `withCallingHandlers(synpmx_alert = ...)` when you want to collect them.
 .loud_warn <- function(title, what, why = NULL, fix = NULL, kind = "ALERT") {
   text <- .alert_text(title, what, why, fix, kind)
   banner <- if (interactive()) paste0("\033[1;31m", text, "\033[0m") else text
   # The trailing blank line is what makes a run emitting three of these
   # skimmable rather than a wall.
   message(banner, "\n")
-  condition <- structure(
-    class = c("synpmx_alert", "warning", "condition"),
+  signalCondition(structure(
+    class = c("synpmx_alert", "condition"),
     list(message = paste0(text, "\n"), call = NULL)
-  )
-  withRestarts(signalCondition(condition), muffleWarning = function() NULL)
+  ))
   invisible(NULL)
 }
 
@@ -1627,7 +1791,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     }
     # The detector always returns its reasoning; `dose_basis` stays NULL unless
     # it actually found a basis, so nothing downstream changes.
-    dose_basis_detection <- .detect_dose_basis(source, source_roles)
+    dose_basis_detection <- .dose_basis_for(source, source_roles)
     dose_basis <- if (is.null(dose_basis_detection$covariate)) NULL else
       dose_basis_detection
     profiles <- .build_profiles(source, source_roles, pca_variance)
@@ -1676,9 +1840,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
           why = paste("avatars anchored there keep their anchor's own set of",
                       "attended visits, which is exactly what",
                       "`min_pattern_share` exists to avoid reproducing."),
-          fix = paste("declare a `nominal_time` role so coarsening puts more",
-                      "patients on the same visits, or lower",
-                      "`min_pattern_share`.")
+          fix = paste0(paste(.schedule_advice(source_roles, min_pattern_share,
+                                             coarsened$grid),
+                             collapse = "; "), ".")
         )
       }
     }
@@ -1844,6 +2008,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     cap_bound <- logical(n_subjects)
     pattern_sampled <- logical(n_subjects)
     pattern_generated <- logical(n_subjects)
+    # Whether the number of missed visits had to move to find a placement that
+    # was not some real patient's. Recorded because it is the one thing the
+    # attendance mechanism promises to preserve exactly and sometimes cannot.
+    pattern_shifted <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -1858,6 +2026,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
             original_order <- seq_len(nrow(skeleton))
             pattern_sampled[synthetic_index] <- TRUE
             pattern_generated[synthetic_index] <- drawn$generated
+            pattern_shifted[synthetic_index] <- isTRUE(drawn$shifted)
           }
         }
       }
@@ -1920,9 +2089,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                     "`min_pattern_share` exists to prevent. It happens when a",
                     "schedule group has no set shared by enough patients, or",
                     "when every way of placing the shape is already somebody's."),
-        fix = paste("declare a `nominal_time` role so more patients land on the",
-                    "same visits, or accept it and screen the result with",
-                    "`flag_identifiable_subjects()`.")
+        fix = paste0(paste(.schedule_advice(source_roles, min_pattern_share,
+                                           coarsened$grid),
+                           collapse = "; "),
+                     ". Or accept it and screen the result with ",
+                     "`flag_identifiable_subjects()`.")
       )
     }
 
@@ -1961,6 +2132,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # Of the sampled patterns, how many were built from a shape rather than
       # reused from a real subject.
       pattern_generated_fraction = mean(pattern_generated),
+      # Of the avatars given a visit set, how many had the miss count moved.
+      pattern_shifted_fraction = mean(pattern_shifted),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
       # Note that at the default floor of 2 a dropped pattern is *by definition*
@@ -1986,6 +2159,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # caller whose study *is* weight-based has no way to tell which happened.
       dose_basis_note = dose_basis_detection$note,
       dose_levels = if (is.null(dose_basis)) NA_real_ else dose_basis$levels,
+      # TRUE when the caller named the covariate rather than the run inferring
+      # it. The two behave differently -- declared holds each dose row's own
+      # ratio, inferred snaps to shared protocol levels -- so a report that
+      # says "yes" needs to say which.
+      dose_basis_declared = !is.null(source_roles$dose_covariate),
       unique_schedule_n = unique_schedule_n,
       unique_obs_time_n = unique_obs_time_n,
       unique_visit_set_n = if (is.na(unique_schedule_n)) NA_integer_ else

@@ -1295,33 +1295,43 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
     header("Visit sets: WHICH of those visits each patient attended"),
     c("Distinct visit sets in the source", num(settings$patterns_total),
       "a visit set is which of the shared grid visits one patient actually had"),
-    c("&nbsp;&nbsp;shared by too few patients, so not reused",
+    c(sprintf("&nbsp;&nbsp;held by fewer than %s patients, so not reused",
+              num(settings$min_pattern_share)),
       num(settings$patterns_dropped),
-      "`min_pattern_share`; these are lost, not approximated"),
+      "`min_pattern_share` is that threshold. These visit sets are lost, not approximated"),
     c("&nbsp;&nbsp;real patients holding those",
       num(settings$subjects_with_dropped_pattern),
-      "they stay in the cohort as donors; only their absences stop being copied"),
+      "those patients are NOT removed -- they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied"),
     c("Avatars given a visit set from the pool",
       pct(settings$pattern_sampled_fraction),
-      "drawn from the sets that survived the floor -- never from their own anchor alone"),
+      "drawn from the sets that cleared the threshold, or built from their shape -- never from their own anchor alone"),
     c("&nbsp;&nbsp;of those, misses placed fresh",
       pct(settings$pattern_generated_fraction),
-      "how many visits were missed and of what kind was reused; exactly which ones was invented"),
+      "the kind of missingness was reused; exactly which visits were missed was invented"),
+    c("&nbsp;&nbsp;of those, miss count moved",
+      pct(settings$pattern_shifted_fraction),
+      "no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement"),
     c("Avatars keeping their anchor's own visit set",
       pct(1 - (settings$pattern_sampled_fraction %||% NA_real_)),
-      "the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient's absences"),
+      "the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient's absences exactly. The run alerts past 10%"),
 
     header("Dose"),
     c("Amounts recomputed from a covariate",
       if (is.na(settings$dose_basis)) "**no**" else
-        paste0("**yes**, from `", settings$dose_basis, "`"),
+        paste0("**yes**, from `", settings$dose_basis, "`",
+               if (isTRUE(settings$dose_basis_declared)) " (declared)"
+               else " (inferred)"),
       settings$dose_basis_note %||%
-        "detected only where dose / covariate collapses onto a few protocol levels; fails closed"),
-    if (!is.na(settings$dose_basis)) {
+        "inferred only where dose / covariate collapses onto a few protocol levels; fails closed. Declare `dose_covariate` in `pmx_roles()` to skip the inference"),
+    if (is.na(settings$dose_basis)) {
+      c("&nbsp;&nbsp;so `amt` is copied verbatim", "from the anchor",
+        "each avatar's implied dose per kg is therefore its anchor's, not its own, and the amount still encodes one real patient's covariate. Declare `dose_covariate` if this study is weight- or BSA-based")
+    },
+    if (!is.na(settings$dose_basis) && !isTRUE(settings$dose_basis_declared)) {
       c("&nbsp;&nbsp;protocol levels found",
         paste(signif(settings$dose_levels, 4), collapse = ", "),
         paste0("dose per unit of `", settings$dose_basis,
-               "`; each avatar's amount is rebuilt from its own blended value"))
+               "`; every amount was snapped to the nearest of these"))
     }
   )
   do.call(rbind, Filter(Negate(is.null), rows))

@@ -5,6 +5,37 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **Bug fix (`SIM-039`), changes generated output.** Avatars kept their anchor's
+  own visit set far too often -- 86% on a real 21-patient study -- which copies
+  one real patient's exact pattern of absences and is what `min_pattern_share`
+  exists to prevent. Two causes, both triggered by ordinary dropout: a
+  `trailing` placement is deterministic, so the 24 retries all re-proposed the
+  one arrangement that had just been rejected; and under staggered
+  discontinuation every (kind, count) shape has a single holder, so the group
+  got no pool at all. Placements are now enumerated, the miss count walks
+  outward when nothing at the wanted count is free, and a third abstraction --
+  the kind of missingness alone -- is reached when the finer one clears
+  nothing. `synpmx_avatar()` alerts when 10% or more of avatars still fall
+  back, and `pattern_shifted_fraction` records how often the miss count moved.
+
+* **`pmx_roles()` gains `dose_covariate`** (`SIM-040`). Name the covariate the
+  dose is a fixed multiple of -- weight, body surface area -- and
+  `synpmx_avatar()` recomputes each avatar's `amt` from the avatar's own
+  blended value instead of copying its anchor's milligrams. This skips the
+  conservative inference, which fails closed on studies that escalate within
+  patient or dispense in vials, and holds each dose row's own ratio, so
+  intra-patient escalation is preserved exactly. The column must also be named
+  in `covariates`.
+
+* Alerts no longer print twice in a knitted report. The signalled condition
+  carried the `warning` class, which `knitr` renders in addition to the
+  message; it is now a plain `synpmx_alert` condition. Handle it with
+  `withCallingHandlers(synpmx_alert = ...)`.
+
+* Alerts that used to end "declare a `nominal_time` role" now say something
+  useful to a caller who already declared one, naming the pool split from
+  `subject_properties` and the `min_pattern_share` floor instead.
+
 * **Bug fix (`SIM-038`), changes generated output.** Times were keyed with
   `format(x, digits = 12)`, which fixes one layout for a whole vector, so the
   same visit keyed differently for a patient who also had a fractional sample.

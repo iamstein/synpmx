@@ -23,6 +23,7 @@ pmx_roles(
   ii = NULL,
   covariates = NULL,
   subject_properties = NULL,
+  dose_covariate = NULL,
   assigned_dose = NULL,
   keep = NULL,
   exclude = NULL
@@ -78,6 +79,29 @@ are still borrowed across strata to reach the donor floor.
 
 The differential-privacy engines model the same columns jointly with the
 regimen as a released category domain.}
+
+\item{dose_covariate}{The covariate the dose is a fixed multiple of, for
+weight-based or body-surface-area dosing: name the \strong{covariate}, not the
+amount. Declaring it tells \code{\link[=synpmx_avatar]{synpmx_avatar()}} to recompute each avatar's
+\code{amt} from the avatar's own blended covariate at the anchor's own
+milligrams-per-unit, instead of copying the anchor's milligrams.
+
+This matters twice over. An avatar's covariates are blended while its \code{amt}
+would otherwise be copied verbatim, so under proportional dosing the
+avatar's own mg/kg comes out wrong — every generated patient violates the
+protocol it claims to follow. And a copied amount is one real patient's
+real dose, which under proportional dosing discloses that patient's weight
+exactly.
+
+Left \code{NULL}, \code{\link[=synpmx_avatar]{synpmx_avatar()}} tries to \emph{infer} the relationship, and that
+inference deliberately fails closed: it requires the dose-to-covariate
+ratio to collapse onto a handful of protocol levels, so a study that
+rounds doses to vial sizes, or escalates within a patient by ratios that
+are not quite equal, is refused and the amounts are left alone. Declaring
+the covariate skips inference entirely and holds each dose row's own
+ratio, so \strong{intra-patient escalation is preserved exactly} — three doses
+at 1, 2 and 4 mg/kg stay at 1, 2 and 4 mg/kg. The run report says which
+path was taken and, when inference declined, why.}
 
 \item{assigned_dose}{Differential-privacy engines only. A nominal
 assigned-dose column reconstructed from the generated regimen.

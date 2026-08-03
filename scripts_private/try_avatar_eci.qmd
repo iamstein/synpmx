@@ -106,6 +106,14 @@ ROLES <- pmx_roles(
   # an endpoint -- the two are blended independently, so they would disagree
   # (REV-022). Read that baseline off the generated trajectory instead.
   covariates = c("WEIGHT0", "AGE0", "SEX", "RACE"),
+  # DECLARE THIS IF THE STUDY DOSES ON WEIGHT OR BSA. Names the covariate the
+  # amount is a fixed multiple of, so each avatar's dose is rebuilt from its own
+  # blended value. Left NULL the run tries to infer it, and infers conservatively
+  # -- vial rounding or patients escalating by different factors defeat the test,
+  # and then amounts are copied verbatim and still encode one real patient's
+  # weight. Must also appear in `covariates` above. The run report says which
+  # path was taken.
+  dose_covariate = NULL,   # e.g. "WEIGHT0"
   keep     = c("STUDYIDN", "STUDYID")  # pass-through only; a stratum belongs above
   # Any column no role names is dropped, so a forgotten identifier cannot ride
   # out of a real patient. The run prints which columns went.
@@ -300,40 +308,23 @@ Source-derived. Keep it in the safe environment; do not export the figure.
 #| label: diagnostic
 #| fig-width: 14
 #| fig-height: 5
-# Named roles, not literal columns, so this survives being copied to another
-# study. The facets grow a column per endpoint on their own.
-label_col <- if (length(roles$dvid) > 1L) {
-  roles$dvid[[length(roles$dvid)]]
-} else if (!is.null(roles$dvid)) roles$dvid[[1L]] else NULL
+# The CONFIG plot again, with source and synthetic overlaid and coloured by
+# which. `raw[, names(synthetic)]` lines the two up: generation keeps exactly
+# the columns the roles named, so this compares every column that survived.
+# Source and synthetic IDs are disjoint by construction, so grouping on the ID
+# alone never joins a real patient's line to an avatar's.
+compare <- rbind(
+  raw[, names(synthetic)] |> mutate(DATA = "source"),
+  synthetic               |> mutate(DATA = "synthetic")
+)
 
-frame <- function(d, label) {
-  keep <- d[[roles$evid]] == 0 & !is.na(d[[roles$dv]])   # observations only
-  out <- data.frame(
-    DATA     = label,
-    id       = d[[roles$id]][keep],
-    time     = as.numeric(d[[roles$time]][keep]),
-    dv       = as.numeric(d[[roles$dv]][keep]),
-    endpoint = if (is.null(label_col)) "DV" else
-      as.character(d[[label_col]][keep]),
-    stringsAsFactors = FALSE
-  )
-  # Colour by the first declared subject property (treatment arm) when there is
-  # one, so this works unchanged on a study with no arms.
-  arm <- roles$subject_properties[[1L]]
-  out$arm <- if (is.null(arm)) "all" else as.character(d[[arm]][keep])
-  out
-}
-compare <- rbind(frame(raw, "source"), frame(synthetic, "synthetic"))
-
-g <- ggplot(compare, aes(x = time, y = dv, group = id, color = arm)) +
+ggplot(compare |> filter(EVID == 0, !is.na(LIDV)),
+       aes(x = TIME, y = LIDV, group = ID, color = DATA)) +
   geom_point(alpha = 0.5) +
   geom_line(alpha = 0.5) +
-  facet_grid(DATA ~ endpoint, scales = "free_y") +
+  facet_grid(NAME ~ TRT, scales = "free_y", switch = "y") +
   xgx_scale_x_time_units("days") +
-  xgx_scale_y_log10() +
-  labs(title = "RESTRICTED: source vs AVATAR synthetic",
-       subtitle = "do not export", x = "Time", y = "DV", color = "Arm")
-g
+  xgx_scale_y_log10()
 ```
 
 The synthetic table carries no formal privacy guarantee; it is built by blending

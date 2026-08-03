@@ -104,7 +104,8 @@ points were collected, in case a patient has a unique set of missing visits *Ste
 - **M4 — blend the values across several donors.** Covariates and DV, capped so
   no one donor dominates, plus noise. *Step 7.*
 - **M5 — recompute the dose from the avatar's own covariate.** Done when the dosing
-  is weight- or BSA-based, so that subjects do not have uniquely identifying doses. *Step 9.*
+  is weight- or BSA-based, so that subjects do not have uniquely identifying doses.
+  Declared with `dose_covariate`, or inferred. *Step 9.*
 
 ## Step 1: declare the meaning of the columns
 
@@ -1396,13 +1397,26 @@ knitr::kable(
 
 ### M5 — recomputing the dose from the blended covariate
 
-Runs automatically. Under dosing
-proportional to a baseline covariate, the multiplier is a protocol property the
-stratum shares and the covariate is individual — and already blended. Keeping the
-multiplier and recomputing the amount from the avatar's own covariate stops the
-dose being a verbatim real value (which under mg/kg dosing discloses the anchor's
-weight exactly) and repairs a coherence defect: previously every avatar violated
-the mg/kg rule its own data claims to follow. See `REV-027`.
+Under dosing proportional to a baseline covariate, the multiplier is a protocol
+property the stratum shares and the covariate is individual — and already
+blended. Keeping the multiplier and recomputing the amount from the avatar's own
+covariate stops the dose being a verbatim real value (which under mg/kg dosing
+discloses the anchor's weight exactly) and repairs a coherence defect:
+previously every avatar violated the mg/kg rule its own data claims to follow.
+See `REV-027`.
+
+**Declared or inferred, and the difference matters.** Naming the covariate in
+`pmx_roles(dose_covariate = )` states the relationship outright; leaving it
+`NULL` makes the run infer one. Inference is deliberately conservative: it
+requires the dose-to-covariate ratio to collapse onto a handful of levels
+within 2%, because rewriting amounts on a study that is *not* proportional
+would be worse than leaving them alone. Two ordinary things defeat that test —
+dispensing in vials, and patients escalating by factors that are not identical
+across the cohort — so a genuinely weight-based study can come through with its
+amounts untouched. Declaring the covariate skips inference and holds **each
+dose row's own ratio** rather than snapping to shared levels, so intra-patient
+escalation survives exactly. `pmx_masking_report()` says which path ran and,
+when inference declined, what it tried. See `SIM-040`.
 
 **The post-generation screen. Screening the finished data, and remediating** (`flag_identifiable_subjects()`,
 after generation). The only mechanism `synpmx_avatar()` does **not** run for you.
