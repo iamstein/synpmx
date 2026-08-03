@@ -42,6 +42,18 @@ schedules must not be supplied to the fit.
 | `nimoData` | `nlmixr2data::nimoData` | Public package data | Four nominal dose groups, ten approximately weekly infusions, declared OCC/TAD, long terminal follow-up, and a time-varying weight column | DOS is a subject property that conditions amount/rate/duration; every subject has ten coherent infusions; WGT is explicitly excluded; dose-relative sample count and terminal coverage remain broad |
 | `skeleton_uniqueness` | Public datasets via `scripts/measure_skeleton_uniqueness.R` | Package-owned report over public package data | Observation-time, observation-count, and event-signature equivalence classes, before and after `coarsen_time` | Coarsening must not increase any class exposure; a source already on its nominal grid must be generated unchanged; subjects still alone after coarsening must raise an alert |
 | `mavoglurant` | `nlmixr2data::mavoglurant` | Public package data | One- and two-period profiles, TIME reset within OCC, occasion-varying assigned DOSE, numeric-coded SEX, infusion rows | Reset clocks validate within ID/OCC; DOSE equals positive AMT and is constant within ID/OCC; SEX is categorical; cohort and two-occasion event structure remain |
+| `case1_pkpd` | `xgxr::case1_pkpd` | Public package data (`xgxr` is already a Suggests) | **The first public dataset shaped like a real study report.** 180 patients, a declared `NOMTIME`, six treatment arms as `subject_properties`, two endpoints keyed by a character `NAME`, and a baseline weight. Nothing in the nlmixr2data five has a declared nominal time, an arm to stratify on, or a `CENS` column | Grid is `nominal`; 0 patients with a unique observation schedule; both guarantees hold at 0; every arm survives into the output. Note `CENS` is meaningful only for the PK endpoint -- the PD effect is signed, and declaring `cens` is correctly refused by validation |
+| `mad` | `xgxr::mad` | Public package data | **Six endpoints**, including ordinal, count and binary PD alongside continuous PD and PK. `warfarin`'s two endpoints are the most the rest of the registry offers, and `SIM-036`'s endpoint-loss failure mode is invisible below that | All six endpoints survive generation; schedule guarantee holds at 0 |
+| `pheno_sd` | `nlmixr2data::pheno_sd` | Public package data | 59 **real** patients, the largest real cohort available. Neonatal phenobarbital: individualised dosing, sparse irregular sampling, and a time-varying weight | The observation-side guarantee holds at 0; the dose side does NOT and must say so -- 17 of 59 patients have a dose schedule nobody shares and there is nobody safe to anchor on instead. This is the registry's honest example of a study whose dosing cannot be masked |
+
+Two more worth adding when there is a reason to. `nlmixr2data::nmtest` (54
+subjects) is a NONMEM 7.4.3 event-grammar torture test -- steady state, `ADDL`,
+`II`, lag time, bioavailability, duration and rate modes together -- which is
+the hardest available exercise of role handling and validation, and the one
+dataset that would say whether the `addl`/`ii` carry-through is sound. The ACOP
+2016 simulated sets (`Oral_1CPT` and siblings, 120 subjects, 7920 rows each)
+are the only public sources with `SS`/`ADDL`/`II` populated at scale and would
+serve for performance work.
 
 The next expansion dataset should be `pmx_simulated_fixture(60)`. It is already
 used by package tests and provides a larger repeated-dose, two-endpoint study
