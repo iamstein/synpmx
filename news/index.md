@@ -7,6 +7,19 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- Three more public datasets are covered by the test suite.
+  [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html)
+  (180 patients, declared nominal time, six arms, two endpoints,
+  baseline weight) is the first public dataset shaped like a real study
+  report — none of the nlmixr2data five has a declared nominal time, a
+  treatment arm to stratify on, or a censoring column, so every feature
+  a study report exercises was previously untested on public data.
+  [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html) has six
+  endpoints, where two was the previous maximum.
+  [`nlmixr2data::pheno_sd`](https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html)
+  is 59 real patients whose individualised neonatal dosing genuinely
+  cannot be masked, and is the registry’s honest example of that.
+
 - **Dosing that stopped early is now represented rather than dropped
   (`SIM-044`).** Protecting a patient who stopped dosing at a point
   nobody else did meant not building on them, which removed the regimen
