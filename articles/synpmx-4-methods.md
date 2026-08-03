@@ -205,9 +205,9 @@ the source before generating. It is a measurement, not a mitigation —
 what to do about what it finds is mechanism 2 or 3 depending on which
 class is exposed. Observation *times* are coarsening’s job; observation
 *counts* are the screen’s, because no grid can change a count and what
-survives coarsening is dropout and missed visits; dose amount is
-neither’s, so weight-based dosing leaves a cohort unique on signature
-regardless — declaring `dose_covariate` in
+survives coarsening is visits that are missing, for whatever reason;
+dose amount is neither’s, so weight-based dosing leaves a cohort unique
+on signature regardless — declaring `dose_covariate` in
 [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
 is what stops the amount itself being one real patient’s, by rebuilding
 it from each avatar’s own blended covariate.

@@ -48,21 +48,23 @@ of them mean anything on their own. The rows worth looking at hardest:
   list of observation times nobody else shares. An avatar anchored on
   one wears a schedule belonging to one real person. Its two sub-rows
   have opposite remedies: a one-off observation time is what declaring
-  `nominal_time` fixes, and a unique set of *attended* visits is
-  dropout, which no grid touches.
+  `nominal_time` fixes, and a unique set of *attended* visits is missing
+  visits, which no grid touches.
 
-- **Shared by too few patients, so not reused** – real dropout and
-  dose-interruption patterns that will not appear in the synthetic data.
-  Discarding them is what stops an avatar carrying a schedule traceable
-  to one person. If this study's interruptions matter, lower
-  `min_pattern_share` (2 is the lowest value that still guarantees no
-  synthetic patient has a schedule unique to a real one).
+- **Shared by too few patients, so not reused** – real patterns of
+  missing visits and dose interruptions that will not appear in the
+  synthetic data. Discarding them is what stops an avatar carrying a
+  schedule traceable to one person. If this study's interruptions
+  matter, lower `min_pattern_share` (2 is the lowest value that still
+  guarantees no synthetic patient has a schedule unique to a real one).
 
-- **Avatars keeping their anchor's own visit set** – the fallback when a
-  schedule group had nothing shareable to draw from. Those avatars carry
-  one real patient's pattern of absences, which is the thing
-  `min_pattern_share` exists to prevent, so a high percentage here
-  undoes the row above it.
+- **Avatars carrying a visit set nobody else shares** – the only row
+  here that is a disclosure rather than a fidelity cost, and the one to
+  drive to zero. Keeping the *anchor's own* set is fine whenever several
+  real patients share it; it is a problem only when that set is unique
+  to one of them. Where a shared set exists, one is substituted
+  automatically, so this row is non-zero only when the whole schedule
+  group has nothing shareable.
 
 - **Amounts recomputed from a covariate** – says outright whether
   weight-based or body-surface-area dosing was detected, and when it was
@@ -142,7 +144,9 @@ pmx_masking_report(synthetic, data, roles)
 #>     because of a one-off observation time          0
 #>       sampled when nobody else was. Declaring `nominal_time` is the fix
 #>     because of which visits they attended          0
-#>       every time is shared; this is dropout, and no grid can fix it
+#>       every time is shared. The visits themselves are missing -- a missed
+#>       visit, a discontinuation, or follow-up that has not reached them --
+#>       and no grid can fix that
 #> 
 #> Visit sets: WHICH of those visits each patient attended
 #>   Distinct visit sets in the source                1
@@ -162,13 +166,22 @@ pmx_masking_report(synthetic, data, roles)
 #>       the kind of missingness was reused; exactly which visits were missed
 #>       was invented
 #>     of those, miss count moved                     0%
-#>       no placement at the wanted number of misses was free, so the count
-#>       moved by a visit or two. Dropout is the usual reason: a
-#>       discontinuation at a given depth has only one possible placement
+#>       no arrangement at the wanted number of missing visits was free, so
+#>       the count moved by a visit or two. Misses at the END of a record are
+#>       the case that forces it, because for a given count there is exactly
+#>       one such arrangement
+#>     of those, a rare set swapped for a shared one  0%
+#>       the anchor's own set was held by nobody else and no arrangement was
+#>       free, so the group's most widely held set was used instead -- less
+#>       faithful to that avatar, and it discloses nothing
 #>   Avatars keeping their anchor's own visit set     0%
-#>       the last-resort fallback, and the one row you want at 0%: these
-#>       avatars carry one real patient's absences exactly. The run alerts
-#>       past 10%
+#>       not a problem in itself: if several real patients share that set,
+#>       copying it identifies nobody. Only the next row is a disclosure
+#>   Avatars carrying a visit set nobody else shares  0%
+#>       **this is the row that must be 0%.** That pattern of which visits
+#>       have observations belongs to one real patient. It is non-zero only
+#>       when the schedule group has no shared set to substitute; the run
+#>       alerts when it happens
 #> 
 #> Dose
 #>   Amounts recomputed from a covariate              yes, from `WT` (inferred)

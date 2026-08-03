@@ -1362,8 +1362,9 @@ the exact pre-noise blend used by the implementation.
     #>   Correct for a single-endpoint study; declare `dvid` if this one has more.
     #> SYNPMX ALERT: unique visit sets
     #>   3 of 6 patients (50%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
+    #>   somebody, but the set of visits they have observations at is theirs alone
+    #>   -- a missed visit, a discontinuation, or follow-up that has not reached
+    #>   the later visits.
     #>   Why it matters: no time grid can help here, however fine or coarse: a
     #>     grid decides where the visits are, not which ones a patient turned up
     #>     for.
@@ -1375,9 +1376,9 @@ the exact pre-noise blend used by the implementation.
     #>   patients and is given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -1892,10 +1893,11 @@ next:
     `nominal_time` is the fix.
   - **`unique_visit_set_n`** — of those, the ones who share every
     individual time with somebody but attended a combination of visits
-    nobody else did: dropout, an interruption, a missed week. **No grid
-    can fix this** at any resolution, because the times are already
-    shared. `min_pattern_share` addresses it during generation;
-    otherwise the response is to remediate or accept.
+    nobody else did: a missed week, an interruption, a discontinuation,
+    or follow-up that has not reached those visits. **No grid can fix
+    this** at any resolution, because the times are already shared.
+    `min_pattern_share` addresses it during generation; otherwise the
+    response is to remediate or accept.
 
 Two counts sit alongside these and answer narrower questions:
 `n_unique_dose_signature` (a dose structure or amount nobody else has,
@@ -1914,7 +1916,7 @@ builds, which is where the `pmx_settings` counts above come from.
 
 A count on its own does not say whether a study is in trouble, because
 twelve unique schedules can be twelve one-off sampling times (fixable)
-or twelve ordinary dropouts (not, and not a problem).
+or twelve ordinary gaps in follow-up (not, and not a problem).
 [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
 draws the cohort — one row per patient, one mark per event, with a
 per-visit histogram underneath — and the two cases look nothing alike.

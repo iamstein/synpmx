@@ -82,8 +82,9 @@ count of 1 means "nobody else":
   the second case into the first.
 
 - **`n_share_obs_count`** – who else has this many observations?
-  Coarsening cannot change a count, so this is what survives it:
-  dropout, early discontinuation, and missed visits.
+  Coarsening cannot change a count, so this is what survives it: missed
+  visits, early discontinuation, and follow-up that has not reached the
+  later visits.
 
 - **`n_share_dosing`** – who else has this dose structure and these dose
   amounts? This is the full
@@ -99,7 +100,7 @@ is unique **and** whose rarest single time was shared with nobody
 (`n_share_rarest_time == 1`) was sampled at a one-off moment: a time
 grid is meant to absorb that, and declaring `nominal_time` is the fix. A
 patient whose schedule is unique while every individual time is shared
-(`n_share_rarest_time >= 2`) is a dropout or missed-visit pattern, and
+(`n_share_rarest_time >= 2`) has visits missing rather than moved, and
 no grid at any resolution touches it. `why_unique` states which.
 
 ## Before or after coarsening

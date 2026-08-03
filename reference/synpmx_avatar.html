@@ -206,7 +206,7 @@ singled out by a fingerprint made of gaps. No grid can fix that at any
 resolution, because the grid decides where the visits are and not which ones
 a subject has. So the pattern is sampled from ones at least
 <code>min_pattern_share</code> subjects hold, frequency-weighted, and whole patterns
-are drawn rather than individual visits, which keeps dropout monotone
+are drawn rather than individual visits, which keeps an ending monotone
 instead of producing implausible attend/miss/attend sequences.</p>
 <p>Unlike dropping the exposed subjects, nobody leaves the cohort: a subject
 with a rare pattern still contributes measurements as a donor, only their
@@ -215,7 +215,7 @@ since that could emit a regimen no protocol permits. Raising this hides more
 and flattens the cohort's missingness further; where no pattern is shared
 widely enough, anchors keep their own and the run alerts loudly. Pools are
 formed within each <code>subject_properties</code> stratum and endpoint set.</p>
-<p><strong>Patterns below the floor are lost, not approximated.</strong> A dropout or
+<p><strong>Patterns below the floor are lost, not approximated.</strong> An ending or
 dose-interruption pattern held by too few patients simply will not appear in
 the synthetic data, and that loss is the mechanism working — it is what
 stops an avatar carrying a schedule traceable to one person. Because it is a

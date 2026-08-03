@@ -128,8 +128,8 @@ large, since the schedule is protocol-driven; under actual recorded times
 it is near-universally 1. Coarsening collapses the second case into the
 first.</p></li>
 <li><p><strong><code>n_share_obs_count</code></strong> – who else has this many observations? Coarsening
-cannot change a count, so this is what survives it: dropout, early
-discontinuation, and missed visits.</p></li>
+cannot change a count, so this is what survives it: missed visits, early
+discontinuation, and follow-up that has not reached the later visits.</p></li>
 <li><p><strong><code>n_share_dosing</code></strong> – who else has this dose structure and these dose
 amounts? This is the full <code><a href="pmx_roles.html">pmx_roles()</a></code> event signature and it does <em>not</em>
 include observation times; it is the key donor compatibility uses.
@@ -141,7 +141,7 @@ unique <strong>and</strong> whose rarest single time was shared with nobody
 (<code>n_share_rarest_time == 1</code>) was sampled at a one-off moment: a time grid is
 meant to absorb that, and declaring <code>nominal_time</code> is the fix. A patient
 whose schedule is unique while every individual time is shared
-(<code>n_share_rarest_time &gt;= 2</code>) is a dropout or missed-visit pattern, and no
+(<code>n_share_rarest_time &gt;= 2</code>) has visits missing rather than moved, and no
 grid at any resolution touches it. <code>why_unique</code> states which.</p>
     </div>
     <div class="section level2">

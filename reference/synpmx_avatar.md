@@ -159,8 +159,8 @@ synpmx_avatar(
   at any resolution, because the grid decides where the visits are and
   not which ones a subject has. So the pattern is sampled from ones at
   least `min_pattern_share` subjects hold, frequency-weighted, and whole
-  patterns are drawn rather than individual visits, which keeps dropout
-  monotone instead of producing implausible attend/miss/attend
+  patterns are drawn rather than individual visits, which keeps an
+  ending monotone instead of producing implausible attend/miss/attend
   sequences.
 
   Unlike dropping the exposed subjects, nobody leaves the cohort: a
@@ -172,7 +172,7 @@ synpmx_avatar(
   the run alerts loudly. Pools are formed within each
   `subject_properties` stratum and endpoint set.
 
-  **Patterns below the floor are lost, not approximated.** A dropout or
+  **Patterns below the floor are lost, not approximated.** An ending or
   dose-interruption pattern held by too few patients simply will not
   appear in the synthetic data, and that loss is the mechanism working —
   it is what stops an avatar carrying a schedule traceable to one

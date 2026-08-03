@@ -1931,8 +1931,9 @@ table shows the exact pre-noise blend used by the implementation.</p>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: unique visit sets</span></span>
 <span><span class="co">#&gt;   3 of 6 patients (50%) share every individual observation time with</span></span>
-<span><span class="co">#&gt;   somebody, but the set of visits they attended is theirs alone -- dropout,</span></span>
-<span><span class="co">#&gt;   discontinuation, or a missed visit.</span></span>
+<span><span class="co">#&gt;   somebody, but the set of visits they have observations at is theirs alone</span></span>
+<span><span class="co">#&gt;   -- a missed visit, a discontinuation, or follow-up that has not reached</span></span>
+<span><span class="co">#&gt;   the later visits.</span></span>
 <span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
 <span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
 <span><span class="co">#&gt;     for.</span></span>
@@ -1944,9 +1945,9 @@ table shows the exact pre-noise blend used by the implementation.</p>
 <span><span class="co">#&gt;   patients and is given to no avatar.</span></span>
 <span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
 <span><span class="co">#&gt;     could be traced back to them. Kept instead: how many visits were missed</span></span>
-<span><span class="co">#&gt;     and of what kind -- all at the end (dropout), a run in the middle (an</span></span>
-<span><span class="co">#&gt;     interruption), or scattered. Which specific visits were missed is not</span></span>
-<span><span class="co">#&gt;     preserved.</span></span>
+<span><span class="co">#&gt;     and of what kind -- all at the end (follow-up ending), a run in the</span></span>
+<span><span class="co">#&gt;     middle (an interruption), or scattered. Which specific visits were</span></span>
+<span><span class="co">#&gt;     missed is not preserved.</span></span>
 <span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
 <span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
 <span><span class="co">#&gt;     guarantee.</span></span></code></pre>
@@ -2811,11 +2812,12 @@ fix.</li>
 <li>
 <strong><code>unique_visit_set_n</code></strong> — of those, the
 ones who share every individual time with somebody but attended a
-combination of visits nobody else did: dropout, an interruption, a
-missed week. <strong>No grid can fix this</strong> at any resolution,
-because the times are already shared. <code>min_pattern_share</code>
-addresses it during generation; otherwise the response is to remediate
-or accept.</li>
+combination of visits nobody else did: a missed week, an interruption, a
+discontinuation, or follow-up that has not reached those visits.
+<strong>No grid can fix this</strong> at any resolution, because the
+times are already shared. <code>min_pattern_share</code> addresses it
+during generation; otherwise the response is to remediate or
+accept.</li>
 </ul>
 </li>
 </ul>
@@ -2835,7 +2837,8 @@ default it scores the recorded times as given;
 <code>pmx_settings</code> counts above come from.</p>
 <p>A count on its own does not say whether a study is in trouble,
 because twelve unique schedules can be twelve one-off sampling times
-(fixable) or twelve ordinary dropouts (not, and not a problem). <a href="../reference/plot_pmx_schedule.html"><code>plot_pmx_schedule()</code></a>
+(fixable) or twelve ordinary gaps in follow-up (not, and not a problem).
+<a href="../reference/plot_pmx_schedule.html"><code>plot_pmx_schedule()</code></a>
 draws the cohort — one row per patient, one mark per event, with a
 per-visit histogram underneath — and the two cases look nothing
 alike.</p>

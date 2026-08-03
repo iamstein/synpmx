@@ -101,18 +101,20 @@ them mean anything on their own. The rows worth looking at hardest:</p><ul><li><
 of observation times nobody else shares. An avatar anchored on one wears a
 schedule belonging to one real person. Its two sub-rows have opposite
 remedies: a one-off observation time is what declaring <code>nominal_time</code>
-fixes, and a unique set of <em>attended</em> visits is dropout, which no grid
+fixes, and a unique set of <em>attended</em> visits is missing visits, which no grid
 touches.</p></li>
-<li><p><strong>Shared by too few patients, so not reused</strong> – real dropout and
-dose-interruption patterns that will not appear in the synthetic data.
+<li><p><strong>Shared by too few patients, so not reused</strong> – real patterns of missing
+visits and dose interruptions that will not appear in the synthetic data.
 Discarding them is what stops an avatar carrying a schedule traceable to
 one person. If this study's interruptions matter, lower
 <code>min_pattern_share</code> (2 is the lowest value that still guarantees no
 synthetic patient has a schedule unique to a real one).</p></li>
-<li><p><strong>Avatars keeping their anchor's own visit set</strong> – the fallback when a
-schedule group had nothing shareable to draw from. Those avatars carry one
-real patient's pattern of absences, which is the thing <code>min_pattern_share</code>
-exists to prevent, so a high percentage here undoes the row above it.</p></li>
+<li><p><strong>Avatars carrying a visit set nobody else shares</strong> – the only row here
+that is a disclosure rather than a fidelity cost, and the one to drive to
+zero. Keeping the <em>anchor's own</em> set is fine whenever several real patients
+share it; it is a problem only when that set is unique to one of them.
+Where a shared set exists, one is substituted automatically, so this row is
+non-zero only when the whole schedule group has nothing shareable.</p></li>
 <li><p><strong>Amounts recomputed from a covariate</strong> – says outright whether
 weight-based or body-surface-area dosing was detected, and when it was
 not, why not. Detection is deliberately conservative: it fails closed and
@@ -188,7 +190,9 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     because of a one-off observation time          0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       sampled when nobody else was. Declaring `nominal_time` is the fix</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     because of which visits they attended          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       every time is shared; this is dropout, and no grid can fix it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       every time is shared. The visits themselves are missing -- a missed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       visit, a discontinuation, or follow-up that has not reached them --</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       and no grid can fix that</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Visit sets: WHICH of those visits each patient attended</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Distinct visit sets in the source                1</span>
@@ -208,13 +212,22 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the kind of missingness was reused; exactly which visits were missed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       was invented</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     of those, miss count moved                     0%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       no placement at the wanted number of misses was free, so the count</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       moved by a visit or two. Dropout is the usual reason: a</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       discontinuation at a given depth has only one possible placement</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       no arrangement at the wanted number of missing visits was free, so</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the count moved by a visit or two. Misses at the END of a record are</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the case that forces it, because for a given count there is exactly</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       one such arrangement</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, a rare set swapped for a shared one  0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the anchor's own set was held by nobody else and no arrangement was</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       free, so the group's most widely held set was used instead -- less</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       faithful to that avatar, and it discloses nothing</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars keeping their anchor's own visit set     0%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       the last-resort fallback, and the one row you want at 0%: these</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       avatars carry one real patient's absences exactly. The run alerts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       past 10%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       not a problem in itself: if several real patients share that set,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       copying it identifies nobody. Only the next row is a disclosure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a visit set nobody else shares  0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       **this is the row that must be 0%.** That pattern of which visits</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       have observations belongs to one real patient. It is non-zero only</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       when the schedule group has no shared set to substitute; the run</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       alerts when it happens</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Dose</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Amounts recomputed from a covariate              yes, from `WT` (inferred)</span>

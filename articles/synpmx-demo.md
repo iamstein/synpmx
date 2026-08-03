@@ -342,13 +342,13 @@ ones that surprise people:
   however carefully its concentrations were blended. The count is split
   by cause, because the two causes have different answers: a *unique
   observation time* is the grid’s job and is fixed by declaring
-  `nominal_time`, while a *unique set of visits* is dropout and no grid
-  can fix it.
-- **“Patterns discarded”** — a real dropout or dose-interruption pattern
-  that will not appear in the output at all. That loss is the mechanism
-  working, not a bug: it is what stops an avatar carrying a schedule
-  traceable to one person. Whether the cost is acceptable is a per-study
-  judgment, which is why every run reports it.
+  `nominal_time`, while a *unique set of visits* means visits are
+  missing rather than moved, and no grid can fix it.
+- **“Patterns discarded”** — a real pattern of missing visits or a dose
+  interruption that will not appear in the output at all. That loss is
+  the mechanism working, not a bug: it is what stops an avatar carrying
+  a schedule traceable to one person. Whether the cost is acceptable is
+  a per-study judgment, which is why every run reports it.
 
 ## Theophylline: repeated dosing, dose-relative PK
 
@@ -459,15 +459,17 @@ masking_table(theo_md, theo_roles, theo_synth, "theophylline")
 | Unique observation schedules, before coarsening | 12 | patients whose list of observation times nobody else shares |
 | Unique observation schedules, after coarsening | 0 | the count that matters: an avatar copies its anchor’s times verbatim |
 |   because of a one-off observation time | 0 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 0 | every time is shared; this is dropout, and no grid can fix it |
+|   because of which visits they attended | 0 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 3 | a visit set is which of the shared grid visits one patient actually had |
 |   held by fewer than 2 patients, so not reused | 0 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 0 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
 |   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
-| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
+|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -597,7 +599,7 @@ however high the count above is.
 |:---|---:|---:|:---|
 | Observation schedule nobody else has | 12 | 100 | the headline: an avatar anchored here wears one real patient’s schedule |
 | … a one-off observation time | 12 | 100 | sampled when nobody else was. A time grid can absorb this: declare `nominal_time` |
-| … the set of visits attended | 0 | 0 | every time is shared; dropout or a missed visit. No grid touches this |
+| … the set of visits attended | 0 | 0 | every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this |
 | Observation count nobody else has | 0 | 0 | survives any grid; the residual [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) looks at |
 | Dosing nobody else has | 10 | 83 | dose amounts and gaps. Weight-based dosing makes this near-universal |
 
@@ -636,7 +638,7 @@ however high the count above is.
 |:---|---:|---:|:---|
 | Observation schedule nobody else has | 0 | 0 | the headline: an avatar anchored here wears one real patient’s schedule |
 | … a one-off observation time | 0 | 0 | sampled when nobody else was. A time grid can absorb this: declare `nominal_time` |
-| … the set of visits attended | 0 | 0 | every time is shared; dropout or a missed visit. No grid touches this |
+| … the set of visits attended | 0 | 0 | every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this |
 | Observation count nobody else has | 0 | 0 | survives any grid; the residual [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) looks at |
 | Dosing nobody else has | 10 | 83 | dose amounts and gaps. Weight-based dosing makes this near-universal |
 
@@ -655,8 +657,8 @@ public or privately budgeted.*
 [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
 draws the same cohort: one row per patient, one mark per event, with the
 visit grid underneath. A protocol grid reads as vertical stripes and
-dropout as a ragged right edge, so a count that looks alarming and one
-that is ordinary look completely different.
+follow-up ending as a ragged right edge, so a count that looks alarming
+and one that is ordinary look completely different.
 
 ``` r
 
@@ -690,8 +692,9 @@ retained.
 
     #> SYNPMX ALERT: unique visit sets
     #>   12 of 32 patients (38%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
+    #>   somebody, but the set of visits they have observations at is theirs alone
+    #>   -- a missed visit, a discontinuation, or follow-up that has not reached
+    #>   the later visits.
     #>   Why it matters: no time grid can help here, however fine or coarse: a
     #>     grid decides where the visits are, not which ones a patient turned up
     #>     for.
@@ -703,9 +706,9 @@ retained.
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -745,15 +748,17 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 | Unique observation schedules, before coarsening | 14 | patients whose list of observation times nobody else shares |
 | Unique observation schedules, after coarsening | 12 | the count that matters: an avatar copies its anchor’s times verbatim |
 |   because of a one-off observation time | 0 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 12 | every time is shared; this is dropout, and no grid can fix it |
+|   because of which visits they attended | 12 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 14 | a visit set is which of the shared grid visits one patient actually had |
 |   held by fewer than 2 patients, so not reused | 4 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 4 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
 |   of those, misses placed fresh | 22% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
-| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
+|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **yes**, from `wt` (inferred) | the 20 distinct dose amounts are a fixed multiple of `wt`, at 1 protocol level(s) |
 |   protocol levels found | 1.5 | dose per unit of `wt`; every amount was snapped to the nearest of these |
@@ -823,8 +828,9 @@ are kept, and `screen = FALSE` keeps every subject.
     #>     real protocol grid instead of a guessed one.
     #> SYNPMX ALERT: unique visit sets
     #>   15 of 45 patients (33%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
+    #>   somebody, but the set of visits they have observations at is theirs alone
+    #>   -- a missed visit, a discontinuation, or follow-up that has not reached
+    #>   the later visits.
     #>   Why it matters: no time grid can help here, however fine or coarse: a
     #>     grid decides where the visits are, not which ones a patient turned up
     #>     for.
@@ -836,9 +842,9 @@ are kept, and `screen = FALSE` keeps every subject.
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -873,15 +879,17 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 | Unique observation schedules, before coarsening | 30 | patients whose list of observation times nobody else shares |
 | Unique observation schedules, after coarsening | 17 | the count that matters: an avatar copies its anchor’s times verbatim |
 |   because of a one-off observation time | 2 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 15 | every time is shared; this is dropout, and no grid can fix it |
+|   because of which visits they attended | 15 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 25 | a visit set is which of the shared grid visits one patient actually had |
 |   held by fewer than 2 patients, so not reused | 5 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 5 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
 |   of those, misses placed fresh | 4% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
-| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
+|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | no `covariates` are declared, so there is nothing to test the amounts against |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -936,9 +944,9 @@ simply left undeclared, so AVATAR drops it.
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -973,15 +981,17 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 | Unique observation schedules, before coarsening | 12 | patients whose list of observation times nobody else shares |
 | Unique observation schedules, after coarsening | 12 | the count that matters: an avatar copies its anchor’s times verbatim |
 |   because of a one-off observation time | 12 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 0 | every time is shared; this is dropout, and no grid can fix it |
+|   because of which visits they attended | 0 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 12 | a visit set is which of the shared grid visits one patient actually had |
 |   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
 |   of those, misses placed fresh | 100% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
-| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
+|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 4 distinct dose amounts are not a fixed multiple of any declared covariate: BSA (10 ratio levels for 4 distinct amounts – too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1042,8 +1052,9 @@ coherent with the doses when carried through with `keep`.
     #>     real protocol grid instead of a guessed one.
     #> SYNPMX ALERT: unique visit sets
     #>   53 of 120 patients (44%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
+    #>   somebody, but the set of visits they have observations at is theirs alone
+    #>   -- a missed visit, a discontinuation, or follow-up that has not reached
+    #>   the later visits.
     #>   Why it matters: no time grid can help here, however fine or coarse: a
     #>     grid decides where the visits are, not which ones a patient turned up
     #>     for.
@@ -1055,9 +1066,9 @@ coherent with the doses when carried through with `keep`.
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -1092,15 +1103,17 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 | Unique observation schedules, before coarsening | 72 | patients whose list of observation times nobody else shares |
 | Unique observation schedules, after coarsening | 64 | the count that matters: an avatar copies its anchor’s times verbatim |
 |   because of a one-off observation time | 11 | sampled when nobody else was. Declaring `nominal_time` is the fix |
-|   because of which visits they attended | 53 | every time is shared; this is dropout, and no grid can fix it |
+|   because of which visits they attended | 53 | every time is shared. The visits themselves are missing – a missed visit, a discontinuation, or follow-up that has not reached them – and no grid can fix that |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 73 | a visit set is which of the shared grid visits one patient actually had |
 |   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
 |   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
-| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
+|   of those, miss count moved | 0% | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, a rare set swapped for a shared one | 0% | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
+| Avatars keeping their anchor’s own visit set | 0% | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
+| **Avatars carrying a visit set nobody else shares** | 0% | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 3 distinct dose amounts are not a fixed multiple of any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels for 3 distinct amounts – too many to be a protocol); WT (ratios do not cluster); HT (ratios do not cluster) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1378,12 +1391,12 @@ that the definition cannot see that “missed one visit, early” and
 “missed one visit, late” are the same *kind* of event.
 
 That is why the draw is two-stage. A **shape** is chosen first — how
-many visits were missed, and whether the misses were terminal (dropout),
-contiguous (an interruption), or scattered — and both of those patients
-share one. Within the shape a real pattern is reused if one clears the
-floor; only otherwise is an arrangement generated, and a generated one
-is rejected and redrawn if it happens to land on a pattern too rare to
-have been reusable.
+many visits were missed, and whether the misses were terminal (at the
+end of the record), contiguous (an interruption), or scattered — and
+both of those patients share one. Within the shape a real pattern is
+reused if one clears the floor; only otherwise is an arrangement
+generated, and a generated one is rejected and redrawn if it happens to
+land on a pattern too rare to have been reusable.
 
 The per-dataset tables show how much this rescues. On `warfarin` the
 loss falls from 12 patterns to 2; on `mavoglurant` from 59 to 2; on
@@ -1496,8 +1509,8 @@ subject is removed from the cohort to achieve it — a patient with a rare
 pattern still contributes measurements as a donor.
 
 What *is* lost is the rare patterns themselves. They are discarded
-rather than approximated, so those specific dropout and
-dose-interruption patterns will not appear in the output. With the shape
+rather than approximated, so those specific patterns of missing visits
+and dose interruptions will not appear in the output. With the shape
 fallback the loss is small on every dataset here — two patterns each on
 `warfarin`, `nimoData`, and `mavoglurant`, four on `wbcSim` — but it is
 never zero except where coarsening has already made the patterns common,
@@ -1561,9 +1574,9 @@ care, not a blocker. The sequence worth following is:
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
     #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
+    #>     and of what kind -- all at the end (follow-up ending), a run in the
+    #>     middle (an interruption), or scattered. Which specific visits were
+    #>     missed is not preserved.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
@@ -1592,8 +1605,8 @@ care, not a blocker. The sequence worth following is:
     zero, the grid has done its whole job and no amount of tuning will
     improve it.
 
-3.  **Then decide about the pattern column.** These are dropout and
-    missed-visit patterns.
+3.  **Then decide about the pattern column.** These are missing-visit
+    patterns.
     [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
     and
     [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
