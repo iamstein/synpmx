@@ -363,8 +363,3 @@ g <- ggplot(compare, aes(x = time, y = dv, group = id, color = arm)) +
        subtitle = "do not export", x = "Time", y = "DV", color = "Arm")
 g
 ```
-
-The synthetic table carries no formal privacy guarantee; it is built by blending
-real subject trajectories, so it stays under the source data's own access
-controls and obligations wherever it is used — your own workstation included, a
-partner or vendor not.
