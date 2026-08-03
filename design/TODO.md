@@ -44,9 +44,13 @@ Still open from this pass:
       now that `SIM-038` is fixed. The discarded-visit-set counts those reports
       showed (15 of 17 on `INTERNAL_STUDY`) were inflated by the keying bug, and the
       "avatars keeping their anchor's own visit set" row is the one to check.
-- [ ] `compare_pmx_distributions()` still prints rather than knitting to a
-      table; the study templates each carry a local `kable_distributions()`
-      helper. Give it a `knit_print()` method and delete the four copies.
+- [x] `compare_pmx_distributions()` gained a `knit_print()` method and the four
+      local `kable_distributions()` copies are gone.
+- [x] Template audit: `N_SUBJECTS` was set in three templates and never passed
+      to `synpmx_avatar()`; a relative `OUT_DIR` put source-derived CSV at the
+      repository root, outside the `scripts_private/` ignore, when the chunks
+      are run interactively (now covered by `/output_*/`); the ignore allowlist
+      still named `try_avatar.R`, which no longer exists.
 
 ## Owver's next steps: 2026-08-03
 

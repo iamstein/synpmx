@@ -327,6 +327,31 @@ print.pmx_distribution_summary <- function(x, ...) {
   invisible(x)
 }
 
+# Each of the four study templates under `scripts_private/` carried its own
+# twenty-line `kable_distributions()` helper to get these out as tables rather
+# than as a preformatted block. That is display code, it was copied four times,
+# and it is the package's job.
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_distribution_summary <- function(x, ...) {
+  section <- function(df, caption) {
+    if (is.null(df)) return(NULL)
+    # Rounding is for display only; the returned object keeps exact values.
+    numeric_cols <- vapply(df, is.numeric, logical(1))
+    df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = 4)
+    paste(knitr::kable(df, row.names = FALSE, caption = caption),
+          collapse = "\n")
+  }
+  out <- c(
+    section(x$endpoints,
+            "RESTRICTED -- endpoints (dependent variable on observation rows)"),
+    section(x$covariates_numeric,
+            "RESTRICTED -- continuous covariates (baseline, per patient)"),
+    section(x$covariates_categorical,
+            "RESTRICTED -- categorical covariates (baseline, per patient)")
+  )
+  knitr::asis_output(paste(Filter(Negate(is.null), out), collapse = "\n\n"))
+}
+
 # Post-generation outlier / identifiability check -----------------------------
 #
 # compare_pmx_distributions() compares whole distributions; this checks
