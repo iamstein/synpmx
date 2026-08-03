@@ -12,7 +12,7 @@
 - no time varying covariates (but would be another DV with long dataset)
 - baseline levels won't match if you have a baseline column, that'd need to be rederived.
 
-## Outline
+## Methods
 
 - **1. Prior-Based Simulation**
   - **Information source:** Published/literature models, prior knowledge, protocol assumptions.
@@ -48,3 +48,15 @@
   - **Limitations:**
     - Greater dependence on the original dataset.
     - Privacy protection is empirical rather than mathematically guaranteed.
+
+## synpmx avatar
+
+## synthetic data requirements
+
+- no patient identifiable from various features like
+unique doses or dose times or observation times etc
+
+## stnthetic data checks
+
+- distance distribution
+- identifiability check
