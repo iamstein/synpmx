@@ -39,11 +39,33 @@ A `pmx_skeleton_uniqueness` data frame, most-exposed first, one row per
 patient: `subject_id`, `n_obs`, `n_doses`, `n_share_dosing`,
 `n_share_schedule`, `n_share_rarest_time`, `n_share_obs_count` (each
 counting the patients sharing that property, including this one),
+`n_visits` and `nearest_set_diff` (how many visit slots – one endpoint
+at one time – separate this patient from the closest other one),
 `unique_schedule` (`TRUE` when `n_share_schedule == 1`), and
 `why_unique`. Attributes `n_unique_schedule`, `n_unique_dose_signature`,
 `n_unique_obs_count`, `n_unshared_time`, `min_class`, and `coarsened`
-summarize the cohort; `summary_table` and `sharing_table` hold the two
-tables [`print()`](https://rdrr.io/r/base/print.html) shows.
+summarize the cohort; `summary_table`, `sharing_table` and `by_endpoint`
+hold the tables [`print()`](https://rdrr.io/r/base/print.html)
+shows.Reading the count
+
+`n_share_schedule == 1` is exact-set equality, and on a real study that
+is a harsh test: with forty visit slots and twenty patients, two
+patients who differ by one missed sample score as "unique" exactly like
+two with nothing in common. `nearest_set_diff` is what separates those
+cases, and the printed output states it alongside the count. A cohort
+can read 15 of 21 unique while every one of those 15 is a single missing
+sample away from somebody else.
+
+The `by_endpoint` table says *which* endpoint is responsible, since a
+schedule is only as shared as its least shared part: a study measuring a
+biomarker at every visit and PK at some of them is unique on the pooled
+schedule the moment one PK sample is missing.
+
+None of this is something generation can lower — it is a property of the
+source. What generation controls is whether an avatar ends up *carrying*
+one of these schedules, which
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+reports as "avatars keeping their anchor's own visit set".
 
 ## Details
 
@@ -118,6 +140,12 @@ skeleton_uniqueness(data, roles)
 #> Every patient shares their observation schedule with somebody. Nothing to
 #> do.
 #> 
+#> This is a property of the SOURCE, and nothing in generation can lower it.
+#> What generation controls is whether an avatar ends up wearing one of these
+#> schedules -- that is `pmx_masking_report()`'s "avatars keeping their
+#> anchor's own visit set", which should be near 0% however high the count
+#> above is.
+#> 
 #>                    Patients whose ...  n % of cohort
 #>  Observation schedule nobody else has  0           0
 #>        ... a one-off observation time  0           0
@@ -128,6 +156,11 @@ skeleton_uniqueness(data, roles)
 #> How crowded is each schedule (1 = nobody else has it):
 #>  Patients sharing that schedule Patients % of cohort
 #>                              30       30         100
+#> 
+#> Which endpoint is doing it:
+#>  endpoint patients distinct visit sets patients alone on theirs
+#>        cp       30                   1                        0
+#>        pd       30                   1                        0
 #> 
 #> One row per patient is in the returned data frame; `plot_pmx_schedule()`
 #> draws the same cohort. Source-derived; not releasable unless separately
@@ -140,6 +173,12 @@ skeleton_uniqueness(data, roles, coarsen_time = TRUE)
 #> Every patient shares their observation schedule with somebody. Nothing to
 #> do.
 #> 
+#> This is a property of the SOURCE, and nothing in generation can lower it.
+#> What generation controls is whether an avatar ends up wearing one of these
+#> schedules -- that is `pmx_masking_report()`'s "avatars keeping their
+#> anchor's own visit set", which should be near 0% however high the count
+#> above is.
+#> 
 #>                    Patients whose ...  n % of cohort
 #>  Observation schedule nobody else has  0           0
 #>        ... a one-off observation time  0           0
@@ -150,6 +189,11 @@ skeleton_uniqueness(data, roles, coarsen_time = TRUE)
 #> How crowded is each schedule (1 = nobody else has it):
 #>  Patients sharing that schedule Patients % of cohort
 #>                              30       30         100
+#> 
+#> Which endpoint is doing it:
+#>  endpoint patients distinct visit sets patients alone on theirs
+#>        cp       30                   1                        0
+#>        pd       30                   1                        0
 #> 
 #> One row per patient is in the returned data frame; `plot_pmx_schedule()`
 #> draws the same cohort. Source-derived; not releasable unless separately

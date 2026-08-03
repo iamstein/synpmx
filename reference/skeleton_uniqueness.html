@@ -95,11 +95,27 @@ build (<code>TRUE</code>) or the recorded times as given (<code>FALSE</code>, th
 per patient: <code>subject_id</code>, <code>n_obs</code>, <code>n_doses</code>, <code>n_share_dosing</code>,
 <code>n_share_schedule</code>, <code>n_share_rarest_time</code>, <code>n_share_obs_count</code> (each
 counting the patients sharing that property, including this one),
+<code>n_visits</code> and <code>nearest_set_diff</code> (how many visit slots – one endpoint at
+one time – separate this patient from the closest other one),
 <code>unique_schedule</code> (<code>TRUE</code> when <code>n_share_schedule == 1</code>), and <code>why_unique</code>.
 Attributes <code>n_unique_schedule</code>, <code>n_unique_dose_signature</code>,
 <code>n_unique_obs_count</code>, <code>n_unshared_time</code>, <code>min_class</code>, and <code>coarsened</code>
-summarize the cohort; <code>summary_table</code> and <code>sharing_table</code> hold the two
-tables <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows.</p>
+summarize the cohort; <code>summary_table</code>, <code>sharing_table</code> and <code>by_endpoint</code>
+hold the tables <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows.Reading the count</p>
+<p><code>n_share_schedule == 1</code> is exact-set equality, and on a real study that is a
+harsh test: with forty visit slots and twenty patients, two patients who
+differ by one missed sample score as "unique" exactly like two with nothing
+in common. <code>nearest_set_diff</code> is what separates those cases, and the printed
+output states it alongside the count. A cohort can read 15 of 21 unique while
+every one of those 15 is a single missing sample away from somebody else.</p>
+<p>The <code>by_endpoint</code> table says <em>which</em> endpoint is responsible, since a
+schedule is only as shared as its least shared part: a study measuring a
+biomarker at every visit and PK at some of them is unique on the pooled
+schedule the moment one PK sample is missing.</p>
+<p>None of this is something generation can lower — it is a property of the
+source. What generation controls is whether an avatar ends up <em>carrying</em> one
+of these schedules, which <code><a href="pmx_masking_report.html">pmx_masking_report()</a></code> reports as "avatars keeping
+their anchor's own visit set".</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -162,6 +178,12 @@ privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Every patient shares their observation schedule with somebody. Nothing to</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> do.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> This is a property of the SOURCE, and nothing in generation can lower it.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> What generation controls is whether an avatar ends up wearing one of these</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> schedules -- that is `pmx_masking_report()`'s "avatars keeping their</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> anchor's own visit set", which should be near 0% however high the count</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> above is.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Patients whose ...  n % of cohort</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Observation schedule nobody else has  0           0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        ... a one-off observation time  0           0</span>
@@ -172,6 +194,11 @@ privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> How crowded is each schedule (1 = nobody else has it):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Patients sharing that schedule Patients % of cohort</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              30       30         100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Which endpoint is doing it:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint patients distinct visit sets patients alone on theirs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        cp       30                   1                        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        pd       30                   1                        0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> One row per patient is in the returned data frame; `plot_pmx_schedule()`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> draws the same cohort. Source-derived; not releasable unless separately</span>
@@ -184,6 +211,12 @@ privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Every patient shares their observation schedule with somebody. Nothing to</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> do.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> This is a property of the SOURCE, and nothing in generation can lower it.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> What generation controls is whether an avatar ends up wearing one of these</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> schedules -- that is `pmx_masking_report()`'s "avatars keeping their</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> anchor's own visit set", which should be near 0% however high the count</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> above is.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Patients whose ...  n % of cohort</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Observation schedule nobody else has  0           0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        ... a one-off observation time  0           0</span>
@@ -194,6 +227,11 @@ privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> How crowded is each schedule (1 = nobody else has it):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Patients sharing that schedule Patients % of cohort</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              30       30         100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Which endpoint is doing it:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint patients distinct visit sets patients alone on theirs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        cp       30                   1                        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        pd       30                   1                        0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> One row per patient is in the returned data frame; `plot_pmx_schedule()`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> draws the same cohort. Source-derived; not releasable unless separately</span>

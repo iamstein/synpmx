@@ -580,6 +580,19 @@ to see what the grid removes.
 Declaring `nominal_time` addresses the first group; nothing addresses
 the second.
 
+Those 12 are not necessarily far apart. The typical one differs from its
+nearest neighbour by 28 of about 22 visit slots (range 20 to 32), where
+a slot is one endpoint measured at one time. A difference of one or two
+is a missed sample, not a different schedule – which is why the count
+alone is a poor guide.
+
+This is a property of the SOURCE, and nothing in generation can lower
+it. What generation controls is whether an avatar ends up wearing one of
+these schedules – that is
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)’s
+“avatars keeping their anchor’s own visit set”, which should be near 0%
+however high the count above is.
+
 | Patients whose … | n | % of cohort | Meaning |
 |:---|---:|---:|:---|
 | Observation schedule nobody else has | 12 | 100 | the headline: an avatar anchored here wears one real patient’s schedule |
@@ -611,6 +624,13 @@ builds. These are the numbers a run reports.
 
 Every patient shares their observation schedule with somebody. Nothing
 to do.
+
+This is a property of the SOURCE, and nothing in generation can lower
+it. What generation controls is whether an avatar ends up wearing one of
+these schedules – that is
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)’s
+“avatars keeping their anchor’s own visit set”, which should be near 0%
+however high the count above is.
 
 | Patients whose … | n | % of cohort | Meaning |
 |:---|---:|---:|:---|

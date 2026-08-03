@@ -1112,6 +1112,16 @@ coarsens first by default, so run this again with
 has: 12 from a one-off observation time, 0 from which visits they
 attended. Declaring <code>nominal_time</code> addresses the first group;
 nothing addresses the second.</p>
+<p>Those 12 are not necessarily far apart. The typical one differs from
+its nearest neighbour by 28 of about 22 visit slots (range 20 to 32),
+where a slot is one endpoint measured at one time. A difference of one
+or two is a missed sample, not a different schedule – which is why the
+count alone is a poor guide.</p>
+<p>This is a property of the SOURCE, and nothing in generation can lower
+it. What generation controls is whether an avatar ends up wearing one of
+these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
+keeping their anchor’s own visit set”, which should be near 0% however
+high the count above is.</p>
 <table class="table">
 <colgroup>
 <col width="27%">
@@ -1188,6 +1198,11 @@ on the shared visit grid <code><a href="../reference/synpmx_avatar.html">synpmx_
 the numbers a run reports.</p>
 <p>Every patient shares their observation schedule with somebody.
 Nothing to do.</p>
+<p>This is a property of the SOURCE, and nothing in generation can lower
+it. What generation controls is whether an avatar ends up wearing one of
+these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
+keeping their anchor’s own visit set”, which should be near 0% however
+high the count above is.</p>
 <table class="table">
 <colgroup>
 <col width="27%">
