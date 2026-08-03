@@ -580,11 +580,32 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #'   per patient: `subject_id`, `n_obs`, `n_doses`, `n_share_dosing`,
 #'   `n_share_schedule`, `n_share_rarest_time`, `n_share_obs_count` (each
 #'   counting the patients sharing that property, including this one),
+#'   `n_visits` and `nearest_set_diff` (how many visit slots -- one endpoint at
+#'   one time -- separate this patient from the closest other one),
 #'   `unique_schedule` (`TRUE` when `n_share_schedule == 1`), and `why_unique`.
 #'   Attributes `n_unique_schedule`, `n_unique_dose_signature`,
 #'   `n_unique_obs_count`, `n_unshared_time`, `min_class`, and `coarsened`
-#'   summarize the cohort; `summary_table` and `sharing_table` hold the two
-#'   tables `print()` shows.
+#'   summarize the cohort; `summary_table`, `sharing_table` and `by_endpoint`
+#'   hold the tables `print()` shows.
+#'
+#' # Reading the count
+#'
+#' `n_share_schedule == 1` is exact-set equality, and on a real study that is a
+#' harsh test: with forty visit slots and twenty patients, two patients who
+#' differ by one missed sample score as "unique" exactly like two with nothing
+#' in common. `nearest_set_diff` is what separates those cases, and the printed
+#' output states it alongside the count. A cohort can read 15 of 21 unique while
+#' every one of those 15 is a single missing sample away from somebody else.
+#'
+#' The `by_endpoint` table says *which* endpoint is responsible, since a
+#' schedule is only as shared as its least shared part: a study measuring a
+#' biomarker at every visit and PK at some of them is unique on the pooled
+#' schedule the moment one PK sample is missing.
+#'
+#' None of this is something generation can lower — it is a property of the
+#' source. What generation controls is whether an avatar ends up *carrying* one
+#' of these schedules, which [pmx_masking_report()] reports as "avatars keeping
+#' their anchor's own visit set".
 #' @seealso [plot_pmx_schedule()] for the same information as a picture,
 #'   [flag_identifiable_subjects()], [synpmx_avatar()].
 #' @export
@@ -648,6 +669,56 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
     min(as.integer(shared[keys]))
   }, integer(1))
 
+  # How near the misses are. `n_share_schedule` is exact-set equality, which is
+  # brutal on a real study: with forty visit slots and twenty patients, two
+  # patients who differ by ONE missed sample are as "unique" as two with nothing
+  # in common. A cohort that looks obviously similar on the schedule map can
+  # still come out 15 of 21 unique, and the count alone cannot tell the reader
+  # which of those two situations they are in. This can: it is the smallest
+  # number of visit slots that separate this patient from any other.
+  # Keyed on endpoint AND time, not on time alone. With two endpoints drawn at
+  # overlapping visits, two patients can hold an identical set of distinct
+  # *times* while differing in which endpoint was measured at them -- so a
+  # pooled-time difference reads 0 for patients who are genuinely not alike.
+  # A "visit slot" here is one endpoint measured at one time.
+  cell_endpoint <- .endpoint(data, roles)
+  visit_sets <- lapply(subject_rows, function(rows) {
+    hit <- rows[observed_index[rows]]
+    unique(paste0(cell_endpoint[hit], "@", .time_key(time[hit])))
+  })
+  nearest_diff <- vapply(seq_along(visit_sets), function(i) {
+    others <- setdiff(seq_along(visit_sets), i)
+    if (!length(others)) return(NA_integer_)
+    min(vapply(others, function(j) {
+      length(union(visit_sets[[i]], visit_sets[[j]])) -
+        length(intersect(visit_sets[[i]], visit_sets[[j]]))
+    }, integer(1)))
+  }, integer(1))
+  n_visits <- lengths(visit_sets)
+
+  # Per endpoint, because a schedule is only as shared as its least shared part.
+  # A study measuring PK at some visits and a biomarker at all of them is unique
+  # on the pooled schedule the moment one PK sample is missing, and nothing in
+  # the pooled counts says which endpoint did it.
+  endpoint <- .endpoint(data, roles)
+  by_endpoint <- lapply(sort(unique(endpoint[observed])), function(name) {
+    keys <- vapply(subject_rows, function(rows) {
+      hit <- rows[observed[rows] & endpoint[rows] == name]
+      if (!length(hit)) return(NA_character_)
+      paste(.time_key(sort(unique(time[hit]))), collapse = ",")
+    }, character(1))
+    present <- !is.na(keys)
+    data.frame(
+      endpoint = name,
+      patients = sum(present),
+      `distinct visit sets` = length(unique(keys[present])),
+      `patients alone on theirs` = sum(present &
+        keys %in% names(which(table(keys[present]) == 1L))),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+  })
+  by_endpoint <- do.call(rbind, by_endpoint)
+
   count_by <- function(keep) {
     as.integer(tapply(as.integer(keep), sub, sum)[as.character(subjects)])
   }
@@ -679,6 +750,8 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
     n_share_rarest_time = min_time_share,
     n_share_obs_count = n_obs_class,
     n_share_dosing = signature_class,
+    n_visits = n_visits,
+    nearest_set_diff = nearest_diff,
     unique_schedule = unique_schedule,
     why_unique = why_unique,
     stringsAsFactors = FALSE,
@@ -696,6 +769,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   attr(out, "min_class") <- if (nrow(out)) min(out$n_share_schedule) else
     NA_integer_
   attr(out, "coarsened") <- isTRUE(coarsen_time)
+  attr(out, "by_endpoint") <- by_endpoint
   attr(out, "summary_table") <- .skeleton_summary_table(out)
   attr(out, "sharing_table") <- .skeleton_sharing_table(out)
   .mark_release(
@@ -790,9 +864,41 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
            " from which visits they attended. Declaring `nominal_time` ",
            "addresses the first group; nothing addresses the second.")
   }
-  list(scored = scored, verdict = verdict,
+  # Near-misses, stated in the same breath as the count. "15 of 21 are unique"
+  # and "the typical one differs from its nearest neighbour by a single visit"
+  # describe the same cohort and lead to opposite conclusions.
+  alone <- x[x$n_share_schedule == 1L, , drop = FALSE]
+  closeness <- if (!nrow(alone) || all(is.na(alone$nearest_set_diff))) {
+    NULL
+  } else {
+    sprintf(paste("Those %d are not necessarily far apart. The typical one",
+                  "differs from its nearest neighbour by %d of about %d visit",
+                  "slots (range %d to %d), where a slot is one endpoint",
+                  "measured at one time. A difference of one or two is a missed",
+                  "sample, not a different schedule -- which is why the count",
+                  "alone is a poor guide."),
+            nrow(alone),
+            stats::median(alone$nearest_set_diff, na.rm = TRUE),
+            stats::median(alone$n_visits, na.rm = TRUE),
+            min(alone$nearest_set_diff, na.rm = TRUE),
+            max(alone$nearest_set_diff, na.rm = TRUE))
+  }
+  # The distinction that trips everybody: this counts SOURCE patients, and a
+  # source is what it is. What the masking controls is whether any AVATAR ends
+  # up carrying one of these, which is the run report's "avatars keeping their
+  # anchor's own visit set". A cohort can be 15 of 21 unique here and still put
+  # none of those schedules into the output.
+  scope <- paste(
+    "This is a property of the SOURCE, and nothing in generation can lower it.",
+    "What generation controls is whether an avatar ends up wearing one of these",
+    "schedules -- that is `pmx_masking_report()`'s \"avatars keeping their",
+    "anchor's own visit set\", which should be near 0% however high the count",
+    "above is."
+  )
+  list(scored = scored, verdict = verdict, closeness = closeness, scope = scope,
        summary = .skeleton_summary_table(x),
-       sharing = .skeleton_sharing_table(x))
+       sharing = .skeleton_sharing_table(x),
+       by_endpoint = attr(x, "by_endpoint"))
 }
 
 .skeleton_footer <- paste(
@@ -807,10 +913,18 @@ print.pmx_skeleton_uniqueness <- function(x, ...) {
   cat("Restricted PMX schedule-uniqueness screen\n")
   cat(.wrap_plain(parts$scored), "\n\n", sep = "")
   cat(.wrap_plain(parts$verdict), "\n\n", sep = "")
+  if (!is.null(parts$closeness)) {
+    cat(.wrap_plain(parts$closeness), "\n\n", sep = "")
+  }
+  cat(.wrap_plain(parts$scope), "\n\n", sep = "")
   print(parts$summary[, c("Patients whose ...", "n", "% of cohort")],
         row.names = FALSE)
   cat("\nHow crowded is each schedule (1 = nobody else has it):\n")
   print(parts$sharing, row.names = FALSE)
+  if (!is.null(parts$by_endpoint) && nrow(parts$by_endpoint) > 1L) {
+    cat("\nWhich endpoint is doing it:\n")
+    print(parts$by_endpoint, row.names = FALSE)
+  }
   cat("\n", .wrap_plain(.skeleton_footer), "\n", sep = "")
   invisible(x)
 }
@@ -824,6 +938,8 @@ knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
   out <- c(
     paste0("**Schedule-uniqueness screen.** ", parts$scored),
     parts$verdict,
+    parts$closeness,
+    parts$scope,
     paste(knitr::kable(parts$summary, align = c("l", "r", "r", "l")),
           collapse = "\n"),
     # A plain heading rather than a `kable()` caption: pandoc binds a caption
@@ -832,6 +948,14 @@ knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
     "**How crowded is each schedule** (1 = nobody else has it):",
     paste(knitr::kable(parts$sharing, align = c("r", "r", "r")),
           collapse = "\n"),
+    if (!is.null(parts$by_endpoint) && nrow(parts$by_endpoint) > 1L) {
+      paste(c("**Which endpoint is doing it.** A schedule is only as shared as",
+              "its least shared part.",
+              paste(knitr::kable(parts$by_endpoint,
+                                 align = c("l", "r", "r", "r")),
+                    collapse = "\n")),
+            collapse = "\n\n")
+    },
     paste0("*", .skeleton_footer, "*")
   )
   knitr::asis_output(paste(out, collapse = "\n\n"))
@@ -848,10 +972,17 @@ knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
 # Base graphics on purpose. This is a diagnostic a user runs mid-analysis on a
 # restricted machine, so it should not depend on ggplot2 being installed, and a
 # points-on-a-grid plot is exactly what base draws well.
+# Deliberately red-free. Red means one thing in this figure -- "this is the bit
+# that identifies somebody" -- and it meant three before: the second endpoint
+# was `#e66101`, which at screen distance is the same colour as the `#d7191c`
+# used for a unique schedule and for a singleton visit time. A reader could not
+# tell whether a red dot was an endpoint or a warning.
+.identifying_colour <- "#d7191c"
+
 .schedule_palette <- function(n) {
-  base <- c("#1f78b4", "#e66101", "#33a02c", "#6a3d9a", "#b15928", "#a6761d")
+  base <- c("#1f78b4", "#33a02c", "#6a3d9a", "#1b9e77", "#8c6d31", "#525252")
   if (n <= length(base)) base[seq_len(n)] else
-    grDevices::hcl.colors(n, "Dark 3")
+    grDevices::hcl.colors(n, "Blue-Yellow")
 }
 
 #' Draw a cohort's dosing and observation schedule
@@ -952,23 +1083,39 @@ plot_pmx_schedule <- function(data, roles, coarsen_time = TRUE,
   x_range <- range(time[drawn & (observed | dosed)], finite = TRUE)
   graphics::plot(NA, xlim = x_range, ylim = c(0.5, length(subjects) + 0.5),
                  xlab = "", ylab = "", yaxt = "n", bty = "n")
+  # The rows worth looking at, marked by their background rather than by the
+  # colour of their label: 15 red labels in a column of 21 is not a signal.
+  flagged_rows <- which(subjects %in% unique_schedule)
+  if (length(flagged_rows)) {
+    graphics::rect(x_range[[1L]], flagged_rows - 0.5,
+                   x_range[[2L]], flagged_rows + 0.5,
+                   col = "#fdecea", border = NA)
+  }
   graphics::abline(h = seq_along(subjects), col = "grey93")
   # Doses first and underneath: a vertical tick, so an observation drawn at the
   # same time still reads.
   graphics::points(time[dosed & drawn], row[dosed & drawn], pch = 124,
                    col = "grey35", cex = 0.9)
+  # Endpoints are offset within the row rather than drawn on top of each other.
+  # Where a study measures two endpoints at the same visits, overplotting hides
+  # the one thing the picture is for -- seeing WHICH endpoint is missing where,
+  # which is usually what makes a patient's schedule unique.
+  offset <- if (length(endpoints) > 1L) {
+    stats::setNames((seq_along(endpoints) - (length(endpoints) + 1) / 2) *
+                      (0.6 / length(endpoints)), endpoints)
+  } else stats::setNames(0, endpoints)
   for (name in endpoints) {
     hit <- observed & drawn & endpoint == name
-    graphics::points(time[hit], row[hit], pch = 16, cex = 0.55,
-                     col = colours[[name]])
+    graphics::points(time[hit], row[hit] + offset[[name]], pch = 16,
+                     cex = 0.55, col = colours[[name]])
   }
-  label_colour <- ifelse(subjects %in% unique_schedule, "#d7191c", "grey25")
   graphics::axis(2, at = seq_along(subjects), labels = subjects, las = 1,
                  tick = FALSE, cex.axis = label_cex,
                  col.axis = "grey25", line = -0.6)
-  for (i in which(subjects %in% unique_schedule)) {
+  for (i in flagged_rows) {
     graphics::axis(2, at = i, labels = subjects[i], las = 1, tick = FALSE,
-                   cex.axis = label_cex, col.axis = "#d7191c", line = -0.6)
+                   cex.axis = label_cex, col.axis = .identifying_colour,
+                   line = -0.6)
   }
   graphics::title(
     main = main %||% paste0(
@@ -979,8 +1126,9 @@ plot_pmx_schedule <- function(data, roles, coarsen_time = TRUE,
     xlab = "", cex.main = 1
   )
   graphics::mtext(
-    sprintf("%s; %d in red have a schedule nobody else shares", data_note,
-            sum(subjects %in% unique_schedule)),
+    sprintf(paste("%s. Dot colour is the ENDPOINT (see legend). The %d shaded",
+                  "rows are patients whose exact set of visits nobody else has"),
+            data_note, sum(subjects %in% unique_schedule)),
     side = 3, line = 0.2, cex = 0.7, col = "grey30"
   )
   graphics::legend("bottomright", legend = c(endpoints, "dose"),
@@ -1000,11 +1148,13 @@ plot_pmx_schedule <- function(data, roles, coarsen_time = TRUE,
   graphics::plot(NA, xlim = x_range, ylim = c(0, max(heights, 1L)),
                  xlab = "", ylab = "", bty = "n")
   graphics::segments(times, 0, times, heights,
-                     col = ifelse(heights == 1L, "#d7191c", "#4d4d4d"),
+                     col = ifelse(heights == 1L, .identifying_colour, "#4d4d4d"),
                      lwd = 2)
   graphics::title(xlab = sprintf("Time (%s, source units)", roles$time),
                   ylab = "patients", cex.lab = 0.85, line = 2.2)
-  graphics::mtext(sprintf("visits per time point; %d time(s) in red were used by one patient only",
+  graphics::mtext(sprintf(paste("How many patients were observed at each time.",
+                                "%d bar(s) in red reach only 1 -- a moment one",
+                                "patient alone was sampled at"),
                           sum(heights == 1L)),
                   side = 3, line = 0.1, cex = 0.7, col = "grey30")
   invisible(screen)
