@@ -313,22 +313,7 @@ synthetic <- synpmx_avatar(source, roles, n_subjects = 2, seed = 123)
 #>     an individual, which markedly raises re-identifiability.
 #>   Fix: use a larger source, or treat the output as individually identifying
 #>     and keep it under the source's own access controls.
-#> Warning: SYNPMX ALERT: source too small for the donor floor
-#>   the source has 3 patients, so every avatar is blended from at most 2 real
-#>   patients -- fewer than the floor of k = 5.
-#>   Why it matters: blending across few patients leaves each avatar close to
-#>     an individual, which markedly raises re-identifiability.
-#>   Fix: use a larger source, or treat the output as individually identifying
-#>     and keep it under the source's own access controls.
 #> SYNPMX ALERT: every route arm is below the donor floor
-#>   3 patients sit in 1 route arm holding fewer than the donor floor of k =
-#>   5: 1:1:bolus (n=3).
-#>   Why it matters: donors are never blended across routes, so these patients
-#>     have no legal donor set. Dropping every arm would leave nothing to
-#>     generate, so generation proceeded as if `on_donor_shortfall = "noise"`.
-#>   Fix: treat the whole output as individually identifying, or use a larger
-#>     source.
-#> Warning: SYNPMX ALERT: every route arm is below the donor floor
 #>   3 patients sit in 1 route arm holding fewer than the donor floor of k =
 #>   5: 1:1:bolus (n=3).
 #>   Why it matters: donors are never blended across routes, so these patients

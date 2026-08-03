@@ -192,8 +192,8 @@ Covariates and DV, capped so no one donor dominates, plus noise.
 <li>
 <strong>M5 — recompute the dose from the avatar’s own
 covariate.</strong> Done when the dosing is weight- or BSA-based, so
-that subjects do not have uniquely identifying doses. <em>Step
-9.</em>
+that subjects do not have uniquely identifying doses. Declared with
+<code>dose_covariate</code>, or inferred. <em>Step 9.</em>
 </li>
 </ul>
 </div>
@@ -237,6 +237,7 @@ user must declare them with <code><a href="../reference/pmx_roles.html">pmx_role
 <span><span class="co">#&gt;   addl: &lt;absent&gt;</span></span>
 <span><span class="co">#&gt;   ii: &lt;absent&gt;</span></span>
 <span><span class="co">#&gt;   assigned_dose: &lt;absent&gt;</span></span>
+<span><span class="co">#&gt;   dose_covariate: &lt;absent&gt;</span></span>
 <span><span class="co">#&gt;   covariates: WT, AGE, SEX</span></span>
 <span><span class="co">#&gt;   keep: ARM</span></span></code></pre></div>
 <p><code>id</code>, <code>time</code>, <code>dv</code>, and
@@ -1920,28 +1921,7 @@ table shows the exact pre-noise blend used by the implementation.</p>
 <span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
 <span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
 <span><span class="co">#&gt;     it still matters.</span></span>
-<span><span class="co">#&gt; Warning: SYNPMX ALERT: unique visit sets</span></span>
-<span><span class="co">#&gt;   3 of 6 patients (50%) share every individual observation time with</span></span>
-<span><span class="co">#&gt;   somebody, but the set of visits they attended is theirs alone -- dropout,</span></span>
-<span><span class="co">#&gt;   discontinuation, or a missed visit.</span></span>
-<span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
-<span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
-<span><span class="co">#&gt;     for.</span></span>
-<span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
-<span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
-<span><span class="co">#&gt;     it still matters.</span></span>
 <span><span class="co">#&gt; SYNPMX NOTE: rare visit sets not reused</span></span>
-<span><span class="co">#&gt;   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2</span></span>
-<span><span class="co">#&gt;   patients and is given to no avatar.</span></span>
-<span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
-<span><span class="co">#&gt;     could be traced back to them. Kept instead: how many visits were missed</span></span>
-<span><span class="co">#&gt;     and of what kind -- all at the end (dropout), a run in the middle (an</span></span>
-<span><span class="co">#&gt;     interruption), or scattered. Which specific visits were missed is not</span></span>
-<span><span class="co">#&gt;     preserved.</span></span>
-<span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
-<span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
-<span><span class="co">#&gt;     guarantee.</span></span>
-<span><span class="co">#&gt; Warning: SYNPMX NOTE: rare visit sets not reused</span></span>
 <span><span class="co">#&gt;   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2</span></span>
 <span><span class="co">#&gt;   patients and is given to no avatar.</span></span>
 <span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
@@ -2198,14 +2178,27 @@ schedules; normalized observation-window fallback</td>
 <div class="section level3">
 <h3 id="m5-recomputing-the-dose-from-the-blended-covariate">M5 — recomputing the dose from the blended covariate<a class="anchor" aria-label="anchor" href="#m5-recomputing-the-dose-from-the-blended-covariate"></a>
 </h3>
-<p>Runs automatically. Under dosing proportional to a baseline
-covariate, the multiplier is a protocol property the stratum shares and
-the covariate is individual — and already blended. Keeping the
-multiplier and recomputing the amount from the avatar’s own covariate
-stops the dose being a verbatim real value (which under mg/kg dosing
-discloses the anchor’s weight exactly) and repairs a coherence defect:
-previously every avatar violated the mg/kg rule its own data claims to
-follow. See <code>REV-027</code>.</p>
+<p>Under dosing proportional to a baseline covariate, the multiplier is
+a protocol property the stratum shares and the covariate is individual —
+and already blended. Keeping the multiplier and recomputing the amount
+from the avatar’s own covariate stops the dose being a verbatim real
+value (which under mg/kg dosing discloses the anchor’s weight exactly)
+and repairs a coherence defect: previously every avatar violated the
+mg/kg rule its own data claims to follow. See <code>REV-027</code>.</p>
+<p><strong>Declared or inferred, and the difference matters.</strong>
+Naming the covariate in <code>pmx_roles(dose_covariate = )</code> states
+the relationship outright; leaving it <code>NULL</code> makes the run
+infer one. Inference is deliberately conservative: it requires the
+dose-to-covariate ratio to collapse onto a handful of levels within 2%,
+because rewriting amounts on a study that is <em>not</em> proportional
+would be worse than leaving them alone. Two ordinary things defeat that
+test — dispensing in vials, and patients escalating by factors that are
+not identical across the cohort — so a genuinely weight-based study can
+come through with its amounts untouched. Declaring the covariate skips
+inference and holds <strong>each dose row’s own ratio</strong> rather
+than snapping to shared levels, so intra-patient escalation survives
+exactly. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> says which path ran and, when
+inference declined, what it tried. See <code>SIM-040</code>.</p>
 <p><strong>The post-generation screen. Screening the finished data, and
 remediating</strong> (<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, after
 generation). The only mechanism <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> does

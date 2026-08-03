@@ -806,9 +806,9 @@ access controls.</p>
 <caption>Everything theophylline’s run removed, and what was left to
 build on.</caption>
 <colgroup>
-<col width="26%">
-<col width="3%">
-<col width="70%">
+<col width="22%">
+<col width="5%">
+<col width="72%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -947,48 +947,64 @@ attended</strong></td>
 patient actually had</td>
 </tr>
 <tr class="odd">
-<td align="left">  shared by too few patients, so not reused</td>
+<td align="left">  held by fewer than 2 patients, so not reused</td>
 <td align="right">0</td>
 <td align="left">
-<code>min_pattern_share</code>; these are lost, not
-approximated</td>
+<code>min_pattern_share</code> is that threshold. These
+visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
 <td align="right">0</td>
-<td align="left">they stay in the cohort as donors; only their absences
-stop being copied</td>
+<td align="left">those patients are NOT removed – they still anchor
+avatars and still act as donors. Only their particular pattern of
+absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
 <td align="right">100%</td>
-<td align="left">drawn from the sets that survived the floor – never
-from their own anchor alone</td>
+<td align="left">drawn from the sets that cleared the threshold, or
+built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
 <td align="right">0%</td>
-<td align="left">how many visits were missed and of what kind was
-reused; exactly which ones was invented</td>
+<td align="left">the kind of missingness was reused; exactly which
+visits were missed was invented</td>
 </tr>
 <tr class="odd">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="left">  of those, miss count moved</td>
 <td align="right">0%</td>
-<td align="left">the fallback when a schedule group had no set shared by
-<code>min_pattern_share</code> patients. High is bad: those avatars
-carry one real patient’s absences</td>
+<td align="left">no placement at the wanted number of misses was free,
+so the count moved by a visit or two. Dropout is the usual reason: a
+discontinuation at a given depth has only one possible placement</td>
 </tr>
 <tr class="even">
+<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="right">0%</td>
+<td align="left">the last-resort fallback, and the one row you want at
+0%: these avatars carry one real patient’s absences exactly. The run
+alerts past 10%</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 11 distinct dose amounts are not a fixed multiple
 of any declared covariate: WT (8 ratio levels for 11 distinct amounts –
 too many to be a protocol)</td>
+</tr>
+<tr class="odd">
+<td align="left">  so <code>amt</code> is copied verbatim</td>
+<td align="right">from the anchor</td>
+<td align="left">each avatar’s implied dose per kg is therefore its
+anchor’s, not its own, and the amount still encodes one real patient’s
+covariate. Declare <code>dose_covariate</code> if this study is weight-
+or BSA-based</td>
 </tr>
 </tbody>
 </table>
@@ -1224,28 +1240,7 @@ Both endpoints and all subjects are retained.</p>
 <span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
 <span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
 <span><span class="co">#&gt;     it still matters.</span></span>
-<span><span class="co">#&gt; Warning: SYNPMX ALERT: unique visit sets</span></span>
-<span><span class="co">#&gt;   12 of 32 patients (38%) share every individual observation time with</span></span>
-<span><span class="co">#&gt;   somebody, but the set of visits they attended is theirs alone -- dropout,</span></span>
-<span><span class="co">#&gt;   discontinuation, or a missed visit.</span></span>
-<span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
-<span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
-<span><span class="co">#&gt;     for.</span></span>
-<span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
-<span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
-<span><span class="co">#&gt;     it still matters.</span></span>
 <span><span class="co">#&gt; SYNPMX NOTE: rare visit sets not reused</span></span>
-<span><span class="co">#&gt;   4 of 14 distinct visit sets, held by 4 patients, are shared by fewer than</span></span>
-<span><span class="co">#&gt;   2 patients and are given to no avatar.</span></span>
-<span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
-<span><span class="co">#&gt;     could be traced back to them. Kept instead: how many visits were missed</span></span>
-<span><span class="co">#&gt;     and of what kind -- all at the end (dropout), a run in the middle (an</span></span>
-<span><span class="co">#&gt;     interruption), or scattered. Which specific visits were missed is not</span></span>
-<span><span class="co">#&gt;     preserved.</span></span>
-<span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
-<span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
-<span><span class="co">#&gt;     guarantee.</span></span>
-<span><span class="co">#&gt; Warning: SYNPMX NOTE: rare visit sets not reused</span></span>
 <span><span class="co">#&gt;   4 of 14 distinct visit sets, held by 4 patients, are shared by fewer than</span></span>
 <span><span class="co">#&gt;   2 patients and are given to no avatar.</span></span>
 <span><span class="co">#&gt;   Why it matters: an avatar carrying a visit set unique to one real patient</span></span>
@@ -1271,8 +1266,8 @@ Both endpoints and all subjects are retained.</p>
 <caption>Everything warfarin’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="24%">
-<col width="7%">
+<col width="21%">
+<col width="10%">
 <col width="67%">
 </colgroup>
 <thead><tr class="header">
@@ -1352,7 +1347,7 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">81%</td>
+<td align="right">66%</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
@@ -1412,55 +1407,63 @@ attended</strong></td>
 patient actually had</td>
 </tr>
 <tr class="odd">
-<td align="left">  shared by too few patients, so not reused</td>
+<td align="left">  held by fewer than 2 patients, so not reused</td>
 <td align="right">4</td>
 <td align="left">
-<code>min_pattern_share</code>; these are lost, not
-approximated</td>
+<code>min_pattern_share</code> is that threshold. These
+visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
 <td align="right">4</td>
-<td align="left">they stay in the cohort as donors; only their absences
-stop being copied</td>
+<td align="left">those patients are NOT removed – they still anchor
+avatars and still act as donors. Only their particular pattern of
+absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
 <td align="right">100%</td>
-<td align="left">drawn from the sets that survived the floor – never
-from their own anchor alone</td>
+<td align="left">drawn from the sets that cleared the threshold, or
+built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">19%</td>
-<td align="left">how many visits were missed and of what kind was
-reused; exactly which ones was invented</td>
+<td align="right">22%</td>
+<td align="left">the kind of missingness was reused; exactly which
+visits were missed was invented</td>
 </tr>
 <tr class="odd">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="left">  of those, miss count moved</td>
 <td align="right">0%</td>
-<td align="left">the fallback when a schedule group had no set shared by
-<code>min_pattern_share</code> patients. High is bad: those avatars
-carry one real patient’s absences</td>
+<td align="left">no placement at the wanted number of misses was free,
+so the count moved by a visit or two. Dropout is the usual reason: a
+discontinuation at a given depth has only one possible placement</td>
 </tr>
 <tr class="even">
+<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="right">0%</td>
+<td align="left">the last-resort fallback, and the one row you want at
+0%: these avatars carry one real patient’s absences exactly. The run
+alerts past 10%</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right">
 <strong>yes</strong>, from <code>wt</code>
-</td>
+(inferred)</td>
 <td align="left">the 20 distinct dose amounts are a fixed multiple of
 <code>wt</code>, at 1 protocol level(s)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  protocol levels found</td>
 <td align="right">1.5</td>
-<td align="left">dose per unit of <code>wt</code>; each avatar’s amount
-is rebuilt from its own blended value</td>
+<td align="left">dose per unit of <code>wt</code>; every amount was
+snapped to the nearest of these</td>
 </tr>
 </tbody>
 </table>
@@ -1553,9 +1556,9 @@ privacy guarantee; ordinary long follow-ups are kept, and
 <caption>Everything wbcSim’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="26%">
-<col width="3%">
-<col width="70%">
+<col width="22%">
+<col width="5%">
+<col width="72%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1640,7 +1643,7 @@ setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.85</td>
+<td align="right">2.89</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -1694,47 +1697,63 @@ attended</strong></td>
 patient actually had</td>
 </tr>
 <tr class="odd">
-<td align="left">  shared by too few patients, so not reused</td>
+<td align="left">  held by fewer than 2 patients, so not reused</td>
 <td align="right">5</td>
 <td align="left">
-<code>min_pattern_share</code>; these are lost, not
-approximated</td>
+<code>min_pattern_share</code> is that threshold. These
+visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
 <td align="right">5</td>
-<td align="left">they stay in the cohort as donors; only their absences
-stop being copied</td>
+<td align="left">those patients are NOT removed – they still anchor
+avatars and still act as donors. Only their particular pattern of
+absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
 <td align="right">100%</td>
-<td align="left">drawn from the sets that survived the floor – never
-from their own anchor alone</td>
+<td align="left">drawn from the sets that cleared the threshold, or
+built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">2%</td>
-<td align="left">how many visits were missed and of what kind was
-reused; exactly which ones was invented</td>
+<td align="right">4%</td>
+<td align="left">the kind of missingness was reused; exactly which
+visits were missed was invented</td>
 </tr>
 <tr class="odd">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="left">  of those, miss count moved</td>
 <td align="right">0%</td>
-<td align="left">the fallback when a schedule group had no set shared by
-<code>min_pattern_share</code> patients. High is bad: those avatars
-carry one real patient’s absences</td>
+<td align="left">no placement at the wanted number of misses was free,
+so the count moved by a visit or two. Dropout is the usual reason: a
+discontinuation at a given depth has only one possible placement</td>
 </tr>
 <tr class="even">
+<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="right">0%</td>
+<td align="left">the last-resort fallback, and the one row you want at
+0%: these avatars carry one real patient’s absences exactly. The run
+alerts past 10%</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">no <code>covariates</code> are declared, so there is
 nothing to test the amounts against</td>
+</tr>
+<tr class="odd">
+<td align="left">  so <code>amt</code> is copied verbatim</td>
+<td align="right">from the anchor</td>
+<td align="left">each avatar’s implied dose per kg is therefore its
+anchor’s, not its own, and the amount still encodes one real patient’s
+covariate. Declare <code>dose_covariate</code> if this study is weight-
+or BSA-based</td>
 </tr>
 </tbody>
 </table>
@@ -1804,9 +1823,9 @@ undeclared, so AVATAR drops it.</p>
 <caption>Everything nimoData’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="16%">
-<col width="2%">
-<col width="81%">
+<col width="15%">
+<col width="4%">
+<col width="79%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1885,13 +1904,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">58%</td>
+<td align="right">75%</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.94</td>
+<td align="right">2.97</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -1945,43 +1964,51 @@ attended</strong></td>
 patient actually had</td>
 </tr>
 <tr class="odd">
-<td align="left">  shared by too few patients, so not reused</td>
+<td align="left">  held by fewer than 2 patients, so not reused</td>
 <td align="right">2</td>
 <td align="left">
-<code>min_pattern_share</code>; these are lost, not
-approximated</td>
+<code>min_pattern_share</code> is that threshold. These
+visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
 <td align="right">2</td>
-<td align="left">they stay in the cohort as donors; only their absences
-stop being copied</td>
+<td align="left">those patients are NOT removed – they still anchor
+avatars and still act as donors. Only their particular pattern of
+absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
 <td align="right">100%</td>
-<td align="left">drawn from the sets that survived the floor – never
-from their own anchor alone</td>
+<td align="left">drawn from the sets that cleared the threshold, or
+built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
 <td align="right">100%</td>
-<td align="left">how many visits were missed and of what kind was
-reused; exactly which ones was invented</td>
+<td align="left">the kind of missingness was reused; exactly which
+visits were missed was invented</td>
 </tr>
 <tr class="odd">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="left">  of those, miss count moved</td>
 <td align="right">0%</td>
-<td align="left">the fallback when a schedule group had no set shared by
-<code>min_pattern_share</code> patients. High is bad: those avatars
-carry one real patient’s absences</td>
+<td align="left">no placement at the wanted number of misses was free,
+so the count moved by a visit or two. Dropout is the usual reason: a
+discontinuation at a given depth has only one possible placement</td>
 </tr>
 <tr class="even">
+<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="right">0%</td>
+<td align="left">the last-resort fallback, and the one row you want at
+0%: these avatars carry one real patient’s absences exactly. The run
+alerts past 10%</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 4 distinct dose amounts are not a fixed multiple of
@@ -1989,6 +2016,14 @@ any declared covariate: BSA (10 ratio levels for 4 distinct amounts –
 too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts
 – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts
 – too many to be a protocol)</td>
+</tr>
+<tr class="odd">
+<td align="left">  so <code>amt</code> is copied verbatim</td>
+<td align="right">from the anchor</td>
+<td align="left">each avatar’s implied dose per kg is therefore its
+anchor’s, not its own, and the amount still encodes one real patient’s
+covariate. Declare <code>dose_covariate</code> if this study is weight-
+or BSA-based</td>
 </tr>
 </tbody>
 </table>
@@ -2075,8 +2110,8 @@ coherent with the doses when carried through with <code>keep</code>.</p>
 build on.</caption>
 <colgroup>
 <col width="19%">
-<col width="2%">
-<col width="77%">
+<col width="5%">
+<col width="75%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -2215,49 +2250,65 @@ attended</strong></td>
 patient actually had</td>
 </tr>
 <tr class="odd">
-<td align="left">  shared by too few patients, so not reused</td>
+<td align="left">  held by fewer than 2 patients, so not reused</td>
 <td align="right">2</td>
 <td align="left">
-<code>min_pattern_share</code>; these are lost, not
-approximated</td>
+<code>min_pattern_share</code> is that threshold. These
+visit sets are lost, not approximated</td>
 </tr>
 <tr class="even">
 <td align="left">  real patients holding those</td>
 <td align="right">2</td>
-<td align="left">they stay in the cohort as donors; only their absences
-stop being copied</td>
+<td align="left">those patients are NOT removed – they still anchor
+avatars and still act as donors. Only their particular pattern of
+absences stops being copied</td>
 </tr>
 <tr class="odd">
 <td align="left">Avatars given a visit set from the pool</td>
 <td align="right">100%</td>
-<td align="left">drawn from the sets that survived the floor – never
-from their own anchor alone</td>
+<td align="left">drawn from the sets that cleared the threshold, or
+built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
 <td align="right">0%</td>
-<td align="left">how many visits were missed and of what kind was
-reused; exactly which ones was invented</td>
+<td align="left">the kind of missingness was reused; exactly which
+visits were missed was invented</td>
 </tr>
 <tr class="odd">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="left">  of those, miss count moved</td>
 <td align="right">0%</td>
-<td align="left">the fallback when a schedule group had no set shared by
-<code>min_pattern_share</code> patients. High is bad: those avatars
-carry one real patient’s absences</td>
+<td align="left">no placement at the wanted number of misses was free,
+so the count moved by a visit or two. Dropout is the usual reason: a
+discontinuation at a given depth has only one possible placement</td>
 </tr>
 <tr class="even">
+<td align="left">Avatars keeping their anchor’s own visit set</td>
+<td align="right">0%</td>
+<td align="left">the last-resort fallback, and the one row you want at
+0%: these avatars carry one real patient’s absences exactly. The run
+alerts past 10%</td>
+</tr>
+<tr class="odd">
 <td align="left"><strong>Dose</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 3 distinct dose amounts are not a fixed multiple of
 any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels
 for 3 distinct amounts – too many to be a protocol); WT (ratios do not
 cluster); HT (ratios do not cluster)</td>
+</tr>
+<tr class="odd">
+<td align="left">  so <code>amt</code> is copied verbatim</td>
+<td align="right">from the anchor</td>
+<td align="left">each avatar’s implied dose per kg is therefore its
+anchor’s, not its own, and the amount still encodes one real patient’s
+covariate. Declare <code>dose_covariate</code> if this study is weight-
+or BSA-based</td>
 </tr>
 </tbody>
 </table>
@@ -2699,15 +2750,15 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 <tr class="even">
 <td align="left">warfarin</td>
 <td align="right">0.531</td>
-<td align="right">0.358</td>
-<td align="right">0.781</td>
+<td align="right">0.295</td>
+<td align="right">0.719</td>
 <td align="right">16</td>
 </tr>
 <tr class="odd">
 <td align="left">wbcSim</td>
-<td align="right">0.545</td>
-<td align="right">0.306</td>
-<td align="right">0.694</td>
+<td align="right">0.477</td>
+<td align="right">0.361</td>
+<td align="right">0.632</td>
 <td align="right">22</td>
 </tr>
 <tr class="even">

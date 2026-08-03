@@ -91,7 +91,8 @@ run. Each one is explained in full at the step that fires it.
   capped so no one donor dominates, plus noise. *Step 7.*
 - **M5 — recompute the dose from the avatar’s own covariate.** Done when
   the dosing is weight- or BSA-based, so that subjects do not have
-  uniquely identifying doses. *Step 9.*
+  uniquely identifying doses. Declared with `dose_covariate`, or
+  inferred. *Step 9.*
 
 ## Step 1: declare the meaning of the columns
 
@@ -135,6 +136,7 @@ roles
 #>   addl: <absent>
 #>   ii: <absent>
 #>   assigned_dose: <absent>
+#>   dose_covariate: <absent>
 #>   covariates: WT, AGE, SEX
 #>   keep: ARM
 ```
@@ -1349,28 +1351,7 @@ the exact pre-noise blend used by the implementation.
     #>   Fix: `min_pattern_share` already stops these sets being reused (see the
     #>     run report). Screen the result with `flag_identifiable_subjects()` if
     #>     it still matters.
-    #> Warning: SYNPMX ALERT: unique visit sets
-    #>   3 of 6 patients (50%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
-    #>   Why it matters: no time grid can help here, however fine or coarse: a
-    #>     grid decides where the visits are, not which ones a patient turned up
-    #>     for.
-    #>   Fix: `min_pattern_share` already stops these sets being reused (see the
-    #>     run report). Screen the result with `flag_identifiable_subjects()` if
-    #>     it still matters.
     #> SYNPMX NOTE: rare visit sets not reused
-    #>   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2
-    #>   patients and is given to no avatar.
-    #>   Why it matters: an avatar carrying a visit set unique to one real patient
-    #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
-    #>   What to do: nothing, unless this study's interruptions matter.
-    #>     `min_pattern_share = 1` copies exact visit sets and gives up the
-    #>     guarantee.
-    #> Warning: SYNPMX NOTE: rare visit sets not reused
     #>   1 of 4 distinct visit sets, held by 1 patient, is shared by fewer than 2
     #>   patients and is given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
@@ -1441,14 +1422,29 @@ Recorded endpoint transformation {.table}
 
 ### M5 — recomputing the dose from the blended covariate
 
-Runs automatically. Under dosing proportional to a baseline covariate,
-the multiplier is a protocol property the stratum shares and the
-covariate is individual — and already blended. Keeping the multiplier
-and recomputing the amount from the avatar’s own covariate stops the
-dose being a verbatim real value (which under mg/kg dosing discloses the
-anchor’s weight exactly) and repairs a coherence defect: previously
-every avatar violated the mg/kg rule its own data claims to follow. See
-`REV-027`.
+Under dosing proportional to a baseline covariate, the multiplier is a
+protocol property the stratum shares and the covariate is individual —
+and already blended. Keeping the multiplier and recomputing the amount
+from the avatar’s own covariate stops the dose being a verbatim real
+value (which under mg/kg dosing discloses the anchor’s weight exactly)
+and repairs a coherence defect: previously every avatar violated the
+mg/kg rule its own data claims to follow. See `REV-027`.
+
+**Declared or inferred, and the difference matters.** Naming the
+covariate in `pmx_roles(dose_covariate = )` states the relationship
+outright; leaving it `NULL` makes the run infer one. Inference is
+deliberately conservative: it requires the dose-to-covariate ratio to
+collapse onto a handful of levels within 2%, because rewriting amounts
+on a study that is *not* proportional would be worse than leaving them
+alone. Two ordinary things defeat that test — dispensing in vials, and
+patients escalating by factors that are not identical across the cohort
+— so a genuinely weight-based study can come through with its amounts
+untouched. Declaring the covariate skips inference and holds **each dose
+row’s own ratio** rather than snapping to shared levels, so
+intra-patient escalation survives exactly.
+[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+says which path ran and, when inference declined, what it tried. See
+`SIM-040`.
 
 **The post-generation screen. Screening the finished data, and
 remediating**

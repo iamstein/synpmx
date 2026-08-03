@@ -148,27 +148,33 @@ pmx_masking_report(synthetic, data, roles)
 #>   Distinct visit sets in the source                1
 #>       a visit set is which of the shared grid visits one patient actually
 #>       had
-#>     shared by too few patients, so not reused      0
-#>       `min_pattern_share`; these are lost, not approximated
+#>     held by fewer than 2 patients, so not reused   0
+#>       `min_pattern_share` is that threshold. These visit sets are lost, not
+#>       approximated
 #>     real patients holding those                    0
-#>       they stay in the cohort as donors; only their absences stop being
+#>       those patients are NOT removed -- they still anchor avatars and still
+#>       act as donors. Only their particular pattern of absences stops being
 #>       copied
 #>   Avatars given a visit set from the pool          100%
-#>       drawn from the sets that survived the floor -- never from their own
-#>       anchor alone
+#>       drawn from the sets that cleared the threshold, or built from their
+#>       shape -- never from their own anchor alone
 #>     of those, misses placed fresh                  0%
-#>       how many visits were missed and of what kind was reused; exactly
-#>       which ones was invented
+#>       the kind of missingness was reused; exactly which visits were missed
+#>       was invented
+#>     of those, miss count moved                     0%
+#>       no placement at the wanted number of misses was free, so the count
+#>       moved by a visit or two. Dropout is the usual reason: a
+#>       discontinuation at a given depth has only one possible placement
 #>   Avatars keeping their anchor's own visit set     0%
-#>       the fallback when a schedule group had no set shared by
-#>       `min_pattern_share` patients. High is bad: those avatars carry one
-#>       real patient's absences
+#>       the last-resort fallback, and the one row you want at 0%: these
+#>       avatars carry one real patient's absences exactly. The run alerts
+#>       past 10%
 #> 
 #> Dose
-#>   Amounts recomputed from a covariate              yes, from `WT`
+#>   Amounts recomputed from a covariate              yes, from `WT` (inferred)
 #>       the 30 distinct dose amounts are a fixed multiple of `WT`, at 9
 #>       protocol level(s)
 #>     protocol levels found                          1.17, 1.205, 1.281, 1.376, 1.43, 1.492, 1.622, 1.741, 1.788
-#>       dose per unit of `WT`; each avatar's amount is rebuilt from its own
-#>       blended value
+#>       dose per unit of `WT`; every amount was snapped to the nearest of
+#>       these
 ```

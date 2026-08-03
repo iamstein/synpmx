@@ -194,29 +194,35 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Distinct visit sets in the source                1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       a visit set is which of the shared grid visits one patient actually</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       had</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     shared by too few patients, so not reused      0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       `min_pattern_share`; these are lost, not approximated</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     held by fewer than 2 patients, so not reused   0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       `min_pattern_share` is that threshold. These visit sets are lost, not</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       approximated</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     real patients holding those                    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       they stay in the cohort as donors; only their absences stop being</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       those patients are NOT removed -- they still anchor avatars and still</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       act as donors. Only their particular pattern of absences stops being</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       copied</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars given a visit set from the pool          100%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       drawn from the sets that survived the floor -- never from their own</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       anchor alone</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       drawn from the sets that cleared the threshold, or built from their</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       shape -- never from their own anchor alone</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     of those, misses placed fresh                  0%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       how many visits were missed and of what kind was reused; exactly</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       which ones was invented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the kind of missingness was reused; exactly which visits were missed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       was invented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     of those, miss count moved                     0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       no placement at the wanted number of misses was free, so the count</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       moved by a visit or two. Dropout is the usual reason: a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       discontinuation at a given depth has only one possible placement</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars keeping their anchor's own visit set     0%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       the fallback when a schedule group had no set shared by</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       `min_pattern_share` patients. High is bad: those avatars carry one</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       real patient's absences</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the last-resort fallback, and the one row you want at 0%: these</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       avatars carry one real patient's absences exactly. The run alerts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       past 10%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Dose</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Amounts recomputed from a covariate              yes, from `WT`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Amounts recomputed from a covariate              yes, from `WT` (inferred)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the 30 distinct dose amounts are a fixed multiple of `WT`, at 9</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       protocol level(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     protocol levels found                          1.17, 1.205, 1.281, 1.376, 1.43, 1.492, 1.622, 1.741, 1.788</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       dose per unit of `WT`; each avatar's amount is rebuilt from its own</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       blended value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       dose per unit of `WT`; every amount was snapped to the nearest of</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       these</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

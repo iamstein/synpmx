@@ -85,6 +85,7 @@ copied out of a real subject. Name a column in <code>keep</code> to carry it thr
 <span>  ii <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  subject_properties <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assigned_dose <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  keep <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  exclude <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -155,6 +156,29 @@ It is <strong>not</strong> a blending barrier — only route of administration i
 are still borrowed across strata to reach the donor floor.</p>
 <p>The differential-privacy engines model the same columns jointly with the
 regimen as a released category domain.</p></dd>
+
+
+<dt id="arg-dose-covariate">dose_covariate<a class="anchor" aria-label="anchor" href="#arg-dose-covariate"></a></dt>
+<dd><p>The covariate the dose is a fixed multiple of, for
+weight-based or body-surface-area dosing: name the <strong>covariate</strong>, not the
+amount. Declaring it tells <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> to recompute each avatar's
+<code>amt</code> from the avatar's own blended covariate at the anchor's own
+milligrams-per-unit, instead of copying the anchor's milligrams.</p>
+<p>This matters twice over. An avatar's covariates are blended while its <code>amt</code>
+would otherwise be copied verbatim, so under proportional dosing the
+avatar's own mg/kg comes out wrong — every generated patient violates the
+protocol it claims to follow. And a copied amount is one real patient's
+real dose, which under proportional dosing discloses that patient's weight
+exactly.</p>
+<p>Left <code>NULL</code>, <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> tries to <em>infer</em> the relationship, and that
+inference deliberately fails closed: it requires the dose-to-covariate
+ratio to collapse onto a handful of protocol levels, so a study that
+rounds doses to vial sizes, or escalates within a patient by ratios that
+are not quite equal, is refused and the amounts are left alone. Declaring
+the covariate skips inference entirely and holds each dose row's own
+ratio, so <strong>intra-patient escalation is preserved exactly</strong> — three doses
+at 1, 2 and 4 mg/kg stay at 1, 2 and 4 mg/kg. The run report says which
+path was taken and, when inference declined, why.</p></dd>
 
 
 <dt id="arg-assigned-dose">assigned_dose<a class="anchor" aria-label="anchor" href="#arg-assigned-dose"></a></dt>

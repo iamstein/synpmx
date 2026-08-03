@@ -462,13 +462,15 @@ masking_table(theo_md, theo_roles, theo_synth, "theophylline")
 |   because of which visits they attended | 0 | every time is shared; this is dropout, and no grid can fix it |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 3 | a visit set is which of the shared grid visits one patient actually had |
-|   shared by too few patients, so not reused | 0 | `min_pattern_share`; these are lost, not approximated |
-|   real patients holding those | 0 | they stay in the cohort as donors; only their absences stop being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that survived the floor – never from their own anchor alone |
-|   of those, misses placed fresh | 0% | how many visits were missed and of what kind was reused; exactly which ones was invented |
-| Avatars keeping their anchor’s own visit set | 0% | the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient’s absences |
+|   held by fewer than 2 patients, so not reused | 0 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 0 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
+| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 11 distinct dose amounts are not a fixed multiple of any declared covariate: WT (8 ratio levels for 11 distinct amounts – too many to be a protocol) |
+|   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
 
 Everything theophylline’s run removed, and what was left to build on.
 {.table}
@@ -623,28 +625,7 @@ retained.
     #>   Fix: `min_pattern_share` already stops these sets being reused (see the
     #>     run report). Screen the result with `flag_identifiable_subjects()` if
     #>     it still matters.
-    #> Warning: SYNPMX ALERT: unique visit sets
-    #>   12 of 32 patients (38%) share every individual observation time with
-    #>   somebody, but the set of visits they attended is theirs alone -- dropout,
-    #>   discontinuation, or a missed visit.
-    #>   Why it matters: no time grid can help here, however fine or coarse: a
-    #>     grid decides where the visits are, not which ones a patient turned up
-    #>     for.
-    #>   Fix: `min_pattern_share` already stops these sets being reused (see the
-    #>     run report). Screen the result with `flag_identifiable_subjects()` if
-    #>     it still matters.
     #> SYNPMX NOTE: rare visit sets not reused
-    #>   4 of 14 distinct visit sets, held by 4 patients, are shared by fewer than
-    #>   2 patients and are given to no avatar.
-    #>   Why it matters: an avatar carrying a visit set unique to one real patient
-    #>     could be traced back to them. Kept instead: how many visits were missed
-    #>     and of what kind -- all at the end (dropout), a run in the middle (an
-    #>     interruption), or scattered. Which specific visits were missed is not
-    #>     preserved.
-    #>   What to do: nothing, unless this study's interruptions matter.
-    #>     `min_pattern_share = 1` copies exact visit sets and gives up the
-    #>     guarantee.
-    #> Warning: SYNPMX NOTE: rare visit sets not reused
     #>   4 of 14 distinct visit sets, held by 4 patients, are shared by fewer than
     #>   2 patients and are given to no avatar.
     #>   Why it matters: an avatar carrying a visit set unique to one real patient
@@ -684,7 +665,7 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 81% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+|   that cap actually bound on | 66% | of avatars. Near 100% means the cap, not distance, is setting the weights |
 | Effective donors per avatar, mean | 2.87 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
@@ -694,14 +675,15 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 |   because of which visits they attended | 12 | every time is shared; this is dropout, and no grid can fix it |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 14 | a visit set is which of the shared grid visits one patient actually had |
-|   shared by too few patients, so not reused | 4 | `min_pattern_share`; these are lost, not approximated |
-|   real patients holding those | 4 | they stay in the cohort as donors; only their absences stop being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that survived the floor – never from their own anchor alone |
-|   of those, misses placed fresh | 19% | how many visits were missed and of what kind was reused; exactly which ones was invented |
-| Avatars keeping their anchor’s own visit set | 0% | the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient’s absences |
+|   held by fewer than 2 patients, so not reused | 4 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 4 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 22% | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
+| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
 | **Dose** |  |  |
-| Amounts recomputed from a covariate | **yes**, from `wt` | the 20 distinct dose amounts are a fixed multiple of `wt`, at 1 protocol level(s) |
-|   protocol levels found | 1.5 | dose per unit of `wt`; each avatar’s amount is rebuilt from its own blended value |
+| Amounts recomputed from a covariate | **yes**, from `wt` (inferred) | the 20 distinct dose amounts are a fixed multiple of `wt`, at 1 protocol level(s) |
+|   protocol levels found | 1.5 | dose per unit of `wt`; every amount was snapped to the nearest of these |
 
 Everything warfarin’s run removed, and what was left to build on.
 {.table}
@@ -812,7 +794,7 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
 |   that cap actually bound on | 67% | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.85 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+| Effective donors per avatar, mean | 2.89 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
 | Unique observation schedules, before coarsening | 30 | patients whose list of observation times nobody else shares |
@@ -821,13 +803,15 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 |   because of which visits they attended | 15 | every time is shared; this is dropout, and no grid can fix it |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 25 | a visit set is which of the shared grid visits one patient actually had |
-|   shared by too few patients, so not reused | 5 | `min_pattern_share`; these are lost, not approximated |
-|   real patients holding those | 5 | they stay in the cohort as donors; only their absences stop being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that survived the floor – never from their own anchor alone |
-|   of those, misses placed fresh | 2% | how many visits were missed and of what kind was reused; exactly which ones was invented |
-| Avatars keeping their anchor’s own visit set | 0% | the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient’s absences |
+|   held by fewer than 2 patients, so not reused | 5 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 5 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 4% | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
+| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | no `covariates` are declared, so there is nothing to test the amounts against |
+|   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
 
 Everything wbcSim’s run removed, and what was left to build on. {.table}
 
@@ -909,8 +893,8 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 58% | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.94 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 75% | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 2.97 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
 | Unique observation schedules, before coarsening | 12 | patients whose list of observation times nobody else shares |
@@ -919,13 +903,15 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 |   because of which visits they attended | 0 | every time is shared; this is dropout, and no grid can fix it |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 12 | a visit set is which of the shared grid visits one patient actually had |
-|   shared by too few patients, so not reused | 2 | `min_pattern_share`; these are lost, not approximated |
-|   real patients holding those | 2 | they stay in the cohort as donors; only their absences stop being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that survived the floor – never from their own anchor alone |
-|   of those, misses placed fresh | 100% | how many visits were missed and of what kind was reused; exactly which ones was invented |
-| Avatars keeping their anchor’s own visit set | 0% | the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient’s absences |
+|   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 100% | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
+| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 4 distinct dose amounts are not a fixed multiple of any declared covariate: BSA (10 ratio levels for 4 distinct amounts – too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts – too many to be a protocol) |
+|   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
 
 Everything nimoData’s run removed, and what was left to build on.
 {.table}
@@ -1036,13 +1022,15 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 |   because of which visits they attended | 53 | every time is shared; this is dropout, and no grid can fix it |
 | **Visit sets: WHICH of those visits each patient attended** |  |  |
 | Distinct visit sets in the source | 73 | a visit set is which of the shared grid visits one patient actually had |
-|   shared by too few patients, so not reused | 2 | `min_pattern_share`; these are lost, not approximated |
-|   real patients holding those | 2 | they stay in the cohort as donors; only their absences stop being copied |
-| Avatars given a visit set from the pool | 100% | drawn from the sets that survived the floor – never from their own anchor alone |
-|   of those, misses placed fresh | 0% | how many visits were missed and of what kind was reused; exactly which ones was invented |
-| Avatars keeping their anchor’s own visit set | 0% | the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient’s absences |
+|   held by fewer than 2 patients, so not reused | 2 | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
+|   real patients holding those | 2 | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
+| Avatars given a visit set from the pool | 100% | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
+|   of those, misses placed fresh | 0% | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 0% | no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement |
+| Avatars keeping their anchor’s own visit set | 0% | the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient’s absences exactly. The run alerts past 10% |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 3 distinct dose amounts are not a fixed multiple of any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels for 3 distinct amounts – too many to be a protocol); WT (ratios do not cluster); HT (ratios do not cluster) |
+|   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
 
 Everything mavoglurant’s run removed, and what was left to build on.
 {.table}
@@ -1375,8 +1363,8 @@ knitr::kable(
 | Dataset     | Adversarial accuracy | Null lower | Null upper | Per side |
 |:------------|---------------------:|-----------:|-----------:|---------:|
 | theo_md     |                0.500 |      0.167 |      0.773 |        6 |
-| warfarin    |                0.531 |      0.358 |      0.781 |       16 |
-| wbcSim      |                0.545 |      0.306 |      0.694 |       22 |
+| warfarin    |                0.531 |      0.295 |      0.719 |       16 |
+| wbcSim      |                0.477 |      0.361 |      0.632 |       22 |
 | mavoglurant |                0.575 |      0.421 |      0.586 |       60 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built
