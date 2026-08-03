@@ -851,6 +851,85 @@
 # where every schedule is identifying, which is worse than no check. Snapping
 # both sides back onto the grid asks the question that matters: is this avatar
 # in the same set of cells as some real patient?
+# Dosing that stopped early, as a shape.
+#
+# A patient who stopped dosing after four of ten doses holds a schedule that is
+# a PREFIX of the full one. That is the dose-side analogue of a trailing
+# attendance shape, and it is the one dose edit that is protocol-valid: a
+# regimen truncated at a real dose time is a regimen the study actually
+# permitted, whereas moving or inventing dose times is not. So a truncation
+# depth held by one patient can be exchanged for one that is held by several,
+# or by nobody at all, exactly as `.miss_counts()` walks a visit-set depth.
+#
+# It cannot rescue every cohort, and the arithmetic says which. Nineteen
+# patients on three doses, one on two and one on one has depths {1:1, 2:1,
+# 3:19}: depths 1 and 2 have a single holder each and there is no free depth
+# between them, so "stopped after one dose" cannot be represented without
+# pointing at the person who did. Ten stopping depths across forty patients
+# leaves plenty free, which is the case this exists for.
+.dose_truncation_plan <- function(source, roles, min_pattern_share) {
+  subjects <- as.character(.unique_in_order(source[[roles$id]]))
+  empty <- list(depth = rep(NA_integer_, length(subjects)),
+                target = rep(NA_integer_, length(subjects)),
+                cells = numeric())
+  if (!length(subjects) || is.null(roles$amt)) return(empty)
+  time <- suppressWarnings(as.numeric(source[[roles$time]]))
+  id <- as.character(source[[roles$id]])
+  dosed <- .dose_rows(source, roles) & is.finite(time)
+  if (!any(dosed)) return(empty)
+
+  times <- lapply(subjects, function(s) sort(unique(time[dosed & id == s])))
+  cells <- sort(unique(unlist(times)))
+  # A schedule is a truncation only when it is the first `d` dose times of the
+  # cohort's union. Anything else -- a missed middle dose, a delay -- is not a
+  # prefix and is left to the anchor-level rule.
+  depth <- vapply(times, function(t) {
+    d <- length(t)
+    if (!d || d > length(cells)) return(NA_integer_)
+    if (isTRUE(all.equal(t, cells[seq_len(d)]))) as.integer(d) else NA_integer_
+  }, integer(1))
+
+  held <- table(depth[!is.na(depth)])
+  count_at <- function(d) {
+    if (is.na(d) || !as.character(d) %in% names(held)) 0L else
+      as.integer(held[[as.character(d)]])
+  }
+  # Safe means shared by enough patients, or held by none at all: a depth
+  # nobody stopped at identifies nobody.
+  safe <- function(d) {
+    d >= 1L && d <= length(cells) &&
+      (count_at(d) == 0L || count_at(d) >= as.integer(min_pattern_share))
+  }
+  target <- vapply(seq_along(subjects), function(i) {
+    d <- depth[[i]]
+    if (is.na(d) || safe(d)) return(NA_integer_)   # nothing to change
+    # Downward only. Truncation drops dose rows; it cannot invent one, so a
+    # deeper target silently leaves the schedule where it was -- which put an
+    # avatar back on the very depth that one patient alone had used.
+    for (candidate in rev(seq_len(max(d - 1L, 0L)))) {
+      if (safe(candidate)) return(as.integer(candidate))
+    }
+    NA_integer_
+  }, integer(1))
+  list(depth = depth, target = target, cells = cells)
+}
+
+# Drop the dose rows past `depth`, so the avatar stops dosing where the plan
+# says rather than where its anchor did. Observation rows are untouched: what
+# happens after dosing stops is the attendance mechanism's business.
+.apply_dose_truncation <- function(skeleton, roles, cells, depth) {
+  if (is.na(depth) || !length(cells)) return(skeleton)
+  time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
+  dosed <- .dose_rows(skeleton, roles) & is.finite(time)
+  if (!any(dosed)) return(skeleton)
+  cutoff <- cells[[min(depth, length(cells))]]
+  drop <- dosed & time > cutoff + sqrt(.Machine$double.eps)
+  # Never drop every dose: an avatar with no dosing at all is not a truncated
+  # regimen, it is a different kind of record.
+  if (!any(drop) || !any(dosed & !drop)) return(skeleton)
+  skeleton[!drop, , drop = FALSE]
+}
+
 .grid_snapped_keys <- function(data, roles, grid, rows) {
   time <- suppressWarnings(as.numeric(data[[roles$time]]))
   keep <- rows & is.finite(time)
@@ -2031,6 +2110,15 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # dose schedule is unique -- individualised infusions, per-patient
     # titration -- re-anchoring cannot help, so it is not attempted and the
     # caller is told once instead of the run silently doing nothing.
+    # Truncation first: a patient who merely stopped early can be given a
+    # different, safe stopping depth, so they are not unmaskable after all.
+    dose_plan <- if (as.integer(min_pattern_share) <= 1L) {
+      list(depth = rep(NA_integer_, length(subjects)),
+           target = rep(NA_integer_, length(subjects)), cells = numeric())
+    } else {
+      .dose_truncation_plan(source, source_roles, min_pattern_share)
+    }
+    dose_identifying <- dose_identifying & is.na(dose_plan$target)
     dose_maskable <- any(!dose_identifying)
     if (!dose_maskable && any(dose_identifying)) {
       .loud_warn(
@@ -2247,6 +2335,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # study, so an avatar could snap into a neighbouring cell and be reported as
     # holding a schedule it was never given -- a false alarm on `wbcSim`.
     applied_key <- rep(NA_character_, n_subjects)
+    dose_truncated <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -2305,6 +2394,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
           # disclosure only when that set is one nobody else shares.
           pattern_identifying[synthetic_index] <- TRUE
         }
+      }
+      if (!is.na(dose_plan$target[[anchor]])) {
+        skeleton <- .apply_dose_truncation(skeleton, source_roles,
+                                           dose_plan$cells,
+                                           dose_plan$target[[anchor]])
+        original_order <- seq_len(nrow(skeleton))
+        dose_truncated[synthetic_index] <- TRUE
       }
       skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
       if (length(time_deviations)) {
@@ -2471,6 +2567,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # is the number the guarantee is stated in terms of, and it must be 0.
       identifying_visit_sets = as.integer(identifying_visit_sets),
       identifying_dose_schedules = as.integer(identifying_dose_schedules),
+      dose_truncated_fraction = mean(dose_truncated),
       dose_regimens_source = as.integer(dose_regimens_source),
       dose_regimens_represented = as.integer(dose_regimens_represented),
       pattern_reanchored_fraction = mean(pattern_reanchored),

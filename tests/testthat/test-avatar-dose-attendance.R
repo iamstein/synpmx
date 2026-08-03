@@ -862,3 +862,59 @@ test_that("no avatar inherits a dose schedule only one real patient has", {
   # nothing, but they still act as donors.
   expect_equal(settings$anchors_available, 12L)
 })
+
+# SIM-044. Dosing that stopped early, as a shape. A schedule that is a PREFIX of
+# the full one can be re-truncated to a different depth, which is the one dose
+# edit that is protocol-valid: the result is a regimen the study permitted.
+onc_source <- function() {
+  mk <- function(i, nd) {
+    dt <- seq(0, by = 336, length.out = 10)[seq_len(nd)]
+    out <- rbind(
+      data.frame(ID = i, TIME = dt, DV = NA_real_, AMT = 100, EVID = 1L,
+                 CMT = 1L, WT = 60 + i),
+      data.frame(ID = i, TIME = dt + 24, DV = 5 + i / 10, AMT = 0, EVID = 0L,
+                 CMT = 2L, WT = 60 + i))
+    out[order(out$TIME, -out$EVID), ]
+  }
+  # 28 patients complete all ten doses; four stop at depths nobody else used.
+  do.call(rbind, c(lapply(1:28, function(i) mk(i, 10)),
+                   list(mk(29, 4), mk(30, 6), mk(31, 7), mk(32, 9))))
+}
+
+onc_depths <- function(d) as.integer(table(d$ID[d$EVID == 1L]))
+
+test_that("early discontinuation survives, at a depth nobody used", {
+  source <- onc_source()
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, n_subjects = 32, seed = 5)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  # The guarantee holds.
+  expect_equal(settings$identifying_dose_schedules, 0L)
+  held_once <- as.integer(names(which(table(onc_depths(source)) == 1L)))
+  expect_gt(length(held_once), 0L)
+  expect_equal(sum(onc_depths(synthetic) %in% held_once), 0L)
+
+  # And early stopping is still represented, rather than every avatar being
+  # pushed onto the full schedule -- which is what re-anchoring alone did.
+  expect_true(any(onc_depths(synthetic) < 10L))
+  expect_gt(settings$dose_truncated_fraction, 0)
+})
+
+test_that("a truncation target is never deeper than the schedule it replaces", {
+  # Truncation drops dose rows and cannot invent one, so a deeper target would
+  # silently leave the schedule where it was -- and put the avatar back on the
+  # depth exactly one patient had used.
+  plan <- synpmx:::.dose_truncation_plan(
+    onc_source(),
+    pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+              cmt = "CMT", covariates = "WT"),
+    2L
+  )
+  moved <- !is.na(plan$target)
+  expect_true(any(moved))
+  expect_true(all(plan$target[moved] < plan$depth[moved]))
+})
