@@ -32,13 +32,15 @@ The \code{\link[=skeleton_uniqueness]{skeleton_uniqueness()}} table for the draw
 The picture behind \code{\link[=skeleton_uniqueness]{skeleton_uniqueness()}}. One row per patient, one mark
 per event: when they were dosed, and when each endpoint was observed. Read
 it to decide whether a uniqueness count is a real problem or ordinary
-dropout.
+an ordinary gap in follow-up.
 }
 \details{
 Two panels:
 \itemize{
-\item \strong{the map} -- patients ordered by how long they were followed, so dropout
-reads as a staircase down the right-hand edge. A patient whose observation
+\item \strong{the map} -- patients ordered by how long they were followed, so a
+ragged right-hand edge reads as a staircase. That edge is follow-up
+ending, whether because a patient discontinued or because the study has
+not reached their later visits yet. A patient whose observation
 schedule no other patient shares is marked in the margin, and their label
 is drawn in red.
 \item \strong{the visit histogram} -- how many patients were observed at each time on

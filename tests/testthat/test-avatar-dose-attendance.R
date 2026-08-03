@@ -292,8 +292,9 @@ test_that("staggered discontinuation is rescued by the kind-only fallback", {
 test_that("a saturated grid alerts instead of quietly copying the anchor", {
   # The union here is exactly six cells and the six patients occupy every depth
   # over it -- one complete attender and trailing 1 through 5 -- so no legal
-  # arrangement is left at any depth. Keeping the anchor's own set is then the
-  # honest outcome, but it must be loud rather than silent.
+  # arrangement is left at any depth AND no set is shared widely enough to
+  # substitute. Emitting the anchor's own set is then the only thing left, and
+  # since that set is unique to one real patient it must be loud.
   grid <- c(0.5, 1, 2, 4, 8, 12, 24)
   source <- do.call(rbind, lapply(1:6, function(i) {
     kept <- utils::head(grid, length(grid) - i)
@@ -309,8 +310,41 @@ test_that("a saturated grid alerts instead of quietly copying the anchor", {
   raised <- raised_alerts(
     synpmx_avatar(source, da_roles(), n_subjects = 6, seed = 13)
   )
-  expect_true(any(grepl("kept their anchor's own visit set", raised,
+  expect_true(any(grepl("carrying a visit set nobody else shares", raised,
                         fixed = TRUE)))
+})
+
+test_that("a rare anchor set is swapped for a shared one rather than emitted", {
+  # Ten patients on the complete schedule and one who missed a middle visit.
+  # That one patient's set is theirs alone, so an avatar anchored on them must
+  # not come out wearing it -- and here there IS a widely held set to use
+  # instead, so nothing needs to alert and nothing identifying is emitted.
+  grid <- c(0.5, 1, 2, 4, 8, 12, 24)
+  source <- do.call(rbind, lapply(1:11, function(i) {
+    kept <- if (i == 11L) grid[-4L] else grid
+    data.frame(
+      ID = as.character(i), TIME = c(0, kept),
+      DV = c(0, 5 * exp(-0.2 * kept)),
+      AMT = c(100, rep(0, length(kept))),
+      EVID = c(1L, rep(0L, length(kept))),
+      CMT = c(1L, rep(2L, length(kept))),
+      WT = 70 + i, stringsAsFactors = FALSE
+    )
+  }))
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, da_roles(), n_subjects = 30, seed = 4)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+
+  # The disclosure count is the one that must be zero.
+  expect_equal(settings$pattern_identifying_fraction, 0)
+  # And no avatar holds the lone patient's set.
+  rare_set <- paste(sort(c(0.5, 1, 2, 8, 12, 24)), collapse = ",")
+  observed <- synthetic$EVID == 0
+  produced <- vapply(split(synthetic$TIME[observed],
+                           as.character(synthetic$ID[observed])),
+                     function(x) paste(sort(x), collapse = ","), character(1))
+  expect_false(any(produced == rare_set))
 })
 
 test_that("a stratum with nothing shared at all still alerts rather than copying", {

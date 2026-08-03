@@ -64,8 +64,8 @@ large, since the schedule is protocol-driven; under actual recorded times
 it is near-universally 1. Coarsening collapses the second case into the
 first.
 \item \strong{\code{n_share_obs_count}} -- who else has this many observations? Coarsening
-cannot change a count, so this is what survives it: dropout, early
-discontinuation, and missed visits.
+cannot change a count, so this is what survives it: missed visits, early
+discontinuation, and follow-up that has not reached the later visits.
 \item \strong{\code{n_share_dosing}} -- who else has this dose structure and these dose
 amounts? This is the full \code{\link[=pmx_roles]{pmx_roles()}} event signature and it does \emph{not}
 include observation times; it is the key donor compatibility uses.
@@ -79,7 +79,7 @@ unique \strong{and} whose rarest single time was shared with nobody
 (\code{n_share_rarest_time == 1}) was sampled at a one-off moment: a time grid is
 meant to absorb that, and declaring \code{nominal_time} is the fix. A patient
 whose schedule is unique while every individual time is shared
-(\code{n_share_rarest_time >= 2}) is a dropout or missed-visit pattern, and no
+(\code{n_share_rarest_time >= 2}) has visits missing rather than moved, and no
 grid at any resolution touches it. \code{why_unique} states which.
 }
 \section{Before or after coarsening}{

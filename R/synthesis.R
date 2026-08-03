@@ -566,7 +566,7 @@
 #
 # Whole patterns are sampled, not individual bits. Drawing each visit
 # independently would preserve the marginal attendance rate but destroy the
-# correlation that makes dropout dropout -- once a subject discontinues they are
+# correlation that makes an ending an ending -- once a subject stops they are
 # gone, and independent draws produce implausible attend/miss/attend sequences.
 # Copying a real pattern that at least `min_pattern_share` subjects share keeps
 # that structure exactly, and sampling frequency-weighted keeps the per-visit
@@ -654,8 +654,9 @@
     # missed one visit are the same shape even when they missed different visits,
     # so together they clear a floor that neither clears alone.
     cells <- .attendance_cells(names(counts))
+    droppable <- .droppable_cells(cells, names(counts))
     shapes <- vapply(names(counts), function(key) {
-      .attendance_shape(key, cells)
+      .attendance_shape(key, cells, droppable)
     }, character(1))
     shape_counts <- tapply(as.integer(counts), shapes, sum)
     shape_kept <- shape_counts[shape_counts >= min_pattern_share]
@@ -703,6 +704,7 @@
 
     pool[[name]] <- list(
       cells = cells,
+      droppable = droppable,
       shapes = names(shape_kept), shape_weight = as.numeric(shape_kept),
       # Exact patterns that clear the floor on their own, indexed by shape, so a
       # real pattern is preferred wherever reusing one is safe.
@@ -711,16 +713,62 @@
       # Patterns too rare to reuse. A generated placement that lands on one of
       # these is rejected, so "nothing was copied" does not quietly weaken into
       # "something was reproduced by accident".
-      rare = names(counts)[!kept]
+      rare = names(counts)[!kept],
+      # The widely held set to fall back ON when a draw finds nothing legal and
+      # the anchor's own set is one of the rare ones. Copying THAT would be the
+      # disclosure the mechanism exists to prevent, while copying a set six
+      # patients share discloses nothing, so the substitution is strictly better
+      # than the alternative and needs no permission.
+      common = if (any(kept)) {
+        names(counts)[kept][[which.max(as.integer(counts[kept]))]]
+      } else NA_character_
     )
   }
-  list(pool = pool, group = group, keys = keys,
+  # Which SUBJECTS hold a visit set too rare to be reused. Computed for every
+  # group, including the ones that got no pool, because the question "would
+  # copying this anchor's set disclose anything?" has to be answerable even
+  # where there is nothing to replace it with.
+  identifying <- logical(length(keys))
+  for (name in unique(group)) {
+    member <- group == name
+    shared <- table(keys[member])
+    identifying[member] <- nzchar(keys[member]) &
+      as.integer(shared[keys[member]]) < min_pattern_share
+  }
+  list(pool = pool, group = group, keys = keys, identifying = identifying,
        total_patterns = total_patterns, dropped_patterns = dropped_patterns,
        dropped_subjects = dropped_subjects)
 }
 
+# Which cells a generated placement is allowed to drop.
+#
+# An endpoint where every patient in the group holds the identical set of times
+# has no missingness to reproduce -- it is complete by construction. Placing a
+# miss on one of its cells does not mask anything; it invents missingness the study
+# does not have. Measured on a two-endpoint fixture, a biomarker drawn at all
+# ten visits for all twenty-one patients came out of generation with seven to
+# ten, because the shape was placed over the POOLED grid in time order and took
+# whatever cells sat late, biomarker and PK alike.
+#
+# So placements are confined to the endpoints that actually vary. Exact patterns
+# reused from the pool are untouched by this: they are real patterns, and a real
+# pattern never drops a cell of a complete endpoint anyway.
+.droppable_cells <- function(cells, keys) {
+  endpoint <- sub("@.*$", "", cells)
+  held <- strsplit(keys, ";", fixed = TRUE)
+  varies <- vapply(unique(endpoint), function(name) {
+    mine <- cells[endpoint == name]
+    sets <- vapply(held, function(h) sum(mine %in% h), integer(1))
+    length(unique(sets)) > 1L ||
+      any(vapply(held, function(h) !all(mine %in% h), logical(1)) &
+          vapply(held, function(h) any(mine %in% h), logical(1)))
+  }, logical(1))
+  endpoint %in% names(which(varies))
+}
+
 # The union of every cell any subject in the group was observed at, in time
-# order. Time first, so "trailing" means late in the study -- dropout -- rather
+# order. Time first, so "trailing" means late in the study -- follow-up ending --
+# rather
 # than late in an alphabet.
 .attendance_cells <- function(keys) {
   cells <- unique(unlist(strsplit(keys, ";", fixed = TRUE), use.names = FALSE))
@@ -732,7 +780,8 @@
 # which cells it holds: the number of missed visits and their arrangement.
 #
 #   complete   attended everything
-#   trailing   every miss is at the end -- dropout or early discontinuation
+#   trailing   every miss is at the end -- a discontinuation, or follow-up
+#              that has not reached those visits yet
 #   block      the misses are contiguous but not terminal -- an interruption
 #   scattered  anything else
 #
@@ -740,7 +789,8 @@
 # that "missed one visit, early" and "missed one visit, late" are the same kind
 # of event, so each is a group of one and both are discarded. As a shape they are
 # one group of two.
-.attendance_shape <- function(key, cells) {
+.attendance_shape <- function(key, cells, droppable = NULL) {
+  if (!is.null(droppable)) cells <- cells[droppable]
   held <- strsplit(key, ";", fixed = TRUE)[[1L]]
   missed <- which(!(cells %in% held))
   if (!length(missed)) return("complete|0")
@@ -769,7 +819,7 @@
     trailing = list(seq.int(n - n_miss + 1L, n)),
     block = {
       # Contiguous but not terminal, so a block stays distinguishable from
-      # dropout. Enumerated and shuffled rather than sampled with replacement:
+      # an ending. Enumerated and shuffled rather than sampled with replacement:
       # the same start was previously drawn several times out of 24 tries while
       # other legal starts went untried.
       last_start <- n - n_miss
@@ -808,27 +858,31 @@
 # on purpose", and an attacker cannot tell those apart.
 #
 # The number of misses is allowed to move if, and only if, nothing at the
-# requested number is legal. `trailing` is why: a dropout of exactly k visits
+# requested number is legal. `trailing` is why: an ending after exactly k visits
 # has ONE possible placement, and if any real patient dropped out at that depth
 # then that placement is rare and there is nothing else at that depth to try.
 # The old loop retried the identical placement 24 times, failed, and the caller
 # then let the avatar keep its ANCHOR's visit set -- copying one real patient's
-# absences exactly, which is worse on every axis than a dropout a visit deeper.
+# absences exactly, which is worse on every axis than an ending a visit deeper.
 # Dropout is the commonest kind of missingness, so this was the normal outcome
 # rather than an edge case: 86% of avatars on a real 21-patient study.
-.place_attendance <- function(cells, shape, rare, tries = 24L) {
+.place_attendance <- function(cells, shape, rare, tries = 24L,
+                              droppable = NULL) {
   parts <- strsplit(shape, "|", fixed = TRUE)[[1L]]
   kind <- parts[[1L]]
   wanted <- as.integer(parts[[2L]])
-  n <- length(cells)
+  # Positions are chosen among the cells that may be dropped, then mapped back
+  # onto the full grid, so a complete endpoint's cells are never candidates.
+  index <- if (is.null(droppable)) seq_along(cells) else which(droppable)
+  n <- length(index)
   complete <- paste(sort(cells), collapse = ";")
   if (kind == "complete" || wanted < 1L) {
     return(list(key = complete, shifted = FALSE))
   }
 
   for (n_miss in .miss_counts(wanted, n)) {
-    for (missed in .attendance_placements(kind, n_miss, n, tries)) {
-      key <- .attendance_key_from(cells, missed)
+    for (position in .attendance_placements(kind, n_miss, n, tries)) {
+      key <- .attendance_key_from(cells, index[position])
       if (!(key %in% rare)) {
         return(list(key = key, shifted = !identical(n_miss, wanted)))
       }
@@ -855,7 +909,8 @@
     return(list(key = exact[[sample.int(length(exact), 1L, prob = weight)]],
                 generated = FALSE, shifted = FALSE))
   }
-  placed <- .place_attendance(available$cells, shape, available$rare)
+  placed <- .place_attendance(available$cells, shape, available$rare,
+                              droppable = available$droppable)
   list(key = placed$key, generated = !is.na(placed$key),
        shifted = isTRUE(placed$shifted))
 }
@@ -1562,7 +1617,7 @@
 #'   resolution, because the grid decides where the visits are and not which ones
 #'   a subject has. So the pattern is sampled from ones at least
 #'   `min_pattern_share` subjects hold, frequency-weighted, and whole patterns
-#'   are drawn rather than individual visits, which keeps dropout monotone
+#'   are drawn rather than individual visits, which keeps an ending monotone
 #'   instead of producing implausible attend/miss/attend sequences.
 #'
 #'   Unlike dropping the exposed subjects, nobody leaves the cohort: a subject
@@ -1573,7 +1628,7 @@
 #'   widely enough, anchors keep their own and the run alerts loudly. Pools are
 #'   formed within each `subject_properties` stratum and endpoint set.
 #'
-#'   **Patterns below the floor are lost, not approximated.** A dropout or
+#'   **Patterns below the floor are lost, not approximated.** An ending or
 #'   dose-interruption pattern held by too few patients simply will not appear in
 #'   the synthetic data, and that loss is the mechanism working — it is what
 #'   stops an avatar carrying a schedule traceable to one person. Because it is a
@@ -1753,7 +1808,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # Two causes, opposite remedies, so the alert has to say which. A subject
       # sampled at a moment nobody else was is a grid failure -- declaring
       # `nominal_time` fixes it. A patient whose every time is shared and whose
-      # *set of attended visits* is unique is dropout, and no grid however fine
+      # *set of attended visits* is unique has visits missing, and no grid however fine
       # or coarse touches that; it is the outlier screen's problem.
       unshared <- sum(exposure$n_share_rarest_time == 1L, na.rm = TRUE)
       pattern_only <- max(still_unique - unshared, 0L)
@@ -1778,8 +1833,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
           "unique visit sets",
           paste(.count_phrase(pattern_only, length(subjects)),
                 "share every individual observation time with somebody, but",
-                "the set of visits they attended is theirs alone -- dropout,",
-                "discontinuation, or a missed visit."),
+                "the set of visits they have observations at is theirs alone --",
+                "a missed visit, a discontinuation, or follow-up that has not",
+                "reached the later visits."),
           why = paste("no time grid can help here, however fine or coarse: a",
                       "grid decides where the visits are, not which ones a",
                       "patient turned up for."),
@@ -1816,7 +1872,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         why = paste("an avatar carrying a visit set unique to one real patient",
                     "could be traced back to them. Kept instead: how many",
                     "visits were missed and of what kind -- all at the end",
-                    "(dropout), a run in the middle (an interruption), or",
+                    "(follow-up ending), a run in the middle (an interruption),",
+                    "or",
                     "scattered. Which specific visits were missed is not",
                     "preserved."),
         fix = paste("nothing, unless this study's interruptions matter.",
@@ -2012,6 +2069,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # was not some real patient's. Recorded because it is the one thing the
     # attendance mechanism promises to preserve exactly and sometimes cannot.
     pattern_shifted <- logical(n_subjects)
+    # An avatar keeping its anchor's own visit set is only a disclosure when
+    # that set is one nobody else shares. Kept apart, because conflating them
+    # made an ordinary shared schedule look like a failure.
+    pattern_substituted <- logical(n_subjects)
+    pattern_identifying <- logical(n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -2019,14 +2081,31 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       original_order <- seq_len(nrow(skeleton))
       if (!is.null(attendance)) {
         available <- attendance$pool[[attendance$group[[anchor]]]]
-        if (!is.null(available)) {
-          drawn <- .draw_attendance(available)
-          if (!is.na(drawn$key)) {
-            skeleton <- .apply_attendance(skeleton, source_roles, drawn$key)
+        drawn <- if (is.null(available)) list(key = NA_character_) else
+          .draw_attendance(available)
+        if (!is.na(drawn$key)) {
+          skeleton <- .apply_attendance(skeleton, source_roles, drawn$key)
+          original_order <- seq_len(nrow(skeleton))
+          pattern_sampled[synthetic_index] <- TRUE
+          pattern_generated[synthetic_index] <- drawn$generated
+          pattern_shifted[synthetic_index] <- isTRUE(drawn$shifted)
+        } else if (isTRUE(attendance$identifying[[anchor]])) {
+          # Nothing legal was found and this anchor's own visit set is one no
+          # other patient shares, so leaving the skeleton alone would put that
+          # patient's exact pattern of absences into the output -- the one
+          # outcome `min_pattern_share` exists to prevent. Substitute the most
+          # widely held set in the group instead. It is less faithful to this
+          # avatar and discloses nothing, which is the right trade to make
+          # without being asked; where the group has no widely held set either,
+          # there is nothing to substitute and the run alerts.
+          if (!is.na(available$common %||% NA_character_)) {
+            skeleton <- .apply_attendance(skeleton, source_roles,
+                                          available$common)
             original_order <- seq_len(nrow(skeleton))
             pattern_sampled[synthetic_index] <- TRUE
-            pattern_generated[synthetic_index] <- drawn$generated
-            pattern_shifted[synthetic_index] <- isTRUE(drawn$shifted)
+            pattern_substituted[synthetic_index] <- TRUE
+          } else {
+            pattern_identifying[synthetic_index] <- TRUE
           }
         }
       }
@@ -2077,23 +2156,29 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # rejects all of them. The second is invisible until the run is over, which
     # is why the check is here rather than next to the pool. A small residue is
     # not worth interrupting for; a large one changes what the output is.
-    fallback <- 1 - mean(pattern_sampled)
-    if (!is.null(attendance) && fallback >= 0.10) {
+    # An avatar keeping its anchor's own visit set is NOT in itself a problem:
+    # if six patients share that set, copying it discloses nothing. What matters
+    # is the subset where the anchor's set was one nobody else had and nothing
+    # could be substituted, because that pattern of absences belongs to exactly
+    # one real person. Alerting on the wrong one of these made an ordinary run
+    # look like a failure.
+    identifying <- mean(pattern_identifying)
+    if (identifying > 0) {
       .loud_warn(
-        "avatars kept their anchor's own visit set",
-        sprintf(paste("%.0f%% of avatars (%d of %d) were given no visit set",
-                      "from the pool and kept their anchor's own."),
-                100 * fallback, sum(!pattern_sampled), n_subjects),
-        why = paste("that is one real patient's exact pattern of attended and",
-                    "missed visits, copied onto an avatar -- the thing",
-                    "`min_pattern_share` exists to prevent. It happens when a",
-                    "schedule group has no set shared by enough patients, or",
-                    "when every way of placing the shape is already somebody's."),
+        "avatars carrying a visit set nobody else shares",
+        sprintf(paste("%.0f%% of avatars (%d of %d) were emitted with their",
+                      "anchor's own set of visits, which no other patient has."),
+                100 * identifying, sum(pattern_identifying), n_subjects),
+        why = paste("that exact pattern of which visits do and do not have",
+                    "observations belongs to one real patient, so an avatar",
+                    "carrying it can be traced back to them. Nothing legal was",
+                    "available to put in its place: the schedule group has no",
+                    "visit set shared by `min_pattern_share` patients at all."),
         fix = paste0(paste(.schedule_advice(source_roles, min_pattern_share,
-                                           coarsened$grid),
+                                            coarsened$grid),
                            collapse = "; "),
-                     ". Or accept it and screen the result with ",
-                     "`flag_identifiable_subjects()`.")
+                     ". Until then, treat these avatars as individually ",
+                     "identifying.")
       )
     }
 
@@ -2134,6 +2219,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       pattern_generated_fraction = mean(pattern_generated),
       # Of the avatars given a visit set, how many had the miss count moved.
       pattern_shifted_fraction = mean(pattern_shifted),
+      # Avatars whose anchor's own set was too rare to reuse and was swapped
+      # for the group's most widely held one.
+      pattern_substituted_fraction = mean(pattern_substituted),
+      # The number that must be zero: avatars emitted carrying a visit set no
+      # real patient shares. Everything above is fidelity; this is disclosure.
+      pattern_identifying_fraction = mean(pattern_identifying),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.
       # Note that at the default floor of 2 a dropped pattern is *by definition*

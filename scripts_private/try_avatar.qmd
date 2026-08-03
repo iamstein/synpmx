@@ -88,7 +88,7 @@ ROLES <- pmx_roles(
   # Whether to declare an arm here is a real trade, not an obvious win. Declaring
   # it is more faithful -- arms with different visit schedules stay separate --
   # but it splits the visit-set pools, so fewer visit sets clear `min_pattern_share`
-  # and more real dropout patterns are discarded. The run reports how many were
+  # and more real patterns of missing visits are discarded. The run reports how many
   # lost either way; try it both ways and compare.
   # Gaps are fine here too: subjects with no recorded value form their own
   # stratum and the run warns. A column that *varies* within a subject is an
@@ -171,12 +171,15 @@ exposure
 
 Split the headline by cause before deciding it is bad. **A one-off observation
 time** is a real problem and a fixable one -- declare `nominal_time`. **A
-unique set of attended visits** is dropout: no grid at any resolution touches
-it, and `min_pattern_share` handles it downstream. A large count there with a
-small count above is the normal result for a study with dropout, not a failure.
+unique set of attended visits** means visits are missing rather than moved --
+a missed visit, a discontinuation, or follow-up that has not reached them yet.
+No grid at any resolution touches that, and `min_pattern_share` handles it
+downstream. A large count there with a small count above is the normal result
+for a study with any of those, not a failure.
 
 The picture answers the same question faster. Vertical stripes mean patients
-share visits, a ragged right edge is dropout, and a red bar in the lower panel
+share visits, a ragged right edge is follow-up ending, and a red bar in the
+lower panel
 is a moment only one patient was ever sampled at -- exactly what would be
 copied onto an avatar.
 
@@ -230,7 +233,8 @@ so each avatar's implied mg/kg is wrong and the amount still encodes one real
 patient's weight.
 
 **Shared by too few patients, so not reused** is the fidelity cost: real
-dropout and interruption patterns that will not appear in the output. Refusing
+patterns of missing visits and interruptions that will not appear in the
+output. Refusing
 them is what stops an avatar carrying a schedule traceable to one person.
 `min_pattern_share = 2` is the lowest value that keeps that guarantee; `1` gives
 it up. At 2 this row necessarily equals the one below it, since a set is

@@ -169,14 +169,15 @@ Split the headline by cause before deciding it is bad.
   being long enough, and **no grid at any resolution can change it**. It is
   handled downstream by `min_pattern_share`, which refuses to give any avatar a
   visit set that only one real patient had. A large count here with a small
-  count above is the *normal* result for a study with dropout, not a failure.
+  count above is the *normal* result for a study where visits go missing for
+  any reason, not a failure.
 
 The picture says in one look what the counts say in numbers -- whether this is
 a protocol grid with a few stragglers or an ad-hoc schedule the grid could not
 rescue.
 
 Read the map top to bottom: vertical stripes mean patients share visits, and a
-ragged right edge is dropout. In the lower panel, a bar of height one is a
+ragged right edge is follow-up ending. In the lower panel, a bar of height one is a
 moment only one patient was ever sampled at -- exactly what would be copied
 onto an avatar -- and those are drawn in red. Compare against the uncoarsened
 version to see what the grid merged.
@@ -227,7 +228,8 @@ so each avatar's implied mg/kg is wrong and the amount still encodes one real
 patient's weight.
 
 **Shared by too few patients, so not reused** is the fidelity cost: real
-dropout and interruption patterns that will not appear in the output. Refusing
+patterns of missing visits and interruptions that will not appear in the
+output. Refusing
 them is what stops an avatar carrying a schedule traceable to one person.
 `min_pattern_share = 2` is the lowest value that keeps that guarantee; `1` gives
 it up. At 2 this row necessarily equals the one below it, since a set is
