@@ -826,6 +826,59 @@
 # The visit set an avatar anchored here would be given, and whether it would be
 # identifying. Split out of the generation loop so the loop can ASK before it
 # builds, and pick a different anchor when the answer is bad.
+# Whose DOSE schedule nobody else shares.
+#
+# The attendance mechanism deliberately never touches dose events: resampling
+# them risks emitting a regimen the protocol never permitted, which would be a
+# worse error than the one it fixes. That leaves the dose side unguarded, and it
+# is exposed in exactly the same way the observation side is -- the anchor's
+# event skeleton is copied verbatim, so a patient whose set of dose times nobody
+# else shares hands it to every avatar built on them.
+#
+# The answer is therefore not to rewrite the regimen but to decline to build on
+# it, the same rule the route floor and the visit-set machinery already apply.
+# Measured after coarsening, since that is the grid generation runs on: `theo_md`
+# and `warfarin` and `mavoglurant` have one shared dose schedule each and are
+# unaffected, `wbcSim` has 3 of 45 alone, and `nimoData` has 12 of 12 -- a study
+# whose dosing genuinely cannot be masked, which the caller needs told.
+# Keys for the end-to-end checks, computed on the shared visit grid rather than
+# on recorded times.
+#
+# This is the whole reason the checks are trustworthy. Generation resamples the
+# per-visit deviations coarsening removed, so an avatar sitting in exactly the
+# same grid cell as a real patient does NOT hold the same numeric time -- and a
+# check comparing the numbers therefore reports "nothing identifying" on a study
+# where every schedule is identifying, which is worse than no check. Snapping
+# both sides back onto the grid asks the question that matters: is this avatar
+# in the same set of cells as some real patient?
+.grid_snapped_keys <- function(data, roles, grid, rows) {
+  time <- suppressWarnings(as.numeric(data[[roles$time]]))
+  keep <- rows & is.finite(time)
+  if (!any(keep)) return(character())
+  snapped <- .snap_to_grid(time[keep], grid)
+  vapply(split(snapped, as.character(data[[roles$id]])[keep]),
+         function(x) paste(.time_key(sort(unique(x))), collapse = ","),
+         character(1))
+}
+
+.dose_schedule_sharing <- function(source, roles, min_pattern_share) {
+  subjects <- .unique_in_order(source[[roles$id]])
+  if (!length(subjects)) return(logical())
+  time <- suppressWarnings(as.numeric(source[[roles$time]]))
+  id <- factor(as.character(source[[roles$id]]),
+               levels = as.character(subjects))
+  dosed <- .dose_rows(source, roles) & is.finite(time)
+  keys <- vapply(split(time[dosed], droplevels(id[dosed], exclude = NULL)),
+                 function(t) paste(.time_key(sort(unique(t))), collapse = ","),
+                 character(1))[as.character(subjects)]
+  keys[is.na(keys)] <- ""
+  shared <- table(keys[nzchar(keys)])
+  out <- rep(FALSE, length(subjects))
+  present <- nzchar(keys)
+  out[present] <- as.integer(shared[keys[present]]) < as.integer(min_pattern_share)
+  stats::setNames(out, as.character(subjects))
+}
+
 .attendance_choice <- function(anchor, attendance) {
   none <- list(key = NA_character_, generated = FALSE, shifted = FALSE,
                substituted = FALSE,
@@ -1000,7 +1053,13 @@
     rank <- min(wanted_repeat[[index]], length(candidate))
     candidate[[order(distance)[[rank]]]]
   }, integer(1))
-  if (anyNA(chosen)) return(skeleton)
+  # NULL, not the untouched skeleton. Returning the skeleton meant the caller
+  # believed a visit set had been applied when none had, so the avatar quietly
+  # kept its ANCHOR's set -- and if that set was one nobody shared, the run
+  # emitted it while reporting the pattern as sampled. Reachable whenever the
+  # drawn key names an endpoint this anchor does not have, which is exactly what
+  # borrowing a set from another schedule group can do.
+  if (anyNA(chosen)) return(NULL)
 
   built <- skeleton[chosen, , drop = FALSE]
   built[[roles$time]] <- wanted_time
@@ -1956,6 +2015,52 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         )
       }
     }
+    # The dose side of the same guarantee. `min_pattern_share = 1` turns the
+    # whole guarantee off, so it turns this off too.
+    dose_identifying <- if (as.integer(min_pattern_share) <= 1L) {
+      rep(FALSE, length(subjects))
+    } else {
+      unname(.dose_schedule_sharing(source, source_roles, min_pattern_share))
+    }
+    # Whether there is anywhere safe to move an avatar TO. Where every patient's
+    # dose schedule is unique -- individualised infusions, per-patient
+    # titration -- re-anchoring cannot help, so it is not attempted and the
+    # caller is told once instead of the run silently doing nothing.
+    dose_maskable <- any(!dose_identifying)
+    if (!dose_maskable && any(dose_identifying)) {
+      .loud_warn(
+        "no dose schedule can be masked",
+        sprintf(paste("all %d patients have a set of dose times nobody else",
+                      "shares."),
+                length(subjects)),
+        why = paste("a dose schedule is copied from its anchor verbatim --",
+                    "resampling dose events would emit regimens the protocol",
+                    "never permitted -- so every avatar carries one real",
+                    "patient's exact dosing. There is no patient to build on",
+                    "instead, because every one of them is in this position."),
+        fix = paste("nothing within this study. Declaring `nominal_time` helps",
+                    "only if the dose times are protocol times recorded",
+                    "loosely. Otherwise treat the output as individually",
+                    "identifying on dosing, and use the observation-side",
+                    "guarantee for what it does cover.")
+      )
+    } else if (any(dose_identifying)) {
+      .loud_warn(
+        "patients whose dose schedule nobody else shares",
+        sprintf("%s have a set of dose times no other patient has.",
+                .count_phrase(sum(dose_identifying), length(subjects))),
+        why = paste("dose events are copied from the anchor verbatim, so an",
+                    "avatar built on one of these would carry that patient's",
+                    "exact dosing. No avatar is anchored on them; they still",
+                    "contribute as donors, so their measurements still shape",
+                    "the output."),
+        fix = paste("nothing, unless those regimens need to appear in the",
+                    "synthetic data. `min_pattern_share = 1` keeps them and",
+                    "gives up the guarantee."),
+        kind = "NOTE"
+      )
+    }
+
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
     # Donor floor: each avatar should blend `k` real patients, borrowing across
     # dose/schedule groups to reach it. The only unfixable shortfall is a source
@@ -2130,6 +2235,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # Avatars moved to a different anchor because their first one could not be
     # given a visit set that masks it.
     pattern_reanchored <- logical(n_subjects)
+    # The visit set each avatar actually ended up with, and whose dose schedule
+    # it inherited. Recorded per avatar so the end-to-end checks can be exact.
+    # Snapping the finished table back onto the grid was tried and rejected: the
+    # resampled deviations are comparable to the grid spacing on an irregular
+    # study, so an avatar could snap into a neighbouring cell and be reported as
+    # holding a schedule it was never given -- a false alarm on `wbcSim`.
+    applied_key <- rep(NA_character_, n_subjects)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -2141,10 +2253,25 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # somewhere else. Only the avatar moves; every source patient stays a
       # donor and stays available to anchor other avatars.
       choice <- NULL
-      if (!is.null(attendance)) {
+      buildable <- function(key) {
+        is.na(key) || !is.null(.apply_attendance(
+          source[profiles$subject_rows[[anchor]], , drop = FALSE],
+          source_roles, key
+        ))
+      }
+      unsafe <- function(index) {
+        (dose_maskable && isTRUE(dose_identifying[[index]])) ||
+          isTRUE(choice$identifying)
+      }
+      if (!is.null(attendance) || dose_maskable) {
         for (attempt in seq_len(12L)) {
-          choice <- .attendance_choice(anchor, attendance)
-          if (!isTRUE(choice$identifying)) break
+          choice <- if (is.null(attendance)) NULL else
+            .attendance_choice(anchor, attendance)
+          if (!is.null(choice) && !buildable(choice$key)) {
+            choice$key <- NA_character_
+            choice$identifying <- isTRUE(attendance$identifying[[anchor]])
+          }
+          if (!unsafe(anchor)) break
           candidates <- setdiff(allowed, anchor)
           if (!length(candidates)) break
           anchor <- candidates[[sample.int(length(candidates), 1L)]]
@@ -2155,14 +2282,22 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       skeleton <- source[profiles$subject_rows[[anchor]], , drop = FALSE]
       original_order <- seq_len(nrow(skeleton))
       if (!is.null(attendance)) {
-        if (!is.na(choice$key)) {
-          skeleton <- .apply_attendance(skeleton, source_roles, choice$key)
+        applied <- if (is.na(choice$key)) NULL else
+          .apply_attendance(skeleton, source_roles, choice$key)
+        applied_key[synthetic_index] <- if (is.null(applied)) {
+          attendance$keys[[anchor]]      # kept its anchor's own set
+        } else choice$key
+        if (!is.null(applied)) {
+          skeleton <- applied
           original_order <- seq_len(nrow(skeleton))
           pattern_sampled[synthetic_index] <- TRUE
           pattern_generated[synthetic_index] <- choice$generated
           pattern_shifted[synthetic_index] <- isTRUE(choice$shifted)
           pattern_substituted[synthetic_index] <- isTRUE(choice$substituted)
-        } else if (isTRUE(choice$identifying)) {
+        } else if (isTRUE(attendance$identifying[[anchor]])) {
+          # Either nothing was drawn, or the drawn set could not be built on
+          # this anchor. Both leave the anchor's own set in place, which is a
+          # disclosure only when that set is one nobody else shares.
           pattern_identifying[synthetic_index] <- TRUE
         }
       }
@@ -2234,20 +2369,27 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # cells match a source patient's set that fewer than `min_pattern_share`
     # patients share? -- so a future mechanism that gets it wrong is caught here
     # instead of in a report somebody reads months later.
+    # The end-to-end checks, on what each avatar actually received.
+    #
+    # Every leak found in this area leaked because each mechanism was correct on
+    # its own terms and nobody asked the whole question afterwards: placements
+    # were rejected properly but the caller then copied the anchor; the pool was
+    # built properly but a one-patient group never got one; a borrowed set could
+    # not be built on its anchor and the failure was silent. These ask the
+    # question directly, so the next mechanism that gets it wrong fails a test
+    # rather than surfacing in a report months later.
     identifying_visit_sets <- 0L
     if (!is.null(attendance)) {
       rare_source <- unique(attendance$keys[attendance$identifying])
       rare_source <- rare_source[nzchar(rare_source)]
-      if (length(rare_source)) {
-        produced <- vapply(
-          split(seq_len(nrow(result)), as.character(result[[source_roles$id]])),
-          function(rows) .attendance_key(result, source_roles,
-                                         seq_len(nrow(result)) %in% rows),
-          character(1)
-        )
-        identifying_visit_sets <- sum(produced %in% rare_source)
-      }
+      identifying_visit_sets <- sum(!is.na(applied_key) &
+                                      applied_key %in% rare_source)
     }
+    # Dose events are copied from the anchor verbatim -- resampling them would
+    # emit regimens the protocol never permitted -- so an avatar's dose schedule
+    # simply IS its anchor's, and the question is whether that anchor's was one
+    # nobody shared.
+    identifying_dose_schedules <- sum(dose_identifying[anchors])
     if (identifying_visit_sets > 0L) {
       .loud_warn(
         "avatars carrying a visit set nobody else shares",
@@ -2310,6 +2452,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # Measured on the finished table, not inferred from the mechanisms. This
       # is the number the guarantee is stated in terms of, and it must be 0.
       identifying_visit_sets = as.integer(identifying_visit_sets),
+      identifying_dose_schedules = as.integer(identifying_dose_schedules),
       pattern_reanchored_fraction = mean(pattern_reanchored),
       # What the floor cost: source attendance patterns excluded from the pool,
       # and how many real subjects held them.

@@ -5,6 +5,16 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **The dose side of the guarantee (`SIM-043`).** `synpmx_avatar()` now also
+  guarantees that no avatar carries a set of dose times only one real patient
+  has. Dose events are not rewritten -- resampling them would emit regimens the
+  protocol never permitted -- so a patient whose dose schedule nobody shares is
+  not built upon, and the avatar is re-anchored instead. Where every patient is
+  in that position the run says so rather than silently doing nothing.
+  `identifying_dose_schedules` records it: 0 for `theo_md`, `warfarin`,
+  `wbcSim` and `mavoglurant`, and an honest 12 of 12 for `nimoData`, whose
+  dosing is individualised.
+
 * **Bug fix (`SIM-042`), changes generated output.** An avatar could still be
   emitted carrying a visit set exactly one real patient holds. A schedule group
   of one -- a single patient measuring a different set of endpoints from

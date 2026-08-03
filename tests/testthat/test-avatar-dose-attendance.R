@@ -817,3 +817,48 @@ test_that("no avatar is emitted with a visit set only one real patient has", {
   # is the avatar that moved, not the patient that was removed.
   expect_equal(settings$anchors_available, 12L)
 })
+
+# SIM-043. The dose side of the same guarantee. Dose events are copied from the
+# anchor verbatim -- resampling them would emit regimens the protocol never
+# permitted -- so an avatar's dose schedule simply IS its anchor's, and the only
+# lever is which patients may anchor.
+test_that("no avatar inherits a dose schedule only one real patient has", {
+  # Ten patients on the protocol schedule, two with an extra interim dose that
+  # nobody else received.
+  mk <- function(i) {
+    doses <- if (i > 10L) c(0, 168, 252, 336) else c(0, 168, 336)
+    obs <- c(1, 24, 169, 192, 337, 360)
+    out <- rbind(
+      data.frame(ID = i, TIME = doses, DV = NA_real_, AMT = 100, EVID = 1L,
+                 CMT = 1L, WT = 60 + i),
+      data.frame(ID = i, TIME = obs, DV = round(5 + i / 10, 2), AMT = 0,
+                 EVID = 0L, CMT = 2L, WT = 60 + i))
+    out[order(out$TIME, -out$EVID), ]
+  }
+  # Patient 11 and 12 differ from each other too, so each is alone.
+  source <- do.call(rbind, lapply(1:12, mk))
+  source$TIME[source$ID == 12L & source$TIME == 252] <- 264
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", covariates = "WT")
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, n_subjects = 40, seed = 3)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+  expect_equal(settings$identifying_dose_schedules, 0L)
+
+  # Recomputed from the tables, independently of the recorded setting: no
+  # avatar holds the dose-time set of a patient who was alone in having it.
+  dose_sets <- function(d) {
+    dosed <- d$EVID == 1L
+    vapply(split(d$TIME[dosed], as.character(d$ID[dosed])),
+           function(t) paste(sort(unique(t)), collapse = ","), character(1))
+  }
+  source_sets <- dose_sets(source)
+  alone <- names(which(table(source_sets) < 2L))
+  expect_gt(length(alone), 0L)                     # the fixture really is loaded
+  expect_equal(sum(dose_sets(synthetic) %in% alone), 0L)
+  # Those two patients are not removed from the cohort -- they still anchor
+  # nothing, but they still act as donors.
+  expect_equal(settings$anchors_available, 12L)
+})

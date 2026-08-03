@@ -1511,6 +1511,10 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       both(settings$identifying_visit_sets, n_built),
       "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens"),
 
+    c("**Avatars carrying a dose schedule nobody else shares**",
+      both(settings$identifying_dose_schedules, n_built),
+      "**must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause"),
+
     header("Dose"),
     c("Amounts recomputed from a covariate",
       if (is.na(settings$dose_basis)) "**no**" else
