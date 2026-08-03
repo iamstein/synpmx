@@ -210,7 +210,9 @@ finds is mechanism 2 or 3 depending on which class is exposed. Observation
 *times* are coarsening's job; observation *counts* are the screen's, because no
 grid can change a count and what survives coarsening is dropout and missed
 visits; dose amount is neither's, so weight-based dosing leaves a cohort unique
-on signature regardless. `scripts/measure_skeleton_uniqueness.R` runs the before
+on signature regardless — declaring `dose_covariate` in `pmx_roles()` is what
+stops the amount itself being one real patient's, by rebuilding it from each
+avatar's own blended covariate. `scripts/measure_skeleton_uniqueness.R` runs the before
 and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns, which

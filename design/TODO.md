@@ -56,6 +56,9 @@ From the owner reading the alerts on `INTERNAL_STUDY`.
 
 Still open from this pass:
 
+- [x] Documentation for `dose_covariate`: `README.md` (and its pinned test), the
+      demo's theophylline section, the algorithm vignette's Step 1 and M5, and
+      the four-methods vignette. `theo_md` is the public test case.
 - [ ] Run the four `scripts_private/` templates against the real studies again
       now that `SIM-038`, `SIM-039` and `SIM-040` are fixed. Check the
       "avatars keeping their anchor's own visit set" row is near 0, and set

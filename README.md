@@ -126,6 +126,11 @@ roles <- pmx_roles(
   cens               = "CENS",                  # 1 = BLOQ, -1 = above, 0 = not
   limit              = "LIMIT",                 # the other interval boundary
   covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
+  dose_covariate     = "WT",                    # dose is mg/kg. Declare it and
+                                                #   each avatar's AMT is rebuilt
+                                                #   from its own blended WT.
+                                                #   NULL infers it instead, and
+                                                #   inference fails closed
   subject_properties = c("TRT", "TRTN"),        # assigned stratum; groups the
                                                 #   dose rule and visit patterns
   keep               = "STUDYID"                # carried through verbatim
@@ -227,7 +232,14 @@ values, and as noted above it is a realism control rather than a privacy one.
 Two things the defaults do that are worth knowing about. Where dosing is
 proportional to a covariate (mg/kg, mg/m²), each avatar's `AMT` is **recomputed
 from its own blended covariate** rather than copied, so the synthetic patient's
-dose matches the synthetic patient's weight. And a time of DV collection pattern
+dose matches the synthetic patient's weight. **Say so with `dose_covariate`**:
+left undeclared, the run has to *infer* the relationship, and it infers
+conservatively — the dose-to-covariate ratio must collapse onto a handful of
+levels, so a study that dispenses in vials or escalates within a patient is
+refused and its amounts are copied verbatim, which leaves every avatar's implied
+mg/kg wrong and the copied milligrams still encoding one real patient's weight.
+Declaring the covariate also keeps each dose row's own ratio, so intra-patient
+escalation survives exactly. And a time of DV collection pattern
 held by fewer than `min_pattern_share` subjects is **lost, not approximated**, and instead
 such a pattern is sampled from the patients who share this data collection patterns with others 
 \appened.

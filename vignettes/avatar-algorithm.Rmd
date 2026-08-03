@@ -65,8 +65,9 @@ they are denoted **M1** to **M5**.
   their covariates and trajectories onto the skeleton, capping any one donor's
   share at `max_donor_weight` (default 0.50) and adding subject-level and
   within-subject noise (**M4**). Recompute the dose from the avatar's own
-  blended covariate when in the original dataset dosing is proportional to a covariate, as it is
-  for weight-based dosing (**M5**).  Then reconstruct any below-limit (BLOQ) censoring, using
+  blended covariate where dosing is proportional to one — weight-based or
+  body-surface-area dosing — either because `dose_covariate` said so or
+  because the run inferred it (**M5**).  Then reconstruct any below-limit (BLOQ) censoring, using
   an automatically detected LOQ for each DVID
 - **(e) Recompile the dataset** — *Step 10*. Restore the source's
   column order, each column's type and factor levels, and the container class,
@@ -126,10 +127,26 @@ roles <- pmx_roles(
   cens = "CENS",           # below-limit indicator, if the study has BLQ data
   limit = "LIMIT",         # the other end of an interval, when used
   covariates = c("WT", "AGE", "SEX"),
+  dose_covariate = "WT",   # dose is mg/kg; say so rather than let it be inferred
   keep = "ARM"             # carried verbatim; see the allowlist below
 )
 roles
 ```
+
+**`dose_covariate` is worth declaring wherever it applies.** It names the
+covariate the dose is a fixed multiple of, and it is the one role that replaces
+an *inference* rather than adding information the package could not have. Left
+`NULL`, M5 has to work out for itself whether the study is dose-proportional,
+and it does that conservatively on purpose: the dose-to-covariate ratio must
+collapse onto a handful of levels within 2%, because recomputing amounts on a
+study that is *not* proportional would be a worse error than leaving them
+alone. Two entirely ordinary things defeat that test — dispensing in vials, and
+patients escalating by factors that are not identical across the cohort — so a
+genuinely weight-based study can come through with M5 silently doing nothing.
+`theo_md` is exactly that case: it is dosed by weight, its recorded mg/kg runs
+from 3.1 to 5.9, and inference declines. Declaring the covariate also changes
+*how* the amount is rebuilt — each dose row's own ratio is held rather than
+snapped to a shared level — so intra-patient escalation survives exactly.
 
 `id`, `time`, `dv`, and `evid` are required; the rest are optional. `amt`,
 `cmt`, `mdv`, `rate`, `cens`, and `limit` each name one column. `dvid` names one
@@ -1417,6 +1434,58 @@ amounts untouched. Declaring the covariate skips inference and holds **each
 dose row's own ratio** rather than snapping to shared levels, so intra-patient
 escalation survives exactly. `pmx_masking_report()` says which path ran and,
 when inference declined, what it tried. See `SIM-040`.
+
+The difference on a study that dispenses in vials and escalates within patient,
+which is the shape inference cannot recover:
+
+```{r m5-declared}
+# Three doses per patient at 1, 2 and 4 mg/kg -- but dispensed in 25 mg vials,
+# so the recorded mg/kg is smeared and the ratios do not cluster.
+m5_source <- do.call(rbind, lapply(1:12, function(i) {
+  wt <- 52 + i * 2.3
+  amt <- round(c(1, 2, 4) * wt / 25) * 25
+  out <- rbind(
+    data.frame(ID = i, TIME = c(0, 336, 1008), DV = NA_real_, AMT = amt,
+               EVID = 1L, CMT = 1L, WT = wt),
+    data.frame(ID = i, TIME = c(24, 360, 1032), DV = 5 + i / 10, AMT = 0,
+               EVID = 0L, CMT = 2L, WT = wt))
+  out[order(out$TIME, -out$EVID), ]
+}))
+
+m5_roles <- function(declare) {
+  args <- list(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+               cmt = "CMT", covariates = "WT")
+  if (declare) args$dose_covariate <- "WT"
+  do.call(pmx_roles, args)
+}
+
+# Each patient's course as a dose-per-kilogram profile. The question M5 exists
+# to answer is whether a synthetic patient's profile is one a real patient
+# could have been given -- not whether the numbers look plausible.
+m5_profiles <- function(x) {
+  dosed <- x[x$EVID != 0, ]
+  vapply(split(round(dosed$AMT / dosed$WT, 2), dosed$ID),
+         function(r) paste(r, collapse = " / "), character(1))
+}
+
+m5_coherent <- function(declare) {
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(m5_source, m5_roles(declare), seed = 8)
+  ))
+  mean(m5_profiles(synthetic) %in% m5_profiles(m5_source))
+}
+
+data.frame(
+  `dose_covariate` = c("NULL (inferred)", "\"WT\" (declared)"),
+  `avatars on a real dosing profile` = paste0(
+    round(100 * c(m5_coherent(FALSE), m5_coherent(TRUE))), "%"),
+  check.names = FALSE
+) |> knitr::kable(caption = paste(
+  "Whether each avatar's course of mg/kg is one the protocol actually gave.",
+  "Inference declines here, so the amounts are copied and each avatar ends up",
+  "at its anchor's milligrams over its *own* blended weight -- a dose per",
+  "kilogram nobody was prescribed."))
+```
 
 **The post-generation screen. Screening the finished data, and remediating** (`flag_identifiable_subjects()`,
 after generation). The only mechanism `synpmx_avatar()` does **not** run for you.

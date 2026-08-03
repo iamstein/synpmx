@@ -42,6 +42,7 @@ test_that("the README full-declaration example runs as shown", {
     cens               = "CENS",
     limit              = "LIMIT",
     covariates         = c("WT", "AGE", "SEX"),
+    dose_covariate     = "WT",
     subject_properties = c("TRT", "TRTN"),
     keep               = "STUDYID"
   )
