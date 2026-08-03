@@ -1821,7 +1821,8 @@ and the split is what tells you what to do next:
     not find a shared schedule, and declaring `nominal_time` is the fix.
   - **`unique_visit_set_n`** — of those, the ones who share every individual
     time with somebody but attended a combination of visits nobody else did:
-    dropout, an interruption, a missed week. **No grid can fix this** at any
+    a missed week, an interruption, a discontinuation, or follow-up that has
+    not reached those visits. **No grid can fix this** at any
     resolution, because the times are already shared. `min_pattern_share`
     addresses it during generation; otherwise the response is to remediate or
     accept.
@@ -1840,7 +1841,7 @@ which is where the `pmx_settings` counts above come from.
 
 A count on its own does not say whether a study is in trouble, because twelve
 unique schedules can be twelve one-off sampling times (fixable) or twelve
-ordinary dropouts (not, and not a problem).
+ordinary gaps in follow-up (not, and not a problem).
 [`plot_pmx_schedule()`](../reference/plot_pmx_schedule.html) draws the cohort —
 one row per patient, one mark per event, with a per-visit histogram
 underneath — and the two cases look nothing alike.

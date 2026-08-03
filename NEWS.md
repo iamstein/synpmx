@@ -5,6 +5,27 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* "Avatars keeping their anchor's own visit set" was reported as a number to
+  drive to zero, and it is not one. Copying an anchor's visit set discloses
+  nothing when several real patients share that set; it is a problem only when
+  the set is unique to one of them. The report now separates the two and
+  `synpmx_avatar()` **fixes the identifying case by default**: where the
+  anchor's own set is held by nobody else and no arrangement is free, the
+  group's most widely held set is substituted instead. A run alerts only when
+  the group has nothing shareable to substitute, which is the one case the
+  generator cannot resolve on its own.
+
+* Generated patterns no longer invent missing visits in an endpoint that has
+  none. The shape was placed over the pooled endpoint-by-time grid in time
+  order, so a biomarker drawn at all ten visits for all twenty-one patients
+  came out of generation with seven to ten of them. Placements are now confined
+  to endpoints whose visit times actually vary across the cohort.
+
+* "Dropout" is no longer used to explain why visit sets differ. Visits can be
+  missing because a patient discontinued, because a visit was missed, or
+  because follow-up has not reached them yet, and the reports, alerts and
+  vignettes said dropout throughout.
+
 * `plot_pmx_schedule()` no longer overloads red. The endpoint palette was
   red-free-adjacent at best -- the second endpoint was orange, which at screen
   distance is the same colour as the red used for a unique schedule and for a

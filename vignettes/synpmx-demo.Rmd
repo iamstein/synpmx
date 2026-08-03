@@ -341,9 +341,11 @@ surprise people:
   belonging to exactly one real person, however carefully its concentrations
   were blended. The count is split by cause, because the two causes have
   different answers: a *unique observation time* is the grid's job and is fixed by
-  declaring `nominal_time`, while a *unique set of visits* is dropout and no
+  declaring `nominal_time`, while a *unique set of visits* means visits are
+  missing rather than moved, and no
   grid can fix it.
-- **"Patterns discarded"** — a real dropout or dose-interruption pattern that
+- **"Patterns discarded"** — a real pattern of missing visits or a dose
+  interruption that
   will not appear in the output at all. That loss is the mechanism working, not
   a bug: it is what stops an avatar carrying a schedule traceable to one person.
   Whether the cost is acceptable is a per-study judgment, which is why every run
@@ -467,7 +469,8 @@ skeleton_uniqueness(theo_md, theo_roles, coarsen_time = TRUE)
 
 `plot_pmx_schedule()` draws the same cohort: one row per patient, one mark per
 event, with the visit grid underneath. A protocol grid reads as vertical
-stripes and dropout as a ragged right edge, so a count that looks alarming and
+stripes and follow-up ending as a ragged right edge, so a count that looks
+alarming and
 one that is ordinary look completely different.
 
 ```{r theo-schedule-map, eval=has_nlmixr2data, fig.width=8, fig.height=7}
@@ -1025,7 +1028,8 @@ matching would support the claim. The cost is that the definition cannot see tha
 event.
 
 That is why the draw is two-stage. A **shape** is chosen first — how many visits
-were missed, and whether the misses were terminal (dropout), contiguous (an
+were missed, and whether the misses were terminal (at the end of the record),
+contiguous (an
 interruption), or scattered — and both of those patients share one. Within the
 shape a real pattern is reused if one clears the floor; only otherwise is an
 arrangement generated, and a generated one is rejected and redrawn if it happens
@@ -1124,7 +1128,8 @@ cohort to achieve it — a patient with a rare pattern still contributes
 measurements as a donor.
 
 What *is* lost is the rare patterns themselves. They are discarded rather than
-approximated, so those specific dropout and dose-interruption patterns will not
+approximated, so those specific patterns of missing visits and dose
+interruptions will not
 appear in the output. With the shape fallback the loss is small on every dataset
 here — two patterns each on `warfarin`, `nimoData`, and `mavoglurant`, four on
 `wbcSim` — but it is never zero except where coarsening has already made the
@@ -1187,7 +1192,7 @@ sequence worth following is:
     way. This is why the discard count should never be read alone.
 2. **Then re-run this table.** If the unique-moment count is at or near zero,
    the grid has done its whole job and no amount of tuning will improve it.
-3. **Then decide about the pattern column.** These are dropout and missed-visit
+3. **Then decide about the pattern column.** These are missing-visit
    patterns. `flag_identifiable_subjects()` and
    `remediate_identifiable_subjects()` can drop or truncate them; whether that
    is worth the lost cohort size is a judgment about who will see the output.

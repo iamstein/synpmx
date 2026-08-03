@@ -513,7 +513,7 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #     endpoint set. Under actual recorded times this is near-universally unique
 #     and coarsening is what collapses it.
 #   - `n_obs` -- the observation count alone. Coarsening does not touch it, so
-#     what survives is dropout and missed visits. That residual is the screen's
+#     what survives is missing visits, whatever caused them. That residual is the screen's
 #     job, not the grid's.
 
 .class_sizes <- function(key) {
@@ -541,8 +541,8 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #'   it is near-universally 1. Coarsening collapses the second case into the
 #'   first.
 #' - **`n_share_obs_count`** -- who else has this many observations? Coarsening
-#'   cannot change a count, so this is what survives it: dropout, early
-#'   discontinuation, and missed visits.
+#'   cannot change a count, so this is what survives it: missed visits, early
+#'   discontinuation, and follow-up that has not reached the later visits.
 #' - **`n_share_dosing`** -- who else has this dose structure and these dose
 #'   amounts? This is the full [pmx_roles()] event signature and it does *not*
 #'   include observation times; it is the key donor compatibility uses.
@@ -555,7 +555,7 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #' (`n_share_rarest_time == 1`) was sampled at a one-off moment: a time grid is
 #' meant to absorb that, and declaring `nominal_time` is the fix. A patient
 #' whose schedule is unique while every individual time is shared
-#' (`n_share_rarest_time >= 2`) is a dropout or missed-visit pattern, and no
+#' (`n_share_rarest_time >= 2`) has visits missing rather than moved, and no
 #' grid at any resolution touches it. `why_unique` states which.
 #'
 #' # Before or after coarsening
@@ -648,7 +648,8 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   # different remedies. Either the subject was observed at a moment nobody else
   # was -- a one-off visit no grid can hide, because the cell has one member --
   # or every individual time is shared and only the *pattern* of which visits
-  # were attended is unique. The second is dropout and missed visits, and
+  # were attended is unique. The second is missing visits -- discontinuation, a
+  # missed visit, or follow-up not yet that long -- and
   # `coarsen_time` cannot touch it however fine or coarse the grid.
   # `n_share_rarest_time` separates them: it is the smallest number of subjects
   # sharing any one of this subject's observation times.
@@ -794,7 +795,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
     c("... a one-off observation time", unshared,
       "sampled when nobody else was. A time grid can absorb this: declare `nominal_time`"),
     c("... the set of visits attended", pattern_only,
-      "every time is shared; dropout or a missed visit. No grid touches this"),
+      "every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this"),
     c("Observation count nobody else has", sum(x$n_share_obs_count == 1L),
       "survives any grid; the residual `flag_identifiable_subjects()` looks at"),
     c("Dosing nobody else has", sum(x$n_share_dosing == 1L),
@@ -825,7 +826,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
 # Shared by print() and knit_print() so the two cannot drift. The verdict is
 # stated in words first because the number on its own does not say whether the
 # reader has a problem, and "44% unique" reads as alarming on a cohort where
-# every one of those is ordinary dropout.
+# every one of those is an ordinary missed or not-yet-reached visit.
 #
 # Everything is recomputed from the columns rather than read off the cohort
 # attributes. `[.data.frame` keeps the class and the attributes, so a reader who
@@ -967,7 +968,8 @@ knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
 # and a number does not say whether that is a protocol with two stragglers or a
 # study where every patient was sampled ad hoc. The picture does, immediately:
 # a coarsened cohort on a real protocol grid draws as vertical stripes with a
-# ragged right edge (dropout), and an uncoarsenable one draws as scatter.
+# ragged right edge (visits missing from the end), and an uncoarsenable one
+# draws as scatter.
 #
 # Base graphics on purpose. This is a diagnostic a user runs mid-analysis on a
 # restricted machine, so it should not depend on ggplot2 being installed, and a
@@ -990,12 +992,14 @@ knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
 #' The picture behind [skeleton_uniqueness()]. One row per patient, one mark
 #' per event: when they were dosed, and when each endpoint was observed. Read
 #' it to decide whether a uniqueness count is a real problem or ordinary
-#' dropout.
+#' an ordinary gap in follow-up.
 #'
 #' Two panels:
 #'
-#' - **the map** -- patients ordered by how long they were followed, so dropout
-#'   reads as a staircase down the right-hand edge. A patient whose observation
+#' - **the map** -- patients ordered by how long they were followed, so a
+#'   ragged right-hand edge reads as a staircase. That edge is follow-up
+#'   ending, whether because a patient discontinued or because the study has
+#'   not reached their later visits yet. A patient whose observation
 #'   schedule no other patient shares is marked in the margin, and their label
 #'   is drawn in red.
 #' - **the visit histogram** -- how many patients were observed at each time on
@@ -1043,7 +1047,7 @@ plot_pmx_schedule <- function(data, roles, coarsen_time = TRUE,
   dosed <- .dose_rows(data, roles) & is.finite(time)
   endpoint <- .endpoint(data, roles)
 
-  # Ordered by last observation, so the right-hand edge is the dropout curve.
+  # Ordered by last observation, so the right-hand edge is the follow-up curve.
   # Ties broken by observation count, so two patients followed equally long sit
   # next to each other with the sparser one below.
   subjects <- .unique_in_order(id)
@@ -1440,7 +1444,7 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       "sampled when nobody else was. Declaring `nominal_time` is the fix"),
     c("&nbsp;&nbsp;because of which visits they attended",
       num(settings$unique_visit_set_n),
-      "every time is shared; this is dropout, and no grid can fix it"),
+      "every time is shared. The visits themselves are missing -- a missed visit, a discontinuation, or follow-up that has not reached them -- and no grid can fix that"),
 
     header("Visit sets: WHICH of those visits each patient attended"),
     c("Distinct visit sets in the source", num(settings$patterns_total),
@@ -1460,10 +1464,16 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       "the kind of missingness was reused; exactly which visits were missed was invented"),
     c("&nbsp;&nbsp;of those, miss count moved",
       pct(settings$pattern_shifted_fraction),
-      "no placement at the wanted number of misses was free, so the count moved by a visit or two. Dropout is the usual reason: a discontinuation at a given depth has only one possible placement"),
+      "no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement"),
+    c("&nbsp;&nbsp;of those, a rare set swapped for a shared one",
+      pct(settings$pattern_substituted_fraction),
+      "the anchor's own set was held by nobody else and no arrangement was free, so the group's most widely held set was used instead -- less faithful to that avatar, and it discloses nothing"),
     c("Avatars keeping their anchor's own visit set",
       pct(1 - (settings$pattern_sampled_fraction %||% NA_real_)),
-      "the last-resort fallback, and the one row you want at 0%: these avatars carry one real patient's absences exactly. The run alerts past 10%"),
+      "not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure"),
+    c("**Avatars carrying a visit set nobody else shares**",
+      pct(settings$pattern_identifying_fraction),
+      "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens"),
 
     header("Dose"),
     c("Amounts recomputed from a covariate",
@@ -1502,18 +1512,20 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
 #'   of observation times nobody else shares. An avatar anchored on one wears a
 #'   schedule belonging to one real person. Its two sub-rows have opposite
 #'   remedies: a one-off observation time is what declaring `nominal_time`
-#'   fixes, and a unique set of *attended* visits is dropout, which no grid
+#'   fixes, and a unique set of *attended* visits is missing visits, which no grid
 #'   touches.
-#' - **Shared by too few patients, so not reused** -- real dropout and
-#'   dose-interruption patterns that will not appear in the synthetic data.
+#' - **Shared by too few patients, so not reused** -- real patterns of missing
+#'   visits and dose interruptions that will not appear in the synthetic data.
 #'   Discarding them is what stops an avatar carrying a schedule traceable to
 #'   one person. If this study's interruptions matter, lower
 #'   `min_pattern_share` (2 is the lowest value that still guarantees no
 #'   synthetic patient has a schedule unique to a real one).
-#' - **Avatars keeping their anchor's own visit set** -- the fallback when a
-#'   schedule group had nothing shareable to draw from. Those avatars carry one
-#'   real patient's pattern of absences, which is the thing `min_pattern_share`
-#'   exists to prevent, so a high percentage here undoes the row above it.
+#' - **Avatars carrying a visit set nobody else shares** -- the only row here
+#'   that is a disclosure rather than a fidelity cost, and the one to drive to
+#'   zero. Keeping the *anchor's own* set is fine whenever several real patients
+#'   share it; it is a problem only when that set is unique to one of them.
+#'   Where a shared set exists, one is substituted automatically, so this row is
+#'   non-zero only when the whole schedule group has nothing shareable.
 #' - **Amounts recomputed from a covariate** -- says outright whether
 #'   weight-based or body-surface-area dosing was detected, and when it was
 #'   not, why not. Detection is deliberately conservative: it fails closed and

@@ -36,18 +36,20 @@ them mean anything on their own. The rows worth looking at hardest:
 of observation times nobody else shares. An avatar anchored on one wears a
 schedule belonging to one real person. Its two sub-rows have opposite
 remedies: a one-off observation time is what declaring \code{nominal_time}
-fixes, and a unique set of \emph{attended} visits is dropout, which no grid
+fixes, and a unique set of \emph{attended} visits is missing visits, which no grid
 touches.
-\item \strong{Shared by too few patients, so not reused} -- real dropout and
-dose-interruption patterns that will not appear in the synthetic data.
+\item \strong{Shared by too few patients, so not reused} -- real patterns of missing
+visits and dose interruptions that will not appear in the synthetic data.
 Discarding them is what stops an avatar carrying a schedule traceable to
 one person. If this study's interruptions matter, lower
 \code{min_pattern_share} (2 is the lowest value that still guarantees no
 synthetic patient has a schedule unique to a real one).
-\item \strong{Avatars keeping their anchor's own visit set} -- the fallback when a
-schedule group had nothing shareable to draw from. Those avatars carry one
-real patient's pattern of absences, which is the thing \code{min_pattern_share}
-exists to prevent, so a high percentage here undoes the row above it.
+\item \strong{Avatars carrying a visit set nobody else shares} -- the only row here
+that is a disclosure rather than a fidelity cost, and the one to drive to
+zero. Keeping the \emph{anchor's own} set is fine whenever several real patients
+share it; it is a problem only when that set is unique to one of them.
+Where a shared set exists, one is substituted automatically, so this row is
+non-zero only when the whole schedule group has nothing shareable.
 \item \strong{Amounts recomputed from a covariate} -- says outright whether
 weight-based or body-surface-area dosing was detected, and when it was
 not, why not. Detection is deliberately conservative: it fails closed and
