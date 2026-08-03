@@ -107,7 +107,7 @@ test_that("a route arm below the floor is dropped from the anchor pool", {
   )
 
   expect_true(any(grepl("SYNPMX ALERT", msgs)))
-  expect_true(any(grepl("never blended across routes", msgs)))
+  expect_true(any(grepl("never blended across routes", squish(msgs))))
   # No avatar carries an infusion, because no infusion subject could anchor one.
   expect_true(all(syn$RATE == 0))
 })
@@ -132,7 +132,7 @@ test_that("on_donor_shortfall keeps, drops, or refuses the starved arm", {
     ))
   )
   expect_true(any(kept$RATE != 0))
-  expect_true(any(grepl("individually identifying", kept_msgs)))
+  expect_true(any(grepl("individually identifying", squish(kept_msgs))))
 
   # "error" refuses, and names both alternatives so the message is actionable.
   expect_error(
@@ -180,7 +180,7 @@ test_that("every arm below the floor generates anyway rather than emptying", {
     syn <- suppressWarnings(synpmx_avatar(src, roles, n_subjects = 6L, seed = 2))
   )
 
-  expect_true(any(grepl("nothing to generate", msgs)))
+  expect_true(any(grepl("nothing to generate", squish(msgs))))
   expect_true(validate_pmx(syn, roles)$valid)
 })
 

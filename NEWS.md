@@ -5,6 +5,58 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **Bug fix (`SIM-038`), changes generated output.** Times were keyed with
+  `format(x, digits = 12)`, which fixes one layout for a whole vector, so the
+  same visit keyed differently for a patient who also had a fractional sample.
+  Two patients who attended exactly the same visits therefore produced
+  different attendance keys: each pattern had a single holder, `min_pattern_share`
+  discarded it, and the avatar fell back to its anchor's own visit set — the
+  outcome the mechanism exists to prevent. The same fault made
+  `skeleton_uniqueness()` report one-off observation times that eighteen other
+  patients in fact shared, firing the "unique observation times" alert and its
+  `nominal_time` advice on cohorts already on a shared grid.
+
+* Alerts from `synpmx_avatar()` are wrapped to a fixed width with a headline,
+  the count, why it matters, and the one thing to do about it, instead of a
+  single unwrapped paragraph that needed horizontal scrolling in a knitted
+  report. Each is emitted **once**: the condition is signalled rather than
+  raised with `warning()`, which used to print the identical text a second time.
+  `tryCatch(warning = )` and `suppressWarnings()` behave as before;
+  `options(warn = 2)` no longer promotes them, so rely on the printed banner.
+  Alerts are also now split into `SYNPMX ALERT` (a property of the source that
+  raises risk and that you can act on) and `SYNPMX NOTE` (a mechanism reporting
+  what it cost).
+
+* `synpmx_avatar()` alerts when 10% or more of avatars were given no visit set
+  from the pool and kept their anchor's own, which is one real patient's exact
+  pattern of absences copied onto an avatar. Previously this could happen
+  silently whenever every legal placement of a shape was already somebody's,
+  and only `pattern_sampled_fraction` recorded it.
+
+* New `pmx_masking_report()` turns the `pmx_settings` attribute into the table
+  to read after a run, with a sentence beside every number saying what it
+  means. It states outright whether dose amounts were recomputed from a
+  covariate and, when they were not, which covariates were tried and what
+  failed — previously indistinguishable from detection never having run. The
+  demo vignette and the study templates under `scripts_private/` all use it, so
+  the labels are maintained in one place.
+
+* New `plot_pmx_schedule()` draws a cohort's dosing and observation schedule:
+  one row per patient, one mark per event, with a per-visit patient count
+  underneath and unique schedules marked in red. A uniqueness *count* cannot
+  distinguish twelve one-off sampling times from twelve ordinary dropouts; the
+  picture can.
+
+* `skeleton_uniqueness()` gains `coarsen_time` (default `FALSE`) so the same
+  cohort can be scored before and after the grid `synpmx_avatar()` builds, and
+  its printed output says which of the two you are looking at. Its columns are
+  renamed to one consistent question — how many patients share this property,
+  this patient included, so `1` means "nobody else": `n_share_schedule`,
+  `n_share_rarest_time`, `n_share_obs_count`, `n_share_dosing`, plus a
+  `why_unique` column. `print()` now leads with a verdict and two summary
+  tables rather than twelve patient rows, and `knitr::kable()` output is used
+  automatically when knitting.
+
 * `synpmx_avatar()` gains `coarsen_time`, defaulting to `TRUE`. Source times are
   collapsed onto a shared visit grid before generation and per-visit deviations
   are pooled across the cohort and resampled onto each avatar. This closes

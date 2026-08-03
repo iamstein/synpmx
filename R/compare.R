@@ -496,47 +496,72 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
   as.integer(counts[match(key, names(counts))])
 }
 
-#' Score how many subjects share each subject's event skeleton
+#' Score how many patients share each patient's event skeleton
 #'
-#' A source-side screen for subjects that are **alone**, the complement to
-#' [flag_identifiable_subjects()], which finds subjects that are **extreme**. A
+#' A source-side screen for patients that are **alone**, the complement to
+#' [flag_identifiable_subjects()], which finds patients that are **extreme**. A
 #' patient can be perfectly ordinary on every distribution and still hold the
 #' only copy of their visit schedule, and [synpmx_avatar()] copies the anchor's
-#' event skeleton verbatim, so such a subject hands an identifying schedule to
+#' event skeleton verbatim, so such a patient hands an identifying schedule to
 #' every avatar anchored on it.
 #'
-#' Three equivalence classes are scored per subject:
+#' Three questions are asked of every patient, and the answer to each is a
+#' count of how many patients share that property, the patient included. A
+#' count of 1 means "nobody else":
 #'
-#' - **`obs_time`** -- subjects sharing the exact observation time vector. This
-#'   is the fingerprint, because [synpmx_avatar()] copies the anchor's event
-#'   skeleton verbatim. Under nominal visit times the class is large, since the
-#'   schedule is protocol-driven; under actual recorded times it is
-#'   near-universally of size one. `coarsen_time = TRUE` collapses the second
-#'   case into the first, and `alone` reports this class.
-#' - **`n_obs`** -- subjects sharing the observation count. Coarsening cannot
-#'   change a count, so this is what survives it: dropout, early
-#'   discontinuation, and missed visits. That residual is the outlier screen's
-#'   job rather than the grid's.
-#' - **`signature`** -- subjects sharing the full [pmx_roles()] event signature:
-#'   dose structure, dose amounts, and endpoint set. Note this does *not* include
-#'   observation times -- it is the key donor compatibility uses. Weight-based
-#'   dosing or per-subject titration makes it unique regardless of schedule, and
-#'   coarsening does not change that either.
+#' - **`n_share_schedule`** -- who else was observed at exactly this list of
+#'   times? This is the fingerprint, because [synpmx_avatar()] copies the
+#'   anchor's event skeleton verbatim. Under nominal visit times the count is
+#'   large, since the schedule is protocol-driven; under actual recorded times
+#'   it is near-universally 1. Coarsening collapses the second case into the
+#'   first.
+#' - **`n_share_obs_count`** -- who else has this many observations? Coarsening
+#'   cannot change a count, so this is what survives it: dropout, early
+#'   discontinuation, and missed visits.
+#' - **`n_share_dosing`** -- who else has this dose structure and these dose
+#'   amounts? This is the full [pmx_roles()] event signature and it does *not*
+#'   include observation times; it is the key donor compatibility uses.
+#'   Weight-based dosing or per-patient titration makes it unique regardless of
+#'   schedule, and coarsening does not change that either.
 #'
-#' Run it on the **source**, before generating, to decide whether coarsening is
-#' needed and what is left over once it is applied. It is a heuristic screen, not
-#' a privacy guarantee, and is marked `"restricted_not_releasable"`.
+#' `n_share_rarest_time` splits the schedule count by cause, which matters
+#' because the two causes have opposite remedies. A patient whose schedule is
+#' unique **and** whose rarest single time was shared with nobody
+#' (`n_share_rarest_time == 1`) was sampled at a one-off moment: a time grid is
+#' meant to absorb that, and declaring `nominal_time` is the fix. A patient
+#' whose schedule is unique while every individual time is shared
+#' (`n_share_rarest_time >= 2`) is a dropout or missed-visit pattern, and no
+#' grid at any resolution touches it. `why_unique` states which.
+#'
+#' # Before or after coarsening
+#'
+#' By default this scores the times **exactly as they appear in `data`**.
+#' [synpmx_avatar()] snaps the source onto a shared visit grid first
+#' (`coarsen_time = TRUE`, its default) and the numbers it records in
+#' `pmx_settings` are therefore post-coarsening. Pass `coarsen_time = TRUE`
+#' here to score the same grid the generator would build, and run it both ways
+#' to see how much of the exposure coarsening actually removed. The printed
+#' header always says which of the two you are looking at.
+#'
+#' Run it on the **source**, before generating. It is a heuristic screen, not a
+#' privacy guarantee, and is marked `"restricted_not_releasable"`.
 #'
 #' @param data A PMX dataset -- normally the source.
 #' @param roles Explicit roles from [pmx_roles()].
+#' @param coarsen_time Score the coarsened visit grid [synpmx_avatar()] would
+#'   build (`TRUE`) or the recorded times as given (`FALSE`, the default).
 #'
 #' @return A `pmx_skeleton_uniqueness` data frame, most-exposed first, one row
-#'   per subject: `subject_id`, `n_obs`, `n_doses`, `signature_class`,
-#'   `obs_time_class`, `n_obs_class` (each counting the subjects sharing that
-#'   key, including itself), and `alone` (`TRUE` when `obs_time_class == 1`).
-#'   Attributes `n_unique_schedule`, `n_alone_signature`, `n_alone_n_obs`, and `min_class`
-#'   summarize the cohort.
-#' @seealso [flag_identifiable_subjects()], [synpmx_avatar()].
+#'   per patient: `subject_id`, `n_obs`, `n_doses`, `n_share_dosing`,
+#'   `n_share_schedule`, `n_share_rarest_time`, `n_share_obs_count` (each
+#'   counting the patients sharing that property, including this one),
+#'   `unique_schedule` (`TRUE` when `n_share_schedule == 1`), and `why_unique`.
+#'   Attributes `n_unique_schedule`, `n_unique_dose_signature`,
+#'   `n_unique_obs_count`, `n_unshared_time`, `min_class`, and `coarsened`
+#'   summarize the cohort; `summary_table` and `sharing_table` hold the two
+#'   tables `print()` shows.
+#' @seealso [plot_pmx_schedule()] for the same information as a picture,
+#'   [flag_identifiable_subjects()], [synpmx_avatar()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(30)
@@ -545,8 +570,10 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
 #'   cmt = "CMT", dvid = "DVID", covariates = "WT"
 #' )
 #' skeleton_uniqueness(data, roles)
-skeleton_uniqueness <- function(data, roles) {
+#' skeleton_uniqueness(data, roles, coarsen_time = TRUE)
+skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   .assert_roles(data, roles)
+  if (isTRUE(coarsen_time)) data <- .coarsen_source_time(data, roles)$source
   subjects <- .unique_in_order(data[[roles$id]])
   sub <- factor(as.character(data[[roles$id]]),
                 levels = as.character(subjects))
@@ -569,7 +596,7 @@ skeleton_uniqueness <- function(data, roles) {
     sort(time[rows[observed_index[rows]]])
   })
   obs_time <- vapply(obs_times, function(values) {
-    paste(format(values, digits = 12, trim = TRUE), collapse = ",")
+    paste(.time_key(values), collapse = ",")
   }, character(1))
   # Being alone on the whole vector has two very different causes, and they need
   # different remedies. Either the subject was observed at a moment nobody else
@@ -577,13 +604,19 @@ skeleton_uniqueness <- function(data, roles) {
   # or every individual time is shared and only the *pattern* of which visits
   # were attended is unique. The second is dropout and missed visits, and
   # `coarsen_time` cannot touch it however fine or coarse the grid.
-  # `min_time_share` separates them: it is the smallest number of subjects
+  # `n_share_rarest_time` separates them: it is the smallest number of subjects
   # sharing any one of this subject's observation times.
-  # Build the lookup and query it with the *same* formatted keys; `table()` names
-  # its entries with as.character(), which does not agree with format(digits =).
-  time_keys <- lapply(obs_times, function(values) {
-    format(unique(values), digits = 12, trim = TRUE)
-  })
+  #
+  # The keys are built per value by `.time_key()`, and that is the whole
+  # correctness argument. `format(x, digits = 12)` picks ONE layout for the
+  # whole vector it is handed, so hour 12 keys as "12" for a subject sampled
+  # only on the hour and as "12.00000000000" for a subject who also has a
+  # 1.2142857 sample. One real visit then splits across several keys, each with
+  # a small count, and patients were reported as holding a one-off observation
+  # time that eighteen others in fact shared -- which fired the
+  # "unique observation times" alert, and the `nominal_time` advice with it, on
+  # cohorts that were already on a shared grid.
+  time_keys <- lapply(obs_times, function(values) .time_key(unique(values)))
   shared <- table(unlist(time_keys))
   min_time_share <- vapply(time_keys, function(keys) {
     if (!length(keys)) return(NA_integer_)
@@ -602,72 +635,354 @@ skeleton_uniqueness <- function(data, roles) {
   obs_time_class <- .class_sizes(obs_time)
   n_obs_class <- .class_sizes(as.character(n_obs))
 
+  # Every column is "how many patients share this with me, me included", so 1
+  # always means "nobody else" and the reader needs one rule rather than four.
+  # The old names (`obs_time_class`, `signature_class`, `min_time_share`) named
+  # the equivalence class rather than the question, and nobody could read the
+  # table without the help page open next to it.
+  unique_schedule <- obs_time_class == 1L
+  why_unique <- ifelse(
+    !unique_schedule, "",
+    ifelse(!is.na(min_time_share) & min_time_share == 1L,
+           "one-off observation time", "set of visits attended")
+  )
   out <- data.frame(
     subject_id = as.character(subjects),
     n_obs = n_obs,
     n_doses = n_doses,
-    signature_class = signature_class,
-    obs_time_class = obs_time_class,
-    min_time_share = min_time_share,
-    n_obs_class = n_obs_class,
-    unique_schedule = obs_time_class == 1L,
+    n_share_schedule = obs_time_class,
+    n_share_rarest_time = min_time_share,
+    n_share_obs_count = n_obs_class,
+    n_share_dosing = signature_class,
+    unique_schedule = unique_schedule,
+    why_unique = why_unique,
     stringsAsFactors = FALSE,
     row.names = NULL
   )
-  out <- out[order(out$obs_time_class, out$signature_class, out$n_obs_class,
-                   out$subject_id), , drop = FALSE]
+  out <- out[order(out$n_share_schedule, out$n_share_dosing,
+                   out$n_share_obs_count, out$subject_id), , drop = FALSE]
   rownames(out) <- NULL
-  attr(out, "n_unique_schedule") <- sum(out$obs_time_class == 1L)
-  attr(out, "n_unique_dose_signature") <- sum(out$signature_class == 1L)
-  attr(out, "n_unique_obs_count") <- sum(out$n_obs_class == 1L)
-  attr(out, "n_unshared_time") <- sum(out$min_time_share == 1L, na.rm = TRUE)
-  attr(out, "min_class") <- if (nrow(out)) min(out$obs_time_class) else NA_integer_
+  n_unique_schedule <- sum(out$n_share_schedule == 1L)
+  n_unshared_time <- sum(out$n_share_rarest_time == 1L, na.rm = TRUE)
+  attr(out, "n_unique_schedule") <- n_unique_schedule
+  attr(out, "n_unique_dose_signature") <- sum(out$n_share_dosing == 1L)
+  attr(out, "n_unique_obs_count") <- sum(out$n_share_obs_count == 1L)
+  attr(out, "n_unshared_time") <- n_unshared_time
+  attr(out, "min_class") <- if (nrow(out)) min(out$n_share_schedule) else
+    NA_integer_
+  attr(out, "coarsened") <- isTRUE(coarsen_time)
+  attr(out, "summary_table") <- .skeleton_summary_table(out)
+  attr(out, "sharing_table") <- .skeleton_sharing_table(out)
   .mark_release(
     structure(out, class = c("pmx_skeleton_uniqueness", "data.frame")),
     "restricted_not_releasable"
   )
 }
 
+# The cohort answer, in the order a reader needs it: the headline count, then
+# its two causes -- which have opposite remedies -- then the two properties
+# that are unique for reasons a grid was never going to touch. Built as a data
+# frame rather than printed with `cat()` so `knit_print()` can hand the same
+# rows to `knitr::kable()` and a report gets a real table.
+.skeleton_summary_table <- function(x) {
+  n <- nrow(x)
+  unique_schedule <- sum(x$n_share_schedule == 1L)
+  unshared <- sum(x$n_share_rarest_time == 1L, na.rm = TRUE)
+  pattern_only <- max(unique_schedule - unshared, 0L)
+  rows <- list(
+    c("Observation schedule nobody else has", unique_schedule,
+      "the headline: an avatar anchored here wears one real patient's schedule"),
+    c("... a one-off observation time", unshared,
+      "sampled when nobody else was. A time grid can absorb this: declare `nominal_time`"),
+    c("... the set of visits attended", pattern_only,
+      "every time is shared; dropout or a missed visit. No grid touches this"),
+    c("Observation count nobody else has", sum(x$n_share_obs_count == 1L),
+      "survives any grid; the residual `flag_identifiable_subjects()` looks at"),
+    c("Dosing nobody else has", sum(x$n_share_dosing == 1L),
+      "dose amounts and gaps. Weight-based dosing makes this near-universal")
+  )
+  out <- as.data.frame(do.call(rbind, rows), stringsAsFactors = FALSE)
+  names(out) <- c("Patients whose ...", "n", "Meaning")
+  out$n <- as.integer(out$n)
+  out <- cbind(out[1L], `% of cohort` = if (n) round(100 * out$n / n) else 0,
+               out[-1L])
+  out[, c("Patients whose ...", "n", "% of cohort", "Meaning")]
+}
+
+# How crowded is each schedule? One row per group size, so a cohort where every
+# patient sits in a group of 8 reads at a glance and does not need 60 patient
+# rows to say so. This is the number that behaves like a k in k-anonymity on
+# the schedule axis.
+.skeleton_sharing_table <- function(x) {
+  counts <- table(x$n_share_schedule)
+  data.frame(
+    `Patients sharing that schedule` = as.integer(names(counts)),
+    `Patients` = as.integer(counts),
+    `% of cohort` = if (nrow(x)) round(100 * as.integer(counts) / nrow(x)) else 0,
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+# Shared by print() and knit_print() so the two cannot drift. The verdict is
+# stated in words first because the number on its own does not say whether the
+# reader has a problem, and "44% unique" reads as alarming on a cohort where
+# every one of those is ordinary dropout.
+#
+# Everything is recomputed from the columns rather than read off the cohort
+# attributes. `[.data.frame` keeps the class and the attributes, so a reader who
+# prints `screen[screen$unique_schedule, ]` -- the obvious thing to do -- would
+# otherwise get the whole cohort's counts over a two-row table, and percentages
+# above 100.
+.skeleton_headline <- function(x) {
+  n <- nrow(x)
+  unique_schedule <- sum(x$n_share_schedule == 1L)
+  unshared <- sum(x$n_share_rarest_time == 1L, na.rm = TRUE)
+  pattern_only <- max(unique_schedule - unshared, 0L)
+  scored <- if (isTRUE(attr(x, "coarsened"))) {
+    paste("Scored AFTER coarsening, on the shared visit grid",
+          "`synpmx_avatar()` builds. These are the numbers a run reports.")
+  } else {
+    paste("Scored on the recorded times AS GIVEN, before any coarsening.",
+          "`synpmx_avatar()` coarsens first by default, so run this again",
+          "with `coarsen_time = TRUE` to see what the grid removes.")
+  }
+  verdict <- if (!n) {
+    "No patients."
+  } else if (unique_schedule == 0L) {
+    "Every patient shares their observation schedule with somebody. Nothing to do."
+  } else if (unshared == 0L) {
+    paste0(unique_schedule, " of ", n, " patients (",
+           round(100 * unique_schedule / n),
+           "%) have an observation schedule nobody else has, all of them ",
+           "because of which visits they attended rather than when. No time ",
+           "grid can change that; `min_pattern_share` is what stops those ",
+           "sets being reused.")
+  } else {
+    paste0(unique_schedule, " of ", n, " patients (",
+           round(100 * unique_schedule / n),
+           "%) have an observation schedule nobody else has: ", unshared,
+           " from a one-off observation time, ", pattern_only,
+           " from which visits they attended. Declaring `nominal_time` ",
+           "addresses the first group; nothing addresses the second.")
+  }
+  list(scored = scored, verdict = verdict,
+       summary = .skeleton_summary_table(x),
+       sharing = .skeleton_sharing_table(x))
+}
+
+.skeleton_footer <- paste(
+  "One row per patient is in the returned data frame;",
+  "`plot_pmx_schedule()` draws the same cohort. Source-derived;",
+  "not releasable unless separately public or privately budgeted."
+)
+
 #' @export
 print.pmx_skeleton_uniqueness <- function(x, ...) {
-  n <- nrow(x)
-  unique_schedule <- attr(x, "n_unique_schedule") %||%
-    sum(x$obs_time_class == 1L)
-  unique_signature <- attr(x, "n_unique_dose_signature") %||%
-    sum(x$signature_class == 1L)
-  unique_obs_count <- attr(x, "n_unique_obs_count") %||%
-    sum(x$n_obs_class == 1L)
-  cat(sprintf(
-    "Restricted PMX schedule-uniqueness screen: %d of %d patient%s\n",
-    unique_schedule, n, if (n == 1L) "" else "s"
-  ))
-  cat(sprintf(
-    paste0("have a UNIQUE OBSERVATION SCHEDULE (%.0f%%): no other patient shares ",
-           "their\nlist of observation times, so the schedule works as an ",
-           "identifier.\n\n"),
-    if (n) 100 * unique_schedule / n else 0
-  ))
-  unshared <- attr(x, "n_unshared_time") %||% sum(x$min_time_share == 1L,
-                                                  na.rm = TRUE)
-  cat(sprintf("  unique observation schedule:  %3d  <- of which:\n",
-              unique_schedule))
-  cat(sprintf("    unique observation time:      %3d  <- sampled when nobody else was; the grid's job\n",
-              unshared))
-  cat(sprintf("    unique set of visits:    %3d  <- every time shared; dropout, the screen's job\n",
-              max(unique_schedule - unshared, 0L)))
-  cat(sprintf("  unique observation count:  %3d  <- the residual that leaves, for the screen\n",
-              unique_obs_count))
-  cat(sprintf("  unique dose signature:     %3d  <- dose structure/amount; coarsening cannot change it\n",
-              unique_signature))
-  cat("\n")
-  cat(if (n > 12L) "Twelve most exposed:\n" else "By class size:\n")
-  print(.round_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
-  if (n > 12L) {
-    cat(sprintf("... %d more row(s) in the returned table.\n", n - 12L))
-  }
-  cat("\nSource-derived; not releasable unless separately public or privately",
-      "budgeted.\n")
+  parts <- .skeleton_headline(x)
+  cat("Restricted PMX schedule-uniqueness screen\n")
+  cat(.wrap_plain(parts$scored), "\n\n", sep = "")
+  cat(.wrap_plain(parts$verdict), "\n\n", sep = "")
+  print(parts$summary[, c("Patients whose ...", "n", "% of cohort")],
+        row.names = FALSE)
+  cat("\nHow crowded is each schedule (1 = nobody else has it):\n")
+  print(parts$sharing, row.names = FALSE)
+  cat("\n", .wrap_plain(.skeleton_footer), "\n", sep = "")
   invisible(x)
+}
+
+# A knitted report gets real tables instead of a preformatted block, which is
+# the whole reason the summaries above are data frames. Registered lazily, so
+# knitr stays a Suggests.
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_skeleton_uniqueness <- function(x, ...) {
+  parts <- .skeleton_headline(x)
+  out <- c(
+    paste0("**Schedule-uniqueness screen.** ", parts$scored),
+    parts$verdict,
+    paste(knitr::kable(parts$summary, align = c("l", "r", "r", "l")),
+          collapse = "\n"),
+    # A plain heading rather than a `kable()` caption: pandoc binds a caption
+    # to whichever table it decides is adjacent, and in a block of two it chose
+    # the wrong one, labelling the summary above with the sharing table's title.
+    "**How crowded is each schedule** (1 = nobody else has it):",
+    paste(knitr::kable(parts$sharing, align = c("r", "r", "r")),
+          collapse = "\n"),
+    paste0("*", .skeleton_footer, "*")
+  )
+  knitr::asis_output(paste(out, collapse = "\n\n"))
+}
+
+# Schedule map ----------------------------------------------------------------
+#
+# [skeleton_uniqueness()] answers "how many patients are alone?" with a number,
+# and a number does not say whether that is a protocol with two stragglers or a
+# study where every patient was sampled ad hoc. The picture does, immediately:
+# a coarsened cohort on a real protocol grid draws as vertical stripes with a
+# ragged right edge (dropout), and an uncoarsenable one draws as scatter.
+#
+# Base graphics on purpose. This is a diagnostic a user runs mid-analysis on a
+# restricted machine, so it should not depend on ggplot2 being installed, and a
+# points-on-a-grid plot is exactly what base draws well.
+.schedule_palette <- function(n) {
+  base <- c("#1f78b4", "#e66101", "#33a02c", "#6a3d9a", "#b15928", "#a6761d")
+  if (n <= length(base)) base[seq_len(n)] else
+    grDevices::hcl.colors(n, "Dark 3")
+}
+
+#' Draw a cohort's dosing and observation schedule
+#'
+#' The picture behind [skeleton_uniqueness()]. One row per patient, one mark
+#' per event: when they were dosed, and when each endpoint was observed. Read
+#' it to decide whether a uniqueness count is a real problem or ordinary
+#' dropout.
+#'
+#' Two panels:
+#'
+#' - **the map** -- patients ordered by how long they were followed, so dropout
+#'   reads as a staircase down the right-hand edge. A patient whose observation
+#'   schedule no other patient shares is marked in the margin, and their label
+#'   is drawn in red.
+#' - **the visit histogram** -- how many patients were observed at each time on
+#'   the grid. A protocol grid gives tall bars at a handful of times. A bar of
+#'   height one is a moment only one patient was sampled at, which is precisely
+#'   what [synpmx_avatar()] would copy verbatim onto an avatar, and those bars
+#'   are drawn in red.
+#'
+#' By default the times are **coarsened first**, so the picture shows the grid
+#' [synpmx_avatar()] actually generates on. Pass `coarsen_time = FALSE` to see
+#' the recorded times instead; drawing it both ways is the quickest way to see
+#' what coarsening bought.
+#'
+#' Source-derived, like every diagnostic here: keep the figure inside the safe
+#' environment.
+#'
+#' @param data A PMX dataset -- normally the source.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param coarsen_time Draw the coarsened visit grid (`TRUE`, the default) or
+#'   the recorded times as given (`FALSE`).
+#' @param max_patients Draw at most this many patients, evenly spread through
+#'   the ordering so the shape of the cohort survives. Default 80.
+#' @param main Plot title. Defaults to a description of what is drawn.
+#'
+#' @return The [skeleton_uniqueness()] table for the drawn data, invisibly.
+#' @seealso [skeleton_uniqueness()], [synpmx_avatar()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' plot_pmx_schedule(data, roles)
+plot_pmx_schedule <- function(data, roles, coarsen_time = TRUE,
+                              max_patients = 80L, main = NULL) {
+  .assert_roles(data, roles)
+  if (isTRUE(coarsen_time)) data <- .coarsen_source_time(data, roles)$source
+  screen <- skeleton_uniqueness(data, roles)
+
+  time <- suppressWarnings(as.numeric(data[[roles$time]]))
+  id <- as.character(data[[roles$id]])
+  observed <- .observation_rows(data, roles, require_present = TRUE) &
+    is.finite(time)
+  dosed <- .dose_rows(data, roles) & is.finite(time)
+  endpoint <- .endpoint(data, roles)
+
+  # Ordered by last observation, so the right-hand edge is the dropout curve.
+  # Ties broken by observation count, so two patients followed equally long sit
+  # next to each other with the sparser one below.
+  subjects <- .unique_in_order(id)
+  last_seen <- vapply(subjects, function(s) {
+    values <- time[observed & id == s]
+    if (length(values)) max(values) else -Inf
+  }, numeric(1))
+  n_seen <- vapply(subjects, function(s) sum(observed & id == s), integer(1))
+  subjects <- subjects[order(last_seen, n_seen, subjects)]
+  if (length(subjects) > max_patients) {
+    keep <- unique(round(seq(1, length(subjects), length.out = max_patients)))
+    subjects <- subjects[keep]
+    data_note <- sprintf("showing %d of %d patients", length(subjects),
+                         length(unique(id)))
+  } else {
+    data_note <- sprintf("%d patients", length(subjects))
+  }
+  row <- match(id, subjects)
+  drawn <- !is.na(row)
+
+  unique_schedule <- screen$subject_id[screen$unique_schedule]
+  endpoints <- sort(unique(endpoint[observed & drawn]))
+  colours <- .schedule_palette(length(endpoints))
+  names(colours) <- endpoints
+
+  old <- graphics::par(no.readonly = TRUE)
+  # `par()` does not undo `layout()` -- it is a separate mechanism -- so the
+  # split has to be cleared explicitly or the caller's next plot lands in the
+  # top panel of a two-panel screen. Registered first so it runs last, after
+  # the saved parameters are back.
+  on.exit(graphics::layout(1L), add = TRUE)
+  on.exit(graphics::par(old), add = TRUE, after = FALSE)
+  label_cex <- if (length(subjects) > 45L) 0.45 else 0.6
+  graphics::layout(matrix(c(1L, 2L), ncol = 1L), heights = c(3, 1))
+  graphics::par(mar = c(2.2, 7.5, 3.2, 1.2), cex.axis = 0.8)
+
+  x_range <- range(time[drawn & (observed | dosed)], finite = TRUE)
+  graphics::plot(NA, xlim = x_range, ylim = c(0.5, length(subjects) + 0.5),
+                 xlab = "", ylab = "", yaxt = "n", bty = "n")
+  graphics::abline(h = seq_along(subjects), col = "grey93")
+  # Doses first and underneath: a vertical tick, so an observation drawn at the
+  # same time still reads.
+  graphics::points(time[dosed & drawn], row[dosed & drawn], pch = 124,
+                   col = "grey35", cex = 0.9)
+  for (name in endpoints) {
+    hit <- observed & drawn & endpoint == name
+    graphics::points(time[hit], row[hit], pch = 16, cex = 0.55,
+                     col = colours[[name]])
+  }
+  label_colour <- ifelse(subjects %in% unique_schedule, "#d7191c", "grey25")
+  graphics::axis(2, at = seq_along(subjects), labels = subjects, las = 1,
+                 tick = FALSE, cex.axis = label_cex,
+                 col.axis = "grey25", line = -0.6)
+  for (i in which(subjects %in% unique_schedule)) {
+    graphics::axis(2, at = i, labels = subjects[i], las = 1, tick = FALSE,
+                   cex.axis = label_cex, col.axis = "#d7191c", line = -0.6)
+  }
+  graphics::title(
+    main = main %||% paste0(
+      "Dosing and observation schedule, ",
+      if (isTRUE(coarsen_time)) "coarsened onto the shared visit grid"
+      else "recorded times as given"
+    ),
+    xlab = "", cex.main = 1
+  )
+  graphics::mtext(
+    sprintf("%s; %d in red have a schedule nobody else shares", data_note,
+            sum(subjects %in% unique_schedule)),
+    side = 3, line = 0.2, cex = 0.7, col = "grey30"
+  )
+  graphics::legend("bottomright", legend = c(endpoints, "dose"),
+                   pch = c(rep(16, length(endpoints)), 124),
+                   col = c(unname(colours), "grey35"), bty = "n",
+                   cex = 0.7, horiz = TRUE)
+
+  # How many *patients* -- not rows -- were observed at each time. A height of
+  # one is a moment one patient alone was sampled at, and that is what the
+  # verbatim skeleton copy would hand to every avatar anchored there.
+  per_time <- table(unique(data.frame(
+    t = time[observed], s = id[observed], stringsAsFactors = FALSE
+  ))$t)
+  times <- as.numeric(names(per_time))
+  heights <- as.integer(per_time)
+  graphics::par(mar = c(3.6, 7.5, 1.4, 1.2))
+  graphics::plot(NA, xlim = x_range, ylim = c(0, max(heights, 1L)),
+                 xlab = "", ylab = "", bty = "n")
+  graphics::segments(times, 0, times, heights,
+                     col = ifelse(heights == 1L, "#d7191c", "#4d4d4d"),
+                     lwd = 2)
+  graphics::title(xlab = sprintf("Time (%s, source units)", roles$time),
+                  ylab = "patients", cex.lab = 0.85, line = 2.2)
+  graphics::mtext(sprintf("visits per time point; %d time(s) in red were used by one patient only",
+                          sum(heights == 1L)),
+                  side = 3, line = 0.1, cex = 0.7, col = "grey30")
+  invisible(screen)
 }
 
 #' @export
@@ -857,6 +1172,253 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
   out
 }
 
+# Masking report ---------------------------------------------------------------
+#
+# `attr(synthetic, "pmx_settings")` is a flat list of thirty-odd names, and
+# every report that wanted to show it -- the demo vignette, four study scripts
+# under scripts_private/ -- built its own `data.frame()` of labels by hand.
+# They drifted, which is how a report ended up printing an unrounded
+# `pattern_sampled_fraction` of 0.142857 under a label that did not describe
+# it, and how "route arms / compatible event groups" ended up as one cell
+# holding two unrelated numbers. One implementation, here, so the labels are
+# maintained once and every study report says the same thing.
+#
+# Three columns rather than two on purpose: the value is meaningless without
+# the sentence next to it, and that sentence is what a reader needs at the
+# moment they meet the number, not in a paragraph underneath the table.
+
+.grid_explanation <- function(settings) {
+  derived <- settings$time_grid_derived_rows
+  total <- settings$time_grid_rows
+  share <- if (is.null(total) || is.na(total) || !total) NA_real_ else
+    derived / total
+  switch(
+    as.character(settings$time_grid),
+    nominal = paste("every visit was snapped to the declared `nominal_time`,",
+                    "which is the protocol grid. This is the reliable case"),
+    derived = paste("no usable `nominal_time`, so a grid was inferred from the",
+                    "recorded times themselves. Declaring `nominal_time` is",
+                    "better"),
+    mixed = paste0(
+      "some rows had a usable `nominal_time` and the rest did not",
+      if (is.na(share)) "" else sprintf(
+        "; %d of %d event rows (%.0f%%) were snapped to an *inferred* grid",
+        derived, total, 100 * share),
+      ". Fill in `nominal_time` on those rows to move this to `nominal`"),
+    off = "`coarsen_time = FALSE`: recorded times were copied as they stand",
+    none = "no time column could be coarsened; recorded times were copied",
+    "unrecognised grid"
+  )
+}
+
+.masking_rows <- function(settings, before = NULL) {
+  pct <- function(x) if (is.null(x) || is.na(x)) "--" else
+    paste0(round(100 * x), "%")
+  num <- function(x) if (is.null(x) || length(x) != 1L || is.na(x)) "--" else
+    format(x)
+  header <- function(text) c(paste0("**", text, "**"), "", "")
+
+  rows <- list(
+    header("Who was available to build on"),
+    c("Patients in the source", num(settings$source_subjects), ""),
+    c("&nbsp;&nbsp;excluded as structurally extreme",
+      num(settings$anchors_screened_out),
+      "`screen`: follow-up or dose count over twice the cohort's 90th percentile"),
+    c("&nbsp;&nbsp;excluded, route arm too small",
+      num(settings$anchors_route_excluded),
+      "`on_donor_shortfall`: a route arm holding fewer than k + 1 patients"),
+    c("&nbsp;&nbsp;left to anchor avatars on", num(settings$anchors_available),
+      "an excluded patient still contributes as a donor"),
+    c("Avatars built", num(settings$n_subjects),
+      "cohort size is unaffected by the exclusions above"),
+
+    header("Donor pools: who may be blended with whom"),
+    c("Administration routes", num(settings$routes),
+      "oral, infusion, and so on. Donors are NEVER blended across a route, so each is a separate pool"),
+    c("Dose/schedule groups", num(settings$compatible_event_groups),
+      "patients with an identical dose pattern and endpoint set. Donors are looked for here first; many small groups means the search falls back to the wider route pool"),
+
+    header("How much of one real patient reaches one avatar"),
+    c("Donor floor, k", num(settings$k),
+      "real patients blended into each avatar"),
+    c("Largest share one donor may hold", num(settings$max_donor_weight),
+      "`max_donor_weight`"),
+    c("&nbsp;&nbsp;that cap actually bound on",
+      pct(settings$cap_binding_fraction),
+      "of avatars. Near 100% means the cap, not distance, is setting the weights"),
+    c("Effective donors per avatar, mean",
+      num(round(settings$mean_effective_donors, 2)),
+      "1 / sum(w^2). This, not k, is how many patients an avatar is really made of"),
+
+    header("Visit schedule: WHEN patients were observed"),
+    c("Visit grid used", num(settings$time_grid), .grid_explanation(settings)),
+    if (!is.null(before)) {
+      c("Unique observation schedules, before coarsening",
+        num(attr(before, "n_unique_schedule")),
+        "patients whose list of observation times nobody else shares")
+    },
+    c("Unique observation schedules, after coarsening",
+      num(settings$unique_schedule_n),
+      "the count that matters: an avatar copies its anchor's times verbatim"),
+    c("&nbsp;&nbsp;because of a one-off observation time",
+      num(settings$unique_obs_time_n),
+      "sampled when nobody else was. Declaring `nominal_time` is the fix"),
+    c("&nbsp;&nbsp;because of which visits they attended",
+      num(settings$unique_visit_set_n),
+      "every time is shared; this is dropout, and no grid can fix it"),
+
+    header("Visit sets: WHICH of those visits each patient attended"),
+    c("Distinct visit sets in the source", num(settings$patterns_total),
+      "a visit set is which of the shared grid visits one patient actually had"),
+    c("&nbsp;&nbsp;shared by too few patients, so not reused",
+      num(settings$patterns_dropped),
+      "`min_pattern_share`; these are lost, not approximated"),
+    c("&nbsp;&nbsp;real patients holding those",
+      num(settings$subjects_with_dropped_pattern),
+      "they stay in the cohort as donors; only their absences stop being copied"),
+    c("Avatars given a visit set from the pool",
+      pct(settings$pattern_sampled_fraction),
+      "drawn from the sets that survived the floor -- never from their own anchor alone"),
+    c("&nbsp;&nbsp;of those, misses placed fresh",
+      pct(settings$pattern_generated_fraction),
+      "how many visits were missed and of what kind was reused; exactly which ones was invented"),
+    c("Avatars keeping their anchor's own visit set",
+      pct(1 - (settings$pattern_sampled_fraction %||% NA_real_)),
+      "the fallback when a schedule group had no set shared by `min_pattern_share` patients. High is bad: those avatars carry one real patient's absences"),
+
+    header("Dose"),
+    c("Amounts recomputed from a covariate",
+      if (is.na(settings$dose_basis)) "**no**" else
+        paste0("**yes**, from `", settings$dose_basis, "`"),
+      settings$dose_basis_note %||%
+        "detected only where dose / covariate collapses onto a few protocol levels; fails closed"),
+    if (!is.na(settings$dose_basis)) {
+      c("&nbsp;&nbsp;protocol levels found",
+        paste(signif(settings$dose_levels, 4), collapse = ", "),
+        paste0("dose per unit of `", settings$dose_basis,
+               "`; each avatar's amount is rebuilt from its own blended value"))
+    }
+  )
+  do.call(rbind, Filter(Negate(is.null), rows))
+}
+
+#' Report what each masking mechanism did, and what it cost
+#'
+#' [synpmx_avatar()] records everything it removed on the
+#' `"pmx_settings"` attribute of its result. This turns that flat list into the
+#' table to read after a run: who was left to build on, how many real patients
+#' reach one avatar, what the visit grid managed to collapse, which visit sets
+#' were too rare to reuse, and whether dose amounts were recomputed.
+#'
+#' Every row carries a sentence saying what the number means, because none of
+#' them mean anything on their own. The rows worth looking at hardest:
+#'
+#' - **Unique observation schedules, after coarsening** -- patients whose list
+#'   of observation times nobody else shares. An avatar anchored on one wears a
+#'   schedule belonging to one real person. Its two sub-rows have opposite
+#'   remedies: a one-off observation time is what declaring `nominal_time`
+#'   fixes, and a unique set of *attended* visits is dropout, which no grid
+#'   touches.
+#' - **Shared by too few patients, so not reused** -- real dropout and
+#'   dose-interruption patterns that will not appear in the synthetic data.
+#'   Discarding them is what stops an avatar carrying a schedule traceable to
+#'   one person. If this study's interruptions matter, lower
+#'   `min_pattern_share` (2 is the lowest value that still guarantees no
+#'   synthetic patient has a schedule unique to a real one).
+#' - **Avatars keeping their anchor's own visit set** -- the fallback when a
+#'   schedule group had nothing shareable to draw from. Those avatars carry one
+#'   real patient's pattern of absences, which is the thing `min_pattern_share`
+#'   exists to prevent, so a high percentage here undoes the row above it.
+#' - **Amounts recomputed from a covariate** -- says outright whether
+#'   weight-based or body-surface-area dosing was detected, and when it was
+#'   not, why not. Detection is deliberately conservative: it fails closed and
+#'   leaves amounts alone rather than rewriting a study that is not
+#'   dose-proportional.
+#'
+#' At the default `min_pattern_share = 2`, "shared by too few patients" and
+#' "real patients holding those" are necessarily equal -- a set is discarded
+#' exactly when fewer than two patients share it, so every discarded set has
+#' one holder. They diverge only at a floor of 3 or more.
+#'
+#' Marked `"restricted_not_releasable"` when `source` is supplied, since the
+#' before-coarsening row then reads the source.
+#'
+#' @param synthetic A dataset from [synpmx_avatar()], carrying its
+#'   `"pmx_settings"` attribute.
+#' @param source Optionally the source dataset. Supplying it (with `roles`)
+#'   adds the before-coarsening schedule count, so the table shows what
+#'   coarsening removed rather than only what was left.
+#' @param roles Explicit roles from [pmx_roles()]. Required with `source`.
+#'
+#' @return A `pmx_masking_report` data frame with columns `Quantity`, `Value`,
+#'   and `What it means`. Section headers appear as rows whose `Quantity` is
+#'   bold and whose other cells are empty.
+#' @seealso [skeleton_uniqueness()], [compare_pmx_proximity()],
+#'   [synpmx_avatar()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(30)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' pmx_masking_report(synthetic, data, roles)
+pmx_masking_report <- function(synthetic, source = NULL, roles = NULL) {
+  settings <- attr(synthetic, "pmx_settings")
+  if (is.null(settings)) {
+    stop("`synthetic` carries no `pmx_settings` attribute; it did not come ",
+         "from `synpmx_avatar()`.", call. = FALSE)
+  }
+  if (!is.null(source) && is.null(roles)) {
+    stop("`roles` is required when `source` is supplied.", call. = FALSE)
+  }
+  before <- if (is.null(source)) NULL else skeleton_uniqueness(source, roles)
+  out <- as.data.frame(.masking_rows(settings, before),
+                       stringsAsFactors = FALSE)
+  names(out) <- c("Quantity", "Value", "What it means")
+  rownames(out) <- NULL
+  out <- structure(out, class = c("pmx_masking_report", "data.frame"))
+  if (is.null(source)) out else
+    .mark_release(out, "restricted_not_releasable")
+}
+
+# `**bold**` and `&nbsp;` are markdown, for the knitted table that is the point
+# of this object. On a console they are noise, so the console path strips them
+# and indents with spaces instead.
+.plain_masking <- function(x) {
+  x$Quantity <- gsub("&nbsp;&nbsp;", "  ", x$Quantity, fixed = TRUE)
+  x$Quantity <- gsub("\\*\\*", "", x$Quantity)
+  x$Value <- gsub("\\*\\*", "", x$Value)
+  x
+}
+
+#' @export
+print.pmx_masking_report <- function(x, ...) {
+  plain <- .plain_masking(as.data.frame(x))
+  cat("What the masking mechanisms did\n\n")
+  for (i in seq_len(nrow(plain))) {
+    if (!nzchar(plain$Value[[i]])) {
+      cat(if (i > 1L) "\n" else "", plain$Quantity[[i]], "\n", sep = "")
+      next
+    }
+    cat(sprintf("  %-48s %s\n", plain$Quantity[[i]], plain$Value[[i]]))
+    if (nzchar(plain$`What it means`[[i]])) {
+      cat(.wrap_plain(plain$`What it means`[[i]], initial = "      ",
+                      prefix = "      "), "\n", sep = "")
+    }
+  }
+  invisible(x)
+}
+
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_masking_report <- function(x, ...) {
+  knitr::knit_print(knitr::kable(
+    as.data.frame(x), row.names = FALSE, align = c("l", "r", "l"),
+    caption = "What each masking mechanism did, and what it cost."
+  ))
+}
+
 # Nearest-neighbour proximity ---------------------------------------------------
 #
 # Every masking mechanism has a measurement except the first one. Blending is
@@ -956,8 +1518,9 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
 #'
 #' @return A one-row `pmx_proximity` data frame: `adversarial_accuracy`,
 #'   `null_lower` / `null_upper` (the central 95% of the split-half null),
-#'   `verdict`, `n_compared`, and the 5th-percentile nearest-neighbour distances
-#'   `synthetic_to_source_q05` and `source_to_source_q05`.
+#'   `verdict`, `n_compared` (patients per side, the same on both arms and in
+#'   the null), `n_null_replicates`, and the 5th-percentile nearest-neighbour
+#'   distances `synthetic_to_source_q05` and `source_to_source_q05`.
 #' @seealso [skeleton_uniqueness()], [compare_pmx_distributions()].
 #' @export
 #' @examples
@@ -1005,7 +1568,8 @@ compare_pmx_proximity <- function(source, synthetic, roles, replicates = 50L,
       out <- data.frame(
         adversarial_accuracy = NA_real_, null_lower = NA_real_,
         null_upper = NA_real_, verdict = "too few subjects to compare",
-        n_compared = size, synthetic_to_source_q05 = NA_real_,
+        n_compared = size, n_null_replicates = as.integer(replicates),
+        synthetic_to_source_q05 = NA_real_,
         source_to_source_q05 = NA_real_, stringsAsFactors = FALSE
       )
       return(.mark_release(
@@ -1050,6 +1614,7 @@ compare_pmx_proximity <- function(source, synthetic, roles, replicates = 50L,
       adversarial_accuracy = observed,
       null_lower = bounds[[1L]], null_upper = bounds[[2L]],
       verdict = verdict, n_compared = size,
+      n_null_replicates = as.integer(replicates),
       synthetic_to_source_q05 = q05(apply(between, 1L, min)),
       source_to_source_q05 = q05(within),
       stringsAsFactors = FALSE
@@ -1061,36 +1626,71 @@ compare_pmx_proximity <- function(source, synthetic, roles, replicates = 50L,
   })
 }
 
+# The statistic's name is jargon and its scale is not the usual one -- higher
+# is not better, 0.5 is -- so the printout leads with the question in words and
+# gives the number a sentence of its own. "(16 per side)" used to sit at the end
+# of the headline with nothing saying what a side was.
+.proximity_lines <- function(x) {
+  if (is.na(x$adversarial_accuracy)) {
+    return(c(
+      "Question: is a synthetic patient closer to a real patient than real patients are to each other?",
+      paste("Answer:", x$verdict)
+    ))
+  }
+  reading <- if (x$adversarial_accuracy < x$null_lower) {
+    "Too close. Synthetic patients sit nearer to real ones than real ones do to each other -- this is memorisation, and the privacy failure this check exists to find."
+  } else if (x$adversarial_accuracy > x$null_upper) {
+    "Too far apart. The two sets have separated, so a classifier could tell them apart. That is a utility problem, not a privacy one."
+  } else {
+    "Nothing detected. The value sits inside the null interval, which at this cohort size is wide -- read it as 'no blatant leak', never as 'no leak'."
+  }
+  c(
+    "Question: is a synthetic patient closer to a real patient than real patients are to each other?",
+    sprintf("Measured %.3f, on a scale where 0.5 means 'no closer' and is the target; 0 would mean every synthetic patient is glued to a real one.",
+            x$adversarial_accuracy),
+    sprintf("Expected %.3f to %.3f if nothing were wrong. That interval is not assumed -- it is the same statistic run %s times on two halves of the real cohort, %d patients per half, which is also how many synthetic patients were compared.",
+            x$null_lower, x$null_upper, x$n_null_replicates %||% 50L,
+            x$n_compared),
+    paste("Verdict:", reading),
+    sprintf("For context, distance to the nearest neighbour (5th percentile, so the closest pairs): synthetic-to-real %.3f versus real-to-real %.3f. These are only comparable to each other; the units are PCA profile space.",
+            x$synthetic_to_source_q05, x$source_to_source_q05)
+  )
+}
+
 #' @export
 print.pmx_proximity <- function(x, ...) {
-  cat("Restricted PMX nearest-neighbour proximity check\n")
+  cat("Restricted PMX nearest-neighbour proximity check\n\n")
   # `rbind()`-ing several reports to tabulate a set of datasets is the obvious
   # thing to do with these, and it keeps the class, so handle more than one row
   # rather than failing on a length-2 condition.
   if (nrow(x) != 1L) {
     print(.round_for_print(as.data.frame(x)), row.names = FALSE)
-    cat("\n0.5 is the target; toward 0 is memorisation. The null is wide at",
-        "small cohorts.\n")
-    cat("Source-derived; not releasable unless separately public or privately",
-        "budgeted.\n")
+    cat("\n", .wrap_plain(paste(
+      "0.5 is the target; toward 0 is memorisation. The null interval is wide",
+      "at small cohorts, so a value inside it means nothing was detected.",
+      "Source-derived; not releasable unless separately public or privately",
+      "budgeted."
+    )), "\n", sep = "")
     return(invisible(x))
   }
-  if (is.na(x$adversarial_accuracy)) {
-    cat("  ", x$verdict, "\n", sep = "")
-  } else {
-    cat(sprintf("  adversarial accuracy %.3f   null %.3f to %.3f (%d per side)\n",
-                x$adversarial_accuracy, x$null_lower, x$null_upper,
-                x$n_compared))
-    cat("  ", x$verdict, "\n", sep = "")
-    cat(sprintf(
-      "  5th-pct nearest distance: synthetic-to-source %.3f, source-to-source %.3f\n",
-      x$synthetic_to_source_q05, x$source_to_source_q05
-    ))
+  for (line in .proximity_lines(x)) {
+    cat(.wrap_plain(line, initial = "  ", prefix = "    "), "\n", sep = "")
   }
-  cat("\n0.5 is the target: a synthetic subject no more like a real subject than\n")
-  cat("one real subject is like another. Toward 0 is memorisation. The null is\n")
-  cat("wide at small cohorts, so 'within' means nothing detected, not nothing there.\n")
-  cat("\nSource-derived; not releasable unless separately public or privately",
-      "budgeted.\n")
+  cat("\n", .wrap_plain(paste(
+    "Source-derived; not releasable unless separately public or privately",
+    "budgeted."
+  )), "\n", sep = "")
   invisible(x)
+}
+
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_proximity <- function(x, ...) {
+  if (nrow(x) != 1L) return(knitr::knit_print(as.data.frame(x)))
+  knitr::asis_output(paste(c(
+    "**Nearest-neighbour proximity check.**",
+    paste0("- ", .proximity_lines(x)),
+    "",
+    paste("*Source-derived; not releasable unless separately public or",
+          "privately budgeted.*")
+  ), collapse = "\n"))
 }

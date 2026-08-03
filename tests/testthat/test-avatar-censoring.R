@@ -115,10 +115,12 @@ test_that("a declared cens role with no readable boundary warns", {
   source$DV[source$CENS == 1L] <- NA_real_
   source$MDV[source$CENS == 1L] <- 1L
 
-  expect_warning(
-    synpmx_avatar(source, cens_roles(), n_subjects = 20, seed = 5),
-    "no censoring boundary could be read"
-  )
+  expect_true(any(grepl(
+    "no censoring boundary could be read",
+    raised_alerts(synpmx_avatar(source, cens_roles(), n_subjects = 20,
+                                seed = 5)),
+    fixed = TRUE
+  )))
 })
 
 test_that("imputation keeps censored donors from dragging the blend up", {

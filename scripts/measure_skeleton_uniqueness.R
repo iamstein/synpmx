@@ -59,21 +59,25 @@ library(synpmx)
 # One row per dataset. `coarsen()` reaches for the same internal the generator
 # uses, rather than reimplementing the snap, so this measures what actually
 # happens rather than an approximation of it (AGENTS.md: share one metric
-# implementation).
+# implementation). The grid kind and the deviations it removed are only
+# available from the internal, so the `after` row still reaches for it; the
+# counts themselves go through the public `coarsen_time` argument.
 coarsen <- utils::getFromNamespace(".coarsen_source_time", "synpmx")
 
-summarize <- function(data, roles, label, stage) {
-  report <- skeleton_uniqueness(data, roles)
-  n <- nrow(report)
+# `n_alone_n_obs` and `n_alone_signature` were never attribute names, so those
+# two columns came back NULL and silently vanished from the table.
+summarize <- function(data, roles, label, stage, coarsen_time = FALSE) {
+  report <- skeleton_uniqueness(data, roles, coarsen_time = coarsen_time)
   data.frame(
     dataset = label,
     stage = stage,
-    subjects = n,
+    subjects = nrow(report),
     alone = attr(report, "n_unique_schedule"),
     unique_moment = attr(report, "n_unshared_time"),
-    unique_pattern = attr(report, "n_unique_schedule") - attr(report, "n_unshared_time"),
-    unique_n_samples = attr(report, "n_alone_n_obs"),
-    unique_dosing = attr(report, "n_alone_signature"),
+    unique_pattern = attr(report, "n_unique_schedule") -
+      attr(report, "n_unshared_time"),
+    unique_n_samples = attr(report, "n_unique_obs_count"),
+    unique_dosing = attr(report, "n_unique_dose_signature"),
     smallest_group = attr(report, "min_class"),
     stringsAsFactors = FALSE
   )
@@ -81,8 +85,8 @@ summarize <- function(data, roles, label, stage) {
 
 measure <- function(data, roles, label) {
   before <- summarize(data, roles, label, "source")
+  after <- summarize(data, roles, label, "coarsened", coarsen_time = TRUE)
   coarsened <- coarsen(data, roles)
-  after <- summarize(coarsened$source, roles, label, "coarsened")
   after$grid <- coarsened$grid
   before$grid <- NA_character_
   after$deviation_sd <- if (length(coarsened$deviations)) {

@@ -31,8 +31,9 @@ common profile space. Default 0.90, matching \code{\link[=synpmx_avatar]{synpmx_
 \value{
 A one-row \code{pmx_proximity} data frame: \code{adversarial_accuracy},
 \code{null_lower} / \code{null_upper} (the central 95\% of the split-half null),
-\code{verdict}, \code{n_compared}, and the 5th-percentile nearest-neighbour distances
-\code{synthetic_to_source_q05} and \code{source_to_source_q05}.
+\code{verdict}, \code{n_compared} (patients per side, the same on both arms and in
+the null), \code{n_null_replicates}, and the 5th-percentile nearest-neighbour
+distances \code{synthetic_to_source_q05} and \code{source_to_source_q05}.
 }
 \description{
 The measurement for donor blending, the one masking mechanism

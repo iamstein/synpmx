@@ -50,13 +50,13 @@ test_that("actual recorded times give every patient a unique schedule", {
   # The premise of the whole mechanism: under actual times the schedule token is
   # unique per subject, so the verbatim skeleton copy is identifying.
   expect_equal(attr(report, "n_unique_schedule"), 12L)
-  expect_true(all(report$obs_time_class == 1L))
+  expect_true(all(report$n_share_schedule == 1L))
   # The event signature does *not* include observation times, so it is blind to
   # this: one dose at a shared amount puts all twelve in one signature class.
   expect_equal(attr(report, "n_unique_dose_signature"), 0L)
   # ... while the observation count is shared by everyone. That asymmetry is why
   # coarsening and the outlier screen do different jobs.
-  expect_true(all(report$n_obs_class == 12L))
+  expect_true(all(report$n_share_obs_count == 12L))
 })
 
 test_that("coarsening closes SIM-014 on AVATAR and leaving it off does not", {
@@ -279,15 +279,77 @@ test_that("reported exposure agrees with skeleton_uniqueness on the coarsened so
   ))
   settings <- attr(synthetic, "pmx_settings")
 
-  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
-  screen <- skeleton_uniqueness(coarsened, roles)
+  # `coarsen_time = TRUE` is the public way to score the same grid the
+  # generator builds, so this reads the settings against the argument a user
+  # would reach for rather than against an internal.
+  screen <- skeleton_uniqueness(source, roles, coarsen_time = TRUE)
 
+  # A rename is only caught if the columns are named, not merely summed: a
+  # missing column sums to 0 and would match a settings value of 0.
+  expect_true(all(c("unique_schedule", "n_share_rarest_time") %in% names(screen)))
   expect_equal(settings$unique_schedule_n, sum(screen$unique_schedule))
   expect_equal(settings$unique_obs_time_n,
-               sum(screen$min_time_share == 1L, na.rm = TRUE))
+               sum(screen$n_share_rarest_time == 1L, na.rm = TRUE))
   # The split is exhaustive: a unique schedule is either a unique sample time
   # or a unique set of visits, never neither and never both.
   expect_equal(settings$unique_schedule_n,
                settings$unique_obs_time_n + settings$unique_visit_set_n)
   expect_gte(settings$unique_visit_set_n, 0L)
+})
+
+# SIM-038. `format(x, digits = 12)` lays out a whole vector at once, so the same
+# time keyed differently depending on what else that patient was sampled at.
+# Both fixtures below turn on exactly that: one patient carries a fractional
+# time and the other does not, while the visits they share are identical.
+sim038_source <- function() {
+  # Two patients attend the same four visits. The first also has one PK sample
+  # at a fractional time, which is what used to change how its *other* times
+  # were formatted.
+  one <- function(id, extra) {
+    time <- sort(c(0, 24, 48, 72, extra))
+    data.frame(
+      ID = id, TIME = time, DV = c(NA, seq_along(time[-1L])),
+      AMT = ifelse(time == 0, 100, 0),
+      EVID = ifelse(time == 0, 1L, 0L),
+      CMT = ifelse(time == 0, 1L, 2L), WT = 70 + id,
+      stringsAsFactors = FALSE
+    )
+  }
+  rbind(one(1L, 1.2142857142857), one(2L, numeric()), one(3L, numeric()))
+}
+
+sim038_roles <- function() {
+  pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+            cmt = "CMT", covariates = "WT")
+}
+
+test_that("a time shared by other patients is never scored as a one-off", {
+  screen <- skeleton_uniqueness(sim038_source(), sim038_roles())
+  by_id <- split(screen, screen$subject_id)
+
+  # Patients 2 and 3 hold only times that all three patients share, so neither
+  # has a rarest time of 1. Before the fix, patient 1's fractional sample made
+  # its copy of hour 24 key differently, splitting hour 24 into two keys of one
+  # and two holders and reporting a one-off time for everybody.
+  expect_equal(by_id[["2"]]$n_share_rarest_time, 3L)
+  expect_equal(by_id[["3"]]$n_share_rarest_time, 3L)
+  # Patient 1 genuinely is alone at its extra sample.
+  expect_equal(by_id[["1"]]$n_share_rarest_time, 1L)
+  expect_true(by_id[["1"]]$unique_schedule)
+  expect_equal(by_id[["1"]]$why_unique, "one-off observation time")
+})
+
+test_that("patients attending the same visits share one attendance key", {
+  source <- sim038_source()
+  roles <- sim038_roles()
+  rows <- split(seq_len(nrow(source)), source$ID)
+  key <- function(id) {
+    synpmx:::.attendance_key(source, roles,
+                             seq_len(nrow(source)) %in% rows[[id]])
+  }
+  # The point of the fix: identical visit sets must produce identical keys, or
+  # every pattern has one holder, `min_pattern_share` discards it, and the
+  # avatar keeps its anchor's own absences.
+  expect_identical(key("2"), key("3"))
+  expect_false(identical(key("1"), key("2")))
 })

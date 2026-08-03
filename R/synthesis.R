@@ -212,7 +212,8 @@
 .coarsen_source_time <- function(source, roles) {
   time <- suppressWarnings(as.numeric(source[[roles$time]]))
   finite <- is.finite(time)
-  none <- list(source = source, deviations = numeric(), grid = "none")
+  none <- list(source = source, deviations = numeric(), grid = "none",
+               grid_derived_rows = 0L, grid_rows = 0L)
   if (!any(finite)) return(none)
 
   target <- rep(NA_real_, length(time))
@@ -275,7 +276,13 @@
   snapped <- time
   snapped[finite & is.finite(target)] <- target[finite & is.finite(target)]
   source[[roles$time]] <- snapped
-  list(source = source, deviations = deviations, grid = kind)
+  list(source = source, deviations = deviations, grid = kind,
+       # "mixed" on its own tells a caller who declared `nominal_time` that
+       # something fell through, but not how much, and the answer decides
+       # whether it matters. These two say how many rows were snapped to an
+       # inferred grid rather than to the declared one.
+       grid_derived_rows = sum(outstanding & is.finite(target)),
+       grid_rows = sum(finite & is.finite(target)))
 }
 
 # The stratum a subject was assigned to: the combination of every
@@ -326,38 +333,81 @@
 # by the covariate has to *collapse* the variation: a handful of ratios standing
 # in for many distinct amounts. See `.dose_ratio_levels()` for why the levels are
 # clustered rather than averaged within a declared group.
+#
+# Detection is silent when it fails, and "silent" and "there is nothing here"
+# look identical from the outside -- a reader of a run report cannot tell
+# whether their weight-based study was recognised or whether the test refused
+# it. So every exit records a one-line reason in `note`, and the run report
+# prints it. `NULL` still means "leave the amounts alone"; the note says why.
+.dose_basis_none <- function(note) list(covariate = NULL, note = note)
+
 .detect_dose_basis <- function(source, roles, tolerance = 0.02,
                                max_levels = 10L) {
-  if (is.null(roles$amt) || !length(roles$covariates)) return(NULL)
+  if (is.null(roles$amt)) {
+    return(.dose_basis_none("no `amt` role is declared, so there is no amount to explain"))
+  }
+  if (!length(roles$covariates)) {
+    return(.dose_basis_none("no `covariates` are declared, so there is nothing to test the amounts against"))
+  }
   amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
   usable <- .dose_rows(source, roles) & is.finite(amount) & amount > 0
-  if (sum(usable) < 3L) return(NULL)
+  if (sum(usable) < 3L) {
+    return(.dose_basis_none(sprintf(
+      "only %d dose row(s) carry a positive amount; at least 3 are needed",
+      sum(usable))))
+  }
   amount <- amount[usable]
   distinct_amounts <- length(unique(signif(amount, 8)))
   # Flat dosing: nothing varies, so nothing to explain and nothing identifying
   # about the amount.
-  if (distinct_amounts < 2L) return(NULL)
+  if (distinct_amounts < 2L) {
+    return(.dose_basis_none(paste(
+      "every dose row has the same amount, so nothing needed explaining and",
+      "the amount identifies nobody")))
+  }
 
+  declined <- character()
   for (covariate in roles$covariates) {
-    if (is.factor(source[[covariate]])) next
+    if (is.factor(source[[covariate]])) {
+      declined <- c(declined, paste0(covariate, " (categorical)"))
+      next
+    }
     values <- suppressWarnings(as.numeric(source[[covariate]]))
-    if (!is.numeric(values)) next
+    if (!is.numeric(values)) {
+      declined <- c(declined, paste0(covariate, " (not numeric)"))
+      next
+    }
     values <- values[usable]
-    if (any(!is.finite(values) | values <= 0)) next
+    if (any(!is.finite(values) | values <= 0)) {
+      declined <- c(declined, paste0(covariate, " (missing or non-positive on dose rows)"))
+      next
+    }
 
     levels <- .dose_ratio_levels(amount / values, tolerance)
-    if (is.null(levels)) next
+    if (is.null(levels)) {
+      declined <- c(declined, paste0(covariate, " (ratios do not cluster)"))
+      next
+    }
     # Ratios must be far more concentrated than the amounts they came from.
     # A protocol has a handful of dose levels and many patients, so genuine
     # proportional dosing collapses dozens of distinct amounts onto a few
     # ratios; a study where dose is unrelated to the covariate produces about as
     # many ratios as amounts and is refused here.
-    if (length(levels) > max_levels) next
-    if (length(levels) * 2L > sum(usable)) next
-    if (distinct_amounts < 2L * length(levels)) next
-    return(list(covariate = covariate, levels = levels))
+    if (length(levels) > max_levels || length(levels) * 2L > sum(usable) ||
+        distinct_amounts < 2L * length(levels)) {
+      declined <- c(declined, sprintf(
+        "%s (%d ratio levels for %d distinct amounts -- too many to be a protocol)",
+        covariate, length(levels), distinct_amounts))
+      next
+    }
+    return(list(covariate = covariate, levels = levels, note = sprintf(
+      "the %d distinct dose amounts are a fixed multiple of `%s`, at %d protocol level(s)",
+      distinct_amounts, covariate, length(levels))))
   }
-  NULL
+  .dose_basis_none(sprintf(
+    paste("the %d distinct dose amounts are not a fixed multiple of any",
+          "declared covariate: %s"),
+    distinct_amounts, paste(declined, collapse = "; ")))
 }
 
 # Group the observed dose-to-covariate ratios into protocol levels: sort, and
@@ -472,7 +522,15 @@
   if (!any(observed)) return("")
   endpoint <- .endpoint(data, roles)[observed]
   time <- suppressWarnings(as.numeric(data[[roles$time]][observed]))
-  cells <- paste0(endpoint, "@", format(time, digits = 12, trim = TRUE))
+  # `.time_key()` and not `format(digits = 12)`: this key is built one subject
+  # at a time and then compared *across* subjects, and `format()` lays out a
+  # whole vector at once. Hour 12 keyed as "12" for a subject sampled only on
+  # the hour and as "12.00000000000" for a subject who also has a 1.2142857
+  # sample, so two patients who attended exactly the same visits produced
+  # different keys. Every such pattern then had a single holder, was discarded
+  # by `min_pattern_share`, and its avatar fell back to the anchor's own set of
+  # visits -- the outcome the mechanism exists to prevent.
+  cells <- paste0(endpoint, "@", .time_key(time))
   # A subject can hold two observation rows with the same endpoint at the same
   # time -- a duplicate record, or two compartments read at one visit where no
   # `dvid` tells them apart. Collapsing them to one cell meant rebuilding the
@@ -1092,19 +1150,39 @@
   skeleton
 }
 
-# A deliberately loud, immediate alert for the one case pooling cannot fix: a
-# source with fewer subjects than the donor floor, so every avatar is blended
-# from too few real patients. Unlike the collected end-of-run warning() (which
+# A deliberately loud, immediate alert for what a run cannot fix on its own --
+# a source with fewer subjects than the donor floor, a schedule the grid could
+# not collapse. Unlike the collected end-of-run warning() (which
 # `suppressWarnings()` removes -- as the demo did, hiding it), the message()
 # banner survives suppressWarnings and prints at once, in red on an interactive
-# console. A real warning condition is also raised so it is catchable and shows
-# in non-interactive logs.
-.loud_warn <- function(msg) {
-  banner <- paste0("SYNPMX ALERT: ", msg)
-  if (interactive()) banner <- paste0("\033[1;31m", banner, "\033[0m")
-  message(banner)
-  warning(msg, call. = FALSE, immediate. = TRUE)
+# console.
+#
+# The condition is *signalled* rather than raised with `warning()`. Raising it
+# printed the identical paragraph a second time, immediately below the banner,
+# which doubled the volume a reader had to get through for no added
+# information. Signalling keeps every handler that matters -- `tryCatch(warning
+# = )` sees it, `suppressWarnings()` muffles it through the restart below, and
+# `message()` already puts the human-readable text on stderr for a
+# non-interactive log. It does not trip `options(warn = 2)`, which needs the
+# default handler; the banner is the channel to rely on.
+.loud_warn <- function(title, what, why = NULL, fix = NULL, kind = "ALERT") {
+  text <- .alert_text(title, what, why, fix, kind)
+  banner <- if (interactive()) paste0("\033[1;31m", text, "\033[0m") else text
+  # The trailing blank line is what makes a run emitting three of these
+  # skimmable rather than a wall.
+  message(banner, "\n")
+  condition <- structure(
+    class = c("synpmx_alert", "warning", "condition"),
+    list(message = paste0(text, "\n"), call = NULL)
+  )
+  withRestarts(signalCondition(condition), muffleWarning = function() NULL)
   invisible(NULL)
+}
+
+# "3 of 32 patients (9%)", the phrase every schedule alert opens with.
+.count_phrase <- function(k, n, noun = "patient") {
+  sprintf("%d of %d %s%s (%.0f%%)", k, n, noun, if (k == 1L) "" else "s",
+          if (n) 100 * k / n else 0)
 }
 
 # Choose the donors whose trajectories are blended onto the anchor's event
@@ -1492,7 +1570,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     coarsened <- if (coarsen_time) {
       .coarsen_source_time(source, source_roles)
     } else {
-      list(source = source, deviations = numeric(), grid = "off")
+      list(source = source, deviations = numeric(), grid = "off",
+           grid_derived_rows = 0L, grid_rows = 0L)
     }
     source <- coarsened$source
     time_deviations <- coarsened$deviations
@@ -1512,85 +1591,95 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # `nominal_time` fixes it. A patient whose every time is shared and whose
       # *set of attended visits* is unique is dropout, and no grid however fine
       # or coarse touches that; it is the outlier screen's problem.
-      unshared <- sum(exposure$min_time_share == 1L, na.rm = TRUE)
+      unshared <- sum(exposure$n_share_rarest_time == 1L, na.rm = TRUE)
       pattern_only <- max(still_unique - unshared, 0L)
       unique_schedule_n <- still_unique
       unique_obs_time_n <- unshared
       if (unshared > 0L) {
-        .loud_warn(sprintf(
-          paste0("%d of %d patient%s still have a UNIQUE OBSERVATION TIME after ",
-                 "coarsening: each was sampled at a moment no other patient ",
-                 "was, so their list of observation times identifies them, and ",
-                 "an avatar built on them carries that schedule.\n",
-                 "  Coarsening exists to merge such times onto a shared visit ",
-                 "grid and could not find one here. Declaring a `nominal_time` ",
-                 "role snaps to the real protocol grid instead of a guessed ",
-                 "one and is the reliable fix; ",
-                 "`scripts/measure_skeleton_uniqueness.R` shows what the grid ",
-                 "did and did not collapse."),
-          unshared, length(subjects), if (unshared == 1L) "" else "s"
-        ))
+        .loud_warn(
+          "unique observation times",
+          paste(.count_phrase(unshared, length(subjects)),
+                "were sampled at a moment no other patient was, even after",
+                "coarsening."),
+          why = paste("an avatar copies its anchor's observation times",
+                      "verbatim, so it wears a schedule that belongs to one",
+                      "real patient."),
+          fix = paste("declare a `nominal_time` role. Coarsening then snaps",
+                      "visits onto the real protocol grid instead of a",
+                      "guessed one.")
+        )
       }
       if (pattern_only > 0L) {
-        .loud_warn(sprintf(
-          paste0("%d of %d patient%s have a UNIQUE SET OF VISITS: they share ",
-                 "every individual observation time with somebody, but the ",
-                 "combination of visits they attended and missed is theirs ",
-                 "alone -- dropout, discontinuation, or a missed visit.\n",
-                 "  No grid can fix this, however fine or coarse, because the ",
-                 "times are already shared; a grid decides where the visits ",
-                 "are, not which ones a patient turned up for. Screen these ",
-                 "patients with `flag_identifiable_subjects()` and ",
-                 "`remediate_identifiable_subjects()` if it matters."),
-          pattern_only, length(subjects), if (pattern_only == 1L) "" else "s"
-        ))
+        .loud_warn(
+          "unique visit sets",
+          paste(.count_phrase(pattern_only, length(subjects)),
+                "share every individual observation time with somebody, but",
+                "the set of visits they attended is theirs alone -- dropout,",
+                "discontinuation, or a missed visit."),
+          why = paste("no time grid can help here, however fine or coarse: a",
+                      "grid decides where the visits are, not which ones a",
+                      "patient turned up for."),
+          fix = paste("`min_pattern_share` already stops these sets being",
+                      "reused (see the run report). Screen the result with",
+                      "`flag_identifiable_subjects()` if it still matters.")
+        )
       }
     }
-    dose_basis <- .detect_dose_basis(source, source_roles)
+    # The detector always returns its reasoning; `dose_basis` stays NULL unless
+    # it actually found a basis, so nothing downstream changes.
+    dose_basis_detection <- .detect_dose_basis(source, source_roles)
+    dose_basis <- if (is.null(dose_basis_detection$covariate)) NULL else
+      dose_basis_detection
     profiles <- .build_profiles(source, source_roles, pca_variance)
     attendance <- .attendance_pool(source, source_roles, profiles,
                                    as.integer(min_pattern_share))
     if (!is.null(attendance) && attendance$dropped_patterns > 0L) {
-      .loud_warn(sprintf(
-        paste0("%d patient%s in this study showed up for a combination of ",
-               "visits that no other patient matched.\n",
-               "  Once every patient is placed on a shared visit grid, what ",
-               "distinguishes them is which of those visits they actually ",
-               "attended and which they missed. For %s that exact combination ",
-               "of kept and missed visits is theirs alone.\n",
-               "  No synthetic patient is given one of those %d combination%s, ",
-               "because an avatar carrying it could be traced back to the one ",
-               "real patient who had it. What the synthetic data keeps instead ",
-               "is how many visits were missed and of what kind -- all at the ",
-               "end (dropout), a run in the middle (an interruption), or ",
-               "scattered. Which specific visits were missed is not preserved.\n",
-               "  Set `min_pattern_share = 1` to turn this off and copy each ",
-               "patient's exact set of visits instead. The current setting, ",
-               "%d, means no synthetic patient carries a visit combination ",
-               "unique to a real one."),
-        attendance$dropped_subjects,
-        if (attendance$dropped_subjects == 1L) "" else "s",
-        if (attendance$dropped_subjects == 1L) "that patient" else "each of them",
-        attendance$dropped_patterns,
-        if (attendance$dropped_patterns == 1L) "" else "s",
-        as.integer(min_pattern_share)
-      ))
+      # A NOTE, not an alert: this is the mechanism working. It is reported
+      # because it is the one place the synthetic data is deliberately less
+      # faithful than the source, and the caller decides whether that matters.
+      .loud_warn(
+        "rare visit sets not reused",
+        sprintf(paste("%d of %d distinct visit set%s, held by %d patient%s,",
+                      "%s shared by fewer than %d patients and %s given to no",
+                      "avatar."),
+                attendance$dropped_patterns, attendance$total_patterns,
+                if (attendance$total_patterns == 1L) "" else "s",
+                attendance$dropped_subjects,
+                if (attendance$dropped_subjects == 1L) "" else "s",
+                if (attendance$dropped_patterns == 1L) "is" else "are",
+                as.integer(min_pattern_share),
+                if (attendance$dropped_patterns == 1L) "is" else "are"),
+        why = paste("an avatar carrying a visit set unique to one real patient",
+                    "could be traced back to them. Kept instead: how many",
+                    "visits were missed and of what kind -- all at the end",
+                    "(dropout), a run in the middle (an interruption), or",
+                    "scattered. Which specific visits were missed is not",
+                    "preserved."),
+        fix = paste("nothing, unless this study's interruptions matter.",
+                    "`min_pattern_share = 1` copies exact visit sets and gives",
+                    "up the guarantee."),
+        kind = "NOTE"
+      )
     }
     if (!is.null(attendance)) {
       unpooled <- setdiff(unique(attendance$group), names(attendance$pool))
       if (length(unpooled)) {
         stranded <- sum(attendance$group %in% unpooled)
-        .loud_warn(sprintf(
-          paste0("no attendance pattern is shared by %d or more subjects in ",
-                 "%d of %d group(s), covering %d subject(s), so avatars ",
-                 "anchored there keep their anchor's own pattern of attended ",
-                 "visits -- which is what `min_pattern_share` exists to avoid ",
-                 "reproducing. Lower `min_pattern_share`, or declare a ",
-                 "`nominal_time` role so coarsening can put more subjects on ",
-                 "the same visits."),
-          as.integer(min_pattern_share), length(unpooled),
-          length(unique(attendance$group)), stranded
-        ))
+        .loud_warn(
+          "no shared visit set to draw from",
+          sprintf(paste("in %d of %d schedule group%s, covering %d patient%s,",
+                        "no visit set is shared by %d or more patients."),
+                  length(unpooled), length(unique(attendance$group)),
+                  if (length(unpooled) == 1L) "" else "s",
+                  stranded, if (stranded == 1L) "" else "s",
+                  as.integer(min_pattern_share)),
+          why = paste("avatars anchored there keep their anchor's own set of",
+                      "attended visits, which is exactly what",
+                      "`min_pattern_share` exists to avoid reproducing."),
+          fix = paste("declare a `nominal_time` role so coarsening puts more",
+                      "patients on the same visits, or lower",
+                      "`min_pattern_share`.")
+        )
       }
     }
     new_ids <- .new_ids(source[[source_roles$id]], n_subjects)
@@ -1599,15 +1688,21 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # with fewer than k + 1 subjects, so there are not k others to borrow.
     available_donors <- length(subjects) - 1L
     if (available_donors < as.integer(k)) {
-      .loud_warn(sprintf(
-        paste0("the source has %d subject%s, so every avatar is blended from ",
-               "at most %d real patient%s -- fewer than the floor of %d. This ",
-               "markedly raises re-identifiability; use a larger source or ",
-               "treat the output as individually identifying."),
-        length(subjects), if (length(subjects) == 1L) "" else "s",
-        max(available_donors, 0L), if (available_donors == 1L) "" else "s",
-        as.integer(k)
-      ))
+      .loud_warn(
+        "source too small for the donor floor",
+        sprintf(paste("the source has %d patient%s, so every avatar is blended",
+                      "from at most %d real patient%s -- fewer than the floor",
+                      "of k = %d."),
+                length(subjects), if (length(subjects) == 1L) "" else "s",
+                max(available_donors, 0L),
+                if (available_donors == 1L) "" else "s", as.integer(k)),
+        why = paste("blending across few patients leaves each avatar close to",
+                    "an individual, which markedly raises",
+                    "re-identifiability."),
+        fix = paste("use a larger source, or treat the output as individually",
+                    "identifying and keep it under the source's own access",
+                    "controls.")
+      )
     }
     # Keep the output from looking extreme by default: do not anchor an avatar
     # on a source subject whose event structure is far beyond the cohort, since
@@ -1637,16 +1732,17 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       best_available <- max(as.integer(route_size[short_arms])) - 1L
       one_subject <- length(route_excluded) == 1L
       shortfall_context <- sprintf(
-        paste0("%d subject%s in %d route arm%s below the donor floor of %d: ",
-               "%s. Donors are never blended across routes, so %s no legal ",
-               "donor set."),
+        paste0("%d patient%s sit%s in %d route arm%s holding fewer than the ",
+               "donor floor of k = %d: %s."),
         length(route_excluded), if (one_subject) "" else "s",
+        if (one_subject) "s" else "",
         length(short_arms), if (length(short_arms) == 1L) "" else "s",
-        as.integer(k), arm_summary,
-        if (one_subject) "this subject has" else "these subjects have"
+        as.integer(k), arm_summary
       )
       if (identical(on_donor_shortfall, "error")) {
-        stop(shortfall_context, "\n  Choose how to proceed with ",
+        stop(shortfall_context, " Donors are never blended across routes, so ",
+             if (one_subject) "this patient has" else "these patients have",
+             " no legal donor set.\n  Choose how to proceed with ",
              "`on_donor_shortfall`:\n",
              "  \"drop\"  (default) omit these subjects from the anchor pool; ",
              "the synthetic cohort will not represent the arm.\n",
@@ -1663,35 +1759,51 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
              "patient.",
              call. = FALSE)
       }
+      shortfall_why <- paste("donors are never blended across routes, so",
+                             if (one_subject) "this patient has"
+                             else "these patients have",
+                             "no legal donor set.")
       if (identical(on_donor_shortfall, "noise")) {
-        .loud_warn(sprintf(
-          paste0("%s They were kept anyway under `on_donor_shortfall = ",
-                 "\"noise\"`, generated from at most %d donor%s plus subject ",
-                 "and residual noise. Such avatars can stay close to one real ",
-                 "patient; treat them as individually identifying, and use ",
-                 "`flag_identifiable_subjects()` on the result. The default ",
-                 "`on_donor_shortfall = \"drop\"` omits them instead."),
-          shortfall_context, max(best_available, 0L),
-          if (best_available == 1L) "" else "s"
-        ))
+        .loud_warn(
+          "route arm below the donor floor -- kept",
+          shortfall_context,
+          why = paste(shortfall_why,
+                      sprintf(paste("Under `on_donor_shortfall = \"noise\"`",
+                                    "they were kept anyway, built from at most",
+                                    "%d donor%s plus subject and residual",
+                                    "noise. Such an avatar can stay close to",
+                                    "one real patient."),
+                              max(best_available, 0L),
+                              if (best_available == 1L) "" else "s")),
+          fix = paste("treat these avatars as individually identifying and run",
+                      "`flag_identifiable_subjects()` on the result. The",
+                      "default `on_donor_shortfall = \"drop\"` omits them",
+                      "instead.")
+        )
       } else if (length(route_excluded) < length(subjects)) {
         allowed <- setdiff(allowed, route_excluded)
-        .loud_warn(sprintf(
-          paste0("%s They were dropped from the anchor pool, so the synthetic ",
-                 "cohort does not represent %s arm%s. To keep them anyway, set ",
-                 "`on_donor_shortfall = \"noise\"` -- not recommended, since ",
-                 "such a subject can stay close to one real patient."),
+        .loud_warn(
+          "route arm below the donor floor -- dropped",
           shortfall_context,
-          if (length(short_arms) == 1L) "this" else "these",
-          if (length(short_arms) == 1L) "" else "s"
-        ))
+          why = paste(shortfall_why, "They were dropped from the anchor pool,",
+                      "so the synthetic cohort does not represent",
+                      if (length(short_arms) == 1L) "this arm."
+                      else "these arms."),
+          fix = paste("nothing, if the arm does not matter. To keep it, set",
+                      "`on_donor_shortfall = \"noise\"` -- not recommended,",
+                      "since such an avatar can stay close to one real",
+                      "patient.")
+        )
       } else {
-        .loud_warn(sprintf(
-          paste0("%s Dropping every arm would leave nothing to generate, so ",
-                 "generation proceeded as if `on_donor_shortfall = \"noise\"`. ",
-                 "Treat the output as individually identifying."),
-          shortfall_context
-        ))
+        .loud_warn(
+          "every route arm is below the donor floor",
+          shortfall_context,
+          why = paste(shortfall_why, "Dropping every arm would leave nothing",
+                      "to generate, so generation proceeded as if",
+                      "`on_donor_shortfall = \"noise\"`."),
+          fix = paste("treat the whole output as individually identifying, or",
+                      "use a larger source.")
+        )
       }
     }
     # Two mechanisms remove subjects from the anchor pool, for different reasons
@@ -1787,6 +1899,33 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       generated[[synthetic_index]] <- skeleton[row_order, , drop = FALSE]
     }
 
+    # An avatar that drew no visit set keeps its anchor's, which is one real
+    # patient's exact pattern of absences -- precisely what `min_pattern_share`
+    # exists to stop being reproduced. Two things cause it and neither alerted
+    # before: a schedule group with no set shared widely enough (that one warns
+    # above, from `attendance$pool`), and a group where every legal placement of
+    # the shape happens to already be somebody's, so `.place_attendance()`
+    # rejects all of them. The second is invisible until the run is over, which
+    # is why the check is here rather than next to the pool. A small residue is
+    # not worth interrupting for; a large one changes what the output is.
+    fallback <- 1 - mean(pattern_sampled)
+    if (!is.null(attendance) && fallback >= 0.10) {
+      .loud_warn(
+        "avatars kept their anchor's own visit set",
+        sprintf(paste("%.0f%% of avatars (%d of %d) were given no visit set",
+                      "from the pool and kept their anchor's own."),
+                100 * fallback, sum(!pattern_sampled), n_subjects),
+        why = paste("that is one real patient's exact pattern of attended and",
+                    "missed visits, copied onto an avatar -- the thing",
+                    "`min_pattern_share` exists to prevent. It happens when a",
+                    "schedule group has no set shared by enough patients, or",
+                    "when every way of placing the shape is already somebody's."),
+        fix = paste("declare a `nominal_time` role so more patients land on the",
+                    "same visits, or accept it and screen the result with",
+                    "`flag_identifiable_subjects()`.")
+      )
+    }
+
     result <- do.call(rbind, generated)
     rownames(result) <- NULL
     result <- .restore_schema(result, source, source_roles)
@@ -1835,11 +1974,17 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       subjects_with_dropped_pattern = if (is.null(attendance)) 0L else
         as.integer(attendance$dropped_subjects),
       time_grid = coarsened$grid,
+      time_grid_derived_rows = as.integer(coarsened$grid_derived_rows %||% 0L),
+      time_grid_rows = as.integer(coarsened$grid_rows %||% 0L),
       # How many source subjects still hold a schedule nobody else shares, once
       # coarsening has done what it can, and why. Recorded rather than only
       # alerted so a report can tabulate it without recomputing.
       dose_basis = if (is.null(dose_basis)) NA_character_ else
         dose_basis$covariate,
+      # Why the answer above is what it is. Without this, "not detected" and
+      # "detection was never attempted" are the same blank in a report, and a
+      # caller whose study *is* weight-based has no way to tell which happened.
+      dose_basis_note = dose_basis_detection$note,
       dose_levels = if (is.null(dose_basis)) NA_real_ else dose_basis$levels,
       unique_schedule_n = unique_schedule_n,
       unique_obs_time_n = unique_obs_time_n,
@@ -1867,8 +2012,10 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     validate_pmx(result, source_roles, strict = TRUE)
     if (length(warnings$messages)) {
       warning(
-        "Synthetic generation used documented small-group/profile fallbacks:\n- ",
-        paste(warnings$messages, collapse = "\n- "),
+        "Synthetic generation used documented small-group/profile fallbacks:\n",
+        paste(vapply(warnings$messages, .wrap_plain, character(1),
+                     initial = "- ", prefix = "  "),
+              collapse = "\n"),
         call. = FALSE
       )
     }
