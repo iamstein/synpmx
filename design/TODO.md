@@ -122,6 +122,24 @@ Still open from this pass:
       are run interactively (now covered by `/output_*/`); the ignore allowlist
       still named `try_avatar.R`, which no longer exists.
 
+## Next big piece: a vignette of the checks on synthetic data
+
+Scoped 2026-08-03 with the owner. **The specification is
+`design/SYNTHETIC_DATA_CHECKS.md`** — six categories (valid dataset, who is
+singled out and by what, is it still the same study, are the numbers right,
+does it work in the workflow, and what these checks cannot tell you), the
+inventory of what already exists against each, the three gaps that inventory
+makes visible, and the section that generalizes beyond this package: check the
+finished table, not the mechanism.
+
+- [ ] Write `vignettes/synthetic-data-checks.Rmd` from that specification.
+      Recommended as a dedicated session: it is a from-scratch writing task and
+      benefits from a context not full of implementation detail.
+- [ ] Then, and only then, close the gaps the prose makes obvious — rare
+      covariate combinations (B5, nothing exists), semantic ordering such as a
+      trough staying a trough (C, nothing exported), and the `SIM-014` exact-copy
+      gate as a user-runnable helper (B4, test-only today).
+
 ## Owver's next steps: 2026-08-03
 
 - Try out on real data and apply checks 
