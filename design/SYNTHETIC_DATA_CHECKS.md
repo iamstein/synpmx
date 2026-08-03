@@ -383,6 +383,13 @@ embarrassing to write.
 
 ## Suggested shape of the vignette
 
+**List the datasets.** The vignette should carry a short table of the public
+datasets it uses, one line each, saying what each one is for — a reader who
+wants to reproduce a check needs to know which dataset shows it and why that
+one. `design/TEST_SIM.md` holds the full inventory of what is available,
+including the candidates not yet used and the ones deliberately skipped; the
+vignette should show only what it actually uses and not duplicate the registry.
+
 One worked dataset the whole way through — `xgxr::case1_pkpd` is the best
 candidate, being the only public dataset shaped like a real study report (180
 patients, declared nominal time, six arms, two endpoints, baseline weight) — and

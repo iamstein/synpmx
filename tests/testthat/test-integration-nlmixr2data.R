@@ -240,7 +240,7 @@ test_that("xgxr case1_pkpd: nominal grid, two endpoints, six arms, 180 patients"
                length(unique(source$TRTACT)))
 })
 
-test_that("xgxr mad: six endpoints, including ordinal, count and binary", {
+test_that("xgxr mad: five observation endpoints, ordinal, count and binary", {
   skip_if_not_installed("xgxr")
   source <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
   roles <- pmx_roles(
@@ -253,7 +253,7 @@ test_that("xgxr mad: six endpoints, including ordinal, count and binary", {
     synpmx_avatar(source, roles, seed = 2)
   ))
   expect_true(validate_pmx(synthetic, roles)$valid)
-  # Nothing is lost: six endpoints in, six endpoints out. Endpoint loss is the
+  # Nothing is lost: every endpoint in is an endpoint out. Endpoint loss is the
   # `SIM-036` failure mode and it is invisible without a multi-endpoint source.
   expect_setequal(unique(as.character(synthetic$NAME)),
                   unique(as.character(source$NAME)))

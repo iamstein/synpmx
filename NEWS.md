@@ -10,8 +10,8 @@
   weight) is the first public dataset shaped like a real study report — none of
   the nlmixr2data five has a declared nominal time, a treatment arm to stratify
   on, or a censoring column, so every feature a study report exercises was
-  previously untested on public data. `xgxr::mad` has six endpoints, where two
-  was the previous maximum. `nlmixr2data::pheno_sd` is 59 real patients whose
+  previously untested on public data. `xgxr::mad` has five observation endpoints,
+  where two was the previous maximum. `nlmixr2data::pheno_sd` is 59 real patients whose
   individualised neonatal dosing genuinely cannot be masked, and is the
   registry's honest example of that.
 
