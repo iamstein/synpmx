@@ -156,11 +156,48 @@ cost (real correlations between covariates are broken) doing double duty as a
 weak privacy benefit, and it should be stated as such rather than claimed as a
 mechanism.
 
-*What to build.* A cross-tabulation of `covariates` and `subject_properties`
-with a minimum cell count, source and synthetic side by side, plus a per-level
-report of the rarest categories reaching the output. It cannot enumerate all
-combinations, and the vignette should say so plainly rather than implying the
-check is complete.
+*The checks, enumerated.* This is the actionable list, in the order a reader
+should run them. None exists yet; each is a check the vignette should present
+and the package should eventually provide.
+
+1. **Level census, source against synthetic.** For every categorical covariate,
+   tabulate the levels on both sides. Report any level that reaches the output,
+   together with **how many source patients held it**. A level held by one or
+   two real patients is the whole risk, and it is invisible in a marginal
+   distribution comparison that only checks the proportions look similar.
+2. **Minimum holders, as a threshold.** Flag any level appearing in the output
+   that fewer than `min_pattern_share` source patients held. This is the direct
+   analogue of what already protects visit sets, and the number should be the
+   same one, for the same reason.
+3. **Cross-tabulation with `subject_properties`.** Arm x category, then arm x
+   category x any other categorical. `subject_properties` are copied verbatim
+   from the anchor, so the arm is exact and any joint cell involving it is as
+   rare as its rarest part. Report cells below a minimum count.
+4. **Numeric covariates: is anyone in a cluster of their own?** Not a
+   uniqueness question but a neighbourhood one — the nearest-neighbour distance
+   in covariate space, source against synthetic. `compare_pmx_proximity()`
+   answers this over the *whole* profile and would mask a covariate-only
+   effect; a covariate-only version is worth having.
+5. **Levels the user declares rare in the population.** The checks above can
+   only see the dataset. Rarity *in the world* — the actual risk for a mutation
+   — is knowledge the package does not have and cannot infer. It has to be
+   declared, and nothing in `pmx_roles()` accepts such a declaration today.
+   That is the gap worth closing first, because it is the only one where the
+   right answer may be to **suppress or coarsen the level** rather than report
+   it: collapse `TP53-R248W` to `TP53 mutation`, or to `mutation present`, or
+   drop the column.
+
+Checks 1--4 are mechanical and could ship as one function. Check 5 needs an API
+decision — a `rare_levels` argument on `pmx_covariate()`, or a sensitivity flag
+per covariate — and is the one that changes what the generator does rather than
+only what it reports.
+
+*What it still cannot do.* Enumerate all combinations. With `d` covariates
+there are `2^d` subsets, checks 1--3 cover the ones involving `subject_properties`
+and single levels, and an attacker's chosen combination need not be any of them.
+The vignette must say this plainly rather than implying the list is complete —
+and it is the point at which the honest answer is the differentially private
+mode, for the reasons under "Does differential privacy cover this?" below.
 
 *Two reproducible fixtures* for whoever builds it, both under 40 lines and both
 run on 2026-08-03:
@@ -394,11 +431,13 @@ Writing it will be the fastest way to find what is missing. From the inventory,
 three gaps are already visible:
 
 1. **B5, rare categories and combinations.** The clearest gap and probably the
-   most valuable single addition. A cross-tabulation of `covariates` and
-   `subject_properties` with a minimum cell count, source and synthetic side by
-   side, plus a per-level report of the rarest categories reaching the output.
-   Two tests in `tests/testthat/test-avatar-relationships.R` already pin the
-   mechanism it has to change: a categorical covariate is copied from a donor
+   most valuable single addition. Five checks are enumerated under B5; the
+   first four are mechanical and could ship as one function, and the fifth --
+   letting a user declare which levels are rare *in the population*, which the
+   package cannot infer — needs an API decision and is the only one that
+   changes what the generator does rather than what it reports. Two tests in
+   `tests/testthat/test-avatar-relationships.R` already pin the mechanism any
+   of this has to work against: a categorical covariate is copied from a donor
    and never blended, and an outlying patient is self-protecting only as a side
    effect of donor selection.
 2. **C, semantic ordering.** Partly done: `validate_pmx()` now reports where a
