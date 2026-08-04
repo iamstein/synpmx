@@ -29,7 +29,7 @@ pmx_roles(
   addl = NULL,
   ii = NULL,
   covariates = NULL,
-  subject_properties = NULL,
+  strata = NULL,
   dose_covariate = NULL,
   assigned_dose = NULL,
   keep = NULL,
@@ -115,7 +115,7 @@ pmx_roles(
 
   Baseline covariate column names, or `NULL`.
 
-- subject_properties:
+- strata:
 
   Treatment arm, dose group, cohort — any **assigned, subject-level
   stratum**, as opposed to a measured characteristic, which is a

@@ -141,21 +141,21 @@ roles <- pmx_roles(
   limit              = "LIMIT",                 # the other interval boundary
   covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
   dose_covariate     = "WT",                    # in this case, dose is body-weight based and it should be declared
-  subject_properties = c("TRT", "TRTN"),        # assigned patient stratification variable
+  strata             = c("TRT", "TRTN"),        # assigned arm / dose group / cohort
   keep               = "STUDYID"                # columns to be carried through verbatim
   # addl, ii          -- accepted and carried, but not expanded; expand
   #                      ADDL doses into explicit rows before synthesis
 )
 ```
 
-**Covariates and Subject Properties** are easy roles to confuse:
+**Covariates and Strata** are easy roles to confuse:
 
 - `covariates` are *measured* characteristics. They are **blended**
   across the donors, so a synthetic subject’s weight is a new number
   nobody had.
-- `subject_properties` are *assigned* strata — arm, dose group, cohort.
-  They are copied from the anchor, and the stratum is what groups the
-  dose rule and the pool of visit patterns an avatar may be given.
+- `strata` are *assigned* strata — arm, dose group, cohort. They are
+  copied from the anchor, and the stratum is what groups the dose rule
+  and the pool of visit patterns an avatar may be given.
 - `keep` is the escape hatch, for anything else you want carried through
   untouched: a study identifier, a randomization sequence, a units
   column, a redundant label. A kept value is **one real subject’s real

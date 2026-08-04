@@ -2,8 +2,8 @@
 
 Checks schema usability, chronological event logic, explicit endpoint
 semantics, derived timing fields, censoring conventions, baseline
-constancy, subject properties, and occasion-assigned dose coherence. It
-does not assess scientific or inferential validity.
+constancy, strata, and occasion-assigned dose coherence. It does not
+assess scientific or inferential validity.
 
 ## Usage
 

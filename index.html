@@ -38,13 +38,14 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -173,17 +174,17 @@
 <span>  limit              <span class="op">=</span> <span class="st">"LIMIT"</span>,                 <span class="co"># the other interval boundary</span></span>
 <span>  covariates         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span>,   <span class="co"># measured; blended across donors</span></span>
 <span>  dose_covariate     <span class="op">=</span> <span class="st">"WT"</span>,                    <span class="co"># in this case, dose is body-weight based and it should be declared</span></span>
-<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRT"</span>, <span class="st">"TRTN"</span><span class="op">)</span>,        <span class="co"># assigned patient stratification variable</span></span>
+<span>  strata             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRT"</span>, <span class="st">"TRTN"</span><span class="op">)</span>,        <span class="co"># assigned arm / dose group / cohort</span></span>
 <span>  keep               <span class="op">=</span> <span class="st">"STUDYID"</span>                <span class="co"># columns to be carried through verbatim</span></span>
 <span>  <span class="co"># addl, ii          -- accepted and carried, but not expanded; expand</span></span>
 <span>  <span class="co">#                      ADDL doses into explicit rows before synthesis</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><strong>Covariates and Subject Properties</strong> are easy roles to confuse:</p>
+<p><strong>Covariates and Strata</strong> are easy roles to confuse:</p>
 <ul>
 <li>
 <code>covariates</code> are <em>measured</em> characteristics. They are <strong>blended</strong> across the donors, so a synthetic subject’s weight is a new number nobody had.</li>
 <li>
-<code>subject_properties</code> are <em>assigned</em> strata — arm, dose group, cohort. They are copied from the anchor, and the stratum is what groups the dose rule and the pool of visit patterns an avatar may be given.</li>
+<code>strata</code> are <em>assigned</em> strata — arm, dose group, cohort. They are copied from the anchor, and the stratum is what groups the dose rule and the pool of visit patterns an avatar may be given.</li>
 <li>
 <code>keep</code> is the escape hatch, for anything else you want carried through untouched: a study identifier, a randomization sequence, a units column, a redundant label. A kept value is <strong>one real subject’s real value</strong>, so keep only what the source data’s own access controls already permit.</li>
 </ul>

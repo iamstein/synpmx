@@ -311,7 +311,7 @@ has been called once in the session — a deliberate speed bump.
 ``` r
 
 synpmx_enable_dp_engines()
-#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.
+#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.
 ```
 
 Keep the public model’s *shape*, and spend a small privacy budget
@@ -393,8 +393,8 @@ dp_backend_status()
 At 12 subjects a genuine DP release of this correction is noisy enough
 that it is often censored at the prior boundary — the package warns when
 that happens, because the generated data then reflects the prior, not
-the study.
-[`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
+the study. The [privacy
+article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 covers when the release is worth making.
 
 ## Mode 4: empirical
@@ -661,7 +661,7 @@ producing the model code.
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   run across eight public datasets, with the structural checks and the
   masking accounting for each.
-- [`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
+- [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
   — what differential privacy guarantees, what it does not, the
   trust-boundary decision rule, and how epsilon trades against utility.
 - [The AVATAR

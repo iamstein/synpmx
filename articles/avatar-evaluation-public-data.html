@@ -36,13 +36,14 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -318,8 +319,8 @@ on a local workstation covered by the same controls is a supported use.
 It is not appropriate for parameter estimation, inference, model
 selection, or clinical decisions. When the generated data would reach
 anyone the source data could not, use one of the differentially private
-modes instead; <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code> works through
-that decision and the tradeoff behind it.</p>
+modes instead; the <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">privacy
+article</a> works through that decision and the tradeoff behind it.</p>
 </div>
 <div class="section level2">
 <h2 id="the-datasets">The datasets<a class="anchor" aria-label="anchor" href="#the-datasets"></a>
@@ -2888,7 +2889,7 @@ an arm to stratify on, censoring — is present.</p>
 <span><span class="va">case1_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
-<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>,</span>
 <span>  keep <span class="op">=</span> <span class="st">"STUDY"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">case1_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
@@ -2908,7 +2909,7 @@ ones and the flag cannot mean what it means for PK:</p>
 <code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
-<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles_cens</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
@@ -2917,8 +2918,12 @@ study, and it is what the run above does.</p>
 <p><img src="avatar-evaluation-public-data_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>Six treatment arms, and an avatar never leaves the arm it was
 anchored in — <code>TRTACT</code> and <code>DOSE</code> are declared as
-<code>subject_properties</code>, so they are copied from the anchor and
-condition the regimen rather than being sampled independently:</p>
+<code>strata</code>, so they are copied from the anchor and condition
+the regimen rather than being sampled independently. The arm
+<em>sizes</em> also match, which takes a second mechanism: anchors are
+sampled with replacement, so <code>preserve_strata_balance</code> (the
+default) gives each stratum its source share rather than leaving the
+balance to the draw.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
@@ -2951,11 +2956,11 @@ condition the regimen rather than being sampled independently:</p>
 <tr class="even">
 <td align="left">Synthetic</td>
 <td align="right">30</td>
-<td align="right">33</td>
-<td align="right">34</td>
-<td align="right">26</td>
-<td align="right">32</td>
-<td align="right">25</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="right">30</td>
 </tr>
 </tbody>
 </table>
@@ -3049,13 +3054,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">123 of 180 (68%)</td>
+<td align="right">127 of 180 (71%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.92</td>
+<td align="right">2.89</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -3257,7 +3262,7 @@ generation is invisible with fewer than three.</p>
 <span><span class="va">mad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
-<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WEIGHTB"</span>, <span class="st">"SEX"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">mad_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span><span class="op">)</span></span>
@@ -3365,13 +3370,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">41 of 60 (68%)</td>
+<td align="right">43 of 60 (72%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.89</td>
+<td align="right">2.91</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -3920,10 +3925,11 @@ budget share is an explicit public input.
 <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> (like <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code>)
 refuses to run until <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been
 called once in the session, acknowledging the maintenance status covered
-in <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code>:</p>
+in the <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">privacy
+article</a>:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
+<span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_private</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
@@ -4429,16 +4435,16 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 </tr>
 <tr class="even">
 <td align="left">case1_pkpd</td>
-<td align="right">0.522</td>
-<td align="right">0.420</td>
-<td align="right">0.599</td>
+<td align="right">0.511</td>
+<td align="right">0.428</td>
+<td align="right">0.577</td>
 <td align="right">90</td>
 </tr>
 <tr class="odd">
 <td align="left">mad</td>
-<td align="right">0.550</td>
+<td align="right">0.617</td>
 <td align="right">0.312</td>
-<td align="right">0.621</td>
+<td align="right">0.623</td>
 <td align="right">30</td>
 </tr>
 </tbody>

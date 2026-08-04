@@ -27,13 +27,14 @@ CMT, and DVID are never averaged or independently generated."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -80,6 +81,7 @@ CMT, and DVID are never averaged or independently generated.</p>
 <span>  coarsen_time <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  min_pattern_share <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  max_donor_weight <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  preserve_strata_balance <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  on_donor_shortfall <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"drop"</span>, <span class="st">"noise"</span>, <span class="st">"error"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -214,7 +216,7 @@ distinctive absences stop being reproduced. Dose events are never sampled,
 since that could emit a regimen no protocol permits. Raising this hides more
 and flattens the cohort's missingness further; where no pattern is shared
 widely enough, anchors keep their own and the run alerts loudly. Pools are
-formed within each <code>subject_properties</code> stratum and endpoint set.</p>
+formed within each <code>strata</code> stratum and endpoint set.</p>
 <p><strong>Patterns below the floor are lost, not approximated.</strong> An ending or
 dose-interruption pattern held by too few patients simply will not appear in
 the synthetic data, and that loss is the mechanism working — it is what
@@ -245,6 +247,26 @@ the cap actually fired. A cap binding on nearly every subject is not a
 guardrail but the weighting scheme itself, with the inverse-distance term
 underneath it doing little; one that never fires is not protecting
 anything. At <code>k = 5</code> the default binds on roughly two thirds of subjects.</p></dd>
+
+
+<dt id="arg-preserve-strata-balance">preserve_strata_balance<a class="anchor" aria-label="anchor" href="#arg-preserve-strata-balance"></a></dt>
+<dd><p>Give each declared stratum (<code><a href="pmx_roles.html">pmx_roles()</a></code>
+<code>strata</code>) the same share of the synthetic cohort it holds in the source.
+Default <code>TRUE</code>.</p>
+<p>An avatar never leaves its anchor's stratum, but anchors are sampled with
+replacement, so without this the <em>balance</em> is left to chance: a balanced
+six-arm design of 30 patients per arm came back between 21 and 39 per arm
+depending only on the seed, and any downstream summary grouped by arm
+inherits that. Targets are proportions of the source cohort, so they still
+hold when <code>n_subjects</code> differs from the source size.</p>
+<p><strong>Strata holding fewer than three source patients are deliberately not
+balanced</strong>, because reproducing such a stratum's size exactly would
+disclose it: a joint cell holding one real patient would get exactly one
+avatar on every seed. Their slots are drawn with replacement as before, so
+the count varies. <code>strata_balanced</code> and <code>strata_stochastic</code> in the returned
+<code>pmx_settings</code> report how many strata fell on each side.</p>
+<p><code>FALSE</code> restores the unstratified draw. With no <code>strata</code> declared the
+argument has no effect.</p></dd>
 
 
 <dt id="arg-on-donor-shortfall">on_donor_shortfall<a class="anchor" aria-label="anchor" href="#arg-on-donor-shortfall"></a></dt>

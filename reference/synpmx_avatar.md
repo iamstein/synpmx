@@ -26,6 +26,7 @@ synpmx_avatar(
   coarsen_time = TRUE,
   min_pattern_share = 2L,
   max_donor_weight = 0.5,
+  preserve_strata_balance = TRUE,
   on_donor_shortfall = c("drop", "noise", "error")
 )
 ```
@@ -169,8 +170,8 @@ synpmx_avatar(
   never sampled, since that could emit a regimen no protocol permits.
   Raising this hides more and flattens the cohort's missingness further;
   where no pattern is shared widely enough, anchors keep their own and
-  the run alerts loudly. Pools are formed within each
-  `subject_properties` stratum and endpoint set.
+  the run alerts loudly. Pools are formed within each `strata` stratum
+  and endpoint set.
 
   **Patterns below the floor are lost, not approximated.** An ending or
   dose-interruption pattern held by too few patients simply will not
@@ -206,6 +207,32 @@ synpmx_avatar(
   scheme itself, with the inverse-distance term underneath it doing
   little; one that never fires is not protecting anything. At `k = 5`
   the default binds on roughly two thirds of subjects.
+
+- preserve_strata_balance:
+
+  Give each declared stratum
+  ([`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
+  `strata`) the same share of the synthetic cohort it holds in the
+  source. Default `TRUE`.
+
+  An avatar never leaves its anchor's stratum, but anchors are sampled
+  with replacement, so without this the *balance* is left to chance: a
+  balanced six-arm design of 30 patients per arm came back between 21
+  and 39 per arm depending only on the seed, and any downstream summary
+  grouped by arm inherits that. Targets are proportions of the source
+  cohort, so they still hold when `n_subjects` differs from the source
+  size.
+
+  **Strata holding fewer than three source patients are deliberately not
+  balanced**, because reproducing such a stratum's size exactly would
+  disclose it: a joint cell holding one real patient would get exactly
+  one avatar on every seed. Their slots are drawn with replacement as
+  before, so the count varies. `strata_balanced` and `strata_stochastic`
+  in the returned `pmx_settings` report how many strata fell on each
+  side.
+
+  `FALSE` restores the unstratified draw. With no `strata` declared the
+  argument has no effect.
 
 - on_donor_shortfall:
 

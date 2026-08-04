@@ -21,3 +21,5 @@
 - [The four synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
+- [Checks of the synthetic
+  data](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md):

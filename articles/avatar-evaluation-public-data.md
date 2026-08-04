@@ -245,8 +245,8 @@ working with it on a local workstation covered by the same controls is a
 supported use. It is not appropriate for parameter estimation,
 inference, model selection, or clinical decisions. When the generated
 data would reach anyone the source data could not, use one of the
-differentially private modes instead;
-[`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
+differentially private modes instead; the [privacy
+article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 works through that decision and the tradeoff behind it.
 
 ## The datasets
@@ -1248,7 +1248,7 @@ case1_pkpd <- as.data.frame(
 case1_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
-  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
   keep = "STUDY"
 )
 case1_synth <- suppressWarnings(
@@ -1272,7 +1272,7 @@ ones and the flag cannot mean what it means for PK:
 case1_roles_cens <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
-  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
 )
 validate_pmx(case1_pkpd, case1_roles_cens)$valid
 #> [1] FALSE
@@ -1284,9 +1284,12 @@ what the run above does.
 ![](avatar-evaluation-public-data_files/figure-html/case1-plot-1.png)
 
 Six treatment arms, and an avatar never leaves the arm it was anchored
-in — `TRTACT` and `DOSE` are declared as `subject_properties`, so they
-are copied from the anchor and condition the regimen rather than being
-sampled independently:
+in — `TRTACT` and `DOSE` are declared as `strata`, so they are copied
+from the anchor and condition the regimen rather than being sampled
+independently. The arm *sizes* also match, which takes a second
+mechanism: anchors are sampled with replacement, so
+`preserve_strata_balance` (the default) gives each stratum its source
+share rather than leaving the balance to the draw.
 
 ``` r
 
@@ -1302,7 +1305,7 @@ knitr::kable(
 |           | 10 mg | 100 mg | 3 mg | 30 mg | 300 mg | Placebo |
 |:----------|------:|-------:|-----:|------:|-------:|--------:|
 | Source    |    30 |     30 |   30 |    30 |     30 |      30 |
-| Synthetic |    30 |     33 |   34 |    26 |     32 |      25 |
+| Synthetic |    30 |     30 |   30 |    30 |     30 |      30 |
 
 Patients per treatment arm, source against synthetic {.table}
 
@@ -1327,8 +1330,8 @@ masking_table(case1_pkpd, case1_roles, case1_synth, "case1_pkpd")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 123 of 180 (68%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.92 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 127 of 180 (71%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 2.89 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | nominal | every visit was snapped to the declared `nominal_time`, which is the protocol grid. This is the reliable case |
 | Unique observation schedules, before coarsening | 180 (100%) | patients whose list of observation times nobody else shares |
@@ -1388,7 +1391,7 @@ mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
 mad_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-  subject_properties = c("TRTACT", "DOSE"),
+  strata = c("TRTACT", "DOSE"),
   covariates = c("WEIGHTB", "SEX")
 )
 mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
@@ -1435,8 +1438,8 @@ masking_table(mad, mad_roles, mad_synth, "mad")
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 41 of 60 (68%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.89 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 43 of 60 (72%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 2.91 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | nominal | every visit was snapped to the declared `nominal_time`, which is the protocol grid. This is the reliable case |
 | Unique observation schedules, before coarsening | 60 (100%) | patients whose list of observation times nobody else shares |
@@ -1627,13 +1630,13 @@ share is an explicit public input.
 refuses to run until
 [`synpmx_enable_dp_engines()`](https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.md)
 has been called once in the session, acknowledging the maintenance
-status covered in
-[`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
+status covered in the [privacy
+article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html):
 
 ``` r
 
 synpmx_enable_dp_engines()
-#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.
+#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.
 ```
 
 ``` r
@@ -1947,8 +1950,8 @@ knitr::kable(
 | wbcSim      |                0.568 |      0.328 |      0.655 |       22 |
 | mavoglurant |                0.575 |      0.421 |      0.586 |       60 |
 | pheno_sd    |                0.397 |      0.370 |      0.608 |       29 |
-| case1_pkpd  |                0.522 |      0.420 |      0.599 |       90 |
-| mad         |                0.550 |      0.312 |      0.621 |       30 |
+| case1_pkpd  |                0.511 |      0.428 |      0.577 |       90 |
+| mad         |                0.617 |      0.312 |      0.623 |       30 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built
 from the source cohort itself. 0.5 is the target. {.table}

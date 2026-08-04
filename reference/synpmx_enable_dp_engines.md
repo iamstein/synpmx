@@ -6,10 +6,9 @@ and
 refuse to run until this has been called at least once in the current
 session. This is a deliberate speed bump, not a technical safeguard: the
 differentially private engines are complete and tested, but not under
-active development, carry known open findings (see
-`design/REVIEW_BACKLOG.md`), and have not been independently
-privacy-audited. See
-[`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
+active development, carry known open findings, and have not been
+independently privacy-audited. See the [privacy
+article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 for the trust-boundary decision rule and what a production release
 additionally needs.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -42,5 +41,5 @@ from this gate.
 
 ``` r
 synpmx_enable_dp_engines()
-#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.
+#> DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.
 ```

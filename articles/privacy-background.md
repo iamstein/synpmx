@@ -16,7 +16,7 @@ Related documents, so you land in the right one:
 - [Feasibility by cohort
   size](https://iamstein.github.io/synpmx/articles/feasibility.md) — the
   measured evidence for what these quantities cost in practice.
-- [`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
+- [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
   — the decision rule: whether your release needs formal privacy at all.
 
 ------------------------------------------------------------------------

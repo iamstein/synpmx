@@ -29,13 +29,14 @@ copied out of a real subject. Name a column in keep to carry it through."></head
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -84,7 +85,7 @@ copied out of a real subject. Name a column in <code>keep</code> to carry it thr
 <span>  addl <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ii <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  subject_properties <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  strata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assigned_dose <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  keep <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -161,7 +162,7 @@ interval-boundary columns.</p></dd>
 <dd><p>Baseline covariate column names, or <code>NULL</code>.</p></dd>
 
 
-<dt id="arg-subject-properties">subject_properties<a class="anchor" aria-label="anchor" href="#arg-subject-properties"></a></dt>
+<dt id="arg-strata">strata<a class="anchor" aria-label="anchor" href="#arg-strata"></a></dt>
 <dd><p>Treatment arm, dose group, cohort — any <strong>assigned,
 subject-level stratum</strong>, as opposed to a measured characteristic, which is a
 <code>covariate</code>. Must be constant within subject; subjects with no recorded

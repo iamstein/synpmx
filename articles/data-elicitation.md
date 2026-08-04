@@ -44,9 +44,8 @@ level.
 - **Dataset signature:** `AMT` varies between subjects, constant within
   subject. Usually a cohort or dose-group column.
 - **Generator needs:** the dose levels, cohort sizes, and the dose-group
-  assignment as a **subject property** (see
-  `pmx_roles(subject_properties=)`). The structural model then gives
-  dose-proportional exposure for free.
+  assignment as a **stratum** (see `pmx_roles(strata=)`). The structural
+  model then gives dose-proportional exposure for free.
 - **Privacy:** dose levels and cohort assignment are design facts and
   are treated as public. See section 3.
 
@@ -70,7 +69,7 @@ A subject’s dose changes over time, by protocol-defined rules.
 
 - **Dataset signature:** `AMT` varies *within* subject across occasions.
   Often an assigned-dose column that changes at a defined visit.
-- **Generator needs:** dose is no longer a subject property — it is
+- **Generator needs:** dose is no longer a stratum — it is
   occasion-varying. The `assigned_dose` role and occasion-conditioned
   regimen handle this, but the escalation *schedule* must be declared.
 - **Privacy:** **an individual’s escalation path is that individual’s

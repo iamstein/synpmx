@@ -36,13 +36,14 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -316,10 +317,10 @@ level — so intra-patient escalation survives exactly.</p>
 <code>dvid</code> names one column, or several that encode the same
 endpoint (see below). <code>covariates</code> and <code>keep</code> each
 take any number of columns. One source column cannot be assigned to two
-roles. The roles <code>subject_properties</code>,
-<code>assigned_dose</code>, and <code>exclude</code> belong to the
-differentially private engines only; <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-rejects them and points at the role that does the job here.</p>
+roles. The roles <code>strata</code>, <code>assigned_dose</code>, and
+<code>exclude</code> belong to the differentially private engines only;
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> rejects them and points at the role that
+does the job here.</p>
 <div class="section level3">
 <h3 id="the-role-declaration-is-the-allowlist">The role declaration is the allowlist<a class="anchor" aria-label="anchor" href="#the-role-declaration-is-the-allowlist"></a>
 </h3>
@@ -358,7 +359,7 @@ matters:</p>
 <td>baselines you want <em>synthesized</em> — weight, age</td>
 </tr>
 <tr class="odd">
-<td><code>subject_properties</code></td>
+<td><code>strata</code></td>
 <td>Copied verbatim from the anchor, <strong>and used to group two
 mechanisms</strong>
 </td>
@@ -388,13 +389,13 @@ the doses AVATAR copied from the same anchor — <code>keep</code> is
 correct, precisely because it never leaves that anchor’s side. Because a
 kept value is a real subject’s real value, output containing it must
 stay within the source data’s own access controls and obligations.</p>
-<p><strong><code>subject_properties</code> carries a column the same way
+<p><strong><code>strata</code> carries a column the same way
 <code>keep</code> does, and then uses it.</strong> Both copy the
 anchor’s value verbatim, so the choice between them is not about what
 appears in the output — it is about whether that column should also
-<em>partition the cohort</em>. A <code>subject_properties</code> column
-must be constant within a subject, and the combination across such
-columns defines a stratum that two mechanisms group by:</p>
+<em>partition the cohort</em>. A <code>strata</code> column must be
+constant within a subject, and the combination across such columns
+defines a stratum that two mechanisms group by:</p>
 <ul>
 <li>
 <strong>M5</strong>, the dose recomputation, looks for a
@@ -410,9 +411,9 @@ schedule is never handed a daily arm’s pattern.</li>
 <p>It is deliberately <strong>not</strong> a blending barrier — donors
 are still borrowed across strata to reach the floor, since only route of
 administration blocks that. So declare a treatment arm as
-<code>subject_properties</code> rather than <code>keep</code> whenever
-the arms differ in dose rule or visit schedule, and use
-<code>keep</code> for a label that carries no such structure.</p>
+<code>strata</code> rather than <code>keep</code> whenever the arms
+differ in dose rule or visit schedule, and use <code>keep</code> for a
+label that carries no such structure.</p>
 <p>Redundant endpoint labels have their own handling. A dataset that
 carries both a numeric <code>YTYPE</code> and a character
 <code>NAME</code> for the same endpoint declares <strong>both</strong>

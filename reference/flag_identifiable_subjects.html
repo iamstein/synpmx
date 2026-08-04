@@ -29,13 +29,14 @@ four structural features:"></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -109,6 +110,17 @@ synthetic data before the data leaves the source's access controls and drop or
 regenerate the flagged subjects; it can also be run on the source itself to
 see which real subjects are hardest to hide. It is a heuristic screen, not a
 privacy guarantee, and is marked <code>"restricted_not_releasable"</code>.</p>
+<p>Scores are computed <strong>within each declared stratum</strong> (<code><a href="pmx_roles.html">pmx_roles()</a></code>
+<code>strata</code>), because "does this patient stand out?" needs a comparison group
+and the whole cohort is the wrong one as soon as a study assigns anything. On
+a six-arm dose-ranging study the top arm sits far from the cohort median dose
+purely by protocol: scored cohort-wide, <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code> flags 59 of 180
+avatars, 31 of them for receiving the dose their arm was assigned. Scored
+within arm it flags 1, and a patient given twice their arm's dose is still
+flagged. Strata holding fewer than five subjects are scored against the whole
+cohort instead, since a scale estimated from four patients describes the four
+rather than the one being screened. With no <code>strata</code> declared, every subject
+is scored against the cohort, as before.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

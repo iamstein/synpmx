@@ -137,8 +137,8 @@ Structural checks on generated data, and restricted comparisons.
 - [`sampling_summary()`](https://iamstein.github.io/synpmx/reference/sampling_summary.md)
   : Summarize the fitted sampling design
 
-- [`subject_property_summary()`](https://iamstein.github.io/synpmx/reference/subject_property_summary.md)
-  : Summarize fitted subject properties and associated regimens
+- [`strata_summary()`](https://iamstein.github.io/synpmx/reference/strata_summary.md)
+  : Summarize fitted strata and associated regimens
 
 ## Fixtures
 

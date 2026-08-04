@@ -212,9 +212,9 @@ intra-patient escalation survives exactly.
 `amt`, `cmt`, `mdv`, `rate`, `cens`, and `limit` each name one column.
 `dvid` names one column, or several that encode the same endpoint (see
 below). `covariates` and `keep` each take any number of columns. One
-source column cannot be assigned to two roles. The roles
-`subject_properties`, `assigned_dose`, and `exclude` belong to the
-differentially private engines only;
+source column cannot be assigned to two roles. The roles `strata`,
+`assigned_dose`, and `exclude` belong to the differentially private
+engines only;
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 rejects them and points at the role that does the job here.
 
@@ -236,7 +236,7 @@ That leaves five ways a column is treated, and the difference matters:
 |----|----|----|
 | `dv` (with `cens`/`limit`) | Blended across donors into a new trajectory | the measurement |
 | `covariates` | Blended/resampled across donors into a new value | baselines you want *synthesized* — weight, age |
-| `subject_properties` | Copied verbatim from the anchor, **and used to group two mechanisms** | assigned strata — treatment arm, dose group, cohort |
+| `strata` | Copied verbatim from the anchor, **and used to group two mechanisms** | assigned strata — treatment arm, dose group, cohort |
 | `keep` | Copied verbatim from the anchor, and otherwise inert | assigned values you want kept faithful to that subject’s dosing — a redundant endpoint label, a study identifier |
 | *(undeclared)* | Dropped | anything you do not need |
 
@@ -251,13 +251,12 @@ precisely because it never leaves that anchor’s side. Because a kept
 value is a real subject’s real value, output containing it must stay
 within the source data’s own access controls and obligations.
 
-**`subject_properties` carries a column the same way `keep` does, and
-then uses it.** Both copy the anchor’s value verbatim, so the choice
-between them is not about what appears in the output — it is about
-whether that column should also *partition the cohort*. A
-`subject_properties` column must be constant within a subject, and the
-combination across such columns defines a stratum that two mechanisms
-group by:
+**`strata` carries a column the same way `keep` does, and then uses
+it.** Both copy the anchor’s value verbatim, so the choice between them
+is not about what appears in the output — it is about whether that
+column should also *partition the cohort*. A `strata` column must be
+constant within a subject, and the combination across such columns
+defines a stratum that two mechanisms group by:
 
 - **M5**, the dose recomputation, looks for a covariate-proportional
   dose *within each stratum*. A study dosing one arm at 1 mg/kg and
@@ -270,10 +269,9 @@ group by:
 
 It is deliberately **not** a blending barrier — donors are still
 borrowed across strata to reach the floor, since only route of
-administration blocks that. So declare a treatment arm as
-`subject_properties` rather than `keep` whenever the arms differ in dose
-rule or visit schedule, and use `keep` for a label that carries no such
-structure.
+administration blocks that. So declare a treatment arm as `strata`
+rather than `keep` whenever the arms differ in dose rule or visit
+schedule, and use `keep` for a label that carries no such structure.
 
 Redundant endpoint labels have their own handling. A dataset that
 carries both a numeric `YTYPE` and a character `NAME` for the same

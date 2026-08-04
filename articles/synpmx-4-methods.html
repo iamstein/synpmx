@@ -36,13 +36,14 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
@@ -366,7 +367,7 @@ and <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></c
 session — a deliberate speed bump.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings (see design/REVIEW_BACKLOG.md), and have not been independently privacy-audited. See vignette("synpmx-privacy") for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
+<span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
 <p>Keep the public model’s <em>shape</em>, and spend a small privacy
 budget correcting only its <em>magnitude</em>.</p>
 <p>Each subject is reduced to a bounded multiplicative correction of the
@@ -421,8 +422,8 @@ spend the budget a second time.</p>
 <p>At 12 subjects a genuine DP release of this correction is noisy
 enough that it is often censored at the prior boundary — the package
 warns when that happens, because the generated data then reflects the
-prior, not the study. <code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code> covers
-when the release is worth making.</p>
+prior, not the study. The <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">privacy
+article</a> covers when the release is worth making.</p>
 </div>
 <div class="section level2">
 <h2 id="mode-4-empirical">Mode 4: empirical<a class="anchor" aria-label="anchor" href="#mode-4-empirical"></a>
@@ -830,9 +831,10 @@ and an LLM is a capable assistant for producing the model code.</p>
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> run across eight public datasets, with the
 structural checks and the masking accounting for each.</li>
 <li>
-<code><a href="../articles/synpmx-privacy.html">vignette("synpmx-privacy")</a></code> — what differential privacy
-guarantees, what it does not, the trust-boundary decision rule, and how
-epsilon trades against utility.</li>
+<a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">Privacy</a>
+— what differential privacy guarantees, what it does not, the
+trust-boundary decision rule, and how epsilon trades against
+utility.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The
 AVATAR Algorithm</a> — the default generator step by step, with the
