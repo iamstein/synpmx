@@ -76,7 +76,7 @@ why to care.
 | Vignette | Job |
 |---|---|
 | `synpmx-method.Rmd` | All four modes at a high level: what each does and when to use it. Renamed from `synpmx-simulation-method.Rmd`. |
-| `synpmx-demo.Rmd` | The worked workflow over the public datasets. Plot helpers hidden behind code folding. |
+| `avatar-evaluation-public-data.Rmd` | `synpmx_avatar()` measured over every public dataset in the evaluation set, one section each plus the cross-dataset tables. Opens with a table describing every dataset used. Plot helpers hidden behind code folding. Renamed from `synpmx-demo.Rmd` 2026-08-04. |
 | `synpmx-privacy.Rmd` | What differential privacy guarantees, the trust-boundary decision rule, and choosing epsilon. Absorbs `synpmx-epsilon-exploration.Rmd`. |
 
 ### Articles — pkgdown only, no check cost

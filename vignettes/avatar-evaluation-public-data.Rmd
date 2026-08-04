@@ -1,5 +1,5 @@
 ---
-title: "Demo: Using synpmx AVATAR with 5 datasets"
+title: "Evaluating AVATAR on public data"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,7 +7,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{Demo: Using synpmx AVATAR with 5 datasets}
+  %\VignetteIndexEntry{Evaluating AVATAR on public data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,11 +16,12 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 ```
 
-This vignette compares five source datasets against their synthetic
+This vignette compares eight source datasets against their synthetic
 counterparts, so it needs a few helpers to pull observed rows into a common
 shape and plot them. They are ordinary plotting code, not part of the package
 API; expand the block if you want to reuse them.
@@ -239,14 +240,14 @@ colleagues [2], and Destere and colleagues benchmark a modified AVATAR for
 population PK [1]. This package implements an AVATAR-*inspired* adaptation for
 longitudinal event tables, not published AVATAR software.
 
-**Most of this vignette is about the default, AVATAR blending**, applied to five
-public datasets with different structural challenges. For each generated subject
-it samples a compatible source subject's event skeleton as a template, then
-fills the covariates and endpoint trajectories with a distance-weighted blend of
-similar subjects, plus subject and residual noise. The output has the source
-schema, fresh identifiers, and the same cohort size. The final section runs the
+**Most of this vignette is about the default, AVATAR blending**, run over the
+eight public datasets described below. For each generated subject it samples a
+compatible source subject's event skeleton as a template, then fills the
+covariates and endpoint trajectories with a distance-weighted blend of similar
+subjects, plus subject and residual noise. The output has the source schema,
+fresh identifiers, and the same cohort size. A late section runs the
 model-based path on the same theophylline data, as `scripts/demo_nlmixr2data.R`
-does for all five.
+does for the first five.
 
 AVATAR output is **not** anonymous and carries **no formal privacy guarantee**.
 It is synthetic data that stays under the source data's access controls and
@@ -258,6 +259,41 @@ estimation, inference, model selection, or clinical decisions. When the
 generated data would reach anyone the source data could not, use one of the
 differentially private modes instead; `vignette("synpmx-privacy")` works through
 that decision and the tradeoff behind it.
+
+## The datasets
+
+Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
+`Suggests` of this package. They were not chosen for variety of drug or disease
+— `synpmx` never sees the pharmacology — but for variety of *structure*, since
+structure is the whole of what the algorithm reads and the whole of what can
+expose a patient. "Endpoints" counts **observation** endpoints; a compartment or
+`NAME` level used for dosing is not one.
+
+| Dataset | Package | Patients | Rows | Endpoints | What it is here to exercise |
+|---|---|---|---|---|---|
+| `theo_md` | nlmixr2data | 12 | 348 | 1 | Seven Q24H oral doses with dense profiles on occasions 1 and 7 only. Dosed by weight, but the recorded mg/kg spans 3.1 to 5.9, so dose inference correctly declines — the public case for declaring `dose_covariate` |
+| `warfarin` | nlmixr2data | 32 | 515 | 2 | Lower-case schema, one dose, PK (`cp`) and PD (`pca`) running on different time courses, factor covariates |
+| `wbcSim` | nlmixr2data | 45 | 280 | 1 | Infusion start/stop pairs and a myelosuppression response with delayed nadir and recovery. Follow-up spreads from 0 to 4580 hours — the only dataset here where the anchor screen fires |
+| `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions with declared `OCC`/`TAD` and **recorded actual dose times**. The worked failure: no two subjects were sampled close enough to share a grid visit |
+| `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period crossover, `TIME` resetting within `OCC`, an occasion-varying assigned dose, infusion rows. The largest cohort here |
+| `pheno_sd` | nlmixr2data | 59 | 744 | 1 | **Real patients**, and the largest real cohort available: neonatal phenobarbital, individualised dosing, sparse irregular sampling, time-varying weight. The honest failure on the dose side |
+| `case1_pkpd` | xgxr | 180 | 20820 | 2 | The only public dataset shaped like a study report — declared `NOMTIME`, six treatment arms, a `CENS` column, baseline weight. The case the coarsening design is aimed at |
+| `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose carrying ordinal, count and binary PD alongside continuous PD and PK. More endpoints than anything else available, and endpoint loss is invisible below three |
+
+Two things about this set are worth knowing before reading any number.
+
+**Half of it is real patient data and half is not.** `warfarin`, `nimoData`,
+`mavoglurant` and `pheno_sd` are real studies; `wbcSim`, `case1_pkpd` and `mad`
+are model-generated; `theo_md` is real on day 1 with days 2 to 7 simulated. That
+distinction earns its place here for one reason: a simulated cohort is sampled on
+a tidier schedule than a real one, and the two datasets where the masking fails
+below — `nimoData` and `pheno_sd` — are both real, while the one that passes
+perfectly is simulated. A result on simulated data is not evidence about a real
+study.
+
+**None of these datasets uses steady state, `ADDL`, or `II`.** Every dose is
+written out as its own row, so the handling of compressed dose records is
+exercised by the package's tests rather than by anything below.
 
 ## Shared workflow
 
@@ -273,21 +309,22 @@ caller's random-number state is left untouched; reproducibility comes from the
 
 ## What the masking does, and what it costs
 
-Enough happens by default that it is worth naming the five mechanisms before looking
+Enough happens by default that it is worth naming the six mechanisms before looking
 at any data. The AVATAR algorithm article walks through each in detail. AVATAR blends every avatar's **measurements** from several real
 donors, so no single patient's numbers survive. But the **event skeleton** — the
 pattern of when a patient was dosed and sampled — is copied verbatim from one
-real anchor, and blending never touches it. Five mechanisms act on that
+real anchor, and blending never touches it. Six mechanisms act on that
 skeleton, and every one of them works by *removing* something:
 
-The article numbers them **M1 to M5, in the order they run**; the same order is
-used here.
+The article numbers them **M1 to M6**; they are listed here in the order they
+run, which puts M6 between M3 and M4.
 
 | | Mechanism | Acts on | Why |
 |---|---|---|---|
 | **M1** | Snap every time onto a shared visit grid, then add deviations back from a cohort-wide pool (`coarsen_time`) | **all times** — dose events *and* DV observations | As recorded, one patient's list of times is very often unique to them. A *pooled* deviation restores realism without giving the patient their own back |
 | **M2** | Drop patients from the **anchor pool** (`screen`, `on_donor_shortfall`) | whole source patients | Follow-up or dose count over **2× the cohort's 90th percentile** would give any avatar a conspicuous skeleton; a route arm under `k + 1` has too few donors to blend with |
 | **M3** | Redraw which visits an avatar attended (`min_pattern_share`) | **DV observations only** — dose events untouched | A combination of missed visits held by one patient is a fingerprint made of gaps |
+| **M6** | Redraw where dosing stopped (automatic) | **dose events** — truncation only | Stopping at a depth nobody else used is a fingerprint. Dose times are never moved or invented, so this only ever truncates a real schedule earlier |
 | **M4** | Blend covariates and DV from donors, capped (`k`, `max_donor_weight`) | measured values | No avatar's numbers come from one real patient |
 | **M5** | Recompute the dose amount (automatic) | dose amounts, under **weight-based** (mg/kg) or BSA (mg/m²) dosing | A copied dose under mg/kg discloses the anchor's weight exactly |
 
@@ -577,27 +614,27 @@ masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
 subjects were available to anchor on — but the schedule rows tell a different
 story from theophylline's.
 
-**Twelve patients still have a unique schedule after coarsening, and only two of
-them for a reason the grid can address.** The other ten share every one of their observation
-times with somebody; what singles them out is *which* of those shared visits they
-attended. Warfarin has subjects with 13, 14, 16, 17, 18, 19 and 25 observations,
-and the rarer counts pick those subjects out on their own. No grid resolution
-helps, because the times are already shared.
+**Twelve patients still have a unique schedule after coarsening, and not one of
+them for a reason the grid can address.** All twelve share every one of their
+observation times with somebody; what singles them out is *which* of those shared
+visits they attended. Warfarin has subjects with 13, 14, 16, 17, 18, 19 and 25
+observations, and the rarer counts pick those subjects out on their own. No grid
+resolution helps, because the times are already shared.
 
-**Two of fourteen visit sets were discarded, each held by one patient.**
-Those two patients stay in the cohort and keep contributing measurements as
+**Four of fourteen visit sets were discarded, each held by one patient.**
+Those four patients stay in the cohort and keep contributing measurements as
 donors — only their distinctive absences stop being reproduced. Note that
 patterns discarded and patients holding them are equal: at the default floor of
 2, a pattern is discarded exactly when one patient holds it, so the two numbers
 must agree. They diverge only at a floor of 3 or more.
 
-**A quarter of avatars had their missed visits placed fresh.** The *shape* of the
-missingness —
+**About a fifth of avatars had their missed visits placed fresh.** The *shape* of
+the missingness —
 how many visits were missed and whether the misses were terminal, contiguous, or
 scattered — came from real patients who share it, but the specific visits missed
 were placed fresh, and rejected and redrawn if the placement happened to land on
-a pattern too rare to reuse. This is what keeps the loss at 2 patterns instead of
-12; see the section on pattern strictness below.
+a pattern too rare to reuse. That is what those avatars get *instead of* one of
+the four discarded sets; see the section on pattern strictness below.
 
 **Dose was recomputed from weight.** Warfarin is dosed at 1.5 mg/kg to within
 0.1%, tight enough for detection to fire, so each avatar's `amt` comes from its
@@ -664,14 +701,14 @@ screened subjects also remain donors, so their measurements still contribute.
 What is lost is not their data but the possibility of an avatar wearing their
 distinctive follow-up length.
 
-**Seventeen patients have a unique schedule, split six and eleven.** The six with
-a unique observation time are the ones worth acting on: `wbcSim` carries no nominal-time column, so
+**Seventeen patients have a unique schedule, split two and fifteen.** The two
+with a unique observation time are the ones worth acting on: `wbcSim` carries no nominal-time column, so
 the grid was inferred, and declaring a real one would likely clear them. The
-eleven with a unique set of attended visits are past the grid's reach.
+fifteen with a unique set of attended visits are past the grid's reach.
 
-**Four of 25 patterns were discarded.** A larger absolute number than warfarin's
-two but a much smaller share, because 45 subjects on a common infusion schedule
-produce more repetition than 32 warfarin subjects do.
+**Five of 25 patterns were discarded.** A larger absolute number than warfarin's
+four but a smaller share — 20% against 29% — because 45 subjects on a common
+infusion schedule produce more repetition than 32 warfarin subjects do.
 
 Dose is not recomputed: `wbcSim` has no baseline covariate for the amount to be
 proportional to, so there is nothing to detect.
@@ -733,19 +770,24 @@ together for the inferred grid to merge them. Every subject is observed at
 moments that are theirs alone, so every avatar carries a real visit schedule.
 
 The visit-set rows show the same failure from the other side, and they are the
-clearest illustration in the vignette of what the shape fallback does. **No two
-of the twelve subjects attended the same set of visits**, so exact matching has
-nothing to reuse — yet only two patterns are recorded as discarded. The
-difference is the fallback: patterns that share a *shape* (how many visits were
-missed, and whether the misses were terminal, contiguous, or scattered) clear the
-floor together even though no individual pattern does. Hence the row that gives
-the game away: **every avatar's arrangement was invented rather than reused,
-100%.** The shape survives; which specific visits each patient missed does not.
+clearest illustration in the vignette of what the shape fallback does. Twelve
+subjects hold twelve distinct visit sets; two of those are held by a single
+patient and are discarded. Yet the row that gives the game away is the next one:
+**every avatar's arrangement was invented rather than reused, 100%.** Not one
+avatar could be given a real patient's set of attended visits, so all twelve got
+a set built from a *shape* — how many visits were missed, and whether the misses
+were terminal, contiguous, or scattered. The shape survives; which specific
+visits each patient missed does not.
 
-The two failures have one cause and one fix, and `nimoData` gets that fix
+**And the dose row fails outright: all twelve avatars carry a dose schedule
+nobody else shares**, because the ten infusions were recorded at actual times
+rather than nominal ones, so every subject's dosing is theirs alone. Only 7 of
+the 12 source regimens are represented at all.
+
+All three failures have one cause and one fix, and `nimoData` gets that fix
 demonstrated later in this vignette: constructing a nominal time from the
-protocol grid takes the unique-schedule count from 12 to 5 and gives coarsening something to
-work with.
+protocol grid takes the unique-schedule count from 12 to 5, the invented-
+arrangement share from 100% to 17%, and the dose-schedule failures from 12 to 0.
 
 A dataset that produces this table should not be shipped as-is. Either declare
 or construct `nominal_time`, or treat the avatars as carrying real schedules.
@@ -805,23 +847,257 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 ```
 
 **The largest cohort here, and the one where the residual is largest in absolute
-terms.** Nothing was excluded from the anchor pool. The grid did essentially
-everything it could: of the patients still unique afterwards, **only one has a
-unique observation time.** The rest share every observation time with somebody and
-differ only in which of those visits they attended.
+terms.** Nothing was excluded from the anchor pool. The grid did most of what it
+could: of the 64 patients still unique afterwards, **eleven have a unique
+observation time** and the other 53 share every observation time with somebody,
+differing only in which of those visits they attended.
 
-That leaves the largest absolute residual in the vignette — 58 of 120 subjects
-whose set of attended visits nobody else matches — and no grid setting moves it.
-This is what the "unique pattern" row is for: it separates a problem you can fix
-by declaring `nominal_time` from one you can only address by dropping,
-remediating, or accepting.
+Those 53 are the largest absolute residual in the vignette, and no grid setting
+moves them. This is what the "unique visit set" row is for: it separates a
+problem you can fix by declaring `nominal_time` from one you can only address by
+dropping, remediating, or accepting.
 
-The pattern rows show the shape fallback working hard. Mavoglurant has by far the
-most distinct visit sets of any dataset here — 69 after coarsening, 59
-of them held by a single patient. Exact matching alone would have discarded all
-59. Instead **two are discarded**, because the rest share a shape with somebody,
-and no arrangement had to be invented at all: for every avatar, a real pattern of
-the right shape was available to reuse.
+The pattern rows are the reassuring part. Mavoglurant has by far the most
+distinct visit sets of any dataset here — **73** — and yet only **two** of them
+are held by a single patient, so only those two are discarded and **no
+arrangement had to be invented at all**: for every one of the 120 avatars, a
+real visit set that several patients share was available to reuse. A large
+number of distinct patterns is not by itself a problem; a large number of
+*singleton* patterns is.
+
+## case1_pkpd: a study report on its own nominal grid
+
+`xgxr::case1_pkpd` is the only public dataset here shaped like a real study
+report: 180 patients across six treatment arms, a declared `NOMTIME`, two
+endpoints keyed by a character `NAME` column, a baseline weight, and a `CENS`
+column. Everything the nlmixr2data five leave untested — a nominal grid, an arm
+to stratify on, censoring — is present.
+
+```{r case1, eval=has_xgxr}
+case1_pkpd <- as.data.frame(
+  get(utils::data(list = "case1_pkpd", package = "xgxr"))
+)
+case1_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
+  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+  keep = "STUDY"
+)
+case1_synth <- suppressWarnings(
+  synpmx_avatar(case1_pkpd, case1_roles, seed = 808)
+)
+```
+
+**Validate the source too.** Running `validate_pmx()` on the data you are about
+to generate from is how a mis-declared role is caught before it becomes a
+generation bug, and this dataset is the one where it fires. Declaring
+`cens = "CENS"` is refused, because that study's `CENS` is meaningful only for
+the PK endpoint — the PD effect is signed, so a "left-censored" PD row reports a
+value above uncensored ones and the flag cannot mean what it means for PK:
+
+```{r case1-cens, eval=has_xgxr}
+case1_roles_cens <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
+  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+)
+validate_pmx(case1_pkpd, case1_roles_cens)$valid
+```
+
+Leaving `cens` undeclared is the right answer for this study, and it is what the
+run above does.
+
+```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2}
+case1_comparison <- rbind(
+  observed_plot_data(case1_pkpd, case1_roles, "Source"),
+  observed_plot_data(case1_synth, case1_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  case1_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.15) +
+  ggplot2::geom_point(alpha = 0.25, size = 0.6) +
+  comparison_facets(case1_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "LIDV", colour = "Dataset",
+    title = "case1_pkpd: PK concentration and continuous PD, six arms"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+Six treatment arms, and an avatar never leaves the arm it was anchored in —
+`TRTACT` and `DOSE` are declared as `subject_properties`, so they are copied from
+the anchor and condition the regimen rather than being sampled independently:
+
+```{r case1-arms, eval=has_xgxr}
+knitr::kable(
+  as.data.frame(rbind(
+    Source = table(case1_pkpd$TRTACT[!duplicated(case1_pkpd$ID)]),
+    Synthetic = table(case1_synth$TRTACT[!duplicated(case1_synth$ID)])
+  )),
+  caption = "Patients per treatment arm, source against synthetic"
+)
+```
+
+### What the masking did to case1_pkpd
+
+```{r case1-masking, eval=has_xgxr}
+masking_table(case1_pkpd, case1_roles, case1_synth, "case1_pkpd")
+```
+
+**This is what a clean result looks like, and it is worth seeing once.** All 180
+patients start with a unique observation schedule and **none** ends with one. The
+difference from every dataset above is a single declared column: with `NOMTIME`
+present the grid is `nominal` rather than inferred, so coarsening is reading the
+protocol instead of guessing at it. 180 patients collapse onto **six** distinct
+visit sets, none of them rare, so nothing was discarded and no arrangement had to
+be invented. Both output guarantees are 0.
+
+Read this next to `nimoData`, which is the same mechanism with nothing to work
+from. The gap between them is not a tuning difference; it is whether the study
+recorded a nominal time.
+
+Dose is not recomputed: the five distinct amounts are the arm's assigned dose,
+not a multiple of baseline weight, so detection correctly declines.
+
+## mad: five endpoints, including ordinal, count, and binary
+
+`xgxr::mad` is a multiple-ascending-dose study carrying five observation
+endpoints — PK concentration, continuous PD, and ordinal, count, and binary PD —
+keyed by `NAME`. Everything else here has one or two, and an endpoint silently
+vanishing during generation is invisible with fewer than three.
+
+```{r mad, eval=has_xgxr}
+mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
+mad_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+  subject_properties = c("TRTACT", "DOSE"),
+  covariates = c("WEIGHTB", "SEX")
+)
+mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
+```
+
+Every endpoint in is an endpoint out. This is a set comparison, not a row count:
+row counts stayed plausible in the defect that motivated the check while an
+entire compartment disappeared.
+
+```{r mad-endpoints, eval=has_xgxr}
+setequal(unique(as.character(mad$NAME)), unique(as.character(mad_synth$NAME)))
+```
+
+```{r mad-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=6}
+mad_comparison <- rbind(
+  observed_plot_data(mad, mad_roles, "Source"),
+  observed_plot_data(mad_synth, mad_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  mad_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.2) +
+  ggplot2::geom_point(alpha = 0.3, size = 0.6) +
+  comparison_facets(mad_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "LIDV", colour = "Dataset",
+    title = "mad: five endpoints on one time axis"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom",
+                 strip.text = ggplot2::element_text(size = 7))
+```
+
+The ordinal, count, and binary panels are the ones to look at. AVATAR blends
+donor values and then restores the source column's class, so a count endpoint
+comes back as counts and an ordinal one keeps its levels — it does not learn that
+they are discrete, it never destroys the type in the first place.
+
+### What the masking did to mad
+
+```{r mad-masking, eval=has_xgxr}
+masking_table(mad, mad_roles, mad_synth, "mad")
+```
+
+Another declared `NOMTIME`, and the same clean outcome: 60 of 60 unique before,
+0 after, six visit sets, nothing discarded, no arrangement invented, both
+guarantees at 0. Five endpoints do not make masking harder — they make *endpoint
+loss* detectable, which is why this dataset is here.
+
+## pheno_sd: real patients whose dosing cannot be masked
+
+`nlmixr2data::pheno_sd` is 59 neonates given phenobarbital for seizure
+prevention, and the data come from routine clinical care rather than from a
+protocol. Dosing is individualised to the infant, sampling is sparse and
+irregular, and weight varies over time. It is the least protocol-like dataset
+here, and it is the one that fails.
+
+```{r pheno, eval=has_nlmixr2data}
+data("pheno_sd", package = "nlmixr2data")
+pheno_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  covariates = c("WT", "APGR")
+)
+pheno_synth <- suppressWarnings(synpmx_avatar(pheno_sd, pheno_roles, seed = 1010))
+```
+
+```{r pheno-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
+pheno_comparison <- rbind(
+  observed_plot_data(pheno_sd, pheno_roles, "Source"),
+  observed_plot_data(pheno_synth, pheno_roles, "Synthetic")
+)
+ggplot2::ggplot(
+  pheno_comparison,
+  ggplot2::aes(time, dv, group = interaction(dataset, subject),
+               colour = dataset)
+) +
+  ggplot2::geom_line(alpha = 0.3) +
+  ggplot2::geom_point(alpha = 0.5, size = 0.8) +
+  comparison_facets(pheno_comparison) +
+  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::labs(
+    x = "Study time (hours)", y = "Phenobarbital (ug/mL)", colour = "Dataset",
+    title = "pheno_sd: sparse, irregular, individualised"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+### What the masking did to pheno_sd
+
+```{r pheno-masking, eval=has_nlmixr2data}
+masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd")
+```
+
+**Read the dose rows, not the observation rows.** On the observation side the
+mechanism works: the visit-set guarantee holds at 0, so no avatar wears a set of
+attended visits that belongs to one real infant. On the dose side it does not,
+and the run says so rather than passing quietly — **15 avatars at this seed carry
+a dose schedule nobody else in the cohort shares**, which is the row that is
+supposed to be 0. In the source, 55 of the 59 infants have a dose schedule
+nobody else has, so there is very little to anchor on safely.
+
+The cause is not a setting. Dose events are copied from the anchor verbatim,
+because moving a dose is not a protocol-valid edit the way moving a sample is.
+When dosing is individualised — a neonate dosed to their own weight, on the day
+their own clinician decided — most patients have a dose schedule nobody shares,
+and there is no safe patient to anchor on instead. Coarsening cannot help: it
+acts on the visit grid, and the exposure here is *which days this infant was
+dosed*.
+
+That is what an honest failure looks like, and it is why every run reports both
+guarantees separately. A study with this shape either accepts that its avatars
+carry real dosing schedules — defensible only inside the source data's own access
+controls — or does not use AVATAR.
+
+Dose is not recomputed here either, for the same reason as `theo_md`: the 54
+distinct amounts are not a clean multiple of `WT` or `APGR`, so inference
+declines rather than imposing a rule the study did not use.
 
 ## The model-based path on the same data
 
@@ -915,13 +1191,13 @@ vignette runs it on this same dataset.
 Everything above shows that the synthetic data *looks* right. This section asks
 the other question: how much of each real patient is still visible in it?
 
-### All five side by side
+### All eight side by side
 
 Each dataset above carries its own accounting. This section puts the same
 quantities in one place, because the *contrast* between datasets is what shows
 how much the answer depends on study design rather than on the package.
 
-```{r exposure-table, eval=has_nlmixr2data}
+```{r exposure-table, eval=has_nlmixr2data && has_xgxr}
 exposure_row <- function(label, source, roles, synthetic) {
   before <- skeleton_uniqueness(source, roles)
   after <- attr(synthetic, "pmx_settings")
@@ -941,7 +1217,10 @@ exposure <- rbind(
   exposure_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
   exposure_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
   exposure_row("nimoData", nimoData, nimo_roles, nimo_synth),
-  exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth)
+  exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
+  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+  exposure_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
+  exposure_row("mad", mad, mad_roles, mad_synth)
 )
 knitr::kable(
   exposure,
@@ -953,12 +1232,20 @@ knitr::kable(
 )
 ```
 
+Three datasets reach zero and five do not, and the split is not about cohort
+size. `case1_pkpd` (180 patients) and `mad` (60) reach it because they declare
+`NOMTIME`, so coarsening reads the protocol grid instead of inferring one;
+`theo_md` reaches it on an inferred grid because twelve subjects on one dense
+protocol leave an obvious grid to find. Everything else is a study whose
+recorded times do not collapse, and `nimoData` and `pheno_sd` are the extreme
+cases — real studies where the times are genuinely per-patient.
+
 ### And what the masking cost
 
 Exposure is only half the story. The mechanisms that reduce it do so by
 *removing* things, and the removals are worth seeing next to the numbers above.
 
-```{r exposure-cost, eval=has_nlmixr2data}
+```{r exposure-cost, eval=has_nlmixr2data && has_xgxr}
 cost_row <- function(label, source, roles, synthetic) {
   settings <- attr(synthetic, "pmx_settings")
   data.frame(
@@ -981,7 +1268,10 @@ knitr::kable(
     cost_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
     cost_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
     cost_row("nimoData", nimoData, nimo_roles, nimo_synth),
-    cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth)
+    cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
+    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+    cost_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
+    cost_row("mad", mad, mad_roles, mad_synth)
   ),
   caption = paste(
     "What the masking removed. The first three counts are patients excluded",
@@ -1006,20 +1296,21 @@ discarded pattern has precisely one holder and the two columns must agree. They
 only diverge at a floor of 3 or more, where a pattern held by two patients is
 also dropped.
 
-**`nimoData` loses all twelve patterns, held by all twelve patients.** Also
-correct: no two of its subjects attended the same set of visits, so nothing
-qualifies and there is no pool to draw from. Every avatar keeps its anchor's own
-pattern — the safe failure, and the run alerts — which is the same underlying
-problem as its inferred-grid failure and has the same fix, shown below.
+**`Patterns lost` says nothing about how well a dataset did.** `mavoglurant`
+loses 2 of 73 and `nimoData` loses 2 of 12, and they are not comparable results:
+mavoglurant reused a real visit set for every avatar, while nimoData could reuse
+none and invented all twelve from a shape. The discard count has to be read next
+to `pattern_generated_fraction`, which the per-dataset tables above print and
+this one does not.
 
 ### Is a "pattern" too strictly defined?
 
 Reasonably asked, and the answer is yes, deliberately. A pattern here is the
 **exact** set of endpoint-and-time pairs a subject was observed at. Two patients
 who each missed exactly one visit have *different* patterns if they missed
-different visits. That is why singletons dominate so heavily — after coarsening,
-12 of warfarin's 14 patterns are held by one patient, and 59 of mavoglurant's 69
-— and therefore why exact matching alone would discard so much.
+different visits. Every pattern held by exactly one patient is discarded, and how
+many that is depends entirely on the study: 4 of warfarin's 14 after coarsening,
+5 of wbcSim's 25, but only 2 of mavoglurant's 73.
 
 The strictness is what makes the guarantee exact: reusing a pattern that one real
 patient holds would reproduce that patient's schedule, so nothing short of exact
@@ -1035,11 +1326,12 @@ shape a real pattern is reused if one clears the floor; only otherwise is an
 arrangement generated, and a generated one is rejected and redrawn if it happens
 to land on a pattern too rare to have been reusable.
 
-The per-dataset tables show how much this rescues. On `warfarin` the loss falls
-from 12 patterns to 2; on `mavoglurant` from 59 to 2; on `nimoData`, where *no*
-pattern is shared by even two subjects, from 12 to 2. The price appears in the
-"arrangement invented" row: `nimoData` pays it in full at 100%, `warfarin` at
-25%, and `mavoglurant` not at all.
+What the fallback rescues is the *avatar*, not the pattern count. A discarded
+pattern stays discarded; what the shape gives is a legal set of visits to hand
+the avatar that would otherwise have worn it. The per-dataset tables show the
+price in the "misses placed fresh" row, and it varies as much as everything else
+here: `nimoData` pays it in full at 100%, `pheno_sd` at 41%, `warfarin` at 22%,
+`wbcSim` at 2%, and `mavoglurant`, `theo_md`, `case1_pkpd` and `mad` not at all.
 
 What remains lost is *resolution*: how much missingness there was and what kind
 survive; which specific visits each patient missed does not.
@@ -1052,7 +1344,7 @@ each subject's nearest neighbour lies in its own dataset or the other one. Near
 0.5 means a synthetic subject is no more like a real subject than one real
 subject is like another, which is the target; toward 0 means memorisation.
 
-```{r proximity, eval=has_nlmixr2data}
+```{r proximity, eval=has_nlmixr2data && has_xgxr}
 proximity_row <- function(label, source, synthetic, roles) {
   report <- compare_pmx_proximity(source, synthetic, roles, replicates = 30)
   data.frame(
@@ -1070,7 +1362,10 @@ knitr::kable(
     proximity_row("theo_md", theo_md, theo_synth, theo_roles),
     proximity_row("warfarin", warfarin, warfarin_synth, warfarin_roles),
     proximity_row("wbcSim", wbcSim, wbc_synth, wbc_roles),
-    proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles)
+    proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles),
+    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles),
+    proximity_row("case1_pkpd", case1_pkpd, case1_synth, case1_roles),
+    proximity_row("mad", mad, mad_synth, mad_roles)
   ),
   caption = paste(
     "Nearest-neighbour adversarial accuracy against a split-half null built",
@@ -1092,15 +1387,17 @@ the function a verbatim copy and requiring it to object.
 **The unique-schedule count after coarsening is the number of patients you would
 consider dropping**, and the split by cause decides whether dropping is even the
 right response. Each dataset
-section above works through its own numbers; the pattern across all five is what
+section above works through its own numbers; the pattern across all eight is what
 matters here.
 
-The spread runs from **`theo_md`, where coarsening takes 12 unique schedules to 0 and there
-is nothing left to do**, through **`mavoglurant`, where the grid does everything
-it can and still leaves 58 of 120 patients unique on their
-visit set**, to **`nimoData`, where the grid achieves nothing at all**.
-Same package, same defaults, same seed discipline — the difference is entirely in
-how the studies were designed and how their times were recorded.
+The spread runs from **`case1_pkpd`, where 180 patients on a declared nominal
+grid go to 0 and the mechanism has nothing left to do**, through **`mavoglurant`,
+where the grid does most of what it can and still leaves 53 of 120 patients
+unique on their visit set**, to **`nimoData`, where the grid achieves nothing at all**,
+and finally to **`pheno_sd`, where the observation side is clean and the *dosing*
+cannot be masked at all**. Same package, same defaults, same seed discipline —
+the difference is entirely in how the studies were designed and how their times
+were recorded.
 
 That is the point of reporting these per dataset rather than quoting a headline
 number. There is no "synpmx removes X% of the exposure." There is only what it
@@ -1130,10 +1427,11 @@ measurements as a donor.
 What *is* lost is the rare patterns themselves. They are discarded rather than
 approximated, so those specific patterns of missing visits and dose
 interruptions will not
-appear in the output. With the shape fallback the loss is small on every dataset
-here — two patterns each on `warfarin`, `nimoData`, and `mavoglurant`, four on
-`wbcSim` — but it is never zero except where coarsening has already made the
-patterns common, as on `theo_md`.
+appear in the output. The loss is a handful of patterns on every dataset here —
+two each on `nimoData` and `mavoglurant`, three on `pheno_sd`, four on
+`warfarin`, five on `wbcSim` — and it is zero wherever coarsening has already
+made the patterns common, on `theo_md` from an inferred grid and on `case1_pkpd`
+and `mad` from a declared one.
 
 Every run reports the figures, and the per-dataset tables above print them:
 `patterns_total`, `patterns_dropped`, and `subjects_with_dropped_pattern` in the
@@ -1144,7 +1442,7 @@ invents the arrangement for every single avatar.
 
 ### What to do about it
 
-Dropping 59 of 120 subjects is a real cost, and it is not automatic. Under this
+Dropping 53 of 120 subjects is a real cost, and it is not automatic. Under this
 package's governance model — AVATAR output stays inside the source data's own
 access controls — a unique schedule is a reason for care, not a blocker. The
 sequence worth following is:

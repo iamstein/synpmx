@@ -86,7 +86,7 @@ required; everything else is optional.
 
 The block below stands in for your study — replace the first dozen lines with
 your own data frame and edit the column descriptions to match your dataset. The example below
-shows every declarable column, so most studies will use a subset.
+shows every column AVATAR can be told about, so most studies will use a subset.
 
 ``` r
 library(synpmx)
@@ -128,11 +128,6 @@ roles <- pmx_roles(
   # addl, ii          -- accepted and carried, but not expanded; expand
   #                      ADDL doses into explicit rows before synthesis
 )
-
-validate_pmx(study, roles)$valid
-#> [1] TRUE
-
-
 ```
 
 **Covariates and Subject Properties** are easy roles to confuse:
@@ -192,7 +187,7 @@ tradeoff, not as a production ready. That status is enforced in that `synpmx_cal
 | Document | Question it answers |
 |----|----|
 | [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? **Start here.** |
-| [Demo; Using synpmx AVATAR with 5 datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.html) | How do I run this on my own study? |
+| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.html) | How well does it work, and what did the masking cost, on eight public datasets? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 
 ## References

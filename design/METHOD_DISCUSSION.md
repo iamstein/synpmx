@@ -236,7 +236,7 @@ the 2026-07-25 record of why the cap was identified as the binding constraint.)*
 The small-group fallback did emit a real `warning()` (`R/synthesis.R:586`), but
 as a deferred `warn=0` warning printed unobtrusively after the call — easy to
 miss, and trivially removed by `suppressWarnings()`. The shipped demo does
-exactly that (`synpmx-demo.Rmd:403`, wbcSim), so the website never shows it. The
+exactly that (`avatar-evaluation-public-data.Rmd`, wbcSim), so the website never shows it. The
 hard-floor `stop()` is the fix: an error cannot be suppressed by
 `suppressWarnings` and halts execution. Groups that still meet the floor but hit
 lesser fallbacks (e.g. `k` reduced from 5 to 5-available) stay warnings.
