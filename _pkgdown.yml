@@ -20,6 +20,8 @@ navbar:
       text: Articles
       menu:
       - text: "Guides"
+      - text: "Demo: one dataset, end to end"
+        href: articles/demo.html
       - text: The synpmx AVATAR Algorithm
         href: articles/avatar-algorithm.html
       - text: Evaluating AVATAR on public data
@@ -42,6 +44,10 @@ navbar:
         href: articles/privacy-argument.html
       - text: Feasibility by cohort size
         href: articles/feasibility.html
+      - text: -------
+      - text: "Background"
+      - text: Literature review
+        href: articles/literature-review.html
 
 reference:
 - title: Generating data

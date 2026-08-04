@@ -25,6 +25,13 @@ and roxygen comments must not reference one.
 change.** Keep this set small; each one is a recurring cost, not just a
 document.
 
+- `demo.Rmd` — one dataset (`xgxr::case1_pkpd`) taken end to end in the order a
+  user would do it: roles, validation, schedule uniqueness, generation, masking
+  report, distribution and proximity checks, source-versus-synthetic plots.
+  Written 2026-08-04, modelled on the private per-study try files. Chosen for
+  `case1_pkpd` because all 180 patients have a unique observation schedule as
+  recorded and coarsening onto `NOMTIME` takes that to zero, which is the
+  clearest demonstration of the visit grid available in public data.
 - `synpmx-4-methods.Rmd` — the four generation modes at a high level.
 - `avatar-algorithm.Rmd` — the default generator step by step, and the seven
   masking mechanisms M1-M6. Promoted from `articles/` on 2026-07-31 because it
