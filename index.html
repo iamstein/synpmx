@@ -107,14 +107,13 @@
 </tr>
 </tbody>
 </table>
-<p>The use case this package was built for: sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can happen without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
+<p>The main use caes of this package is for sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can occur without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
 <h2 id="the-main-deliverable-avatar-method">The main deliverable: AVATAR method<a class="anchor" aria-label="anchor" href="#the-main-deliverable-avatar-method"></a>
 </h2>
-<p>The main deliverable of this package is an implementation of the AVATAR method [1, 2], which offers some data masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and requires no model to be specified. The original method was developed in Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK datasets [1]. However, they did not test their method using pharmacometrics dataset from actual clinical trials. We have done here, and in the process we have added features such as handling BLOQ data and masking patients with unique dosing schedules.<br>
-The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</p>
-<p>The package also provides code for other data masking methods: trial simulation from prior knowledge, and two differential privacy (DP) methods that give more formal protection. These methods are provided mainly to illustrate the tradeoffs between ways of generating synthetic data, and are not actively maintained.</p>
+<p>The main deliverable of this package is an implementation of the AVATAR method [1, 2], which offers some data masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and requires no model to be specified. The original method was developed in Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified AVATAR for population PK datasets [1]. However, they did not test their method using pharmacometrics dataset from actual clinical trials. We have done here, and in the process we have added features such as handling BLOQ data and masking patients with unique dosing schedules and observation times.</p>
+<p>The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>, which builds artificial profiles from real patient profiles, It masks identifiable characteristics. but does not offer formal privacy guarantees. For didactic purposes, the package also provides code for other data masking methods, using trial simulation from prior knowledge, and differential privacy methods. These methods give more formal privacy protection and they are included here to illustrate the tradeoffs between ways of generating synthetic data. These methods are not actively maintained.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -137,9 +136,8 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 <div class="section level2">
 <h2 id="running-it-on-your-own-study">Running it on your own study<a class="anchor" aria-label="anchor" href="#running-it-on-your-own-study"></a>
 </h2>
-<p>AVATAR needs two things: the data, and a declaration of what its columns mean. There is no model to specify and nothing to fit.</p>
-<p>The declaration is also the <strong>manifest of what survives</strong>. <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> drops every column with no role names, so a column you forget is dropped rather than quietly copied out of a real patient. Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required; everything else is optional.</p>
-<p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the role names to match your columns. It is built to carry every declarable column at once, so most studies will use a subset:</p>
+<p>AVATAR, called by <code>synpmx_avatar() needs two things: the data, and a declaration of what its columns mean. A model is not needed.  The function drops every column that is not described, so a column you forget is  describe is dropped rather than quietly copied out of a real patient. Only</code>id<code>,</code>time<code>,</code>dv<code>, and</code>evid` are required; everything else is optional.</p>
+<p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the column descriptions to match your dataset. The example below shows every declarable column, so most studies will use a subset.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
@@ -164,12 +162,9 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 <span>  amt                <span class="op">=</span> <span class="st">"AMT"</span>,                   <span class="co"># dose amount</span></span>
 <span>  rate               <span class="op">=</span> <span class="st">"RATE"</span>,                  <span class="co"># infusion rate</span></span>
 <span>  cmt                <span class="op">=</span> <span class="st">"CMT"</span>,                   <span class="co"># compartment</span></span>
-<span>  dvid               <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YTYPE"</span>, <span class="st">"NAME"</span><span class="op">)</span>,      <span class="co"># endpoint key; several columns</span></span>
-<span>                                                <span class="co">#   may label the same endpoint,</span></span>
-<span>                                                <span class="co">#   first is authoritative. If</span></span>
-<span>                                                <span class="co">#   CMT is your only endpoint</span></span>
-<span>                                                <span class="co">#   key, name it twice:</span></span>
-<span>                                                <span class="co">#   cmt = "CMT", dvid = "CMT"</span></span>
+<span>  dvid               <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YTYPE"</span>, <span class="st">"NAME"</span><span class="op">)</span>,      <span class="co"># endpoint key; several columns may label the same endpoint,</span></span>
+<span>                                                <span class="co"># If CMT is your only endpoint key, name it in both</span></span>
+<span>                                                <span class="co"># cmt = "CMT", dvid = "CMT"</span></span>
 <span>  mdv                <span class="op">=</span> <span class="st">"MDV"</span>,                   <span class="co"># missing-DV indicator</span></span>
 <span>  nominal_time       <span class="op">=</span> <span class="st">"NTIME"</span>,                 <span class="co"># protocol visit time</span></span>
 <span>  tad                <span class="op">=</span> <span class="st">"TAD"</span>,                   <span class="co"># time after dose; recomputed</span></span>
@@ -177,17 +172,11 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 <span>  cens               <span class="op">=</span> <span class="st">"CENS"</span>,                  <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
 <span>  limit              <span class="op">=</span> <span class="st">"LIMIT"</span>,                 <span class="co"># the other interval boundary</span></span>
 <span>  covariates         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span>,   <span class="co"># measured; blended across donors</span></span>
-<span>  dose_covariate     <span class="op">=</span> <span class="st">"WT"</span>,                    <span class="co"># dose is mg/kg. Declare it and</span></span>
-<span>                                                <span class="co">#   each avatar's AMT is rebuilt</span></span>
-<span>                                                <span class="co">#   from its own blended WT.</span></span>
-<span>                                                <span class="co">#   NULL infers it instead, and</span></span>
-<span>                                                <span class="co">#   inference fails closed</span></span>
-<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRT"</span>, <span class="st">"TRTN"</span><span class="op">)</span>,        <span class="co"># assigned stratum; groups the</span></span>
-<span>                                                <span class="co">#   dose rule and visit patterns</span></span>
-<span>  keep               <span class="op">=</span> <span class="st">"STUDYID"</span>                <span class="co"># carried through verbatim</span></span>
+<span>  dose_covariate     <span class="op">=</span> <span class="st">"WT"</span>,                    <span class="co"># in this case, dose is body-weight based and it should be declared</span></span>
+<span>  subject_properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRT"</span>, <span class="st">"TRTN"</span><span class="op">)</span>,        <span class="co"># assigned patient stratification variable</span></span>
+<span>  keep               <span class="op">=</span> <span class="st">"STUDYID"</span>                <span class="co"># columns to be carried through verbatim</span></span>
 <span>  <span class="co"># addl, ii          -- accepted and carried, but not expanded; expand</span></span>
 <span>  <span class="co">#                      ADDL doses into explicit rows before synthesis</span></span>
-<span>  <span class="co"># assigned_dose, exclude -- differential-privacy engines only</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">study</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
@@ -208,57 +197,13 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 <p>Every masking argument below is shown at its default, so this call behaves exactly like <code>synpmx_avatar(study, roles, seed = 2026)</code>:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
-<span>  <span class="va">study</span>, <span class="va">roles</span>,</span>
-<span>  n_subjects         <span class="op">=</span> <span class="cn">NULL</span>,   <span class="co"># cohort size; NULL matches the source</span></span>
-<span>  seed               <span class="op">=</span> <span class="fl">2026</span>,</span>
-<span>  <span class="co"># --- how much of one real patient can reach one synthetic patient ---</span></span>
-<span>  k                  <span class="op">=</span> <span class="fl">5</span>,      <span class="co"># donors blended into each avatar (the floor)</span></span>
-<span>  max_donor_weight   <span class="op">=</span> <span class="fl">0.50</span>,   <span class="co"># no one donor is more than half an avatar</span></span>
-<span>  on_donor_shortfall <span class="op">=</span> <span class="st">"drop"</span>, <span class="co"># a route arm below k + 1 subjects is dropped</span></span>
-<span>  <span class="co"># --- what structure is masked ---</span></span>
-<span>  screen             <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># never anchor on a subject whose follow-up or</span></span>
-<span>                               <span class="co">#   dose count exceeds 2x the cohort's 90th pct</span></span>
-<span>  coarsen_time       <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># snap times onto a shared visit grid, then</span></span>
-<span>                               <span class="co">#   resample pooled deviations back, so no avatar</span></span>
-<span>                               <span class="co">#   carries one real visit schedule. Uses</span></span>
-<span>                               <span class="co">#   `nominal_time` when declared; K-means centres</span></span>
-<span>                               <span class="co">#   of the pooled times otherwise</span></span>
-<span>  min_pattern_share  <span class="op">=</span> <span class="fl">2L</span>,     <span class="co"># an avatar's attended-visit pattern when DV is collected</span></span>
-<span>                               <span class="co"># must be one that at least 2 real subjects share, so no</span></span>
-<span>                               <span class="co">#   synthetic schedule is unique to one patient</span></span>
-<span>  <span class="co"># --- how much noise is added on top of the blend ---</span></span>
-<span>  subject_noise_sd   <span class="op">=</span> <span class="fl">0.15</span>,   <span class="co"># one draw per avatar: shifts that avatar's whole</span></span>
-<span>                               <span class="co">#   curve up or down together</span></span>
-<span>  residual_noise_sd  <span class="op">=</span> <span class="fl">0.05</span>,   <span class="co"># point-to-point scatter within one avatar's curve</span></span>
-<span>  residual_phi       <span class="op">=</span> <span class="fl">0.6</span>,    <span class="co"># how much consecutive points wander together:</span></span>
-<span>                               <span class="co">#   0 = independent scatter, toward 1 = smooth drift</span></span>
-<span>  time_jitter        <span class="op">=</span> <span class="fl">0</span>,      <span class="co"># realism only, NOT privacy: jitter is clamped</span></span>
-<span>                               <span class="co">#   within half a gap of the source visit</span></span>
-<span>  pca_variance       <span class="op">=</span> <span class="fl">0.90</span>    <span class="co"># profile variance retained for donor distances</span></span>
-<span><span class="op">)</span></span>
+<span>  <span class="va">study</span>,             <span class="co">#study data</span></span>
+<span>  <span class="va">roles</span>,             <span class="co">#column desrciption</span></span>
+<span>  n_subjects <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># cohort size; NULL matches the source</span></span>
+<span>  seed       <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 384  21</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"NTIME"</span>, <span class="st">"OCC"</span>, <span class="st">"NAME"</span>, <span class="st">"DV"</span>, <span class="st">"CENS"</span>, <span class="st">"TRT"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">6</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   ID TIME NTIME OCC NAME        DV CENS       TRT</span></span>
-<span><span class="co">#&gt; 1 25 0.00  0.00   1   cp  0.000000    0 100 mg QD</span></span>
-<span><span class="co">#&gt; 2 25 0.00  0.00   1   pd 90.823217    0 100 mg QD</span></span>
-<span><span class="co">#&gt; 3 25 0.25  0.25   1   cp  1.200000    1 100 mg QD</span></span>
-<span><span class="co">#&gt; 4 25 1.00  1.00   1   cp  8.249096    0 100 mg QD</span></span>
-<span><span class="co">#&gt; 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD</span></span>
-<span><span class="co">#&gt; 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD</span></span></code></pre></div>
-<p><strong>The three noise settings do different jobs, and none of them is an absolute amount.</strong> Blending several donors averages their curves together, which pulls every avatar toward the cohort mean and shrinks the spread between subjects — so noise is added back deliberately, in two layers:</p>
-<ul>
-<li>
-<code>subject_noise_sd</code> is <strong>one draw per avatar per endpoint</strong>, added to that avatar’s entire trajectory. It moves the whole curve up or down, which is what restores between-subject variability.</li>
-<li>
-<code>residual_noise_sd</code> is added <strong>point by point</strong> along the curve, and <code>residual_phi</code> decides how much each point inherits from the one before it. At <code>0</code> you get independent scatter, which looks like assay noise; toward <code>1</code> the noise drifts smoothly, which looks like a real biological wander. The default 0.6 sits between the two.</li>
-</ul>
-<p>Both are <strong>scaled to the endpoint</strong>, not measured in its units. On a log-transformed endpoint — the usual case for concentrations — the value applies on the log scale, so <code>0.15</code> is roughly a 15% multiplicative shift. On an untransformed endpoint it is a fraction of the standard deviation of the source values. That is why the same defaults work across endpoints on wildly different scales.</p>
-<p><code>time_jitter</code> is not in this group: it perturbs observation <em>times</em> rather than values, and as noted above it is a realism control rather than a privacy one.</p>
-<p>Two things the defaults do that are worth knowing about. Where dosing is proportional to a covariate (mg/kg, mg/m²), each avatar’s <code>AMT</code> is <strong>recomputed from its own blended covariate</strong> rather than copied, so the synthetic patient’s dose matches the synthetic patient’s weight. <strong>Say so with <code>dose_covariate</code></strong>: left undeclared, the run has to <em>infer</em> the relationship, and it infers conservatively — the dose-to-covariate ratio must collapse onto a handful of levels, so a study that dispenses in vials or escalates within a patient is refused and its amounts are copied verbatim, which leaves every avatar’s implied mg/kg wrong and the copied milligrams still encoding one real patient’s weight. Declaring the covariate also keeps each dose row’s own ratio, so intra-patient escalation survives exactly. And a time of DV collection pattern held by fewer than <code>min_pattern_share</code> subjects is <strong>lost, not approximated</strong>, and instead such a pattern is sampled from the patients who share this data collection patterns with others .</p>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-four-modes-for-generating-synthetic-data">The four modes for generating synthetic data<a class="anchor" aria-label="anchor" href="#the-four-modes-for-generating-synthetic-data"></a>
@@ -284,7 +229,7 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 <td><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code></td>
 <td>Real subject templates and blended real trajectories</td>
 <td>None; governance only</td>
-<td>At least 5 subjects</td>
+<td>At least 6 subjects</td>
 </tr>
 <tr>
 <td><strong>2. Prior only</strong></td>
@@ -312,10 +257,6 @@ The key function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()
 </tr>
 </tbody>
 </table>
-<p><strong>The trust boundary decides whether you need differential privacy.</strong></p>
-<p>If the generated data will not be accessible to anyone who cannot access the original data and formal privacy guarantees are not needed, then the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn’t require the specification of a model.</p>
-<p>On the other hand, if the synthetic data will reach those who do not have access to the original data, then more formal methods with mathematical trust guarantees are the appropriate methods of choice, as they offer concrete privacy guarantees.</p>
-<p><code><a href="articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> runs all four methods on the same dataset and shows the results side by side.</p>
 </div>
 <div class="section level2">
 <h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
