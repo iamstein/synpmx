@@ -37,7 +37,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="articles/synpmx-demo.html">Demo: Using synpmx AVATAR with 5 datasets</a></li>
+    <li><a class="dropdown-item" href="articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
     <li><a class="dropdown-item" href="articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="articles/synpmx-privacy.html">Privacy</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -137,7 +137,7 @@
 <h2 id="running-it-on-your-own-study">Running it on your own study<a class="anchor" aria-label="anchor" href="#running-it-on-your-own-study"></a>
 </h2>
 <p>AVATAR, called by <code>synpmx_avatar() needs two things: the data, and a declaration of what its columns mean. A model is not needed.  The function drops every column that is not described, so a column you forget is  describe is dropped rather than quietly copied out of a real patient. Only</code>id<code>,</code>time<code>,</code>dv<code>, and</code>evid` are required; everything else is optional.</p>
-<p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the column descriptions to match your dataset. The example below shows every declarable column, so most studies will use a subset.</p>
+<p>The block below stands in for your study — replace the first dozen lines with your own data frame and edit the column descriptions to match your dataset. The example below shows every column AVATAR can be told about, so most studies will use a subset.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
@@ -177,10 +177,7 @@
 <span>  keep               <span class="op">=</span> <span class="st">"STUDYID"</span>                <span class="co"># columns to be carried through verbatim</span></span>
 <span>  <span class="co"># addl, ii          -- accepted and carried, but not expanded; expand</span></span>
 <span>  <span class="co">#                      ADDL doses into explicit rows before synthesis</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">study</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="op">)</span></span></code></pre></div>
 <p><strong>Covariates and Subject Properties</strong> are easy roles to confuse:</p>
 <ul>
 <li>
@@ -283,8 +280,8 @@
 </td>
 </tr>
 <tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-demo.html">Demo; Using synpmx AVATAR with 5 datasets</a></td>
-<td>How do I run this on my own study?</td>
+<td><a href="https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></td>
+<td>How well does it work, and what did the masking cost, on eight public datasets?</td>
 </tr>
 <tr>
 <td><a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The AVATAR Algorithm</a></td>

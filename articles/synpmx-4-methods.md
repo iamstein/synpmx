@@ -656,9 +656,11 @@ producing the model code.
 
 ## Where to go next
 
-- [`vignette("synpmx-demo")`](https://iamstein.github.io/synpmx/articles/synpmx-demo.md)
-  — the practical workflow across five public datasets, with structural
-  checks.
+- [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
+  —
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  run across eight public datasets, with the structural checks and the
+  masking accounting for each.
 - [`vignette("synpmx-privacy")`](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md)
   — what differential privacy guarantees, what it does not, the
   trust-boundary decision rule, and how epsilon trades against utility.

@@ -4,6 +4,8 @@
 
 - [The synpmx AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md):
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 - [Example: are PK/PD, covariate, and treatment relationships
@@ -18,6 +20,4 @@
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
 - [The four synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
-- [Demo: Using synpmx AVATAR with 5
-  datasets](https://iamstein.github.io/synpmx/articles/synpmx-demo.md):
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):

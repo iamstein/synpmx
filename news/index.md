@@ -7,6 +7,21 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- The demo vignette is now an evaluation, and is named like one:
+  `synpmx-demo.Rmd` becomes `avatar-evaluation-public-data.Rmd`
+  (“Evaluating AVATAR on public data”). It is a measurement of
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  across public data rather than a tutorial, so it now runs all eight
+  datasets rather than five —
+  [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html),
+  [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html) and
+  [`nlmixr2data::pheno_sd`](https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html)
+  join the original five — and opens with a table describing every
+  dataset and what each is there to exercise. The old pkgdown URL
+  redirects. Per-dataset numbers quoted in the prose were re-measured
+  against current behavior; several had drifted, and the
+  masking-mechanism table had been missing `M6`.
+
 - Three more public datasets are covered by the test suite.
   [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html)
   (180 patients, declared nominal time, six arms, two endpoints,
