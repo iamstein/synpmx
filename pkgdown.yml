@@ -5,15 +5,17 @@ articles:
   avatar-algorithm: avatar-algorithm.html
   avatar-evaluation-public-data: avatar-evaluation-public-data.html
   articles/data-elicitation: data-elicitation.html
+  demo: demo.html
   articles/example-avatar-PKPD-covariate-treatment-effect: example-avatar-PKPD-covariate-treatment-effect.html
   articles/feasibility: feasibility.html
+  articles/literature-review: literature-review.html
   articles/model-elicitation: model-elicitation.html
   articles/privacy-argument: privacy-argument.html
   articles/privacy-background: privacy-background.html
   synpmx-4-methods: synpmx-4-methods.html
   articles/synpmx-privacy: synpmx-privacy.html
   synthetic-data-checks: synthetic-data-checks.html
-last_built: 2026-08-04T15:16Z
+last_built: 2026-08-04T17:21Z
 urls:
   reference: https://iamstein.github.io/synpmx/reference
   article: https://iamstein.github.io/synpmx/articles
