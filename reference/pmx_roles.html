@@ -124,8 +124,28 @@ roles</strong>: <code>pmx_roles(..., cmt = "CMT", dvid = "CMT")</code>. This is 
 permitted overlap; every other collision is an error.</p></dd>
 
 
-<dt id="arg-nominal-time-tad-occasion">nominal_time, tad, occasion<a class="anchor" aria-label="anchor" href="#arg-nominal-time-tad-occasion"></a></dt>
+<dt id="arg-nominal-time-occasion">nominal_time, occasion<a class="anchor" aria-label="anchor" href="#arg-nominal-time-occasion"></a></dt>
 <dd><p>Optional time metadata columns.</p></dd>
+
+
+<dt id="arg-tad">tad<a class="anchor" aria-label="anchor" href="#arg-tad"></a></dt>
+<dd><p>Time-after-dose column. <strong>It is an output, not an input.</strong>
+<code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> recomputes it from the generated times and the generated
+dose rows and overwrites whatever the source held, so declaring the role
+says which column to overwrite and to carry through — the source's values
+are never used to generate anything.</p>
+<p><code><a href="validate_pmx.html">validate_pmx()</a></code> does read them, and reports (as a non-fatal warning) where
+the declared column disagrees with time since the most recent dose row.
+That disagreement is worth knowing: a study may measure TAD from the end of
+an infusion, from a nominal dose time, or from an assigned dosing occasion
+rather than the most recent dose. <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> disagrees on 45%
+of its observation rows. Where it does, the synthetic column follows the
+derivation rather than the source's convention.</p>
+<p>Two limits. Samples taken before any dose are reported as 0, because
+<code><a href="validate_pmx.html">validate_pmx()</a></code> refuses a negative TAD — not because a baseline sample is
+genuinely zero hours after a dose it precedes. And where <code>addl</code> or <code>ii</code> is
+declared, the derivation cannot see the doses those imply, so the agreement
+check is skipped and says so.</p></dd>
 
 
 <dt id="arg-cens-limit">cens, limit<a class="anchor" aria-label="anchor" href="#arg-cens-limit"></a></dt>
