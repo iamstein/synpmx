@@ -343,6 +343,34 @@
   result
 }
 
+# Time after the most recent dose, per subject. One implementation, because
+# `.recompute_tad()` writes it into generated data and `validate_pmx()` checks a
+# declared column against it, and those two silently disagreeing is exactly the
+# defect this was written to find.
+#
+# Before the first dose there is no elapsed time. Zero is reported because
+# `validate_pmx()` refuses a negative TAD, not because a baseline sample is
+# genuinely zero hours after a dose it precedes; see the `tad` role
+# documentation, which says so.
+#
+# Explicit dose ROWS only. A dataset that encodes repeats with `addl`/`ii`
+# without expanding them has doses this cannot see, so the caller must not
+# compare against a declared column in that case.
+.derived_tad <- function(data, roles) {
+  time <- suppressWarnings(as.numeric(data[[roles$time]]))
+  dosed <- .dose_rows(data, roles) & is.finite(time)
+  out <- rep(NA_real_, length(time))
+  for (rows in split(seq_along(time), as.character(data[[roles$id]]))) {
+    dose_time <- sort(time[rows[dosed[rows]]])
+    if (!length(dose_time)) next
+    index <- findInterval(time[rows], dose_time)
+    elapsed <- ifelse(index >= 1L, time[rows] - dose_time[pmax(index, 1L)], 0)
+    elapsed[!is.finite(elapsed)] <- 0
+    out[rows] <- pmax(elapsed, 0)
+  }
+  out
+}
+
 .warning_collector <- function() {
   env <- new.env(parent = emptyenv())
   env$messages <- character()

@@ -175,22 +175,27 @@ Two further problems found while looking:
 
 Decide what the role is *for*, then make all three places agree:
 
-- [ ] **Option A — check-only.** TAD is always derived; declaring the role
-      means "verify my column agrees with the derivation, and tell me where it
-      does not". This is the owner's suggestion and is the most useful of the
-      three, because a disagreement is a real finding every time: a data error,
-      a different TAD convention, or a bug in our derivation. It also supplies
-      category C of `design/SYNTHETIC_DATA_CHECKS.md` — a trough staying a
-      trough is exactly a statement about TAD.
+- [x] **Option A — check-only. DONE 2026-08-03.** `validate_pmx()` gains a
+      `tad_agreement` check reporting, non-fatally, where the declared column
+      disagrees with time since the most recent dose row; `pmx_roles()`
+      documents that `tad` is an output rather than an input; and one
+      `.derived_tad()` now serves both the check and `.recompute_tad()`, so the
+      two cannot drift. Fixing this also made warnings on a *valid* report
+      visible — `print()` returned on the valid branch before reaching them, so
+      any non-fatal finding on a well-formed dataset had been unreachable.
+Left open, and deliberately not done for now:
+
 - [ ] **Option B — authoritative.** The declared column is the truth and the
       generator carries it through the same transformation as `TIME`. Harder,
       and it makes the DP path right and the AVATAR path wrong today.
 - [ ] **Option C — drop the role.** Derive TAD always, name the column with
       `keep` if you want it carried. Simplest, and it loses the check.
 
-Whichever, `.recompute_tad()` needs the `ADDL`/`II` case handled or explicitly
-refused, and the pre-dose convention stated in the roxygen rather than in a
-comment.
+The `ADDL`/`II` case is handled by refusal: the agreement check is skipped and
+says why, since the derivation cannot see doses that were never written as rows.
+`.recompute_tad()` itself is still wrong in that case and nothing under test
+exercises it — `nmtest` would. The pre-dose convention is now stated in the
+`tad` roxygen rather than only in a code comment.
 
 ## Next big piece: a vignette of the checks on synthetic data
 

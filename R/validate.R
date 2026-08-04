@@ -255,6 +255,50 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
     add("tad", if (any(bad)) "error" else "pass",
         if (any(bad)) "Observation TAD is missing, non-finite, or negative." else
           "Observation TAD is finite and nonnegative.")
+
+    # Does the declared column agree with the time it claims to be? Checking
+    # only that TAD is finite and nonnegative says nothing about whether it is a
+    # time after a dose. `synpmx_avatar()` OVERWRITES this column from generated
+    # times, so a source whose convention differs from the derivation has that
+    # convention silently replaced -- on `nlmixr2data::nimoData` that is 45% of
+    # observation rows. A disagreement is reported, never fatal: the source may
+    # be right and the derivation wrong for that study.
+    if (!is.null(roles$addl) || !is.null(roles$ii)) {
+      add("tad_agreement", "warning", paste0(
+        "TAD was not checked against the times: `addl`/`ii` are declared and ",
+        "`synpmx` does not expand them, so the doses implied by them are ",
+        "invisible to the derivation. Expand repeat doses into explicit rows ",
+        "if you want this checked."
+      ))
+    } else {
+      derived <- .derived_tad(data, roles)
+      time <- suppressWarnings(as.numeric(data[[roles$time]]))
+      # Scale-free, so a study measured in days is treated like one in hours,
+      # and float noise and ordinary rounding are ignored.
+      span <- if (any(is.finite(time))) max(abs(time[is.finite(time)])) else 0
+      tolerance <- max(1e-6 * span, sqrt(.Machine$double.eps))
+      comparable <- allowed & is.finite(tad) & is.finite(derived)
+      off <- comparable & abs(tad - derived) > tolerance
+      if (any(off)) {
+        add("tad_agreement", "warning", paste0(
+          "Declared TAD disagrees with time since the most recent dose on ",
+          sum(off), " of ", sum(comparable), " observation row(s) (",
+          round(100 * sum(off) / max(sum(comparable), 1)), "%), by up to ",
+          signif(max(abs(tad - derived)[off]), 4), ". Common causes: TAD is ",
+          "measured from the end of an infusion or from a nominal dose time ",
+          "rather than the recorded dose row; the study uses a dosing ",
+          "occasion rather than the most recent dose. Note that ",
+          "`synpmx_avatar()` recomputes `", roles$tad, "` from generated ",
+          "times, so the synthetic column will follow the derivation above ",
+          "and not this source's convention."
+        ))
+      } else if (any(comparable)) {
+        add("tad_agreement", "pass", paste0(
+          "Declared TAD agrees with time since the most recent dose on all ",
+          sum(comparable), " observation row(s)."
+        ))
+      }
+    }
   }
   if (!is.null(roles$occasion)) {
     occasion <- suppressWarnings(as.numeric(data[[roles$occasion]]))
@@ -478,6 +522,14 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
 print.pmx_validation <- function(x, ...) {
   if (isTRUE(x$valid)) {
     cat("Valid PMX structure.\n")
+    notes <- x$checks[x$checks$status == "warning", , drop = FALSE]
+    if (nrow(notes)) {
+      # Reachable at last. A warning raised on a structurally valid dataset --
+      # which is the only kind `tad_agreement` raises -- was previously added to
+      # the report and then never shown, because this branch returned first.
+      cat("\nWarnings (not fatal):\n")
+      for (i in seq_len(nrow(notes))) cat("- ", notes$message[i], "\n", sep = "")
+    }
     return(invisible(x))
   }
   errors <- x$checks[x$checks$status == "error", , drop = FALSE]

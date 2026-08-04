@@ -1167,15 +1167,9 @@
 # the anchor, where it would describe a schedule the avatar no longer has.
 .recompute_tad <- function(skeleton, roles) {
   if (is.null(roles$tad)) return(skeleton)
-  time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
-  dose_time <- sort(time[.dose_rows(skeleton, roles) & is.finite(time)])
-  if (!length(dose_time)) return(skeleton)
-  index <- findInterval(time, dose_time)
-  # Before the first dose there is no elapsed time to report; zero is the only
-  # value `validate_pmx()` accepts and the only one that is not a fiction.
-  tad <- ifelse(index >= 1L, time - dose_time[pmax(index, 1L)], 0)
-  tad[!is.finite(tad)] <- 0
-  skeleton[[roles$tad]] <- pmax(tad, 0)
+  derived <- .derived_tad(skeleton, roles)
+  if (all(is.na(derived))) return(skeleton)
+  skeleton[[roles$tad]] <- ifelse(is.na(derived), 0, derived)
   skeleton
 }
 
