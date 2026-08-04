@@ -9,12 +9,12 @@
 #               individual. So sample the pattern from ones several subjects
 #               share instead of copying the anchor's.
 #
-# `subject_properties` is the stratum for both. It is deliberately NOT a blending
+# `strata` is the stratum for both. It is deliberately NOT a blending
 # barrier -- only route is -- so these tests also pin that donors still cross it.
 
 da_roles <- function(..., properties = NULL) {
   pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-            cmt = "CMT", covariates = "WT", subject_properties = properties,
+            cmt = "CMT", covariates = "WT", strata = properties,
             ...)
 }
 
@@ -148,7 +148,7 @@ test_that("intra-patient escalation is recognised", {
                      round(source$AMT[source$EVID != 0], 6)), 0L)
 })
 
-test_that("subject_properties is a stratum, never a blending barrier", {
+test_that("strata is a stratum, never a blending barrier", {
   # Route is the only absolute barrier. A stratum with too few subjects to reach
   # the donor floor must still borrow across strata rather than fall back to a
   # near-copy of one real patient.

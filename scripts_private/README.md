@@ -156,7 +156,7 @@ Exposure, in the same terms the demo vignette's table uses:
   the answer is no, states which covariates were tried and what failed. "No" on
   a study you believe is weight-based usually means the dose-to-covariate ratio
   did not collapse onto a small number of protocol levels; check whether a dose
-  group needs declaring in `subject_properties`
+  group needs declaring in `strata`
 - **Avatars keeping their anchor's own visit set** — the complement of
   `pattern_sampled_fraction`. Above 0 means some stratum had no visit set
   shared by `min_pattern_share` subjects, and the run will have alerted. Those

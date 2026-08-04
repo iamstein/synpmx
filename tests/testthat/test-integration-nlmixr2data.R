@@ -219,7 +219,7 @@ test_that("xgxr case1_pkpd: nominal grid, two endpoints, six arms, 180 patients"
   roles <- pmx_roles(
     id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
     cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
-    subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+    strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
     keep = "STUDY"
   )
   expect_true(validate_pmx(source, roles)$valid)
@@ -246,7 +246,7 @@ test_that("xgxr mad: five observation endpoints, ordinal, count and binary", {
   roles <- pmx_roles(
     id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
     cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-    subject_properties = c("TRTACT", "DOSE"),
+    strata = c("TRTACT", "DOSE"),
     covariates = c("WEIGHTB", "SEX")
   )
   synthetic <- suppressWarnings(suppressMessages(

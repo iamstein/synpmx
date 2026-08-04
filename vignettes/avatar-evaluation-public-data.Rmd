@@ -257,7 +257,7 @@ data rather than the machine, so working with it on a local workstation covered
 by the same controls is a supported use. It is not appropriate for parameter
 estimation, inference, model selection, or clinical decisions. When the
 generated data would reach anyone the source data could not, use one of the
-differentially private modes instead; `vignette("synpmx-privacy")` works through
+differentially private modes instead; the [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) works through
 that decision and the tradeoff behind it.
 
 ## The datasets
@@ -880,7 +880,7 @@ case1_pkpd <- as.data.frame(
 case1_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
-  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
   keep = "STUDY"
 )
 case1_synth <- suppressWarnings(
@@ -899,7 +899,7 @@ value above uncensored ones and the flag cannot mean what it means for PK:
 case1_roles_cens <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
-  subject_properties = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
 )
 validate_pmx(case1_pkpd, case1_roles_cens)$valid
 ```
@@ -930,8 +930,11 @@ ggplot2::ggplot(
 ```
 
 Six treatment arms, and an avatar never leaves the arm it was anchored in —
-`TRTACT` and `DOSE` are declared as `subject_properties`, so they are copied from
-the anchor and condition the regimen rather than being sampled independently:
+`TRTACT` and `DOSE` are declared as `strata`, so they are copied from the anchor
+and condition the regimen rather than being sampled independently. The arm
+*sizes* also match, which takes a second mechanism: anchors are sampled with
+replacement, so `preserve_strata_balance` (the default) gives each stratum its
+source share rather than leaving the balance to the draw.
 
 ```{r case1-arms, eval=has_xgxr}
 knitr::kable(
@@ -976,7 +979,7 @@ mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
 mad_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-  subject_properties = c("TRTACT", "DOSE"),
+  strata = c("TRTACT", "DOSE"),
   covariates = c("WEIGHTB", "SEX")
 )
 mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
@@ -1111,7 +1114,7 @@ summaries. Every clipping range, contribution limit, and budget share is an
 explicit public input. `synpmx_empirical()` (like `synpmx_calibrated()`)
 refuses to run until `synpmx_enable_dp_engines()` has been called once in the
 session, acknowledging the maintenance status covered in
-`vignette("synpmx-privacy")`:
+the [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html):
 
 ```{r enable-dp, eval=has_nlmixr2data}
 synpmx_enable_dp_engines()

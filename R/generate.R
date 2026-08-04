@@ -724,8 +724,8 @@
   data
 }
 
-.sample_subject_property <- function(model) {
-  properties <- model$population$subject_properties
+.sample_stratum <- function(model) {
+  properties <- model$population$strata
   if (is.null(properties) || !length(properties$strata)) {
     return(list(values = NULL, event = NULL))
   }
@@ -740,7 +740,7 @@
   list(values = stratum$values, event = stratum$event)
 }
 
-.generate_subject_properties <- function(data, property) {
+.generate_strata <- function(data, property) {
   if (is.null(property$values)) return(data)
   for (name in names(property$values)) {
     data[[name]][] <- property$values[[name]]
@@ -805,12 +805,12 @@
     ids <- .new_public_ids(schema, roles$id, n_subjects)
     generated <- vector("list", n_subjects)
     for (i in seq_len(n_subjects)) {
-      property <- .sample_subject_property(model)
+      property <- .sample_stratum(model)
       regimen <- .resolved_regimen(model, property$event)
       subject <- .build_subject_skeleton(model, regimen)
       subject <- .generate_endpoint_values(subject, model)
       subject <- .generate_covariates(subject, model)
-      subject <- .generate_subject_properties(subject, property)
+      subject <- .generate_strata(subject, property)
       subject[[roles$id]] <- rep(ids[i], nrow(subject))
       subject <- .repair_derived_time(subject, roles, regimen)
       order <- order(as.numeric(subject[[roles$time]]), subject$.tie_order)

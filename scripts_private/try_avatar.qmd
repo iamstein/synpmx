@@ -96,7 +96,7 @@ ROLES <- pmx_roles(
   # in this study is also an error, naming itself: the two PIT565 parts do not
   # carry identical columns, so check this block against the study you are
   # running rather than assuming it carries over.
-  subject_properties = c("TRT", "TRTN"),  # set NULL to compare pooled pattern pools
+  strata = c("TRT", "TRTN"),  # set NULL to compare pooled pattern pools
   rate     = NULL,     # infusion RATE column, if any
   occasion = NULL,     # occasion column, if TIME resets by occasion
   cens     = NULL,     # below-limit indicator (Monolix: 1 below, -1 above), if
@@ -120,7 +120,7 @@ ROLES <- pmx_roles(
   # COPIED verbatim from the subject that supplied the doses, so it stays
   # coherent with them -- a study id, a character endpoint label. A kept value is
   # one real subject's real value. An assigned *stratum* (treatment arm, dose
-  # group) belongs in `subject_properties` above instead: carried the same way,
+  # group) belongs in `strata` above instead: carried the same way,
   # and used to group the attendance-pattern pools.
   keep     = NULL
 )

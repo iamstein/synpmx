@@ -294,7 +294,7 @@ perfect — output must not look extreme, and simplicity is valued):
   (`SIM-034`). `time_jitter` is *not* an alternative -- its Voronoi clamp holds
   every time within half a gap of the source value at any magnitude.
 - **Default, on:** dose recomputed from the avatar's own blended covariate where
-  dosing is covariate-proportional within a `subject_properties` stratum
+  dosing is covariate-proportional within a `strata` stratum
   (`REV-027`). Fixes a coherence defect as well as the disclosure.
 - **Default, on:** `min_pattern_share = 2` draws each avatar's attended-visit
   pattern from ones at least two subjects share (`REV-026`, partly closed), so no

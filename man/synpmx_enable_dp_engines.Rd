@@ -14,11 +14,11 @@ synpmx_enable_dp_engines()
 been called at least once in the current session. This is a deliberate
 speed bump, not a technical safeguard: the differentially private engines
 are complete and tested, but not under active development, carry known
-open findings (see \code{design/REVIEW_BACKLOG.md}), and have not been
-independently privacy-audited. See \code{vignette("synpmx-privacy")} for the
-trust-boundary decision rule and what a production release additionally
-needs. \code{\link[=synpmx_avatar]{synpmx_avatar()}} and \code{\link[=synpmx_prior]{synpmx_prior()}} make no differential-privacy
-claim and are unaffected.
+open findings, and have not been independently privacy-audited. See the
+\href{https://iamstein.github.io/synpmx/articles/synpmx-privacy.html}{privacy article}
+for the trust-boundary decision rule and what a production release
+additionally needs. \code{\link[=synpmx_avatar]{synpmx_avatar()}} and \code{\link[=synpmx_prior]{synpmx_prior()}} make no
+differential-privacy claim and are unaffected.
 }
 \details{
 The acknowledgment does not persist. It applies only to the R session it is

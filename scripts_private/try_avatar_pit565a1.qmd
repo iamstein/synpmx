@@ -95,7 +95,7 @@ ROLES <- pmx_roles(
   # Treatment arm / dose group. Also splits the pool of visit sets an avatar may
   # draw from: declaring it is more faithful, but more rare visit sets are then
   # too thinly held to reuse. Try it both ways and compare the run reports.
-  subject_properties = c("TRT", "TRTN"),  # NULL pools the arms
+  strata = c("TRT", "TRTN"),  # NULL pools the arms
   rate     = NULL,           # set if you have infusion RATE rows
   occasion = NULL,           # set if TIME resets by occasion
   # Declared, censoring is rebuilt to agree with the blended DV; left NULL, a

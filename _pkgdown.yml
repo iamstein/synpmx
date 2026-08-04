@@ -24,16 +24,18 @@ navbar:
         href: articles/avatar-algorithm.html
       - text: Evaluating AVATAR on public data
         href: articles/avatar-evaluation-public-data.html
+      - text: Checks of the synthetic data
+        href: articles/synthetic-data-checks.html
       - text: The four synpmx data generation algorithms
         href: articles/synpmx-4-methods.html
-      - text: Privacy
-        href: articles/synpmx-privacy.html
       - text: -------
       - text: "AVATAR method exploration"
       - text: "Example: are relationships preserved?"
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
       - text: "Differential privacy background"
+      - text: Privacy
+        href: articles/synpmx-privacy.html
       - text: Privacy background
         href: articles/privacy-background.html
       - text: Formal privacy argument
@@ -102,7 +104,7 @@ reference:
   - flag_identifiable_subjects
   - remediate_identifiable_subjects
   - sampling_summary
-  - subject_property_summary
+  - strata_summary
 
 - title: Fixtures
   desc: Fully public example datasets for testing and demonstration.

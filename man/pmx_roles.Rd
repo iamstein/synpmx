@@ -22,7 +22,7 @@ pmx_roles(
   addl = NULL,
   ii = NULL,
   covariates = NULL,
-  subject_properties = NULL,
+  strata = NULL,
   dose_covariate = NULL,
   assigned_dose = NULL,
   keep = NULL,
@@ -83,7 +83,7 @@ interval-boundary columns.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 
-\item{subject_properties}{Treatment arm, dose group, cohort — any \strong{assigned,
+\item{strata}{Treatment arm, dose group, cohort — any \strong{assigned,
 subject-level stratum}, as opposed to a measured characteristic, which is a
 \code{covariate}. Must be constant within subject; subjects with no recorded
 value are grouped as their own stratum, with a warning rather than an

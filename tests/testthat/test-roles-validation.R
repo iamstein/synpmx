@@ -41,7 +41,7 @@ test_that("validation supports reset occasion clocks and coherent properties", {
 
   source$ARM <- ifelse(source$ID %% 2L, "A", "B")
   role_args <- unclass(private_roles())
-  role_args$subject_properties <- "ARM"
+  role_args$strata <- "ARM"
   roles <- do.call(pmx_roles, role_args)
   expect_true(validate_pmx(source, roles, private_endpoints())$valid)
   source$ARM[2L] <- "B"
@@ -110,14 +110,14 @@ test_that("a stratum with gaps warns and becomes its own level", {
   data <- pmx_simulated_fixture(20)
   data$TRT <- rep(c("A", "B"), each = nrow(data) / 2)
   data$TRT[data$ID %in% c("5", "6")] <- NA_character_
-  roles <- gap_roles(subject_properties = "TRT")
+  roles <- gap_roles(strata = "TRT")
 
   report <- validate_pmx(data, roles)
   # A warning, not an error: visible without stopping a run over data that is
   # merely incomplete.
   expect_true(report$valid)
   expect_identical(
-    report$checks$status[report$checks$check == "subject_property_TRT"],
+    report$checks$status[report$checks$check == "stratum_TRT"],
     "warning"
   )
   synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
@@ -130,10 +130,10 @@ test_that("a stratum that varies within subject is still an error", {
   # assignment at all, and no stratum can be built from it.
   data <- pmx_simulated_fixture(10)
   data$TRT <- rep(c("A", "B"), length.out = nrow(data))
-  report <- validate_pmx(data, gap_roles(subject_properties = "TRT"))
+  report <- validate_pmx(data, gap_roles(strata = "TRT"))
   expect_false(report$valid)
   expect_match(
-    report$checks$message[report$checks$check == "subject_property_TRT"],
+    report$checks$message[report$checks$check == "stratum_TRT"],
     "varies within"
   )
 })

@@ -169,7 +169,7 @@ pmx_schema <- function(data, exclude = NULL) {
 #'   observations.
 #' @param endpoint_cmt Named list or vector of public observation compartments.
 #' @param category_levels Named lists of allowed values for categorical
-#'   covariates and subject properties. Supplying levels forces even a numeric
+#'   covariates and strata. Supplying levels forces even a numeric
 #'   covariate to be treated categorically. Factor levels may instead come from
 #'   the public schema. These levels are public domains, not values discovered
 #'   by inspecting confidential records outside the private fit.

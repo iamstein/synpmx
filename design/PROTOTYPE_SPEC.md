@@ -820,7 +820,7 @@ roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = NULL, tad = NULL, occasion = NULL,
   dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT", dvid = NULL, mdv = NULL,
   rate = NULL, cens = NULL, limit = NULL, covariates = "WT",
-  subject_properties = "ACTARM", assigned_dose = NULL, exclude = NULL
+  strata = "ACTARM", assigned_dose = NULL, exclude = NULL
 )
 ```
 

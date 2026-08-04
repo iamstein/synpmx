@@ -1,6 +1,6 @@
-#' Summarize fitted subject properties and associated regimens
+#' Summarize fitted strata and associated regimens
 #'
-#' Subject properties are categorical treatment assignments or grouping
+#' Strata are categorical treatment assignments or grouping
 #' variables declared through [pmx_roles()], such as `ACTARM`, `TRT`, or a
 #' nominal dose group. Their released probabilities and property-conditioned
 #' regimen summaries are source-dependent and therefore part of the fitted
@@ -9,12 +9,12 @@
 #' @param private_model A fitted model from [.fit_private()].
 #'
 #' @return A data frame with one row per declared property stratum. It has zero
-#'   rows when no subject properties were declared.
+#'   rows when no strata were declared.
 #' @export
-subject_property_summary <- function(private_model) {
+strata_summary <- function(private_model) {
   private_model <- .release_of(private_model, "private_model")
   validate_private_model(private_model, strict = TRUE)
-  properties <- private_model$population$subject_properties
+  properties <- private_model$population$strata
   metric_names <- c(
     "probability", "released_count", "n_doses", "dose_interval",
     "dose_amount", "dose_rate", "infusion_duration", "observation_count"

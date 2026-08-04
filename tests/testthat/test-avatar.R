@@ -85,13 +85,13 @@ test_that("AVATAR rejects differential-privacy-only roles", {
   source <- pmx_simulated_fixture(12)
   base <- list(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
                dvid = "DVID", cmt = "CMT", mdv = "MDV")
-  # `subject_properties` is deliberately NOT in this set. AVATAR reads it as the
+  # `strata` is deliberately NOT in this set. AVATAR reads it as the
   # assigned stratum -- grouping the dose basis and the attendance-pattern pool
   # -- so declaring it is valid rather than an error. It is still not a blending
   # barrier; only route is.
   expect_silent(suppressMessages(suppressWarnings(
     synpmx_avatar(source, do.call(pmx_roles,
-                                  c(base, list(subject_properties = "SEX"))),
+                                  c(base, list(strata = "SEX"))),
                   n_subjects = 5, seed = 1)
   )))
   expect_error(

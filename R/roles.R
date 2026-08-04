@@ -51,7 +51,7 @@
 #'   interval-boundary columns.
 #' @param addl,ii Optional additional-dose and interdose-interval columns.
 #' @param covariates Baseline covariate column names, or `NULL`.
-#' @param subject_properties Treatment arm, dose group, cohort — any **assigned,
+#' @param strata Treatment arm, dose group, cohort — any **assigned,
 #'   subject-level stratum**, as opposed to a measured characteristic, which is a
 #'   `covariate`. Must be constant within subject; subjects with no recorded
 #'   value are grouped as their own stratum, with a warning rather than an
@@ -126,7 +126,7 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
-                      covariates = NULL, subject_properties = NULL,
+                      covariates = NULL, strata = NULL,
                       dose_covariate = NULL, assigned_dose = NULL,
                       keep = NULL, exclude = NULL) {
   roles <- list(
@@ -135,11 +135,11 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
     dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
     addl = addl, ii = ii, assigned_dose = assigned_dose,
     dose_covariate = dose_covariate,
-    covariates = covariates, subject_properties = subject_properties,
+    covariates = covariates, strata = strata,
     keep = keep, exclude = exclude
   )
 
-  vector_roles <- c("dvid", "covariates", "subject_properties", "keep",
+  vector_roles <- c("dvid", "covariates", "strata", "keep",
                     "exclude")
   scalar_roles <- setdiff(names(roles), vector_roles)
   for (role in scalar_roles) {

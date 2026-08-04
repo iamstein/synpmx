@@ -181,8 +181,8 @@
   pmin(pmax(matrix, 0), 1)
 }
 
-.subject_property_spec <- function(roles, public_design) {
-  property_names <- roles$subject_properties
+.strata_spec <- function(roles, public_design) {
+  property_names <- roles$strata
   if (!length(property_names)) {
     return(list(names = character(), levels = list(), strata = list()))
   }
@@ -205,7 +205,7 @@
   list(names = property_names, levels = levels, strata = strata)
 }
 
-.subject_property_index <- function(data, spec) {
+.strata_index <- function(data, spec) {
   if (!length(spec$names)) return(NA_integer_)
   indices <- vapply(spec$names, function(name) {
     value <- data[[name]][which(!is.na(data[[name]]))[1L]]
@@ -226,7 +226,7 @@
   base <- .base_event_features(
     subjects, roles, bounds, contribution_limits
   )
-  property_spec <- .subject_property_spec(roles, public_design)
+  property_spec <- .strata_spec(roles, public_design)
   if (!length(property_spec$names)) {
     return(list(
       matrix = base,
@@ -253,7 +253,7 @@
     dimnames = list(NULL, columns)
   )
   for (index in seq_along(subjects)) {
-    stratum_index <- .subject_property_index(
+    stratum_index <- .strata_index(
       subjects[[index]]$data, property_spec
     )
     stratum <- strata[[stratum_index]]
@@ -535,7 +535,7 @@
         released[event_map$base_fields], count, bounds,
         contribution_limits
       ),
-      subject_properties = NULL
+      strata = NULL
     ))
   }
 
@@ -563,7 +563,7 @@
   }
   list(
     event = .decode_event(global, count, bounds, contribution_limits),
-    subject_properties = list(
+    strata = list(
       names = properties$names,
       strata = strata
     )
@@ -816,7 +816,7 @@
   list(
     private_subject_count = private_count,
     event = decoded_event$event,
-    subject_properties = decoded_event$subject_properties,
+    strata = decoded_event$strata,
     timing = .decode_timing(timing_release, private_count,
                             timing_features$map, timing_noise),
     trajectories = .decode_trajectories(

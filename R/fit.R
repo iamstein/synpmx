@@ -65,7 +65,7 @@
       call. = FALSE
     )
   }
-  for (name in roles$subject_properties) {
+  for (name in roles$strata) {
     column <- .schema_column(public_design$schema, name)
     levels <- if (!is.null(column) && "factor" %in% column$class) {
       column$levels
@@ -74,7 +74,7 @@
     }
     if (is.null(levels) || !length(levels)) {
       stop(
-        "Public category levels are required for subject property `", name,
+        "Public category levels are required for stratum `", name,
         "`.", call. = FALSE
       )
     }

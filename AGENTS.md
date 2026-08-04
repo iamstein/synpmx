@@ -35,7 +35,12 @@ document.
   evaluation of algorithm performance, not a tutorial. It carries a table
   describing every dataset it uses; keep that table in step with the datasets
   actually run.
-- `synpmx-privacy.Rmd` — the trust-boundary decision rule and choosing epsilon.
+- `synthetic-data-checks.Rmd` — the six categories of check to run on generated
+  data (A validity, B who is singled out, C same study, D distributions, E what
+  the checks cannot tell you, F check the output not the algorithm), worked on
+  `xgxr::case1_pkpd` with `nlmixr2data::pheno_sd` as the case where they fail.
+  Written 2026-08-04 from the specification in `design/SYNTHETIC_DATA_CHECKS.md`;
+  it names its own gaps, and that list is the queue for what to build next.
 
 **`vignettes/articles/` — pkgdown only.** Excluded from the build by
 `.Rbuildignore`, so `R CMD check` never touches these and they are not shipped
@@ -43,6 +48,12 @@ in the tarball. Use this tier for teaching and evidence that does not need to be
 rebuilt on every change. Note that pkgdown *executes* article code, so a broken
 article fails the site build.
 
+- `synpmx-privacy.Rmd` — the trust-boundary decision rule and choosing
+  epsilon. Moved here from `vignettes/` on 2026-08-04: it belongs with the
+  differential-privacy material rather than with the AVATAR guides, and it
+  is not needed offline by someone running `synpmx_avatar()`. Cross-
+  references to it must be website URLs, not `vignette("synpmx-privacy")`,
+  because an article is not installed.
 - `privacy-background.Rmd` — `d`, `f`, sensitivity, the error law.
 - `privacy-argument.Rmd` — the formal mechanism-level argument, for a reviewer.
 - `feasibility.Rmd` — what is achievable at which cohort size.

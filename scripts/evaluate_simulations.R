@@ -120,9 +120,9 @@ for (id in datasets) {
     fitted_subject_count = model$population$private_subject_count,
     stringsAsFactors = FALSE
   )
-  fitted_properties <- subject_property_summary(model)
+  fitted_properties <- strata_summary(model)
   if (nrow(fitted_properties)) {
-    property_names <- model$population$subject_properties$names
+    property_names <- model$population$strata$names
     property_rows[[id]] <- data.frame(
       dataset = id,
       stratum = seq_len(nrow(fitted_properties)),

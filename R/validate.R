@@ -39,7 +39,7 @@
 #'
 #' Checks schema usability, chronological event logic, explicit endpoint
 #' semantics, derived timing fields, censoring conventions, baseline
-#' constancy, subject properties, and occasion-assigned dose coherence. It does
+#' constancy, strata, and occasion-assigned dose coherence. It does
 #' not assess scientific or inferential validity.
 #'
 #' @param data A PMX event data frame or tibble.
@@ -446,7 +446,7 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
         if (all(constant)) paste(covariate, "is constant within subject.") else
           paste(covariate, "varies within", sum(!constant), "subject(s)."))
   }
-  for (property in roles$subject_properties) {
+  for (property in roles$strata) {
     # A stratum has to be constant within subject -- that is what makes it a
     # subject-level assignment rather than a time-varying one -- but it does not
     # have to be recorded for everyone. Real assignment columns have gaps, and
@@ -465,7 +465,7 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
       !length(value) || anyNA(value)
     }, logical(1))
     add(
-      paste0("subject_property_", property),
+      paste0("stratum_", property),
       if (!all(constant)) "error" else if (any(incomplete)) "warning" else "pass",
       if (!all(constant)) {
         paste(property, "varies within", sum(!constant), "subject(s); a",

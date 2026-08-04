@@ -286,17 +286,17 @@
 }
 
 # The stratum a subject was assigned to: the combination of every
-# `subject_properties` column, or one shared stratum when none is declared.
+# `strata` column, or one shared stratum when none is declared.
 # Protocol properties -- what dose level the arm received, which visits the
 # schedule called for -- are constant within a stratum and differ between them,
 # so it is the right grouping for both the dose basis below and the attendance
 # pattern pool. It is deliberately *not* a blending barrier; only `.route_key()`
 # is.
 .subject_strata <- function(data, roles) {
-  if (!length(roles$subject_properties)) {
+  if (!length(roles$strata)) {
     return(rep("all", nrow(data)))
   }
-  do.call(paste, c(lapply(roles$subject_properties, function(column) {
+  do.call(paste, c(lapply(roles$strata, function(column) {
     as.character(data[[column]])
   }), list(sep = "\r")))
 }
@@ -1540,7 +1540,7 @@
 # remaining levers are the pool split and the floor, so say those instead.
 .schedule_advice <- function(source_roles, min_pattern_share, grid) {
   nominal <- identical(grid, "nominal")
-  strata <- source_roles$subject_properties
+  strata <- source_roles$strata
   c(
     if (!nominal) {
       paste("declare a `nominal_time` role so coarsening puts more patients on",
@@ -1551,7 +1551,7 @@
             "reports how many were snapped to an inferred grid instead")
     },
     if (length(strata)) {
-      sprintf(paste("drop `subject_properties` (%s) so the arms share one pool",
+      sprintf(paste("drop `strata` (%s) so the arms share one pool",
                     "of visit sets instead of one each"),
               paste(strata, collapse = ", "))
     },
@@ -1622,6 +1622,57 @@
 # ordinary spread does not trip it: only a subject well beyond the high end of
 # normal is excluded. (wbcSim follow-up: 90th percentile ~648 h, so the cut sits
 # near 1300 h and drops only the 1730/4580 h subjects, not the ordinary ~650 h.)
+# A stratum below this many source patients is not balanced exactly, because
+# reproducing its size exactly would disclose that size. A cohort with one
+# patient in a joint arm x cohort cell gets exactly one avatar there on every
+# seed, which says "that cell held one patient" as clearly as printing it. Small
+# strata keep the old behavior instead -- their slots are drawn with replacement
+# from the pooled small-stratum members, so the count varies by seed.
+#
+# Three, not two: a floor of 2 leaves pairs exactly reproduced, and a pair is
+# the case `min_pattern_share` already treats as too rare to reuse elsewhere.
+.strata_balance_floor <- 3L
+
+# The number of avatars to build on each stratum's anchors.
+#
+# Sampling anchors with replacement across the whole pool -- which is what this
+# replaces -- leaves stratum sizes to the binomial: a balanced six-arm design of
+# 30 patients per arm came back between 21 and 39 per arm depending only on the
+# seed. Arm membership was always exact (an avatar never leaves its anchor's
+# stratum), but the *balance* was not, and any downstream summary that groups by
+# arm silently inherits the wobble.
+#
+# Targets are proportions of the SOURCE cohort, so they still mean something
+# when `n_subjects` differs from the source size, and largest-remainder rounding
+# makes them sum to `n_subjects` exactly. Strata below the floor above, and
+# strata with no eligible anchor left after screening, fall back into a pooled
+# remainder drawn as before.
+.strata_targets <- function(strata_key, allowed, n_subjects,
+                            floor = .strata_balance_floor) {
+  source_sizes <- table(strata_key)
+  eligible <- unique(strata_key[allowed])
+  balanced <- names(source_sizes)[
+    source_sizes >= floor & names(source_sizes) %in% eligible
+  ]
+  if (!length(balanced)) return(NULL)
+
+  share <- as.numeric(source_sizes[balanced]) / length(strata_key)
+  exact <- share * n_subjects
+  target <- floor(exact)
+  # Largest remainder: hand out the seats floor() dropped, to the strata with
+  # the biggest fractional parts. The balanced strata claim round(sum(exact))
+  # seats in total, so whatever is left over stays with the small strata.
+  spare <- round(sum(exact)) - sum(target)
+  if (spare > 0) {
+    order_by_remainder <- order(exact - target, decreasing = TRUE)
+    take <- utils::head(order_by_remainder, spare)
+    target[take] <- target[take] + 1L
+  }
+  target <- as.integer(target)
+  names(target) <- balanced
+  target[target > 0L]
+}
+
 .structural_outlier_anchors <- function(source, roles, mult = 2) {
   subjects <- .unique_in_order(source[[roles$id]])
   key <- factor(as.character(source[[roles$id]]),
@@ -1816,7 +1867,7 @@
 #'   since that could emit a regimen no protocol permits. Raising this hides more
 #'   and flattens the cohort's missingness further; where no pattern is shared
 #'   widely enough, anchors keep their own and the run alerts loudly. Pools are
-#'   formed within each `subject_properties` stratum and endpoint set.
+#'   formed within each `strata` stratum and endpoint set.
 #'
 #'   **Patterns below the floor are lost, not approximated.** An ending or
 #'   dose-interruption pattern held by too few patients simply will not appear in
@@ -1872,6 +1923,26 @@
 #'   guardrail but the weighting scheme itself, with the inverse-distance term
 #'   underneath it doing little; one that never fires is not protecting
 #'   anything. At `k = 5` the default binds on roughly two thirds of subjects.
+#' @param preserve_strata_balance Give each declared stratum ([pmx_roles()]
+#'   `strata`) the same share of the synthetic cohort it holds in the source.
+#'   Default `TRUE`.
+#'
+#'   An avatar never leaves its anchor's stratum, but anchors are sampled with
+#'   replacement, so without this the *balance* is left to chance: a balanced
+#'   six-arm design of 30 patients per arm came back between 21 and 39 per arm
+#'   depending only on the seed, and any downstream summary grouped by arm
+#'   inherits that. Targets are proportions of the source cohort, so they still
+#'   hold when `n_subjects` differs from the source size.
+#'
+#'   **Strata holding fewer than three source patients are deliberately not
+#'   balanced**, because reproducing such a stratum's size exactly would
+#'   disclose it: a joint cell holding one real patient would get exactly one
+#'   avatar on every seed. Their slots are drawn with replacement as before, so
+#'   the count varies. `strata_balanced` and `strata_stochastic` in the returned
+#'   `pmx_settings` report how many strata fell on each side.
+#'
+#'   `FALSE` restores the unstratified draw. With no `strata` declared the
+#'   argument has no effect.
 #' @param on_donor_shortfall What to do with a subject whose administration
 #'   route holds fewer than `k + 1` subjects, so that no legal donor set exists
 #'   for it. `"drop"` (default) omits those subjects from the anchor pool: no
@@ -1914,8 +1985,14 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      time_jitter = 0, screen = TRUE, coarsen_time = TRUE,
                      min_pattern_share = 2L,
                      max_donor_weight = 0.50,
+                     preserve_strata_balance = TRUE,
                      on_donor_shortfall = c("drop", "noise", "error")) {
   on_donor_shortfall <- match.arg(on_donor_shortfall)
+  if (!is.logical(preserve_strata_balance) ||
+      length(preserve_strata_balance) != 1L ||
+      is.na(preserve_strata_balance)) {
+    stop("`preserve_strata_balance` must be TRUE or FALSE.", call. = FALSE)
+  }
   if (!is.data.frame(data)) stop("`data` must be a data frame or tibble.",
                                  call. = FALSE)
   .assert_roles(data, roles)
@@ -2292,7 +2369,48 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                 call. = FALSE)
       }
     }
-    anchors <- allowed[sample.int(length(allowed), n_subjects, replace = TRUE)]
+    # Anchors, drawn within stratum when there are strata to preserve.
+    strata_balanced <- 0L
+    strata_stochastic <- 0L
+    strata_key <- if (length(source_roles$strata)) {
+      keys <- lapply(source_roles$strata, function(column) {
+        vapply(profiles$subject_rows, function(rows) {
+          as.character(.first_present(source[[column]][rows]))
+        }, character(1))
+      })
+      do.call(paste, c(keys, list(sep = "\r")))
+    } else NULL
+    targets <- if (isTRUE(preserve_strata_balance) && !is.null(strata_key)) {
+      .strata_targets(strata_key, allowed, n_subjects)
+    } else NULL
+    if (length(targets)) {
+      strata_balanced <- length(targets)
+      strata_stochastic <- length(unique(strata_key)) - strata_balanced
+      pooled <- allowed[!strata_key[allowed] %in% names(targets)]
+      anchors <- unlist(c(
+        lapply(names(targets), function(stratum) {
+          members <- allowed[strata_key[allowed] == stratum]
+          members[sample.int(length(members), targets[[stratum]],
+                             replace = TRUE)]
+        }),
+        if (n_subjects > sum(targets)) {
+          # Whatever the balanced strata did not claim goes to the strata too
+          # small to balance; with none of those left eligible, it goes back to
+          # the whole pool rather than failing.
+          remainder <- if (length(pooled)) pooled else allowed
+          list(remainder[sample.int(length(remainder),
+                                    n_subjects - sum(targets),
+                                    replace = TRUE)])
+        }
+      ), use.names = FALSE)
+      anchors <- anchors[sample.int(length(anchors))]
+    } else {
+      anchors <- allowed[sample.int(length(allowed), n_subjects,
+                                    replace = TRUE)]
+      if (!is.null(strata_key)) {
+        strata_stochastic <- length(unique(strata_key))
+      }
+    }
     standard_mdv <- .source_uses_standard_mdv(source, source_roles)
     generated <- vector("list", n_subjects)
     # Inverse participation ratio of the donor weights, 1 / sum(w^2): the number
@@ -2543,6 +2661,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       anchors_screened_out = as.integer(anchors_screened_out),
       anchors_route_excluded = as.integer(anchors_route_excluded),
       anchors_available = length(allowed),
+      preserve_strata_balance = preserve_strata_balance,
+      strata_balanced = as.integer(strata_balanced),
+      strata_stochastic = as.integer(strata_stochastic),
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),

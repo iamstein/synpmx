@@ -394,6 +394,60 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
   z
 }
 
+# A stratum smaller than this is scored against the whole cohort instead: a
+# median and a scale taken from four patients say more about the four than about
+# the patient being screened.
+.screen_stratum_floor <- 5L
+
+# Which patients each subject should be compared against.
+#
+# "Does this patient stand out?" needs a comparison group, and the cohort is the
+# wrong one as soon as a study assigns anything. On a six-arm dose-ranging study
+# the top arm sits about 6.4 modified-z units from the cohort median dose purely
+# by protocol, so a cohort-wide screen flags all thirty of its patients for
+# receiving the dose they were assigned -- measured on `xgxr::case1_pkpd`, where
+# it flagged 59 of 180 avatars, 31 of them on dose magnitude alone. Within the
+# arm every dose is identical, `.modified_z()` returns 0, and nothing is
+# flagged, which is the right answer; a patient who got 600 mg in a 300 mg arm
+# still scores far past the threshold.
+#
+# Strata are the declared comparison group, so use them where they exist and are
+# big enough to estimate a scale from. This is the same idea as
+# `min_pattern_share` operating inside schedule groups rather than across the
+# cohort.
+.screen_strata <- function(data, roles, subjects) {
+  if (!length(roles$strata)) return(NULL)
+  key <- factor(as.character(data[[roles$id]]),
+                levels = as.character(subjects))
+  values <- lapply(roles$strata, function(column) {
+    vapply(split(as.character(data[[column]]), key), function(v) {
+      v <- v[!is.na(v)]
+      if (length(v)) v[[1L]] else NA_character_
+    }, character(1))[as.character(subjects)]
+  })
+  stratum <- do.call(paste, c(values, list(sep = "\r")))
+  sizes <- table(stratum)
+  # Anyone in a stratum too small to score within falls back to the cohort, and
+  # they are pooled rather than compared with each other.
+  stratum[stratum %in% names(sizes)[sizes < .screen_stratum_floor]] <- NA
+  if (all(is.na(stratum))) return(NULL)
+  stratum
+}
+
+# `.modified_z()` computed inside each stratum, with NA stratum scored against
+# every subject that has one.
+.modified_z_by <- function(v, stratum) {
+  if (is.null(stratum)) return(.modified_z(v))
+  z <- rep(NA_real_, length(v))
+  pooled <- is.na(stratum)
+  if (any(pooled)) z[pooled] <- .modified_z(v)[pooled]
+  for (level in unique(stratum[!pooled])) {
+    members <- which(!pooled & stratum == level)
+    z[members] <- .modified_z(v[members])
+  }
+  z
+}
+
 #' Flag structurally unusual -- and so easily identifiable -- subjects
 #'
 #' A post-generation screen for subjects that stand out from the cohort and are
@@ -416,6 +470,18 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
 #' regenerate the flagged subjects; it can also be run on the source itself to
 #' see which real subjects are hardest to hide. It is a heuristic screen, not a
 #' privacy guarantee, and is marked `"restricted_not_releasable"`.
+#'
+#' Scores are computed **within each declared stratum** ([pmx_roles()]
+#' `strata`), because "does this patient stand out?" needs a comparison group
+#' and the whole cohort is the wrong one as soon as a study assigns anything. On
+#' a six-arm dose-ranging study the top arm sits far from the cohort median dose
+#' purely by protocol: scored cohort-wide, `xgxr::case1_pkpd` flags 59 of 180
+#' avatars, 31 of them for receiving the dose their arm was assigned. Scored
+#' within arm it flags 1, and a patient given twice their arm's dose is still
+#' flagged. Strata holding fewer than five subjects are scored against the whole
+#' cohort instead, since a scale estimated from four patients describes the four
+#' rather than the one being screened. With no `strata` declared, every subject
+#' is scored against the cohort, as before.
 #'
 #' @param data A PMX dataset -- typically the synthetic output, or the source.
 #' @param roles Explicit roles from [pmx_roles()].
@@ -476,9 +542,10 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
                dose = max_dose, dv = max_dv)
   axis_label <- c(time = "follow-up time", doses = "number of doses",
                   dose = "dose magnitude", dv = "DV value")
+  stratum <- .screen_strata(data, roles, subjects)
   outlier <- lapply(axes, function(v) {
     if (sum(is.finite(v)) < 2L) return(rep(FALSE, length(v)))
-    z <- .modified_z(v)
+    z <- .modified_z_by(v, stratum)
     flagged <- (is.finite(z) & abs(z) > threshold) | is.infinite(z)
     flagged[is.na(flagged)] <- FALSE
     flagged
