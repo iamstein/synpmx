@@ -1,129 +1,302 @@
 ---
 title: "Synthetic Pharmacometric Data: Current Approaches and How synpmx Fits"
 description: "An overview of current approaches to synthetic pharmacometric data generation and how synpmx complements existing methods."
-author: ChatGPT, Andy Stein
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
 ---
 
-# Synthetic Pharmacometric Data: Current Approaches and How synpmx Fits
+Synthetic datasets in pharmacometrics (PMX) are useful for open-source software
+development, AI-assisted software development, teaching, and external
+collaborations. Several different approaches exist for generating them, and
+they optimize for genuinely different things — which means the question is
+never "which method is best" but "best at what."
 
-Synthetic datasets in pharmacometrics are important for open-source software development, AI-assisted software development, and external collaborations.  Several different approaches exist for generating synthetic 
+This article surveys the four generation families in use, explains why
+differential privacy sits across all of them rather than inside one, and says
+where `synpmx` fits. Current as of August 2026.
 
-## Mechanistic Simulation
+## Mechanistic simulation
 
-Trial simulation has long been the standard approach within pharmacometrics, using tools like `rxode2` or `mrgsolve`.
+Trial simulation has long been the standard approach within pharmacometrics,
+using tools like `rxode2` or `mrgsolve`. A structural pharmacokinetic (PK) or
+pharmacodynamic (PD) model, a set of parameters with between-subject variance,
+and a trial design produce as many virtual subjects as you like.
 
-### Advantages
+**Strengths**
 
-- Complete privacy
-- Mechanistically interpretable
-- Unlimited dataset size
+- No patient record is read, *provided the model is public* (see below)
+- Mechanistically interpretable: every feature of the output traces to a model
+  assumption you chose
+- Unlimited dataset size, and any design you can describe
 
-### Limitations
+**Limitations**
 
-Mechanistic simulations often lack many of the irregularities encountered in operational clinical datasets, including unexpected dosing histories, protocol deviations, and inconsistent observation schedules.  While these mechanisms can be built in, they make the trial simulation considerably more complex, and accurate models of these processes can be more challenging to develop.
+- Simulations often lack the irregularities of operational clinical datasets:
+  unexpected dosing histories, protocol deviations, and inconsistent
+  observation schedules. These mechanisms *can* be built in, but doing so makes
+  the simulation considerably more complex, and accurate models of the
+  deviation processes are themselves hard to develop
+- The output is only as good as the model, and a wrong structural assumption
+  produces confidently wrong data
 
-These models can be coupled with those from Zwep et al. (2024) and Guo et al. (2024) to reproduce realistic relationships between variables including: age, body weight, renal function, liver function, laboratory values, and disease characteristics
+The privacy claim deserves care, because it is often overstated. Simulation is
+perfectly private only when the model it simulates from is public. A model
+*fitted to the trial you are trying to protect* carries information about those
+patients in its parameter estimates, and publishing simulations from it is a
+release of that information, not an alternative to one. This distinction is why
+`synpmx` separates a mode that reads no data at all from modes that read data
+under a budget.
 
----
+### Copulas: realistic covariates to simulate from
 
-## Deep Generative Models
+A structural model needs covariates to simulate on — age, body weight, renal
+function, liver function, laboratory values, disease characteristics — and
+drawing each one independently from its own marginal distribution produces
+patients who do not exist: 45 kg adults with the creatinine clearance of a
+90 kg one.
 
-Recent advances in machine learning have introduced deep generative models for synthetic PK/PD data generation.
+A **copula** solves this by separating a joint distribution into two parts that
+can be handled independently: the marginal distribution of each variable on its
+own, and the *dependence structure* linking them. Fit the dependence structure
+on real data, keep the marginals, and you can then draw whole covariate vectors
+in which the relationships between variables are realistic even though no
+vector belongs to a real patient. Zwep and colleagues developed this for
+virtual patient simulation, and Guo and colleagues for realistic virtual adult
+populations.
 
-Representative papers include
+The important thing about copula methods, for the purposes of this survey, is
+what they produce: **one row per virtual patient — a covariate vector, not a
+longitudinal profile.** They do not compete with mechanistic simulation, they
+supply its input. A published copula also travels well: it can be shared
+without the underlying data, which is what makes the combination a genuinely
+strong option for a fully synthetic study.
 
-- Jiang et al. (2024)
-- Gadgil et al. (2026)
+## Deep generative models
 
-Methods explored include
+Recent advances in machine learning have introduced deep generative models for
+synthetic PK/PD data generation. Methods explored include generative
+adversarial networks (GANs), TimeGAN for sequences, variational autoencoders
+(VAEs), diffusion models, and probabilistic autoregressive networks. Jiang and
+colleagues benchmark several of these on PK/PD data; Gadgil and colleagues
+apply diffusion models to virtual populations and pharmacometric simulation.
 
-- Generative Adversarial Networks (GANs)
-- TimeGAN
-- Variational Autoencoders (VAEs)
-- Diffusion models
-- Autoregressive neural networks
+These models aim to reproduce the statistical properties of longitudinal PK
+datasets while maintaining realistic relationships among patients and
+observations.
 
-These models aim to reproduce statistical properties of longitudinal PK datasets while maintaining realistic relationships among patients and observations.
+**Strengths**
 
-### Advantages
+- Flexible nonlinear modeling with no structural assumption imposed in advance
+- Learn dependence structures nobody specified, including ones nobody noticed
+- Actively developed, with a large methods literature to draw on
 
-- Flexible nonlinear modeling
-- Strong statistical fidelity
-- State-of-the-art generative AI methods
+**Limitations**
 
-### Limitations
+- Fidelity is an aim rather than a result. Where it has been measured in
+  pharmacometrics the answer is mixed: Jiang and colleagues find performance
+  varies substantially by method and scenario, and Woillard and colleagues
+  found TVAE clearly behind CT-GAN and AVATAR on the same data
+- Data-hungry in a field whose cohorts are often 12 to 200 subjects
+- In the pharmacometric applications published so far, the input is usually a
+  simulated dataset or a simplified longitudinal concentration profile rather
+  than an operational trial dataset. This is the gap this package is aimed at,
+  and it is worth being precise that the claim is about the applications cited
+  here rather than about the whole machine-learning literature
 
-Most published work begins with simulated datasets or simplified longitudinal concentration profiles rather than operational pharmacometric datasets collected during clinical trials.
+## Sequential conditional models: synthpop and tabular tools
 
----
+Outside pharmacometrics, the most widely used synthetic-data approach is
+neither mechanistic nor deep. The `synthpop` R package (Nowok, Raab and Dibben)
+synthesizes a table **column by column**: choose an order for the variables,
+model each one conditional on the variables already synthesized — usually with
+a classification and regression tree (CART) — and draw from that fitted
+conditional. Repeat until every column is synthetic.
 
-## Privacy-Preserving Record-Based Methods
+It is the default tool in official statistics and social science, and deserves
+to be better known in this field. The same niche is occupied by the tabular
+deep-learning tools — CT-GAN and TVAE, from the Synthetic Data Vault project —
+which Woillard and colleagues benchmark against AVATAR.
 
-Another class of algorithms generates synthetic observations directly from existing datasets while attempting to preserve privacy.
+**Strengths**
 
-Representative work includes
+- No distributional assumptions, and mixed variable types handled natively
+- Fast, mature, well documented, and equipped with its own utility and
+  disclosure diagnostics
+- Sequential conditioning preserves relationships between columns by
+  construction
 
-- AVATAR (Destere et al.)
-- Woillard et al. (2025)
+**Limitations**
 
-These approaches typically generate synthetic patients by blending or sampling among neighboring individuals within the original dataset.
+- It is built for **rectangular, one-row-per-unit data**. A pharmacometric
+  event table is not that: it has many rows per subject, ordered in time, with
+  a grammar in which `EVID`, `AMT`, `CMT`, and `DV` mean different things on
+  different rows
+- Synthesizing such a table column by column treats each row as an independent
+  unit. That destroys the within-subject trajectory and readily produces
+  illegal event sequences — an observation before the first dose, a dosing row
+  carrying a measurement, a subject whose times do not increase
 
-### Advantages
+You can flatten a study to one row per subject and synthesize that
+successfully — which is exactly what Woillard and colleagues do, on 253
+patients with a single measurement each. What you cannot do that way is keep
+the longitudinal endpoint, which for pharmacometrics is the data.
 
-- High realism
-- Strong preservation of empirical distributions
-- Naturally captures many complex data relationships
+## Record-based blending
 
-### Limitations
+Another class of algorithms generates synthetic records directly from existing
+ones, by blending or sampling among neighboring individuals within the original
+dataset. The original method here is AVATAR, due to Guillaudeux and colleagues,
+in which each synthetic record is built from the local neighborhood of real
+records. "AVATAR" is a method name rather than an initialism. Destere and
+colleagues benchmark a modified AVATAR against differentially private
+alternatives on a population PK model, and Woillard and colleagues include a
+simplified AVATAR in the pharmacogenetics comparison above.
 
-Real pharmacometric datasets often contain operational characteristics that may themselves reveal information about study participants, including
+**Strengths**
 
-- actual dosing times
-- actual dosing amounts
-- observation schedules
-- protocol deviations
+- High realism, because the output is made of real data rather than of a model
+  of it
+- Empirical distributions and complex, unmodeled relationships are preserved
+  without anyone having to notice them first
+- Works at small cohort sizes, where deep methods struggle
 
-These characteristics may require additional masking before record-based synthesis.
+**Limitations**
 
----
+- No formal privacy guarantee. Protection is a set of mechanisms whose coverage
+  must be argued and measured, not a bound that can be stated
+- Real datasets contain operational characteristics that identify people on
+  their own — actual dosing times, actual amounts, observation schedules,
+  protocol deviations — and blending measurement *values* does nothing about
+  any of them. These require separate masking
+- The output is assembled from real trajectories, so it inherits the source
+  data's handling obligations wherever it goes
 
-# Where synpmx Fits
+## Differential privacy is a guarantee, not a family
 
-`synpmx` focuses on generating **realistic event-based pharmacometric datasets** suitable for
+Differential privacy (DP) is frequently listed alongside the approaches above,
+which is a category error worth undoing. DP is not a way of generating data. It
+is a property a *release mechanism* can have: a bound, epsilon, on how much the
+presence or absence of any single individual can change the distribution of
+what is released. Any of the families above either has such a bound or does
+not.
 
-- software development
-- package testing
-- reproducible examples
-- educational materials
-- AI-assisted programming
-- workflow validation
+Three things follow that matter in practice.
 
-The emphasis is on preserving the structural characteristics that software encounters when processing real clinical trial data, including complex dosing histories, observation records, multiple endpoints, irregular sampling, and other operational features commonly found in pharmacometric datasets.
+- **It is the only claim that survives a determined recipient.** Every other
+  protection in this article is an argument about what an attacker is likely to
+  manage. DP is a statement about what is possible.
+- **It composes, and it is spent.** Two releases from the same data cost the
+  sum of their epsilons. A budget is a finite resource, which is why it is
+  allocated deliberately across the quantities being released.
+- **It is not free.** The guarantee is purchased with noise, and at
+  pharmacometric cohort sizes the price is steep. A study of 12 subjects cannot
+  hide one subject cheaply.
 
-## Three Complementary Families of Synthetic Data
+The practical consequence is that DP and record-based realism sit at opposite
+ends of one axis, and choosing between them is a question about where the data
+is going rather than about which method is better. Destere and colleagues
+measure exactly this tradeoff. `synpmx` treats it as the primary design
+decision; the reasoning is in the
+[privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html),
+with the formal argument and the cohort-size feasibility analysis alongside it.
 
-The current landscape can be viewed as three complementary approaches.
+## Where synpmx fits
 
-| Family | Primary Goal | Typical Methods |
-|----------|--------------|-----------------|
-| Mechanistic | Simulate biology | `mrgsolve`, `rxode2` |
-| Statistical | Match observed data distributions | GANs, diffusion models |
-| Structural | Preserve realistic dataset behavior | synpmx |
+`synpmx` generates **event-based pharmacometric datasets** — dosing and
+measurement tables with the schema, event grammar, and rough behavior of a real
+study — for software development, package testing, reproducible examples,
+educational materials, AI-assisted programming, and workflow validation.
 
-These approaches address different scientific and engineering needs. Mechanistic methods are indispensable for simulation studies. Statistical methods excel at reproducing observed distributions and supporting data sharing. Structural approaches, such as synpmx, aim to preserve the complexity and operational behavior of real pharmacometric datasets needed for software engineering and methodological development.
+The emphasis is on the structural characteristics that software encounters when
+processing real trial data. Concretely, that means a synthetic dataset should
+contain the patient who missed the week-4 visit, had a dose interrupted and
+restarted, and withdrew at week 12 — because the assembly script, the
+diagnostic plot, and the model-run plumbing all have to survive that patient,
+and a clean simulation never contains them.
 
-Rather than replacing existing approaches, `synpmx` is intended to complement them by filling an important gap between mechanistic simulation and statistical synthetic data generation.
+### It is in the record-based family, and inherits its problems
 
-# References
+The honest placement is the one that costs the most to defend: the default
+method, `synpmx_avatar()`, is record-based blending, and every limitation
+listed in that section applies to it. What distinguishes the package is not
+escaping those limitations but treating them as the specification.
 
-- Jiang Y, García-Durán A, Losada IB, Girard P, Terranova N. *Generative models for synthetic data generation: application to pharmacokinetic/pharmacodynamic data.* J Pharmacokinet Pharmacodyn. 2024.
+- Values are protected by blending across at least `k` = 5 donors with no
+  donor exceeding `max_donor_weight` = 0.50 of any avatar
+- Observation times are coarsened onto the declared protocol grid, which is
+  what turns a cohort of individually identifiable sampling schedules into a
+  shared one
+- A pattern of attended visits held by fewer than two real patients is refused
+  rather than copied, so no avatar wears one person's history of absences
+- Structurally extreme subjects are screened out of the anchor pool, and donors
+  are never blended across routes of administration
+- Every one of these mechanisms reports what it actually did on the run, in
+  counts, so the argument is auditable rather than asserted
 
-- Gadgil M, Poojari S, Ramanathan M. *Diffusion models for virtual populations and pharmacometric simulations.* J Pharmacokinet Pharmacodyn. 2026.
+The mechanisms are specified in the
+[AVATAR algorithm article](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html),
+measured across eight public datasets in the
+[evaluation](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.html),
+and the questions to ask of any generated dataset — from any method — are in
+[the checks article](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.html).
 
-- Zwep LB, et al. *Virtual Patient Simulation Using Copula Modeling.* CPT: Pharmacometrics Syst Pharmacol. 2024.
+### The four modes across the families
 
-- Guo T, et al. *Generation of realistic virtual adult populations using a model-based copula approach.* J Pharmacokinet Pharmacodyn. 2024.
+The package offers four generation modes, and they do not all sit in the same
+family. Choosing among them is a privacy decision, not a technical preference.
 
-- Destere A, et al. *AVATAR: synthetic clinical datasets generated by neighborhood blending.* 2026.
+| Mode | Family | Formal guarantee |
+|----|----|----|
+| `synpmx_avatar()` | Record-based blending | None; mechanisms, measured |
+| `synpmx_prior()` | Mechanistic simulation from a public model | epsilon = 0 — no data is read |
+| `synpmx_calibrated()` | Mechanistic, with magnitude corrected under a budget | (epsilon, delta) DP |
+| `synpmx_empirical()` | Statistical, rebuilt from DP summaries | (epsilon, delta) DP |
 
-- Woillard JB, et al. *To be or not to be, when synthetic data meet clinical pharmacology: A focused study on pharmacogenetics.* 2025.
+### What is genuinely different
+
+The families answer different questions, and the third column is where this
+package lives.
+
+| Family | Primary goal | Typical methods |
+|----|----|----|
+| Mechanistic | Simulate the biology | `mrgsolve`, `rxode2`, copulas for covariates |
+| Statistical | Match the observed distributions | GANs, diffusion models, `synthpop`, CT-GAN |
+| Structural | Preserve how the dataset behaves | AVATAR-style blending on event tables |
+
+Mechanistic methods are indispensable for simulation studies. Statistical
+methods excel at reproducing distributions and supporting data sharing. What
+neither is built to do is keep the event table intact — the dosing history, the
+irregular visit, the multiple endpoints on one grid, the deviation — because
+for their purposes those are nuisance rather than signal. For software
+engineering and methodological development they are the entire point.
+
+`synpmx` is not intended to replace any of these. It fills the gap between
+mechanistic simulation and statistical synthetic data generation, and it is
+explicit about what that costs: blending shrinks variance, dose amounts are not
+always rescaled to each avatar's own covariates, and no output of the default
+mode is anonymous data. It is built for developing software against realistic
+data, not for estimating parameters from it.
+
+## References
+
+- Jiang Y, García-Durán A, Losada IB, Girard P, Terranova N. *Generative models for synthetic data generation: application to pharmacokinetic/pharmacodynamic data.* J Pharmacokinet Pharmacodyn. 2024. doi: [10.1007/s10928-024-09935-6](https://doi.org/10.1007/s10928-024-09935-6).
+
+- Gadgil PK, Poojari SM, Ramanathan M. *Diffusion models for virtual populations and pharmacometric simulations.* J Pharmacokinet Pharmacodyn. 2026;53(5):45.
+
+- Zwep LB, Guo T, Nagler T, Knibbe CAJ, Meulman JJ, van Hasselt JGC. *Virtual Patient Simulation Using Copula Modeling.* Clin Pharmacol Ther. 2024;115(4):795-804. doi: [10.1002/cpt.3099](https://doi.org/10.1002/cpt.3099).
+
+- Guo T, et al. *Generation of realistic virtual adult populations using a model-based copula approach.* J Pharmacokinet Pharmacodyn. 2024. doi: [10.1007/s10928-024-09929-4](https://doi.org/10.1007/s10928-024-09929-4).
+
+- Nowok B, Raab GM, Dibben C. *synthpop: Bespoke creation of synthetic data in R.* Journal of Statistical Software. 2016;74(11):1-26. doi: [10.18637/jss.v074.i11](https://doi.org/10.18637/jss.v074.i11).
+
+- Xu L, Skoularidou M, Cuesta-Infante A, Veeramachaneni K. *Modeling tabular data using conditional GAN.* Advances in Neural Information Processing Systems 32 (NeurIPS 2019). 2019:7335-7345. (CT-GAN and TVAE, from the Synthetic Data Vault project.)
+
+- Guillaudeux M, Rousseau O, Petot J, et al. *Patient-centric synthetic data generation, no reason to risk re-identification in biomedical data analysis.* npj Digital Medicine. 2023;6. doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
+
+- Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome the privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark using a daptomycin population pharmacokinetic model.* medRxiv preprint, posted June 2, 2026. doi: [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+
+- Woillard JB, Benoist C, et al. *To be or not to be, when synthetic data meet clinical pharmacology: A focused study on pharmacogenetics.* CPT Pharmacometrics Syst Pharmacol. 2025. doi: [10.1002/psp4.13240](https://doi.org/10.1002/psp4.13240).
+
+- Dwork C, Roth A. *The Algorithmic Foundations of Differential Privacy.* Foundations and Trends in Theoretical Computer Science. 2014;9(3-4). doi: [10.1561/0400000042](https://doi.org/10.1561/0400000042).
