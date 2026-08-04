@@ -14,9 +14,9 @@ There are many reasons to generate "synthetic data."  It is important to be be e
 | **Answer the scientific question.** Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm. | **No.**   Use the real data for this. |
 | **Teach and compare.** Show what the different synthetic data generation methods do. | **Yes**, secondarily. |
 
-The use case this package was built for: sharing realistic-looking study data
+The main use caes of this package is for sharing realistic-looking study data
 outside the GxP computing environment but still within
-the organization, so that code development can happen without the real data. In
+the organization, so that code development can occur without the real data. In
 some cases the GxP environment does not permit the most advanced agentic coding
 tools, because of the risk of misalignment or unintended agent behavior. Working
 with synthetic data lets those tools be used without exposing them to patient
@@ -31,13 +31,15 @@ specified. The original method was developed in
 Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified
 AVATAR for population PK datasets [1]. However, they did not test their method using
 pharmacometrics dataset from actual clinical trials.  We have done here, and in the process
-we have added features such as handling BLOQ data and masking patients with unique dosing schedules.  
-The key function is `synpmx_avatar()`.
+we have added features such as handling BLOQ data and masking patients with unique dosing schedules
+and observation times.
 
-The package also provides code for other data masking methods: trial simulation
-from prior knowledge, and two differential privacy (DP) methods that give more formal
-protection. These methods are provided mainly to illustrate the tradeoffs between ways
-of generating synthetic data, and are not actively maintained.
+The key function is `synpmx_avatar()`, which builds artificial profiles from real patient profiles,
+It masks identifiable characteristics.  but does not offer formal privacy guarantees.  For didactic purposes,
+the package also provides code for other data masking methods, using trial simulation
+from prior knowledge, and differential privacy methods.  These methods give more formal
+privacy protection and they are included here to illustrate the tradeoffs between ways
+of generating synthetic data.  These methods are not actively maintained.
 
 ## Installation
 
@@ -77,17 +79,14 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 ## Running it on your own study
 
-AVATAR needs two things: the data, and a declaration of what its columns mean.
-There is no model to specify and nothing to fit.
-
-The declaration is also the **manifest of what survives**. `synpmx_avatar()`
-drops every column with no role names, so a column you forget is dropped rather than
-quietly copied out of a real patient. Only `id`, `time`, `dv`, and `evid` are
+AVATAR, called by `synpmx_avatar() needs two things: the data, and a declaration of what its columns mean.
+A model is not needed.  The function drops every column that is not described, so a column you forget is 
+describe is dropped rather than quietly copied out of a real patient. Only `id`, `time`, `dv`, and `evid` are
 required; everything else is optional.
 
 The block below stands in for your study — replace the first dozen lines with
-your own data frame and edit the role names to match your columns. It is built
-to carry every declarable column at once, so most studies will use a subset:
+your own data frame and edit the column descriptions to match your dataset. The example below
+shows every declarable column, so most studies will use a subset.
 
 ``` r
 library(synpmx)
@@ -113,12 +112,9 @@ roles <- pmx_roles(
   amt                = "AMT",                   # dose amount
   rate               = "RATE",                  # infusion rate
   cmt                = "CMT",                   # compartment
-  dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns
-                                                #   may label the same endpoint,
-                                                #   first is authoritative. If
-                                                #   CMT is your only endpoint
-                                                #   key, name it twice:
-                                                #   cmt = "CMT", dvid = "CMT"
+  dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns may label the same endpoint,
+                                                # If CMT is your only endpoint key, name it in both
+                                                # cmt = "CMT", dvid = "CMT"
   mdv                = "MDV",                   # missing-DV indicator
   nominal_time       = "NTIME",                 # protocol visit time
   tad                = "TAD",                   # time after dose; recomputed
@@ -126,21 +122,17 @@ roles <- pmx_roles(
   cens               = "CENS",                  # 1 = BLOQ, -1 = above, 0 = not
   limit              = "LIMIT",                 # the other interval boundary
   covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
-  dose_covariate     = "WT",                    # dose is mg/kg. Declare it and
-                                                #   each avatar's AMT is rebuilt
-                                                #   from its own blended WT.
-                                                #   NULL infers it instead, and
-                                                #   inference fails closed
-  subject_properties = c("TRT", "TRTN"),        # assigned stratum; groups the
-                                                #   dose rule and visit patterns
-  keep               = "STUDYID"                # carried through verbatim
+  dose_covariate     = "WT",                    # in this case, dose is body-weight based and it should be declared
+  subject_properties = c("TRT", "TRTN"),        # assigned patient stratification variable
+  keep               = "STUDYID"                # columns to be carried through verbatim
   # addl, ii          -- accepted and carried, but not expanded; expand
   #                      ADDL doses into explicit rows before synthesis
-  # assigned_dose, exclude -- differential-privacy engines only
 )
 
 validate_pmx(study, roles)$valid
 #> [1] TRUE
+
+
 ```
 
 **Covariates and Subject Properties** are easy roles to confuse:
@@ -162,104 +154,23 @@ exactly like `synpmx_avatar(study, roles, seed = 2026)`:
 
 ``` r
 synthetic <- synpmx_avatar(
-  study, roles,
-  n_subjects         = NULL,   # cohort size; NULL matches the source
-  seed               = 2026,
-  # --- how much of one real patient can reach one synthetic patient ---
-  k                  = 5,      # donors blended into each avatar (the floor)
-  max_donor_weight   = 0.50,   # no one donor is more than half an avatar
-  on_donor_shortfall = "drop", # a route arm below k + 1 subjects is dropped
-  # --- what structure is masked ---
-  screen             = TRUE,   # never anchor on a subject whose follow-up or
-                               #   dose count exceeds 2x the cohort's 90th pct
-  coarsen_time       = TRUE,   # snap times onto a shared visit grid, then
-                               #   resample pooled deviations back, so no avatar
-                               #   carries one real visit schedule. Uses
-                               #   `nominal_time` when declared; K-means centres
-                               #   of the pooled times otherwise
-  min_pattern_share  = 2L,     # an avatar's attended-visit pattern when DV is collected
-                               # must be one that at least 2 real subjects share, so no
-                               #   synthetic schedule is unique to one patient
-  # --- how much noise is added on top of the blend ---
-  subject_noise_sd   = 0.15,   # one draw per avatar: shifts that avatar's whole
-                               #   curve up or down together
-  residual_noise_sd  = 0.05,   # point-to-point scatter within one avatar's curve
-  residual_phi       = 0.6,    # how much consecutive points wander together:
-                               #   0 = independent scatter, toward 1 = smooth drift
-  time_jitter        = 0,      # realism only, NOT privacy: jitter is clamped
-                               #   within half a gap of the source visit
-  pca_variance       = 0.90    # profile variance retained for donor distances
-)
+  study,             #study data
+  roles,             #column desrciption
+  n_subjects = NULL, # cohort size; NULL matches the source
+  seed       = 2026)
 
 validate_pmx(synthetic, roles)$valid
 #> [1] TRUE
-dim(synthetic)
-#> [1] 384  21
-head(synthetic[, c("ID", "TIME", "NTIME", "OCC", "NAME", "DV", "CENS", "TRT")], 6)
-#>   ID TIME NTIME OCC NAME        DV CENS       TRT
-#> 1 25 0.00  0.00   1   cp  0.000000    0 100 mg QD
-#> 2 25 0.00  0.00   1   pd 90.823217    0 100 mg QD
-#> 3 25 0.25  0.25   1   cp  1.200000    1 100 mg QD
-#> 4 25 1.00  1.00   1   cp  8.249096    0 100 mg QD
-#> 5 25 2.00  2.00   1   cp  3.766242    0 100 mg QD
-#> 6 25 4.00  4.00   1   pd 78.636255    0 100 mg QD
 ```
-
-**The three noise settings do different jobs, and none of them is an absolute
-amount.** Blending several donors averages their curves together, which pulls
-every avatar toward the cohort mean and shrinks the spread between subjects — so
-noise is added back deliberately, in two layers:
-
-- `subject_noise_sd` is **one draw per avatar per endpoint**, added to that
-  avatar's entire trajectory. It moves the whole curve up or down, which is what
-  restores between-subject variability.
-- `residual_noise_sd` is added **point by point** along the curve, and
-  `residual_phi` decides how much each point inherits from the one before it.
-  At `0` you get independent scatter, which looks like assay noise; toward `1`
-  the noise drifts smoothly, which looks like a real biological wander. The
-  default 0.6 sits between the two.
-
-Both are **scaled to the endpoint**, not measured in its units. On a
-log-transformed endpoint — the usual case for concentrations — the value applies
-on the log scale, so `0.15` is roughly a 15% multiplicative shift. On an
-untransformed endpoint it is a fraction of the standard deviation of the source
-values. That is why the same defaults work across endpoints on wildly different
-scales.
-
-`time_jitter` is not in this group: it perturbs observation *times* rather than
-values, and as noted above it is a realism control rather than a privacy one.
-
-Two things the defaults do that are worth knowing about. Where dosing is
-proportional to a covariate (mg/kg, mg/m²), each avatar's `AMT` is **recomputed
-from its own blended covariate** rather than copied, so the synthetic patient's
-dose matches the synthetic patient's weight. **Say so with `dose_covariate`**:
-left undeclared, the run has to *infer* the relationship, and it infers
-conservatively — the dose-to-covariate ratio must collapse onto a handful of
-levels, so a study that dispenses in vials or escalates within a patient is
-refused and its amounts are copied verbatim, which leaves every avatar's implied
-mg/kg wrong and the copied milligrams still encoding one real patient's weight.
-Declaring the covariate also keeps each dose row's own ratio, so intra-patient
-escalation survives exactly. And a time of DV collection pattern
-held by fewer than `min_pattern_share` subjects is **lost, not approximated**, and instead
-such a pattern is sampled from the patients who share this data collection patterns with others 
-\appened.
 
 ## The four modes for generating synthetic data
 
 | Mode | Function | Output built from | Guarantee | Works at |
 |----|----|----|----|----|
-| **1. AVATAR blending** | `synpmx_avatar()` | Real subject templates and blended real trajectories | None; governance only | At least 5 subjects |
+| **1. AVATAR blending** | `synpmx_avatar()` | Real subject templates and blended real trajectories | None; governance only | At least 6 subjects |
 | **2. Prior only** | `synpmx_prior()` | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
 | **3. Calibration** | `synpmx_calibrated()` | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | At least 20 subjects |
 | **4. Empirical** | `synpmx_empirical()` | Dozens of noised population summaries | `(epsilon, delta)` DP | At least hundreds |
-
-**The trust boundary decides whether you need differential privacy.**
-
-If the generated data will not be accessible to anyone who cannot access the original data and formal privacy guarantees are not needed, then the AVATAR blending approach is the recommended method because it is the simplest method to use as it doesn't require the specification of a model.  
-
-On the other hand, if the synthetic data will reach those who do not have access to the original data, then  more formal methods with mathematical trust guarantees are the appropriate methods of choice, as they offer concrete privacy guarantees.  
-
-`vignette("synpmx-4-methods")` runs all four methods on the same dataset and shows the results side by side.
 
 ## Maintenance status
 
