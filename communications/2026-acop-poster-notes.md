@@ -56,7 +56,13 @@
 - no patient identifiable from various features like
 unique doses or dose times or observation times etc
 
-## stnthetic data checks
+## synthetic data checks
 
 - distance distribution
 - identifiability check
+
+## Possible Survey
+
+- How are you permitted to use agentic coding at your company.  Direct access to GxP, not at all, something in between.
+- What is your role.
+- What size company are you.

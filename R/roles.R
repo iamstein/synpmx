@@ -27,7 +27,26 @@
 #'   A NONMEM `CMT` usually does both jobs, so **one column may be named as both
 #'   roles**: `pmx_roles(..., cmt = "CMT", dvid = "CMT")`. This is the only
 #'   permitted overlap; every other collision is an error.
-#' @param nominal_time,tad,occasion Optional time metadata columns.
+#' @param nominal_time,occasion Optional time metadata columns.
+#' @param tad Time-after-dose column. **It is an output, not an input.**
+#'   [synpmx_avatar()] recomputes it from the generated times and the generated
+#'   dose rows and overwrites whatever the source held, so declaring the role
+#'   says which column to overwrite and to carry through — the source's values
+#'   are never used to generate anything.
+#'
+#'   [validate_pmx()] does read them, and reports (as a non-fatal warning) where
+#'   the declared column disagrees with time since the most recent dose row.
+#'   That disagreement is worth knowing: a study may measure TAD from the end of
+#'   an infusion, from a nominal dose time, or from an assigned dosing occasion
+#'   rather than the most recent dose. `nlmixr2data::nimoData` disagrees on 45%
+#'   of its observation rows. Where it does, the synthetic column follows the
+#'   derivation rather than the source's convention.
+#'
+#'   Two limits. Samples taken before any dose are reported as 0, because
+#'   [validate_pmx()] refuses a negative TAD — not because a baseline sample is
+#'   genuinely zero hours after a dose it precedes. And where `addl` or `ii` is
+#'   declared, the derivation cannot see the doses those imply, so the agreement
+#'   check is skipped and says so.
 #' @param cens,limit Optional Monolix-style censoring indicator and other
 #'   interval-boundary columns.
 #' @param addl,ii Optional additional-dose and interdose-interval columns.

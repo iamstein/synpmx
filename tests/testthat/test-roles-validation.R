@@ -169,3 +169,71 @@ test_that("cmt and dvid may name the same column, other collisions may not", {
     "A column cannot have multiple roles"
   )
 })
+
+# The `tad` role is an output, not an input: `synpmx_avatar()` overwrites it.
+# `validate_pmx()` is the only place the declared values are read, and it
+# reports rather than refuses, because the source may be right and the
+# derivation wrong for that study.
+tad_source <- function() {
+  do.call(rbind, lapply(1:6, function(i) {
+    out <- rbind(
+      data.frame(ID = i, TIME = c(0, 24), DV = NA_real_, AMT = 100, EVID = 1L,
+                 CMT = 1L, TAD = 0, WT = 60 + i),
+      data.frame(ID = i, TIME = c(1, 6, 25, 30), DV = c(9, 5, 8, 4),
+                 AMT = 0, EVID = 0L, CMT = 2L, TAD = c(1, 6, 1, 6),
+                 WT = 60 + i))
+    out[order(out$TIME, -out$EVID), ]
+  }))
+}
+
+tad_roles <- function(...) {
+  pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+            cmt = "CMT", tad = "TAD", covariates = "WT", ...)
+}
+
+test_that("a TAD that agrees with the times passes and says so", {
+  report <- validate_pmx(tad_source(), tad_roles())
+  expect_true(report$valid)
+  agreement <- report$checks[report$checks$check == "tad_agreement", ]
+  expect_equal(nrow(agreement), 1L)
+  expect_equal(agreement$status, "pass")
+})
+
+test_that("a TAD on another convention warns without invalidating", {
+  # A study measuring TAD from a nominal dose time an hour earlier than the
+  # recorded one. Nothing here is malformed -- it is a different convention --
+  # so it must warn and stay valid.
+  source <- tad_source()
+  source$TAD[source$EVID == 0L] <- source$TAD[source$EVID == 0L] + 1
+  report <- validate_pmx(source, tad_roles())
+  expect_true(report$valid)
+  agreement <- report$checks[report$checks$check == "tad_agreement", ]
+  expect_equal(agreement$status, "warning")
+  expect_match(agreement$message, "24 of 24 observation row")
+  # And the warning must be visible, which it was not: print() returned on the
+  # valid branch before reaching the warnings block.
+  expect_output(print(report), "Warnings \\(not fatal\\)")
+})
+
+test_that("the agreement check is skipped, loudly, when addl or ii is declared", {
+  source <- tad_source()
+  source$ADDL <- 0L
+  source$II <- 0
+  report <- validate_pmx(source, tad_roles(addl = "ADDL", ii = "II"))
+  agreement <- report$checks[report$checks$check == "tad_agreement", ]
+  expect_equal(agreement$status, "warning")
+  expect_match(agreement$message, "does not expand them")
+})
+
+test_that("generation overwrites TAD from the generated times", {
+  source <- tad_source()
+  source$TAD[source$EVID == 0L] <- 999           # nonsense the generator ignores
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, tad_roles(), n_subjects = 6, seed = 2)
+  ))
+  expect_false(any(synthetic$TAD == 999))
+  expect_true(all(synthetic$TAD >= 0))
+  # It equals the derivation, by construction.
+  expect_equal(synthetic$TAD, synpmx:::.derived_tad(synthetic, tad_roles()),
+               tolerance = 1e-8)
+})

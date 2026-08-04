@@ -239,10 +239,36 @@ anyone; it produces data nobody can develop against.
 
 - **Semantic ordering.** A trough sample must stay a trough. Concretely: the
   sign and rough magnitude of time-after-dose per observation, dose/observation
-  ordering within subject, occasion assignment. **`TAD` is the natural carrier
-  of this check and is currently unused for it** — see the `tad` role item in
-  `design/TODO.md`, where the declared column turns out to disagree with the
-  derived one on 45% of `nimoData`'s observation rows with nobody noticing. This is the owner's own example
+  ordering within subject, occasion assignment.
+
+  **`TAD` is the carrier of this check**, and the vignette needs to be clear
+  about a thing that surprises people: `tad` is an **output, not an input**.
+  `synpmx_avatar()` recomputes it from the generated times and dose rows and
+  overwrites whatever the source held. Declaring the role says which column to
+  overwrite and to carry through; the source's values never generate anything.
+
+  `validate_pmx()` is the one place they are read. It reports, as a non-fatal
+  warning, where the declared column disagrees with time since the most recent
+  dose row — and a disagreement is a real finding every time, because it means
+  one of: the study measures TAD from the end of an infusion, or from a nominal
+  dose time, or from an assigned occasion rather than the most recent dose; or
+  the source column is wrong; or our derivation is wrong for that study. It
+  cannot tell you which, and the message says so rather than guessing.
+
+  Worth showing in the vignette because it is live in our own registry:
+  `nlmixr2data::nimoData` disagrees on **143 of 321 observation rows (45%)**, by
+  up to 311.9 hours, and the synthetic column follows the derivation rather than
+  nimoData's convention. That is exactly the kind of silent semantic change this
+  whole category exists to surface.
+
+  Two limits to state: a sample taken before any dose is reported as TAD 0
+  because `validate_pmx()` refuses a negative, not because it is genuinely zero
+  hours after a dose it precedes; and where `addl`/`ii` are declared the
+  derivation cannot see the doses they imply, so the check is skipped and says
+  so.
+
+  **Still missing from category C**: dose/observation ordering and occasion
+  assignment have no check. TAD covers the first only indirectly. This is the owner's own example
   and it is the check that would have caught the first two attempts at the
   dose-authoritative grid (see `design/TODO.md`), both of which put a dose
   *before* the sample that preceded it.
@@ -357,7 +383,8 @@ Two corollaries, both learned the hard way and both worth writing down:
 | B5 | **nothing.** Mechanism pinned by `tests/testthat/test-avatar-relationships.R` | — |
 | B6 | `dose_basis` / `dose_basis_note` in `pmx_masking_report()` | (recorded) |
 | C | `pmx_masking_report()`, `compare_pmx()` | yes |
-| C | semantic ordering — **nothing exported** | — |
+| C | `validate_pmx()` `tad_agreement` — TAD against the derivation | yes (source only) |
+| C | dose/observation ordering, occasion assignment — **nothing** | — |
 | D | `compare_pmx_distributions()`, `mean_effective_donors`, `cap_binding_fraction` | yes |
 | E | **nothing** — by nature the user's own pipeline | — |
 
@@ -374,9 +401,11 @@ three gaps are already visible:
    mechanism it has to change: a categorical covariate is copied from a donor
    and never blended, and an outlying patient is self-protecting only as a side
    effect of donor selection.
-2. **C, semantic ordering.** An exported check that time-after-dose sign and
-   dose/observation ordering are preserved per patient. It is the check the
-   dose-grid work needed and did not have.
+2. **C, semantic ordering.** Partly done: `validate_pmx()` now reports where a
+   declared `TAD` disagrees with the derivation. What is still missing is the
+   ordering itself — that a dose never moves past a sample that preceded it, and
+   that occasion assignment survives. That is the check the dose-grid work
+   needed and did not have (`design/TODO.md`).
 3. **B4 as an exported helper** rather than a test-only gate, so a user can run
    it on their own output.
 
