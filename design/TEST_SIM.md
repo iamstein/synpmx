@@ -28,7 +28,8 @@ failure should add:
 
 ## Dataset registry
 
-The first evaluation set contains every dataset used in the practical demo.
+The first evaluation set contains every dataset used by the evaluation
+vignette (`vignettes/avatar-evaluation-public-data.Rmd`).
 Configuration values below are public domains, contribution limits, schema
 semantics, and endpoint alignments. Source-derived regimen and sampling
 schedules must not be supplied to the fit.
@@ -44,7 +45,7 @@ schedules must not be supplied to the fit.
 | `mavoglurant` | `nlmixr2data::mavoglurant` | Public package data | One- and two-period profiles, TIME reset within OCC, occasion-varying assigned DOSE, numeric-coded SEX, infusion rows | Reset clocks validate within ID/OCC; DOSE equals positive AMT and is constant within ID/OCC; SEX is categorical; cohort and two-occasion event structure remain |
 | `case1_pkpd` | `xgxr::case1_pkpd` | Public package data (`xgxr` is already a Suggests) | **The first public dataset shaped like a real study report.** 180 patients, a declared `NOMTIME`, six treatment arms as `subject_properties`, two endpoints keyed by a character `NAME`, and a baseline weight. Nothing in the nlmixr2data five has a declared nominal time, an arm to stratify on, or a `CENS` column | Grid is `nominal`; 0 patients with a unique observation schedule; both guarantees hold at 0; every arm survives into the output. Note `CENS` is meaningful only for the PK endpoint -- the PD effect is signed, and declaring `cens` is correctly refused by validation |
 | `mad` | `xgxr::mad` | Public package data | **Five observation endpoints** (a sixth `NAME` level is dosing), including ordinal, count and binary PD alongside continuous PD and PK. `warfarin`'s two are the most the rest of the registry offers, and `SIM-036`'s endpoint-loss failure mode is invisible below three | All five observation endpoints survive generation; schedule guarantee holds at 0 |
-| `pheno_sd` | `nlmixr2data::pheno_sd` | Public package data | 59 **real** patients, the largest real cohort available. Neonatal phenobarbital: individualised dosing, sparse irregular sampling, and a time-varying weight | The observation-side guarantee holds at 0; the dose side does NOT and must say so -- 17 of 59 patients have a dose schedule nobody shares and there is nobody safe to anchor on instead. This is the registry's honest example of a study whose dosing cannot be masked |
+| `pheno_sd` | `nlmixr2data::pheno_sd` | Public package data | 59 **real** patients from routine clinical care rather than a protocol -- the least protocol-like source available. Neonatal phenobarbital: individualised dosing, sparse irregular sampling, and a time-varying weight | The observation-side guarantee holds at 0; the dose side does NOT and must say so -- 55 of 59 patients have a dose schedule nobody shares (all 59 after coarsening), so there is nobody safe to anchor on instead and `identifying_dose_schedules` lands in the teens, seed-dependent. This is the registry's honest example of a study whose dosing cannot be masked |
 
 ## Available public datasets
 
@@ -56,20 +57,20 @@ pass.
 
 | Dataset | Package | n | rows | ep | What is distinctive | Status |
 |---|---|---|---|---|---|---|
-| `theo_md` | nlmixr2data | 12 | 348 | 2 | Seven Q24H oral doses, dense profiles on occasions 1 and 7 only. Dosed by weight, but the mg/kg ratio spans 3.1--5.9 so inference correctly declines — the public demonstration for `dose_covariate` | **in use** |
+| `theo_md` | nlmixr2data | 12 | 348 | 1 | Seven Q24H oral doses, dense profiles on occasions 1 and 7 only. Dosed by weight, but the mg/kg ratio spans 3.1--5.9 so inference correctly declines — the public demonstration for `dose_covariate` | **in use** |
 | `warfarin` | nlmixr2data | 32 | 515 | 2 | Lower-case schema, single dose, PK (`cp`) and PD (`pca`) on different time courses, factor covariates | **in use** |
-| `wbcSim` | nlmixr2data | 45 | 280 | 2 | Infusion start/stop pairs, myelosuppression with a delayed nadir and recovery, wildly spread follow-up (0 to 4580 h) | **in use** |
+| `wbcSim` | nlmixr2data | 45 | 280 | 1 | Infusion start/stop pairs, myelosuppression with a delayed nadir and recovery, wildly spread follow-up (0 to 4580 h) | **in use** |
 | `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten weekly infusions, declared `OCC`/`TAD`, time-varying weight. **Dose times are recorded actuals**, which makes all 12 dose schedules unique and is the open problem in `design/TODO.md` | **in use** |
-| `mavoglurant` | nlmixr2data | 120 | 2678 | 2 | One- and two-period profiles, `TIME` resets within `OCC`, occasion-varying assigned dose, infusion rows. The largest cohort under test | **in use** |
-| `pheno_sd` | nlmixr2data | 59 | 744 | 1 | **The largest real cohort available.** Neonatal phenobarbital: individualised dosing, sparse irregular sampling, time-varying weight. 17 of 59 dose schedules cannot be masked, and the run says so | **in use** |
+| `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period profiles, `TIME` resets within `OCC`, occasion-varying assigned dose, infusion rows. The largest cohort under test | **in use** |
+| `pheno_sd` | nlmixr2data | 59 | 744 | 1 | **Real, and not from a protocol** -- routine neonatal clinical care: individualised dosing, sparse irregular sampling, time-varying weight. 55 of 59 dose schedules are held by one patient and cannot be masked, and the run says so | **in use** |
 | `case1_pkpd` | xgxr | 180 | 20820 | 2 | **The only public dataset shaped like a real study report**: declared `NOMTIME`, six arms, `CENS`, baseline weight, `CYCLE`/`PART`. Its `CENS` is meaningful only for PK — the PD effect is signed — and validation correctly refuses the `cens` role | **in use** |
 | `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose with ordinal, count and binary PD alongside continuous PD and PK. Most endpoints of anything available | **in use** |
-| `nmtest` | nlmixr2data | 54 | 7157 | 2 | NONMEM 7.4.3 event-grammar torture test: steady state, `ADDL`, `II`, lag time, bioavailability, duration and rate modes together. **The hardest available exercise of role handling**, and the only thing that would say whether the `addl`/`ii` carry-through is sound | candidate, highest value |
+| `nmtest` | nlmixr2data | 54 | 7157 | 1 | NONMEM 7.4.3 event-grammar torture test: steady state, `ADDL`, `II`, lag time, bioavailability, duration and rate modes together. **The hardest available exercise of role handling**, and the only thing that would say whether the `addl`/`ii` carry-through is sound | candidate, highest value |
 | `sad` | xgxr | 50 | 700 | 1 | Single ascending dose, five arms, `NOMTIME`, `CENS`. A smaller, simpler `case1_pkpd` | candidate |
 | `mad_missing_duplicates` | xgxr | 60 | 4168 | 5 | `mad` with duplicate rows retained — a data-hygiene case worth one test | candidate |
-| `Oral_1CPT` and 11 siblings | nlmixr2data | 120 | 7920 | 1--2 | ACOP 2016 simulated sets: `Bolus`/`Infusion`/`Oral` x `1CPT`/`2CPT` x with/without Michaelis--Menten. The only public sources with `SS`/`ADDL`/`II` populated at scale | candidate, but see below |
-| `theo_sd` | nlmixr2data | 12 | 144 | 2 | Single-dose theophylline; a strict subset of `theo_md`'s shape | redundant |
-| `nlmixr_theo_sd` | xgxr | 12 | 144 | 2 | `xgxr`'s copy of `theo_sd` | redundant |
+| `Oral_1CPT` and 11 siblings | nlmixr2data | 120 | 7920 | 1 | ACOP 2016 simulated sets: `Bolus`/`Infusion`/`Oral` x `1CPT`/`2CPT` x with/without Michaelis--Menten. The only public sources with `SS`/`II` populated at scale (no `ADDL` column; `nmtest` is the one with all three) | candidate, but see below |
+| `theo_sd` | nlmixr2data | 12 | 144 | 1 | Single-dose theophylline; a strict subset of `theo_md`'s shape | redundant |
+| `nlmixr_theo_sd` | xgxr | 12 | 144 | 1 | `xgxr`'s copy of `theo_sd` | redundant |
 
 **Do not add all twelve ACOP sets.** They differ in the PK *model* used to
 simulate them, which `synpmx` never sees — it reads structure, not
@@ -93,7 +94,7 @@ subjects) is a NONMEM 7.4.3 event-grammar torture test -- steady state, `ADDL`,
 the hardest available exercise of role handling and validation, and the one
 dataset that would say whether the `addl`/`ii` carry-through is sound. The ACOP
 2016 simulated sets (`Oral_1CPT` and siblings, 120 subjects, 7920 rows each)
-are the only public sources with `SS`/`ADDL`/`II` populated at scale and would
+are the only public sources with `SS`/`II` populated at scale and would
 serve for performance work.
 
 The next expansion dataset should be `pmx_simulated_fixture(60)`. It is already
@@ -175,7 +176,7 @@ checks but are not simulation-fidelity metrics:
   and PATH discovery are environment checks rather than generator tests.
 - Privacy concepts and the simulation algorithm were initially mixed in one
   method vignette. The package now requires separate privacy-introduction and
-  simulation-method vignettes, plus the practical demo.
+  simulation-method vignettes, plus the evaluation vignette.
 - The practical vignette must explain near the top that the implementation is
   a fixed-grid population generator, not an ODE, NLME likelihood, or spline.
 - Evaluation should report missing optional packages and rendering tools as

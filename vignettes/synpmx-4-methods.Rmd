@@ -584,8 +584,9 @@ model code.
 
 ## Where to go next
 
-- `vignette("synpmx-demo")` — the practical workflow across five public
-  datasets, with structural checks.
+- `vignette("avatar-evaluation-public-data")` — `synpmx_avatar()` run across
+  eight public datasets, with the structural checks and the masking accounting
+  for each.
 - `vignette("synpmx-privacy")` — what differential privacy guarantees, what it
   does not, the trust-boundary decision rule, and how epsilon trades against
   utility.

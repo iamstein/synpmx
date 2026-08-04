@@ -27,9 +27,14 @@ document.
 
 - `synpmx-4-methods.Rmd` — the four generation modes at a high level.
 - `avatar-algorithm.Rmd` — the default generator step by step, and the seven
-  masking mechanisms M1-M7. Promoted from `articles/` on 2026-07-31 because it
+  masking mechanisms M1-M6. Promoted from `articles/` on 2026-07-31 because it
   is the method reference, not supporting evidence.
-- `synpmx-demo.Rmd` — the worked workflow over the public datasets.
+- `avatar-evaluation-public-data.Rmd` — `synpmx_avatar()` run over every public
+  dataset in the evaluation set, with the masking accounting and exposure
+  measurements for each. Renamed from `synpmx-demo.Rmd` on 2026-08-04: it is an
+  evaluation of algorithm performance, not a tutorial. It carries a table
+  describing every dataset it uses; keep that table in step with the datasets
+  actually run.
 - `synpmx-privacy.Rmd` — the trust-boundary decision rule and choosing epsilon.
 
 **`vignettes/articles/` — pkgdown only.** Excluded from the build by
@@ -44,9 +49,20 @@ article fails the site build.
 - `model-elicitation.Rmd` / `data-elicitation.Rmd` — producing the public
   structural model, priors, and design without reading data.
 
-`README.md` is the entry point.  It is critical this be human readable and understandable.
-It is also critical it be kept up to date, but by humans.  So track this file, but before making
-any direct changes, inform the user of this issue and confirm they'd like changes.  
+`README.md` is the entry point. It is critical that it be human readable and
+understandable, and its voice belongs to the maintainer rather than to an agent.
+Two different rules apply to it, and the difference is between keeping it true
+and changing what it says.
+
+- **Keep it accurate without asking.** When a rename, move, or API change makes a
+  file name, link, function name, count, or description in `README.md` wrong,
+  fix it in the same change that broke it, and say so in the summary. A stale
+  link or a wrong file name is a defect, not an editorial choice. The same goes
+  for a documentation table that no longer matches the vignettes that exist.
+- **Ask before adding or rewriting.** New sections, added explanation,
+  restructuring, or reworking existing prose are substantial changes to a
+  document the maintainer owns. Describe what you would change and why, and get
+  confirmation first.
 
 Keep `design/TODO.md` current: tick items as they close, add newly discovered
 work, and record the reasoning in the registry that owns it rather than in the
@@ -77,7 +93,7 @@ task list itself.
 - Treat `design/TEST_SIM.md` as the living evaluation specification. Keep its
   dataset registry, issue registry, metrics, and acceptance gates synchronized
   with the implemented evaluator.
-- Evaluate every public dataset used by the demo. Add a focused
+- Evaluate every public dataset used by the evaluation vignette. Add a focused
   regression fixture when that is the smallest reliable way to reproduce a
   defect.
 - For every newly discovered simulator defect, add or update all three of: the
@@ -107,8 +123,9 @@ task list itself.
   documentation diff.
 - After changes to simulation, design inference, privacy accounting, public
   APIs, or output structure, make an explicit documentation-impact pass:
-  update the demo for workflow/output changes, the simulation-method vignette
-  for generator changes, the privacy-introduction vignette for privacy changes,
+  update the evaluation vignette for workflow/output changes, the
+  simulation-method vignette for generator changes, the privacy-introduction
+  vignette for privacy changes,
   and the epsilon-exploration vignette for privacy--utility behavior. Also
   check roxygen documentation, `README.md`, `NEWS.md`, and design specifications
   where relevant.
