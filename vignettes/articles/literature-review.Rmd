@@ -1,0 +1,129 @@
+---
+title: "Synthetic Pharmacometric Data: Current Approaches and How synpmx Fits"
+description: "An overview of current approaches to synthetic pharmacometric data generation and how synpmx complements existing methods."
+author: ChatGPT, Andy Stein
+---
+
+# Synthetic Pharmacometric Data: Current Approaches and How synpmx Fits
+
+Synthetic datasets in pharmacometrics are important for open-source software development, AI-assisted software development, and external collaborations.  Several different approaches exist for generating synthetic 
+
+## Mechanistic Simulation
+
+Trial simulation has long been the standard approach within pharmacometrics, using tools like `rxode2` or `mrgsolve`.
+
+### Advantages
+
+- Complete privacy
+- Mechanistically interpretable
+- Unlimited dataset size
+
+### Limitations
+
+Mechanistic simulations often lack many of the irregularities encountered in operational clinical datasets, including unexpected dosing histories, protocol deviations, and inconsistent observation schedules.  While these mechanisms can be built in, they make the trial simulation considerably more complex, and accurate models of these processes can be more challenging to develop.
+
+These models can be coupled with those from Zwep et al. (2024) and Guo et al. (2024) to reproduce realistic relationships between variables including: age, body weight, renal function, liver function, laboratory values, and disease characteristics
+
+---
+
+## Deep Generative Models
+
+Recent advances in machine learning have introduced deep generative models for synthetic PK/PD data generation.
+
+Representative papers include
+
+- Jiang et al. (2024)
+- Gadgil et al. (2026)
+
+Methods explored include
+
+- Generative Adversarial Networks (GANs)
+- TimeGAN
+- Variational Autoencoders (VAEs)
+- Diffusion models
+- Autoregressive neural networks
+
+These models aim to reproduce statistical properties of longitudinal PK datasets while maintaining realistic relationships among patients and observations.
+
+### Advantages
+
+- Flexible nonlinear modeling
+- Strong statistical fidelity
+- State-of-the-art generative AI methods
+
+### Limitations
+
+Most published work begins with simulated datasets or simplified longitudinal concentration profiles rather than operational pharmacometric datasets collected during clinical trials.
+
+---
+
+## Privacy-Preserving Record-Based Methods
+
+Another class of algorithms generates synthetic observations directly from existing datasets while attempting to preserve privacy.
+
+Representative work includes
+
+- AVATAR (Destere et al.)
+- Woillard et al. (2025)
+
+These approaches typically generate synthetic patients by blending or sampling among neighboring individuals within the original dataset.
+
+### Advantages
+
+- High realism
+- Strong preservation of empirical distributions
+- Naturally captures many complex data relationships
+
+### Limitations
+
+Real pharmacometric datasets often contain operational characteristics that may themselves reveal information about study participants, including
+
+- actual dosing times
+- actual dosing amounts
+- observation schedules
+- protocol deviations
+
+These characteristics may require additional masking before record-based synthesis.
+
+---
+
+# Where synpmx Fits
+
+`synpmx` focuses on generating **realistic event-based pharmacometric datasets** suitable for
+
+- software development
+- package testing
+- reproducible examples
+- educational materials
+- AI-assisted programming
+- workflow validation
+
+The emphasis is on preserving the structural characteristics that software encounters when processing real clinical trial data, including complex dosing histories, observation records, multiple endpoints, irregular sampling, and other operational features commonly found in pharmacometric datasets.
+
+## Three Complementary Families of Synthetic Data
+
+The current landscape can be viewed as three complementary approaches.
+
+| Family | Primary Goal | Typical Methods |
+|----------|--------------|-----------------|
+| Mechanistic | Simulate biology | `mrgsolve`, `rxode2` |
+| Statistical | Match observed data distributions | GANs, diffusion models |
+| Structural | Preserve realistic dataset behavior | synpmx |
+
+These approaches address different scientific and engineering needs. Mechanistic methods are indispensable for simulation studies. Statistical methods excel at reproducing observed distributions and supporting data sharing. Structural approaches, such as synpmx, aim to preserve the complexity and operational behavior of real pharmacometric datasets needed for software engineering and methodological development.
+
+Rather than replacing existing approaches, `synpmx` is intended to complement them by filling an important gap between mechanistic simulation and statistical synthetic data generation.
+
+# References
+
+- Jiang Y, García-Durán A, Losada IB, Girard P, Terranova N. *Generative models for synthetic data generation: application to pharmacokinetic/pharmacodynamic data.* J Pharmacokinet Pharmacodyn. 2024.
+
+- Gadgil M, Poojari S, Ramanathan M. *Diffusion models for virtual populations and pharmacometric simulations.* J Pharmacokinet Pharmacodyn. 2026.
+
+- Zwep LB, et al. *Virtual Patient Simulation Using Copula Modeling.* CPT: Pharmacometrics Syst Pharmacol. 2024.
+
+- Guo T, et al. *Generation of realistic virtual adult populations using a model-based copula approach.* J Pharmacokinet Pharmacodyn. 2024.
+
+- Destere A, et al. *AVATAR: synthetic clinical datasets generated by neighborhood blending.* 2026.
+
+- Woillard JB, et al. *To be or not to be, when synthetic data meet clinical pharmacology: A focused study on pharmacogenetics.* 2025.
