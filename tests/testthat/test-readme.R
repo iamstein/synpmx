@@ -43,7 +43,7 @@ test_that("the README full-declaration example runs as shown", {
     limit              = "LIMIT",
     covariates         = c("WT", "AGE", "SEX"),
     dose_covariate     = "WT",
-    subject_properties = c("TRT", "TRTN"),
+    strata = c("TRT", "TRTN"),
     keep               = "STUDYID"
   )
 
@@ -89,8 +89,16 @@ test_that("the README full-declaration example runs as shown", {
   expect_equal(shown$OCC, rep(1L, 6))
   expect_equal(shown$NAME, c("cp", "pd", "cp", "cp", "cp", "pd"))
   expect_equal(shown$DV,
-               c(0.000000, 90.823217, 1.200000, 8.249096, 3.766242, 78.636255),
+               c(0.000000, 79.636843, 1.200000, 6.573038, 3.467210, 70.010784),
                tolerance = 1e-6)
   expect_equal(shown$CENS, c(0L, 0L, 1L, 0L, 0L, 0L))
   expect_equal(shown$TRT, rep("100 mg QD", 6))
+
+  # `strata` are declared here, so `preserve_strata_balance` (default TRUE)
+  # gives each arm the same share it holds in the source rather than leaving it
+  # to the anchor draw.
+  expect_equal(
+    as.integer(table(synthetic$TRT[!duplicated(synthetic$ID)])),
+    as.integer(table(study$TRT[!duplicated(study$ID)]))
+  )
 })

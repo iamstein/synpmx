@@ -122,7 +122,7 @@ sim_eval_case <- function(id) {
       id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
       rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
       covariates = c("BSA", "AGE", "HGT"),
-      subject_properties = "DOS", exclude = "WGT"
+      strata = "DOS", exclude = "WGT"
     )
     endpoints <- list(cp = pmx_endpoint(
       alignment = "dose_relative", transform = "identity", shape = "occasion"
@@ -506,7 +506,7 @@ sim_eval_gate_results <- function(case, model, synthetic) {
     add("wbc_decline_recovery", mean(recovery) >= .80,
         round(mean(recovery), 3), ">= 0.80")
   } else if (case$id == "nimoData") {
-    property <- subject_property_summary(model)
+    property <- strata_summary(model)
     add(
       "nimo_dose_strata",
       identical(as.integer(property$DOS), c(50L, 100L, 200L, 400L)),

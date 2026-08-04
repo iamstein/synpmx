@@ -5,6 +5,46 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **`subject_properties` is now `strata`** in `pmx_roles()`, and
+  `subject_property_summary()` is now `strata_summary()`. The old name described
+  where the columns live; the new one says what they do — group the donors,
+  condition the regimen, and now carry the cohort balance — and separates them
+  from `covariates` (blended) and `keep` (copied and inert). Pre-release, so
+  there is no deprecation shim: the old argument name is an error.
+
+* **`synpmx_avatar(preserve_strata_balance = TRUE)`, new and on by default,
+  changes generated output for any dataset declaring `strata`.** An avatar never
+  left its anchor's stratum, but anchors are sampled with replacement, so the
+  *balance* was left to the draw: `xgxr::case1_pkpd`'s exactly-30-per-arm design
+  came back between 21 and 39 per arm depending only on the seed, and any
+  downstream summary grouped by arm inherited that. Each stratum now gets its
+  source share, as a proportion, so it holds when `n_subjects` differs from the
+  source size. Strata holding fewer than three source patients are deliberately
+  left stochastic — reproducing such a stratum's size exactly would disclose it,
+  since a joint cell with one real patient would get exactly one avatar on every
+  seed — and `strata_balanced` / `strata_stochastic` report how many fell on
+  each side.
+
+* **`flag_identifiable_subjects()` scores within stratum.** It was scoring every
+  axis against the whole cohort, which reports the protocol back as a privacy
+  finding on any study that assigns a dose: on `xgxr::case1_pkpd`, a six-arm
+  design from 3 mg to 300 mg, the top arm sits about 6.4 modified-z units from
+  the cohort median and **59 of 180 avatars were flagged, 31 of them for
+  receiving the dose their arm was assigned**. Scored within arm it flags 1, and
+  a patient given twice their own arm's dose is still flagged. Strata under five
+  subjects fall back to cohort-wide scoring, since a scale estimated from four
+  patients describes the four rather than the one being screened. With no
+  `strata` declared nothing changes.
+
+* New vignette, "Checks of the synthetic data"
+  (`vignettes/synthetic-data-checks.Rmd`): the six categories of check to run on
+  generated data, worked on `xgxr::case1_pkpd` with `nlmixr2data::pheno_sd` as
+  the case where they fail. Written for two audiences — someone deciding whether
+  to use generated data, and someone building their own generator who wants the
+  category list rather than these function names. It ends with its own gaps
+  rather than implying the list is complete. The two items above were both found
+  by writing it.
+
 * The demo vignette is now an evaluation, and is named like one:
   `synpmx-demo.Rmd` becomes `avatar-evaluation-public-data.Rmd` ("Evaluating
   AVATAR on public data"). It is a measurement of `synpmx_avatar()` across
@@ -150,7 +190,7 @@
 
 * Alerts that used to end "declare a `nominal_time` role" now say something
   useful to a caller who already declared one, naming the pool split from
-  `subject_properties` and the `min_pattern_share` floor instead.
+  `strata` and the `min_pattern_share` floor instead.
 
 * **Bug fix (`SIM-038`), changes generated output.** Times were keyed with
   `format(x, digits = 12)`, which fixes one layout for a whole vector, so the
@@ -274,7 +314,7 @@
   deliberately not the headline: it has no natural scale and mostly tracks cohort
   size. A regression test hands it a verbatim copy and requires it to object.
 
-* `subject_properties` is no longer rejected by `synpmx_avatar()`. It now names
+* `strata` is no longer rejected by `synpmx_avatar()`. It now names
   the assigned stratum — treatment arm, dose group, cohort — carried verbatim and
   used to group the dose basis and the attendance-pattern pools. Declaring a dose
   group is what lets a multi-level study be recognised as weight-based within
@@ -287,7 +327,7 @@
   grid). A wholly missing column is still an error, since the role should just be
   left undeclared.
 
-* `subject_properties` may now be missing for some subjects. They are grouped as
+* `strata` may now be missing for some subjects. They are grouped as
   their own stratum and the check reports a warning instead of an error. A column
   that *varies* within a subject is still an error: it cannot be that subject's
   assignment. A declared column that does not exist in the data remains fatal and

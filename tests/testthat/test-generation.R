@@ -41,7 +41,7 @@ test_that("schema, classes, factors, new IDs, and covariates are coherent", {
   expect_true(validate_pmx(synthetic, private_roles(), private_endpoints())$valid)
 })
 
-test_that("subject properties remain coherent with conditioned regimens", {
+test_that("strata remain coherent with conditioned regimens", {
   source <- private_fixture(12L)
   source$ARM <- as.integer(ifelse(source$ID %% 2L, 1L, 2L))
   event <- source$EVID != 0 & source$AMT > 0
@@ -55,7 +55,7 @@ test_that("subject properties remain coherent with conditioned regimens", {
     occasion = "OCC", dv = "DV", amt = "AMT", evid = "EVID",
     cmt = "CMT", dvid = "DVID", mdv = "MDV", rate = "RATE",
     cens = "CENS", limit = "LIMIT", assigned_dose = "DOSE",
-    covariates = c("WT", "AGE", "SEX"), subject_properties = "ARM"
+    covariates = c("WT", "AGE", "SEX"), strata = "ARM"
   )
   design <- pmx_public_design(
     pmx_schema(source), dose_evid = 1, dose_cmt = 1,
@@ -74,7 +74,7 @@ test_that("subject properties remain coherent with conditioned regimens", {
     design, private_limits(), private_budget(),
     backend = "public", public_source = TRUE
   ))
-  summary <- subject_property_summary(model)
+  summary <- strata_summary(model)
   expect_equal(summary$ARM, 1:2)
   expect_equal(summary$probability, c(.5, .5))
   expect_equal(summary$dose_amount, c(50, 150), tolerance = 1e-8)

@@ -5,7 +5,7 @@ if (!requireNamespace("synpmx", quietly = TRUE)) {
   stop("Install synpmx before running this script: R CMD INSTALL .")
 }
 required_api <- c(
-  "synpmx_empirical", "sampling_summary", "subject_property_summary"
+  "synpmx_empirical", "sampling_summary", "strata_summary"
 )
 missing_api <- setdiff(required_api, getNamespaceExports("synpmx"))
 if (length(missing_api)) {
@@ -386,7 +386,7 @@ nimo_roles <- synpmx::pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
   covariates = c("BSA", "AGE", "HGT"),
-  subject_properties = "DOS", exclude = "WGT"
+  strata = "DOS", exclude = "WGT"
 )
 nimo_endpoints <- list(cp = synpmx::pmx_endpoint(
   alignment = "dose_relative", transform = "identity", shape = "occasion"
@@ -408,7 +408,7 @@ nimo <- run_public_demo(
   seed = 404, clock = "tad", comparison_bounds = c(0, 3000)
 )
 message("NimoData released treatment groups and conditioned regimens:")
-print(synpmx::subject_property_summary(nimo$synthetic), row.names = FALSE)
+print(synpmx::strata_summary(nimo$synthetic), row.names = FALSE)
 
 # Mavoglurant is a crossover dataset whose TIME clock resets within OCC. DOSE
 # is not sampled as an independent covariate; it is regenerated from the

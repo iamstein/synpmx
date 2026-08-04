@@ -107,10 +107,11 @@
 
 .dp_audit_status <- paste(
   "the differentially private engines are complete and tested, but not",
-  "under active development, carry known open findings (see",
-  "design/REVIEW_BACKLOG.md), and have not been independently",
-  "privacy-audited. See vignette(\"synpmx-privacy\") for the trust-boundary",
-  "decision rule and what a production release additionally needs."
+  "under active development, carry known open findings, and have not been",
+  "independently privacy-audited. See",
+  "https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the",
+  "trust-boundary decision rule and what a production release additionally",
+  "needs."
 )
 
 #' Acknowledge the DP engines' unaudited status for this session
@@ -119,11 +120,11 @@
 #' been called at least once in the current session. This is a deliberate
 #' speed bump, not a technical safeguard: the differentially private engines
 #' are complete and tested, but not under active development, carry known
-#' open findings (see `design/REVIEW_BACKLOG.md`), and have not been
-#' independently privacy-audited. See `vignette("synpmx-privacy")` for the
-#' trust-boundary decision rule and what a production release additionally
-#' needs. [synpmx_avatar()] and [synpmx_prior()] make no differential-privacy
-#' claim and are unaffected.
+#' open findings, and have not been independently privacy-audited. See the
+#' [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
+#' for the trust-boundary decision rule and what a production release
+#' additionally needs. [synpmx_avatar()] and [synpmx_prior()] make no
+#' differential-privacy claim and are unaffected.
 #'
 #' The acknowledgment does not persist. It applies only to the R session it is
 #' called in, so a fresh session, script run, or CI job must call it again.

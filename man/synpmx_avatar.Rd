@@ -21,6 +21,7 @@ synpmx_avatar(
   coarsen_time = TRUE,
   min_pattern_share = 2L,
   max_donor_weight = 0.5,
+  preserve_strata_balance = TRUE,
   on_donor_shortfall = c("drop", "noise", "error")
 )
 }
@@ -125,7 +126,7 @@ distinctive absences stop being reproduced. Dose events are never sampled,
 since that could emit a regimen no protocol permits. Raising this hides more
 and flattens the cohort's missingness further; where no pattern is shared
 widely enough, anchors keep their own and the run alerts loudly. Pools are
-formed within each \code{subject_properties} stratum and endpoint set.
+formed within each \code{strata} stratum and endpoint set.
 
 \strong{Patterns below the floor are lost, not approximated.} An ending or
 dose-interruption pattern held by too few patients simply will not appear in
@@ -157,6 +158,27 @@ the cap actually fired. A cap binding on nearly every subject is not a
 guardrail but the weighting scheme itself, with the inverse-distance term
 underneath it doing little; one that never fires is not protecting
 anything. At \code{k = 5} the default binds on roughly two thirds of subjects.}
+
+\item{preserve_strata_balance}{Give each declared stratum (\code{\link[=pmx_roles]{pmx_roles()}}
+\code{strata}) the same share of the synthetic cohort it holds in the source.
+Default \code{TRUE}.
+
+An avatar never leaves its anchor's stratum, but anchors are sampled with
+replacement, so without this the \emph{balance} is left to chance: a balanced
+six-arm design of 30 patients per arm came back between 21 and 39 per arm
+depending only on the seed, and any downstream summary grouped by arm
+inherits that. Targets are proportions of the source cohort, so they still
+hold when \code{n_subjects} differs from the source size.
+
+\strong{Strata holding fewer than three source patients are deliberately not
+balanced}, because reproducing such a stratum's size exactly would
+disclose it: a joint cell holding one real patient would get exactly one
+avatar on every seed. Their slots are drawn with replacement as before, so
+the count varies. \code{strata_balanced} and \code{strata_stochastic} in the returned
+\code{pmx_settings} report how many strata fell on each side.
+
+\code{FALSE} restores the unstratified draw. With no \code{strata} declared the
+argument has no effect.}
 
 \item{on_donor_shortfall}{What to do with a subject whose administration
 route holds fewer than \code{k + 1} subjects, so that no legal donor set exists

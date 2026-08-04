@@ -337,7 +337,7 @@ dp_backend_status()
 At 12 subjects a genuine DP release of this correction is noisy enough
 that it is often censored at the prior boundary — the package warns when that
 happens, because the generated data then reflects the prior, not the study.
-`vignette("synpmx-privacy")` covers when the release is worth making.
+The [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) covers when the release is worth making.
 
 ## Mode 4: empirical
 
@@ -587,7 +587,7 @@ model code.
 - `vignette("avatar-evaluation-public-data")` — `synpmx_avatar()` run across
   eight public datasets, with the structural checks and the masking accounting
   for each.
-- `vignette("synpmx-privacy")` — what differential privacy guarantees, what it
+- [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) — what differential privacy guarantees, what it
   does not, the trust-boundary decision rule, and how epsilon trades against
   utility.
 - [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)

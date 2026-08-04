@@ -1,12 +1,16 @@
 # Checks of the synthetic data
 
-**Status: specification for a vignette not yet written.** Everything below is
-the plan for `vignettes/synthetic-data-checks.Rmd`, plus the reasoning behind
-the taxonomy. Raised by the owner 2026-08-03, after a day of finding leaks one
-at a time on a real study:
+**Status: written 2026-08-04 as `vignettes/synthetic-data-checks.Rmd`.** The
+taxonomy below is what shipped, sections A--F, worked on `xgxr::case1_pkpd` with
+`nlmixr2data::pheno_sd` as the failing case, as suggested at the end of this
+document. What writing it exposed is recorded under "Findings from writing the
+vignette" below; three claims in this specification were wrong and are corrected
+in place. Everything else below is the reasoning behind the taxonomy and remains
+the internal record. Raised by the owner 2026-08-03, after a day of finding leaks
+one at a time on a real study:
 
 > There should be a vignette of all the checks we do of the synthetic data.
-> [...] This is worth being really, really clear about because this could help
+> [...] This is worth being clear about because this could help
 > anyone who's developing a synthetic data method.
 
 That second sentence sets the scope. This is not only a user guide to
@@ -29,7 +33,7 @@ rather than lucky.
 `vignettes/`, not `vignettes/articles/`. It is method reference rather than
 supporting evidence, and it should be rebuilt by `R CMD check` on every
 behavioral change — a check that stops being true is exactly what needs to fail
-loudly. This makes it the fifth shipped vignette, which is a real recurring
+loudly. This makes it the fourth shipped vignette, which is a real recurring
 cost; that cost is the argument for keeping it tight and example-driven rather
 than exhaustive.
 
@@ -115,7 +119,7 @@ completely differently, and only one of them is blended:
 - **Categorical** covariates are `sample()`d from the donors' values. That is
   not blending and there is no averaging available: a synthetic patient's
   category is always **some real patient's actual category**, copied.
-- **`subject_properties`** (arm, dose group) are copied verbatim from the
+- **`strata`** (arm, dose group) are copied verbatim from the
   anchor — exact by design, since they are protocol facts.
 
 *The first experiment was wrong about the risk, in an instructive way.* A
@@ -126,8 +130,36 @@ category, and no avatar's weight came within 5 kg of the isolated pair. The
 reason is worth understanding, because it inverts the intuition. Donors are the
 *nearest* patients in profile space, and a patient who is unusual on their
 covariates is nobody's nearest neighbour — so they are rarely selected as a
-donor, and a patient is always excluded from their own donor set. **Being an
-outlier is self-protecting under this design.**
+donor, and a patient is always excluded from their own donor set.
+
+**Corrected 2026-08-04 while writing the vignette.** That reading was right
+about the numeric axis and wrong about the categorical one, because the fixture
+varied two things at once: case (a) had **one** holder who was also an outlier,
+and case (b) had **two** holders who were typical. Varying the holder count
+alone, with everything else held fixed, gives the whole picture:
+
+| holders of the level | of 40 | avatars carrying it, of 200 |
+|---|---|---|
+| 1 | 2.5% | 0 (0.0%) |
+| 2 | 5.0% | 3 (1.5%) |
+| 3 | 7.5% | 4 (2.0%) |
+| 5 | 12.5% | 17 (8.5%) |
+| 10 | 25.0% | 41 (20.5%) |
+| 20 | 50.0% | 97 (48.5%) |
+
+**The operative variable is the number of holders, not outlier status.** Making
+the two holders numeric outliers as well changes nothing on the categorical
+axis: 2 of 200 either way. The mechanism is that `.build_profiles()` one-hot
+encodes each categorical level as its own feature, so a level's sole holder sits
+alone on that axis and is nobody's nearest neighbour; a second holder gives each
+of them a near neighbour, and the level propagates between them and out. By ten
+holders the output tracks the source frequency closely.
+
+So "being an outlier is self-protecting" holds for **numeric** covariates, which
+are blended, and the numeric half of the original experiment reproduces exactly
+(synthetic weight tops out at 116 kg against a source maximum of 141). It does
+not hold for categories, where two holders is already a leak and nothing
+enforces the protection at one.
 
 *The real risk is the opposite shape, and it is the owner's example.* A patient
 who is **typical in every way except one rare category** — an ultra-rare
@@ -169,8 +201,8 @@ and the package should eventually provide.
    that fewer than `min_pattern_share` source patients held. This is the direct
    analogue of what already protects visit sets, and the number should be the
    same one, for the same reason.
-3. **Cross-tabulation with `subject_properties`.** Arm x category, then arm x
-   category x any other categorical. `subject_properties` are copied verbatim
+3. **Cross-tabulation with `strata`.** Arm x category, then arm x
+   category x any other categorical. `strata` are copied verbatim
    from the anchor, so the arm is exact and any joint cell involving it is as
    rare as its rarest part. Report cells below a minimum count.
 4. **Numeric covariates: is anyone in a cluster of their own?** Not a
@@ -193,7 +225,7 @@ per covariate — and is the one that changes what the generator does rather tha
 only what it reports.
 
 *What it still cannot do.* Enumerate all combinations. With `d` covariates
-there are `2^d` subsets, checks 1--3 cover the ones involving `subject_properties`
+there are `2^d` subsets, checks 1--3 cover the ones involving `strata`
 and single levels, and an attacker's chosen combination need not be any of them.
 The vignette must say this plainly rather than implying the list is complete —
 and it is the point at which the honest answer is the differentially private
@@ -227,7 +259,10 @@ syn <- synpmx_avatar(raw, roles, n_subjects = 200, seed = 9)
 ```
 
 For (a), give the rare patient an outlying weight as well (138 and 141 kg among
-60--80) and a singleton `RACE` level; nothing propagates.
+60--80) and a singleton `RACE` level; nothing propagates — but see the
+correction above: what makes (a) safe is that the level has **one** holder, not
+that the holder is an outlier. Set `n_holders` and vary only that; the vignette
+ships this as a runnable chunk.
 
 *Does differential privacy cover this?* **Yes, and it is the strongest argument
 for the DP modes.** This is precisely the difference between the two families.
@@ -321,7 +356,7 @@ anyone; it produces data nobody can develop against.
   twenty-one on three, silently, until `pmx_masking_report()` was made to say
   "1 of 3 regimens represented".
 
-### D. Are the numbers still right?
+### D. How close are the parameter distributions to the original values
 
 The utility tier — the owner's "distributions of the covariates and of the
 dependent variables".
@@ -341,20 +376,8 @@ dependent variables".
   both from a single statistic, and the vignette should use it to make the
   point that most checks have two tails.
 
-### E. Does it work in the workflow?
 
-The purpose of the package is code development outside the environment holding
-the real data, so the final check is whether it does that job.
-
-- Does the pipeline that will consume the real data run unchanged on this?
-- Does a control stream or model fit *execute* — not that estimates are
-  correct, but that the plumbing works?
-- Do joins, reshapes and ADaM-shaped derivations behave?
-
-Cheap to state, easy to omit, and the one check that speaks to why anybody is
-doing this.
-
-### F. What these checks cannot tell you
+###  What these checks cannot tell you
 
 A section, not an afterthought. The honest limits:
 
@@ -414,7 +437,7 @@ Two corollaries, both learned the hard way and both worth writing down:
 | A | endpoint set comparison | yes |
 | B1 | `skeleton_uniqueness()`, `plot_pmx_schedule()` | yes |
 | B1 | `identifying_visit_sets`, `identifying_dose_schedules` | (recorded at generation) |
-| B2 | `flag_identifiable_subjects()`, `remediate_identifiable_subjects()` | no |
+| B2 | `flag_identifiable_subjects()` (scored within `strata`), `remediate_identifiable_subjects()` | no |
 | B3 | `compare_pmx_proximity()` | yes |
 | B4 | `SIM-014` gate — in tests only, no exported helper | yes |
 | B5 | **nothing.** Mechanism pinned by `tests/testthat/test-avatar-relationships.R` | — |
@@ -422,8 +445,58 @@ Two corollaries, both learned the hard way and both worth writing down:
 | C | `pmx_masking_report()`, `compare_pmx()` | yes |
 | C | `validate_pmx()` `tad_agreement` — TAD against the derivation | yes (source only) |
 | C | dose/observation ordering, occasion assignment — **nothing** | — |
+| A/C | dose-count fidelity — **nothing**; see finding 2 | — |
 | D | `compare_pmx_distributions()`, `mean_effective_donors`, `cap_binding_fraction` | yes |
-| E | **nothing** — by nature the user's own pipeline | — |
+
+## Findings from writing the vignette (2026-08-04)
+
+Writing it was the fastest way to find what is missing, as predicted. Four
+things the specification did not have:
+
+1. **`flag_identifiable_subjects()` was not stratified by `strata`, and
+   misread dose-ranging designs. FIXED 2026-08-04.** On `xgxr::case1_pkpd` it flags **59 of
+   180** avatars, 31 of them on "dose magnitude" and 24 on "number of doses".
+   Those are not 59 outliers: the study is six arms from 3 mg to 300 mg, so dose
+   magnitude is spread by protocol and a cohort-wide robust screen flags the ends
+   of the range. This is the same class of error as the median-absolute-deviation
+   failure under B2 — the screen's own statistics need checking — and the fix is
+   the same idea as `min_pattern_share`: score within stratum. Now implemented:
+   scores are computed inside each declared stratum, strata under five subjects
+   fall back to the cohort, and `case1_pkpd` goes from 59 flagged to 1 while a
+   patient given twice their arm's dose is still caught
+   (`tests/testthat/test-strata-balance.R`).
+
+2. **Dose-count fidelity is not reported anywhere.** On `nlmixr2data::pheno_sd`
+   the generated cohort keeps its observations (155 rows to 149, 2.6 per patient
+   to 2.5) and loses **half its dose rows** (589 to 284). The median real infant
+   received twelve doses; the median avatar receives one. Nothing warns. The
+   cause is legitimate — dose schedules there are nearly all unique, so
+   truncating each to a shared depth collapses most of them to the shortest —
+   and `pmx_masking_report()` does say "16 of 56 regimens represented", but no
+   check states the consequence in the unit a user cares about. `pheno_sd`
+   therefore fails in both directions at once: the masking did not succeed
+   (`identifying_dose_schedules` = 15) *and* it cost most of the dosing anyway.
+   That pairing is now the vignette's argument for why this dataset should not
+   be shipped.
+
+3. **B5's mechanism was misdiagnosed.** Corrected in place above: the operative
+   variable is the number of patients holding a level, not whether they are
+   outliers. One holder never propagates, two holders do. The measured curve is
+   in the table under B5 and runs in the vignette.
+
+4. **Arm balance was not preserved. FIXED 2026-08-04.** Anchors are sampled
+   with replacement, so `case1_pkpd`'s exact 30-per-arm design came back between
+   21 and 39 per arm across seeds. Cohort size and arm membership were both
+   exact; only the balance moved, and a stratified analysis pipeline run against
+   the output would notice. `synpmx_avatar(preserve_strata_balance = TRUE)` is
+   now the default. **The privacy caveat is why there is a floor:** exactly
+   reproducing a stratum's size discloses that size, so strata under three
+   source patients are left stochastic. That is the same reasoning as
+   `min_pattern_share`, applied to cell counts instead of visit sets.
+
+Not a finding but worth recording: category A earns its place. Splitting the row
+count by event type is what surfaced finding 2, and a total row count hides it
+completely.
 
 ## What to build alongside the vignette
 
@@ -453,13 +526,6 @@ let the gaps be visible in the prose, and add them where the prose is
 embarrassing to write.
 
 ## Suggested shape of the vignette
-
-**List the datasets.** The vignette should carry a short table of the public
-datasets it uses, one line each, saying what each one is for — a reader who
-wants to reproduce a check needs to know which dataset shows it and why that
-one. `design/TEST_SIM.md` holds the full inventory of what is available,
-including the candidates not yet used and the ones deliberately skipped; the
-vignette should show only what it actually uses and not duplicate the registry.
 
 One worked dataset the whole way through — `xgxr::case1_pkpd` is the best
 candidate, being the only public dataset shaped like a real study report (180

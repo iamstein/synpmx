@@ -44,6 +44,18 @@ synthetic data before the data leaves the source's access controls and drop or
 regenerate the flagged subjects; it can also be run on the source itself to
 see which real subjects are hardest to hide. It is a heuristic screen, not a
 privacy guarantee, and is marked \code{"restricted_not_releasable"}.
+
+Scores are computed \strong{within each declared stratum} (\code{\link[=pmx_roles]{pmx_roles()}}
+\code{strata}), because "does this patient stand out?" needs a comparison group
+and the whole cohort is the wrong one as soon as a study assigns anything. On
+a six-arm dose-ranging study the top arm sits far from the cohort median dose
+purely by protocol: scored cohort-wide, \code{xgxr::case1_pkpd} flags 59 of 180
+avatars, 31 of them for receiving the dose their arm was assigned. Scored
+within arm it flags 1, and a patient given twice their arm's dose is still
+flagged. Strata holding fewer than five subjects are scored against the whole
+cohort instead, since a scale estimated from four patients describes the four
+rather than the one being screened. With no \code{strata} declared, every subject
+is scored against the cohort, as before.
 }
 \examples{
 data <- pmx_simulated_fixture(30)
