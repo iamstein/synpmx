@@ -169,3 +169,7 @@ task list itself.
   arguments, and obsolete algorithm terms before considering the update
   complete. Report any claim that cannot be verified instead of presenting it
   as established behavior.
+
+## Theory of Mind
+
+Consult the design/_THEORY_OF_MIND.md and update.
