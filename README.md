@@ -35,7 +35,7 @@ pharmacometrics dataset from actual clinical trials.  We have developed the synt
 here using actual clinical data and thus it handles realistic aspects of trials such as BLOQ data, body-weight dosing, multiple regimens, and it also has masking methods added so that patients cannot be identiied by a unique dosing schedule or set of observation times.  The key function is `synpmx_avatar`, which builds artificial profiles from real patient profiles,
 It masks identifiable characteristics, but does not offer formal privacy guarantees.  
 
-For teaching purposes, the package also provides code for other data masking methods, using trial simulationfrom prior knowledge, and differential privacy methods.  These methods give more formal
+For teaching purposes, the package also provides code for other data masking methods, using trial simulation from prior knowledge, and differential privacy methods.  These methods give more formal
 privacy protection and they are included here to illustrate the tradeoffs between ways
 of generating synthetic data.  These methods are not actively maintained.
 
