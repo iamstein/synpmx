@@ -16,6 +16,59 @@ reasoning about the algorithm, and several had been in place for weeks
 behind mechanisms that were individually correct. The last section says
 what that taught, because it is the part that transfers.
 
+### The scorecard
+
+Every check in this vignette, with the thing to run and **the answer
+that counts as passing**. Most of the pass criteria below are stated
+once, in prose, in the section that introduces them; collecting them
+here is what makes the document usable as a checklist rather than as an
+essay.
+
+Three columns need a word of explanation.
+
+- **Reads** is where the number comes from, and it decides where the
+  number may go. `source` means the check reads real patient data, so
+  its output is restricted and stays inside the environment the source
+  lives in — see section E. `synthetic` and `run report` do not read the
+  source.
+- **Pass** is deliberately not always a number. Some of these are
+  guarantees that must hold exactly; others are readings that need
+  judgement, and marking those *review* is more honest than inventing a
+  threshold.
+- **Gap** in the “What to run” column means the package does not provide
+  it. The section says what closing it would take, and the table at the
+  end of the vignette collects them.
+
+| \# | Question | What to run | Reads | Pass |
+|----|----|----|----|----|
+| **A1** | Is the synthetic table a legal PMX dataset? | `validate_pmx(synthetic, roles)$valid` | synthetic | `TRUE` |
+| **A2** | Is the *source* legal under the roles you declared? | `validate_pmx(source, roles)$valid` | source | `TRUE`, or a refusal you can explain |
+| **A3** | Did every endpoint survive? | [`setequal()`](https://rdrr.io/r/base/sets.html) on the `dvid` levels | both | sets equal |
+| **A4** | Did the cohort size survive? | count distinct `id` | both | equal |
+| **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
+| **B1a** | Does any avatar wear one real patient’s visit set? | `identifying_visit_sets` | run report | **0** |
+| **B1b** | Does any avatar wear one real patient’s dose schedule? | `identifying_dose_schedules` | run report | **0** |
+| **B1c** | How near-miss are the source’s schedules? | `skeleton_uniqueness()$nearest_set_diff` | source | review — one slot is not twenty |
+| **B2** | Does any synthetic patient stand out from its own stratum? | [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | synthetic | review each; not necessarily 0 |
+| **B3** | Is any avatar too close to a real patient in value space? | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | both | inside the null interval, near 0.5 |
+| **B4** | Is any generated time vector a copy of a real one? | *gap* — six lines by hand | both | **0** |
+| **B5** | Does a rare category reach the output? | *gap* — level census by hand | both | no output level held by fewer than `min_pattern_share` source patients |
+| **B6** | Does a copied column give a masked covariate back? | `dose_basis_note`, then read the derived columns by hand | run report | understood, not merely absent |
+| **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
+| **C2** | Do dose and observation stay in order? | *gap* | — | — |
+| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; arm sizes match |
+| **C4** | What did the masking cost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | review — this one has no pass mark |
+| **D1** | Do the values land in the same range? | [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) | both | same magnitude and shape; spread **will** shrink |
+| **D2** | How much blending actually happened? | `mean_effective_donors`, `cap_binding_fraction` | run report | review |
+| **F** | Does *your* pipeline run unchanged against it? | your own code | — | it runs |
+
+The last row is the one no function can answer and the only one that is
+strictly necessary. It is the reason the package exists.
+
+[`vignette("demo")`](https://iamstein.github.io/synpmx/articles/demo.md)
+closes by computing this scorecard on a real run, so you can see what
+the filled-in version looks like.
+
 ### The two datasets used here
 
 Two public datasets, and the second one is the point.
@@ -611,9 +664,9 @@ above are what a user has to write today. That is a gap.
 
 ### B5. Rare categories and rare combinations
 
-**Nothing in the package checks this, and it is the most valuable thing
-missing.** The mechanism is worth understanding first, because it
-inverts the intuition.
+**Nothing in the package *flags* this, and it is the most valuable thing
+missing.** The mechanism is worth stating first, because it inverts the
+intuition that blending protects everything.
 
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 treats the two kinds of covariate completely differently, and only one
@@ -629,100 +682,19 @@ of them is blended:
 - **`strata`** (arm, dose group) are copied from the anchor, exactly, by
   design — they are protocol facts.
 
-So the question is when a copied category reaches the output. Here is
-the measurement, on a 40-patient fixture where one categorical level is
-held by a varying number of otherwise-ordinary patients:
-
-``` r
-
-rare_level_fixture <- function(n_holders) {
-  set.seed(1)
-  subject <- function(i) {
-    times <- c(0, 1, 2, 4, 8, 24)
-    data.frame(
-      ID = i, TIME = c(0, times), NTIME = c(0, times),
-      DV = c(NA, round(10 * exp(-0.1 * times) +
-                         rnorm(length(times), 0, 0.3), 3)),
-      AMT = c(100, rep(0, length(times))),
-      EVID = c(1L, rep(0L, length(times))),
-      CMT = c(1L, rep(2L, length(times))),
-      WT = round(runif(1, 60, 80), 1),
-      RARE = if (i <= n_holders) "rare-level" else "common",
-      stringsAsFactors = FALSE
-    )
-  }
-  do.call(rbind, lapply(1:40, subject))
-}
-
-propagation <- function(n_holders) {
-  source <- rare_level_fixture(n_holders)
-  roles <- pmx_roles(
-    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-    cmt = "CMT", nominal_time = "NTIME", covariates = c("WT", "RARE")
-  )
-  synthetic <- suppressWarnings(
-    synpmx_avatar(source, roles, n_subjects = 200, seed = 9)
-  )
-  data.frame(
-    source_holders = paste0(n_holders, " of 40"),
-    source_pct = round(100 * n_holders / 40, 1),
-    avatars_carrying = length(unique(
-      synthetic$ID[synthetic$RARE == "rare-level"]
-    )),
-    avatar_pct = round(100 * length(unique(
-      synthetic$ID[synthetic$RARE == "rare-level"]
-    )) / 200, 1)
-  )
-}
-
-knitr::kable(
-  do.call(rbind, lapply(c(1, 2, 3, 5, 10, 20), propagation)),
-  caption = paste(
-    "A categorical level held by n real patients, and how many of 200",
-    "avatars carry it."
-  )
-)
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-#> synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.
-#>   Correct for a single-endpoint study; declare `dvid` if this one has more.
-```
-
-| source_holders | source_pct | avatars_carrying | avatar_pct |
-|:---------------|-----------:|-----------------:|-----------:|
-| 1 of 40        |        2.5 |                0 |        0.0 |
-| 2 of 40        |        5.0 |                3 |        1.5 |
-| 3 of 40        |        7.5 |                4 |        2.0 |
-| 5 of 40        |       12.5 |               17 |        8.5 |
-| 10 of 40       |       25.0 |               41 |       20.5 |
-| 20 of 40       |       50.0 |               97 |       48.5 |
-
-A categorical level held by n real patients, and how many of 200 avatars
-carry it. {.table}
+So the question is when a copied category reaches the output, and the
+answer is measured rather than assumed.
+[`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md),
+under step 8, runs a 40-patient fixture in which one categorical level
+is held by a varying number of otherwise-ordinary patients. The result:
 
 **A level held by one patient never reaches the output; a level held by
-two does.** The mechanism is geometric, not a safeguard: categorical
-covariates are one-hot encoded into the profile space that donor
-selection searches, so the single holder of a level sits alone on its
-own axis, is nobody’s nearest neighbour, and is therefore almost never
-selected as a donor. Give the level a second holder and the two become
-each other’s nearest neighbour, the level propagates between them, and
-it leaves. By ten holders the output tracks the source frequency
-closely.
-
-Two consequences, and the second is the one that matters.
-
-**This is not a mechanism you can rely on.** It is a side effect of
-nearest-neighbour donor selection. Nothing enforces it, nothing reports
-it, and it degrades smoothly — two holders is already a leak.
+two does.** By ten holders the output tracks the source frequency
+closely. The mechanism is geometric rather than protective — the sole
+holder of a level sits alone on its own one-hot axis, is nobody’s
+nearest neighbour, and is therefore almost never chosen as a donor — so
+**it is not something to rely on.** Nothing enforces it, nothing reports
+it, and it degrades smoothly.
 
 **The dangerous shape is a rare level on *typical* patients.** A patient
 who is unusual on their covariates is nobody’s nearest neighbour and is
@@ -739,7 +711,7 @@ someone with that mutation was in this study, which for a named trial
 with public inclusion criteria can be nearly identifying on its own. No
 cohort size helps.
 
-#### The checks to run, none of which exist yet
+#### The checks to run, most of which do not exist yet
 
 1.  **Level census, source against synthetic.** For every categorical
     covariate, tabulate the levels on both sides, and report any level
@@ -747,18 +719,33 @@ cohort size helps.
     it**. A level held by one or two real patients is the whole risk,
     and it is invisible in a marginal distribution comparison that only
     checks the proportions look similar.
+
+    Half of this exists already:
+    `compare_pmx_distributions()$covariates_categorical` is a
+    per-patient level census of source against synthetic. Two things
+    keep it from answering the question. It reports no threshold, so a
+    one-holder level and a thirty-holder level look alike in the table;
+    and it loops over declared `covariates` only, so **`strata` are
+    absent from it** — which is the one categorical axis copied from the
+    anchor verbatim, and therefore the one where a two-patient cell is
+    reproduced exactly. That is why the chunk below has to be written by
+    hand for `TRTACT`.
+
 2.  **Minimum holders, as a threshold.** Flag any level in the output
     that fewer than `min_pattern_share` source patients held — the same
     number that already protects visit sets, for the same reason.
+
 3.  **Cross-tabulation with `strata`.** Arm x category, then arm x
     category x any other categorical. Arms are copied exactly, so any
     joint cell involving one is as rare as its rarest part.
+
 4.  **Numeric covariates: is anyone in a cluster of their own?** A
     nearest-neighbour distance in covariate space, source against
     synthetic.
     [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
     answers this over the *whole* profile and would mask a
     covariate-only effect.
+
 5.  **Levels the user declares rare in the population.** The four above
     can only see the dataset. Rarity in the world has to be declared,
     and nothing in
@@ -771,23 +758,28 @@ cohort size helps.
 Checks 1 to 4 are mechanical. Check 5 changes what the generator does
 rather than what it reports.
 
-Here is check 1, in the six lines it takes, so the gap is concrete:
+Here is check 1, in the lines it takes, so the gap is concrete. Note the
+level set is the **union** of both sides rather than the synthetic side
+alone: a level that was dropped on the way out is a coverage failure,
+and a census that cannot see it is only checking one of its two
+directions.
 
 ``` r
 
 level_census <- function(source, synthetic, column, id) {
-  holders <- tapply(source[[column]], source[[id]], function(x) x[1])
-  synth_holders <- tapply(synthetic[[column]], synthetic[[id]],
-                          function(x) x[1])
-  levels_out <- sort(unique(as.character(synth_holders)))
+  holders <- function(data) {
+    as.character(tapply(data[[column]], data[[id]], function(x) x[1]))
+  }
+  source_holders <- holders(source)
+  synth_holders <- holders(synthetic)
+  all_levels <- sort(union(unique(source_holders), unique(synth_holders)))
+  count <- function(x) {
+    as.integer(table(factor(x, levels = all_levels)))
+  }
   data.frame(
-    level = levels_out,
-    source_patients = as.integer(table(
-      factor(as.character(holders), levels = levels_out)
-    )),
-    synthetic_patients = as.integer(table(
-      factor(as.character(synth_holders), levels = levels_out)
-    ))
+    level = all_levels,
+    source_patients = count(source_holders),
+    synthetic_patients = count(synth_holders)
   )
 }
 knitr::kable(level_census(case1_pkpd, case1_synth, "TRTACT", "ID"))
@@ -805,7 +797,9 @@ knitr::kable(level_census(case1_pkpd, case1_synth, "TRTACT", "ID"))
 Read the source column: every arm is held by 30 patients, so nothing in
 this study is at risk on this axis. A study with a two-patient stratum
 would show it here and nowhere else. (The synthetic column moves because
-anchors are sampled with replacement — section C.)
+anchors are sampled with replacement — section C.) A `0` in the
+synthetic column would be the other failure: a level the source had and
+the output lost.
 
 #### What none of this can do
 
@@ -1250,19 +1244,37 @@ produced, in the vocabulary of the thing you are trying to prevent.
 ## What is still missing
 
 Stated plainly, because a checklist that implies it is complete is worse
-than one that does not:
+than one that does not. These are the rows marked *gap* in the scorecard
+at the top, with what closing each would take:
 
-| Category | Gap |
-|----|----|
-| B5 | Nothing at all. The five checks above are unimplemented, and the fifth needs an API decision before it can be |
-| B4 | No exported helper for exact-copy checks; it is a gate in the package’s tests, and six lines of user code here |
-| C | Dose/observation ordering and occasion assignment have no check |
-| A/C | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it |
+| \# | Gap | What closing it takes |
+|----|----|----|
+| B5 | No flag on rare categorical levels. [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) gives the census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
+| B4 | No exported helper for exact-copy checks; it is a gate in the package’s tests, and six lines of user code here | Export the gate |
+| C2 | Dose/observation ordering and occasion assignment have no check | A post-generation invariant over the finished table, in the spirit of section F |
+| A5 | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it | A row in [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) |
 
 All but one are reporting gaps: they change what you know, not what the
 generator does. The exception is the fifth B5 check — declaring which
 levels are rare in the population — which would change generation
 itself, by suppressing or coarsening a level rather than reporting it.
+
+Two further gaps are not in the scorecard because they are not checks
+the package half-does — they are whole measurement approaches it does
+not attempt, and both are covered in the [literature
+review](https://iamstein.github.io/synpmx/articles/literature-review.html):
+
+- **No control group.** Every check above that reads the source compares
+  the synthetic data against patients the generator was allowed to use.
+  That confounds *the generator captured the population* with *the
+  generator memorized a patient*, and the standard remedy — holding
+  patients out of generation and asking the question twice — is not
+  implemented. It is the reason B3’s null interval says less than it
+  appears to.
+- **Nothing measures linkability, and nothing is per patient on the
+  privacy side.** The AVATAR literature’s own per-patient measures,
+  local cloaking and hidden rate, apply directly to this generator and
+  are not computed.
 
 And one check is not on this list because it cannot be: **does the
 pipeline that will consume the real study run unchanged against this?**
@@ -1272,12 +1284,18 @@ the joins, reshapes, derivations and control streams behave.
 
 ### Where to go next
 
+- [`vignette("demo")`](https://iamstein.github.io/synpmx/articles/demo.md)
+  — the scorecard at the top of this vignette, computed on one real run.
 - [`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md)
   — how the default generator works, and the six masking mechanisms
   these checks are measuring.
 - [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
   — these checks run across eight public datasets, with the masking cost
   for each.
+- [Literature
+  review](https://iamstein.github.io/synpmx/articles/literature-review.html)
+  — the published methods for checking synthetic data, what each one
+  asks, and which of them this package does not attempt.
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
   — when the enumerated protections are not enough, and what a formal
   guarantee buys instead.

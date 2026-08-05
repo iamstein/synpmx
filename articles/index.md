@@ -20,11 +20,13 @@
 - [Feasibility: what can be released, and from how many
   patients](https://iamstein.github.io/synpmx/articles/feasibility.md):
 
-- [Synthetic Pharmacometric Data: Current Approaches and How synpmx
+- [Synthetic Pharmacometric Data: How It Is Made, How It Is Checked, and
+  How synpmx
   Fits](https://iamstein.github.io/synpmx/articles/literature-review.md):
 
   An overview of current approaches to synthetic pharmacometric data
-  generation and how synpmx complements existing methods.
+  generation, a tutorial on the published methods for checking synthetic
+  data, and how synpmx complements existing methods.
 
 - [Building the structural model: an elicitation
   guide](https://iamstein.github.io/synpmx/articles/model-elicitation.md):

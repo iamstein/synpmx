@@ -14,7 +14,9 @@ unique before anything is done to it — which is the condition the
 visit-grid machinery exists for.
 
 To run this on your own study, edit the two chunks under
-**Configuration** and leave the rest alone. Companion reading:
+**Configuration** and leave the rest alone. Every check made along the
+way is collected into a **scorecard** at the end, with the answer that
+counts as passing for each. Companion reading:
 [`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
 for why AVATAR blending is the default method,
 [`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md)
@@ -368,7 +370,8 @@ Everything above concerns structure. This measures the values.
 
 ``` r
 
-compare_pmx_proximity(raw, synthetic, roles)
+prox <- compare_pmx_proximity(raw, synthetic, roles)
+prox
 ```
 
 **Nearest-neighbour proximity check.** - Question: is a synthetic
@@ -479,6 +482,175 @@ The dose-ordered separation between placebo and 300 mg is preserved; the
 red band is narrower than the grey one in every arm. Identifiers are
 disjoint by construction, so grouping on `ID` never joins a real
 patient’s line to an avatar’s.
+
+## The scorecard
+
+Every check above, with its answer and whether that answer passes. This
+is the table from
+[`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md)
+filled in by this run — the point of collecting it is that the pass
+criteria are otherwise scattered through the prose above, and deciding
+whether to ship a dataset should not require rereading the document.
+
+Nothing here is an exported helper. It is about forty lines of ordinary
+R against the run report and the two tables, and it is written out
+rather than hidden so you can lift it into your own study and change
+what it asks.
+
+``` r
+
+settings <- attr(synthetic, "pmx_settings")
+
+# One row per check. `ok = NA` means the check has no pass mark and has to be
+# read -- which is a real answer, not a missing one.
+row <- function(check, question, reads, result, ok = NA) {
+  data.frame(
+    check = check, question = question, reads = reads, result = result,
+    verdict = if (isTRUE(ok)) "pass" else if (isFALSE(ok)) "FAIL" else "review",
+    stringsAsFactors = FALSE
+  )
+}
+
+subjects <- function(data) length(unique(data[[roles$id]]))
+# Endpoints are the `dvid` values carried by *observation* rows. This study's
+# NAME column also has a "Dosing" level on its dose rows, which is not an
+# endpoint and would inflate the count.
+endpoints <- function(data) {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  sort(unique(as.character(data[[roles$dvid]][observed])))
+}
+per_patient <- function(data, which) {
+  events <- !as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  rows <- if (which == "dose") sum(events) else sum(!events)
+  round(rows / subjects(data), 1)
+}
+# Each subject's sorted observation times as one string: two subjects share a
+# string only if their schedules are identical.
+time_vectors <- function(data) {
+  observed <- data[as.character(data[[roles$evid]]) %in% c("0", "0.0"), ]
+  tapply(as.numeric(observed[[roles$time]]),
+         as.character(observed[[roles$id]]),
+         function(times) paste(sort(times), collapse = ","))
+}
+# One baseline value per subject, as character so a factor cannot collapse to
+# its integer codes.
+holders <- function(data, column) {
+  as.character(tapply(as.character(data[[column]]),
+                      as.character(data[[roles$id]]),
+                      function(x) x[1]))
+}
+# Of the levels that reached the output, how many source patients held the
+# rarest one. This is scorecard row B5, by hand, over strata and any
+# non-numeric covariate.
+categorical <- c(roles$strata, roles$covariates)
+categorical <- categorical[vapply(categorical,
+                                  function(v) !is.numeric(raw[[v]]),
+                                  logical(1))]
+rarest_level <- min(vapply(categorical, function(column) {
+  source_holders <- holders(raw, column)
+  present <- intersect(unique(holders(synthetic, column)),
+                       unique(source_holders))
+  min(as.integer(table(factor(source_holders, levels = present))))
+}, integer(1)))
+
+arm_size <- function(data) {
+  first <- !duplicated(as.character(data[[roles$id]]))
+  table(as.character(data[[roles$strata[1]]])[first])
+}
+source_arms <- arm_size(raw)
+synth_arms <- arm_size(synthetic)[names(source_arms)]
+arms_matched <- sum(source_arms == synth_arms)
+
+copies <- length(intersect(time_vectors(raw), time_vectors(synthetic)))
+inside_null <- prox$adversarial_accuracy >= prox$null_lower &&
+  prox$adversarial_accuracy <= prox$null_upper
+
+card <- rbind(
+  row("A1", "Synthetic table is a legal PMX dataset", "synthetic",
+      as.character(validate_pmx(synthetic, roles)$valid),
+      validate_pmx(synthetic, roles)$valid),
+  row("A2", "Source is legal under the declared roles", "source",
+      as.character(report$valid), report$valid),
+  row("A3", "Every endpoint survived", "both",
+      paste(length(endpoints(synthetic)), "of", length(endpoints(raw))),
+      setequal(endpoints(raw), endpoints(synthetic))),
+  row("A4", "Cohort size survived", "both",
+      paste(subjects(raw), "->", subjects(synthetic)),
+      subjects(raw) == subjects(synthetic)),
+  row("A5", "Observations per patient", "both",
+      paste(per_patient(raw, "obs"), "->", per_patient(synthetic, "obs"))),
+  row("A5", "Doses per patient", "both",
+      paste(per_patient(raw, "dose"), "->", per_patient(synthetic, "dose"))),
+  row("B1a", "Avatars wearing one real patient's visit set", "run report",
+      settings$identifying_visit_sets, settings$identifying_visit_sets == 0),
+  row("B1b", "Avatars wearing one real patient's dose schedule", "run report",
+      settings$identifying_dose_schedules,
+      settings$identifying_dose_schedules == 0),
+  row("B2", "Synthetic patients unusual within their own arm", "synthetic",
+      paste(sum(flagged$flagged), "of", nrow(flagged))),
+  row("B3", "Adversarial accuracy inside its null interval", "both",
+      sprintf("%.3f in [%.3f, %.3f]", prox$adversarial_accuracy,
+              prox$null_lower, prox$null_upper),
+      inside_null),
+  row("B4", "Generated time vectors copying a real one", "both",
+      copies, copies == 0),
+  row("B5", "Source patients holding the rarest exported level", "both",
+      paste(rarest_level, "(floor", paste0(settings$min_pattern_share, ")")),
+      rarest_level >= settings$min_pattern_share),
+  row("C3", "Arms keeping their source size", "both",
+      paste(arms_matched, "of", length(source_arms)),
+      arms_matched == length(source_arms)),
+  row("C4", "Dose regimens represented", "both",
+      paste(settings$dose_regimens_represented, "of",
+            settings$dose_regimens_source)),
+  row("D2", "Effective donors per avatar", "run report",
+      paste(round(settings$mean_effective_donors, 1), "of k =", settings$k))
+)
+
+knitr::kable(card, row.names = FALSE)
+```
+
+| check | question | reads | result | verdict |
+|:---|:---|:---|:---|:---|
+| A1 | Synthetic table is a legal PMX dataset | synthetic | TRUE | pass |
+| A2 | Source is legal under the declared roles | source | TRUE | pass |
+| A3 | Every endpoint survived | both | 2 of 2 | pass |
+| A4 | Cohort size survived | both | 180 -\> 180 | pass |
+| A5 | Observations per patient | both | 30.7 -\> 30.7 | review |
+| A5 | Doses per patient | both | 85 -\> 85 | review |
+| B1a | Avatars wearing one real patient’s visit set | run report | 0 | pass |
+| B1b | Avatars wearing one real patient’s dose schedule | run report | 0 | pass |
+| B2 | Synthetic patients unusual within their own arm | synthetic | 1 of 180 | review |
+| B3 | Adversarial accuracy inside its null interval | both | 0.511 in \[0.415, 0.571\] | pass |
+| B4 | Generated time vectors copying a real one | both | 0 | pass |
+| B5 | Source patients holding the rarest exported level | both | 30 (floor 2) | pass |
+| C3 | Arms keeping their source size | both | 6 of 6 | pass |
+| C4 | Dose regimens represented | both | 2 of 2 | review |
+| D2 | Effective donors per avatar | run report | 2.9 of k = 5 | review |
+
+Three things to notice about how this reads.
+
+**`review` is not a soft `pass`.** Five rows have no pass mark because
+no threshold would be honest. Doses per patient is the clearest: on this
+study it is unchanged, and on a study with individualised dosing it can
+halve while every guarantee above it still reads 0. A checklist that
+scored that row would have to pick a number, and any number picked would
+be wrong on some dataset.
+
+**The `reads` column decides where the table can go.** Every row marked
+`source` or `both` was computed from real patient data and inherits its
+handling obligations, so the filled-in scorecard is itself restricted
+output. Only the `synthetic` and `run report` rows can travel with the
+data.
+
+**B5 is the row doing the least work.** It reports the rarest
+categorical level that reached the output, which on a six-arm study with
+thirty patients per arm is a comfortable 30. On a study with a
+two-patient stratum it would read 2, and that is the whole finding — but
+nothing in the package computes it, so the lines above are what you have
+to write. See
+[`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md),
+section B5.
 
 ## What this run does and does not license
 

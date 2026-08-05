@@ -5,18 +5,31 @@
 `synpmx` builds **synthetic pharmacometric datasets** from actual
 datasets.
 
-## Which job do you want synthetic data to do?
+## Will the `synpmx` package support your use case?
 
 There are many reasons to generate “synthetic data.” It is important to
-be be explicit about your use case because the use case determines the
-appropriate data generation algorithm.
+be be explicit about your use case because the use case determines
+whether `synpmx` can fully support you.
 
-| Use case | Served here? |
-|----|----|
-| **Develop code.** You need data with the right *shape* — schema, event grammar, covariates, dosing and sampling pattern. You’ll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study. | **Yes — this is what the package is for.** |
-| **Send data past a trust boundary.** The output will reach people who cannot see the real data: a partner, a publication, a public repository. | **Only with care.** This needs a formal guarantee; see the privacy modes below, which are illustrative rather than audited. |
-| **Answer the scientific question.** Estimate parameters, select a model, quantify a covariate effect, choose a dose, or stand in for real patients as a synthetic control arm. | **No.** Use the real data for this. |
-| **Teach and compare.** Show what the different synthetic data generation methods do. | **Yes**, secondarily. |
+**✅ Develop code (Intended Use Case)** You need synthetic data that
+resembles the true data — schema, event grammar, covariates, dosing,
+sampling, censoring, and drop-out pattern. You’ll use this data to
+develop code for data processing, diagnostics, and model building
+outside the environment that holds the real study.
+
+**✅ Teaching tool for comparing synthetic data methods (Yes).**
+Illustrate the difference between synthetic data generation methods.
+
+**❌ Send data past a trust boundary (No).** If the output will reach
+people who cannot see the real data: a partner, a publication, a public
+repository, this package should not be used. The formal
+privacy-protecting methods provided with this package are illustrative,
+but not audited. Other tools should be used for full trial siumlation or
+differential privacy predictions.
+
+**❌ Answer scientific questions about the the data (No).** Use the real
+data for estimating parameters, selecting a model, quantifying a
+covariate effect or choosing a dose.
 
 The main use caes of this package is for sharing realistic-looking study
 data outside the GxP computing environment but still within the
@@ -35,17 +48,18 @@ requires no model to be specified. The original method was developed in
 Guillaudeux and colleagues \[2\], and Destere and colleagues benchmark a
 modified AVATAR for population PK datasets \[1\]. However, they did not
 test their method using pharmacometrics dataset from actual clinical
-trials. We have done here, and in the process we have added features
-such as handling BLOQ data and masking patients with unique dosing
-schedules and observation times.
+trials. We have developed the synthetic data method here using actual
+clinical data and thus it handles realistic aspects of trials such as
+BLOQ data, body-weight dosing, multiple regimens, and it also has
+masking methods added so that patients cannot be identiied by a unique
+dosing schedule or set of observation times. The key function is
+`synpmx_avatar`, which builds artificial profiles from real patient
+profiles, It masks identifiable characteristics, but does not offer
+formal privacy guarantees.
 
-The key function is
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
-which builds artificial profiles from real patient profiles, It masks
-identifiable characteristics. but does not offer formal privacy
-guarantees. For didactic purposes, the package also provides code for
-other data masking methods, using trial simulation from prior knowledge,
-and differential privacy methods. These methods give more formal privacy
+For teaching purposes, the package also provides code for other data
+masking methods, using trial simulationfrom prior knowledge, and
+differential privacy methods. These methods give more formal privacy
 protection and they are included here to illustrate the tradeoffs
 between ways of generating synthetic data. These methods are not
 actively maintained.
@@ -97,13 +111,18 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ## Running it on your own study
 
 AVATAR, called by
-`synpmx_avatar() needs two things: the data, and a declaration of what its columns mean. A model is not needed. The function drops every column that is not described, so a column you forget is describe is dropped rather than quietly copied out of a real patient. Only`id`,`time`,`dv`, and`evid\`
-are required; everything else is optional.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+needs two things: the data, and a declaration of what its columns mean.
+A model is not needed. Every column that is not described is dropped
+rather than quietly copied out of a real patient. Only `id`, `time`,
+`dv`, and `evid` are required; everything else is optional.
 
 The block below stands in for your study — replace the first dozen lines
 with your own data frame and edit the column descriptions to match your
 dataset. The example below shows every column AVATAR can be told about,
-so most studies will use a subset.
+but if your study does not have such a column, it can be dropped
+(e.g. if there is no BLOQ data, you can drop the `CENS` and `LIMIT`
+columns)
 
 ``` r
 
