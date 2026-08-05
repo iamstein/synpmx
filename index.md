@@ -58,7 +58,7 @@ profiles, It masks identifiable characteristics, but does not offer
 formal privacy guarantees.
 
 For teaching purposes, the package also provides code for other data
-masking methods, using trial simulationfrom prior knowledge, and
+masking methods, using trial simulation from prior knowledge, and
 differential privacy methods. These methods give more formal privacy
 protection and they are included here to illustrate the tradeoffs
 between ways of generating synthetic data. These methods are not
