@@ -87,3 +87,6 @@ references/private/
 
 # Local Claude Code settings
 .claude/
+
+/.quarto/
+**/*.quarto_ipynb
