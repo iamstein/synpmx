@@ -539,3 +539,391 @@ Order the sections A through F. Lead each with the question in plain language,
 then the check, then how to read a bad answer. Keep the "check the output, not
 the algorithm" section near the end, where it reads as the lesson rather than
 as a preamble.
+
+---
+
+# Proposed additions, from the literature (2026-08-04)
+
+Written after reading `vignettes/articles/literature-review.Rmd` against the
+published evaluation frameworks it cites, plus the general synthetic-data
+evaluation literature it does not. **Nothing below is implemented and nothing
+below is agreed** — this is a proposal for the owner to cut down. Sources are
+listed at the end of this section.
+
+The organizing observation: the vignette's taxonomy is a *disclosure-route*
+taxonomy, which is unusual and good — the literature almost always organizes by
+fidelity / utility / privacy, and route-based is more actionable. What the
+route-based framing loses is the standard machinery the literature has already
+built for measuring each route, and four of the gaps below already have
+published definitions and reference implementations that we could adopt rather
+than invent.
+
+## P0. The structural gap: there is no control group
+
+**This is the single largest gap and it changes how every B-tier check is
+read.**
+
+Every privacy check in the vignette compares source against synthetic where the
+whole source was available as donors. The literature has converged, from four
+independent directions, on the same correction: you cannot distinguish *what an
+attacker learns about this individual* from *what an attacker learns about the
+population* without a control group the generator never saw.
+
+- Anonymeter (Giomi et al., PoPETS 2023) makes the control dataset the center of
+  the framework: risk is reported only when the attack succeeds better against
+  training data than against control data.
+- Yale et al.'s nearest-neighbour adversarial accuracy — which is the statistic
+  `compare_pmx_proximity()` implements — is defined in its original form as the
+  *difference* between accuracy computed against the training set and against a
+  holdout. We compute only the training half, against a split-half null of the
+  source.
+- Raab et al. (2024) correct every disclosure measure by what is disclosive in
+  the original data anyway (`DiO`), for exactly this reason.
+- Ganev & De Cristofaro (IEEE S&P 2025, "the DCR delusion") show that
+  similarity-based metrics without a holdout can be passed by datasets that
+  leak, because those metrics are average-case and an attacker is worst-case.
+
+**Proposal.** A documented holdout workflow, and eventually a `holdout =`
+argument: partition the source into a donor set and a holdout set, generate from
+donors only, then run the proximity and uniqueness checks *twice* — synthetic
+against donors, synthetic against holdout. The privacy signal is the difference,
+not either number.
+
+This is also the honest fix for the vignette's own sentence *"inside the
+interval means nothing was detected, never nothing is there."* With a holdout,
+"inside the interval" acquires a meaning it does not currently have.
+
+Costs to state plainly, because they are real: a holdout shrinks the donor pool,
+which at n = 20 is expensive and at n = 12 is not possible. Recommend it as a
+per-study validation exercise run once, not as a per-run default.
+
+## P1. AVATAR's own published privacy metrics, which we do not compute
+
+`synpmx_avatar()` is in the AVATAR family and the AVATAR paper (Guillaudeux et
+al., npj Digital Medicine 2023) defines two record-level privacy metrics
+specific to patient-centric generators. Both fit `synpmx` exactly, and both are
+things the current single-number `adversarial_accuracy` cannot do: they are
+**per source subject**, so they name *which* patients are exposed.
+
+- **Local cloaking.** For each source subject, the number of avatars that are
+  closer to it than its own avatar is. The paper reports medians of 11 and 24.
+  The actionable statistic for us is not the median but the **count of subjects
+  with local cloaking 0** — their own avatar is their nearest avatar.
+- **Hidden rate.** The percentage of source subjects whose own avatar is *not*
+  their nearest avatar. The paper reports 93–94%.
+- **Nearest-neighbour distance ratio (NNDR)**, `d1/d2`, which the same paper
+  reports alongside distance to closest record with a >= 0.8 rule of thumb.
+  `compare_pmx_proximity()` already computes nearest-neighbour distances, so
+  this is nearly free.
+
+**Prerequisite, and it is the interesting part.** Local cloaking and hidden rate
+require the anchor -> avatar correspondence. `synpmx` has it internally but does
+not retain it: no `anchor_id` appears in `pmx_settings` or on the output.
+Retaining it is a small change and a large hazard — **the anchor map is the most
+disclosive artifact in the whole pipeline**, so it must be computed inside the
+restricted environment, marked `restricted_not_releasable` more emphatically
+than anything else in the package, and never shipped with the data. Worth
+considering a design where the map is passed to the check function rather than
+attached to the returned table, so it cannot travel by accident.
+
+Because these are per-subject, they are also the natural input to
+`remediate_identifiable_subjects()`, which today acts only on
+`flag_identifiable_subjects()` output.
+
+## P2. B5 has a published answer already: RepU and DiSCO
+
+The vignette says of B5 *"nothing in the package checks this, and it is the most
+valuable thing missing"*, then enumerates five checks from first principles.
+Four of the five are a rediscovery of measures Raab, Nowok and Dibben formalized
+in 2024 and shipped in `synthpop` >= 1.8.1 as `disclosure()` and
+`multi.disclosure()`. Adopting their vocabulary would give us definitions to
+cite, thresholds others have argued about, and a reference implementation to
+test against.
+
+- **RepU (replicated uniques)** — records unique in the original on a chosen key
+  set that are *also* unique in the synthetic. This is B5 checks 1–2 and B4,
+  generalized from visit sets to arbitrary quasi-identifier sets.
+- **DiSCO (Disclosive in Synthetic, Correct in Original)** — the percentage of
+  original records for which a key combination has a unique target value in the
+  synthetic *and* that value matches the original. This is the attribute
+  disclosure measure, and it is what "arm x sex x age band -> mutation status"
+  risk actually is. It is B5 check 3, made into a number.
+- **DiO baseline correction** — subtract what is disclosive in the original data
+  anyway. A relationship that is deterministic in the population is not a leak,
+  it is the science. **This is the same insight as the B2 stratification
+  finding** — "a screen that ignores assignment reports the protocol back to you
+  as a privacy finding" — and `DiSCO - DiO` is that insight as arithmetic. Worth
+  saying so in the vignette, because it is the same idea arrived at twice from
+  different directions.
+
+The fit is good for a reason worth stating: at *subject baseline* level a PMX
+dataset **is** rectangular, one row per patient, which is exactly the shape
+`synthpop`'s machinery assumes. The event table is where their tools break (the
+literature review says so); the covariate table is where they apply directly.
+
+Two concrete sub-findings while checking this:
+
+1. **`compare_pmx_distributions()$covariates_categorical` already is the level
+   census.** It is computed per subject via `.subject_baseline_values()` and
+   reports level counts and proportions for source and synthetic side by side.
+   What is missing is not the table but the **flag** — no minimum-holder
+   threshold, and the two datasets are stacked long rather than joined. The
+   vignette's claim that nothing exists is too strong; the accurate claim is
+   that nothing *flags*.
+2. **`strata` are excluded from that table.** `compare_pmx_distributions()`
+   loops over `roles$covariates` only, and `strata` are a separate role. So the
+   one categorical axis that is **copied verbatim from the anchor** — the axis
+   where a two-patient cell is reproduced exactly — is the axis missing from the
+   census. That is why the vignette had to hand-write `level_census()` for
+   `TRTACT`. Including `strata` in `compare_pmx_distributions()` is a small fix
+   with a real finding behind it.
+3. The vignette's `level_census()` chunk builds its level set from the
+   **synthetic** side only (`levels_out`), so a source level that was *dropped*
+   is invisible. That is a coverage failure as well as a privacy one, and the
+   join should be a full outer join. Small, but it is a check that cannot see
+   one of its two failure directions.
+
+## P3. Linkability is missing entirely
+
+Anonymeter operationalizes the Article 29 Working Party's three criteria for
+factual anonymization: **singling out, linkability, inference**. The vignette's
+B1–B6 cover singling out thoroughly and inference partly (B5, B6), and cover
+linkability **not at all**.
+
+Linkability is: an attacker holding *part* of a record from another source — the
+covariates, say, obtained from a registry — links it to the right synthetic
+record. For a record-based generator with an anchor map this is directly
+testable and it is the attack the method is most exposed to.
+
+**Proposal:** a mapping paragraph in B's preamble giving B1–B6 against the three
+regulatory criteria, which (a) lets a reader arriving from a data-protection
+officer navigate, and (b) makes the missing one visible as missing rather than
+absent by omission.
+
+## P4. Category D is thin, and PMX is where we should be ahead
+
+Every pharmacometric benchmark in the literature — Destere (daptomycin popPK),
+Woillard (pharmacogenetics), Jiang (PK/PD deep generative) — evaluates on the
+*analysis*, not on the marginals, because the analysis is what a user of the
+data does. Category D is currently two marginal-summary tables and a pointer to
+an article. Four additions, in ascending cost:
+
+1. **Non-compartmental analysis (NCA) summary, per subject, source against
+   synthetic.** Cmax, Tmax, AUC(0-last), terminal half-life, and the
+   between-subject CV of each. Model-free, trapezoid rule, roughly twenty lines,
+   no new dependency. This is the pharmacometric idiom for "did the exposure
+   survive", and it renders the variance-shrinkage discussion in the units a
+   pharmacometrician thinks in rather than as a standard deviation on pooled DV.
+   **Probably the highest value-per-line addition in this whole document.**
+2. **Confidence interval overlap** (Karr et al. 2006) as the named metric for
+   the parameter-recovery check. `example-avatar-PKPD-covariate-treatment-
+   effect.Rmd` already does the work; D should name the statistic rather than
+   gesturing at "the relationship survives". Destere's benchmark is exactly
+   this: fit the same structural model to both, compare fixed effects, omega,
+   sigma.
+3. **Within-subject trajectory shape.** Marginals can match perfectly while
+   every individual profile is scrambled — which is precisely the failure the
+   literature review attributes to column-wise synthesizers, and which nothing
+   in the vignette would catch. The time-series literature checks this with
+   autocorrelation-function agreement and a discriminative score. Cheapest
+   useful version for us: compare **within-subject** spread around each
+   subject's own smooth against **between-subject** spread. Blending should
+   shrink between-subject variance and leave within-subject residual structure
+   alone; if it shrinks both, the trajectories are being flattened and the D
+   tables cannot see it.
+4. **pMSE / propensity-score utility** (Snoke & Raab; the measure Woillard uses
+   for this purpose). Fit a CART classifier to distinguish source subjects from
+   synthetic ones; pMSE at its null means indistinguishable. It is a general
+   utility measure with a known null distribution — the same shape as
+   `compare_pmx_proximity()` — and it complements the specific checks. Note it
+   reads in both directions like proximity does: too distinguishable is a
+   utility failure, indistinguishable *plus* adversarial accuracy near zero is
+   memorization.
+
+## P5. Coverage, not only closeness
+
+Alaa et al. (ICML 2022) split fidelity into three axes, and we measure roughly
+one of them:
+
+- **alpha-precision** — are synthetic records typical of real ones. Roughly what
+  `compare_pmx_distributions()` reports.
+- **beta-recall** — are real records *covered* by synthetic ones. **Not
+  measured.** This is the "did we lose the tails" direction, which today is
+  visible only as a standard deviation shrinking in a table with no pass
+  criterion attached.
+- **authenticity** — the fraction of synthetic records that are not
+  near-copies of a training record. This is the "too close" tail that
+  `compare_pmx_proximity()` covers with one aggregate number; authenticity is
+  per record, and per record is what remediation needs.
+
+Cheap proxies worth having even without the full estimators: **range coverage**
+per covariate and per endpoint (does the synthetic span the source's range), and
+**category coverage** (levels present in the source but absent from the output).
+Both are one line each and both have a stateable pass criterion.
+
+## P6. Smaller PMX-specific checks that nothing covers
+
+6a. **Dropout / follow-up curve.** A Kaplan-Meier of time to last observation,
+source against synthetic. The vignette treats follow-up length only as a B2
+*outlier axis* — whether one patient stands out — and never asks whether the
+dropout **process** survived. This is close to indefensible given what the
+package advertises: the literature review's own pitch is "the patient who
+withdrew at week 12", and nothing checks that withdrawal behaves like the
+source's. Category C.
+
+6b. **Missingness and BLOQ pattern.** Proportion of below-limit-of-quantification
+observations per endpoint per arm, source against synthetic, and the
+missing-visit pattern. `cens` is already a declared role so this is nearly free.
+`pmx_masking_report()` reports visit-set reuse but not whether the censoring
+*rate* was preserved — and censoring rate is a first-class property of a PK
+dataset that any assembly script has to handle.
+
+6c. **Value plausibility bounds.** `validate_pmx()` checks `dv_finite`, not
+plausibility. DV blending adds AR(1) residual noise after the transform, so a
+generated value can land outside anything the source contained. Numeric
+covariates are already floored above zero when all donors are positive
+(`.synthesize_covariates()`), so the exposure is DV and any covariate whose
+donor set is mixed-sign. An A-tier range check — synthetic min/max per endpoint
+and covariate against the source's, or against declared `pmx_bounds` — has a
+one-line pass criterion and belongs with the other structural checks.
+
+6d. **Dose/observation ordering and occasion assignment.** Already on the
+vignette's own gap list; noted here only so the C-tier list is complete in one
+place.
+
+## P7. One addition to section E
+
+Section E says "nothing here bounds what an adversary learns", which is correct
+but under-specified. The literature now supplies the precise failure mode: these
+are **average-case** statistics and an attacker is **worst-case**, and datasets
+that pass similarity-based metrics have been shown to leak under membership
+inference (Ganev & De Cristofaro 2025). Naming that strengthens the DP argument
+B5 already makes, and it costs two sentences.
+
+---
+
+# Proposed reorganization of `vignettes/synthetic-data-checks.Rmd`
+
+The short verdict: **the taxonomy is right and should not be restructured.**
+A–F by disclosure route is better than the literature's fidelity/utility/privacy
+split for someone deciding whether to ship a dataset. Seven changes, roughly in
+order of value.
+
+1. **Add a scorecard table near the top.** One row per check: category,
+   function, reads source?, **pass criterion**, status (shipped / gap). Today
+   the pass criteria are scattered through prose — "both must be 0", "zero, as
+   required", "0.5 is the target", "must be zero" — and a reader deciding
+   whether to ship has to reconstruct the list by reading the whole document.
+   This is the highest-value change and it is purely additive.
+
+2. **Fold the two gap lists into one.** B5's numbered 1–5 and the closing "What
+   is still missing" table overlap. If the scorecard has a status column, the
+   closing table becomes a filter of it rather than a second list to maintain.
+
+3. **Move the B5 propagation experiment out, to `avatar-algorithm.Rmd`.** It is
+   the largest code block in the vignette — a 50-line fixture plus a
+   propagation loop — and it teaches the *mechanism of this generator*, not a
+   check the reader should run on their own data. Keep in the checks vignette:
+   the conclusion (one holder never propagates, two do), the census check, and
+   the DP argument. This is the single biggest length reduction available and it
+   sharpens the section from "a study of our own generator" into "here is the
+   check, here is the gap".
+
+4. **Make the release status a scorecard column, not a section-E paragraph.**
+   It is per-check metadata and it is what determines whether a diagnostic can
+   leave the environment — which is an operational question a reader asks per
+   check, not once at the end.
+
+5. **Name the fidelity / utility / privacy frame once**, in the preamble, and
+   map A–D onto it in one sentence. Not a reorganization: a signpost, so a
+   reader arriving from Anonymeter, `synthpop`, or SDMetrics can find the
+   corresponding section. Costs a paragraph, buys the entire external audience
+   the article is partly written for.
+
+6. **Add the singling out / linkability / inference mapping to B's preamble**,
+   per P3, so the regulatory vocabulary connects and the missing route is
+   visible.
+
+7. **Grow D.** It is currently the thinnest section relative to its importance —
+   two tables and a pointer — and it is where P4's NCA comparison and
+   confidence-interval overlap belong.
+
+What should **not** change: sections E and F. F is the best writing in the
+package and its position at the end is correct.
+
+## Sources for this section
+
+- Giomi M, Boenisch F, Wehmeyer C, Tasnádi B. *A Unified Framework for
+  Quantifying Privacy Risk in Synthetic Data.* PoPETS 2023(2). (Anonymeter;
+  singling out / linkability / inference; the control dataset.)
+- Guillaudeux M, Rousseau O, Petot J, et al. *Patient-centric synthetic data
+  generation.* npj Digital Medicine 2023;6. (Local cloaking, hidden rate, NNDR.)
+- Raab GM, Nowok B, Dibben C. *Privacy risk from synthetic data: practical
+  proposals.* arXiv:2409.04257, 2024, and *Practical privacy metrics for
+  synthetic data*, arXiv:2406.16826. (RepU, DiSCO, DiO; `synthpop::disclosure()`.)
+- Ganev G, De Cristofaro E. *The Inadequacy of Similarity-Based Privacy
+  Metrics.* IEEE S&P 2025. ("The DCR delusion".)
+- Alaa A, van Breugel B, Saveliev E, van der Schaar M. *How Faithful is your
+  Synthetic Data?* ICML 2022. (alpha-precision, beta-recall, authenticity.)
+- Yale A, Dash S, Dutta R, et al. *Generation and evaluation of privacy
+  preserving synthetic health data.* Neurocomputing 2020. (Nearest-neighbour
+  adversarial accuracy, train-versus-holdout form.)
+- Snoke J, Raab GM, Nowok B, Dibben C, Slavkovic A. *General and specific
+  utility measures for synthetic data.* JRSS-A 2018. (pMSE.)
+- Karr AF, Kohnen CN, Oganian A, Reiter JP, Sanil AP. *A framework for
+  evaluating the utility of data altered to protect confidentiality.* The
+  American Statistician 2006. (Confidence interval overlap.)
+- Destere A, Lombardi R, Labriffe M, et al. medRxiv 2026, and Woillard JB,
+  Benoist C, et al. CPT:PSP 2025 — both already cited in the literature review.
+
+---
+
+## Owner's decisions on the proposal (2026-08-05)
+
+Reviewed by the owner. What was accepted, and — more usefully — the scope
+statement that came out of the review.
+
+**The scope statement, which should govern everything above.** The use case is
+that the data still *looks like* pharmacometric data and still protects privacy.
+It is explicitly **not** required that distributions and processes are
+maintained exactly, and it is **not** about scientific discovery. That decides
+several of the proposals without further argument:
+
+- **P4 specific-utility measures are out of scope by design.** Confidence
+  interval overlap, parameter recovery, and non-compartmental exposure agreement
+  (Cmax, Tmax, AUC) are not pursued. Not because they are unimportant, but
+  because the package does not claim the property they measure. Stating that is
+  more useful than reporting them badly.
+- **P4's pMSE and P5's coverage measures are interesting, not binding.** Worth
+  knowing about; not worth chasing a number for. Coverage is worth reporting
+  only because it lets a shrinking spread be *attributed* — masking working
+  versus the generator collapsing to the mean look identical in a standard
+  deviation.
+- **P6a, the dropout curve, is dropped.** The owner does not require that the
+  dropout process survive exactly.
+
+The reasoning is written up for readers in `vignettes/articles/literature-
+review.Rmd`, under "why almost none of this is `synpmx`'s problem".
+
+**Accepted and implemented 2026-08-05** (see `design/TODO.md` for the entry):
+
+1. The scorecard, in both forms — static index at the top of the checks
+   vignette, runnable version at the end of `demo.Rmd`.
+2. B5's propagation experiment moved to `avatar-algorithm.Rmd` step 8.
+3. Release status as a scorecard column, with `validate_pmx()` as rows A1/A2.
+
+Plus, unrequested but required by the accuracy rule in `AGENTS.md`: the two
+corrections under P2 (the census exists but does not flag; `strata` are missing
+from it).
+
+**Still open, unagreed**, in the order the owner is most likely to want them:
+the holdout (P0), local cloaking and hidden rate (P1), `strata` in
+`compare_pmx_distributions()`, B5 as one function in RepU/DiSCO vocabulary (P2),
+and linkability (P3).
+
+**The tutorial.** The owner asked for the checking literature to be written up
+as a tutorial rather than a citation list, and for it to live in the literature
+review rather than here. That is now the second half of
+`vignettes/articles/literature-review.Rmd`, and the article's title and
+description changed to match its new scope. Everything above stays here as the
+internal record.

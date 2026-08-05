@@ -1199,6 +1199,96 @@ The final value is repeated on every row of that synthetic subject.
 For factor, character, and logical covariates, one available donor category is
 sampled using the locally normalized weights. Categories are not averaged.
 
+### A rare category is copied, not blended, and two holders is enough
+
+That last sentence has a consequence worth measuring rather than asserting,
+because it inverts the intuition that blending protects everything.
+
+A numeric covariate comes out of this step as a weighted mean plus noise: a new
+number nobody had. A **categorical** covariate has nothing to average, so a
+synthetic patient's category is always **some real patient's actual category,
+copied**. Declared `strata` are copied from the anchor exactly, by design, since
+they are protocol facts.
+
+So the question is when a copied category reaches the output. Here is the
+measurement, on a 40-patient fixture where one categorical level is held by a
+varying number of otherwise-ordinary patients and everything else is held fixed:
+
+```{r rare-level, eval=TRUE, message=FALSE}
+rare_level_fixture <- function(n_holders) {
+  set.seed(1)
+  subject <- function(i) {
+    times <- c(0, 1, 2, 4, 8, 24)
+    data.frame(
+      ID = i, TIME = c(0, times), NTIME = c(0, times),
+      DV = c(NA, round(10 * exp(-0.1 * times) +
+                         rnorm(length(times), 0, 0.3), 3)),
+      AMT = c(100, rep(0, length(times))),
+      EVID = c(1L, rep(0L, length(times))),
+      CMT = c(1L, rep(2L, length(times))),
+      WT = round(runif(1, 60, 80), 1),
+      RARE = if (i <= n_holders) "rare-level" else "common",
+      stringsAsFactors = FALSE
+    )
+  }
+  do.call(rbind, lapply(1:40, subject))
+}
+
+propagation <- function(n_holders) {
+  source <- rare_level_fixture(n_holders)
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", nominal_time = "NTIME", covariates = c("WT", "RARE")
+  )
+  synthetic <- suppressWarnings(
+    synpmx_avatar(source, roles, n_subjects = 200, seed = 9)
+  )
+  carrying <- length(unique(synthetic$ID[synthetic$RARE == "rare-level"]))
+  data.frame(
+    source_holders = paste0(n_holders, " of 40"),
+    source_pct = round(100 * n_holders / 40, 1),
+    avatars_carrying = carrying,
+    avatar_pct = round(100 * carrying / 200, 1)
+  )
+}
+
+knitr::kable(
+  do.call(rbind, lapply(c(1, 2, 3, 5, 10, 20), propagation)),
+  caption = paste(
+    "A categorical level held by n real patients, and how many of 200",
+    "avatars carry it."
+  )
+)
+```
+
+**A level held by one patient never reaches the output; a level held by two
+does.** The mechanism is geometric rather than protective. Step 5 one-hot
+encodes each categorical level as its own feature of the profile, so the sole
+holder of a level sits alone on that axis, is nobody's nearest neighbour, and is
+therefore almost never selected as a donor. Give the level a second holder and
+the two become each other's nearest neighbour, the level propagates between
+them, and it leaves. By ten holders the output tracks the source frequency
+closely.
+
+The operative variable is the **number of holders**, not outlier status. Making
+the two holders numeric outliers as well changes nothing on the categorical
+axis. "Being an outlier is self-protecting" holds for numeric covariates, which
+are blended, and does not hold for categories.
+
+Two things follow, and the second is the one that matters.
+
+**This is not a mechanism to rely on.** It is a side effect of nearest-neighbour
+donor selection. Nothing enforces it, nothing reports it, and it degrades
+smoothly — two holders is already a leak.
+
+**The dangerous shape is a rare level on a *typical* patient.** A patient who is
+unusual on their covariates is nobody's nearest neighbour and is
+self-protecting. A patient who is ordinary in every way except one rare
+category — an ultra-rare mutation status, say — sits in the middle of the
+profile space, is selected as a donor constantly, and their category is copied
+out. What to do about that is a checking question rather than an algorithm one,
+and it is in `vignette("synthetic-data-checks")` under B5.
+
 ### A covariate and an endpoint are blended independently
 
 Covariates (this step) and endpoint trajectories (the next) are generated in

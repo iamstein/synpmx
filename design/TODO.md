@@ -207,13 +207,70 @@ inventory of what already exists against each, the three gaps that inventory
 makes visible, and the section that generalizes beyond this package: check the
 finished table, not the mechanism.
 
-- [ ] Write `vignettes/synthetic-data-checks.Rmd` from that specification.
-      Recommended as a dedicated session: it is a from-scratch writing task and
-      benefits from a context not full of implementation detail.
+- [x] Write `vignettes/synthetic-data-checks.Rmd` from that specification.
+      Done 2026-08-04.
 - [ ] Then, and only then, close the gaps the prose makes obvious — rare
       covariate combinations (B5, nothing exists), semantic ordering such as a
       trough staying a trough (C, nothing exported), and the `SIM-014` exact-copy
       gate as a user-runnable helper (B4, test-only today).
+
+### Done 2026-08-05: the scorecard, and the checking literature
+
+Owner reviewed the literature-derived proposal at the end of
+`design/SYNTHETIC_DATA_CHECKS.md` and accepted three of its organizational
+changes, plus a tutorial. Scope decision recorded with it: **specific-utility
+measures are out of scope by design** — the package does not claim that a
+modeller reaches the same scientific conclusion, so confidence interval overlap,
+parameter recovery and exposure-metric agreement are deliberately not pursued.
+Distributions and processes need not be maintained exactly; the output must be
+the same *kind* of object and must protect privacy.
+
+- [x] Scorecard. Static index table at the top of
+      `vignettes/synthetic-data-checks.Rmd` (question, what to run, what it
+      reads, pass criterion, gaps marked), and a **runnable** version computed at
+      the end of `vignettes/demo.Rmd` on the real run. Release status is a column
+      rather than a section-E paragraph, and `validate_pmx()` is rows A1/A2.
+- [x] B5's propagation experiment moved to `vignettes/avatar-algorithm.Rmd`
+      step 8, where it belongs: it explains the generator's mechanism rather than
+      a check a user runs. The checks vignette keeps the conclusion, the census,
+      and the differential privacy argument.
+- [x] `vignettes/articles/literature-review.Rmd` restructured into two halves —
+      how synthetic data is made, and **how it is checked** — with the second
+      half written as a tutorial: the patient-versus-population confound,
+      adversarial accuracy and why it needs a holdout, local cloaking and hidden
+      rate, keys/targets/RepU/DiSCO/DiO, the WP29 criteria and linkability,
+      the similarity-metric critique, alpha-precision/beta-recall/authenticity,
+      pMSE versus confidence interval overlap, and a scope statement for why
+      most utility measurement is not this package's problem.
+
+Two accuracy corrections found while doing it, both now fixed in the checks
+vignette:
+
+- [x] B5's claim that "nothing in the package checks this" was too strong.
+      `compare_pmx_distributions()$covariates_categorical` *is* a per-patient
+      level census of source against synthetic. Nothing **flags**, which is the
+      accurate claim.
+- [x] That census loops over `roles$covariates` only, so **`strata` are absent
+      from it** — the one categorical axis copied from the anchor verbatim.
+      Worth fixing in the function, not only in the prose: **open.**
+
+Open, from the same proposal, in the owner's stated priority order (nothing
+below is agreed work yet):
+
+- [ ] **Holdout support.** The largest gap. Every source-reading privacy check
+      compares the synthetic data against patients the generator was allowed to
+      use, which confounds population capture with memorization. A `holdout =`
+      argument plus running the proximity checks twice would fix it. Expensive at
+      small n; recommend it as a per-study validation exercise, not a default.
+- [ ] **Local cloaking and hidden rate.** Per-patient, published for exactly this
+      generator family, and the natural input to
+      `remediate_identifiable_subjects()`. Prerequisite is retaining the
+      anchor -> avatar map, which is itself the most disclosive artifact in the
+      pipeline and must never leave the trusted environment.
+- [ ] **`strata` in `compare_pmx_distributions()`**, per the correction above.
+- [ ] **B5 as one function** over the subject-level table, in `synthpop`'s
+      RepU/DiSCO vocabulary rather than invented terms.
+- [ ] **Linkability**, which nothing measures.
 
 ## Owver's next steps: 2026-08-03
 
