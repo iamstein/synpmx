@@ -10,6 +10,11 @@ Start by looking at the existing vignettes and the literature review article.
 
 In the coming days, I will be focusing in particular on literature-review.md and synthetic-data-checking.md, so the questions I ask and changes in August-September 2026 may be of particular value.
 
+**Companion file: `design/WRITING_STYLE.md`.** This file records how Andy reads
+and what he asks for. That one turns the same evidence into rules for writing —
+headings, transitions, pronouns, punctuation, and the AI tics to keep out of a
+draft. Update both when an edit teaches something new.
+
 ## Structured Observations.
 
 *First pass written 2026-08-05 by Claude, after the session that added the

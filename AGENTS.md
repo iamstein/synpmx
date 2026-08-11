@@ -20,6 +20,9 @@ and roxygen comments must not reference one.
   generated data, and the specification for the vignette that will present it.
 - `design/BUILD_DOCUMENTATION.md` — every build command, where the rendered
   HTML lands, and which check catches what.
+- `design/WRITING_STYLE.md` — prose rules for vignettes, articles and README,
+  derived from the maintainer's own edits. Read before drafting or revising any
+  document. Its companion `design/_THEORY_OF_MIND.md` records how he reads.
 
 **`vignettes/` — shipped, and rebuilt by `R CMD check` on every behavioral
 change.** Keep this set small; each one is a recurring cost, not just a
