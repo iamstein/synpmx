@@ -285,9 +285,8 @@ update.
 Ordered. Four items, and the first two are the ones that matter.
 
 1. **`references/Guillaudeux23.pdf`** and **`references/Destere26.pdf`**. Both
-   are already in the repository. You are shipping this method under your name
-   and have written to one of the authors. Reading these is not optional and
-   nothing else on the list outranks them.
+   are already in the repository. You are shipping this method under your name.
+   Reading these is not optional and nothing else on the list outranks them.
 2. **The disclosure-risk part of `synthetic-data-checking-review.Rmd` only.**
    Adversarial accuracy, the training-versus-control split, RepU and DiSCO. Skip
    the utility and distribution material; claim 4 does not depend on it.
@@ -325,17 +324,12 @@ testing your understanding with the same source that produced the material is
 not an independent check. And Claude will tend to agree with you, which means
 any self-assessment run through this channel is biased toward passing.
 
-Independent feedback has to come from outside. Three candidates:
+Independent feedback has to come from outside. Two candidates:
 
 - **David, mid-August.** The nearest thing to a mentor you have. Use the meeting
   as an adversarial review of the privacy claim, not a status update.
 - **The ACoP audience, September.** An audience that can ask questions is the
   only F that cannot be gamed.
-- **The methods authors.** Destere was written to; no response as of
-  2026-08-11. Guillaudeux and colleagues on AVATAR and the synthpop group
-  (Nowok, Raab, Dibben) have not been. A package that implements someone's
-  method and measures it on real clinical data is a legitimate reason to write,
-  and a poster with results in it is a second reason to follow up.
 
 ## Log
 
