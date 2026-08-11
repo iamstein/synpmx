@@ -1103,41 +1103,249 @@ means running this procedure at several fractions on a public dataset
 and watching the estimate move.</p>
 </div>
 <div class="section level4">
-<h4 id="choosing-the-fraction-from-the-effect-you-would-act-on">Choosing the fraction from the effect you would act on<a class="anchor" aria-label="anchor" href="#choosing-the-fraction-from-the-effect-you-would-act-on"></a>
+<h4 id="what-a-privacy-loss-of-0-1-means">What a privacy loss of 0.1 means<a class="anchor" aria-label="anchor" href="#what-a-privacy-loss-of-0-1-means"></a>
 </h4>
-<p>The size of the control set decides the smallest privacy loss the
-procedure can see. Making that concrete takes three steps, and the
-machinery for step 2 already exists as the null interval in
-<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code>.</p>
-<ol style="list-style-type: decimal">
-<li>Name the smallest privacy loss you would act on,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>,
-on the adversarial accuracy scale.</li>
-<li>For a candidate control size
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
-compute the null: split the real cohort into two disjoint sets of size
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
-compute
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
-between them, and repeat. The spread of that null is the noise floor at
-size
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>.</li>
-<li>Take the smallest
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
-whose noise floor is comfortably inside
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>.</li>
-</ol>
-<p>The output is a statement of the form: <em>at this cohort size, a
-control set smaller than
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
-cannot detect a privacy loss of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>.</em>
-The missing input is
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\delta = \mathrm{AA}(C,S)-\mathrm{AA}(T,S)</annotation></semantics></math>
+is a difference of two accuracies, so it inherits their units, which are
+none. It converts into a count of patients by the following
+argument.</p>
+<p>Suppose a fraction
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
+of the training subjects have a synthetic near-copy. For each of them,
+the nearest synthetic subject sits closer than the nearest other real
+subject, so their indicator is 0 rather than the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mn>2</mn></mrow><annotation encoding="application/x-tex">1/2</annotation></semantics></math>
+it would be if the synthetic data were an independent draw from the same
+population. The same holds on the synthetic side for the copies.
+Averaging gives</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><mo>,</mo><mspace width="2.0em"></mspace><mtext mathvariant="normal">so</mtext><mspace width="2.0em"></mspace><mi>δ</mi><mo>≈</mo><mstyle displaystyle="false"><mfrac><mi>p</mi><mn>2</mn></mfrac></mstyle><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathrm{AA}(T,S)\approx\tfrac12(1-p),
+\qquad
+\mathrm{AA}(C,S)\approx\tfrac12,
+\qquad\text{so}\qquad
+\delta\approx\tfrac{p}{2}.
+</annotation></semantics></math></p>
+<p><strong>A privacy loss of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
-itself, for which no published value exists. Until one is chosen, the
-useful version of this calculation is its negative result, which is
-available today: compute the null at the size your cohort allows and
-read off the smallest difference the procedure could ever resolve.</p>
+means roughly
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mi>δ</mi></mrow><annotation encoding="application/x-tex">2\delta</annotation></semantics></math>
+of the compared set has a synthetic near-copy.</strong> The compared
+set, not the source cohort: both arms run at one size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
+and <code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> sets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+to half the source cohort so that the null has two disjoint real halves
+to work with.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math></th>
+<th>Fraction memorized</th>
+<th>At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+= 12</th>
+<th>At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+= 500</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>0.01</td>
+<td>2%</td>
+<td>0.2 patients, below the resolution of the cohort</td>
+<td>10 patients</td>
+</tr>
+<tr class="even">
+<td>0.10</td>
+<td>20%</td>
+<td>2 patients</td>
+<td>100 patients</td>
+</tr>
+<tr class="odd">
+<td>0.50</td>
+<td>100%</td>
+<td>every patient</td>
+<td>every patient</td>
+</tr>
+<tr class="even">
+<td>1.00</td>
+<td>not attainable</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\delta = 0.5</annotation></semantics></math>
+is the ceiling, reached when the synthetic data is a copy of the
+training set.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\delta = 1</annotation></semantics></math>
+would require the synthetic data to be simultaneously a copy of the
+training set and perfectly separated from the control set, which means
+the split was not random. Treat a value near 1 as a broken experiment
+rather than as a privacy state.</p>
+<p>The floor is set by cohort size, because
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
+is a fraction of patients and the smallest non-zero fraction is one
+patient:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi mathvariant="normal">min</mi></msub><mo>≈</mo><mn>1</mn><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\delta_{\min}\approx 1/(2m)</annotation></semantics></math>.
+One memorized patient is worth
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.042</mn></mrow><annotation encoding="application/x-tex">\delta = 0.042</annotation></semantics></math>
+on a 24-patient study, where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>12</mn></mrow><annotation encoding="application/x-tex">m = 12</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">\delta = 0.001</annotation></semantics></math>
+on a 1000-patient one, where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">m = 500</annotation></semantics></math>.</p>
+</div>
+<div class="section level4">
+<h4 id="the-noise-floor-measured-on-public-data">The noise floor, measured on public data<a class="anchor" aria-label="anchor" href="#the-noise-floor-measured-on-public-data"></a>
+</h4>
+<p>The null interval in <code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> is the
+noise floor: what
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
+does between two halves of the <em>same</em> real cohort, where nothing
+is wrong by construction. A difference smaller than that interval cannot
+be distinguished from the split.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">floors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">data</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span>  <span class="va">width</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">null_upper</span> <span class="op">-</span> <span class="va">p</span><span class="op">$</span><span class="va">null_lower</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    dataset <span class="op">=</span> <span class="va">label</span>,</span>
+<span>    source_n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    compared_n <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span>,</span>
+<span>    null_width <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">width</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>    <span class="co"># delta ~ p/2, so a detectable delta of `width` needs 2 * width memorized</span></span>
+<span>    detectable_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">width</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    detectable_patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">width</span> <span class="op">*</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span><span class="op">)</span>,</span>
+<span>    one_patient_delta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/theo_md.html" class="external-link">theo_md</a></span>,</span>
+<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>                   evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">warfarin</a></span>,</span>
+<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"id"</span>, time <span class="op">=</span> <span class="st">"time"</span>, dv <span class="op">=</span> <span class="st">"dv"</span>, amt <span class="op">=</span> <span class="st">"amt"</span>,</span>
+<span>                   evid <span class="op">=</span> <span class="st">"evid"</span>, dvid <span class="op">=</span> <span class="st">"dvid"</span>,</span>
+<span>                   covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="fu">xgxr</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">case1_pkpd</a></span>,</span>
+<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>                   evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>,</span>
+<span>                   nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
+<span>                   covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>, keep <span class="op">=</span> <span class="st">"STUDY"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="11%">
+<col width="9%">
+<col width="11%">
+<col width="11%">
+<col width="20%">
+<col width="20%">
+<col width="18%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">dataset</th>
+<th align="right">source_n</th>
+<th align="right">compared_n</th>
+<th align="right">null_width</th>
+<th align="right">detectable_fraction</th>
+<th align="right">detectable_patients</th>
+<th align="right">one_patient_delta</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">theo_md</td>
+<td align="right">12</td>
+<td align="right">6</td>
+<td align="right">0.648</td>
+<td align="right">1.30</td>
+<td align="right">8</td>
+<td align="right">0.0833</td>
+</tr>
+<tr class="even">
+<td align="left">warfarin</td>
+<td align="right">32</td>
+<td align="right">16</td>
+<td align="right">0.385</td>
+<td align="right">0.77</td>
+<td align="right">13</td>
+<td align="right">0.0312</td>
+</tr>
+<tr class="odd">
+<td align="left">case1_pkpd</td>
+<td align="right">180</td>
+<td align="right">90</td>
+<td align="right">0.141</td>
+<td align="right">0.28</td>
+<td align="right">26</td>
+<td align="right">0.0056</td>
+</tr>
+</tbody>
+</table>
+<p><code>compared_n</code> is half the source cohort, because the null
+needs two disjoint real halves at the comparison size.
+<code>detectable_patients</code> is how many memorized patients it would
+take to move
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
+clear of that interval, and <code>one_patient_delta</code> is what a
+single memorized patient is worth.</p>
+<p>Two readings of that table.</p>
+<p><strong>The noise floor falls as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>n</mi></msqrt></mrow><annotation encoding="application/x-tex">1/\sqrt{n}</annotation></semantics></math>
+while one patient’s contribution falls as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">1/n</annotation></semantics></math>.</strong>
+The gap between them therefore <em>widens</em> with cohort size. Larger
+studies resolve a smaller fraction and a larger number of patients.</p>
+<p><strong>The difference detects systematic memorization, not
+individual memorization, at any of these sizes.</strong> On the
+12-subject dataset the detectable fraction exceeds 1, meaning no amount
+of memorization moves the statistic out of its own null. Finding one
+exposed patient is what the per-record measures are for: local cloaking,
+authenticity, and distance to closest record.</p>
+</div>
+<div class="section level4">
+<h4 id="choosing-delta">Choosing delta<a class="anchor" aria-label="anchor" href="#choosing-delta"></a>
+</h4>
+<p><strong>A 24-patient Phase 1 study</strong>, compared at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>12</mn></mrow><annotation encoding="application/x-tex">m = 12</annotation></semantics></math>.
+One memorized patient is worth
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.042</mn></mrow><annotation encoding="application/x-tex">\delta = 0.042</annotation></semantics></math>.
+The <code>theo_md</code> row above is this size, and its noise floor is
+0.648, wider by a factor of 15. Every
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
+you could act on is below what the procedure can see, so the holdout is
+not worth running. Spend the effort on the mechanism counts in
+<code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>, which are exact, and on a per-patient
+measure if one gets implemented.</p>
+<p><strong>A 500-patient Phase 3 study</strong>, compared at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>250</mn></mrow><annotation encoding="application/x-tex">m = 250</annotation></semantics></math>.
+One memorized patient is worth
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.002</mn></mrow><annotation encoding="application/x-tex">\delta = 0.002</annotation></semantics></math>.
+Extrapolating the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>n</mi></msqrt></mrow><annotation encoding="application/x-tex">1/\sqrt{n}</annotation></semantics></math>
+scaling from the <code>case1_pkpd</code> row puts the noise floor near
+0.085, so the detectable fraction is about 17%. Single-patient
+memorization stays invisible; a generator copying a fifth of its
+training set does not. Set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
+at the noise floor and read the result as <em>“no systematic
+memorization above this fraction”</em>, which is a bounded claim about
+the generator rather than a claim about any patient.</p>
+<p>Neither case produces a per-patient guarantee, which is the reason
+this article ends with per-record measures and differential privacy
+rather than with this procedure.</p>
 </div>
 </div>
 <div class="section level3">
