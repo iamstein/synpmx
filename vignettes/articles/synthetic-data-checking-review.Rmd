@@ -740,25 +740,129 @@ which could move the estimate either way. Measuring it means running this
 procedure at several fractions on a public dataset and watching the estimate
 move.
 
-### Choosing the fraction from the effect you would act on
+### What a privacy loss of 0.1 means
 
-The size of the control set decides the smallest privacy loss the procedure can
-see. Making that concrete takes three steps, and the machinery for step 2
-already exists as the null interval in `compare_pmx_proximity()`.
+$\delta = \mathrm{AA}(C,S)-\mathrm{AA}(T,S)$ is a difference of two accuracies,
+so it inherits their units, which are none. It converts into a count of patients
+by the following argument.
 
-1. Name the smallest privacy loss you would act on, $\delta$, on the
-   adversarial accuracy scale.
-2. For a candidate control size $m$, compute the null: split the real cohort
-   into two disjoint sets of size $m$, compute $\mathrm{AA}$ between them, and
-   repeat. The spread of that null is the noise floor at size $m$.
-3. Take the smallest $m$ whose noise floor is comfortably inside $\delta$.
+Suppose a fraction $p$ of the training subjects have a synthetic near-copy.
+For each of them, the nearest synthetic subject sits closer than the nearest
+other real subject, so their indicator is 0 rather than the $1/2$ it would be if
+the synthetic data were an independent draw from the same population. The same
+holds on the synthetic side for the copies. Averaging gives
 
-The output is a statement of the form: *at this cohort size, a control set
-smaller than $m$ cannot detect a privacy loss of $\delta$.* The missing input is
-$\delta$ itself, for which no published value exists. Until one is chosen, the
-useful version of this calculation is its negative result, which is available
-today: compute the null at the size your cohort allows and read off the smallest
-difference the procedure could ever resolve.
+$$
+\mathrm{AA}(T,S)\approx\tfrac12(1-p),
+\qquad
+\mathrm{AA}(C,S)\approx\tfrac12,
+\qquad\text{so}\qquad
+\delta\approx\tfrac{p}{2}.
+$$
+
+**A privacy loss of $\delta$ means roughly $2\delta$ of the compared set has a
+synthetic near-copy.** The compared set, not the source cohort: both arms run at
+one size $m$, and `compare_pmx_proximity()` sets $m$ to half the source cohort
+so that the null has two disjoint real halves to work with.
+
+| $\delta$ | Fraction memorized | At $m$ = 12 | At $m$ = 500 |
+|---|---|---|---|
+| 0.01 | 2% | 0.2 patients, below the resolution of the cohort | 10 patients |
+| 0.10 | 20% | 2 patients | 100 patients |
+| 0.50 | 100% | every patient | every patient |
+| 1.00 | not attainable | — | — |
+
+$\delta = 0.5$ is the ceiling, reached when the synthetic data is a copy of the
+training set. $\delta = 1$ would require the synthetic data to be simultaneously
+a copy of the training set and perfectly separated from the control set, which
+means the split was not random. Treat a value near 1 as a broken experiment
+rather than as a privacy state.
+
+The floor is set by cohort size, because $p$ is a fraction of patients and the
+smallest non-zero fraction is one patient: $\delta_{\min}\approx 1/(2m)$. One
+memorized patient is worth $\delta = 0.042$ on a 24-patient study, where
+$m = 12$, and $\delta = 0.001$ on a 1000-patient one, where $m = 500$.
+
+### The noise floor, measured on public data
+
+The null interval in `compare_pmx_proximity()` is the noise floor: what
+$\mathrm{AA}$ does between two halves of the *same* real cohort, where nothing
+is wrong by construction. A difference smaller than that interval cannot be
+distinguished from the split.
+
+```{r delta-noise-floor, message=FALSE, warning=FALSE}
+library(synpmx)
+
+floors <- function(label, data, roles) {
+  synthetic <- synpmx_avatar(data, roles, seed = 1)
+  p <- compare_pmx_proximity(data, synthetic, roles)
+  width <- p$null_upper - p$null_lower
+  data.frame(
+    dataset = label,
+    source_n = length(unique(data[[roles$id]])),
+    compared_n = p$n_compared,
+    null_width = round(width, 3),
+    # delta ~ p/2, so a detectable delta of `width` needs 2 * width memorized
+    detectable_fraction = round(2 * width, 2),
+    detectable_patients = ceiling(2 * width * p$n_compared),
+    one_patient_delta = round(1 / (2 * p$n_compared), 4)
+  )
+}
+
+results <- rbind(
+  floors("theo_md", nlmixr2data::theo_md,
+         pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                   evid = "EVID", cmt = "CMT", covariates = "WT")),
+  floors("warfarin", nlmixr2data::warfarin,
+         pmx_roles(id = "id", time = "time", dv = "dv", amt = "amt",
+                   evid = "evid", dvid = "dvid",
+                   covariates = c("wt", "age", "sex"))),
+  floors("case1_pkpd", xgxr::case1_pkpd,
+         pmx_roles(id = "ID", time = "TIME", dv = "LIDV", amt = "AMT",
+                   evid = "EVID", cmt = "CMT", dvid = "NAME",
+                   nominal_time = "NOMTIME", strata = c("TRTACT", "DOSE"),
+                   covariates = "WEIGHTB", keep = "STUDY"))
+)
+knitr::kable(results)
+```
+
+`compared_n` is half the source cohort, because the null needs two disjoint real
+halves at the comparison size. `detectable_patients` is how many memorized
+patients it would take to move $\mathrm{AA}$ clear of that interval, and
+`one_patient_delta` is what a single memorized patient is worth.
+
+Two readings of that table.
+
+**The noise floor falls as $1/\sqrt{n}$ while one patient's contribution falls
+as $1/n$.** The gap between them therefore *widens* with cohort size. Larger
+studies resolve a smaller fraction and a larger number of patients.
+
+**The difference detects systematic memorization, not individual
+memorization, at any of these sizes.** On the 12-subject dataset the detectable
+fraction exceeds 1, meaning no amount of memorization moves the statistic out of
+its own null. Finding one exposed patient is what the per-record measures are
+for: local cloaking, authenticity, and distance to closest record.
+
+### Choosing delta
+
+**A 24-patient Phase 1 study**, compared at $m = 12$. One memorized patient is
+worth $\delta = 0.042$. The `theo_md` row above is this size, and its noise floor
+is 0.648, wider by a factor of 15. Every $\delta$ you could act on is below what
+the procedure can see, so the holdout is not worth running. Spend the effort on
+the mechanism counts in `pmx_masking_report()`, which are exact, and on a
+per-patient measure if one gets implemented.
+
+**A 500-patient Phase 3 study**, compared at $m = 250$. One memorized patient is
+worth $\delta = 0.002$. Extrapolating the $1/\sqrt{n}$ scaling from the
+`case1_pkpd` row puts the noise floor near 0.085, so the detectable fraction is
+about 17%. Single-patient memorization stays invisible; a generator copying a
+fifth of its training set does not. Set $\delta$ at the noise floor and read the
+result as *"no systematic memorization above this fraction"*, which is a bounded
+claim about the generator rather than a claim about any patient.
+
+Neither case produces a per-patient guarantee, which is the reason this article
+ends with per-record measures and differential privacy rather than with this
+procedure.
 
 ## Reading Order
 
