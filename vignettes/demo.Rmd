@@ -427,9 +427,16 @@ examples, teaching, and giving a coding agent something realistic to work
 against. It reproduces the *structure* of a clinical trial event table:
 dosing histories, multiple endpoints, arm balance, and the visit schedule.
 
-It is not fit for estimating population parameters, and this run showed both
-reasons why — variance is shrunk by blending, and dose amounts were not
-rescaled to each avatar's own weight.
+It is not fit for estimating population parameters, and this run showed why:
+variance is shrunk by blending.
+
+The masking report's dose row is not a second reason here. `case1_pkpd` gives
+every patient in an arm the same milligram dose, so M5 found no covariate the
+amounts are proportional to and left them alone — which is right, and discloses
+nothing, because thirty patients share each amount. On a weight- or
+body-surface-area-based study that row matters: declare `dose_covariate` in
+`pmx_roles()`, or each avatar carries its anchor's milligrams and therefore its
+anchor's weight.
 
 Two of the tables here (`compare_pmx_distributions()` and
 `compare_pmx_proximity()`) are computed from the source data and are labelled
