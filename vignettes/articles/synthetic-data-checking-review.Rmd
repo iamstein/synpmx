@@ -6,6 +6,7 @@ output:
   rmarkdown::html_vignette:
     toc: true
 ---
+
 ## Introduction
 
 The literature on checking synthetic data is spread across three disciplines: statistics, machine learning, and data protection law. This article is a tutorial on these methods and 
@@ -59,20 +60,33 @@ subject is a point. For `synpmx` that space is built from covariates and
 trajectory features. For each point, ask one question: *is my nearest neighbour
 in my own dataset, or in the other one?*
 
-Write $d_{TS}(i)$ for the distance from real subject $i$ to the nearest
-synthetic subject, and $d_{TT}(i)$ for the distance from real subject $i$ to the
-nearest **other real** subject; define $d_{ST}(j)$ and $d_{SS}(j)$ the same way
-from the synthetic side. Adversarial accuracy is the average, over both sides,
-of how often the *other* dataset is farther away than your own:
+**The notation, which comes from Yale and colleagues.** $T$ is the **training
+set**, meaning the real records the generator was allowed to read. $S$ is the
+**synthetic** set. The two subscripts read from-then-to, so $d_{TS}(i)$ is the
+distance from training subject $i$ to the nearest synthetic subject, and
+$d_{TT}(i)$ is the distance from training subject $i$ to the nearest **other
+training** subject. $d_{ST}(j)$ and $d_{SS}(j)$ are the same two distances
+measured from synthetic subject $j$. Both sets hold $n$ subjects; where they do
+not, both are subsampled to the smaller size, because a nearest-neighbour
+statistic depends on how many candidates there were.
+
+Adversarial accuracy is the average, over both sides, of how often the *other*
+dataset is farther away than your own:
 
 $$
-\mathrm{AA}=\frac12\left[\frac1n\sum_i \mathbf{1}\{d_{TS}(i)>d_{TT}(i)\}
+\mathrm{AA}(T,S)=\frac12\left[\frac1n\sum_i \mathbf{1}\{d_{TS}(i)>d_{TT}(i)\}
 +\frac1n\sum_j \mathbf{1}\{d_{ST}(j)>d_{SS}(j)\}\right].
 $$
 
 It is called *adversarial* because it is the success rate of the simplest
 possible adversary: one who is handed a record and guesses which dataset it came
 from by looking at what is nearest to it.
+
+**Where the training/control split enters.** It does not appear inside the
+formula. $\mathrm{AA}(T,S)$ compares one real set against one synthetic set, and
+the split decides *which real set occupies the $T$ slot*. Compute it twice with
+the same synthetic data: once with the training set, and once with the control
+set the generator never read. The section below subtracts the two.
 
 Both ends of the scale are failures:
 
@@ -92,13 +106,15 @@ One number therefore reports two failure directions.
 ### Adversarial accuracy with a holdout
 
 In Yale and colleagues' original
-formulation, adversarial accuracy is computed **twice** — once against the
-training data the generator saw ($\mathrm{AA}_{\text{train}}$) and once against
-a holdout it did not ($\mathrm{AA}_{\text{test}}$) — and the reported privacy
-loss is the difference:
+formulation, adversarial accuracy is computed **twice** from the same synthetic
+set $S$: once against the training set $T$ that the generator read, written
+$\mathrm{AA}_{\text{train}} = \mathrm{AA}(T,S)$, and once against a control set
+$C$ that it never read, written $\mathrm{AA}_{\text{test}} = \mathrm{AA}(C,S)$.
+The reported privacy loss is the difference:
 
 $$
-\text{privacy loss}=\mathrm{AA}_{\text{test}}-\mathrm{AA}_{\text{train}}.
+\text{privacy loss}=\mathrm{AA}_{\text{test}}-\mathrm{AA}_{\text{train}}
+= \mathrm{AA}(C,S)-\mathrm{AA}(T,S).
 $$
 
 A generator that captured
@@ -112,13 +128,17 @@ datasets.
 
 ### What synpmx computes
 
-`compare_pmx_proximity()` computes $\mathrm{AA}_{\text{train}}$ only, and
-calibrates it against a null interval built by recomputing the same statistic on
-random halves of the source cohort. At 20 patients in a 30-dimensional profile
-space, nearest-neighbour statistics are unstable and 0.5 is *not* the right
-expectation, so a raw adversarial accuracy is uninterpretable without that null.
-The null interval states what this statistic does on data of this size and shape
-when nothing is wrong.
+`compare_pmx_proximity()` computes $\mathrm{AA}_{\text{train}}$ only, since no
+control set exists, and calibrates it against a null interval built by
+recomputing $\mathrm{AA}$ between two random halves of the source cohort. At 20
+patients in a 30-dimensional profile space, nearest-neighbour statistics are
+unstable and 0.5 is *not* the right expectation, so a raw adversarial accuracy
+is uninterpretable without that null. The null interval states what this
+statistic does on data of this size and shape when nothing is wrong.
+
+That null costs half the source cohort. Both halves of the null and both arms of
+the comparison run at one size, $n = \min(n_{\text{source}}/2,\,
+n_{\text{synthetic}})$, so a 24-patient study is compared 12 against 12.
 
 The null interval corrects for cohort size and dimension. It does not correct
 for the population/patient confound, because both halves of the source were seen
@@ -658,6 +678,87 @@ patient by construction, and the package refuses to represent a regimen only one
 patient received. For those studies the useful question is not which check to
 run but whether `synpmx_prior()` from a public model is enough, since it reads no
 data and needs no check at all.
+
+## A Proposed Holdout Procedure
+
+Nothing in this section is implemented. It is a proposal for how a holdout would
+work in `synpmx`, written down so that it can be argued with before it is built.
+
+1. Split the source cohort into a training set and a control set, **stratified
+   by arm**, so that no arm can be lost by an unlucky draw.
+2. Generate from the training set only.
+3. Compute $\mathrm{AA}(T,S)$ and $\mathrm{AA}(C,S)$ at one size, subsampling
+   the larger real set down to the smaller, and take the difference.
+4. Repeat steps 1 to 3 many times with different splits, and report the
+   distribution of the difference rather than one value.
+5. Report the split fraction alongside the numbers, because the estimate depends
+   on it.
+
+### Two floors on the training set
+
+The split must leave the generator able to run, and two different mechanisms set
+two different floors.
+
+- **At least `k` + 1 = 6 subjects per route.** Donors are never blended across
+  routes, so a route holding fewer than 6 subjects has no legal donor set and
+  `on_donor_shortfall = "drop"` removes those subjects from the anchor pool
+  entirely. A route here is the combination of dosing compartment, event type,
+  and bolus against infusion, so a single-route study gives every subject the
+  same key and this floor is satisfied automatically. It binds only on a study
+  mixing routes, such as an intravenous lead-in followed by oral dosing.
+- **At least 3 subjects per stratum.** Donors *do* cross strata to reach `k`, so
+  a stratum of 2 does not stop generation. This floor is about fidelity: strata
+  holding fewer than three source patients are deliberately not size-balanced,
+  because reproducing a one-patient cell's size exactly would disclose it. Below
+  3, that arm's synthetic size varies with the seed. Relaxing the floor to 2 is
+  a defensible choice with that cost attached.
+
+### Why repeat the split rather than enlarge it
+
+Split size trades two errors against each other, the same trade as in
+cross-validation.
+
+- A **large control set**, such as a 50/50 split, estimates
+  $\mathrm{AA}(C,S)$ precisely. It also trains the generator on half the cohort,
+  so the number describes a generator that is not the one you will ship.
+- A **small control set**, such as 20%, characterizes very nearly the generator
+  you will ship, and estimates its privacy loss noisily.
+
+Repetition removes the noise. Repetition does **not** remove the bias from
+training on fewer patients, so the two are not interchangeable, and the reason
+to prefer a small repeated split is that its bias is the smaller of the two
+problems.
+
+One caveat specific to this statistic. Adversarial accuracy depends on how many
+candidates each nearest-neighbour search had, so both arms must be computed at
+one size, and that size is set by the *smaller* set. A 20% control set on 24
+patients means both arms are computed at 5 subjects. That pushes toward a larger
+fraction than cross-validation practice would suggest, and where the balance
+lies has not been measured. **The direction of the small-training bias is also
+unmeasured**: fewer donors makes each avatar a blend of less similar patients,
+which could move the estimate either way. Measuring it means running this
+procedure at several fractions on a public dataset and watching the estimate
+move.
+
+### Choosing the fraction from the effect you would act on
+
+The size of the control set decides the smallest privacy loss the procedure can
+see. Making that concrete takes three steps, and the machinery for step 2
+already exists as the null interval in `compare_pmx_proximity()`.
+
+1. Name the smallest privacy loss you would act on, $\delta$, on the
+   adversarial accuracy scale.
+2. For a candidate control size $m$, compute the null: split the real cohort
+   into two disjoint sets of size $m$, compute $\mathrm{AA}$ between them, and
+   repeat. The spread of that null is the noise floor at size $m$.
+3. Take the smallest $m$ whose noise floor is comfortably inside $\delta$.
+
+The output is a statement of the form: *at this cohort size, a control set
+smaller than $m$ cannot detect a privacy loss of $\delta$.* The missing input is
+$\delta$ itself, for which no published value exists. Until one is chosen, the
+useful version of this calculation is its negative result, which is available
+today: compute the null at the size your cohort allows and read off the smallest
+difference the procedure could ever resolve.
 
 ## Reading Order
 

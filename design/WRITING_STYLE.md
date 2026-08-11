@@ -62,6 +62,8 @@ table of contents.
 
 ### 5. Do not grade the evidence
 
+[Author Note: Collect more data to confirm if this is truly a signal, I'm not sure.  Might just be an idiosyncratic preference here]
+
 Deleted: "which is the strongest signal in this whole area that it is not
 optional" / "the raw value of either one on its own is close to meaningless" /
 "This is a real reason the technique is rare in this field and not a reason it
