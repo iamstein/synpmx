@@ -177,28 +177,49 @@ where each subject is a point. For <code>synpmx</code> that space is
 built from covariates and trajectory features. For each point, ask one
 question: <em>is my nearest neighbour in my own dataset, or in the other
 one?</em></p>
-<p>Write
+<p><strong>The notation, which comes from Yale and colleagues.</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+is the <strong>training set</strong>, meaning the real records the
+generator was allowed to read.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+is the <strong>synthetic</strong> set. The two subscripts read
+from-then-to, so
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>T</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d_{TS}(i)</annotation></semantics></math>
-for the distance from real subject
+is the distance from training subject
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
 to the nearest synthetic subject, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>T</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d_{TT}(i)</annotation></semantics></math>
-for the distance from real subject
+is the distance from training subject
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
-to the nearest <strong>other real</strong> subject; define
+to the nearest <strong>other training</strong> subject.
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>S</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d_{ST}(j)</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>S</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d_{SS}(j)</annotation></semantics></math>
-the same way from the synthetic side. Adversarial accuracy is the
-average, over both sides, of how often the <em>other</em> dataset is
-farther away than your own:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo stretchy="true" form="prefix">[</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><msub><mi>d</mi><mrow><mi>T</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mo>&gt;</mo><msub><mi>d</mi><mrow><mi>T</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo>+</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>j</mi></munder><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><msub><mi>d</mi><mrow><mi>S</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo><mo>&gt;</mo><msub><mi>d</mi><mrow><mi>S</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mathrm{AA}=\frac12\left[\frac1n\sum_i \mathbf{1}\{d_{TS}(i)&gt;d_{TT}(i)\}
+are the same two distances measured from synthetic subject
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>.
+Both sets hold
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+subjects; where they do not, both are subsampled to the smaller size,
+because a nearest-neighbour statistic depends on how many candidates
+there were.</p>
+<p>Adversarial accuracy is the average, over both sides, of how often
+the <em>other</em> dataset is farther away than your own:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo stretchy="true" form="prefix">[</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><msub><mi>d</mi><mrow><mi>T</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mo>&gt;</mo><msub><mi>d</mi><mrow><mi>T</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo>+</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>j</mi></munder><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><msub><mi>d</mi><mrow><mi>S</mi><mi>T</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo><mo>&gt;</mo><msub><mi>d</mi><mrow><mi>S</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathrm{AA}(T,S)=\frac12\left[\frac1n\sum_i \mathbf{1}\{d_{TS}(i)&gt;d_{TT}(i)\}
 +\frac1n\sum_j \mathbf{1}\{d_{ST}(j)&gt;d_{SS}(j)\}\right].
 </annotation></semantics></math></p>
 <p>It is called <em>adversarial</em> because it is the success rate of
 the simplest possible adversary: one who is handed a record and guesses
 which dataset it came from by looking at what is nearest to it.</p>
+<p><strong>Where the training/control split enters.</strong> It does not
+appear inside the formula.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}(T,S)</annotation></semantics></math>
+compares one real set against one synthetic set, and the split decides
+<em>which real set occupies the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+slot</em>. Compute it twice with the same synthetic data: once with the
+training set, and once with the control set the generator never read.
+The section below subtracts the two.</p>
 <p>Both ends of the scale are failures:</p>
 <ul>
 <li>
@@ -221,14 +242,20 @@ target, and it is a target rather than a maximum.</li>
 <h4 id="adversarial-accuracy-with-a-holdout">Adversarial accuracy with a holdout<a class="anchor" aria-label="anchor" href="#adversarial-accuracy-with-a-holdout"></a>
 </h4>
 <p>In Yale and colleagues’ original formulation, adversarial accuracy is
-computed <strong>twice</strong> — once against the training data the
-generator saw
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}}</annotation></semantics></math>)
-and once against a holdout it did not
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">test</mtext></msub><annotation encoding="application/x-tex">\mathrm{AA}_{\text{test}}</annotation></semantics></math>)
-— and the reported privacy loss is the difference:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">privacy loss</mtext><mo>=</mo><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">test</mtext></msub><mo>−</mo><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\text{privacy loss}=\mathrm{AA}_{\text{test}}-\mathrm{AA}_{\text{train}}.
+computed <strong>twice</strong> from the same synthetic set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>:
+once against the training set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+that the generator read, written
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}} = \mathrm{AA}(T,S)</annotation></semantics></math>,
+and once against a control set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation></semantics></math>
+that it never read, written
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">test</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}_{\text{test}} = \mathrm{AA}(C,S)</annotation></semantics></math>.
+The reported privacy loss is the difference:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">privacy loss</mtext><mo>=</mo><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">test</mtext></msub><mo>−</mo><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\text{privacy loss}=\mathrm{AA}_{\text{test}}-\mathrm{AA}_{\text{train}}
+= \mathrm{AA}(C,S)-\mathrm{AA}(T,S).
 </annotation></semantics></math></p>
 <p>A generator that captured the population produces synthetic subjects
 that sit equally close to training and holdout patients, so the two
@@ -247,13 +274,20 @@ across datasets.</p>
 </h4>
 <p><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> computes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}}</annotation></semantics></math>
-only, and calibrates it against a null interval built by recomputing the
-same statistic on random halves of the source cohort. At 20 patients in
-a 30-dimensional profile space, nearest-neighbour statistics are
-unstable and 0.5 is <em>not</em> the right expectation, so a raw
-adversarial accuracy is uninterpretable without that null. The null
-interval states what this statistic does on data of this size and shape
-when nothing is wrong.</p>
+only, since no control set exists, and calibrates it against a null
+interval built by recomputing
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
+between two random halves of the source cohort. At 20 patients in a
+30-dimensional profile space, nearest-neighbour statistics are unstable
+and 0.5 is <em>not</em> the right expectation, so a raw adversarial
+accuracy is uninterpretable without that null. The null interval states
+what this statistic does on data of this size and shape when nothing is
+wrong.</p>
+<p>That null costs half the source cohort. Both halves of the null and
+both arms of the comparison run at one size,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mrow><mi mathvariant="normal">min</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>n</mi><mtext mathvariant="normal">source</mtext></msub><mi>/</mi><mn>2</mn><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>n</mi><mtext mathvariant="normal">synthetic</mtext></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">n = \min(n_{\text{source}}/2,\,
+n_{\text{synthetic}})</annotation></semantics></math>, so a 24-patient
+study is compared 12 against 12.</p>
 <p>The null interval corrects for cohort size and dimension. It does not
 correct for the population/patient confound, because both halves of the
 source were seen by the generator. A holdout is what would add that
@@ -988,6 +1022,123 @@ and the package refuses to represent a regimen only one patient
 received. For those studies the useful question is not which check to
 run but whether <code><a href="../reference/synpmx_prior.html">synpmx_prior()</a></code> from a public model is
 enough, since it reads no data and needs no check at all.</p>
+</div>
+<div class="section level3">
+<h3 id="a-proposed-holdout-procedure">A Proposed Holdout Procedure<a class="anchor" aria-label="anchor" href="#a-proposed-holdout-procedure"></a>
+</h3>
+<p>Nothing in this section is implemented. It is a proposal for how a
+holdout would work in <code>synpmx</code>, written down so that it can
+be argued with before it is built.</p>
+<ol style="list-style-type: decimal">
+<li>Split the source cohort into a training set and a control set,
+<strong>stratified by arm</strong>, so that no arm can be lost by an
+unlucky draw.</li>
+<li>Generate from the training set only.</li>
+<li>Compute
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}(T,S)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}(C,S)</annotation></semantics></math>
+at one size, subsampling the larger real set down to the smaller, and
+take the difference.</li>
+<li>Repeat steps 1 to 3 many times with different splits, and report the
+distribution of the difference rather than one value.</li>
+<li>Report the split fraction alongside the numbers, because the
+estimate depends on it.</li>
+</ol>
+<div class="section level4">
+<h4 id="two-floors-on-the-training-set">Two floors on the training set<a class="anchor" aria-label="anchor" href="#two-floors-on-the-training-set"></a>
+</h4>
+<p>The split must leave the generator able to run, and two different
+mechanisms set two different floors.</p>
+<ul>
+<li>
+<strong>At least <code>k</code> + 1 = 6 subjects per route.</strong>
+Donors are never blended across routes, so a route holding fewer than 6
+subjects has no legal donor set and
+<code>on_donor_shortfall = "drop"</code> removes those subjects from the
+anchor pool entirely. A route here is the combination of dosing
+compartment, event type, and bolus against infusion, so a single-route
+study gives every subject the same key and this floor is satisfied
+automatically. It binds only on a study mixing routes, such as an
+intravenous lead-in followed by oral dosing.</li>
+<li>
+<strong>At least 3 subjects per stratum.</strong> Donors <em>do</em>
+cross strata to reach <code>k</code>, so a stratum of 2 does not stop
+generation. This floor is about fidelity: strata holding fewer than
+three source patients are deliberately not size-balanced, because
+reproducing a one-patient cell’s size exactly would disclose it. Below
+3, that arm’s synthetic size varies with the seed. Relaxing the floor to
+2 is a defensible choice with that cost attached.</li>
+</ul>
+</div>
+<div class="section level4">
+<h4 id="why-repeat-the-split-rather-than-enlarge-it">Why repeat the split rather than enlarge it<a class="anchor" aria-label="anchor" href="#why-repeat-the-split-rather-than-enlarge-it"></a>
+</h4>
+<p>Split size trades two errors against each other, the same trade as in
+cross-validation.</p>
+<ul>
+<li>A <strong>large control set</strong>, such as a 50/50 split,
+estimates
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}(C,S)</annotation></semantics></math>
+precisely. It also trains the generator on half the cohort, so the
+number describes a generator that is not the one you will ship.</li>
+<li>A <strong>small control set</strong>, such as 20%, characterizes
+very nearly the generator you will ship, and estimates its privacy loss
+noisily.</li>
+</ul>
+<p>Repetition removes the noise. Repetition does <strong>not</strong>
+remove the bias from training on fewer patients, so the two are not
+interchangeable, and the reason to prefer a small repeated split is that
+its bias is the smaller of the two problems.</p>
+<p>One caveat specific to this statistic. Adversarial accuracy depends
+on how many candidates each nearest-neighbour search had, so both arms
+must be computed at one size, and that size is set by the
+<em>smaller</em> set. A 20% control set on 24 patients means both arms
+are computed at 5 subjects. That pushes toward a larger fraction than
+cross-validation practice would suggest, and where the balance lies has
+not been measured. <strong>The direction of the small-training bias is
+also unmeasured</strong>: fewer donors makes each avatar a blend of less
+similar patients, which could move the estimate either way. Measuring it
+means running this procedure at several fractions on a public dataset
+and watching the estimate move.</p>
+</div>
+<div class="section level4">
+<h4 id="choosing-the-fraction-from-the-effect-you-would-act-on">Choosing the fraction from the effect you would act on<a class="anchor" aria-label="anchor" href="#choosing-the-fraction-from-the-effect-you-would-act-on"></a>
+</h4>
+<p>The size of the control set decides the smallest privacy loss the
+procedure can see. Making that concrete takes three steps, and the
+machinery for step 2 already exists as the null interval in
+<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code>.</p>
+<ol style="list-style-type: decimal">
+<li>Name the smallest privacy loss you would act on,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>,
+on the adversarial accuracy scale.</li>
+<li>For a candidate control size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
+compute the null: split the real cohort into two disjoint sets of size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
+compute
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
+between them, and repeat. The spread of that null is the noise floor at
+size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>.</li>
+<li>Take the smallest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+whose noise floor is comfortably inside
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>.</li>
+</ol>
+<p>The output is a statement of the form: <em>at this cohort size, a
+control set smaller than
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+cannot detect a privacy loss of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>.</em>
+The missing input is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
+itself, for which no published value exists. Until one is chosen, the
+useful version of this calculation is its negative result, which is
+available today: compute the null at the size your cohort allows and
+read off the smallest difference the procedure could ever resolve.</p>
+</div>
 </div>
 <div class="section level3">
 <h3 id="reading-order">Reading Order<a class="anchor" aria-label="anchor" href="#reading-order"></a>
