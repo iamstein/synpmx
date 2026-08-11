@@ -20,14 +20,6 @@
 - [Feasibility: what can be released, and from how many
   patients](https://iamstein.github.io/synpmx/articles/feasibility.md):
 
-- [Synthetic Pharmacometric Data: How It Is Made, How It Is Checked, and
-  How synpmx
-  Fits](https://iamstein.github.io/synpmx/articles/literature-review.md):
-
-  An overview of current approaches to synthetic pharmacometric data
-  generation, a tutorial on the published methods for checking synthetic
-  data, and how synpmx complements existing methods.
-
 - [Building the structural model: an elicitation
   guide](https://iamstein.github.io/synpmx/articles/model-elicitation.md):
 
@@ -42,5 +34,20 @@
 
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
 
+- [Checking Synthetic Data: A Tutorial on the Published
+  Methods](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.md):
+
+  A tutorial on the literature for checking synthetic data — privacy
+  risk, disclosure control, and utility — and which of those measures
+  synpmx implements, which it does not, and why.
+
 - [Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md):
+
+- [Generating Synthetic Pharmacometric Data: A Review of the Methods,
+  and Where synpmx
+  Fits](https://iamstein.github.io/synpmx/articles/synthetic-data-generation-review.md):
+
+  An overview of current approaches to synthetic pharmacometric data
+  generation, why differential privacy sits across all of them rather
+  than inside one, and how synpmx complements existing methods.

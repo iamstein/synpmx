@@ -1261,8 +1261,8 @@ itself, by suppressing or coarsening a level rather than reporting it.
 
 Two further gaps are not in the scorecard because they are not checks
 the package half-does — they are whole measurement approaches it does
-not attempt, and both are covered in the [literature
-review](https://iamstein.github.io/synpmx/articles/literature-review.html):
+not attempt, and both are covered in the [checking literature
+review](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html):
 
 - **No control group.** Every check above that reads the source compares
   the synthetic data against patients the generator was allowed to use.
@@ -1292,10 +1292,14 @@ the joins, reshapes, derivations and control streams behave.
 - [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
   — these checks run across eight public datasets, with the masking cost
   for each.
-- [Literature
-  review](https://iamstein.github.io/synpmx/articles/literature-review.html)
+- [Literature: checking synthetic
+  data](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html)
   — the published methods for checking synthetic data, what each one
   asks, and which of them this package does not attempt.
+- [Literature: generating synthetic
+  data](https://iamstein.github.io/synpmx/articles/synthetic-data-generation-review.html)
+  — the four families of generation method, and where `synpmx` sits
+  among them.
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
   — when the enumerated protections are not enough, and what a formal
   guarantee buys instead.

@@ -40,6 +40,10 @@
     <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -48,9 +52,6 @@
     <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/literature-review.html">Literature review</a></li>
   </ul>
 </li>
       </ul>
@@ -2059,8 +2060,8 @@ itself, by suppressing or coarsening a level rather than reporting
 it.</p>
 <p>Two further gaps are not in the scorecard because they are not checks
 the package half-does — they are whole measurement approaches it does
-not attempt, and both are covered in the <a href="https://iamstein.github.io/synpmx/articles/literature-review.html">literature
-review</a>:</p>
+not attempt, and both are covered in the <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">checking
+literature review</a>:</p>
 <ul>
 <li>
 <strong>No control group.</strong> Every check above that reads the
@@ -2098,9 +2099,14 @@ measuring.</li>
 checks run across eight public datasets, with the masking cost for
 each.</li>
 <li>
-<a href="https://iamstein.github.io/synpmx/articles/literature-review.html">Literature
-review</a> — the published methods for checking synthetic data, what
-each one asks, and which of them this package does not attempt.</li>
+<a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">Literature:
+checking synthetic data</a> — the published methods for checking
+synthetic data, what each one asks, and which of them this package does
+not attempt.</li>
+<li>
+<a href="https://iamstein.github.io/synpmx/articles/synthetic-data-generation-review.html">Literature:
+generating synthetic data</a> — the four families of generation method,
+and where <code>synpmx</code> sits among them.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">Privacy</a>
 — when the enumerated protections are not enough, and what a formal
