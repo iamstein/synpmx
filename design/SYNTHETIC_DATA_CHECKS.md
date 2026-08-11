@@ -544,7 +544,9 @@ as a preamble.
 
 # Proposed additions, from the literature (2026-08-04)
 
-Written after reading `vignettes/articles/literature-review.Rmd` against the
+Written after reading the literature review article — since split into
+`vignettes/articles/synthetic-data-generation-review.Rmd` and
+`vignettes/articles/synthetic-data-checking-review.Rmd` — against the
 published evaluation frameworks it cites, plus the general synthetic-data
 evaluation literature it does not. **Nothing below is implemented and nothing
 below is agreed** — this is a proposal for the owner to cut down. Sources are
@@ -923,7 +925,7 @@ and linkability (P3).
 
 **The tutorial.** The owner asked for the checking literature to be written up
 as a tutorial rather than a citation list, and for it to live in the literature
-review rather than here. That is now the second half of
-`vignettes/articles/literature-review.Rmd`, and the article's title and
-description changed to match its new scope. Everything above stays here as the
-internal record.
+review rather than here. That is now
+`vignettes/articles/synthetic-data-checking-review.Rmd` — originally the second
+half of `literature-review.Rmd`, split into its own article on 2026-08-11.
+Everything above stays here as the internal record.

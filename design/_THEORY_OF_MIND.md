@@ -16,6 +16,10 @@ In the coming days, I will be focusing in particular on literature-review.md and
 checking-literature tutorial to `literature-review.Rmd` and the scorecard to
 `synthetic-data-checks.Rmd` / `demo.Rmd`.*
 
+*(`literature-review.Rmd` was split on 2026-08-11 into
+`synthetic-data-generation-review.Rmd` and `synthetic-data-checking-review.Rmd`;
+references to it below are to the document as it stood when they were written.)*
+
 **Standing caveat on everything below.** Andy has **not yet reviewed** the
 second half of `literature-review.Rmd` or most of
 `synthetic-data-checks.Rmd` himself. Observations that cite those documents are
@@ -101,6 +105,8 @@ with four bolded lines carrying ✅ / ❌ markers, two of which are flat "No"s.
 this observation; check whether it survives his review.
 
 ### O6 — He converts hedged verdicts into binary ones
+
+[Andrew Stein comment: I do not agree with this one.  ACtually, on reading this, I think I made a mistake.  I like having the ❌ but believe I should change **No** back to **Only with care** and I do that now.]
 
 **Evidence.** Claude wrote: "**Only with care.** This needs a formal guarantee;
 see the privacy modes below, which are illustrative rather than audited." Andy
@@ -212,6 +218,29 @@ the two most essay-like, least tabular parts of the corpus.
 he skipped them. This matters a lot for how much narrative future documents
 should carry. **Ask him directly.**
 
+### O15 — One document, one question. A document with "two halves" is two documents
+
+**Evidence.** 2026-08-11, unprompted: *"I think the literature review should be
+split into two files"* — generation into one article, checking into another,
+both under **Background** in the navbar. The article had explicitly announced
+itself as having two halves since it was written, and it survived one review
+pass in that form before he cut it. In the same working-tree pass he had already
+renamed its two top headings from "How synthetic data is made" / "How synthetic
+data is checked" to the plainer **"Algorithms for Generating Synthetic Data"** /
+**"Checking Synthetic Data"**, and deleted a hedging clause about the claim
+being "about the applications cited here rather than about the whole
+machine-learning literature."
+
+**What to do.** Treat "this article has two halves" as a defect report Claude
+wrote about its own draft. When an outline needs that sentence, propose two
+documents instead — navigation is cheap, and a reader arriving for the checking
+tutorial should not scroll through the generation survey. Related to O7 (thin
+entry points) and O13 (tables over enumeration): the shared instinct is that
+**each artifact should do one thing, at the smallest size that does it**. Note
+also the heading edits: he prefers a heading that names the subject flatly over
+one phrased as a narrative beat, which is O7's "literal over coined" applied to
+structure.
+
 ---
 
 ### Open questions to put to him
@@ -318,5 +347,5 @@ Suggestions, for Andy to accept or reject. Nothing here has been done.
 
 7. **Revisit after the reviews.** The two documents this file has the most to say
    about are the two he has not read yet. Re-run this analysis after he works
-   through `literature-review.Rmd` and `synthetic-data-checks.Rmd`; the questions
+   through the two literature-review articles and `synthetic-data-checks.Rmd`; the questions
    he asks then will be better evidence than anything above.

@@ -241,7 +241,19 @@ the same *kind* of object and must protect privacy.
       rate, keys/targets/RepU/DiSCO/DiO, the WP29 criteria and linkability,
       the similarity-metric critique, alpha-precision/beta-recall/authenticity,
       pMSE versus confidence interval overlap, and a scope statement for why
-      most utility measurement is not this package's problem.
+      most utility measurement is not this package's problem. **Superseded
+      2026-08-11:** the two halves became two articles, see below.
+
+### Done 2026-08-11: the literature review split in two
+
+- [x] `vignettes/articles/literature-review.Rmd` split at the halfway point into
+      `synthetic-data-generation-review.Rmd` (the four generation families,
+      differential privacy as a guarantee rather than a family, where `synpmx`
+      fits) and `synthetic-data-checking-review.Rmd` (the checking tutorial).
+      Each carries only the references it cites; the few citations both need are
+      repeated rather than shared. Both appear under **Background** in the
+      navbar, `articles/literature-review.html` redirects to the generation
+      half, and `vignettes/synthetic-data-checks.Rmd` now links to each by name.
 
 Two accuracy corrections found while doing it, both now fixed in the checks
 vignette:

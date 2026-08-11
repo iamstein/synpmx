@@ -6,10 +6,13 @@ template:
 # Renamed articles. Keep the old URLs working for anyone holding a link:
 # avatar-mathematics -> avatar-algorithm on 2026-07-27, and synpmx-demo ->
 # avatar-evaluation-public-data on 2026-08-04, when the demo was recognized as
-# an evaluation of the algorithm rather than a tutorial.
+# an evaluation of the algorithm rather than a tutorial. On 2026-08-11
+# literature-review was split in two; its old URL lands on the generation half,
+# which is where the article used to begin.
 redirects:
   - ["articles/avatar-mathematics.html", "articles/avatar-algorithm.html"]
   - ["articles/synpmx-demo.html", "articles/avatar-evaluation-public-data.html"]
+  - ["articles/literature-review.html", "articles/synthetic-data-generation-review.html"]
 
 navbar:
   structure:
@@ -31,6 +34,12 @@ navbar:
       - text: The four synpmx data generation algorithms
         href: articles/synpmx-4-methods.html
       - text: -------
+      - text: "Background"
+      - text: "Literature: generating synthetic data"
+        href: articles/synthetic-data-generation-review.html
+      - text: "Literature: checking synthetic data"
+        href: articles/synthetic-data-checking-review.html
+      - text: -------
       - text: "AVATAR method exploration"
       - text: "Example: are relationships preserved?"
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
@@ -44,10 +53,7 @@ navbar:
         href: articles/privacy-argument.html
       - text: Feasibility by cohort size
         href: articles/feasibility.html
-      - text: -------
-      - text: "Background"
-      - text: Literature review
-        href: articles/literature-review.html
+
 
 reference:
 - title: Generating data
