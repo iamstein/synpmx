@@ -11,7 +11,7 @@ There are many reasons to generate "synthetic data."  It is important to be be e
 
 **✅ Teaching tool for comparing synthetic data methods (Yes).** Illustrate the difference between synthetic data generation methods.
 
-**❌ Send data past a trust boundary (No).** If the output will reach people who cannot see the real data: a partner, a publication, a public repository, this package should not be used. The formal privacy-protecting methods provided with this package are illustrative, but not audited.  Other tools should be used for full trial siumlation or differential privacy predictions.
+**⚠️ Send data past a trust boundary (Use Caution).** If the output will reach people who cannot see the real data: a partner, a publication, a public repository, this package should be used with caution. The formal privacy-protecting methods provided with this package are illustrative, but not audited.  Carefully assess what level of privacy protection is needed.
 
 **❌ Answer scientific questions about the the data (No).** Use the real data for estimating parameters, selecting a model, quantifying a covariate effect or choosing a dose. 
 
