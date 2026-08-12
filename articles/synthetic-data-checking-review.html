@@ -86,9 +86,9 @@ Stein</h4>
 
     
     
-<div class="section level3">
-<h3 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
-</h3>
+<div class="section level2">
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+</h2>
 <p>The literature on checking synthetic data is spread across three
 disciplines: statistics, machine learning, and data protection law. This
 article is a tutorial on these methods and at each step it states which
@@ -116,9 +116,10 @@ source and the synthetic dataset together (a distance, distribution, or
 comparison) can measure both properties of the population and properties
 of individual patients.</p>
 </div>
-<div class="section level3">
-<h3 id="training-vs-control-set">Training vs Control Set<a class="anchor" aria-label="anchor" href="#training-vs-control-set"></a>
-</h3>
+<div class="section level2">
+<h2 id="adverserial-accuracy---similarity-between-real-and-synthetic-data">Adverserial Accuracy - Similarity between Real and Synthetic
+Data<a class="anchor" aria-label="anchor" href="#adverserial-accuracy---similarity-between-real-and-synthetic-data"></a>
+</h2>
 <p><strong>To assess a synthetic data generating algorithm, split real
 cohort into a training and control (holdout) set.</strong> Then ask your
 similarity question twice — synthetic against training, synthetic
@@ -155,9 +156,9 @@ limit: rather than measuring the difference one patient makes, it
 <em>bounds</em> it in advance, for every patient and every possible
 statistic.</li>
 </ul>
-<div class="section level4">
-<h4 id="applications-of-control-set-to-pharmacometrics-datasets">Applications of control set to pharmacometrics datasets<a class="anchor" aria-label="anchor" href="#applications-of-control-set-to-pharmacometrics-datasets"></a>
-</h4>
+<div class="section level3">
+<h3 id="applications-of-control-set-to-pharmacometrics-datasets">Applications of control set to pharmacometrics datasets<a class="anchor" aria-label="anchor" href="#applications-of-control-set-to-pharmacometrics-datasets"></a>
+</h3>
 <p>For Phase 2-3 studies, removing 20% of 200 patients in a two arm
 trial is reasonable, but removing 20% of patients when there are only
 12-24 in an early dataset, or when cohort sizes are only 3 patients
@@ -166,7 +167,6 @@ generator can be characterized using larger studies, but for smaller
 studies, further caution is needed to ensure manage the
 individual-patient-level information making it into the synthetic
 dataset.</p>
-</div>
 </div>
 <div class="section level3">
 <h3 id="adversarial-accuracy">Adversarial Accuracy<a class="anchor" aria-label="anchor" href="#adversarial-accuracy"></a>
@@ -182,8 +182,7 @@ one?</em></p>
 is the <strong>training set</strong>, meaning the real records the
 generator was allowed to read.
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
-is the <strong>synthetic</strong> set. The two subscripts read
-from-then-to, so
+is the <strong>synthetic</strong> set. Thus
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mrow><mi>T</mi><mi>S</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d_{TS}(i)</annotation></semantics></math>
 is the distance from training subject
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
@@ -211,15 +210,6 @@ the <em>other</em> dataset is farther away than your own:</p>
 <p>It is called <em>adversarial</em> because it is the success rate of
 the simplest possible adversary: one who is handed a record and guesses
 which dataset it came from by looking at what is nearest to it.</p>
-<p><strong>Where the training/control split enters.</strong> It does not
-appear inside the formula.
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}(T,S)</annotation></semantics></math>
-compares one real set against one synthetic set, and the split decides
-<em>which real set occupies the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
-slot</em>. Compute it twice with the same synthetic data: once with the
-training set, and once with the control set the generator never read.
-The section below subtracts the two.</p>
 <p>Both ends of the scale are failures:</p>
 <ul>
 <li>
@@ -238,17 +228,19 @@ real subject than two real subjects are like each other. This is the
 target, and it is a target rather than a maximum.</li>
 </ul>
 <p>One number therefore reports two failure directions.</p>
-<div class="section level4">
-<h4 id="adversarial-accuracy-with-a-holdout">Adversarial accuracy with a holdout<a class="anchor" aria-label="anchor" href="#adversarial-accuracy-with-a-holdout"></a>
-</h4>
+</div>
+<div class="section level3">
+<h3 id="privacy-loss-adversarial-accuracy-with-a-holdout">Privacy Loss: Adversarial accuracy with a holdout<a class="anchor" aria-label="anchor" href="#privacy-loss-adversarial-accuracy-with-a-holdout"></a>
+</h3>
 <p>In Yale and colleagues’ original formulation, adversarial accuracy is
 computed <strong>twice</strong> from the same synthetic set
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>:
 once against the training set
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
 that the generator read, written
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}} = \mathrm{AA}(T,S)</annotation></semantics></math>,
-and once against a control set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}} =
+\mathrm{AA}(T,S)</annotation></semantics></math>, and once against a
+control set
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>C</mi><annotation encoding="application/x-tex">C</annotation></semantics></math>
 that it never read, written
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">test</mtext></msub><mo>=</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>C</mi><mo>,</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{AA}_{\text{test}} = \mathrm{AA}(C,S)</annotation></semantics></math>.
@@ -269,9 +261,9 @@ toward 0 while leaving
 where it was. A positive difference is leakage, in units you can compare
 across datasets.</p>
 </div>
-<div class="section level4">
-<h4 id="what-synpmx-computes">What synpmx computes<a class="anchor" aria-label="anchor" href="#what-synpmx-computes"></a>
-</h4>
+<div class="section level3">
+<h3 id="what-synpmx-computes-compare_pmx_proximty">What synpmx computes <code>compare_pmx_proximty</code><a class="anchor" aria-label="anchor" href="#what-synpmx-computes-compare_pmx_proximty"></a>
+</h3>
 <p><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> computes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><mtext mathvariant="normal">train</mtext></msub><annotation encoding="application/x-tex">\mathrm{AA}_{\text{train}}</annotation></semantics></math>
 only, since no control set exists, and calibrates it against a null
@@ -295,9 +287,9 @@ correction, and its absence is the largest gap in the package’s privacy
 measurement today.</p>
 </div>
 </div>
-<div class="section level3">
-<h3 id="local-cloaking-and-hidden-rate">Local Cloaking and Hidden Rate<a class="anchor" aria-label="anchor" href="#local-cloaking-and-hidden-rate"></a>
-</h3>
+<div class="section level2">
+<h2 id="local-cloaking-and-hidden-rate">Local Cloaking and Hidden Rate<a class="anchor" aria-label="anchor" href="#local-cloaking-and-hidden-rate"></a>
+</h2>
 <p>Guillaudeux and colleagues built two privacy metrics for a
 <strong>patient-centric</strong> generator, one where each synthetic
 record is built from one identified original record.
@@ -339,11 +331,8 @@ own avatar is <em>not</em> the avatar nearest to them, which is the
 percentage with local cloaking of at least 1. It aggregates the same
 measurement, and it is the failure probability of the nearest-neighbour
 attack. The published values are <strong>93% and 94%</strong>.</p>
-<div class="section level4">
-<h4 id="granularity-a-cohort-number-against-a-patient-list">Granularity: a cohort number against a patient list<a class="anchor" aria-label="anchor" href="#granularity-a-cohort-number-against-a-patient-list"></a>
-</h4>
-<p>The two metrics answer a different question from adversarial
-accuracy, at a different granularity.</p>
+<p>Local cloaking and Hidden rate assess different questions from
+adversarial accuracy.</p>
 <ul>
 <li>Adversarial accuracy is a <strong>cohort-level</strong> statistic:
 <em>does this dataset as a whole look memorized?</em> It gives you one
@@ -351,17 +340,28 @@ number and no names.</li>
 <li>Local cloaking is a <strong>per-patient</strong> statistic: <em>is
 this patient exposed?</em> It gives you a list.</li>
 </ul>
-<p>For remediation, a list is what you need.
-<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> acts on individual
-subjects, and today it can only act on what
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> found — structural outliers. A
-patient with local cloaking 0 is exposed for a completely different
-reason and is invisible to that screen.</p>
+<p><strong>Remediation</strong> here means altering or removing the
+individual <em>synthetic</em> subjects that a screen flagged, after
+generation, so that the released cohort no longer contains them. No real
+patient record is touched.
+<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> applies one of three
+actions per flagged avatar: <strong>truncate</strong> its follow-up to
+the longest ordinary one (the default when follow-up length is the only
+reason it was flagged), <strong>drop</strong> it, or
+<strong>keep</strong> it. Dropping shrinks the cohort, so passing
+<code>source =</code> regenerates fresh avatars to refill the gap and
+preserve the cohort size. The function returns the cleaned data with
+<code>dropped</code>, <code>truncated</code> and <code>replaced</code>
+recorded as attributes.</p>
+<p>Remediation needs a list of subjects, which is why granularity
+matters. Today <code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> can only
+act on what <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> found, and that
+screen looks for structural outliers. A patient with local cloaking 0 is
+exposed for a completely different reason and is invisible to it.</p>
 <p>Hidden rate is a <strong>membership inference</strong> measure: the
 error rate of an adversary trying to link a known individual to the
 release. Membership inference is the strongest empirical privacy test in
 the general literature.</p>
-</div>
 <div class="section level4">
 <h4 id="limits-of-both-metrics">Limits of both metrics<a class="anchor" aria-label="anchor" href="#limits-of-both-metrics"></a>
 </h4>
@@ -395,7 +395,6 @@ copy. The paper treats 0.8 and above as satisfactory.</li>
 </ul>
 <p>Both are cheap to compute. The section on similarity metrics below
 gives the reason not to rely on either.</p>
-</div>
 </div>
 <div class="section level3">
 <h3 id="disclosure-risk-in-official-statistics-repu-and-disco">Disclosure Risk in Official Statistics: RepU and DiSCO<a class="anchor" aria-label="anchor" href="#disclosure-risk-in-official-statistics-repu-and-disco"></a>
@@ -1211,96 +1210,77 @@ noise floor: what
 does between two halves of the <em>same</em> real cohort, where nothing
 is wrong by construction. A difference smaller than that interval cannot
 be distinguished from the split.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">floors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">data</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span>  <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span>  <span class="va">width</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">null_upper</span> <span class="op">-</span> <span class="va">p</span><span class="op">$</span><span class="va">null_lower</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    dataset <span class="op">=</span> <span class="va">label</span>,</span>
-<span>    source_n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    compared_n <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span>,</span>
-<span>    null_width <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">width</span>, <span class="fl">3</span><span class="op">)</span>,</span>
-<span>    <span class="co"># delta ~ p/2, so a detectable delta of `width` needs 2 * width memorized</span></span>
-<span>    detectable_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">width</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>    detectable_patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">width</span> <span class="op">*</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span><span class="op">)</span>,</span>
-<span>    one_patient_delta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">p</span><span class="op">$</span><span class="va">n_compared</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/theo_md.html" class="external-link">theo_md</a></span>,</span>
-<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
-<span>                   evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">warfarin</a></span>,</span>
-<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"id"</span>, time <span class="op">=</span> <span class="st">"time"</span>, dv <span class="op">=</span> <span class="st">"dv"</span>, amt <span class="op">=</span> <span class="st">"amt"</span>,</span>
-<span>                   evid <span class="op">=</span> <span class="st">"evid"</span>, dvid <span class="op">=</span> <span class="st">"dvid"</span>,</span>
-<span>                   covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu">floors</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="fu">xgxr</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">case1_pkpd</a></span>,</span>
-<span>         <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
-<span>                   evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>,</span>
-<span>                   nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
-<span>                   covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>, keep <span class="op">=</span> <span class="st">"STUDY"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<p>Measured on three public datasets by
+<code>scripts/measure_aa_noise_floor.R</code>, at the
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> defaults and seed 1:</p>
+<table style="width:100%;" class="table">
 <colgroup>
-<col width="11%">
-<col width="9%">
-<col width="11%">
-<col width="11%">
-<col width="20%">
-<col width="20%">
-<col width="18%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
+<col width="14%">
 </colgroup>
 <thead><tr class="header">
-<th align="left">dataset</th>
-<th align="right">source_n</th>
-<th align="right">compared_n</th>
-<th align="right">null_width</th>
-<th align="right">detectable_fraction</th>
-<th align="right">detectable_patients</th>
-<th align="right">one_patient_delta</th>
+<th>Dataset</th>
+<th>Subjects</th>
+<th>Compared</th>
+<th>Null width</th>
+<th>Fraction needed</th>
+<th>Patients needed</th>
+<th>One patient is worth</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">theo_md</td>
-<td align="right">12</td>
-<td align="right">6</td>
-<td align="right">0.648</td>
-<td align="right">1.30</td>
-<td align="right">8</td>
-<td align="right">0.0833</td>
+<td><code>theo_md</code></td>
+<td>12</td>
+<td>6</td>
+<td>0.648</td>
+<td>65%</td>
+<td>4 of 6</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.083</mn></mrow><annotation encoding="application/x-tex">\delta = 0.083</annotation></semantics></math></td>
 </tr>
 <tr class="even">
-<td align="left">warfarin</td>
-<td align="right">32</td>
-<td align="right">16</td>
-<td align="right">0.385</td>
-<td align="right">0.77</td>
-<td align="right">13</td>
-<td align="right">0.0312</td>
+<td><code>warfarin</code></td>
+<td>32</td>
+<td>16</td>
+<td>0.385</td>
+<td>39%</td>
+<td>7 of 16</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.031</mn></mrow><annotation encoding="application/x-tex">\delta = 0.031</annotation></semantics></math></td>
 </tr>
 <tr class="odd">
-<td align="left">case1_pkpd</td>
-<td align="right">180</td>
-<td align="right">90</td>
-<td align="right">0.141</td>
-<td align="right">0.28</td>
-<td align="right">26</td>
-<td align="right">0.0056</td>
+<td><code>case1_pkpd</code></td>
+<td>180</td>
+<td>90</td>
+<td>0.141</td>
+<td>14%</td>
+<td>13 of 90</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.006</mn></mrow><annotation encoding="application/x-tex">\delta = 0.006</annotation></semantics></math></td>
 </tr>
 </tbody>
 </table>
-<p><code>compared_n</code> is half the source cohort, because the null
-needs two disjoint real halves at the comparison size.
-<code>detectable_patients</code> is how many memorized patients it would
-take to move
+<p><strong>Compared</strong> is half the source cohort, because the null
+needs two disjoint real halves at the comparison size. <strong>Fraction
+needed</strong> is how much of the compared set must be memorized before
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
-clear of that interval, and <code>one_patient_delta</code> is what a
-single memorized patient is worth.</p>
+moves clear of the interval, from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>≈</mo><mn>2</mn><mi>δ</mi></mrow><annotation encoding="application/x-tex">p \approx 2\delta</annotation></semantics></math>.</p>
+<p>That fraction depends on which test is being run, by about a factor
+of two. The column above is the <code>synpmx</code> test, where the
+observed
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">A</mi></mrow><annotation encoding="application/x-tex">\mathrm{AA}</annotation></semantics></math>
+has to fall below <code>null_lower</code>, roughly half the interval
+width from its centre, so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mtext mathvariant="normal">width</mtext></mrow><annotation encoding="application/x-tex">p &gt; \text{width}</annotation></semantics></math>.
+The Yale holdout test needs the <em>difference</em> of two adversarial
+accuracies to clear the noise in a difference, which is the more
+conservative
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mn>2</mn><mspace width="0.167em"></mspace><mtext mathvariant="normal">width</mtext></mrow><annotation encoding="application/x-tex">p &gt; 2\,\text{width}</annotation></semantics></math>
+— 130%, 77% and 28% for the three rows. The conclusions below hold on
+either reading.</p>
 <p>Two readings of that table.</p>
 <p><strong>The noise floor falls as
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>n</mi></msqrt></mrow><annotation encoding="application/x-tex">1/\sqrt{n}</annotation></semantics></math>
@@ -1308,34 +1288,37 @@ while one patient’s contribution falls as
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">1/n</annotation></semantics></math>.</strong>
 The gap between them therefore <em>widens</em> with cohort size. Larger
 studies resolve a smaller fraction and a larger number of patients.</p>
-<p><strong>The difference detects systematic memorization, not
-individual memorization, at any of these sizes.</strong> On the
-12-subject dataset the detectable fraction exceeds 1, meaning no amount
-of memorization moves the statistic out of its own null. Finding one
+<p><strong>Both tests detect systematic memorization, not individual
+memorization, at any of these sizes.</strong> On the 12-subject dataset
+it takes 4 of the 6 compared patients on the <code>synpmx</code> test,
+and on the holdout test the required fraction exceeds 1, so no amount of
+memorization moves that statistic out of its own null. Finding one
 exposed patient is what the per-record measures are for: local cloaking,
 authenticity, and distance to closest record.</p>
 </div>
 <div class="section level4">
 <h4 id="choosing-delta">Choosing delta<a class="anchor" aria-label="anchor" href="#choosing-delta"></a>
 </h4>
+<p>Both cases use the holdout threshold,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mn>2</mn><mspace width="0.167em"></mspace><mtext mathvariant="normal">width</mtext></mrow><annotation encoding="application/x-tex">p &gt; 2\,\text{width}</annotation></semantics></math>,
+since that is the test this section proposes.</p>
 <p><strong>A 24-patient Phase 1 study</strong>, compared at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>12</mn></mrow><annotation encoding="application/x-tex">m = 12</annotation></semantics></math>.
-One memorized patient is worth
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.042</mn></mrow><annotation encoding="application/x-tex">\delta = 0.042</annotation></semantics></math>.
-The <code>theo_md</code> row above is this size, and its noise floor is
-0.648, wider by a factor of 15. Every
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
-you could act on is below what the procedure can see, so the holdout is
-not worth running. Spend the effort on the mechanism counts in
-<code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>, which are exact, and on a per-patient
-measure if one gets implemented.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>12</mn></mrow><annotation encoding="application/x-tex">m = 12</annotation></semantics></math>,
+which falls between the <code>theo_md</code> and <code>warfarin</code>
+rows. The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>n</mi></msqrt></mrow><annotation encoding="application/x-tex">1/\sqrt{n}</annotation></semantics></math>
+scaling puts its noise floor near 0.45, so it would take more of the
+cohort than exists. One memorized patient is worth
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.042</mn></mrow><annotation encoding="application/x-tex">\delta = 0.042</annotation></semantics></math>,
+an order of magnitude below anything the procedure can see, so the
+holdout is not worth running. Spend the effort on the mechanism counts
+in <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>, which are exact, and on a
+per-patient measure if one gets implemented.</p>
 <p><strong>A 500-patient Phase 3 study</strong>, compared at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>250</mn></mrow><annotation encoding="application/x-tex">m = 250</annotation></semantics></math>.
 One memorized patient is worth
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.002</mn></mrow><annotation encoding="application/x-tex">\delta = 0.002</annotation></semantics></math>.
-Extrapolating the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>n</mi></msqrt></mrow><annotation encoding="application/x-tex">1/\sqrt{n}</annotation></semantics></math>
-scaling from the <code>case1_pkpd</code> row puts the noise floor near
+Scaling from the <code>case1_pkpd</code> row puts the noise floor near
 0.085, so the detectable fraction is about 17%. Single-patient
 memorization stays invisible; a generator copying a fifth of its
 training set does not. Set
@@ -1476,6 +1459,7 @@ release?</td>
 measurement. Why differential privacy is a guarantee rather than a
 method, and what it costs at pharmacometric cohort sizes, is in the <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-generation-review.html">generation
 review</a>.</p>
+</div>
 </div>
 </div>
 <div class="section level2">

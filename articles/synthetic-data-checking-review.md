@@ -1,6 +1,6 @@
 # Checking Synthetic Data: A Tutorial on the Published Methods
 
-### Introduction
+## Introduction
 
 The literature on checking synthetic data is spread across three
 disciplines: statistics, machine learning, and data protection law. This
@@ -33,7 +33,7 @@ synthetic dataset together (a distance, distribution, or comparison) can
 measure both properties of the population and properties of individual
 patients.
 
-### Training vs Control Set
+## Adverserial Accuracy - Similarity between Real and Synthetic Data
 
 **To assess a synthetic data generating algorithm, split real cohort
 into a training and control (holdout) set.** Then ask your similarity
@@ -63,7 +63,7 @@ of work use this framework.
   measuring the difference one patient makes, it *bounds* it in advance,
   for every patient and every possible statistic.
 
-#### Applications of control set to pharmacometrics datasets
+### Applications of control set to pharmacometrics datasets
 
 For Phase 2-3 studies, removing 20% of 200 patients in a two arm trial
 is reasonable, but removing 20% of patients when there are only 12-24 in
@@ -85,14 +85,14 @@ covariates and trajectory features. For each point, ask one question:
 
 **The notation, which comes from Yale and colleagues.** $`T`$ is the
 **training set**, meaning the real records the generator was allowed to
-read. $`S`$ is the **synthetic** set. The two subscripts read
-from-then-to, so $`d_{TS}(i)`$ is the distance from training subject
-$`i`$ to the nearest synthetic subject, and $`d_{TT}(i)`$ is the
-distance from training subject $`i`$ to the nearest **other training**
-subject. $`d_{ST}(j)`$ and $`d_{SS}(j)`$ are the same two distances
-measured from synthetic subject $`j`$. Both sets hold $`n`$ subjects;
-where they do not, both are subsampled to the smaller size, because a
-nearest-neighbour statistic depends on how many candidates there were.
+read. $`S`$ is the **synthetic** set. Thus $`d_{TS}(i)`$ is the distance
+from training subject $`i`$ to the nearest synthetic subject, and
+$`d_{TT}(i)`$ is the distance from training subject $`i`$ to the nearest
+**other training** subject. $`d_{ST}(j)`$ and $`d_{SS}(j)`$ are the same
+two distances measured from synthetic subject $`j`$. Both sets hold
+$`n`$ subjects; where they do not, both are subsampled to the smaller
+size, because a nearest-neighbour statistic depends on how many
+candidates there were.
 
 Adversarial accuracy is the average, over both sides, of how often the
 *other* dataset is farther away than your own:
@@ -105,13 +105,6 @@ Adversarial accuracy is the average, over both sides, of how often the
 It is called *adversarial* because it is the success rate of the
 simplest possible adversary: one who is handed a record and guesses
 which dataset it came from by looking at what is nearest to it.
-
-**Where the training/control split enters.** It does not appear inside
-the formula. $`\mathrm{AA}(T,S)`$ compares one real set against one
-synthetic set, and the split decides *which real set occupies the $`T`$
-slot*. Compute it twice with the same synthetic data: once with the
-training set, and once with the control set the generator never read.
-The section below subtracts the two.
 
 Both ends of the scale are failures:
 
@@ -128,15 +121,15 @@ Both ends of the scale are failures:
 
 One number therefore reports two failure directions.
 
-#### Adversarial accuracy with a holdout
+### Privacy Loss: Adversarial accuracy with a holdout
 
 In Yale and colleagues’ original formulation, adversarial accuracy is
 computed **twice** from the same synthetic set $`S`$: once against the
 training set $`T`$ that the generator read, written
-$`\mathrm{AA}_{\text{train}} = \mathrm{AA}(T,S)`$, and once against a
-control set $`C`$ that it never read, written
-$`\mathrm{AA}_{\text{test}} = \mathrm{AA}(C,S)`$. The reported privacy
-loss is the difference:
+$`\mathrm{AA}_{\text{train}} =
+\mathrm{AA}(T,S)`$, and once against a control set $`C`$ that it never
+read, written $`\mathrm{AA}_{\text{test}} = \mathrm{AA}(C,S)`$. The
+reported privacy loss is the difference:
 
 ``` math
 \text{privacy loss}=\mathrm{AA}_{\text{test}}-\mathrm{AA}_{\text{train}}
@@ -152,7 +145,7 @@ $`\mathrm{AA}_{\text{train}}`$ toward 0 while leaving
 $`\mathrm{AA}_{\text{test}}`$ where it was. A positive difference is
 leakage, in units you can compare across datasets.
 
-#### What synpmx computes
+### What synpmx computes `compare_pmx_proximty`
 
 [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md)
 computes $`\mathrm{AA}_{\text{train}}`$ only, since no control set
@@ -176,7 +169,7 @@ source were seen by the generator. A holdout is what would add that
 correction, and its absence is the largest gap in the package’s privacy
 measurement today.
 
-### Local Cloaking and Hidden Rate
+## Local Cloaking and Hidden Rate
 
 Guillaudeux and colleagues built two privacy metrics for a
 **patient-centric** generator, one where each synthetic record is built
@@ -212,10 +205,8 @@ cloaking of at least 1. It aggregates the same measurement, and it is
 the failure probability of the nearest-neighbour attack. The published
 values are **93% and 94%**.
 
-#### Granularity: a cohort number against a patient list
-
-The two metrics answer a different question from adversarial accuracy,
-at a different granularity.
+Local cloaking and Hidden rate assess different questions from
+adversarial accuracy.
 
 - Adversarial accuracy is a **cohort-level** statistic: *does this
   dataset as a whole look memorized?* It gives you one number and no
@@ -223,12 +214,27 @@ at a different granularity.
 - Local cloaking is a **per-patient** statistic: *is this patient
   exposed?* It gives you a list.
 
-For remediation, a list is what you need.
+**Remediation** here means altering or removing the individual
+*synthetic* subjects that a screen flagged, after generation, so that
+the released cohort no longer contains them. No real patient record is
+touched.
 [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-acts on individual subjects, and today it can only act on what
+applies one of three actions per flagged avatar: **truncate** its
+follow-up to the longest ordinary one (the default when follow-up length
+is the only reason it was flagged), **drop** it, or **keep** it.
+Dropping shrinks the cohort, so passing `source =` regenerates fresh
+avatars to refill the gap and preserve the cohort size. The function
+returns the cleaned data with `dropped`, `truncated` and `replaced`
+recorded as attributes.
+
+Remediation needs a list of subjects, which is why granularity matters.
+Today
+[`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
+can only act on what
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-found — structural outliers. A patient with local cloaking 0 is exposed
-for a completely different reason and is invisible to that screen.
+found, and that screen looks for structural outliers. A patient with
+local cloaking 0 is exposed for a completely different reason and is
+invisible to it.
 
 Hidden rate is a **membership inference** measure: the error rate of an
 adversary trying to link a known individual to the release. Membership
@@ -881,54 +887,30 @@ is the noise floor: what $`\mathrm{AA}`$ does between two halves of the
 *same* real cohort, where nothing is wrong by construction. A difference
 smaller than that interval cannot be distinguished from the split.
 
-``` r
+Measured on three public datasets by `scripts/measure_aa_noise_floor.R`,
+at the
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+defaults and seed 1:
 
-library(synpmx)
+| Dataset | Subjects | Compared | Null width | Fraction needed | Patients needed | One patient is worth |
+|----|----|----|----|----|----|----|
+| `theo_md` | 12 | 6 | 0.648 | 65% | 4 of 6 | $`\delta = 0.083`$ |
+| `warfarin` | 32 | 16 | 0.385 | 39% | 7 of 16 | $`\delta = 0.031`$ |
+| `case1_pkpd` | 180 | 90 | 0.141 | 14% | 13 of 90 | $`\delta = 0.006`$ |
 
-floors <- function(label, data, roles) {
-  synthetic <- synpmx_avatar(data, roles, seed = 1)
-  p <- compare_pmx_proximity(data, synthetic, roles)
-  width <- p$null_upper - p$null_lower
-  data.frame(
-    dataset = label,
-    source_n = length(unique(data[[roles$id]])),
-    compared_n = p$n_compared,
-    null_width = round(width, 3),
-    # delta ~ p/2, so a detectable delta of `width` needs 2 * width memorized
-    detectable_fraction = round(2 * width, 2),
-    detectable_patients = ceiling(2 * width * p$n_compared),
-    one_patient_delta = round(1 / (2 * p$n_compared), 4)
-  )
-}
+**Compared** is half the source cohort, because the null needs two
+disjoint real halves at the comparison size. **Fraction needed** is how
+much of the compared set must be memorized before $`\mathrm{AA}`$ moves
+clear of the interval, from $`p \approx 2\delta`$.
 
-results <- rbind(
-  floors("theo_md", nlmixr2data::theo_md,
-         pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-                   evid = "EVID", cmt = "CMT", covariates = "WT")),
-  floors("warfarin", nlmixr2data::warfarin,
-         pmx_roles(id = "id", time = "time", dv = "dv", amt = "amt",
-                   evid = "evid", dvid = "dvid",
-                   covariates = c("wt", "age", "sex"))),
-  floors("case1_pkpd", xgxr::case1_pkpd,
-         pmx_roles(id = "ID", time = "TIME", dv = "LIDV", amt = "AMT",
-                   evid = "EVID", cmt = "CMT", dvid = "NAME",
-                   nominal_time = "NOMTIME", strata = c("TRTACT", "DOSE"),
-                   covariates = "WEIGHTB", keep = "STUDY"))
-)
-knitr::kable(results)
-```
-
-| dataset | source_n | compared_n | null_width | detectable_fraction | detectable_patients | one_patient_delta |
-|:---|---:|---:|---:|---:|---:|---:|
-| theo_md | 12 | 6 | 0.648 | 1.30 | 8 | 0.0833 |
-| warfarin | 32 | 16 | 0.385 | 0.77 | 13 | 0.0312 |
-| case1_pkpd | 180 | 90 | 0.141 | 0.28 | 26 | 0.0056 |
-
-`compared_n` is half the source cohort, because the null needs two
-disjoint real halves at the comparison size. `detectable_patients` is
-how many memorized patients it would take to move $`\mathrm{AA}`$ clear
-of that interval, and `one_patient_delta` is what a single memorized
-patient is worth.
+That fraction depends on which test is being run, by about a factor of
+two. The column above is the `synpmx` test, where the observed
+$`\mathrm{AA}`$ has to fall below `null_lower`, roughly half the
+interval width from its centre, so $`p > \text{width}`$. The Yale
+holdout test needs the *difference* of two adversarial accuracies to
+clear the noise in a difference, which is the more conservative
+$`p > 2\,\text{width}`$ — 130%, 77% and 28% for the three rows. The
+conclusions below hold on either reading.
 
 Two readings of that table.
 
@@ -937,32 +919,36 @@ contribution falls as $`1/n`$.** The gap between them therefore *widens*
 with cohort size. Larger studies resolve a smaller fraction and a larger
 number of patients.
 
-**The difference detects systematic memorization, not individual
-memorization, at any of these sizes.** On the 12-subject dataset the
-detectable fraction exceeds 1, meaning no amount of memorization moves
-the statistic out of its own null. Finding one exposed patient is what
-the per-record measures are for: local cloaking, authenticity, and
-distance to closest record.
+**Both tests detect systematic memorization, not individual
+memorization, at any of these sizes.** On the 12-subject dataset it
+takes 4 of the 6 compared patients on the `synpmx` test, and on the
+holdout test the required fraction exceeds 1, so no amount of
+memorization moves that statistic out of its own null. Finding one
+exposed patient is what the per-record measures are for: local cloaking,
+authenticity, and distance to closest record.
 
 #### Choosing delta
 
-**A 24-patient Phase 1 study**, compared at $`m = 12`$. One memorized
-patient is worth $`\delta = 0.042`$. The `theo_md` row above is this
-size, and its noise floor is 0.648, wider by a factor of 15. Every
-$`\delta`$ you could act on is below what the procedure can see, so the
-holdout is not worth running. Spend the effort on the mechanism counts
-in
+Both cases use the holdout threshold, $`p > 2\,\text{width}`$, since
+that is the test this section proposes.
+
+**A 24-patient Phase 1 study**, compared at $`m = 12`$, which falls
+between the `theo_md` and `warfarin` rows. The $`1/\sqrt{n}`$ scaling
+puts its noise floor near 0.45, so it would take more of the cohort than
+exists. One memorized patient is worth $`\delta = 0.042`$, an order of
+magnitude below anything the procedure can see, so the holdout is not
+worth running. Spend the effort on the mechanism counts in
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md),
 which are exact, and on a per-patient measure if one gets implemented.
 
 **A 500-patient Phase 3 study**, compared at $`m = 250`$. One memorized
-patient is worth $`\delta = 0.002`$. Extrapolating the $`1/\sqrt{n}`$
-scaling from the `case1_pkpd` row puts the noise floor near 0.085, so
-the detectable fraction is about 17%. Single-patient memorization stays
-invisible; a generator copying a fifth of its training set does not. Set
-$`\delta`$ at the noise floor and read the result as *“no systematic
-memorization above this fraction”*, which is a bounded claim about the
-generator rather than a claim about any patient.
+patient is worth $`\delta = 0.002`$. Scaling from the `case1_pkpd` row
+puts the noise floor near 0.085, so the detectable fraction is about
+17%. Single-patient memorization stays invisible; a generator copying a
+fifth of its training set does not. Set $`\delta`$ at the noise floor
+and read the result as *“no systematic memorization above this
+fraction”*, which is a bounded claim about the generator rather than a
+claim about any patient.
 
 Neither case produces a per-patient guarantee, which is the reason this
 article ends with per-record measures and differential privacy rather
