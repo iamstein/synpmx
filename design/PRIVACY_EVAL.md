@@ -101,6 +101,60 @@ both controls run: the positive controls (exact copies; lightly perturbed
 copies) must be caught, and the negative control (`synpmx_prior()`) must score
 at chance.
 
+#### Added 2026-08-12, from writing the checking review
+
+**The production run and the characterization run are different activities, and
+only the second one splits.** A shipped dataset is generated from the whole
+cohort: every patient should be represented and the donor pool is the binding
+constraint. The split exists to produce evidence about the *algorithm*, once,
+and its output is a statement about the generator rather than a dataset anyone
+uses. Scoping P2 as a per-study step would be a mistake; it is a
+characterization run, and it belongs on public data large enough for the
+statistic to resolve something.
+
+**The API is decided by a projection constraint, not by taste.**
+`compare_pmx_proximity()` builds its PCA profile space from the *pair* it is
+handed: `combined <- rbind(source, synthetic)` then `.build_profiles(combined,
+...)`. Calling it twice — once with the training set, once with the control set
+— therefore fits two different projections, and part of the resulting difference
+would be a change of coordinate system rather than memorization. $T$, $C$ and
+$S$ must be projected **together, in one call**. That rules out a naive public
+`compute_adversarial_accuracy(a, b)` taking two arbitrary sets, because it hands
+the trap to the caller. The safe shapes are:
+
+- `compare_pmx_proximity(source, synthetic, roles, holdout = <ids or data>)`,
+  projecting all three together, returning `aa_train`, `aa_control` and
+  `privacy_loss`. Backward compatible; `holdout = NULL` behaves as today. The
+  comparison size becomes `min(|T|, |C|, |S|)`.
+- A `scripts/` driver for the repeated stratified split, per `AGENTS.md`:
+  multi-seed and report-producing work lives there, sharing the one metric
+  implementation above. Cost is `replicates` full generation runs.
+
+**Measured noise floors, so section 3's warning has numbers.** Null interval
+width from `compare_pmx_proximity()`, and the memorized fraction needed to move
+$\mathrm{AA}$ clear of it, using $\delta \approx p/2$:
+
+| Dataset | Subjects | Compared | Null width | Fraction needed |
+|---|---|---|---|---|
+| `theo_md` | 12 | 6 | 0.648 | 130% — nothing is detectable |
+| `warfarin` | 32 | 16 | 0.385 | 77% |
+| `case1_pkpd` | 180 | 90 | 0.141 | 28% |
+
+The floor falls as $1/\sqrt{n}$ while one patient's contribution falls as
+$1/n$, so the gap widens with cohort size: the procedure detects **systematic**
+memorization at every size tested and never approaches single-patient
+resolution. That is the argument for P3 and for per-record measures, and it is
+also the honest answer to "should we run this per study" — no.
+
+**A smaller defect found on the way.** The null is averaged over `replicates`
+= 50, but the observed statistic is a **single** subsample:
+`observed <- .adversarial_accuracy(take(fake, size), take(real, size))`. At
+`case1_pkpd` sizes this is immaterial; at 12 subjects the observed value is one
+draw of 6-vs-6 compared against an interval smoothed 50 times. Averaging the
+observed over the same replicates, or reporting its spread, costs nothing and
+makes the comparison symmetric. Worth doing before P2 rather than after, since
+P2 differences inherit it.
+
 ### P3 — Which part of a subject leaks
 
 The same attack restricted to one surface at a time: covariates only; dosing and
