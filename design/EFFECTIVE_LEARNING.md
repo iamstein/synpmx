@@ -4,9 +4,10 @@ Written 2026-08-11 by Claude, at the owner's request, applying the A-B-C-D-E-F-G
 checklist from <https://sites.google.com/site/andrewsteinphd/effective-learning>
 to the work in this repository.
 
-Evidence comes from the git history (238 commits, 2026-07-17 to 2026-08-11),
+Evidence comes from the git history over 2026-07-17 to 2026-08-11,
 `design/_TODO_owner.md`, `design/_THEORY_OF_MIND.md`, and the file sizes of what
-has been produced.
+has been produced. Commit counts are not used. They measure how the tool was
+driven rather than what the author did, and the two came apart here.
 
 ## Aspiration
 
@@ -40,7 +41,7 @@ other recommendation follows from it.
 | B Broad overview | Done | Two review articles, 1,263 lines |
 | C Consult experts | Partial | Claude only; no human has reviewed the method |
 | D Deconstruct | Not done | See the deconstruction below |
-| E Routine | Stated but not kept | 45 commits on Jul 23, zero from Aug 6 to Aug 10 |
+| E Routine | Bursty rather than weekly | Long active days, then Aug 6 to Aug 10 with no activity |
 | F Feedback | Absent for you, strong for the code | `R CMD check`, `SIM-###`, `REV-###` measure the package; nothing measures what you know |
 | G Growth plan | Running ahead of the rest | 11,217 lines of R, 6,207 of tests, 10,050 of vignettes |
 
@@ -217,14 +218,14 @@ repository is background you can read once and look up later.
 
 ## Routine
 
-The plan is a few hours a week. The history is 36 commits on Jul 22, 45 on
-Jul 23, 29 on Aug 3, then five days of nothing, then 6 on Aug 11.
+The plan is a few hours a week. The pattern is long single-day pushes on
+Jul 22, Jul 23 and Aug 3, then five quiet days from Aug 6 to Aug 10, then work
+again on Aug 11.
 
 Bursts are fine for building and bad for retention, and they have a specific
-side effect here: in a burst session, building always beats reading, because
-building produces visible output and reading does not. That is the mechanism
-that produced the unstarted review queue. It will not fix itself by intending to
-read more.
+side effect here: in a burst session, building beats reading, because building
+produces visible output and reading does not. That is the mechanism that leaves
+the review queue where it is. It will not fix itself by intending to read more.
 
 Proposed shape, two blocks a week, ninety minutes each:
 
