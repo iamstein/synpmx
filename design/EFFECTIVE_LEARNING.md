@@ -67,19 +67,27 @@ is worth more than any section of prose in the repository.
 
 ## Problem 1: the package has outrun the reader
 
-Of 238 commits, 44 carry your message style and 194 carry Claude's. The
-artifact is 27,000 lines across `R/`, `tests/`, and `vignettes/`.
+The artifact is 27,000 lines across `R/`, `tests/`, and `vignettes/`. Nobody has
+read all of it.
 
-Against that, `_TODO_owner.md` is a six-item review queue in which nothing is
-ticked, and `_THEORY_OF_MIND.md` records that the second half of the literature
-review and most of `synthetic-data-checks.Rmd` have not been read by you. The
-item "identify a few places to spot check the code" has not started, so the
-11,217 lines in `R/` have had no human read at all.
+The failure mode of learning by building with an agent is that the build does
+not slow down when comprehension does. The repository looks healthier every
+week either way, so the gap between what the package does and what its author
+can explain widens without a signal.
 
-This is the specific failure mode of learning by building with an agent. The
-build does not slow down when comprehension does, so the gap widens silently and
-the repository looks healthier every week. Growth is only real to the extent it
-is absorbed, and right now the package knows more than you do.
+In this repository it shows up in two places. `_THEORY_OF_MIND.md` records that
+the second half of the literature review and most of `synthetic-data-checks.Rmd`
+have not been read by the owner. And "identify a few places to spot check the
+code" has not started, so the 11,217 lines in `R/` have had no line-by-line
+human read.
+
+**Correction, 2026-08-11.** An earlier version of this section measured the gap
+by counting commit-message styles and unticked checkboxes in `_TODO_owner.md`.
+Both proxies were bad. The checks have in fact been applied to internal
+datasets over a couple of iterations, and each pass changed what the package
+does; the checkbox was simply never ticked. Much of the direction behind
+Claude-authored commits was also the owner's. The paper trail understates the
+work, which is worth remembering the next time this file reaches for a number.
 
 The correction is a stop rule, not more effort:
 
@@ -239,9 +247,15 @@ without reading from a document.
 cannot be traced to a real patient. Do not ask whether the work is good. A
 question that can only be answered yes is not feedback.
 
-**Aug 18 to Aug 31.** The real-data run (pit, eci) with the checks applied, and
-the three predict-then-read code spot checks. This is the block where the two
-stacks are exercised together.
+**Aug 18 to Aug 31.** Another iteration of the checks on the internal datasets,
+and the three predict-then-read code spot checks. This is the block where the
+two stacks are exercised together.
+
+Decide the stopping condition for that iteration before starting it. Each pass
+over real data has so far taught something and changed the package, which is
+productive and has no natural end. The train-versus-control holdout is the end
+condition: it is the first result that can come out either way, so it is the
+first one that can say the checking is finished rather than merely continuing.
 
 **Sept 1 to Sept 14.** Fill out the August outline into the poster, from the
 glossary and from memory, before showing it to Claude. Claude critiques; Claude
@@ -257,21 +271,25 @@ The literature review stays off the critical path, where you already put it.
 
 ## Should Claude keep writing tutorials
 
-**Keep the method, demote it, and reverse who drafts.**
+**Yes. Keep the loop exactly as it is for material you do not know yet.**
 
-It is working. The evidence is that your questions moved from "what is this
+It is working. The evidence is that the questions moved from "what is this
 called" to "what is computed and what does a good value look like," which is the
-transition that matters. Reading generated explanation is an efficient B and a
-reasonable D.
+transition that matters. Claude drafts, the owner reads and asks, Claude
+revises. That is a fast B and a reasonable D, and nothing on the reading list
+replaces it. Drafting a tutorial on a method you have not learned is not
+possible, and asking for one is not a failure of independence.
 
-Two limits. It is passive, so it produces recognition rather than recall, which
-is why you can read a document and still not be able to state its claim four days
-later. And it scales badly against an agent, which is how 10,050 lines of
-explanation accumulated faster than they could be read.
+The rule applies to one artifact only, and an earlier version of this file
+stated it too broadly. **A tutorial is input. The poster is output.** The poster
+is what an audience will judge, so the poster is the one thing to draft unaided
+and hand to Claude for critique rather than for drafting. Vignettes, articles,
+and `design/` material carry the owner's name too and are not covered by this;
+Claude drafts those.
 
-So: Claude drafts internal `design/` material and code. For anything with your
-name on it, you draft and Claude critiques. That inverts the current
-relationship, and it converts the same hours from reading into teaching.
+The one real limit on the tutorial loop is that reading is passive, so it
+produces recognition rather than recall. That is what Instruments 1 and 2 are
+for, and they cost minutes. The loop itself stays.
 
 ## Teaching something you have not learned yet
 
