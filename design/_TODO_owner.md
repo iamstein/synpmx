@@ -8,7 +8,7 @@
 - Once happy with all above, then go through full avatar algorithm page
 - Identify a few places to spot check the code. Start with the synthetic-data-checks.  Think about if/how to document.  Or think about other validation mechanisms.
 
-- In parallel - Meet with David (mid august)
+- In parallel - Meet with an internal colleague (mid august)
 - Make poster (due Sept 28 for online submission)
 
 ## Other things to do (off critical path)

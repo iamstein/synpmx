@@ -292,7 +292,7 @@ below is agreed work yet):
 - Identify a few places to spot check the code. Think about if/how to document.  Or think about other validation mechanisms
 - Email authors of recent paper AVATAR to share
 
-- In parallel - Meet with David (mid august)
+- In parallel - Meet with an internal colleague (mid august)
 - Make poster (due Sept 28 for online submission)
 
 ## The owner's five next steps (2026-07-29)
@@ -308,8 +308,8 @@ it is not next.
        levels an anchor climbed. Detail in "Open on the two new mechanisms"
        below; measurement is `skeleton_uniqueness()` and
        `compare_pmx_proximity()`.
-2. [ ] **Schedule the meeting with David Zhang.** Presentation following their
-       template; Greg Pinhault possibly after.
+2. [ ] **Schedule the internal review meeting.** Presentation following their
+       template; a second internal group possibly after.
 3. [ ] **Simulation study to evaluate privacy.** Scoped 2026-07-29 into
        "Next: empirical disclosure-risk evaluation" below and
        `design/PRIVACY_EVAL.md`.
@@ -444,8 +444,8 @@ depend on inputs not yet in hand, so they are queued, not started:
 
 Present it.
 
-- [ ] Follow up with David Zhang: a presentation following their template. Then
-      potentially with Greg Pinhault.
+- [ ] Follow up with the internal colleague: a presentation following their
+      template. Then potentially with a second internal group.
 - [ ] Trinity Metrics blog post — instructions for trying the package. Draft in
       `communications/`, aimed at someone who has not installed it yet: install,
       declare roles on their own dataset, run `synpmx_avatar()`, read the
