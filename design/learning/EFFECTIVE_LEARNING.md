@@ -1,51 +1,35 @@
 # Learning plan for synpmx
 
-Written 2026-08-11 by Claude, at the owner's request, applying the A-B-C-D-E-F-G
+Applying the A-B-C-D-E-F-G
 checklist from <https://sites.google.com/site/andrewsteinphd/effective-learning>
 to the work in this repository.
 
 Evidence comes from the git history over 2026-07-17 to 2026-08-11,
 `design/_TODO_owner.md`, `design/_THEORY_OF_MIND.md`, and the file sizes of what
-has been produced. Commit counts are not used. They measure how the tool was
-driven rather than what the author did, and the two came apart here.
+has been produced.
 
 ## Aspiration
 
 **The stated aspiration and the growth plan are the same object, and that is the
 central problem with the current setup.**
 
-The stated goal is "write the package." Writing the package is G. It is the
-long-term application that cements the learning. It is not A.
-
-The actual aspiration, from the surrounding context, is two things that have not
-been written down separately:
-
-1. Become able to direct AI agents to do technical work you could not do alone,
-   and to tell when the output is wrong.
+1. Develop experience directing AI agents in technical work that would be time consuming do alone.  Learn to tell when the output is wrong.
 2. Learn statistical disclosure control well enough to make and defend a privacy
-   claim in front of pharmacometricians.
-
-Neither of those is measured by the package existing. When A and G collapse into
-one object, progress on the artifact reads as progress on the learner, and the
-two can diverge without any signal. They have already diverged, and the size of
-the gap is measurable. See "The package has outrun the reader" below.
-
-Restating A separately is the highest-value correction in this document. Every
-other recommendation follows from it.
+   claim in front of pharmacometricians and those who enforce privacy boundaries.
 
 ## Where you are, letter by letter
 
-| | Status | Evidence |
-|---|---|---|
-| A Aspiration | Misidentified | Stated as the package, which is G |
-| B Broad overview | Done | Two review articles, 1,263 lines |
-| C Consult experts | Partial | Claude only; no human has reviewed the method |
-| D Deconstruct | Not done | See the deconstruction below |
-| E Routine | Bursty rather than weekly | Long active days, then Aug 6 to Aug 10 with no activity |
-| F Feedback | Absent for you, strong for the code | `R CMD check`, `SIM-###`, `REV-###` measure the package; nothing measures what you know |
-| G Growth plan | Running ahead of the rest | 11,217 lines of R, 6,207 of tests, 10,050 of vignettes |
+| | Status |
+|---|---|
+| A Aspiration | Gain practice with AI coding tools and become conversant in privacy literature |
+| B Broad overview | Two review articles |
+| C Consult experts | Claude only; no human synthetic data researchers so far |
+| D Deconstruct | AVATAR algorithm; Basic privacy concepts and metrics |
+| E Routine | Minimum of one learning block and one coding block per week |
+| F Feedback | Will come from internal and external presentations |
+| G Growth plan | Write `synpmx` package |
 
-## What has gone well
+## Claude assessment of what has gone well
 
 Three things are working and should not be disturbed.
 
@@ -82,16 +66,6 @@ have not been read by the owner. And "identify a few places to spot check the
 code" has not started, so the 11,217 lines in `R/` have had no line-by-line
 human read.
 
-**Correction, 2026-08-11.** An earlier version of this section measured the gap
-by counting commit-message styles and unticked checkboxes in `_TODO_owner.md`.
-Both proxies were bad. The checks have in fact been applied to internal
-datasets over a couple of iterations, and each pass changed what the package
-does; the checkbox was simply never ticked. Much of the direction behind
-Claude-authored commits was also the owner's. The paper trail understates the
-work, which is worth remembering the next time this file reaches for a number.
-
-The correction is a stop rule, not more effort:
-
 **No new vignette or article prose is drafted until the queue in
 `_TODO_owner.md` is empty.** Bug fixes, tests, and code changes continue.
 Generating explanation does not.
@@ -99,15 +73,11 @@ Generating explanation does not.
 ## Problem 2: every feedback loop points at the code
 
 `R CMD check`, the test suite, `TEST_SIM.md`, and `REVIEW_BACKLOG.md` are a
-serious F. They measure the package.
+serious feedback on the coding. They measure package progress, but not learning.
 
-`_THEORY_OF_MIND.md` looks like an F for you but runs the other way. It measures
-how Claude should write so that you understand it. It tunes the explainer, not
-the learner. There is no instrument anywhere in the repository that answers
-"what does Andy now know that he did not know in July."
+`_THEORY_OF_MIND.md` is feedback for Claude, but not feedback for author's learning. 
 
-That asymmetry is why the efficiency question cannot be answered from inside the
-current setup. You are asking whether the approach is working, and there is no
+Because there is no feedback mechanism yet on the author's understanding, the question of how efficiently is the author learning cannot be answered from inside the current setup. You are asking whether the approach is working, and there is no
 measurement that could tell you.
 
 The three instruments below are the smallest set that fixes this.
@@ -135,7 +105,7 @@ tests both halves of the aspiration at once, and it is already on your own list.
 
 ## Problem 3: no teaching, no retrieval
 
-Your page lists five approaches. Reading, Organizing, Teaching, Doing, Recalling.
+Your page lists five learning approaches. Reading, Organizing, Teaching, Doing, Recalling.
 
 Reading is heavy. Organizing is heavy, arguably too heavy: `design/` holds 12
 files, four of which are documentation about documentation
@@ -155,21 +125,13 @@ Reframe both. The poster is not a report on the package. It is the Feynman test
 for the whole project, with a fixed date and an audience that can ask questions.
 Working backwards from it orders everything else.
 
-## Deconstruction
-
-You have not done D, and the tutorials are not D. A tutorial is B. Deconstruction
-is naming the sub-skills and deciding which need theory and which need only
-recognition.
-
-There are two stacks, and treating them as one is part of why the work feels
-chaotic.
+## D. Deconstruction
 
 **Stack 1, statistical disclosure control.** Deep theory needed in two places
 only:
 
 1. *The AVATAR mechanism itself.* Blending, `k` donors, local cloaking, and the
-   six masking mechanisms. You are shipping it under your name and the poster is
-   about it.
+   six masking mechanisms. 
 
    **Status, 2026-08-11: solid at the mechanism level.** Stated unaided as snap
    to a grid, PCA to reduce dimensionality, weighted blending of patients with
@@ -184,8 +146,8 @@ only:
    with noise on top. Remaining work here is practice and delivery, not study.
 
 2. *Disclosure risk measurement.* Adversarial accuracy, uniqueness, RepU,
-   DiSCO, the training-versus-control split. This is what the internal review
-   will attack. Learn it to the point where you can compute it by hand on ten
+   DiSCO, the training-versus-control split. This is what an internal review
+   could question. Learn it to the point where you can compute it by hand on ten
    rows.
 
    **Status, 2026-08-11: this is the gap, and it is the whole gap.** "Have I
@@ -216,7 +178,7 @@ what each one is for, and that synpmx does not do it, covers every use you have.
 The 80/20: two topics in stack 1, one skill in stack 2. Everything else in this
 repository is background you can read once and look up later.
 
-## Routine
+## E. Routine
 
 The plan is a few hours a week. The pattern is long single-day pushes on
 Jul 22, Jul 23 and Aug 3, then five quiet days from Aug 6 to Aug 10, then work
@@ -244,8 +206,7 @@ Read `Guillaudeux23.pdf` and `Destere26.pdf`. Drain the first two items in
 glossary. Go into that meeting able to state the privacy claim and its limits
 without reading from a document.
 
-**Ask for one specific thing at that meeting:** to try to break the claim that an avatar
-cannot be traced to a real patient. Do not ask whether the work is good. A
+**Ask for one specific thing at that meeting:** to try to break the claim that an avatar cannot be traced to a real patient. Do not ask whether the work is good. A
 question that can only be answered yes is not feedback.
 
 **Aug 18 to Aug 31.** Another iteration of the checks on the internal datasets,
@@ -289,40 +250,16 @@ and `design/` material carry the owner's name too and are not covered by this;
 Claude drafts those.
 
 The one real limit on the tutorial loop is that reading is passive, so it
-produces recognition rather than recall. That is what Instruments 1 and 2 are
-for, and they cost minutes. The loop itself stays.
+produces recognition rather than recall. That is what Instruments 1 and 2 (explaining back and writing a glossary) are for, and they cost minutes. The loop itself stays.
 
 ## Teaching something you have not learned yet
-
-The objection: you cannot explain the tool until you know it, you cannot know it
-until it is built, and it is not built yet. So the teaching step keeps sliding
-into the future and the reading has no focus.
-
-The dependency runs the other way. The poster's claim decides what you have to
-know, and the claim is already written. `communications/2026-acop-abstract.md`
-asserts four things:
-
-1. Structure can be separated from sensitive patient-level values.
-2. What survives is enough to develop ingestion, exploratory analysis, NLME
-   specification, and Shiny simulation code.
-3. Code developed on synthetic data transfers into the secure environment and
-   runs on the real data.
-4. Confidentiality is preserved well enough for the synthetic data to leave.
-
-That is the syllabus. It is not 27,000 lines. Claims 1 to 3 are about the
-workflow and you already know them from doing the work; claim 4 is the only one
-that requires study, and it is the only one an audience will attack. The
-question from the floor will be "how do you know no patient is identifiable,"
-and everything you need to answer it is disclosure-risk measurement.
-
-You also already have something to explain. Read those four claims and see which
-you could state, unprompted, in that meeting. That test takes ten minutes and it
-replaces the feeling of not being ready with a list.
 
 **Write the poster outline this week, not in September.** One page, claims and
 the evidence for each, from memory. The blanks are the reading list, generated by
 you rather than assigned. The meeting then becomes the rehearsal rather than a
 status update.
+
+[Author note: poster outline is in progress in communication/2026-acop-poster-notes.md]
 
 ## Reading list
 
@@ -330,10 +267,10 @@ Ordered. Four items, and the first two are the ones that matter.
 
 1. **`references/Guillaudeux23.pdf`** and **`references/Destere26.pdf`**. Both
    are already in the repository. You are shipping this method under your name.
-   Reading these is not optional and nothing else on the list outranks them.
+   Reading these in full is not optional and nothing else on the list outranks them.
 2. **The disclosure-risk part of `synthetic-data-checking-review.Rmd` only.**
    Adversarial accuracy, the training-versus-control split, RepU and DiSCO. Skip
-   the utility and distribution material; claim 4 does not depend on it.
+   the utility and distribution material;
 3. **One synthpop paper on RepU and DiSCO**, because your B5 checks are that and
    naming the prior art is worth more on a poster than the checks themselves.
 4. **`R/` for three functions**, by predict-then-read. This is reading too, and
@@ -351,7 +288,7 @@ scope calls, and deciding when output is wrong. Those are the skills in stack 2
 and they are developing.
 
 They produce knowledge of *what* the package does. They do not produce knowledge
-of *how*, and the poster's claim 4 needs the second kind. Predict-then-read is
+of *how*. Predict-then-read is
 the only activity on this list that converts one into the other, which is why it
 sits above everything except the two papers.
 
@@ -377,9 +314,10 @@ Independent feedback has to come from outside. Two candidates:
 
 ## Log
 
-One row per comprehension block. Keep it short; the value is in the middle
-column.
+One entry per comprehension block. Keep it short; the value is in the second
+line.
 
-| Date | Could not explain unaided | Closed by |
-|---|---|---|
-| | | |
+### YYYY-MM-DD
+
+- **Could not explain unaided:**
+- **Closed by:**
