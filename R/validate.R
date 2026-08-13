@@ -448,31 +448,51 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
   }
   for (property in roles$strata) {
     # A stratum has to be constant within subject -- that is what makes it a
-    # subject-level assignment rather than a time-varying one -- but it does not
-    # have to be recorded for everyone. Real assignment columns have gaps, and
-    # `synpmx_avatar()` treats a missing value as its own stratum level rather
-    # than failing on it. Varying stays an error, since a column that changes
-    # within a subject cannot be that subject's assignment; missing is a warning,
-    # so it is visible without stopping a run over data that is merely
-    # incomplete.
-    values <- lapply(subjects, function(subject) {
+    # subject-level assignment rather than a time-varying one. Varying is an
+    # error, since a column that changes within a subject cannot be that
+    # subject's assignment.
+    #
+    # Missing is an error too. It used to be a warning, on the reasoning that
+    # real assignment columns have gaps and a missing value could stand as its
+    # own stratum level. It cannot: an unlabelled arm is not an arm, it is
+    # sized, balanced and reported as though it were one, and a blank label
+    # reads as nothing everywhere it is printed.
+    #
+    # `""` is checked alongside `NA` because that is how the gap usually
+    # arrives -- a blank cell rather than a missing one -- and it used to pass
+    # every check here, being neither missing nor varying.
+    blank_to_na <- function(value) {
+      if (is.character(value)) value[!nzchar(trimws(value))] <- NA
+      value
+    }
+    raw <- lapply(subjects, function(subject) {
       data[[property]][!is.na(id) & id == subject]
     })
+    values <- lapply(raw, blank_to_na)
     constant <- vapply(values, function(value) {
       length(unique(value[!is.na(value)])) <= 1L
     }, logical(1))
     incomplete <- vapply(values, function(value) {
       !length(value) || anyNA(value)
     }, logical(1))
+    # Counted for the message only: "blank" and "missing" send a reader to
+    # different places in their own pipeline.
+    blanked <- vapply(raw, function(value) {
+      is.character(value) && any(!nzchar(trimws(value)), na.rm = TRUE)
+    }, logical(1))
     add(
       paste0("stratum_", property),
-      if (!all(constant)) "error" else if (any(incomplete)) "warning" else "pass",
+      if (!all(constant) || any(incomplete)) "error" else "pass",
       if (!all(constant)) {
         paste(property, "varies within", sum(!constant), "subject(s); a",
               "stratum must be constant within subject.")
       } else if (any(incomplete)) {
-        paste0(property, " is missing for ", sum(incomplete), " subject(s); ",
-               "they are grouped as their own stratum.")
+        paste0(property, " is missing for ", sum(incomplete), " subject(s)",
+               if (any(blanked)) {
+                 paste0(" (blank in ", sum(blanked), " of them, rather than NA)")
+               } else "",
+               "; a stratum must be recorded for every subject. Drop those ",
+               "subjects, or give them a label of their own.")
       } else {
         paste(property, "is complete and constant within subject.")
       }

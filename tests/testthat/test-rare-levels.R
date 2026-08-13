@@ -12,9 +12,9 @@ rare_source <- function(n = 40L, solo = 1L, pair = 2:3) {
   source
 }
 
-rare_roles <- function(...) {
+rare_roles <- function(covariates = "WT", ...) {
   pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-            cmt = "CMT", dvid = "DVID", covariates = "WT", ...)
+            cmt = "CMT", dvid = "DVID", covariates = covariates, ...)
 }
 
 rare_synthetic <- function(source, roles, seed = 2) {
@@ -107,9 +107,12 @@ test_that("B5b passes when every level in the output is widely held", {
 test_that("the census counts a blank level like any other", {
   # A blank cell is a level a real dataset carries, and `[[` on a name never
   # matches it, which used to take the census out of bounds rather than count it.
+  # A blank *stratum* is rejected outright, so this is a covariate: the census
+  # has to survive one either way.
   source <- rare_source()
-  source$ARM[as.character(source$ID) == unique(as.character(source$ID))[[4L]]] <- ""
-  roles <- rare_roles(strata = "ARM")
+  source$SEX <- "F"
+  source$SEX[as.character(source$ID) == unique(as.character(source$ID))[[4L]]] <- ""
+  roles <- rare_roles(covariates = c("WT", "SEX"))
   synthetic <- rare_synthetic(source, roles)
 
   census <- compare_pmx_rare_levels(source, synthetic, roles)
@@ -117,4 +120,6 @@ test_that("the census counts a blank level like any other", {
   expect_true("" %in% census$level)
   expect_identical(census$source_patients[census$level == ""], 1L)
   expect_true(census$exposed[census$level == ""])
+  # Printed as something rather than as nothing.
+  expect_output(print(census), "<blank>")
 })

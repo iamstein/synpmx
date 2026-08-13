@@ -1781,16 +1781,42 @@
 # makes them sum to `n_subjects` exactly. Strata below the floor above, and
 # strata with no eligible anchor left after screening, fall back into a pooled
 # remainder drawn as before.
+# Who an avatar may be re-anchored on when its own anchor cannot be masked.
+#
+# Inside its own stratum, because the anchor's rows are copied into the output
+# with its `strata` values attached: an avatar moved across arms leaves the run
+# reporting the balance it planned while the finished table holds something
+# else. Drawing from the whole pool -- which is what this replaces -- scrambled
+# arm sizes in proportion to how often re-anchoring fired, and nothing said so.
+#
+# The whole pool is still the fallback when the stratum has nobody else to
+# offer. Emitting an avatar wearing one real patient's visit set is a
+# disclosure; an arm off its target is a fidelity cost, and the caller counts
+# it as `strata_crossed` so the trade is visible rather than silent.
+.reanchor_candidates <- function(allowed, anchor, strata_key, target_stratum) {
+  candidates <- setdiff(allowed, anchor)
+  if (is.null(target_stratum) || !length(candidates)) {
+    return(list(candidates = candidates, crossed = FALSE))
+  }
+  within <- candidates[strata_key[candidates] == target_stratum]
+  if (length(within)) {
+    list(candidates = within, crossed = FALSE)
+  } else {
+    list(candidates = candidates, crossed = TRUE)
+  }
+}
+
 .strata_targets <- function(strata_key, allowed, n_subjects,
                             floor = .strata_balance_floor) {
   source_sizes <- table(strata_key)
   eligible <- unique(strata_key[allowed])
-  balanced <- names(source_sizes)[
-    source_sizes >= floor & names(source_sizes) %in% eligible
-  ]
-  if (!length(balanced)) return(NULL)
+  # Selected as a logical rather than by name, because a blank stratum label is
+  # a name `[` cannot look up: `source_sizes[""]` is NA, not the count, and the
+  # NA reaches `spare` as a missing condition rather than as a wrong number.
+  keep <- source_sizes >= floor & names(source_sizes) %in% eligible
+  if (!any(keep)) return(NULL)
 
-  share <- as.numeric(source_sizes[balanced]) / length(strata_key)
+  share <- as.numeric(source_sizes[keep]) / length(strata_key)
   exact <- share * n_subjects
   target <- floor(exact)
   # Largest remainder: hand out the seats floor() dropped, to the strata with
@@ -1803,7 +1829,7 @@
     target[take] <- target[take] + 1L
   }
   target <- as.integer(target)
-  names(target) <- balanced
+  names(target) <- names(source_sizes)[keep]
   target[target > 0L]
 }
 
@@ -2522,10 +2548,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       strata_stochastic <- length(unique(strata_key)) - strata_balanced
       pooled <- allowed[!strata_key[allowed] %in% names(targets)]
       anchors <- unlist(c(
-        lapply(names(targets), function(stratum) {
-          members <- allowed[strata_key[allowed] == stratum]
-          members[sample.int(length(members), targets[[stratum]],
-                             replace = TRUE)]
+        # By position for the same reason as in `.strata_targets()`: a blank
+        # stratum label cannot be looked up by name.
+        lapply(seq_along(targets), function(i) {
+          members <- allowed[strata_key[allowed] == names(targets)[[i]]]
+          members[sample.int(length(members), targets[[i]], replace = TRUE)]
         }),
         if (n_subjects > sum(targets)) {
           # Whatever the balanced strata did not claim goes to the strata too
@@ -2574,6 +2601,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # Avatars moved to a different anchor because their first one could not be
     # given a visit set that masks it.
     pattern_reanchored <- logical(n_subjects)
+    # Re-anchoring that had to leave the avatar's own stratum because nobody
+    # else in it could be masked either. Counted separately from
+    # `pattern_reanchored`: an in-stratum move costs nothing a reader cares
+    # about, and this one costs the arm sizes.
+    strata_crossed <- logical(n_subjects)
     # The visit set each avatar actually ended up with, and whose dose schedule
     # it inherited. Recorded per avatar so the end-to-end checks can be exact.
     # Snapping the finished table back onto the grid was tried and rejected: the
@@ -2603,6 +2635,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         (dose_maskable && isTRUE(dose_identifying[[index]])) ||
           isTRUE(choice$identifying)
       }
+      # The stratum this avatar was allocated to, captured before any move. An
+      # anchor carries its own `strata` values into the output, so re-anchoring
+      # across arms silently undoes `.strata_targets()`: the run still reports
+      # the balance it planned while the finished table holds something else.
+      # Measured on a study with 8 arms and 6 unmaskable schedule groups, a
+      # 19-patient arm came back with 5.
+      target_stratum <- if (is.null(strata_key)) NULL else strata_key[[anchor]]
       if (!is.null(attendance) || dose_maskable) {
         for (attempt in seq_len(12L)) {
           choice <- if (is.null(attendance)) NULL else
@@ -2612,9 +2651,13 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
             choice$identifying <- isTRUE(attendance$identifying[[anchor]])
           }
           if (!unsafe(anchor)) break
-          candidates <- setdiff(allowed, anchor)
-          if (!length(candidates)) break
-          anchor <- candidates[[sample.int(length(candidates), 1L)]]
+          move <- .reanchor_candidates(allowed, anchor, strata_key,
+                                       target_stratum)
+          if (move$crossed) strata_crossed[synthetic_index] <- TRUE
+          if (!length(move$candidates)) break
+          anchor <- move$candidates[[
+            sample.int(length(move$candidates), 1L)
+          ]]
           pattern_reanchored[synthetic_index] <- TRUE
         }
         anchors[synthetic_index] <- anchor
@@ -2817,6 +2860,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       preserve_strata_balance = preserve_strata_balance,
       strata_balanced = as.integer(strata_balanced),
       strata_stochastic = as.integer(strata_stochastic),
+      # Avatars that ended up in an arm other than the one they were allocated
+      # to. Any value above 0 is why C3 does not add up.
+      strata_crossed = as.integer(sum(strata_crossed)),
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),

@@ -295,7 +295,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     rarest <- do.call(rbind, lapply(categorical, function(column) {
       holders <- table(.scorecard_holders(synthetic, roles, column))
       data.frame(column = column,
-                 level = names(holders)[[which.min(holders)]],
+                 level = .level_label(names(holders)[[which.min(holders)]]),
                  n = min(as.integer(holders)), stringsAsFactors = FALSE)
     }))
     rarest <- rarest[which.min(rarest$n), , drop = FALSE]
@@ -344,9 +344,12 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       table(as.character(data[[roles$strata[[1L]]]])[first])
     }
     source_arms <- arm_size(source)
-    synthetic_arms <- arm_size(synthetic)[names(source_arms)]
+    # Lined up by position: a blank arm label cannot be looked up by name, and
+    # `[""]` gives NA, which then reads as an arm that lost every patient.
+    at <- match(names(source_arms), names(arm_size(synthetic)))
+    synthetic_arms <- as.integer(arm_size(synthetic))[at]
     synthetic_arms[is.na(synthetic_arms)] <- 0L
-    matched <- sum(source_arms == synthetic_arms)
+    matched <- sum(as.integer(source_arms) == synthetic_arms)
     # Not a FAIL when the sizes move. `on_donor_shortfall = "drop"` removes a
     # subject that could not be built from enough donors, which is the correct
     # answer and lands on whichever arm was thinnest; an arm changing size is
@@ -443,7 +446,7 @@ print.synpmx_scorecard <- function(x, ...) {
     cat("\nRare source levels that reached the output (B5b):\n")
     for (i in seq_len(nrow(rare))) {
       cat(sprintf("  %s = %s -- %d source patient(s), %d avatar(s)\n",
-                  rare$column[[i]], rare$level[[i]],
+                  rare$column[[i]], .level_label(rare$level[[i]]),
                   rare$source_patients[[i]], rare$synthetic_patients[[i]]))
     }
   }

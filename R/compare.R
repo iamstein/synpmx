@@ -68,6 +68,13 @@
   list(overlay = overlay, faceted = faceted)
 }
 
+# A blank is a level real data carries -- a covariate cell nobody filled in --
+# and printing it as nothing reads as a formatting fault rather than as the
+# value it is. Display only: the level itself stays "" everywhere it is counted.
+.level_label <- function(x) {
+  ifelse(is.na(x) | !nzchar(x), "<blank>", x)
+}
+
 .mark_release <- function(x, status) {
   if (is.null(x)) return(NULL)
   attr(x, "release_status") <- status
@@ -501,7 +508,7 @@ print.pmx_rare_levels <- function(x, ...) {
   if (nrow(shown)) {
     for (i in seq_len(nrow(shown))) {
       cat(sprintf("  %s = %s\n    %d source patient(s), %d avatar(s)%s\n",
-                  shown$column[[i]], shown$level[[i]],
+                  shown$column[[i]], .level_label(shown$level[[i]]),
                   shown$source_patients[[i]], shown$synthetic_patients[[i]],
                   if (shown$reached[[i]]) " -- REACHED THE OUTPUT" else ""))
     }
@@ -672,7 +679,7 @@ print.pmx_strata_sizes <- function(x, ...) {
     for (i in seq_len(nrow(block))) {
       drifted <- .strata_sizes_drifted(block)[[i]]
       cat(sprintf("  %s\n    %d source -> %d synthetic (expected %.1f)%s\n",
-                  block$level[[i]], block$source_patients[[i]],
+                  .level_label(block$level[[i]]), block$source_patients[[i]],
                   block$synthetic_patients[[i]], block$expected[[i]],
                   if (!drifted) "" else if (isTRUE(block$balanced[[i]])) {
                     " -- OFF TARGET, and large enough to be held exactly"

@@ -106,23 +106,38 @@ test_that("a nominal time that is entirely missing is refused", {
   )
 })
 
-test_that("a stratum with gaps warns and becomes its own level", {
+test_that("a stratum with gaps is an error", {
+  # It used to be a warning, on the reasoning that a missing value could stand
+  # as its own stratum level. It cannot: the unlabelled group is then sized,
+  # balanced and reported as though it were an arm.
   data <- pmx_simulated_fixture(20)
   data$TRT <- rep(c("A", "B"), each = nrow(data) / 2)
   data$TRT[data$ID %in% c("5", "6")] <- NA_character_
   roles <- gap_roles(strata = "TRT")
 
   report <- validate_pmx(data, roles)
-  # A warning, not an error: visible without stopping a run over data that is
-  # merely incomplete.
-  expect_true(report$valid)
+  expect_false(report$valid)
   expect_identical(
     report$checks$status[report$checks$check == "stratum_TRT"],
-    "warning"
+    "error"
   )
-  synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-  expect_true(validate_pmx(synthetic, roles)$valid)
-  expect_true(anyNA(synthetic$TRT))
+  expect_match(report$checks$message[report$checks$check == "stratum_TRT"],
+               "missing for 2 subject")
+  expect_error(synpmx_avatar(data, roles, seed = 1), "must be recorded")
+})
+
+test_that("a blank stratum is caught the same way, and named as blank", {
+  # `""` is how the gap usually arrives, and it used to pass every check here:
+  # neither missing nor varying.
+  data <- pmx_simulated_fixture(20)
+  data$TRT <- rep(c("A", "B"), each = nrow(data) / 2)
+  data$TRT[data$ID %in% c("5", "6")] <- ""
+  roles <- gap_roles(strata = "TRT")
+
+  report <- validate_pmx(data, roles)
+  expect_false(report$valid)
+  expect_match(report$checks$message[report$checks$check == "stratum_TRT"],
+               "blank in 2 of them")
 })
 
 test_that("a stratum that varies within subject is still an error", {
