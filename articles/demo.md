@@ -54,6 +54,13 @@ roles <- pmx_roles(
 ``` r
 
 synthetic <- synpmx_avatar(raw, roles, seed = SEED)
+#> Warning: Synthetic generation used documented small-group/profile fallbacks:
+#> - Endpoint `PD - Continuous` has generated observations at times no donor
+#>   was measured at; the cohort's median trajectory was used for those rows.
+#>   Expected wherever subjects were sampled on different schedules.
+#> - Endpoint `PK Concentration` has generated observations at times no donor
+#>   was measured at; the cohort's median trajectory was used for those rows.
+#>   Expected wherever subjects were sampled on different schedules.
 ```
 
 ## Plot synthetic data and original data
@@ -116,9 +123,9 @@ compare_pmx_distributions(raw, synthetic, roles)
 | variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | PD - Continuous | source | 1620 | 180 | 135 | 238 | -621 | -21.6 | 123 | 283 | 936 |
-| PD - Continuous | synthetic | 1620 | 180 | 130 | 161 | -297 | 17.4 | 116 | 231 | 657 |
+| PD - Continuous | synthetic | 1620 | 180 | 130 | 153 | -297 | 27.9 | 114 | 221 | 657 |
 | PK Concentration | source | 3600 | 150 | 0.36 | 0.737 | 0.05 | 0.05 | 0.0634 | 0.263 | 7 |
-| PK Concentration | synthetic | 3600 | 150 | 0.316 | 0.65 | 0.05 | 0.05 | 0.0539 | 0.233 | 5.84 |
+| PK Concentration | synthetic | 3600 | 150 | 0.313 | 0.649 | 0.05 | 0.05 | 0.0517 | 0.227 | 5.84 |
 
 RESTRICTED – endpoints (dependent variable on observation rows) {.table
 style="width:100%;"}
@@ -157,7 +164,7 @@ synpmx_scorecard(raw, synthetic, roles)
 | B1a | Avatars wearing one real patient’s visit set | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
 | B1b | Avatars wearing one real patient’s dose schedule | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
-| B3 | Adversarial accuracy inside its null interval | both | 0.544 in \[0.422, 0.561\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.415, 0.578\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
@@ -178,5 +185,5 @@ call behind each one is where the answer is.
 
 - [`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
   — every check, what it asks, and what passing means.
-- [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md) -
+- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md) -
   AVATAR algorithm applied to 8 public datasets.

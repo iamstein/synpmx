@@ -36,7 +36,7 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
     <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -501,7 +501,7 @@ values are put back on the scale the source used.</p>
 <p>Both endpoints here are continuous, so there is nothing to do and
 <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> omits the A6 row entirely. The check
 fires on a study with an ordinal, binary or count endpoint:
-<code><a href="../articles/avatar-evaluation-public-data.html">vignette("avatar-evaluation-public-data")</a></code> runs it on
+<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> runs it on
 <code><a href="https://rdrr.io/pkg/xgxr/man/mad.html" class="external-link">xgxr::mad</a></code>, which carries all three.</p>
 <p>Two things are worth knowing before you trust the answer. The type is
 <em>inferred</em> from the source — whether every observed value is a
@@ -568,9 +568,9 @@ is.</caption>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="left">59 -&gt; 59</td>
-<td align="left">744 -&gt; 433</td>
+<td align="left">744 -&gt; 443</td>
 <td align="left">2.6 -&gt; 2.5</td>
-<td align="left">10 -&gt; 4.8</td>
+<td align="left">10 -&gt; 5</td>
 </tr>
 </tbody>
 </table>
@@ -592,7 +592,7 @@ infant received twelve doses; the median avatar receives one.</p>
 <span><span class="co">#&gt;   1.000   7.000  12.000   9.983  13.000  15.000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_synth</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span><span class="co">#&gt;   1.000   1.000   1.000   4.814   7.000  15.000</span></span></code></pre></div>
+<span><span class="co">#&gt;       1       1       1       5       7      15</span></span></code></pre></div>
 <p>Nothing is invalid here — every avatar’s regimen is one a real infant
 received, which is the guarantee section C describes. What happened is
 that dose schedules in this study are nearly all unique, so truncating
@@ -894,7 +894,7 @@ source</strong>, and there are two of them. Both must be 0:</p>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="right">0</td>
-<td align="right">15</td>
+<td align="right">16</td>
 </tr>
 </tbody>
 </table>
@@ -1010,7 +1010,7 @@ cohort-wide, and its flags land on follow-up time:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 23</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 19</span></span></code></pre></div>
 <p><strong>A screen’s own statistics need checking too.</strong> This
 one previously flagged every patient who stopped dosing early, because
 its robust scale — the median absolute deviation (MAD) — is exactly
@@ -1054,16 +1054,16 @@ patient’s, taking covariates and trajectory together.</p>
 <tbody>
 <tr class="odd">
 <td align="left">case1_pkpd</td>
-<td align="right">0.511</td>
-<td align="right">0.428</td>
-<td align="right">0.577</td>
+<td align="right">0.600</td>
+<td align="right">0.426</td>
+<td align="right">0.559</td>
 <td align="right">90</td>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
-<td align="right">0.397</td>
-<td align="right">0.370</td>
-<td align="right">0.608</td>
+<td align="right">0.431</td>
+<td align="right">0.335</td>
+<td align="right">0.643</td>
 <td align="right">29</td>
 </tr>
 </tbody>
@@ -1807,13 +1807,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">39 of 59 (66%)</td>
+<td align="right">45 of 59 (76%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.85</td>
+<td align="right">2.84</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -1889,13 +1889,13 @@ built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">24 of 59 (41%)</td>
+<td align="right">25 of 59 (42%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">0 of 59 (0%)</td>
+<td align="right">25 of 59 (42%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -1935,7 +1935,7 @@ substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
-<td align="right">10 of 59 (17%)</td>
+<td align="right">4 of 59 (7%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
 Truncating a schedule to a real dose time is protocol-valid in a way
@@ -1948,7 +1948,7 @@ that moving dose times is not</td>
 </tr>
 <tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
-<td align="right">16 (29%)</td>
+<td align="right">18 (32%)</td>
 <td align="left">a regimen only one patient received cannot be given to
 an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
@@ -1957,7 +1957,7 @@ unavoidable rather than a setting to tune</td>
 <tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
-<td align="right">15 (25%)</td>
+<td align="right">16 (27%)</td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
@@ -2063,12 +2063,12 @@ report was made to print “1 of 3 regimens represented”.</p>
 <td align="left">synthetic</td>
 <td align="right">1620</td>
 <td align="right">180</td>
-<td align="right">132.025</td>
-<td align="right">161.742</td>
+<td align="right">132.001</td>
+<td align="right">152.667</td>
 <td align="right">-360.769</td>
-<td align="right">20.001</td>
-<td align="right">122.788</td>
-<td align="right">231.081</td>
+<td align="right">33.492</td>
+<td align="right">119.040</td>
+<td align="right">216.812</td>
 <td align="right">741.644</td>
 </tr>
 <tr class="odd">
@@ -2089,12 +2089,12 @@ report was made to print “1 of 3 regimens represented”.</p>
 <td align="left">synthetic</td>
 <td align="right">3600</td>
 <td align="right">150</td>
-<td align="right">0.301</td>
-<td align="right">0.583</td>
+<td align="right">0.299</td>
+<td align="right">0.582</td>
 <td align="right">0.019</td>
 <td align="right">0.049</td>
-<td align="right">0.071</td>
-<td align="right">0.225</td>
+<td align="right">0.069</td>
+<td align="right">0.218</td>
 <td align="right">5.224</td>
 </tr>
 </tbody>
@@ -2360,9 +2360,8 @@ vignette, computed on one real run.</li>
 generator works, and the six masking mechanisms these checks are
 measuring.</li>
 <li>
-<code><a href="../articles/avatar-evaluation-public-data.html">vignette("avatar-evaluation-public-data")</a></code> — these
-checks run across eight public datasets, with the masking cost for
-each.</li>
+<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> — these checks run
+across eight public datasets, with the masking cost for each.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">Literature:
 checking synthetic data</a> — the published methods for checking

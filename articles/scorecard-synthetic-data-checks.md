@@ -256,7 +256,7 @@ Both endpoints here are continuous, so there is nothing to do and
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 omits the A6 row entirely. The check fires on a study with an ordinal,
 binary or count endpoint:
-[`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
 runs it on [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html), which
 carries all three.
 
@@ -302,7 +302,7 @@ knitr::kable(rbind(
 | dataset    | patients    | rows            | obs_per_patient | doses_per_patient |
 |:-----------|:------------|:----------------|:----------------|:------------------|
 | case1_pkpd | 180 -\> 180 | 20820 -\> 20820 | 30.7 -\> 30.7   | 85 -\> 85         |
-| pheno_sd   | 59 -\> 59   | 744 -\> 433     | 2.6 -\> 2.5     | 10 -\> 4.8        |
+| pheno_sd   | 59 -\> 59   | 744 -\> 443     | 2.6 -\> 2.5     | 10 -\> 5          |
 
 Source -\> synthetic. Cohort size is preserved; nothing else is.
 {.table}
@@ -327,7 +327,7 @@ summary(doses_per_patient(pheno_sd))
 #>   1.000   7.000  12.000   9.983  13.000  15.000
 summary(doses_per_patient(pheno_synth))
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>   1.000   1.000   1.000   4.814   7.000  15.000
+#>       1       1       1       5       7      15
 ```
 
 Nothing is invalid here — every avatar’s regimen is one a real infant
@@ -488,7 +488,7 @@ knitr::kable(rbind(
 | dataset    | identifying_visit_sets | identifying_dose_schedules |
 |:-----------|-----------------------:|---------------------------:|
 | case1_pkpd |                      0 |                          0 |
-| pheno_sd   |                      0 |                         15 |
+| pheno_sd   |                      0 |                         16 |
 
 **`pheno_sd` fails the second one**, and this is the failure worth
 studying. Its visit sets are fine: no avatar wears a set of attended
@@ -628,7 +628,7 @@ flags land on follow-up time:
 
 pheno_flags <- flag_identifiable_subjects(pheno_synth, pheno_roles)
 sum(pheno_flags$flagged)
-#> [1] 23
+#> [1] 19
 ```
 
 **A screen’s own statistics need checking too.** This one previously
@@ -669,8 +669,8 @@ knitr::kable(rbind(
 
 | dataset    | adversarial_accuracy | null_lower | null_upper | per_side |
 |:-----------|---------------------:|-----------:|-----------:|---------:|
-| case1_pkpd |                0.511 |      0.428 |      0.577 |       90 |
-| pheno_sd   |                0.397 |      0.370 |      0.608 |       29 |
+| case1_pkpd |                0.600 |      0.426 |      0.559 |       90 |
+| pheno_sd   |                0.431 |      0.335 |      0.643 |       29 |
 
 The statistic asks whether each subject’s nearest neighbour lies in its
 own dataset or the other one. 0.5 means a synthetic subject is no more
@@ -1156,8 +1156,8 @@ knitr::kable(as.data.frame(
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 39 of 59 (66%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.85 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 45 of 59 (76%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 2.84 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
 | Unique observation schedules, before coarsening | 56 (95%) | patients whose list of observation times nobody else shares |
@@ -1169,16 +1169,16 @@ knitr::kable(as.data.frame(
 |   held by fewer than 2 patients, so not reused | 3 (5%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 3 (5%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 59 of 59 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 24 of 59 (41%) | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 0 of 59 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, misses placed fresh | 25 of 59 (42%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 25 of 59 (42%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 59 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
 |   of those, moved to a different anchor | 53 of 59 (90%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 59 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
-|   of those, dosing re-truncated | 10 of 59 (17%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
+|   of those, dosing re-truncated | 4 of 59 (7%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 56 |  |
-|   represented in the synthetic cohort | 16 (29%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 15 (25%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+|   represented in the synthetic cohort | 18 (32%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
+| **Avatars carrying a dose schedule nobody else shares** | 16 (27%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1219,9 +1219,9 @@ knitr::kable(case1_dist$endpoints, digits = 3,
 | variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | PD - Continuous | source | 1620 | 180 | 134.896 | 237.732 | -620.950 | -21.589 | 123.210 | 283.123 | 936.110 |
-| PD - Continuous | synthetic | 1620 | 180 | 132.025 | 161.742 | -360.769 | 20.001 | 122.788 | 231.081 | 741.644 |
+| PD - Continuous | synthetic | 1620 | 180 | 132.001 | 152.667 | -360.769 | 33.492 | 119.040 | 216.812 | 741.644 |
 | PK Concentration | source | 3600 | 150 | 0.360 | 0.737 | 0.050 | 0.050 | 0.063 | 0.263 | 6.996 |
-| PK Concentration | synthetic | 3600 | 150 | 0.301 | 0.583 | 0.019 | 0.049 | 0.071 | 0.225 | 5.224 |
+| PK Concentration | synthetic | 3600 | 150 | 0.299 | 0.582 | 0.019 | 0.049 | 0.069 | 0.218 | 5.224 |
 
 Endpoints, source against synthetic {.table style="width:100%;"}
 
@@ -1412,7 +1412,7 @@ the joins, reshapes, derivations and control streams behave.
 - [`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md)
   — how the default generator works, and the six masking mechanisms
   these checks are measuring.
-- [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
+- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
   — these checks run across eight public datasets, with the masking cost
   for each.
 - [Literature: checking synthetic

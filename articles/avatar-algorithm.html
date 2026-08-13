@@ -36,7 +36,7 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
     <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -2207,7 +2207,11 @@ table shows the exact pre-noise blend used by the implementation.</p>
 <span><span class="co">#&gt;     missed is not preserved.</span></span>
 <span><span class="co">#&gt;   What to do: nothing, unless this study's interruptions matter.</span></span>
 <span><span class="co">#&gt;     `min_pattern_share = 1` copies exact visit sets and gives up the</span></span>
-<span><span class="co">#&gt;     guarantee.</span></span></code></pre>
+<span><span class="co">#&gt;     guarantee.</span></span>
+<span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
+<span><span class="co">#&gt; - Endpoint `DV` has generated observations at times no donor was measured</span></span>
+<span><span class="co">#&gt;   at; the cohort's median trajectory was used for those rows. Expected</span></span>
+<span><span class="co">#&gt;   wherever subjects were sampled on different schedules.</span></span></code></pre>
 <table style="width:100%;" class="table">
 <caption>Interpolation and blending for the anchor endpoint; z is the
 endpoint working scale</caption>
@@ -2237,12 +2241,12 @@ endpoint working scale</caption>
 <tr class="odd">
 <td align="right">0.6</td>
 <td align="right">2.194</td>
-<td align="right">2.026</td>
+<td align="right">NA</td>
 <td align="right">2.348</td>
 <td align="right">1.905</td>
 <td align="right">2.012</td>
-<td align="right">2.259</td>
-<td align="right">9.360</td>
+<td align="right">2.260</td>
+<td align="right">9.367</td>
 <td align="right">7.626</td>
 </tr>
 <tr class="even">
@@ -2272,11 +2276,11 @@ endpoint working scale</caption>
 <td align="right">0.324</td>
 <td align="right">0.231</td>
 <td align="right">0.530</td>
-<td align="right">0.216</td>
+<td align="right">NA</td>
 <td align="right">0.172</td>
-<td align="right">0.418</td>
-<td align="right">1.304</td>
-<td align="right">0.344</td>
+<td align="right">0.419</td>
+<td align="right">1.307</td>
+<td align="right">0.473</td>
 </tr>
 </tbody>
 </table>
@@ -2346,7 +2350,7 @@ synthesized covariates can be inspected directly:</p>
 <tr class="odd">
 <td align="right">7</td>
 <td align="right">5.783</td>
-<td align="right">0.344</td>
+<td align="right">0.473</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
@@ -2361,8 +2365,8 @@ call:</p>
 <table class="table">
 <caption>Recorded generator settings</caption>
 <colgroup>
-<col width="18%">
-<col width="81%">
+<col width="10%">
+<col width="89%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -2432,7 +2436,10 @@ schedules; normalized observation-window fallback</td>
 </tr>
 <tr class="even">
 <td align="left">warnings</td>
-<td align="left"><none></none></td>
+<td align="left">Endpoint <code>DV</code> has generated observations at
+times no donor was measured at; the cohort’s median trajectory was used
+for those rows. Expected wherever subjects were sampled on different
+schedules.</td>
 </tr>
 </tbody>
 </table>

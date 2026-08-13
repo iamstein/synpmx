@@ -36,7 +36,7 @@
 <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
     <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -127,7 +127,14 @@ synthetic dataset.</p>
 <h2 id="generate-synthetic-data">Generate Synthetic Data<a class="anchor" aria-label="anchor" href="#generate-synthetic-data"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Synthetic generation used documented small-group/profile fallbacks:</span></span>
+<span><span class="co">#&gt; - Endpoint `PD - Continuous` has generated observations at times no donor</span></span>
+<span><span class="co">#&gt;   was measured at; the cohort's median trajectory was used for those rows.</span></span>
+<span><span class="co">#&gt;   Expected wherever subjects were sampled on different schedules.</span></span>
+<span><span class="co">#&gt; - Endpoint `PK Concentration` has generated observations at times no donor</span></span>
+<span><span class="co">#&gt;   was measured at; the cohort's median trajectory was used for those rows.</span></span>
+<span><span class="co">#&gt;   Expected wherever subjects were sampled on different schedules.</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="plot-synthetic-data-and-original-data">Plot synthetic data and original data<a class="anchor" aria-label="anchor" href="#plot-synthetic-data-and-original-data"></a>
@@ -224,11 +231,11 @@ rows)</caption>
 <td align="right">1620</td>
 <td align="right">180</td>
 <td align="right">130</td>
-<td align="right">161</td>
+<td align="right">153</td>
 <td align="right">-297</td>
-<td align="right">17.4</td>
-<td align="right">116</td>
-<td align="right">231</td>
+<td align="right">27.9</td>
+<td align="right">114</td>
+<td align="right">221</td>
 <td align="right">657</td>
 </tr>
 <tr class="odd">
@@ -249,12 +256,12 @@ rows)</caption>
 <td align="left">synthetic</td>
 <td align="right">3600</td>
 <td align="right">150</td>
-<td align="right">0.316</td>
-<td align="right">0.65</td>
+<td align="right">0.313</td>
+<td align="right">0.649</td>
 <td align="right">0.05</td>
 <td align="right">0.05</td>
-<td align="right">0.0539</td>
-<td align="right">0.233</td>
+<td align="right">0.0517</td>
+<td align="right">0.227</td>
 <td align="right">5.84</td>
 </tr>
 </tbody>
@@ -411,7 +418,7 @@ TRUE)</td>
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
-<td align="left">0.544 in [0.422, 0.561]</td>
+<td align="left">0.617 in [0.415, 0.578]</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
@@ -469,8 +476,8 @@ is.</p>
 <code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> — every
 check, what it asks, and what passing means.</li>
 <li>
-<code><a href="../articles/avatar-evaluation-public-data.html">vignette("avatar-evaluation-public-data")</a></code> - AVATAR
-algorithm applied to 8 public datasets.</li>
+<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> - AVATAR algorithm
+applied to 8 public datasets.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

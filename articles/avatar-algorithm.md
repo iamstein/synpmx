@@ -1594,13 +1594,17 @@ the exact pre-noise blend used by the implementation.
     #>   What to do: nothing, unless this study's interruptions matter.
     #>     `min_pattern_share = 1` copies exact visit sets and gives up the
     #>     guarantee.
+    #> Warning: Synthetic generation used documented small-group/profile fallbacks:
+    #> - Endpoint `DV` has generated observations at times no donor was measured
+    #>   at; the cohort's median trajectory was used for those rows. Expected
+    #>   wherever subjects were sampled on different schedules.
 
 | anchor_TIME | donor_4_z | donor_3_z | donor_6_z | donor_1_z | donor_2_z | blended_z | deterministic_DV | final_synthetic_DV |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0.6 | 2.194 | 2.026 | 2.348 | 1.905 | 2.012 | 2.259 | 9.360 | 7.626 |
+| 0.6 | 2.194 | NA | 2.348 | 1.905 | 2.012 | 2.260 | 9.367 | 7.626 |
 | 1.4 | 1.776 | 1.688 | 1.934 | 1.486 | 1.591 | 1.843 | 6.100 | 5.702 |
 | 2.8 | 1.078 | 0.992 | 1.231 | 0.792 | 0.886 | 1.142 | 2.919 | 1.781 |
-| 4.5 | 0.324 | 0.231 | 0.530 | 0.216 | 0.172 | 0.418 | 1.304 | 0.344 |
+| 4.5 | 0.324 | 0.231 | 0.530 | NA | 0.172 | 0.419 | 1.307 | 0.473 |
 
 Interpolation and blending for the anchor endpoint; z is the endpoint
 working scale {.table style="width:100%;"}
@@ -1621,7 +1625,7 @@ knitr::kable(worked_synthetic, digits = 3)
 |   7 | 0.467 | 7.626 |   0 |    0 |   2 |   0 | 74.968 | male |
 |   7 | 0.858 | 5.702 |   0 |    0 |   2 |   0 | 74.968 | male |
 |   7 | 3.000 | 1.781 |   0 |    0 |   2 |   0 | 74.968 | male |
-|   7 | 5.783 | 0.344 |   0 |    0 |   2 |   0 | 74.968 | male |
+|   7 | 5.783 | 0.473 |   0 |    0 |   2 |   0 | 74.968 | male |
 
 The result records enough settings to audit the public generator call:
 
@@ -1642,7 +1646,7 @@ The result records enough settings to audit the public generator call:
 | max_donor_weight | 0.5 |
 | cap_binding_fraction | 1 |
 | mean_effective_donors | 2.283 |
-| warnings |  |
+| warnings | Endpoint `DV` has generated observations at times no donor was measured at; the cohort’s median trajectory was used for those rows. Expected wherever subjects were sampled on different schedules. |
 
 Recorded generator settings {.table}
 

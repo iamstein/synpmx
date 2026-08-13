@@ -480,7 +480,7 @@ knitr::kable(
 
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
-| 1\. AVATAR      |            264 |   5.30 | 1.26 |  8.72 |
+| 1\. AVATAR      |            264 |   5.49 | 1.34 |  8.72 |
 | 2\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
 | 3\. Calibration |            240 |   4.05 | 0.36 |  7.54 |
 | 4\. Empirical   |            264 |   4.43 | 0.43 | 11.96 |
@@ -656,7 +656,7 @@ producing the model code.
 
 ## Where to go next
 
-- [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md)
+- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
   —
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   run across eight public datasets, with the structural checks and the

@@ -5,9 +5,6 @@
 - [The synpmx AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 
-- [Evaluating AVATAR on public
-  data](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md):
-
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 
@@ -28,6 +25,9 @@
 
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
+
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/public-data-examples.md):
 
 - [Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md):
