@@ -15,6 +15,19 @@
   now `run settings`. `vignettes/synthetic-data-checks.Rmd` is renamed
   `scorecard-synthetic-data-checks.Rmd`.
 
+* **`compare_pmx_rare_levels()` censuses the categorical levels too few *source*
+  patients held**, and the scorecard reports it as row **B5b**. Categorical
+  covariates are not blended -- they are sampled from the donors' values, and
+  `strata` are copied from the anchor by design -- so a synthetic patient's
+  category is always some real patient's actual category, copied. What matters
+  is therefore how many *real* patients held it, not how many synthetic ones do:
+  a level two real patients held, appearing in a released table, says that
+  someone with that attribute was in this study. The floor is
+  `min_pattern_share`, the same rule that already protects visit sets. The
+  existing synthetic-side check is now **B5a**; both are `review`, and B5b reads
+  the source, so on a study where B5a was the only categorical row the card
+  becomes restricted output.
+
 * **Only seven scorecard rows can say `FAIL`**: A1, A3, A6, B1a, B1b, B4a and
   B4b — the output is not a legal dataset, it is not the study that went in, or
   it reproduces one real patient's structure verbatim. A2, A4, B3 and B5 now say

@@ -72,7 +72,8 @@ Three columns need a word of explanation.
 | **B3** | Is any avatar too close to a real patient in value space? | `compare_pmx_proximity()` | both | inside the null interval, near 0.5 — always *review*, because outside it means two different things |
 | **B4a** | Is any generated time vector a copy of an exposed real one? | `synpmx_scorecard()` | both | **0** |
 | **B4b** | Is any generated `DV` vector a copy of an exposed real one? | `synpmx_scorecard()` | both | **0** |
-| **B5** | Does any categorical level sit on a single synthetic patient? | `synpmx_scorecard()`; `table(synthetic$COLUMN)` | synthetic | no level on one patient — *review*, since this is the weak form of the check |
+| **B5a** | Does any categorical level sit on a single synthetic patient? | `synpmx_scorecard()`; `table(synthetic$COLUMN)` | synthetic | no level on one patient — *review*, since this is the weak form of the check |
+| **B5b** | Did a level too few *source* patients held reach the output? | `compare_pmx_rare_levels()` | both | no exposed level reaching the output — *review* while the check earns its thresholds |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
 | **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
@@ -557,6 +558,8 @@ identifying on its own. No cohort size helps.
    together with **how many source patients held it**. A level held by one or two
    real patients is the whole risk, and it is invisible in a marginal
    distribution comparison that only checks the proportions look similar.
+   `compare_pmx_rare_levels()` does this over `strata` and every non-numeric
+   covariate, and the scorecard reports it as **B5b**; it is worked below.
 
    Half of this exists already:
    `compare_pmx_distributions()$covariates_categorical` is a per-patient level
@@ -587,36 +590,29 @@ identifying on its own. No cohort size helps.
 Checks 1 to 4 are mechanical. Check 5 changes what the generator does rather
 than what it reports.
 
-Here is check 1, in the lines it takes, so the gap is concrete. Note the level
-set is the **union** of both sides rather than the synthetic side alone: a level
-that was dropped on the way out is a coverage failure, and a census that cannot
-see it is only checking one of its two directions.
+Check 1 is `compare_pmx_rare_levels()`. It censuses every categorical axis the
+roles declare — `strata` and each non-numeric covariate — and the level set it
+reports is the **union** of both sides rather than the synthetic side alone: a
+level that was dropped on the way out is a coverage failure, and a census that
+cannot see it is only checking one of its two directions.
 
 ```{r b5-census, eval=has_xgxr}
-level_census <- function(source, synthetic, column, id) {
-  holders <- function(data) {
-    as.character(tapply(data[[column]], data[[id]], function(x) x[1]))
-  }
-  source_holders <- holders(source)
-  synth_holders <- holders(synthetic)
-  all_levels <- sort(union(unique(source_holders), unique(synth_holders)))
-  count <- function(x) {
-    as.integer(table(factor(x, levels = all_levels)))
-  }
-  data.frame(
-    level = all_levels,
-    source_patients = count(source_holders),
-    synthetic_patients = count(synth_holders)
-  )
-}
-knitr::kable(level_census(case1_pkpd, case1_synth, "TRTACT", "ID"))
+compare_pmx_rare_levels(case1_pkpd, case1_synth, case1_roles)
 ```
 
-Read the source column: every arm is held by 30 patients, so nothing in this
-study is at risk on this axis. A study with a two-patient stratum would show it
-here and nowhere else. (The synthetic column moves because anchors are sampled
-with replacement — section C.) A `0` in the synthetic column would be the other
-failure: a level the source had and the output lost.
+Read the source column first. A level is **exposed** when fewer than
+`min_pattern_share` real patients held it — the same floor that already protects
+visit sets, for the same reason — and the row to act on is an exposed level that
+`reached` the output, because that level is one real patient's attribute,
+copied. On `case1_pkpd` nothing is exposed: every arm is held by 30 patients, so
+nothing in this study is at risk on this axis. A study with a two-patient
+stratum would show it here and nowhere else.
+
+The remedies are upstream of generation rather than after it: drop the covariate
+from `covariates`, or collapse its rare levels before generating. (The synthetic
+column moves because anchors are sampled with replacement — section C.) A `0` in
+the synthetic column is the other failure: a level the source had and the output
+lost.
 
 ### The one line of it that can be checked without the source
 
@@ -624,11 +620,11 @@ The census above reads real patient data and is therefore restricted output.
 One weaker question can be asked of the released table alone: **does any
 categorical level sit on exactly one synthetic patient?** A level held by a
 single synthetic patient singles that patient out within the release, whatever
-the source looked like. `synpmx_scorecard()` reports it as B5, over `strata` and
+the source looked like. `synpmx_scorecard()` reports it as B5a, over `strata` and
 every non-numeric covariate:
 
 ```{r b5-singletons, eval=has_xgxr}
-card[card$check == "B5", ]
+card[card == "B5a", ]
 ```
 
 The row names the column and the level it found, not just the count, because
@@ -967,7 +963,7 @@ with what closing each would take:
 
 | # | Gap | What closing it takes |
 |---|---|---|
-| B5 | `synpmx_scorecard()` reports only the synthetic-side singleton count, which is the weak form. Nothing flags a level held by one or two *source* patients: `compare_pmx_distributions()` gives that census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
+| B5 | The source-side census (check 1) now exists as `compare_pmx_rare_levels()` and scorecard row B5b. Still missing: joint combinations, since with `d` covariates there are `2^d` of them and the census is per column; and check 5, which is the one that matters most — declaring which levels are rare *in the population* rather than in this study | Joint rarity needs a decision about which combinations are worth enumerating. Population rarity is not measurable from the study at all: it needs domain knowledge, so the realistic form is a declaration on `pmx_roles()`, or simply not carrying that covariate |
 | C2 | Dose/observation ordering and occasion assignment have no check | A post-generation invariant over the finished table, in the spirit of section F |
 | A5 | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it | A row in `pmx_masking_report()` |
 

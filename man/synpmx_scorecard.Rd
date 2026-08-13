@@ -54,10 +54,10 @@ B4b). Everything else is \code{"review"}, including every row whose answer can
 move for a legitimate reason -- a subject dropped for want of donors, a
 cohort statistic at a small sample size, a source a validator objects to.
 
-Three checks in the vignette are absent here because no function can produce
-them: C2 (dose and observation ordering), the source-side rare-level census
-behind B5, and the one that matters most -- whether the pipeline that will
-consume the real study runs unchanged against this output.
+Two checks in the vignette are absent here because no function can produce
+them: C2 (dose and observation ordering), and the one that matters most --
+whether the pipeline that will consume the real study runs unchanged against
+this output.
 }
 \examples{
 data <- pmx_simulated_fixture(30)

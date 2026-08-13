@@ -19,6 +19,7 @@ Depends:
 Suggests:
     xgxr,
     rxode2,
+    dplyr,
     ggplot2,
     knitr,
     nlmixr2data,

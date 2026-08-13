@@ -119,10 +119,10 @@
 #' move for a legitimate reason -- a subject dropped for want of donors, a
 #' cohort statistic at a small sample size, a source a validator objects to.
 #'
-#' Three checks in the vignette are absent here because no function can produce
-#' them: C2 (dose and observation ordering), the source-side rare-level census
-#' behind B5, and the one that matters most -- whether the pipeline that will
-#' consume the real study runs unchanged against this output.
+#' Two checks in the vignette are absent here because no function can produce
+#' them: C2 (dose and observation ordering), and the one that matters most --
+#' whether the pipeline that will consume the real study runs unchanged against
+#' this output.
 #'
 #' @param source Source PMX data.
 #' @param synthetic Generated synthetic PMX data from [synpmx_avatar()],
@@ -293,7 +293,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     }))
     rarest <- rarest[which.min(rarest$n), , drop = FALSE]
     rows <- c(rows, list(.scorecard_row(
-      "B5", "Patients holding the least-held categorical level", "synthetic",
+      "B5a", "Patients holding the least-held categorical level", "synthetic",
       sprintf("%s = %s: %d", rarest$column, .scorecard_short(rarest$level),
               rarest$n),
       sprintf("table(synthetic$%s)", rarest$column),
@@ -301,9 +301,29 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       # it is wrong in both directions: a level held by thirty source patients
       # can land on one avatar and mean nothing, and a level held by two source
       # patients can be copied onto ten avatars and pass while the disclosure is
-      # real. What the risk is made of is the SOURCE-side count, which nothing
-      # computes yet. This flags a shape worth looking at.
+      # real. What the risk is made of is the source-side count, which B5b below
+      # is. This flags a shape worth looking at.
       if (rarest$n > 1L) TRUE else NA
+    )))
+
+    # B5b is the strong form: not "is anyone alone in the output" but "did a
+    # level too few REAL patients held get copied out at all". It reads the
+    # source, so it is `both` rather than `synthetic` -- on a study where B5a
+    # was the only categorical row, adding it makes the card restricted output.
+    # Review rather than FAIL for now: on a small oncology cohort `RACE` will
+    # light this up constantly, and the answer there is usually "do not carry
+    # `RACE`" rather than "the generator is broken". It earns a verdict once it
+    # has been read on real studies.
+    census <- compare_pmx_rare_levels(source, synthetic, roles, floor = floor)
+    exposed <- sum(census$exposed)
+    leaked <- census[census$exposed & census$reached, , drop = FALSE]
+    rows <- c(rows, list(.scorecard_row(
+      "B5b", "Rare source levels copied into the output", "both",
+      if (!nrow(leaked)) paste(0, "of", exposed, "exposed") else
+        sprintf("%d of %d exposed (%s = %s)", nrow(leaked), exposed,
+                leaked$column[[1L]], .scorecard_short(leaked$level[[1L]])),
+      "compare_pmx_rare_levels(source, synthetic, roles)",
+      if (!nrow(leaked)) TRUE else NA
     )))
   }
 

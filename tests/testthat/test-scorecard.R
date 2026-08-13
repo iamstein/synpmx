@@ -3,7 +3,7 @@
 # is an untested branch, not evidence.
 #
 # The rows it emits vary with the roles: no `strata` means no C3, and no
-# categorical covariate means no B5. Both are tested, because a study with
+# categorical covariate means no B5a or B5b. Both are tested, because a study with
 # neither is the ordinary case at pharmacometric cohort sizes.
 
 sc_roles <- function(...) {
@@ -98,7 +98,8 @@ test_that("only the rows that are always a defect can say FAIL", {
   can_fail <- c("A1", "A3", "A6", "B1a", "B1b", "B4a", "B4b")
   expect_true(all(card$check[card$verdict == "FAIL"] %in% can_fail))
   # And the softened rows are present, so this is not passing by their absence.
-  expect_true(all(c("A2", "A4", "B3", "B5", "C3", "C4") %in% card$check))
+  expect_true(all(c("A2", "A4", "B3", "B5a", "B5b", "C3", "C4") %in%
+                    card$check))
 })
 
 test_that("an objection to the source is review, not FAIL", {
@@ -124,16 +125,18 @@ test_that("the optional rows appear only when the roles declare them", {
   with_strata <- sc_roles(strata = "ARM")
   card <- synpmx_scorecard(source, sc_synthetic(source, with_strata), with_strata)
   expect_true("C3" %in% card$check)
-  expect_true("B5" %in% card$check)
+  expect_true("B5a" %in% card$check)
+  expect_true("B5b" %in% card$check)
 
   without <- sc_roles()
   bare <- synpmx_scorecard(source, sc_synthetic(source, without), without)
   # `WT` is numeric, so with no `strata` there is no categorical axis at all.
   expect_false("C3" %in% bare$check)
-  expect_false("B5" %in% bare$check)
+  expect_false("B5a" %in% bare$check)
+  expect_false("B5b" %in% bare$check)
 })
 
-test_that("B5 marks a level that reaches the output on one patient only", {
+test_that("B5a marks a level that reaches the output on one patient only", {
   source <- pmx_simulated_fixture(40)
   ids <- unique(as.character(source$ID))
   # One patient carries a level nobody else has. `strata` are copied from the
@@ -149,11 +152,11 @@ test_that("B5 marks a level that reaches the output on one patient only", {
   # Review rather than FAIL: this is the weak, synthetic-side form of the
   # check, and it is wrong in both directions. What the risk is made of is how
   # many SOURCE patients held the level, which nothing computes yet.
-  expect_identical(sc_verdict(card, "B5"), "review")
+  expect_identical(sc_verdict(card, "B5a"), "review")
   # The count alone is not actionable: the row has to say which column and
   # which level, and point at the call that tabulates that column.
-  expect_identical(card$result[card$check == "B5"], "ARM = rare: 1")
-  expect_identical(card$explore[card$check == "B5"], "table(synthetic$ARM)")
+  expect_identical(card$result[card$check == "B5a"], "ARM = rare: 1")
+  expect_identical(card$explore[card$check == "B5a"], "table(synthetic$ARM)")
 })
 
 test_that("a stratum that changed size is review, not FAIL", {

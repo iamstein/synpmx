@@ -111,6 +111,7 @@ reference:
   - pmx_endpoint_types
   - compare_pmx
   - compare_pmx_distributions
+  - compare_pmx_rare_levels
   - skeleton_uniqueness
   - plot_pmx_schedule
   - pmx_masking_report

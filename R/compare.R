@@ -360,6 +360,165 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
   knitr::asis_output(paste(Filter(Negate(is.null), out), collapse = "\n\n"))
 }
 
+# The source-side rare-level census -------------------------------------------
+#
+# Numeric covariates are blended into a value nobody had. Categorical ones are
+# NOT: they are `sample()`d from the donors' values, and `strata` are copied from
+# the anchor by design, so a synthetic patient's category is always some real
+# patient's actual category, copied. The disclosure that follows is not "this
+# level is unique in the output" -- it is that a level too few REAL patients held
+# appears in a table that may travel.
+#
+# There is a protection already, and it is geometric rather than designed: the
+# sole holder of a level sits alone on its own one-hot axis, is nobody's nearest
+# neighbour, and is rarely chosen as a donor. Measured, a level held by one
+# patient tends not to reach the output and a level held by two does. Nothing
+# enforces that and nothing reported it, which is what this closes.
+
+#' Which rare source levels reached the synthetic output
+#'
+#' Censuses every categorical axis -- `strata` and each non-numeric covariate --
+#' on both sides, and marks the levels **too few source patients held** to be
+#' safely copied out. That floor is `min_pattern_share`, the same rule the
+#' generator applies to visit sets and the scorecard applies to copied vectors,
+#' so no new threshold is introduced.
+#'
+#' Read the `exposed` rows, and among them the ones that `reached` the output. A
+#' level held by two real patients, appearing in a released table, says that
+#' someone with that attribute was in this study; for a named trial with public
+#' inclusion criteria that can be close to identifying on its own, and no cohort
+#' size helps. The remedies are upstream of generation: drop the covariate from
+#' `covariates`, or collapse its rare levels before generating.
+#'
+#' This reads real patient data on both sides and is marked
+#' `"restricted_not_releasable"`.
+#'
+#' **What it cannot see.** Rarity *in the world*. If every living carrier of a
+#' mutation is in this study, the source count is the whole population and looks
+#' unremarkable. And it censuses each column on its own: with `d` covariates
+#' there are `2^d` combinations that could single a patient out, and enumerating
+#' them is not something this does.
+#'
+#' @param source Source PMX data.
+#' @param synthetic Generated synthetic PMX data. When it carries a
+#'   `"pmx_settings"` attribute, its `min_pattern_share` is used as the floor.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param floor Levels held by fewer than this many source patients are
+#'   `exposed`. Left `NULL` it is taken from the run, and `2` otherwise -- the
+#'   lowest value that means "more than one real patient".
+#'
+#' @return A `pmx_rare_levels` data frame, one row per categorical column and
+#'   level, with `source_patients`, `synthetic_patients`, `exposed` and
+#'   `reached`. Zero rows when the roles declare no categorical axis.
+#' @seealso [synpmx_scorecard()], which reports this as row B5b,
+#'   [compare_pmx_distributions()],
+#'   `vignette("scorecard-synthetic-data-checks")`.
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = c("WT", "SEX")
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' compare_pmx_rare_levels(data, synthetic, roles)
+compare_pmx_rare_levels <- function(source, synthetic, roles, floor = NULL) {
+  .assert_roles(source, roles)
+  .assert_roles(synthetic, roles)
+  if (is.null(floor)) {
+    settings <- attr(synthetic, "pmx_settings")
+    floor <- as.integer(settings$min_pattern_share %||% 2L)
+  }
+  if (!is.numeric(floor) || length(floor) != 1L || is.na(floor) || floor < 1) {
+    stop("`floor` must be one integer of 1 or more.", call. = FALSE)
+  }
+  floor <- as.integer(floor)
+
+  # Taken from the source, so a column the generator dropped is still censused.
+  columns <- .scorecard_categorical(source, roles)
+  rows <- lapply(columns, function(column) {
+    held <- function(data) {
+      if (is.null(data[[column]])) return(integer())
+      table(.scorecard_holders(data, roles, column))
+    }
+    source_held <- held(source)
+    synthetic_held <- held(synthetic)
+    levels <- union(names(source_held), names(synthetic_held))
+    count <- function(counts, level) {
+      if (level %in% names(counts)) as.integer(counts[[level]]) else 0L
+    }
+    data.frame(
+      column = column,
+      level = levels,
+      source_patients = vapply(levels, count, integer(1), counts = source_held),
+      synthetic_patients = vapply(levels, count, integer(1),
+                                  counts = synthetic_held),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  out <- if (length(rows)) do.call(rbind, rows) else data.frame(
+    column = character(), level = character(), source_patients = integer(),
+    synthetic_patients = integer(), stringsAsFactors = FALSE
+  )
+  # A level with no source holder cannot expose a source patient, whatever it is
+  # doing in the output -- and it should not be there at all, since categories
+  # are copied rather than invented.
+  out$exposed <- out$source_patients > 0L & out$source_patients < floor
+  out$reached <- out$synthetic_patients > 0L
+  out <- out[order(out$source_patients, out$column, out$level), , drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "floor") <- floor
+  out <- structure(out, class = c("pmx_rare_levels", "data.frame"))
+  .mark_release(out, "restricted_not_releasable")
+}
+
+.rare_levels_headline <- function(x) {
+  exposed <- sum(x$exposed)
+  leaked <- sum(x$exposed & x$reached)
+  sprintf(paste("%d level(s) held by fewer than %d source patients;",
+                "%d of them reached the output."),
+          exposed, attr(x, "floor"), leaked)
+}
+
+#' @export
+print.pmx_rare_levels <- function(x, ...) {
+  plain <- as.data.frame(x)
+  cat("Restricted PMX rare-level census (source against synthetic)\n\n")
+  if (!nrow(plain)) {
+    cat("No categorical axis is declared, so there is nothing to census.\n")
+    return(invisible(x))
+  }
+  cat(.rare_levels_headline(x), "\n\n", sep = "")
+  # The exposed rows are the point; the rest is the census they sit in, and on a
+  # study with many levels printing all of it buries them.
+  shown <- plain[plain$exposed, , drop = FALSE]
+  if (nrow(shown)) {
+    print(shown, row.names = FALSE)
+    cat("\nA level that `reached` the output is one real patient's attribute,",
+        "\ncopied. Drop the covariate or collapse its rare levels before",
+        "generating.\n")
+  } else {
+    cat("Every level in the output is one that at least", attr(x, "floor"),
+        "source patients held.\n")
+  }
+  cat("\nSource-derived; not releasable.\n")
+  invisible(x)
+}
+
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_rare_levels <- function(x, ...) {
+  plain <- as.data.frame(x)
+  if (!nrow(plain)) {
+    return(knitr::asis_output("No categorical axis is declared, so there is ",
+                              "nothing to census."))
+  }
+  knitr::knit_print(knitr::kable(
+    plain, row.names = FALSE,
+    caption = paste("RESTRICTED --", .rare_levels_headline(x))
+  ))
+}
+
 # Post-generation outlier / identifiability check -----------------------------
 #
 # compare_pmx_distributions() compares whole distributions; this checks
