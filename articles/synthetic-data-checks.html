@@ -195,53 +195,45 @@ the table at the end of the vignette collects them.</li>
 <td><strong>0</strong></td>
 </tr>
 <tr class="even">
-<td><strong>B1c</strong></td>
-<td>How near-miss are the source’s schedules?</td>
-<td><code>skeleton_uniqueness()$nearest_set_diff</code></td>
-<td>source</td>
-<td>review — one slot is not twenty</td>
-</tr>
-<tr class="odd">
 <td><strong>B2</strong></td>
 <td>Does any synthetic patient stand out from its own stratum?</td>
 <td><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code></td>
 <td>synthetic</td>
 <td>review each; not necessarily 0</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>B3</strong></td>
 <td>Is any avatar too close to a real patient in value space?</td>
 <td><code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code></td>
 <td>both</td>
 <td>inside the null interval, near 0.5</td>
 </tr>
-<tr class="odd">
-<td><strong>B4</strong></td>
+<tr class="even">
+<td><strong>B4a</strong></td>
 <td>Is any generated time vector a copy of a real one?</td>
 <td>
-<em>gap</em> — six lines by hand</td>
+<em>gap</em> — a few lines by hand</td>
+<td>both</td>
+<td><strong>0</strong></td>
+</tr>
+<tr class="odd">
+<td><strong>B4b</strong></td>
+<td>Is any generated <code>DV</code> vector a copy of a real one?</td>
+<td>
+<em>gap</em> — the same lines by hand</td>
 <td>both</td>
 <td><strong>0</strong></td>
 </tr>
 <tr class="even">
 <td><strong>B5</strong></td>
-<td>Does a rare category reach the output?</td>
+<td>Does any categorical level sit on a single synthetic patient?</td>
 <td>
 <em>gap</em> — level census by hand</td>
-<td>both</td>
-<td>no output level held by fewer than <code>min_pattern_share</code>
-source patients</td>
+<td>synthetic</td>
+<td>
+<strong>0</strong> such levels</td>
 </tr>
 <tr class="odd">
-<td><strong>B6</strong></td>
-<td>Does a copied column give a masked covariate back?</td>
-<td>
-<code>dose_basis_note</code>, then read the derived columns by
-hand</td>
-<td>run report</td>
-<td>understood, not merely absent</td>
-</tr>
-<tr class="even">
 <td><strong>C1</strong></td>
 <td>Is time after dose still what it was?</td>
 <td>
@@ -251,14 +243,14 @@ hand</td>
 <td>source</td>
 <td>pass, or a disagreement you can explain</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>C2</strong></td>
 <td>Do dose and observation stay in order?</td>
 <td><em>gap</em></td>
 <td>—</td>
 <td>—</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>C3</strong></td>
 <td>Did every arm keep its endpoints and its size?</td>
 <td>arm x endpoint table; <code>strata_balanced</code>
@@ -266,41 +258,26 @@ hand</td>
 <td>both</td>
 <td>no endpoint where the source had none; arm sizes match</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>C4</strong></td>
-<td>What did the masking cost?</td>
+<td>What features of the study were lost?</td>
 <td><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code></td>
 <td>both</td>
 <td>review — this one has no pass mark</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>D1</strong></td>
 <td>Do the values land in the same range?</td>
 <td><code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code></td>
 <td>both</td>
 <td>same magnitude and shape; spread <strong>will</strong> shrink</td>
 </tr>
-<tr class="odd">
-<td><strong>D2</strong></td>
-<td>How much blending actually happened?</td>
-<td>
-<code>mean_effective_donors</code>,
-<code>cap_binding_fraction</code>
-</td>
-<td>run report</td>
-<td>review</td>
-</tr>
-<tr class="even">
-<td><strong>F</strong></td>
-<td>Does <em>your</em> pipeline run unchanged against it?</td>
-<td>your own code</td>
-<td>—</td>
-<td>it runs</td>
-</tr>
 </tbody>
 </table>
-<p>The last row is the one no function can answer and the only one that
-is strictly necessary. It is the reason the package exists.</p>
+<p>One requirement is deliberately not in the table, because no function
+can answer it: <strong>does the pipeline that will consume the real
+study run unchanged against this?</strong> It is the only strictly
+necessary check, and it is the reason the package exists.</p>
 <p><code><a href="../articles/demo.html">vignette("demo")</a></code> closes by computing this scorecard on a
 real run, so you can see what the filled-in version looks like.</p>
 </div>
@@ -1008,26 +985,42 @@ package’s own regression test requires of it.</p>
 <h3 id="b4--exact-copies">B4. Exact copies<a class="anchor" aria-label="anchor" href="#b4--exact-copies"></a>
 </h3>
 <p>The crudest check, and worth keeping precisely because it catches a
-whole class of plumbing mistakes that the subtle checks miss. No
-generated time vector may be identical to a source subject’s.</p>
+whole class of plumbing mistakes that the subtle checks miss. Two
+vectors per subject must not be reproduced: <strong>B4a</strong>, the
+observation times, and <strong>B4b</strong>, the <code>DV</code> values
+recorded at them. They fail independently. A generator can invent a
+schedule and then carry a real patient’s measurements onto it, or place
+real measurements on a new grid, and each is a copy of half the
+patient.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">time_vectors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">subject_vectors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, <span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span>, <span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>         <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="kw">function</span><span class="op">(</span><span class="va">times</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">times</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">","</span><span class="op">)</span><span class="op">)</span></span>
+<span>         <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">","</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu">time_vectors</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span><span class="op">)</span>,</span>
-<span>                 <span class="fu">time_vectors</span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu">time_vectors</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span>,</span>
-<span>                 <span class="fu">time_vectors</span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>Both zero, as required. The same comparison is worth running on
-<code>DV</code> vectors and on whole covariate rows. <strong>There is no
-exported helper for this</strong> — it is a gate in the package’s own
-tests, and the six lines above are what a user has to write today. That
-is a gap.</p>
+<span><span class="va">exact_copies</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span></span>
+<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>,</span>
+<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    dv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span></span>
+<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span>,</span>
+<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">exact_copies</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
+<span><span class="co">#&gt; time   dv </span></span>
+<span><span class="co">#&gt;    0    0</span></span>
+<span><span class="fu">exact_copies</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
+<span><span class="co">#&gt; time   dv </span></span>
+<span><span class="co">#&gt;    0    0</span></span></code></pre></div>
+<p>All zero, as required. Values are sorted before comparison, so a
+reordering of the same numbers still counts as a copy — the stricter
+reading, and the right one, since the reordering is not what protects
+the patient. The same comparison is worth running on whole covariate
+rows.</p>
+<p><strong>There is no exported helper for this</strong> — it is a gate
+in the package’s own tests, and the lines above are what a user has to
+write today. That is a gap.</p>
 </div>
 <div class="section level3">
 <h3 id="b5--rare-categories-and-rare-combinations">B5. Rare categories and rare combinations<a class="anchor" aria-label="anchor" href="#b5--rare-categories-and-rare-combinations"></a>
@@ -1192,6 +1185,44 @@ because anchors are sampled with replacement — section C.) A
 level the source had and the output lost.</p>
 </div>
 <div class="section level4">
+<h4 id="the-one-line-of-it-that-can-be-checked-without-the-source">The one line of it that can be checked without the source<a class="anchor" aria-label="anchor" href="#the-one-line-of-it-that-can-be-checked-without-the-source"></a>
+</h4>
+<p>The census above reads real patient data and is therefore restricted
+output. One weaker question can be asked of the released table alone:
+<strong>does any categorical level sit on exactly one synthetic
+patient?</strong> A level held by a single synthetic patient singles
+that patient out within the release, whatever the source looked like.
+This is the scorecard’s B5.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">singleton_levels</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">numeric_covariate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">covariates</span>,</span>
+<span>                              <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">v</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                              <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="co"># `strata` are protocol assignments and are categorical whatever their</span></span>
+<span>  <span class="co"># storage type, so a numerically coded arm is not excluded here.</span></span>
+<span>  <span class="va">columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">strata</span>, <span class="va">roles</span><span class="op">$</span><span class="va">covariates</span><span class="op">[</span><span class="op">!</span><span class="va">numeric_covariate</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">columns</span>, <span class="kw">function</span><span class="op">(</span><span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                 <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">counts</span><span class="op">[</span><span class="va">counts</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">singleton_levels</span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
+<span><span class="co">#&gt; named integer(0)</span></span></code></pre></div>
+<p>Empty, which is the pass. <code>pheno_sd</code> declares no
+categorical covariate and no <code>strata</code>, so it has no axis for
+this check to read — an empty answer there means <em>not
+applicable</em>, not <em>clean</em>.</p>
+<p><strong>Two things this does not do</strong>, and they are the reason
+the checks above it stay on the list. A level held by two source
+patients can be copied onto ten avatars and pass this check while the
+disclosure is real, since what matters is how many <em>real</em>
+patients held it. And a level held by thirty source patients can land on
+one avatar by chance and fail it harmlessly. The synthetic-side count is
+what you can compute on a table that has left the trusted environment;
+the source-side count is what the risk is actually made of.</p>
+</div>
+<div class="section level4">
 <h4 id="what-none-of-this-can-do">What none of this can do<a class="anchor" aria-label="anchor" href="#what-none-of-this-can-do"></a>
 </h4>
 <p>Enumerate combinations. With <code>d</code> covariates there are
@@ -1245,17 +1276,19 @@ article</a> works through that trade-off.</p>
 </div>
 </div>
 <div class="section level3">
-<h3 id="b6--deterministic-proxies">B6. Deterministic proxies<a class="anchor" aria-label="anchor" href="#b6--deterministic-proxies"></a>
+<h3 id="deterministic-proxies">Deterministic proxies<a class="anchor" aria-label="anchor" href="#deterministic-proxies"></a>
 </h3>
 <p>A column that is a function of a covariate discloses that covariate
-exactly, and every dataset has candidates.</p>
+exactly, and every dataset has candidates. This is not a scorecard row,
+because there is nothing to run: the generator handles the one case it
+can detect, and the rest is a reading of your own columns.</p>
 <p>The worked case is dosing. Under milligram-per-kilogram dosing, an
 <code>AMT</code> copied from the anchor reveals the anchor’s weight to
 the gram — the blending of the weight column is irrelevant, because the
 dose gives it back. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> detects proportional
 dosing and recomputes the amount from the avatar’s own blended
 covariate, and reports which path it took:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">$</span><span class="va">dose_basis_note</span></span>
 <span><span class="co">#&gt; [1] "the 5 distinct dose amounts are not a fixed multiple of any declared covariate: WEIGHTB (ratios do not cluster)"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">$</span><span class="va">dose_basis_note</span></span>
@@ -1291,7 +1324,7 @@ never generate anything.</p>
 <p><code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the <strong>source</strong> is the one
 place they are read, and a disagreement there is a real finding every
 time:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1336,7 +1369,7 @@ distributional check.</p>
 </h3>
 <p>All endpoints present is category A. Whether each endpoint is present
 <em>for the right patients</em> is this one:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">observed_by_arm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="op">]</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">observed</span><span class="op">$</span><span class="va">TRTACT</span>, <span class="va">observed</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
@@ -1442,7 +1475,7 @@ seed, with cohort size and arm membership both exact and only the
 <em>balance</em> wrong. <code>preserve_strata_balance</code> (default
 <code>TRUE</code>) now gives each declared stratum its source share.
 Turning it off shows what the check was catching:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">unbalanced</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span>,</span>
 <span>                preserve_strata_balance <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -1461,7 +1494,7 @@ with one real patient in it would get exactly one avatar on every seed.
 run settings say how many strata fell on each side.</p>
 <p>Finally, the masking mechanisms buy safety with fidelity, and the
 cost is invisible unless reported:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"l"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -1744,7 +1777,7 @@ report was made to print “1 of 3 regimens represented”.</p>
 <h2 id="d--how-close-are-the-distributions">D. How close are the distributions?<a class="anchor" aria-label="anchor" href="#d--how-close-are-the-distributions"></a>
 </h2>
 <p>The utility tier: the covariates and the dependent variables.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">case1_dist</span><span class="op">$</span><span class="va">endpoints</span>, digits <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Endpoints, source against synthetic"</span><span class="op">)</span></span></code></pre></div>
@@ -1831,7 +1864,7 @@ report was made to print “1 of 3 regimens represented”.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">case1_dist</span><span class="op">$</span><span class="va">covariates_numeric</span>, digits <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Baseline weight, source against synthetic"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -1893,7 +1926,7 @@ average of several donors, and averaging reduces variance. Baseline
 weight above has a source standard deviation of about 20.5 kg and a
 synthetic one of about 14.7. The quantities that explain how much are
 reported with the run:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">[</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"k"</span>, <span class="st">"mean_effective_donors"</span>, <span class="st">"max_donor_weight"</span>, <span class="st">"cap_binding_fraction"</span><span class="op">)</span></span>
 <span><span class="op">]</span><span class="op">)</span></span>
@@ -1943,7 +1976,7 @@ real visits into one on a denser fixture. Public data is a floor.</p>
 output.</strong> They may not leave the environment the source data
 lives in. <code><a href="../reference/compare_pmx.html">compare_pmx()</a></code> reports this per component rather
 than leaving it to be inferred:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx.html">compare_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">$</span><span class="va">release_status</span></span>
 <span><span class="co">#&gt;              component             release_status</span></span>
 <span><span class="co">#&gt; 1              summary  restricted_not_releasable</span></span>
@@ -2023,19 +2056,20 @@ the scorecard at the top, with what closing each would take:</p>
 <tbody>
 <tr class="odd">
 <td>B5</td>
-<td>No flag on rare categorical levels.
-<code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code> gives the census for declared
-covariates but not for <code>strata</code>, and applies no threshold to
-either</td>
+<td>No flag on rare categorical levels. The singleton check above is by
+hand, and it is the weak form: <code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code>
+gives the source-side census for declared covariates but not for
+<code>strata</code>, and applies no threshold to either</td>
 <td>Checks 1 to 4 are one function over the subject-level table. Check 5
 — declaring which levels are rare <em>in the population</em> — needs an
 API decision first</td>
 </tr>
 <tr class="even">
-<td>B4</td>
-<td>No exported helper for exact-copy checks; it is a gate in the
-package’s tests, and six lines of user code here</td>
-<td>Export the gate</td>
+<td>B4a, B4b</td>
+<td>No exported helper for exact-copy checks on time or <code>DV</code>
+vectors; it is a gate in the package’s tests, and hand-written user code
+here</td>
+<td>Export the gate over both vectors</td>
 </tr>
 <tr class="odd">
 <td>C2</td>

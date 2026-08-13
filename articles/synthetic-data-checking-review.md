@@ -33,7 +33,7 @@ synthetic dataset together (a distance, distribution, or comparison) can
 measure both properties of the population and properties of individual
 patients.
 
-## Adverserial Accuracy - Similarity between Real and Synthetic Data
+## Adverserial Accuracy
 
 **To assess a synthetic data generating algorithm, split real cohort
 into a training and control (holdout) set.** Then ask your similarity
@@ -233,8 +233,7 @@ Today
 can only act on what
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
 found, and that screen looks for structural outliers. A patient with
-local cloaking 0 is exposed for a completely different reason and is
-invisible to it.
+local cloaking 0 is not impacted by these functions.
 
 Hidden rate is a **membership inference** measure: the error rate of an
 adversary trying to link a known individual to the release. Membership
@@ -259,7 +258,8 @@ nearest-neighbour. A smarter attacker exists. Both metrics are concrete
 and neither is a bound, which is the caveat on every measure in this
 article except differential privacy.
 
-The same paper reports two generic distance measures:
+Guillaudeux and colleagues also report two generic distance measures,
+which are not patient-centric and can be computed for any generator:
 
 - **Distance to closest record (DCR).** For each synthetic record, the
   distance to the nearest real one. Larger is safer; zero is a copy.
@@ -271,6 +271,8 @@ The same paper reports two generic distance measures:
 
 Both are cheap to compute. The section on similarity metrics below gives
 the reason not to rely on either.
+
+## Assessing Anonymization
 
 ### Disclosure Risk in Official Statistics: RepU and DiSCO
 
@@ -466,7 +468,7 @@ Four conclusions follow:
 - **The only claim that survives all of this is a formal one**, which is
   the argument for the differentially private modes.
 
-### Fidelity, Diversity, and Authenticity
+## Fidelity, Diversity, and Authenticity
 
 Alaa and colleagues (2022) split “is the synthetic data good?” into
 three questions. Collapsing them into one hides which of the three
@@ -483,7 +485,7 @@ broke:
   are they near-copies of training records? This is the privacy axis,
   and it is computed **per record**.
 
-#### Losing the tails
+### Losing the tails
 
 Losing the tails is mostly intended.
 
@@ -509,7 +511,7 @@ two causes apart**, and the two causes have opposite implications:
 coverage so that a shrinking spread can be attributed, not so that it
 can be optimized. Report it, do not chase it.
 
-#### Authenticity
+### Authenticity
 
 Authenticity is the “too close” direction, per record. It asks, of each
 synthetic record individually, whether the record is a copy of some
@@ -620,7 +622,7 @@ this literature, and no function can compute it: **does the pipeline
 that will consume the real study run unchanged against this?** Only the
 person holding that pipeline can answer it.
 
-### Can Enumerated Checks Be Sufficient?
+## Can Enumerated Checks Be Sufficient?
 
 `synpmx` protects the output with a list of enumerated conditions rather
 than with a bound. No visit pattern held by fewer than
@@ -644,7 +646,14 @@ knowing because the published versions come with published attacks.
 | Structurally extreme subjects never anchor | **Special-uniques suppression** |
 | No donor exceeds half of any avatar | **Bounded per-record influence** |
 
-#### The published answer is that enumeration does not close
+#### Enumeration never finishes
+
+A list of checks is **finished** when you can add one last condition and
+then say that no attack outside the list can succeed. The alternative to
+a finished list is a **bound**, one statement that holds against any
+attacker whatever they already know, which is what differential privacy
+provides. The published history of enumerated lists is that the last
+condition never arrives.
 
 k-anonymity (Sweeney, 2002) was defeated by the homogeneity and
 background-knowledge attacks, which motivated l-diversity
@@ -658,7 +667,7 @@ Every step in that sequence added a condition in response to an attack
 the previous enumeration did not cover. Differential privacy was
 formulated in the same period as the alternative to continuing it.
 
-Three reasons the enumeration does not close:
+Three reasons the list never finishes:
 
 - **Combinations outrun enumeration.** Checks are written per field or
   per small group of fields. Identification comes from combinations,

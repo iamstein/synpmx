@@ -48,22 +48,21 @@ Three columns need a word of explanation.
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
 | **B1a** | Does any avatar wear one real patient’s visit set? | `identifying_visit_sets` | run report | **0** |
 | **B1b** | Does any avatar wear one real patient’s dose schedule? | `identifying_dose_schedules` | run report | **0** |
-| **B1c** | How near-miss are the source’s schedules? | `skeleton_uniqueness()$nearest_set_diff` | source | review — one slot is not twenty |
 | **B2** | Does any synthetic patient stand out from its own stratum? | [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | both | inside the null interval, near 0.5 |
-| **B4** | Is any generated time vector a copy of a real one? | *gap* — six lines by hand | both | **0** |
-| **B5** | Does a rare category reach the output? | *gap* — level census by hand | both | no output level held by fewer than `min_pattern_share` source patients |
-| **B6** | Does a copied column give a masked covariate back? | `dose_basis_note`, then read the derived columns by hand | run report | understood, not merely absent |
+| **B4a** | Is any generated time vector a copy of a real one? | *gap* — a few lines by hand | both | **0** |
+| **B4b** | Is any generated `DV` vector a copy of a real one? | *gap* — the same lines by hand | both | **0** |
+| **B5** | Does any categorical level sit on a single synthetic patient? | *gap* — level census by hand | synthetic | **0** such levels |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
 | **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; arm sizes match |
-| **C4** | What did the masking cost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | review — this one has no pass mark |
+| **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | review — this one has no pass mark |
 | **D1** | Do the values land in the same range? | [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) | both | same magnitude and shape; spread **will** shrink |
-| **D2** | How much blending actually happened? | `mean_effective_donors`, `cap_binding_fraction` | run report | review |
-| **F** | Does *your* pipeline run unchanged against it? | your own code | — | it runs |
 
-The last row is the one no function can answer and the only one that is
-strictly necessary. It is the reason the package exists.
+One requirement is deliberately not in the table, because no function
+can answer it: **does the pipeline that will consume the real study run
+unchanged against this?** It is the only strictly necessary check, and
+it is the reason the package exists.
 
 [`vignette("demo")`](https://iamstein.github.io/synpmx/articles/demo.md)
 closes by computing this scorecard on a real run, so you can see what
@@ -638,29 +637,46 @@ test requires of it.
 ### B4. Exact copies
 
 The crudest check, and worth keeping precisely because it catches a
-whole class of plumbing mistakes that the subtle checks miss. No
-generated time vector may be identical to a source subject’s.
+whole class of plumbing mistakes that the subtle checks miss. Two
+vectors per subject must not be reproduced: **B4a**, the observation
+times, and **B4b**, the `DV` values recorded at them. They fail
+independently. A generator can invent a schedule and then carry a real
+patient’s measurements onto it, or place real measurements on a new
+grid, and each is a copy of half the patient.
 
 ``` r
 
-time_vectors <- function(data, roles) {
+subject_vectors <- function(data, roles, column) {
   observed <- data[as.character(data[[roles$evid]]) %in% c("0", "0.0"), ]
-  tapply(as.numeric(observed[[roles$time]]),
+  tapply(as.numeric(observed[[column]]),
          as.character(observed[[roles$id]]),
-         function(times) paste(sort(times), collapse = ","))
+         function(values) paste(sort(values), collapse = ","))
 }
-length(intersect(time_vectors(case1_pkpd, case1_roles),
-                 time_vectors(case1_synth, case1_roles)))
-#> [1] 0
-length(intersect(time_vectors(pheno_sd, pheno_roles),
-                 time_vectors(pheno_synth, pheno_roles)))
-#> [1] 0
+exact_copies <- function(source, synthetic, roles) {
+  c(time = length(intersect(
+      subject_vectors(source, roles, roles$time),
+      subject_vectors(synthetic, roles, roles$time))),
+    dv = length(intersect(
+      subject_vectors(source, roles, roles$dv),
+      subject_vectors(synthetic, roles, roles$dv))))
+}
+exact_copies(case1_pkpd, case1_synth, case1_roles)
+#> time   dv 
+#>    0    0
+exact_copies(pheno_sd, pheno_synth, pheno_roles)
+#> time   dv 
+#>    0    0
 ```
 
-Both zero, as required. The same comparison is worth running on `DV`
-vectors and on whole covariate rows. **There is no exported helper for
-this** — it is a gate in the package’s own tests, and the six lines
-above are what a user has to write today. That is a gap.
+All zero, as required. Values are sorted before comparison, so a
+reordering of the same numbers still counts as a copy — the stricter
+reading, and the right one, since the reordering is not what protects
+the patient. The same comparison is worth running on whole covariate
+rows.
+
+**There is no exported helper for this** — it is a gate in the package’s
+own tests, and the lines above are what a user has to write today. That
+is a gap.
 
 ### B5. Rare categories and rare combinations
 
@@ -801,6 +817,47 @@ anchors are sampled with replacement — section C.) A `0` in the
 synthetic column would be the other failure: a level the source had and
 the output lost.
 
+#### The one line of it that can be checked without the source
+
+The census above reads real patient data and is therefore restricted
+output. One weaker question can be asked of the released table alone:
+**does any categorical level sit on exactly one synthetic patient?** A
+level held by a single synthetic patient singles that patient out within
+the release, whatever the source looked like. This is the scorecard’s
+B5.
+
+``` r
+
+singleton_levels <- function(synthetic, roles) {
+  numeric_covariate <- vapply(roles$covariates,
+                              function(v) is.numeric(synthetic[[v]]),
+                              logical(1))
+  # `strata` are protocol assignments and are categorical whatever their
+  # storage type, so a numerically coded arm is not excluded here.
+  columns <- c(roles$strata, roles$covariates[!numeric_covariate])
+  counts <- unlist(lapply(columns, function(column) {
+    table(tapply(as.character(synthetic[[column]]),
+                 as.character(synthetic[[roles$id]]), function(x) x[1]))
+  }))
+  counts[counts == 1]
+}
+singleton_levels(case1_synth, case1_roles)
+#> named integer(0)
+```
+
+Empty, which is the pass. `pheno_sd` declares no categorical covariate
+and no `strata`, so it has no axis for this check to read — an empty
+answer there means *not applicable*, not *clean*.
+
+**Two things this does not do**, and they are the reason the checks
+above it stay on the list. A level held by two source patients can be
+copied onto ten avatars and pass this check while the disclosure is
+real, since what matters is how many *real* patients held it. And a
+level held by thirty source patients can land on one avatar by chance
+and fail it harmlessly. The synthetic-side count is what you can compute
+on a table that has left the trusted environment; the source-side count
+is what the risk is actually made of.
+
 #### What none of this can do
 
 Enumerate combinations. With `d` covariates there are `2^d` subsets that
@@ -848,10 +905,12 @@ The [privacy
 article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 works through that trade-off.
 
-### B6. Deterministic proxies
+### Deterministic proxies
 
 A column that is a function of a covariate discloses that covariate
-exactly, and every dataset has candidates.
+exactly, and every dataset has candidates. This is not a scorecard row,
+because there is nothing to run: the generator handles the one case it
+can detect, and the rest is a reading of your own columns.
 
 The worked case is dosing. Under milligram-per-kilogram dosing, an `AMT`
 copied from the anchor reveals the anchor’s weight to the gram — the
@@ -1249,8 +1308,8 @@ at the top, with what closing each would take:
 
 | \# | Gap | What closing it takes |
 |----|----|----|
-| B5 | No flag on rare categorical levels. [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) gives the census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
-| B4 | No exported helper for exact-copy checks; it is a gate in the package’s tests, and six lines of user code here | Export the gate |
+| B5 | No flag on rare categorical levels. The singleton check above is by hand, and it is the weak form: [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) gives the source-side census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
+| B4a, B4b | No exported helper for exact-copy checks on time or `DV` vectors; it is a gate in the package’s tests, and hand-written user code here | Export the gate over both vectors |
 | C2 | Dose/observation ordering and occasion assignment have no check | A post-generation invariant over the finished table, in the spirit of section F |
 | A5 | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it | A row in [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) |
 

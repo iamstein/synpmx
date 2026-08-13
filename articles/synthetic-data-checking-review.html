@@ -117,8 +117,7 @@ comparison) can measure both properties of the population and properties
 of individual patients.</p>
 </div>
 <div class="section level2">
-<h2 id="adverserial-accuracy---similarity-between-real-and-synthetic-data">Adverserial Accuracy - Similarity between Real and Synthetic
-Data<a class="anchor" aria-label="anchor" href="#adverserial-accuracy---similarity-between-real-and-synthetic-data"></a>
+<h2 id="adverserial-accuracy">Adverserial Accuracy<a class="anchor" aria-label="anchor" href="#adverserial-accuracy"></a>
 </h2>
 <p><strong>To assess a synthetic data generating algorithm, split real
 cohort into a training and control (holdout) set.</strong> Then ask your
@@ -357,7 +356,7 @@ recorded as attributes.</p>
 matters. Today <code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> can only
 act on what <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> found, and that
 screen looks for structural outliers. A patient with local cloaking 0 is
-exposed for a completely different reason and is invisible to it.</p>
+not impacted by these functions.</p>
 <p>Hidden rate is a <strong>membership inference</strong> measure: the
 error rate of an adversary trying to link a known individual to the
 release. Membership inference is the strongest empirical privacy test in
@@ -380,7 +379,8 @@ failure rate of an attacker who holds a real record and the whole avatar
 set and guesses nearest-neighbour. A smarter attacker exists. Both
 metrics are concrete and neither is a bound, which is the caveat on
 every measure in this article except differential privacy.</p>
-<p>The same paper reports two generic distance measures:</p>
+<p>Guillaudeux and colleagues also report two generic distance measures,
+which are not patient-centric and can be computed for any generator:</p>
 <ul>
 <li>
 <strong>Distance to closest record (DCR).</strong> For each
@@ -396,6 +396,10 @@ copy. The paper treats 0.8 and above as satisfactory.</li>
 <p>Both are cheap to compute. The section on similarity metrics below
 gives the reason not to rely on either.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="assessing-anonymization">Assessing Anonymization<a class="anchor" aria-label="anchor" href="#assessing-anonymization"></a>
+</h2>
 <div class="section level3">
 <h3 id="disclosure-risk-in-official-statistics-repu-and-disco">Disclosure Risk in Official Statistics: RepU and DiSCO<a class="anchor" aria-label="anchor" href="#disclosure-risk-in-official-statistics-repu-and-disco"></a>
 </h3>
@@ -607,9 +611,10 @@ one</strong>, which is the argument for the differentially private
 modes.</li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="fidelity-diversity-and-authenticity">Fidelity, Diversity, and Authenticity<a class="anchor" aria-label="anchor" href="#fidelity-diversity-and-authenticity"></a>
-</h3>
+</div>
+<div class="section level2">
+<h2 id="fidelity-diversity-and-authenticity">Fidelity, Diversity, and Authenticity<a class="anchor" aria-label="anchor" href="#fidelity-diversity-and-authenticity"></a>
+</h2>
 <p>Alaa and colleagues (2022) split “is the synthetic data good?” into
 three questions. Collapsing them into one hides which of the three
 broke:</p>
@@ -630,9 +635,9 @@ records <em>new</em>, or are they near-copies of training records? This
 is the privacy axis, and it is computed <strong>per
 record</strong>.</li>
 </ul>
-<div class="section level4">
-<h4 id="losing-the-tails">Losing the tails<a class="anchor" aria-label="anchor" href="#losing-the-tails"></a>
-</h4>
+<div class="section level3">
+<h3 id="losing-the-tails">Losing the tails<a class="anchor" aria-label="anchor" href="#losing-the-tails"></a>
+</h3>
 <p>Losing the tails is mostly intended.</p>
 <p>Coverage and privacy are in direct opposition <strong>at the
 tails</strong>, because in a clinical dataset the tail <em>is</em> the
@@ -658,9 +663,9 @@ identical.</strong> Measure coverage so that a shrinking spread can be
 attributed, not so that it can be optimized. Report it, do not chase
 it.</p>
 </div>
-<div class="section level4">
-<h4 id="authenticity">Authenticity<a class="anchor" aria-label="anchor" href="#authenticity"></a>
-</h4>
+<div class="section level3">
+<h3 id="authenticity">Authenticity<a class="anchor" aria-label="anchor" href="#authenticity"></a>
+</h3>
 <p>Authenticity is the “too close” direction, per record. It asks, of
 each synthetic record individually, whether the record is a copy of some
 training record’s neighbourhood rather than a new draw.</p>
@@ -668,7 +673,6 @@ training record’s neighbourhood rather than a new draw.</p>
 local cloaking.</strong> Different field, different derivation, same
 question: <em>is this particular output too close to a particular
 input?</em> Three traditions, three names, one measurement.</p>
-</div>
 </div>
 <div class="section level3">
 <h3 id="utility-measures">Utility Measures<a class="anchor" aria-label="anchor" href="#utility-measures"></a>
@@ -780,9 +784,10 @@ pipeline that will consume the real study run unchanged against
 this?</strong> Only the person holding that pipeline can answer it.</p>
 </div>
 </div>
-<div class="section level3">
-<h3 id="can-enumerated-checks-be-sufficient">Can Enumerated Checks Be Sufficient?<a class="anchor" aria-label="anchor" href="#can-enumerated-checks-be-sufficient"></a>
-</h3>
+</div>
+<div class="section level2">
+<h2 id="can-enumerated-checks-be-sufficient">Can Enumerated Checks Be Sufficient?<a class="anchor" aria-label="anchor" href="#can-enumerated-checks-be-sufficient"></a>
+</h2>
 <p><code>synpmx</code> protects the output with a list of enumerated
 conditions rather than with a bound. No visit pattern held by fewer than
 <code>min_pattern_share</code> = 2 source patients reaches an avatar. A
@@ -831,8 +836,14 @@ quasi-identifier</td>
 </table>
 </div>
 <div class="section level4">
-<h4 id="the-published-answer-is-that-enumeration-does-not-close">The published answer is that enumeration does not close<a class="anchor" aria-label="anchor" href="#the-published-answer-is-that-enumeration-does-not-close"></a>
+<h4 id="enumeration-never-finishes">Enumeration never finishes<a class="anchor" aria-label="anchor" href="#enumeration-never-finishes"></a>
 </h4>
+<p>A list of checks is <strong>finished</strong> when you can add one
+last condition and then say that no attack outside the list can succeed.
+The alternative to a finished list is a <strong>bound</strong>, one
+statement that holds against any attacker whatever they already know,
+which is what differential privacy provides. The published history of
+enumerated lists is that the last condition never arrives.</p>
 <p>k-anonymity (Sweeney, 2002) was defeated by the homogeneity and
 background-knowledge attacks, which motivated l-diversity
 (Machanavajjhala and colleagues, 2007). l-diversity was defeated by
@@ -843,7 +854,7 @@ people neither release identifies alone.</p>
 <p>Every step in that sequence added a condition in response to an
 attack the previous enumeration did not cover. Differential privacy was
 formulated in the same period as the alternative to continuing it.</p>
-<p>Three reasons the enumeration does not close:</p>
+<p>Three reasons the list never finishes:</p>
 <ul>
 <li>
 <strong>Combinations outrun enumeration.</strong> Checks are written
@@ -914,7 +925,6 @@ trial.</p>
 <p>The invariant is verifiable and the assumption is not. Naming both is
 what distinguishes an argument a data protection officer can evaluate
 from a claim.</p>
-</div>
 </div>
 <div class="section level3">
 <h3 id="what-to-do-at-each-cohort-size">What To Do At Each Cohort Size<a class="anchor" aria-label="anchor" href="#what-to-do-at-each-cohort-size"></a>

@@ -524,13 +524,13 @@ per_patient <- function(data, which) {
   rows <- if (which == "dose") sum(events) else sum(!events)
   round(rows / subjects(data), 1)
 }
-# Each subject's sorted observation times as one string: two subjects share a
-# string only if their schedules are identical.
-time_vectors <- function(data) {
+# Each subject's sorted observation times, or values, as one string: two
+# subjects share a string only if that vector is identical.
+subject_vectors <- function(data, column) {
   observed <- data[as.character(data[[roles$evid]]) %in% c("0", "0.0"), ]
-  tapply(as.numeric(observed[[roles$time]]),
+  tapply(as.numeric(observed[[column]]),
          as.character(observed[[roles$id]]),
-         function(times) paste(sort(times), collapse = ","))
+         function(values) paste(sort(values), collapse = ","))
 }
 # One baseline value per subject, as character so a factor cannot collapse to
 # its integer codes.
@@ -539,18 +539,14 @@ holders <- function(data, column) {
                       as.character(data[[roles$id]]),
                       function(x) x[1]))
 }
-# Of the levels that reached the output, how many source patients held the
-# rarest one. This is scorecard row B5, by hand, over strata and any
-# non-numeric covariate.
-categorical <- c(roles$strata, roles$covariates)
-categorical <- categorical[vapply(categorical,
-                                  function(v) !is.numeric(raw[[v]]),
-                                  logical(1))]
+# Scorecard row B5, by hand: how many synthetic patients hold the least-held
+# categorical level. `strata` are protocol assignments and are categorical
+# whatever their storage type, so a numerically coded arm is not excluded.
+numeric_covariate <- vapply(roles$covariates,
+                            function(v) is.numeric(raw[[v]]), logical(1))
+categorical <- c(roles$strata, roles$covariates[!numeric_covariate])
 rarest_level <- min(vapply(categorical, function(column) {
-  source_holders <- holders(raw, column)
-  present <- intersect(unique(holders(synthetic, column)),
-                       unique(source_holders))
-  min(as.integer(table(factor(source_holders, levels = present))))
+  min(as.integer(table(holders(synthetic, column))))
 }, integer(1)))
 
 arm_size <- function(data) {
@@ -561,7 +557,10 @@ source_arms <- arm_size(raw)
 synth_arms <- arm_size(synthetic)[names(source_arms)]
 arms_matched <- sum(source_arms == synth_arms)
 
-copies <- length(intersect(time_vectors(raw), time_vectors(synthetic)))
+time_copies <- length(intersect(subject_vectors(raw, roles$time),
+                                subject_vectors(synthetic, roles$time)))
+dv_copies <- length(intersect(subject_vectors(raw, roles$dv),
+                              subject_vectors(synthetic, roles$dv)))
 inside_null <- prox$adversarial_accuracy >= prox$null_lower &&
   prox$adversarial_accuracy <= prox$null_upper
 
@@ -592,19 +591,18 @@ card <- rbind(
       sprintf("%.3f in [%.3f, %.3f]", prox$adversarial_accuracy,
               prox$null_lower, prox$null_upper),
       inside_null),
-  row("B4", "Generated time vectors copying a real one", "both",
-      copies, copies == 0),
-  row("B5", "Source patients holding the rarest exported level", "both",
-      paste(rarest_level, "(floor", paste0(settings$min_pattern_share, ")")),
-      rarest_level >= settings$min_pattern_share),
+  row("B4a", "Generated time vectors copying a real one", "both",
+      time_copies, time_copies == 0),
+  row("B4b", "Generated DV vectors copying a real one", "both",
+      dv_copies, dv_copies == 0),
+  row("B5", "Synthetic patients holding the least-held level", "synthetic",
+      rarest_level, rarest_level > 1),
   row("C3", "Arms keeping their source size", "both",
       paste(arms_matched, "of", length(source_arms)),
       arms_matched == length(source_arms)),
   row("C4", "Dose regimens represented", "both",
       paste(settings$dose_regimens_represented, "of",
-            settings$dose_regimens_source)),
-  row("D2", "Effective donors per avatar", "run report",
-      paste(round(settings$mean_effective_donors, 1), "of k =", settings$k))
+            settings$dose_regimens_source))
 )
 
 knitr::kable(card, row.names = FALSE)
@@ -622,15 +620,15 @@ knitr::kable(card, row.names = FALSE)
 | B1b | Avatars wearing one real patient’s dose schedule | run report | 0 | pass |
 | B2 | Synthetic patients unusual within their own arm | synthetic | 1 of 180 | review |
 | B3 | Adversarial accuracy inside its null interval | both | 0.511 in \[0.415, 0.571\] | pass |
-| B4 | Generated time vectors copying a real one | both | 0 | pass |
-| B5 | Source patients holding the rarest exported level | both | 30 (floor 2) | pass |
+| B4a | Generated time vectors copying a real one | both | 0 | pass |
+| B4b | Generated DV vectors copying a real one | both | 0 | pass |
+| B5 | Synthetic patients holding the least-held level | synthetic | 30 | pass |
 | C3 | Arms keeping their source size | both | 6 of 6 | pass |
 | C4 | Dose regimens represented | both | 2 of 2 | review |
-| D2 | Effective donors per avatar | run report | 2.9 of k = 5 | review |
 
 Three things to notice about how this reads.
 
-**`review` is not a soft `pass`.** Five rows have no pass mark because
+**`review` is not a soft `pass`.** Four rows have no pass mark because
 no threshold would be honest. Doses per patient is the clearest: on this
 study it is unchanged, and on a study with individualised dosing it can
 halve while every guarantee above it still reads 0. A checklist that
@@ -643,12 +641,14 @@ handling obligations, so the filled-in scorecard is itself restricted
 output. Only the `synthetic` and `run report` rows can travel with the
 data.
 
-**B5 is the row doing the least work.** It reports the rarest
-categorical level that reached the output, which on a six-arm study with
-thirty patients per arm is a comfortable 30. On a study with a
-two-patient stratum it would read 2, and that is the whole finding — but
-nothing in the package computes it, so the lines above are what you have
-to write. See
+**B5 is the row doing the least work.** It reports how many synthetic
+patients hold the least-held categorical level, which on a six-arm study
+with thirty patients per arm is a comfortable 30. A `1` would mean some
+level sits on a single avatar, singling that avatar out within the
+release. It reads the synthetic table only, which is why it can travel —
+and also why it is the weak form of the question: what the risk is made
+of is how many *real* patients held the level, and nothing in the
+package computes that either. See
 [`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md),
 section B5.
 
