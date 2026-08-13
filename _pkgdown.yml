@@ -106,6 +106,7 @@ reference:
 - title: Validation and diagnostics
   desc: Structural checks on generated data, and restricted comparisons.
   contents:
+  - pmx_scorecard
   - validate_pmx
   - compare_pmx
   - compare_pmx_distributions
