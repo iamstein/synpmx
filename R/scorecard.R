@@ -74,12 +74,6 @@
                       function(x) x[[1L]]))
 }
 
-# A level name goes in a fixed-width column, and study labels are not short.
-.scorecard_short <- function(x, width = 14L) {
-  x <- as.character(x)
-  ifelse(nchar(x) > width, paste0(substr(x, 1L, width - 1L), "~"), x)
-}
-
 # `strata` are protocol assignments and are categorical whatever their storage
 # type, so a numerically coded arm is not excluded here.
 .scorecard_categorical <- function(data, roles) {
@@ -303,8 +297,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     rarest <- rarest[which.min(rarest$n), , drop = FALSE]
     rows <- c(rows, list(.scorecard_row(
       "B5a", "Patients holding the least-held categorical level", "synthetic",
-      sprintf("%s = %s: %d", rarest$column, .scorecard_short(rarest$level),
-              rarest$n),
+      sprintf("%s = %s: %d", rarest$column, rarest$level, rarest$n),
       sprintf("table(synthetic$%s)", rarest$column),
       # Review rather than FAIL, because this is the weak form of the check and
       # it is wrong in both directions: a level held by thirty source patients
@@ -402,13 +395,32 @@ print.synpmx_scorecard <- function(x, ...) {
   # ordinary console, which made the whole card unreadable to save a second
   # glance. It goes below the table instead, one line per row that needs it, and
   # only those rows. The returned object still carries the column on every row.
-  line <- function(...) cat(sprintf("  %-5s %-50s %-12s %-26s %s\n", ...))
+  #
+  # Widths come from the contents rather than from constants. A `result` holds a
+  # study's own label -- "RACE = NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER" --
+  # and clipping that to fit a fixed column turned the one row that needed
+  # reading into the one row nobody could read. The table is as wide as the
+  # study makes it, which on most studies is narrower than the old constants.
+  columns <- c("check", "question", "reads", "result", "verdict")
+  width <- vapply(columns, function(column) {
+    max(nchar(c(column, plain[[column]])))
+  }, integer(1))
+  # `result` is the only column that can hold a study's own label, so it is the
+  # only one capped. Padding is capped, but nothing is cut: a longer value runs
+  # past its column and pushes that row's verdict right, which costs one ragged
+  # line instead of a whole table sized for its worst label. The other columns
+  # are package-authored and bounded, and capping those just made every long
+  # question ragged for nothing.
+  width[["result"]] <- min(width[["result"]], 45L)
+  # Every column padded but the last, which nothing follows.
+  format <- paste0("  ", paste(sprintf("%%-%ds", width[-length(width)]),
+                               collapse = " "), " %s\n")
+  line <- function(values) cat(do.call(sprintf, c(list(format), as.list(values))))
   cat("Scorecard: see vignette(\"scorecard-synthetic-data-checks\")",
       "for what each asks\n\n")
-  line("check", "question", "reads", "result", "verdict")
+  line(columns)
   for (i in seq_len(nrow(plain))) {
-    line(plain$check[[i]], plain$question[[i]], plain$reads[[i]],
-         plain$result[[i]], plain$verdict[[i]])
+    line(unlist(plain[i, columns], use.names = FALSE))
   }
 
   unresolved <- plain$verdict != "pass"
