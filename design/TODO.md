@@ -17,21 +17,33 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
-## Open 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
+## Done 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
 
 Found while rewriting `avatar-evaluation-public-data.Rmd` onto the demo's shape.
 `xgxr::mad` carries binary, count and ordinal PD endpoints in the same numeric
-`LIDV` column as PK, and all three come out continuous: the 0/1 endpoint takes
-600 distinct values from -0.13 to 1.08. Every scorecard row passes, so nothing
-catches it.
+`LIDV` column as PK, and all three came out continuous: the 0/1 endpoint took
+600 distinct values from -0.13 to 1.08. Every scorecard row passed, so nothing
+caught it.
 
-- [ ] Decide the fix: round generated values back onto the source level set per
-      endpoint at emit, or refuse and say so. Class restoration is per column and
-      cannot see an endpoint, so neither is free.
-- [ ] Regression test on a fixture with one integer-level endpoint alongside a
-      continuous one.
-- [ ] The `mad` section of the evaluation vignette records it as a known
-      limitation; update it when the fix lands.
+- [x] Per-endpoint value type decided from the source, and generated values
+      snapped back onto it at emit. Inferred by default, because the question is
+      answered outright by the data and the repair reproduces granularity the
+      source already had.
+- [x] `pmx_roles(endpoint_types = )` to declare or override it, refusing an
+      impossible declaration rather than widening the level set.
+- [x] `pmx_endpoint_types()` reports the decision and the evidence for it.
+- [x] Scorecard row A6, recomputed from the finished table, present only where
+      the study has a discrete endpoint. `endpoint_type_violations` in the run
+      settings is the same number for a run report.
+- [x] `tests/testthat/test-endpoint-types.R`, including a case that reproduces
+      the original defect by declaring the discrete endpoints continuous.
+- [x] Documented in `scorecard-synthetic-data-checks.Rmd` (A6) and in the `mad` section of
+      `avatar-evaluation-public-data.Rmd`.
+
+One consequence to keep in view: `warfarin`'s `pca` is a percentage recorded
+without decimals, so it now rounds to whole numbers. That matches its source and
+is what `endpoint_types` exists to override, but it is the first case where this
+inference changes a study nobody would call discrete.
 
 ## Done 2026-08-03: run-report readability, and `SIM-038` behind it
 
@@ -223,7 +235,7 @@ inventory of what already exists against each, the three gaps that inventory
 makes visible, and the section that generalizes beyond this package: check the
 finished table, not the mechanism.
 
-- [x] Write `vignettes/synthetic-data-checks.Rmd` from that specification.
+- [x] Write `vignettes/scorecard-synthetic-data-checks.Rmd` from that specification.
       Done 2026-08-04.
 - [ ] Then, and only then, close the gaps the prose makes obvious — rare
       covariate combinations (B5, nothing exists), semantic ordering such as a
@@ -242,7 +254,7 @@ Distributions and processes need not be maintained exactly; the output must be
 the same *kind* of object and must protect privacy.
 
 - [x] Scorecard. Static index table at the top of
-      `vignettes/synthetic-data-checks.Rmd` (question, what to run, what it
+      `vignettes/scorecard-synthetic-data-checks.Rmd` (question, what to run, what it
       reads, pass criterion, gaps marked), and a **runnable** version computed at
       the end of `vignettes/demo.Rmd` on the real run. Release status is a column
       rather than a section-E paragraph, and `validate_pmx()` is rows A1/A2.
@@ -269,7 +281,7 @@ the same *kind* of object and must protect privacy.
       Each carries only the references it cites; the few citations both need are
       repeated rather than shared. Both appear under **Background** in the
       navbar, `articles/literature-review.html` redirects to the generation
-      half, and `vignettes/synthetic-data-checks.Rmd` now links to each by name.
+      half, and `vignettes/scorecard-synthetic-data-checks.Rmd` now links to each by name.
 
 Two accuracy corrections found while doing it, both now fixed in the checks
 vignette:

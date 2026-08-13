@@ -25,6 +25,7 @@ pmx_roles(
   strata = NULL,
   dose_covariate = NULL,
   assigned_dose = NULL,
+  endpoint_types = NULL,
   keep = NULL,
   exclude = NULL
 )
@@ -126,6 +127,29 @@ path was taken and, when inference declined, why.}
 \item{assigned_dose}{Differential-privacy engines only. A nominal
 assigned-dose column reconstructed from the generated regimen.
 \code{\link[=synpmx_avatar]{synpmx_avatar()}} does not use this — carry the column with \code{keep}.}
+
+\item{endpoint_types}{What kind of values an endpoint takes, as a named
+character vector keyed by the endpoint's \code{dvid} value — for example
+\code{c("PD - Binary" = "binary", "PD - Ordinal" = "ordinal")}. Use \code{"DV"} as
+the name when no \code{dvid} is declared. Each value is one of \code{"continuous"},
+\code{"binary"}, \code{"ordinal"}, or \code{"integer"}; \code{"count"} is accepted for
+\code{"integer"}.
+
+This exists because blending is a weighted mean, and a weighted mean of
+several patients' zeros and ones is a number between them. Without it a
+binary endpoint comes back continuous — measured on \code{xgxr::mad}, a 0/1
+endpoint came back as 600 distinct values from -0.13 to 1.08. Declared or
+inferred, \code{\link[=synpmx_avatar]{synpmx_avatar()}} snaps a \code{"binary"} or \code{"ordinal"} endpoint onto
+the levels the source used and rounds an \code{"integer"} one to whole numbers.
+
+Left \code{NULL}, the type is inferred per endpoint from whether every observed
+value is a whole number and how many distinct ones there are;
+\code{\link[=pmx_endpoint_types]{pmx_endpoint_types()}} reports what that inference decided and why. Unlike
+\code{dose_covariate}, this inference is on by default, because the question it
+asks is answered outright by the data and the repair reproduces granularity
+the source already had. Declare the type where the data is misleading: an
+endpoint recorded as whole numbers that is genuinely continuous, or a scale
+with a level nobody in this cohort happened to hit.}
 
 \item{keep}{Columns to carry into synthetic data verbatim, copied from the
 same source subject that supplied the event skeleton, with no blending or

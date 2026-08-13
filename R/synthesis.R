@@ -1496,6 +1496,13 @@
     # have measured with no assay limit. DV, CENS, and LIMIT are then
     # reconstructed from it together, so the three always agree.
     generated <- .inverse_dv(blended + shift + residual, transform)
+    # A discrete endpoint is put back on its own scale before anything else
+    # reads the value, so censoring and the emitted DV see the same number. The
+    # blend is a weighted mean and the noise terms are continuous, so without
+    # this a 0/1 endpoint leaves the source's range entirely (`SIM-045`).
+    generated <- .snap_endpoint_values(
+      generated, profiles$value_types[[endpoint_name]]
+    )
     skeleton[[roles$dv]][target_rows] <- generated
     censoring <- censoring_by_endpoint[[endpoint_name]]
     if (!is.null(censoring)) {
@@ -2635,6 +2642,25 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     }
 
     result <- .restore_schema(result, source, source_roles)
+    # Measured on the finished table rather than trusted from the mechanism, for
+    # the same reason as the two guarantees above: every part of this was
+    # verified on its own terms once and the whole question was asked of nobody.
+    # A discrete endpoint holding a value the source could not have held is a
+    # defect in this package, not a property of the study, so it is a warning
+    # rather than an alert.
+    endpoint_type_violations <- .endpoint_type_violations(
+      result, source_roles, profiles$value_types
+    )
+    if (sum(endpoint_type_violations) > 0L) {
+      offending <- names(endpoint_type_violations)[
+        endpoint_type_violations > 0L
+      ]
+      warnings$add(paste0(
+        "Endpoint(s) ", paste(offending, collapse = ", "),
+        " were generated with values off their source scale (",
+        sum(endpoint_type_violations), " row(s)); please report this."
+      ))
+    }
     settings <- list(
       seed = as.integer(seed),
       n_subjects = n_subjects,
@@ -2725,6 +2751,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       } else 0,
       roles = unclass(source_roles),
       endpoint_transforms = profiles$transforms,
+      # Which endpoints were treated as discrete, what levels they were snapped
+      # to, and whether the caller declared that or the run inferred it.
+      # `pmx_endpoint_types()` prints the same decision as a table.
+      endpoint_value_types = profiles$value_types,
+      endpoint_type_violations = as.integer(sum(endpoint_type_violations)),
       alignment = paste(
         "time relative to first positive dose within compatible schedules;",
         "normalized observation-window fallback"

@@ -19,7 +19,7 @@ draft. Update both when an edit teaches something new.
 
 *First pass written 2026-08-05 by Claude, after the session that added the
 checking-literature tutorial to `literature-review.Rmd` and the scorecard to
-`synthetic-data-checks.Rmd` / `demo.Rmd`.*
+`scorecard-synthetic-data-checks.Rmd` / `demo.Rmd`.*
 
 *(`literature-review.Rmd` was split on 2026-08-11 into
 `synthetic-data-generation-review.Rmd` and `synthetic-data-checking-review.Rmd`;
@@ -27,7 +27,7 @@ references to it below are to the document as it stood when they were written.)*
 
 **Standing caveat on everything below.** Andy has **not yet reviewed** the
 second half of `literature-review.Rmd` or most of
-`synthetic-data-checks.Rmd` himself. Observations that cite those documents are
+`scorecard-synthetic-data-checks.Rmd` himself. Observations that cite those documents are
 evidence about *what he asked for*, not evidence that the result worked. The
 strongest evidence in this file is instead his **own edits** to Claude prose,
 because those are decisions rather than requests. Re-read this file after he has
@@ -246,6 +246,32 @@ also the heading edits: he prefers a heading that names the subject flatly over
 one phrased as a narrative beat, which is O7's "literal over coined" applied to
 structure.
 
+### O16 — He asks for the design tradeoff to be argued, not just implemented
+
+**Evidence.** 2026-08-13, on the discrete-endpoint defect: *"Implement a check
+and a fix for when LIDV is binary or ordinal or categorical. And actually, give
+a thought of whether it's reasonable for this to be determined from the data or
+whether it should be specified in the pmxroles somehow."* The instruction to
+build came first and was unambiguous; the second sentence reopened the interface
+question that the first sentence's phrasing had already implied one answer to.
+He wanted the alternative weighed before the code existed, not after.
+
+Note also what he did not ask for: he named the symptom in his own terms ("when
+LIDV is binary or ordinal or categorical") rather than the ID of the issue that
+had just been filed, and he asked for **a check and a fix**, both, in one
+sentence. Consistent with O12 (he reviews by running things): a fix he cannot
+see fire is half a delivery.
+
+**What to do.** When a task has an inference-versus-declaration fork — or any
+comparable interface choice — state the fork and the answer in the reply, with
+the reason, in a few sentences. Do not present it as an open question to be
+resolved before starting, and do not bury it in a code comment either. The
+answer that fit here was *both*: infer by default where the data answers the
+question outright, and provide the declaration as the override, which is the
+same shape as `dose_covariate` (`SIM-040`) one step further along. Cite the
+existing precedent in the package when there is one; it is the strongest
+argument available and it keeps the API consistent.
+
 ---
 
 ### Open questions to put to him
@@ -287,7 +313,7 @@ an order chosen for learning rather than for taxonomy. That is why "make it a
 tutorial" was the fix, and it suggests a general rule — *check which of the four
 modes a document is in before writing it, and say so in its first paragraph.*
 The corpus already mostly does this: `demo.Rmd` is a tutorial,
-`avatar-algorithm.Rmd` is reference, `synthetic-data-checks.Rmd` is a how-to
+`avatar-algorithm.Rmd` is reference, `scorecard-synthetic-data-checks.Rmd` is a how-to
 guide wrapped around an explanation, and the literature review is now explanation
 plus tutorial in two labelled halves.
 
@@ -352,5 +378,5 @@ Suggestions, for Andy to accept or reject. Nothing here has been done.
 
 7. **Revisit after the reviews.** The two documents this file has the most to say
    about are the two he has not read yet. Re-run this analysis after he works
-   through the two literature-review articles and `synthetic-data-checks.Rmd`; the questions
+   through the two literature-review articles and `scorecard-synthetic-data-checks.Rmd`; the questions
    he asks then will be better evidence than anything above.

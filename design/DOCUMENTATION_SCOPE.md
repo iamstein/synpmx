@@ -77,7 +77,7 @@ why to care.
 |---|---|
 | `synpmx-method.Rmd` | All four modes at a high level: what each does and when to use it. Renamed from `synpmx-simulation-method.Rmd`. |
 | `avatar-evaluation-public-data.Rmd` | `synpmx_avatar()` measured over every public dataset in the evaluation set, one section each plus the cross-dataset tables. Opens with a table describing every dataset used. Plot helpers hidden behind code folding. Renamed from `synpmx-demo.Rmd` 2026-08-04. |
-| `synthetic-data-checks.Rmd` | The six categories of check to run on generated data, worked on `case1_pkpd` with `pheno_sd` as the failing case. Audience is both a user deciding whether to use output and someone building their own generator; the categories are the deliverable, the function names are the example. Ends with its own gap list. Written 2026-08-04. |
+| `scorecard-synthetic-data-checks.Rmd` | The six categories of check to run on generated data, worked on `case1_pkpd` with `pheno_sd` as the failing case. Audience is both a user deciding whether to use output and someone building their own generator; the categories are the deliverable, the function names are the example. Ends with its own gap list. Written 2026-08-04. |
 
 ### Articles — pkgdown only, no check cost
 

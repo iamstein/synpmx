@@ -1,21 +1,29 @@
 # The scorecard ---------------------------------------------------------------
 #
-# `vignette("synthetic-data-checks")` states every check and the answer that
-# counts as passing for it. This runs the ones that can be run and collects the
-# answers into one table, so that deciding whether to ship a dataset does not
-# require rereading the document or rewriting sixty lines of reporting code per
-# study.
+# `vignette("scorecard-synthetic-data-checks")` states every check and the
+# answer that counts as passing for it. This runs the ones that can be run and
+# collects the answers into one table, so that deciding whether to ship a
+# dataset does not require rereading the document or rewriting sixty lines of
+# reporting code per study.
 #
 # Three rows deliberately have no pass mark. Doses per patient is the clearest:
 # on a study with individualised dosing it can halve while every guarantee above
 # it still reads 0, and any threshold picked for it would be wrong on some
 # dataset. `"review"` is the honest verdict there, not a soft `"pass"`.
+#
+# Every row names the call that explains it, because a number without the tool
+# that produced it is a dead end: "4 of 9" is not something a reader can act on
+# until they can see which four. The calls are written against this function's
+# own argument names -- `source`, `synthetic`, `roles` -- so they are
+# copy-pasteable in a session that uses those names, and readable as a pointer
+# in one that does not.
 
-.scorecard_row <- function(check, question, reads, result, ok = NA) {
+.scorecard_row <- function(check, question, reads, result, explore, ok = NA) {
   data.frame(
     check = check, question = question, reads = reads,
     result = as.character(result),
     verdict = if (isTRUE(ok)) "pass" else if (isFALSE(ok)) "FAIL" else "review",
+    explore = explore,
     stringsAsFactors = FALSE
   )
 }
@@ -66,6 +74,12 @@
                       function(x) x[[1L]]))
 }
 
+# A level name goes in a fixed-width column, and study labels are not short.
+.scorecard_short <- function(x, width = 14L) {
+  x <- as.character(x)
+  ifelse(nchar(x) > width, paste0(substr(x, 1L, width - 1L), "~"), x)
+}
+
 # `strata` are protocol assignments and are categorical whatever their storage
 # type, so a numerically coded arm is not excluded here.
 .scorecard_categorical <- function(data, roles) {
@@ -76,15 +90,24 @@
 
 #' The scorecard for one synthetic dataset
 #'
-#' Runs the checks from `vignette("synthetic-data-checks")` that can be run
-#' automatically, and returns them as one table with the answer and whether that
-#' answer passes. The vignette is the reference for what each check asks and why
-#' its pass criterion is what it is.
+#' Runs the checks from `vignette("scorecard-synthetic-data-checks")` that can
+#' be run automatically, and returns them as one table with the answer, whether
+#' that answer passes, and the call that explains it. The vignette is the
+#' reference for what each check asks and why its pass criterion is what it is.
 #'
 #' The `reads` column decides where the table may go. Rows marked `"source"` or
 #' `"both"` were computed from real patient data, so the filled-in scorecard is
 #' itself restricted output and belongs in the environment the source lives in.
-#' Only the `"synthetic"` and `"run report"` rows can travel with the data.
+#' Only the `"synthetic"` and `"run settings"` rows can travel with the data.
+#' `"run settings"` means the value is the generation run's own record of what
+#' it did -- `attr(synthetic, "pmx_settings")` -- rather than a measurement
+#' taken from either table.
+#'
+#' The `explore` column names the call to run when a row needs explaining. The
+#' calls are written against this function's argument names (`source`,
+#' `synthetic`, `roles`), so rename them to whatever the session calls those
+#' objects. Every row carries one, but printing shows it only where the verdict
+#' is not `"pass"`.
 #'
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 #' threshold would be honest, and it has to be read.
@@ -102,10 +125,11 @@
 #'   save recomputing it. Left `NULL` it is computed here, which is the slowest
 #'   part of the scorecard.
 #'
-#' @return A `pmx_scorecard` data frame with columns `check`, `question`,
-#'   `reads`, `result` and `verdict`, marked `"restricted_not_releasable"`.
-#' @seealso [compare_pmx()], [pmx_masking_report()],
-#'   `vignette("synthetic-data-checks")`.
+#' @return A `synpmx_scorecard` data frame with columns `check`, `question`,
+#'   `reads`, `result`, `verdict` and `explore`, marked
+#'   `"restricted_not_releasable"`.
+#' @seealso [compare_pmx()], [pmx_masking_report()], [pmx_endpoint_types()],
+#'   `vignette("scorecard-synthetic-data-checks")`.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(30)
@@ -114,8 +138,8 @@
 #'   cmt = "CMT", dvid = "DVID", covariates = "WT"
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-#' pmx_scorecard(data, synthetic, roles)
-pmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
+#' synpmx_scorecard(data, synthetic, roles)
+synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   settings <- attr(synthetic, "pmx_settings")
   if (is.null(settings)) {
     stop("`synthetic` carries no `pmx_settings` attribute; it did not come ",
@@ -140,70 +164,119 @@ pmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     .scorecard_row(
       "A1", "Synthetic table is a legal PMX dataset", "synthetic",
       validate_pmx(synthetic, roles)$valid,
+      "validate_pmx(synthetic, roles)",
       isTRUE(validate_pmx(synthetic, roles)$valid)
     ),
     .scorecard_row(
       "A2", "Source is legal under the declared roles", "source",
       validate_pmx(source, roles, strict = FALSE)$valid,
+      "validate_pmx(source, roles, strict = FALSE)",
       isTRUE(validate_pmx(source, roles, strict = FALSE)$valid)
     ),
     .scorecard_row(
       "A3", "Every endpoint survived", "both",
       paste(length(synthetic_endpoints), "of", length(source_endpoints)),
+      "compare_pmx_distributions(source, synthetic, roles)",
       setequal(source_endpoints, synthetic_endpoints)
     ),
     .scorecard_row(
       "A4", "Cohort size survived", "both",
       paste(source_subjects, "->", synthetic_subjects),
+      "pmx_masking_report(synthetic, source, roles)",
       source_subjects == synthetic_subjects
     ),
     .scorecard_row(
       "A5", "Observations per patient", "both",
       paste(.scorecard_rows_per_patient(source, roles, "obs"), "->",
-            .scorecard_rows_per_patient(synthetic, roles, "obs"))
+            .scorecard_rows_per_patient(synthetic, roles, "obs")),
+      "compare_pmx_distributions(source, synthetic, roles)"
     ),
     .scorecard_row(
       "A5", "Doses per patient", "both",
       paste(.scorecard_rows_per_patient(source, roles, "dose"), "->",
-            .scorecard_rows_per_patient(synthetic, roles, "dose"))
+            .scorecard_rows_per_patient(synthetic, roles, "dose")),
+      "pmx_masking_report(synthetic, source, roles)"
     ),
     .scorecard_row(
-      "B1a", "Avatars wearing one real patient's visit set", "run report",
-      settings$identifying_visit_sets, settings$identifying_visit_sets == 0L
+      "B1a", "Avatars wearing one real patient's visit set", "run settings",
+      settings$identifying_visit_sets,
+      "plot_pmx_schedule(source, roles)",
+      settings$identifying_visit_sets == 0L
     ),
     .scorecard_row(
-      "B1b", "Avatars wearing one real patient's dose schedule", "run report",
+      "B1b", "Avatars wearing one real patient's dose schedule", "run settings",
       settings$identifying_dose_schedules,
+      "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
       settings$identifying_dose_schedules == 0L
     ),
     .scorecard_row(
       "B2", "Synthetic patients unusual within their stratum", "synthetic",
-      paste(sum(flagged$flagged), "of", nrow(flagged))
+      paste(sum(flagged$flagged), "of", nrow(flagged)),
+      "flag_identifiable_subjects(synthetic, roles)"
     ),
     .scorecard_row(
       "B3", "Adversarial accuracy inside its null interval", "both",
       sprintf("%.3f in [%.3f, %.3f]", proximity$adversarial_accuracy,
               proximity$null_lower, proximity$null_upper),
+      "compare_pmx_proximity(source, synthetic, roles)",
       inside_null
     ),
     .scorecard_row(
       "B4a", "Generated time vectors copying an exposed real one", "both",
-      time_copies, time_copies == 0L
+      time_copies,
+      "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
+      time_copies == 0L
     ),
+    # No function finds *which* vector was copied, so the pointer is the one
+    # that measures the thing a copy is the extreme case of: whether generated
+    # values sit closer to real ones than real ones sit to each other.
     .scorecard_row(
       "B4b", "Generated DV vectors copying an exposed real one", "both",
-      dv_copies, dv_copies == 0L
+      dv_copies,
+      "compare_pmx_proximity(source, synthetic, roles)",
+      dv_copies == 0L
     )
   )
 
+  # Only where there is something to ask. A study with no discrete endpoint
+  # cannot pass or fail this, and a row reading "0 of 0" on every continuous
+  # study is a row nobody reads on the one study that needs it.
+  value_types <- .endpoint_value_types(source, roles)
+  discrete <- names(value_types)[
+    vapply(value_types, function(s) !identical(s$type, "continuous"),
+           logical(1))
+  ]
+  if (length(discrete)) {
+    violations <- .endpoint_type_violations(synthetic, roles, value_types)
+    clean <- sum(violations[discrete] == 0L)
+    rows <- c(rows, list(.scorecard_row(
+      "A6", "Discrete endpoints keeping their source scale", "both",
+      paste(clean, "of", length(discrete)),
+      "pmx_endpoint_types(source, roles)",
+      clean == length(discrete)
+    )))
+  }
+
   categorical <- .scorecard_categorical(synthetic, roles)
   if (length(categorical)) {
-    rarest <- min(vapply(categorical, function(column) {
-      min(as.integer(table(.scorecard_holders(synthetic, roles, column))))
-    }, integer(1)))
+    # Which column and which level, not just the count. "1" on its own says a
+    # patient is alone in holding something without saying what, which is not
+    # something a reader can act on -- and the column it names is the one to
+    # look at, since a level held by one patient is what singles that avatar
+    # out.
+    rarest <- do.call(rbind, lapply(categorical, function(column) {
+      holders <- table(.scorecard_holders(synthetic, roles, column))
+      data.frame(column = column,
+                 level = names(holders)[[which.min(holders)]],
+                 n = min(as.integer(holders)), stringsAsFactors = FALSE)
+    }))
+    rarest <- rarest[which.min(rarest$n), , drop = FALSE]
     rows <- c(rows, list(.scorecard_row(
-      "B5", "Synthetic patients holding the least-held level", "synthetic",
-      rarest, rarest > 1L
+      "B5", "Patients holding the least-held categorical level", "synthetic",
+      sprintf("%s = %s: %d", rarest$column, .scorecard_short(rarest$level),
+              rarest$n),
+      sprintf("table(synthetic$%s)", rarest$column),
+      rarest$n > 1L
     )))
   }
 
@@ -216,10 +289,17 @@ pmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     synthetic_arms <- arm_size(synthetic)[names(source_arms)]
     synthetic_arms[is.na(synthetic_arms)] <- 0L
     matched <- sum(source_arms == synthetic_arms)
+    # Not a FAIL when the sizes move. `on_donor_shortfall = "drop"` removes a
+    # subject that could not be built from enough donors, which is the correct
+    # answer and lands on whichever arm was thinnest; an arm changing size is
+    # therefore a reading about this cohort, not a defect. Only every arm
+    # matching is a pass, so the row still has to be looked at.
     rows <- c(rows, list(.scorecard_row(
       "C3", "Strata keeping their source size", "both",
       paste(matched, "of", length(source_arms)),
-      matched == length(source_arms)
+      sprintf("table(synthetic$%s[!duplicated(synthetic$%s)])",
+              roles$strata[[1L]], roles$id),
+      if (matched == length(source_arms)) TRUE else NA
     )))
   }
 
@@ -229,38 +309,59 @@ pmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   # is a pass. Fewer is `review` rather than `FAIL` -- declining to build on a
   # patient whose regimen nobody shares is the correct answer, and the row is
   # there to say what it cost.
+  #
+  # A "regimen" here is the set of dose TIMES a patient received, and nothing
+  # else: `.dose_schedule_keys()` keys on times alone. Amounts are deliberately
+  # not in it. On a weight-based study every patient's milligrams are their own,
+  # so a key including amounts would report one regimen per patient on every run
+  # and measure nothing. The row is named for what it counts.
   rows <- c(rows, list(.scorecard_row(
-    "C4", "Dose regimens represented", "both",
+    "C4", "Distinct dose-time schedules represented", "both",
     paste(settings$dose_regimens_represented, "of",
           settings$dose_regimens_source),
+    "pmx_masking_report(synthetic, source, roles)",
     if (settings$dose_regimens_represented ==
         settings$dose_regimens_source) TRUE else NA
   )))
 
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
-  out <- structure(out, class = c("pmx_scorecard", "data.frame"))
+  out <- structure(out, class = c("synpmx_scorecard", "data.frame"))
   .mark_release(out, "restricted_not_releasable")
 }
 
 #' @export
-print.pmx_scorecard <- function(x, ...) {
+print.synpmx_scorecard <- function(x, ...) {
   plain <- as.data.frame(x)
-  cat("Scorecard: see vignette(\"synthetic-data-checks\") for what each asks\n\n")
+  # One format string for the header and every row, so the two cannot drift.
+  # The last column is unpadded: it is the widest and nothing follows it.
+  line <- function(...) cat(sprintf("  %-5s %-50s %-12s %-24s %-7s %s\n", ...))
+  cat("Scorecard: see vignette(\"scorecard-synthetic-data-checks\")",
+      "for what each asks\n\n")
+  line("check", "question", "reads", "result", "verdict", "explore")
   for (i in seq_len(nrow(plain))) {
-    cat(sprintf("  %-5s %-48s %-11s %-24s %s\n",
-                plain$check[[i]], plain$question[[i]], plain$reads[[i]],
-                plain$result[[i]], plain$verdict[[i]]))
+    # `explore` is printed only where there is something to explore. On a clean
+    # card it would be a column of calls nobody needs to run, and it is the
+    # widest column: suppressing it is what keeps a passing card readable in a
+    # console. The returned object carries it on every row regardless, so the
+    # knitted table and `card$explore` are unaffected.
+    line(plain$check[[i]], plain$question[[i]], plain$reads[[i]],
+         plain$result[[i]], plain$verdict[[i]],
+         if (identical(plain$verdict[[i]], "pass")) "" else plain$explore[[i]])
   }
   failed <- sum(plain$verdict == "FAIL")
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
       sum(plain$verdict == "review"), " to review.\n",
+      "`explore` is the call that explains a row that did not pass; it uses ",
+      "the argument names `source`, `synthetic`, `roles`.\n",
+      "`run settings` rows come from the run's own record, ",
+      "`attr(synthetic, \"pmx_settings\")`.\n",
       "Rows reading `source` or `both` are restricted output.\n", sep = "")
   invisible(x)
 }
 
 #' @exportS3Method knitr::knit_print
-knit_print.pmx_scorecard <- function(x, ...) {
+knit_print.synpmx_scorecard <- function(x, ...) {
   # No caption: the object is routinely subset to a row or two in prose, and a
   # caption written for the whole card is wrong on every such excerpt.
   knitr::knit_print(knitr::kable(as.data.frame(x), row.names = FALSE))

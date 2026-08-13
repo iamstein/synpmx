@@ -34,9 +34,9 @@ document.
 
 - `demo.Rmd` — one dataset (`xgxr::case1_pkpd`) end to end, and deliberately
   short: roles, generation, source-versus-synthetic plots and distributions,
-  then `pmx_scorecard()` in one line. Written 2026-08-04, modelled on the
+  then `synpmx_scorecard()` in one line. Written 2026-08-04, modelled on the
   private per-study try files; cut to this shape on 2026-08-13 because the
-  checking half belongs in `synthetic-data-checks.Rmd`, which the demo now
+  checking half belongs in `scorecard-synthetic-data-checks.Rmd`, which the demo now
   points at rather than restating. Keep it that way: anything that explains a
   check rather than running it goes in that vignette. Chosen for `case1_pkpd`
   because all 180 patients have a unique observation schedule as recorded and
@@ -53,17 +53,21 @@ document.
   dataset it uses; keep that table in step with the datasets actually run.
   Reworked on 2026-08-13 so all eight worked examples have the same shape as
   `demo.Rmd` — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
-  `compare_pmx_distributions()`, `pmx_scorecard()` — followed by a subsection
+  `compare_pmx_distributions()`, `synpmx_scorecard()` — followed by a subsection
   per dataset only where something fails or reads oddly, which is where
   `pmx_masking_report()` and any dataset-specific digging belong. Keep it that
   way: a new dataset gets the same five steps, and prose only where the numbers
   need it.
-- `synthetic-data-checks.Rmd` — the six categories of check to run on generated
+- `scorecard-synthetic-data-checks.Rmd` — the six categories of check to run on generated
   data (A validity, B who is singled out, C same study, D distributions, E what
   the checks cannot tell you, F check the output not the algorithm), worked on
   `xgxr::case1_pkpd` with `nlmixr2data::pheno_sd` as the case where they fail.
   Written 2026-08-04 from the specification in `design/SYNTHETIC_DATA_CHECKS.md`;
   it names its own gaps, and that list is the queue for what to build next.
+  Renamed from `synthetic-data-checks.Rmd` on 2026-08-13: it is the reference
+  for `synpmx_scorecard()`, and the name should say so. Its scorecard table is
+  the contract that function implements — a row's pass criterion changing in one
+  without the other is a defect.
 
 **`vignettes/articles/` — pkgdown only.** Excluded from the build by
 `.Rbuildignore`, so `R CMD check` never touches these and they are not shipped

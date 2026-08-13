@@ -61,7 +61,7 @@ week either way, so the gap between what the package does and what its author
 can explain widens without a signal.
 
 In this repository it shows up in two places. `_THEORY_OF_MIND.md` records that
-the second half of the literature review and most of `synthetic-data-checks.Rmd`
+the second half of the literature review and most of `scorecard-synthetic-data-checks.Rmd`
 have not been read by the owner. And "identify a few places to spot check the
 code" has not started, so the 11,217 lines in `R/` have had no line-by-line
 human read.
@@ -153,7 +153,7 @@ only:
    **Status, 2026-08-11: this is the gap, and it is the whole gap.** "Have I
    checked enough" resists study because it is not a fact to be looked up. It is
    a decision that stays open until two things are fixed: who receives the data,
-   and what counts as a failure. Section E of `synthetic-data-checks.Rmd`
+   and what counts as a failure. Section E of `scorecard-synthetic-data-checks.Rmd`
    already states the second half — a leak cannot be detected from the synthetic
    data alone — which means output checks cannot close the question no matter
    how many are added. The train-versus-control holdout is what closes it,
@@ -202,7 +202,7 @@ whole point of the change.
 
 **This week, before the internal review.** Write the one-page poster outline from memory.
 Read `Guillaudeux23.pdf` and `Destere26.pdf`. Drain the first two items in
-`_TODO_owner.md`: `synthetic-data-checks.Rmd` and `demo.Rmd`. Start the
+`_TODO_owner.md`: `scorecard-synthetic-data-checks.Rmd` and `demo.Rmd`. Start the
 glossary. Go into that meeting able to state the privacy claim and its limits
 without reading from a document.
 

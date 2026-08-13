@@ -30,7 +30,7 @@ navbar:
       - text: Evaluating AVATAR on public data
         href: articles/avatar-evaluation-public-data.html
       - text: Checks of the synthetic data
-        href: articles/synthetic-data-checks.html
+        href: articles/scorecard-synthetic-data-checks.html
       - text: The four synpmx data generation algorithms
         href: articles/synpmx-4-methods.html
       - text: -------
@@ -106,8 +106,9 @@ reference:
 - title: Validation and diagnostics
   desc: Structural checks on generated data, and restricted comparisons.
   contents:
-  - pmx_scorecard
+  - synpmx_scorecard
   - validate_pmx
+  - pmx_endpoint_types
   - compare_pmx
   - compare_pmx_distributions
   - skeleton_uniqueness

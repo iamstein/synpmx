@@ -89,6 +89,28 @@
 #'   ratio, so **intra-patient escalation is preserved exactly** — three doses
 #'   at 1, 2 and 4 mg/kg stay at 1, 2 and 4 mg/kg. The run report says which
 #'   path was taken and, when inference declined, why.
+#' @param endpoint_types What kind of values an endpoint takes, as a named
+#'   character vector keyed by the endpoint's `dvid` value — for example
+#'   `c("PD - Binary" = "binary", "PD - Ordinal" = "ordinal")`. Use `"DV"` as
+#'   the name when no `dvid` is declared. Each value is one of `"continuous"`,
+#'   `"binary"`, `"ordinal"`, or `"integer"`; `"count"` is accepted for
+#'   `"integer"`.
+#'
+#'   This exists because blending is a weighted mean, and a weighted mean of
+#'   several patients' zeros and ones is a number between them. Without it a
+#'   binary endpoint comes back continuous — measured on `xgxr::mad`, a 0/1
+#'   endpoint came back as 600 distinct values from -0.13 to 1.08. Declared or
+#'   inferred, [synpmx_avatar()] snaps a `"binary"` or `"ordinal"` endpoint onto
+#'   the levels the source used and rounds an `"integer"` one to whole numbers.
+#'
+#'   Left `NULL`, the type is inferred per endpoint from whether every observed
+#'   value is a whole number and how many distinct ones there are;
+#'   [pmx_endpoint_types()] reports what that inference decided and why. Unlike
+#'   `dose_covariate`, this inference is on by default, because the question it
+#'   asks is answered outright by the data and the repair reproduces granularity
+#'   the source already had. Declare the type where the data is misleading: an
+#'   endpoint recorded as whole numbers that is genuinely continuous, or a scale
+#'   with a level nobody in this cohort happened to hit.
 #' @param assigned_dose Differential-privacy engines only. A nominal
 #'   assigned-dose column reconstructed from the generated regimen.
 #'   [synpmx_avatar()] does not use this — carry the column with `keep`.
@@ -128,6 +150,7 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
                       covariates = NULL, strata = NULL,
                       dose_covariate = NULL, assigned_dose = NULL,
+                      endpoint_types = NULL,
                       keep = NULL, exclude = NULL) {
   roles <- list(
     id = id, time = time, nominal_time = nominal_time, tad = tad,
@@ -195,7 +218,39 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
     stop("Modeled role columns cannot also be excluded: ",
          paste(overlap, collapse = ", "), ".", call. = FALSE)
   }
+  # Attached after the column checks above, because this one names endpoints
+  # rather than columns: it must not join `modeled` and be tested for collisions
+  # with real column names.
+  roles$endpoint_types <- .validate_endpoint_types(endpoint_types)
   structure(roles, class = "pmx_roles")
+}
+
+.validate_endpoint_types <- function(endpoint_types) {
+  if (is.null(endpoint_types)) return(NULL)
+  if (!is.character(endpoint_types) || anyNA(endpoint_types)) {
+    stop("`endpoint_types` must be a named character vector, one of ",
+         paste(.endpoint_type_choices, collapse = ", "),
+         " per endpoint.", call. = FALSE)
+  }
+  keys <- names(endpoint_types)
+  if (is.null(keys) || any(is.na(keys)) || any(!nzchar(keys))) {
+    stop("`endpoint_types` must be named by endpoint: ",
+         "c(\"PD - Binary\" = \"binary\"). Use \"DV\" when no `dvid` is ",
+         "declared.", call. = FALSE)
+  }
+  if (anyDuplicated(keys)) {
+    stop("`endpoint_types` names an endpoint more than once: ",
+         paste(unique(keys[duplicated(keys)]), collapse = ", "), ".",
+         call. = FALSE)
+  }
+  accepted <- c(.endpoint_type_choices, names(.endpoint_type_synonyms))
+  unknown <- setdiff(endpoint_types, accepted)
+  if (length(unknown)) {
+    stop("`endpoint_types` must be one of ",
+         paste(.endpoint_type_choices, collapse = ", "), "; got ",
+         paste(unique(unknown), collapse = ", "), ".", call. = FALSE)
+  }
+  endpoint_types
 }
 
 #' @export
@@ -203,6 +258,9 @@ print.pmx_roles <- function(x, ...) {
   cat("Pharmacometric column roles:\n")
   for (role in names(x)) {
     value <- x[[role]]
+    if (identical(role, "endpoint_types") && length(value)) {
+      value <- paste0(names(value), " = ", value)
+    }
     cat("  ", role, ": ",
         if (length(value)) paste(value, collapse = ", ") else "<absent>",
         "\n", sep = "")
@@ -220,7 +278,7 @@ print.pmx_roles <- function(x, ...) {
     stop("Required roles are absent: ",
          paste(absent_required, collapse = ", "), ".", call. = FALSE)
   }
-  columns <- unlist(roles[setdiff(names(roles), "exclude")],
+  columns <- unlist(roles[setdiff(names(roles), .non_column_roles)],
                     use.names = FALSE)
   missing_columns <- setdiff(columns, names(data))
   if (length(missing_columns)) {

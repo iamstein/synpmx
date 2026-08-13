@@ -47,7 +47,10 @@ Three columns need a word of explanation.
 - **Reads** is where the number comes from, and it decides where the number may
   go. `source` means the check reads real patient data, so its output is
   restricted and stays inside the environment the source lives in — see section
-  E. `synthetic` and `run report` do not read the source.
+  E. `synthetic` and `run settings` do not read the source. `run settings` is
+  the generation run's own record of what it did, carried on the output as
+  `attr(synthetic, "pmx_settings")`, rather than a measurement taken from
+  either table.
 - **Pass** is deliberately not always a number. Some of these are guarantees
   that must hold exactly; others are readings that need judgement, and marking
   those *review* is more honest than inventing a threshold.
@@ -62,17 +65,18 @@ Three columns need a word of explanation.
 | **A3** | Did every endpoint survive? | `setequal()` on the `dvid` levels | both | sets equal |
 | **A4** | Did the cohort size survive? | count distinct `id` | both | equal |
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
-| **B1a** | Does any avatar wear one real patient's visit set? | `identifying_visit_sets` | run report | **0** |
-| **B1b** | Does any avatar wear one real patient's dose schedule? | `identifying_dose_schedules` | run report | **0** |
+| **A6** | Did a discrete endpoint stay discrete? | `pmx_endpoint_types()`; `synpmx_scorecard()` | both | every generated value on a binary, ordinal or integer endpoint is one the source could have held |
+| **B1a** | Does any avatar wear one real patient's visit set? | `identifying_visit_sets` | run settings | **0** |
+| **B1b** | Does any avatar wear one real patient's dose schedule? | `identifying_dose_schedules` | run settings | **0** |
 | **B2** | Does any synthetic patient stand out from its own stratum? | `flag_identifiable_subjects()` | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | `compare_pmx_proximity()` | both | inside the null interval, near 0.5 |
-| **B4a** | Is any generated time vector a copy of an exposed real one? | `pmx_scorecard()` | both | **0** |
-| **B4b** | Is any generated `DV` vector a copy of an exposed real one? | `pmx_scorecard()` | both | **0** |
-| **B5** | Does any categorical level sit on a single synthetic patient? | `pmx_scorecard()` | synthetic | no level on one patient |
+| **B4a** | Is any generated time vector a copy of an exposed real one? | `synpmx_scorecard()` | both | **0** |
+| **B4b** | Is any generated `DV` vector a copy of an exposed real one? | `synpmx_scorecard()` | both | **0** |
+| **B5** | Does any categorical level sit on a single synthetic patient? | `synpmx_scorecard()`; `table(synthetic$COLUMN)` | synthetic | no level on one patient |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
-| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; arm sizes match |
-| **C4** | What features of the study were lost? | `pmx_masking_report()` | both | every source dose regimen still represented; the rest of the question has no pass mark |
+| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
+| **C4** | What features of the study were lost? | `pmx_masking_report()` | both | every distinct set of dose **times** in the source still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | `compare_pmx_distributions()` | both | same magnitude and shape; spread **will** shrink |
 
 One requirement is deliberately not in the table, because no function can
@@ -175,6 +179,30 @@ setequal(
   unique(as.character(case1_synth$NAME))
 )
 ```
+
+## Discrete endpoints
+
+**Ask what kind of values each endpoint takes before reading anything else about
+it.** Blending is a weighted mean, so a weighted mean of several patients' zeros
+and ones is a number between them, and a 0/1 endpoint comes back continuous
+unless the generated values are put back on the scale the source used.
+
+```{r a-endpoint-types, eval=has_xgxr}
+pmx_endpoint_types(case1_pkpd, case1_roles)
+```
+
+Both endpoints here are continuous, so there is nothing to do and
+`synpmx_scorecard()` omits the A6 row entirely. The check fires on a study with an
+ordinal, binary or count endpoint: `vignette("avatar-evaluation-public-data")`
+runs it on `xgxr::mad`, which carries all three.
+
+Two things are worth knowing before you trust the answer. The type is *inferred*
+from the source — whether every observed value is a whole number, and how many
+distinct ones there are — and `pmx_roles(endpoint_types = )` overrides it where
+that inference reads the study wrongly. And putting a binary endpoint back on
+its levels means generated values are source values, because a 0/1 endpoint has
+no third value to emit. What protects a patient on a discrete endpoint is
+section B's machinery, never the distinctness of any one number.
 
 ## Counts against the source
 
@@ -447,12 +475,12 @@ sampled at the same times, so a check asking merely "does any synthetic time
 vector equal some real one" fails every well-designed study while catching
 nothing. It has to ask whether the vector belonged to *one* patient.
 
-`pmx_scorecard()` computes both rows. Values are sorted before comparison, so a
+`synpmx_scorecard()` computes both rows. Values are sorted before comparison, so a
 reordering of the same numbers still counts as a copy — the stricter reading,
 and the right one, since the reordering is not what protects the patient.
 
 ```{r b4-copies, eval=both}
-card <- pmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+card <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 card[card$check %in% c("B4a", "B4b"), ]
 ```
 
@@ -463,7 +491,7 @@ silent by construction, so B4b is the row doing the work.
 ## B5. Rare categories and rare combinations
 
 **Nothing in the package flags a level that too few *source* patients held, and
-it is the most valuable thing missing.** `pmx_scorecard()` reports the weaker
+it is the most valuable thing missing.** `synpmx_scorecard()` reports the weaker
 synthetic-side version below. The mechanism is worth stating first, because it
 inverts the intuition that blending protects everything.
 
@@ -578,16 +606,20 @@ The census above reads real patient data and is therefore restricted output.
 One weaker question can be asked of the released table alone: **does any
 categorical level sit on exactly one synthetic patient?** A level held by a
 single synthetic patient singles that patient out within the release, whatever
-the source looked like. `pmx_scorecard()` reports it as B5, over `strata` and
+the source looked like. `synpmx_scorecard()` reports it as B5, over `strata` and
 every non-numeric covariate:
 
 ```{r b5-singletons, eval=has_xgxr}
 card[card$check == "B5", ]
 ```
 
-Thirty, which is the arm size, and the pass is any answer above one.
-`pheno_sd` declares no categorical covariate and no `strata`, so the row is
-absent from its scorecard entirely — which is *not applicable*, not *clean*.
+The row names the column and the level it found, not just the count, because
+"1" on its own gives a reader no way to find the patient it is talking about —
+and the column it names is where to look, which is what its `explore` call
+tabulates. Here the answer is an arm size, thirty, and the pass is any answer
+above one. `pheno_sd` declares no categorical covariate and no `strata`, so the
+row is absent from its scorecard entirely — which is *not applicable*, not
+*clean*.
 
 **Two things this does not do**, and they are the reason the checks above it
 stay on the list. A level held by two source patients can be copied onto ten
@@ -773,6 +805,15 @@ knitr::kable(as.data.frame(
 ), row.names = FALSE, align = c("l", "r", "l"))
 ```
 
+A "dose schedule" here, and in the scorecard's C4 row, is **the set of dose
+times a patient received, and nothing else** — the amounts are not part of it.
+That is deliberate: on a weight-based study every patient's milligrams are their
+own, so counting amounts would make every patient their own schedule and the
+number would measure nothing. Two patients on the same visit days at different
+doses are one schedule; a patient who stopped after two of three doses is
+another, and if nobody shares it, declining to anchor on them is what removes it
+from the output.
+
 Three rows of that table are the coverage lost, and on `pheno_sd` they are
 severe: **16 of 56 distinct dose schedules are represented**, three visit sets
 were discarded as too rare to reuse, and 41% of avatars had their missed visits
@@ -908,7 +949,7 @@ with what closing each would take:
 
 | # | Gap | What closing it takes |
 |---|---|---|
-| B5 | `pmx_scorecard()` reports only the synthetic-side singleton count, which is the weak form. Nothing flags a level held by one or two *source* patients: `compare_pmx_distributions()` gives that census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
+| B5 | `synpmx_scorecard()` reports only the synthetic-side singleton count, which is the weak form. Nothing flags a level held by one or two *source* patients: `compare_pmx_distributions()` gives that census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
 | C2 | Dose/observation ordering and occasion assignment have no check | A post-generation invariant over the finished table, in the spirit of section F |
 | A5 | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it | A row in `pmx_masking_report()` |
 

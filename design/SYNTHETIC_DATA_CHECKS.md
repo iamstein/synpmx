@@ -1,6 +1,6 @@
 # Checks of the synthetic data
 
-**Status: written 2026-08-04 as `vignettes/synthetic-data-checks.Rmd`.** The
+**Status: written 2026-08-04 as `vignettes/scorecard-synthetic-data-checks.Rmd`.** The
 taxonomy below is what shipped, sections A--F, worked on `xgxr::case1_pkpd` with
 `nlmixr2data::pheno_sd` as the failing case, as suggested at the end of this
 document. What writing it exposed is recorded under "Findings from writing the
@@ -804,7 +804,7 @@ B5 already makes, and it costs two sentences.
 
 ---
 
-# Proposed reorganization of `vignettes/synthetic-data-checks.Rmd`
+# Proposed reorganization of `vignettes/scorecard-synthetic-data-checks.Rmd`
 
 The short verdict: **the taxonomy is right and should not be restructured.**
 A–F by disclosure route is better than the literature's fidelity/utility/privacy

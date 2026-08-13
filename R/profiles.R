@@ -150,6 +150,9 @@
   transforms <- stats::setNames(lapply(endpoints, function(ep) {
     .choose_transform(data[[roles$dv]][observed & endpoint == ep])
   }), endpoints)
+  # Decided once here, from the source, so that generation and the run report
+  # cannot disagree about which endpoints are discrete.
+  value_types <- .endpoint_value_types(data, roles)
   grids <- stats::setNames(lapply(endpoints, function(ep) {
     .common_grid(aligned_time[observed & endpoint == ep])
   }), endpoints)
@@ -248,6 +251,7 @@
     subject_rows = subject_rows,
     coordinates = coordinates,
     transforms = transforms,
+    value_types = value_types,
     grids = grids,
     signatures = signatures,
     routes = routes,

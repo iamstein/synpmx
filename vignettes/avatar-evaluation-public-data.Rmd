@@ -178,7 +178,7 @@ Every example follows the same five steps:
 
 The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
 one where no threshold would be honest, so it has to be read rather than
-skimmed. `vignette("synthetic-data-checks")` states what each check asks and
+skimmed. `vignette("scorecard-synthetic-data-checks")` states what each check asks and
 what passing it means.
 
 Two of the eight datasets fail, both on the same check, and both sections say
@@ -211,7 +211,7 @@ compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 ```
 
 ```{r theo-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(theo_md, theo_synth, theo_roles)
+synpmx_scorecard(theo_md, theo_synth, theo_roles)
 ```
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious visit grid
@@ -283,7 +283,7 @@ compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 ```
 
 ```{r warfarin-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
+synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 ```
 
 Nothing fails. Dose was recomputed from weight here: warfarin is dosed at
@@ -351,7 +351,7 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 ```
 
 ```{r wbc-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(wbcSim, wbc_synth, wbc_roles)
+synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 ```
 
 Nothing fails, and C4 is the row to read: 1 of the 4 source dose regimens is
@@ -414,7 +414,7 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
 ```{r nimo-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(nimoData, nimo_synth, nimo_roles)
+synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 ```
 
 **B1b fails: all twelve avatars carry a dose schedule nobody else shares.** C4
@@ -466,7 +466,7 @@ nimo_roles_nominal <- pmx_roles(
 nimo_fixed <- suppressWarnings(
   synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
 )
-pmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
+synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 ```
 
 Nothing fails now. B1b goes from 12 to 0 and C4 from 7 of 12 to 1 of 1, because
@@ -511,7 +511,7 @@ compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 ```
 
 ```{r mavo-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
+synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 ```
 
 Nothing fails, and B2 is the row that looks alarming: 40 of the 120 synthetic
@@ -572,7 +572,7 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 ```
 
 ```{r pheno-scorecard, eval=has_nlmixr2data}
-pmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
+synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 ```
 
 **B1b fails: 15 avatars carry a dose schedule nobody else in the cohort
@@ -637,7 +637,7 @@ compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 ```
 
 ```{r case1-scorecard, eval=has_xgxr}
-pmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 ```
 
 Nothing fails, and C3 passes: all six treatment arms keep their source size. An
@@ -705,7 +705,7 @@ compare_pmx_distributions(mad, mad_synth, mad_roles)
 ```
 
 ```{r mad-scorecard, eval=has_xgxr}
-pmx_scorecard(mad, mad_synth, mad_roles)
+synpmx_scorecard(mad, mad_synth, mad_roles)
 ```
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a row
@@ -717,10 +717,22 @@ The distribution table carries the same categorical drift as `warfarin`: `SEX`
 is 30 female and 30 male in the source and 40 to 20 in the synthetic cohort. It
 is declared as a covariate rather than as `strata`, so the anchor draw sets it.
 
-### Discrete endpoints come back continuous
+### Discrete endpoints keep their scale
 
-No scorecard row asks this, and it is the failure in this vignette that a check
-would not have caught:
+Three of `mad`'s five endpoints are discrete, and `LIDV` is one numeric column
+carrying all five, so restoring the *column's* class restores nothing about any
+of them. Blending is a weighted mean, and a weighted mean of five donors' zeros
+and ones is a number between them; the subject and residual noise terms then
+carry it off the level set entirely. Left alone, this study's 0/1 endpoint comes
+back as 600 distinct values spanning -0.13 to 1.08.
+
+`synpmx_avatar()` therefore decides what kind of values each endpoint takes,
+from the source, and puts the generated values back on that scale. The decision
+is worth reading before the data:
+
+```{r mad-endpoint-types, eval=has_xgxr}
+pmx_endpoint_types(mad, mad_roles)
+```
 
 ```{r mad-discrete, eval=has_xgxr}
 discrete <- c("PD - Binary", "PD - Count", "PD - Ordinal")
@@ -740,18 +752,19 @@ knitr::kable(
 )
 ```
 
-The binary endpoint is 0 or 1 on all 600 source rows and runs from -0.13 to 1.08
-across 600 distinct values in the synthetic data. AVATAR restores the source
-*column's* class, and `LIDV` is one numeric column carrying all five endpoints,
-so there is nothing per-endpoint to restore. A weighted blend of five donors'
-zeros and ones is a number between them, and the subject and residual noise
-terms then move it off the level set entirely, which is how a 0/1 endpoint
-reaches -0.13 and an endpoint with levels 1, 2 and 3 reaches 4.69. The ordinal
-and count endpoints go the same way.
+A6 in the scorecard above is the check on it, and it reads the finished table
+rather than trusting the mechanism. It appears only on a study that has a
+discrete endpoint, which is why it is absent from the seven scorecards before
+this one.
 
-There is no setting for this. A study whose analysis depends on a categorical or
-count endpoint has to round the generated values back onto the source levels
-itself, and `synpmx_avatar()` does not do it.
+Two limits. The type is inferred, so an endpoint whose values are whole numbers
+for a reason other than being discrete is called discrete anyway — `warfarin`'s
+`pca` is a percentage recorded without decimals, and its generated values are
+rounded to match. `pmx_roles(endpoint_types = )` overrides the inference in
+either direction. And snapping a binary endpoint onto its levels means generated
+values are source values: a 0/1 endpoint has no third value to emit, so what
+protects a patient here is everything in the masking report, never the
+distinctness of the number.
 
 ## The model-based path on the same data
 

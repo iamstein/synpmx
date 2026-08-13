@@ -23,7 +23,7 @@ plots <- has_xgxr && has_ggplot2
 
 Generate a synthetic dataset, look at it, and read the checks of the data, sumamrized in a scorecard. 
 
-`vignette("synthetic-data-checks")` is the reference for better understanding the synthetic data checks.  
+`vignette("scorecard-synthetic-data-checks")` is the reference for better understanding the synthetic data checks.  
 
 The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to 300 mg, with a pharmacokinetic (PK) concentration endpoint and a continuous pharmacodynamic (PD) endpoint.
 
@@ -123,18 +123,22 @@ alike. This behavior is expected from the AVATAR blending algorithm.
 
 ## The scorecard
 
-The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("synthetic-data-checks")`.
+The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("scorecard-synthetic-data-checks")`.
 
 ```{r scorecard, eval=run}
-pmx_scorecard(raw, synthetic, roles)
+synpmx_scorecard(raw, synthetic, roles)
 ```
 
 **`review` is not a soft `pass`.** Three rows have no pass mark because no
 threshold would be honest. Doses per patient is the clearest: on this study it
-is unchanged, but on a study with individualised dosing it can change.  
+is unchanged, but on a study with individualised dosing it can change.
+
+**Every row names the call that explains it.** When a row reads oddly, run what
+its `explore` column says: the numbers are a summary, and the call behind each
+one is where the answer is.
 
 ## Where to go next
 
-- `vignette("synthetic-data-checks")` — every check, what it asks, and what
+- `vignette("scorecard-synthetic-data-checks")` — every check, what it asks, and what
   passing means.
 - `vignette("avatar-evaluation-public-data")` - AVATAR algorithm applied to 8 public datasets.

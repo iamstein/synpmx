@@ -185,11 +185,17 @@
   invisible(TRUE)
 }
 
+# Entries of a `pmx_roles` object that are not column names, and so must be kept
+# out of every place that treats the object as a list of columns: `exclude`
+# names columns to remove rather than to keep, and `endpoint_types` is keyed by
+# endpoint with a type for a value.
+.non_column_roles <- c("exclude", "endpoint_types")
+
 # Every column a role points at, other than the ones `exclude` names for
 # removal. This is the allowlist: what AVATAR retains, and what the
 # identifier-name check treats as consciously handled.
 .retained_role_columns <- function(roles) {
-  referenced <- unlist(roles[setdiff(names(roles), "exclude")],
+  referenced <- unlist(roles[setdiff(names(roles), .non_column_roles)],
                        use.names = FALSE)
   unique(referenced[!is.na(referenced) & nzchar(referenced)])
 }

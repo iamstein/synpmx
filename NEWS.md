@@ -5,6 +5,31 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **`pmx_scorecard()` is now `synpmx_scorecard()`**, and every row carries an
+  `explore` column naming the call that explains it. Three rows changed with it:
+  C4 is titled "distinct dose-time schedules represented", since the key it
+  counts is dose *times* and never amounts; B5 names the column and level it
+  found rather than reporting a bare count; and C3 marks a stratum that changed
+  size `review` rather than `FAIL`, because dropping a subject for want of
+  donors is the generator working as designed. The `reads` value `run report` is
+  now `run settings`. `vignettes/synthetic-data-checks.Rmd` is renamed
+  `scorecard-synthetic-data-checks.Rmd`.
+
+* **Discrete endpoints stay discrete, and this changes generated output for any
+  dataset with one.** Blending is a weighted mean, so a weighted mean of several
+  patients' zeros and ones is a number between them: on `xgxr::mad` a 0/1
+  endpoint came back as 600 distinct values spanning -0.13 to 1.08, an ordinal
+  1/2/3 endpoint reached 4.69, and an integer count came back in fractions.
+  Nothing caught it, because class restoration works on the DV column and a PMX
+  table keeps every endpoint in the same one. `synpmx_avatar()` now decides per
+  endpoint, from the source, whether it is `binary`, `ordinal`, `integer` or
+  `continuous`, and snaps generated values back onto that scale.
+  `pmx_endpoint_types()` reports the decision and the evidence for it,
+  `pmx_roles(endpoint_types = )` overrides it, and scorecard row **A6** checks
+  the finished table. One study changes that nobody would call discrete:
+  `nlmixr2data::warfarin`'s `pca` is a percentage recorded without decimals, so
+  its generated values are now whole numbers too.
+
 * **`subject_properties` is now `strata`** in `pmx_roles()`, and
   `subject_property_summary()` is now `strata_summary()`. The old name described
   where the columns live; the new one says what they do — group the donors,
@@ -37,7 +62,7 @@
   `strata` declared nothing changes.
 
 * New vignette, "Checks of the synthetic data"
-  (`vignettes/synthetic-data-checks.Rmd`): the six categories of check to run on
+  (`vignettes/scorecard-synthetic-data-checks.Rmd`): the six categories of check to run on
   generated data, worked on `xgxr::case1_pkpd` with `nlmixr2data::pheno_sd` as
   the case where they fail. Written for two audiences — someone deciding whether
   to use generated data, and someone building their own generator who wants the
