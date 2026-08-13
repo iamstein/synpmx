@@ -41,8 +41,14 @@ taken from either table.
 The \code{explore} column names the call to run when a row needs explaining. The
 calls are written against this function's argument names (\code{source},
 \code{synthetic}, \code{roles}), so rename them to whatever the session calls those
-objects. Every row carries one, but printing shows it only where the verdict
-is not \code{"pass"}.
+objects. Every row carries one; printing lists them under the table, for the
+rows that did not pass, rather than as a sixth column.
+
+Printing and knitting differ on purpose. \code{print()} is a console layout: the
+verdict table, then the calls to run, then the B5b levels. Knitting a chunk
+that returns this object emits \code{knitr::kable()} tables instead, so a \code{.Rmd}
+or \code{.qmd} gets the whole card including the \code{explore} column. Running a chunk
+interactively in an IDE shows the console form, since nothing is knitting.
 
 A \code{"review"} verdict is not a soft \code{"pass"}. It marks a row where no
 threshold would be honest, and it has to be read.

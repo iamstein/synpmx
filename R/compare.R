@@ -491,16 +491,23 @@ print.pmx_rare_levels <- function(x, ...) {
   }
   cat(.rare_levels_headline(x), "\n\n", sep = "")
   # The exposed rows are the point; the rest is the census they sit in, and on a
-  # study with many levels printing all of it buries them.
+  # study with many levels printing all of it buries them. One level per line
+  # rather than a data frame, because the level names are study labels -- "NON-
+  # HISPANIC OR LATINO" -- and a wide frame wraps them into an unreadable block.
   shown <- plain[plain$exposed, , drop = FALSE]
   if (nrow(shown)) {
-    print(shown, row.names = FALSE)
-    cat("\nA level that `reached` the output is one real patient's attribute,",
-        "\ncopied. Drop the covariate or collapse its rare levels before",
-        "generating.\n")
+    for (i in seq_len(nrow(shown))) {
+      cat(sprintf("  %s = %s\n    %d source patient(s), %d avatar(s)%s\n",
+                  shown$column[[i]], shown$level[[i]],
+                  shown$source_patients[[i]], shown$synthetic_patients[[i]],
+                  if (shown$reached[[i]]) " -- REACHED THE OUTPUT" else ""))
+    }
+    cat("\nA level that reached the output is one real patient's attribute,\n",
+        "copied. Drop the covariate or collapse its rare levels before\n",
+        "generating.\n", sep = "")
   } else {
-    cat("Every level in the output is one that at least", attr(x, "floor"),
-        "source patients held.\n")
+    cat("Every level in the output is one that at least ", attr(x, "floor"),
+        " source patients held.\n", sep = "")
   }
   cat("\nSource-derived; not releasable.\n")
   invisible(x)

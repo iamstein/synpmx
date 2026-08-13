@@ -80,8 +80,13 @@ test_that("B5b reports a rare source level that was copied into the output", {
   # Review, not FAIL: on a small cohort a rare `RACE` lights this up constantly
   # and the answer is usually to stop carrying the covariate.
   expect_identical(card$verdict[card$check == "B5b"], "review")
-  # The row has to name the level, since that is what decides what to do.
-  expect_match(card$result[card$check == "B5b"], "ARM = solo")
+  # The cell counts; the levels themselves ride along on the card, because
+  # which level it was is what decides what to do about it.
+  expect_identical(card$result[card$check == "B5b"], "1 of 1 exposed")
+  rare <- attr(card, "rare_levels")
+  expect_identical(rare$column, "ARM")
+  expect_identical(rare$level, "solo")
+  expect_identical(rare$source_patients, 1L)
   expect_identical(card$explore[card$check == "B5b"],
                    "compare_pmx_rare_levels(source, synthetic, roles)")
   # And it reads the source, which is what makes the card restricted here.

@@ -106,8 +106,14 @@
 #' The `explore` column names the call to run when a row needs explaining. The
 #' calls are written against this function's argument names (`source`,
 #' `synthetic`, `roles`), so rename them to whatever the session calls those
-#' objects. Every row carries one, but printing shows it only where the verdict
-#' is not `"pass"`.
+#' objects. Every row carries one; printing lists them under the table, for the
+#' rows that did not pass, rather than as a sixth column.
+#'
+#' Printing and knitting differ on purpose. `print()` is a console layout: the
+#' verdict table, then the calls to run, then the B5b levels. Knitting a chunk
+#' that returns this object emits `knitr::kable()` tables instead, so a `.Rmd`
+#' or `.qmd` gets the whole card including the `explore` column. Running a chunk
+#' interactively in an IDE shows the console form, since nothing is knitting.
 #'
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 #' threshold would be honest, and it has to be read.
@@ -278,6 +284,9 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )))
   }
 
+  # NULL when the roles declare no categorical axis, which is also when there is
+  # no B5 row at all.
+  rare_levels <- NULL
   categorical <- .scorecard_categorical(synthetic, roles)
   if (length(categorical)) {
     # Which column and which level, not just the count. "1" on its own says a
@@ -317,11 +326,16 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     census <- compare_pmx_rare_levels(source, synthetic, roles, floor = floor)
     exposed <- sum(census$exposed)
     leaked <- census[census$exposed & census$reached, , drop = FALSE]
+    rare_levels <- as.data.frame(leaked)[, c("column", "level",
+                                             "source_patients",
+                                             "synthetic_patients")]
     rows <- c(rows, list(.scorecard_row(
       "B5b", "Rare source levels copied into the output", "both",
-      if (!nrow(leaked)) paste(0, "of", exposed, "exposed") else
-        sprintf("%d of %d exposed (%s = %s)", nrow(leaked), exposed,
-                leaked$column[[1L]], .scorecard_short(leaked$level[[1L]])),
+      # The count only. Which levels they were is a list, and it is printed
+      # under the table and knitted as its own table, because a study that
+      # trips this trips it several times over and one name in a cell is not
+      # the answer.
+      sprintf("%d of %d exposed", nrow(leaked), exposed),
       "compare_pmx_rare_levels(source, synthetic, roles)",
       if (!nrow(leaked)) TRUE else NA
     )))
@@ -374,33 +388,54 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out <- structure(out, class = c("synpmx_scorecard", "data.frame"))
+  # Carried beside the table rather than in it: B5b is one row whose answer is a
+  # list, and printing that list is what makes the row actionable.
+  attr(out, "rare_levels") <- rare_levels
   .mark_release(out, "restricted_not_releasable")
 }
 
 #' @export
 print.synpmx_scorecard <- function(x, ...) {
   plain <- as.data.frame(x)
-  # One format string for the header and every row, so the two cannot drift.
-  # The last column is unpadded: it is the widest and nothing follows it.
-  line <- function(...) cat(sprintf("  %-5s %-50s %-12s %-24s %-7s %s\n", ...))
+  # The table is the verdicts, and nothing else. `explore` was a sixth column of
+  # long calls that pushed every line past 150 characters and wrapped in an
+  # ordinary console, which made the whole card unreadable to save a second
+  # glance. It goes below the table instead, one line per row that needs it, and
+  # only those rows. The returned object still carries the column on every row.
+  line <- function(...) cat(sprintf("  %-5s %-50s %-12s %-26s %s\n", ...))
   cat("Scorecard: see vignette(\"scorecard-synthetic-data-checks\")",
       "for what each asks\n\n")
-  line("check", "question", "reads", "result", "verdict", "explore")
+  line("check", "question", "reads", "result", "verdict")
   for (i in seq_len(nrow(plain))) {
-    # `explore` is printed only where there is something to explore. On a clean
-    # card it would be a column of calls nobody needs to run, and it is the
-    # widest column: suppressing it is what keeps a passing card readable in a
-    # console. The returned object carries it on every row regardless, so the
-    # knitted table and `card$explore` are unaffected.
     line(plain$check[[i]], plain$question[[i]], plain$reads[[i]],
-         plain$result[[i]], plain$verdict[[i]],
-         if (identical(plain$verdict[[i]], "pass")) "" else plain$explore[[i]])
+         plain$result[[i]], plain$verdict[[i]])
   }
+
+  unresolved <- plain$verdict != "pass"
+  if (any(unresolved)) {
+    cat("\nTo explore, with `source`, `synthetic` and `roles` named as you",
+        "have them:\n")
+    for (i in which(unresolved)) {
+      cat(sprintf("  %-5s %s\n", plain$check[[i]], plain$explore[[i]]))
+    }
+  }
+
+  # B5b can only name one level in a table cell, and a study that trips it
+  # usually trips it several times over. The whole list is carried on the card
+  # so that reading it does not require running the census again.
+  rare <- attr(x, "rare_levels")
+  if (!is.null(rare) && nrow(rare)) {
+    cat("\nRare source levels that reached the output (B5b):\n")
+    for (i in seq_len(nrow(rare))) {
+      cat(sprintf("  %s = %s -- %d source patient(s), %d avatar(s)\n",
+                  rare$column[[i]], rare$level[[i]],
+                  rare$source_patients[[i]], rare$synthetic_patients[[i]]))
+    }
+  }
+
   failed <- sum(plain$verdict == "FAIL")
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
       sum(plain$verdict == "review"), " to review.\n",
-      "`explore` is the call that explains a row that did not pass; it uses ",
-      "the argument names `source`, `synthetic`, `roles`.\n",
       "`run settings` rows come from the run's own record, ",
       "`attr(synthetic, \"pmx_settings\")`.\n",
       "Rows reading `source` or `both` are restricted output.\n", sep = "")
@@ -409,7 +444,21 @@ print.synpmx_scorecard <- function(x, ...) {
 
 #' @exportS3Method knitr::knit_print
 knit_print.synpmx_scorecard <- function(x, ...) {
-  # No caption: the object is routinely subset to a row or two in prose, and a
-  # caption written for the whole card is wrong on every such excerpt.
-  knitr::knit_print(knitr::kable(as.data.frame(x), row.names = FALSE))
+  # No caption on the card itself: the object is routinely subset to a row or
+  # two in prose, and a caption written for the whole card is wrong on every
+  # such excerpt. The B5b detail is a second table rather than a footnote, so
+  # that a knitted report says which levels without the reader running the
+  # census again.
+  out <- paste(knitr::kable(as.data.frame(x), row.names = FALSE),
+               collapse = "\n")
+  rare <- attr(x, "rare_levels")
+  if (!is.null(rare) && nrow(rare)) {
+    out <- c(out, paste(knitr::kable(
+      rare, row.names = FALSE,
+      caption = paste("RESTRICTED -- B5b: rare source levels that reached",
+                      "the output. Each is one real patient's attribute,",
+                      "copied.")
+    ), collapse = "\n"))
+  }
+  knitr::asis_output(paste(out, collapse = "\n\n"))
 }
