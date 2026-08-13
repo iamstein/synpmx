@@ -32,6 +32,7 @@ pmx_roles(
   strata = NULL,
   dose_covariate = NULL,
   assigned_dose = NULL,
+  endpoint_types = NULL,
   keep = NULL,
   exclude = NULL
 )
@@ -172,6 +173,35 @@ pmx_roles(
   reconstructed from the generated regimen.
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   does not use this — carry the column with `keep`.
+
+- endpoint_types:
+
+  What kind of values an endpoint takes, as a named character vector
+  keyed by the endpoint's `dvid` value — for example
+  `c("PD - Binary" = "binary", "PD - Ordinal" = "ordinal")`. Use `"DV"`
+  as the name when no `dvid` is declared. Each value is one of
+  `"continuous"`, `"binary"`, `"ordinal"`, or `"integer"`; `"count"` is
+  accepted for `"integer"`.
+
+  This exists because blending is a weighted mean, and a weighted mean
+  of several patients' zeros and ones is a number between them. Without
+  it a binary endpoint comes back continuous — measured on
+  [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html), a 0/1 endpoint
+  came back as 600 distinct values from -0.13 to 1.08. Declared or
+  inferred,
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  snaps a `"binary"` or `"ordinal"` endpoint onto the levels the source
+  used and rounds an `"integer"` one to whole numbers.
+
+  Left `NULL`, the type is inferred per endpoint from whether every
+  observed value is a whole number and how many distinct ones there are;
+  [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md)
+  reports what that inference decided and why. Unlike `dose_covariate`,
+  this inference is on by default, because the question it asks is
+  answered outright by the data and the repair reproduces granularity
+  the source already had. Declare the type where the data is misleading:
+  an endpoint recorded as whole numbers that is genuinely continuous, or
+  a scale with a level nobody in this cohort happened to hit.
 
 - keep:
 

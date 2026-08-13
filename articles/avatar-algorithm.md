@@ -1391,7 +1391,7 @@ one rare category — an ultra-rare mutation status, say — sits in the
 middle of the profile space, is selected as a donor constantly, and
 their category is copied out. What to do about that is a checking
 question rather than an algorithm one, and it is in
-[`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md)
+[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
 under B5.
 
 ### A covariate and an endpoint are blended independently

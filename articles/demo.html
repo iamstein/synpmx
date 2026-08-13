@@ -37,7 +37,7 @@
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
@@ -86,8 +86,8 @@ Stein</h4>
     
 <p>Generate a synthetic dataset, look at it, and read the checks of the
 data, sumamrized in a scorecard.</p>
-<p><code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code> is the reference for
-better understanding the synthetic data checks.</p>
+<p><code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> is the
+reference for better understanding the synthetic data checks.</p>
 <p>The dataset is <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code>: 180 patients, six arms
 from placebo to 300 mg, with a pharmacokinetic (PK) concentration
 endpoint and a continuous pharmacodynamic (PD) endpoint.</p>
@@ -310,16 +310,18 @@ blending algorithm.</p>
 <h2 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
 </h2>
 <p>The scorecard computes checks of the synthetic dataset. It is
-described further in <code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>.</p>
+described further in
+<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_scorecard.html">pmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="6%">
-<col width="51%">
-<col width="11%">
-<col width="24%">
+<col width="3%">
+<col width="32%">
 <col width="8%">
+<col width="15%">
+<col width="5%">
+<col width="35%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -327,6 +329,7 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <th align="left">reads</th>
 <th align="left">result</th>
 <th align="left">verdict</th>
+<th align="left">explore</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -335,6 +338,7 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">synthetic</td>
 <td align="left">TRUE</td>
 <td align="left">pass</td>
+<td align="left">validate_pmx(synthetic, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">A2</td>
@@ -342,6 +346,7 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">source</td>
 <td align="left">TRUE</td>
 <td align="left">pass</td>
+<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
 </tr>
 <tr class="odd">
 <td align="left">A3</td>
@@ -349,6 +354,8 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">2 of 2</td>
 <td align="left">pass</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
 </tr>
 <tr class="even">
 <td align="left">A4</td>
@@ -356,6 +363,7 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">180 -&gt; 180</td>
 <td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">A5</td>
@@ -363,6 +371,8 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">30.7 -&gt; 30.7</td>
 <td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
 </tr>
 <tr class="even">
 <td align="left">A5</td>
@@ -370,20 +380,24 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">70.8 -&gt; 70.8</td>
 <td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
 <td align="left">Avatars wearing one real patient’s visit set</td>
-<td align="left">run report</td>
+<td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
+<td align="left">plot_pmx_schedule(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
 <td align="left">Avatars wearing one real patient’s dose schedule</td>
-<td align="left">run report</td>
+<td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -391,13 +405,15 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">synthetic</td>
 <td align="left">0 of 180</td>
 <td align="left">review</td>
+<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
 <td align="left">0.544 in [0.422, 0.561]</td>
-<td align="left">pass</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B4a</td>
@@ -405,6 +421,8 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">0</td>
 <td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
 </tr>
 <tr class="even">
 <td align="left">B4b</td>
@@ -412,27 +430,24 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 <td align="left">both</td>
 <td align="left">0</td>
 <td align="left">pass</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B5</td>
-<td align="left">Synthetic patients holding the least-held level</td>
+<td align="left">Patients holding the least-held categorical level</td>
 <td align="left">synthetic</td>
-<td align="left">30</td>
+<td align="left">TRTACT = 10 mg: 30</td>
 <td align="left">pass</td>
+<td align="left">table(synthetic<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mi>R</mi><mi>T</mi><mi>A</mi><mi>C</mi><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>C</mi><mn>3</mn><mo stretchy="false" form="prefix">|</mo><mi>S</mi><mi>t</mi><mi>r</mi><mi>a</mi><mi>t</mi><mi>a</mi><mi>k</mi><mi>e</mi><mi>e</mi><mi>p</mi><mi>i</mi><mi>n</mi><mi>g</mi><mi>t</mi><mi>h</mi><mi>e</mi><mi>i</mi><mi>r</mi><mi>s</mi><mi>o</mi><mi>u</mi><mi>r</mi><mi>c</mi><mi>e</mi><mi>s</mi><mi>i</mi><mi>z</mi><mi>e</mi><mo stretchy="false" form="prefix">|</mo><mi>b</mi><mi>o</mi><mi>t</mi><mi>h</mi><mo stretchy="false" form="prefix">|</mo><mn>6</mn><mi>o</mi><mi>f</mi><mn>6</mn><mo stretchy="false" form="prefix">|</mo><mi>p</mi><mi>a</mi><mi>s</mi><mi>s</mi><mo stretchy="false" form="prefix">|</mo><mi>t</mi><mi>a</mi><mi>b</mi><mi>l</mi><mi>e</mi><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mi>y</mi><mi>n</mi><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><mi>i</mi><mi>c</mi></mrow><annotation encoding="application/x-tex">TRTACT)                                 |
+|C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic</annotation></semantics></math>TRTACT[!duplicated(synthetic$ID)])</td>
 </tr>
 <tr class="even">
-<td align="left">C3</td>
-<td align="left">Strata keeping their source size</td>
-<td align="left">both</td>
-<td align="left">6 of 6</td>
-<td align="left">pass</td>
-</tr>
-<tr class="odd">
 <td align="left">C4</td>
-<td align="left">Dose regimens represented</td>
+<td align="left">Distinct dose-time schedules represented</td>
 <td align="left">both</td>
 <td align="left">2 of 2</td>
 <td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles)</td>
 </tr>
 </tbody>
 </table>
@@ -440,14 +455,18 @@ described further in <code><a href="../articles/synthetic-data-checks.html">vign
 Three rows have no pass mark because no threshold would be honest. Doses
 per patient is the clearest: on this study it is unchanged, but on a
 study with individualised dosing it can change.</p>
+<p><strong>Every row names the call that explains it.</strong> When a
+row reads oddly, run what its <code>explore</code> column says: the
+numbers are a summary, and the call behind each one is where the answer
+is.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h2>
 <ul>
 <li>
-<code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code> — every check, what
-it asks, and what passing means.</li>
+<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> — every
+check, what it asks, and what passing means.</li>
 <li>
 <code><a href="../articles/avatar-evaluation-public-data.html">vignette("avatar-evaluation-public-data")</a></code> - AVATAR
 algorithm applied to 8 public datasets.</li>

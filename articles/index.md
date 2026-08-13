@@ -29,6 +29,9 @@
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
 
+- [Checks of the synthetic
+  data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md):
+
 - [The four synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
 
@@ -40,9 +43,6 @@
   A tutorial on the literature for checking synthetic data — privacy
   risk, disclosure control, and utility — and which of those measures
   synpmx implements, which it does not, and why.
-
-- [Checks of the synthetic
-  data](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md):
 
 - [Generating Synthetic Pharmacometric Data: A Review of the Methods,
   and Where synpmx

@@ -12,10 +12,10 @@
 <url><loc>https://iamstein.github.io/synpmx/articles/model-elicitation.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/privacy-argument.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/privacy-background.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/synpmx-privacy.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/articles/synthetic-data-checks.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/synthetic-data-generation-review.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/authors.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/index.html</loc></url>
@@ -41,6 +41,7 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_covariates.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_covariates_auto.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_endpoint.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_generated_roles.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_masking_report.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_preflight.html</loc></url>
@@ -49,7 +50,6 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_public_design.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_roles.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_schema.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/reference/pmx_scorecard.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_simulated_fixture.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_structural_model.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_trial_design.html</loc></url>
@@ -67,6 +67,7 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/synpmx_generate.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/synpmx_prior.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/synpmx_scorecard.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/validate_pmx.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/validate_private_model.html</loc></url>
 </urlset>

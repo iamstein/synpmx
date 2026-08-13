@@ -30,7 +30,7 @@ copied out of a real subject. Name a column in keep to carry it through."></head
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-evaluation-public-data.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/synthetic-data-checks.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
@@ -93,6 +93,7 @@ copied out of a real subject. Name a column in <code>keep</code> to carry it thr
 <span>  strata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assigned_dose <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  endpoint_types <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  keep <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  exclude <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -211,6 +212,29 @@ path was taken and, when inference declined, why.</p></dd>
 <dd><p>Differential-privacy engines only. A nominal
 assigned-dose column reconstructed from the generated regimen.
 <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> does not use this — carry the column with <code>keep</code>.</p></dd>
+
+
+<dt id="arg-endpoint-types">endpoint_types<a class="anchor" aria-label="anchor" href="#arg-endpoint-types"></a></dt>
+<dd><p>What kind of values an endpoint takes, as a named
+character vector keyed by the endpoint's <code>dvid</code> value — for example
+<code>c("PD - Binary" = "binary", "PD - Ordinal" = "ordinal")</code>. Use <code>"DV"</code> as
+the name when no <code>dvid</code> is declared. Each value is one of <code>"continuous"</code>,
+<code>"binary"</code>, <code>"ordinal"</code>, or <code>"integer"</code>; <code>"count"</code> is accepted for
+<code>"integer"</code>.</p>
+<p>This exists because blending is a weighted mean, and a weighted mean of
+several patients' zeros and ones is a number between them. Without it a
+binary endpoint comes back continuous — measured on <code><a href="https://rdrr.io/pkg/xgxr/man/mad.html" class="external-link">xgxr::mad</a></code>, a 0/1
+endpoint came back as 600 distinct values from -0.13 to 1.08. Declared or
+inferred, <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> snaps a <code>"binary"</code> or <code>"ordinal"</code> endpoint onto
+the levels the source used and rounds an <code>"integer"</code> one to whole numbers.</p>
+<p>Left <code>NULL</code>, the type is inferred per endpoint from whether every observed
+value is a whole number and how many distinct ones there are;
+<code><a href="pmx_endpoint_types.html">pmx_endpoint_types()</a></code> reports what that inference decided and why. Unlike
+<code>dose_covariate</code>, this inference is on by default, because the question it
+asks is answered outright by the data and the repair reproduces granularity
+the source already had. Declare the type where the data is misleading: an
+endpoint recorded as whole numbers that is genuinely continuous, or a scale
+with a level nobody in this cohort happened to hit.</p></dd>
 
 
 <dt id="arg-keep">keep<a class="anchor" aria-label="anchor" href="#arg-keep"></a></dt>

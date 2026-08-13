@@ -300,7 +300,7 @@ measured across eight public datasets in the
 [evaluation](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.html),
 and the questions to ask of any generated dataset — from any method —
 are in [the checks
-article](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.html).
+article](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html).
 
 #### The four modes across the families
 

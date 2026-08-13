@@ -3,7 +3,7 @@
 Generate a synthetic dataset, look at it, and read the checks of the
 data, sumamrized in a scorecard.
 
-[`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md)
+[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
 is the reference for better understanding the synthetic data checks.
 
 The dataset is
@@ -139,39 +139,43 @@ blending algorithm.
 
 The scorecard computes checks of the synthetic dataset. It is described
 further in
-[`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md).
+[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md).
 
 ``` r
 
-pmx_scorecard(raw, synthetic, roles)
+synpmx_scorecard(raw, synthetic, roles)
 ```
 
-| check | question | reads | result | verdict |
-|:---|:---|:---|:---|:---|
-| A1 | Synthetic table is a legal PMX dataset | synthetic | TRUE | pass |
-| A2 | Source is legal under the declared roles | source | TRUE | pass |
-| A3 | Every endpoint survived | both | 2 of 2 | pass |
-| A4 | Cohort size survived | both | 180 -\> 180 | pass |
-| A5 | Observations per patient | both | 30.7 -\> 30.7 | review |
-| A5 | Doses per patient | both | 70.8 -\> 70.8 | review |
-| B1a | Avatars wearing one real patient’s visit set | run report | 0 | pass |
-| B1b | Avatars wearing one real patient’s dose schedule | run report | 0 | pass |
-| B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review |
-| B3 | Adversarial accuracy inside its null interval | both | 0.544 in \[0.422, 0.561\] | pass |
-| B4a | Generated time vectors copying an exposed real one | both | 0 | pass |
-| B4b | Generated DV vectors copying an exposed real one | both | 0 | pass |
-| B5 | Synthetic patients holding the least-held level | synthetic | 30 | pass |
-| C3 | Strata keeping their source size | both | 6 of 6 | pass |
-| C4 | Dose regimens represented | both | 2 of 2 | pass |
+| check | question | reads | result | verdict | explore |
+|:---|:---|:---|:---|:---|:---|
+| A1 | Synthetic table is a legal PMX dataset | synthetic | TRUE | pass | validate_pmx(synthetic, roles) |
+| A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
+| A3 | Every endpoint survived | both | 2 of 2 | pass | compare_pmx_distributions(source, synthetic, roles) |
+| A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles) |
+| A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles) |
+| B1a | Avatars wearing one real patient’s visit set | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
+| B1b | Avatars wearing one real patient’s dose schedule | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.544 in \[0.422, 0.561\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5 | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
+|C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic`$TRTACT\[!duplicated(synthetic\$ID)\]) |
+| C4 | Distinct dose-time schedules represented | both | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles) |
 
 **`review` is not a soft `pass`.** Three rows have no pass mark because
 no threshold would be honest. Doses per patient is the clearest: on this
 study it is unchanged, but on a study with individualised dosing it can
 change.
 
+**Every row names the call that explains it.** When a row reads oddly,
+run what its `explore` column says: the numbers are a summary, and the
+call behind each one is where the answer is.
+
 ## Where to go next
 
-- [`vignette("synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.md)
+- [`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
   — every check, what it asks, and what passing means.
 - [`vignette("avatar-evaluation-public-data")`](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.md) -
   AVATAR algorithm applied to 8 public datasets.

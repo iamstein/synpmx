@@ -7,6 +7,50 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- **`pmx_scorecard()` is now
+  [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)**,
+  and every row carries an `explore` column naming the call that
+  explains it. Three rows changed with it: C4 is titled “distinct
+  dose-time schedules represented”, since the key it counts is dose
+  *times* and never amounts; B5 names the column and level it found
+  rather than reporting a bare count; and C3 marks a stratum that
+  changed size `review` rather than `FAIL`, because dropping a subject
+  for want of donors is the generator working as designed. The `reads`
+  value `run report` is now `run settings`.
+
+- **Only seven scorecard rows can say `FAIL`**: A1, A3, A6, B1a, B1b,
+  B4a and B4b — the output is not a legal dataset, it is not the study
+  that went in, or it reproduces one real patient’s structure verbatim.
+  A2, A4, B3 and B5 now say `review` instead, joining A5, B2, C3 and C4.
+  Each of them can move for a legitimate reason: a subject dropped for
+  want of donors (A4), a proximity statistic wandering at a small sample
+  size and meaning opposite things on either side of its interval (B3),
+  the weak synthetic-side form of the rare- level check (B5), or a real
+  source a validator objects to (A2).
+  `vignettes/synthetic-data-checks.Rmd` is renamed
+  `scorecard-synthetic-data-checks.Rmd`.
+
+- **Discrete endpoints stay discrete, and this changes generated output
+  for any dataset with one.** Blending is a weighted mean, so a weighted
+  mean of several patients’ zeros and ones is a number between them: on
+  [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html) a 0/1 endpoint
+  came back as 600 distinct values spanning -0.13 to 1.08, an ordinal
+  1/2/3 endpoint reached 4.69, and an integer count came back in
+  fractions. Nothing caught it, because class restoration works on the
+  DV column and a PMX table keeps every endpoint in the same one.
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  now decides per endpoint, from the source, whether it is `binary`,
+  `ordinal`, `integer` or `continuous`, and snaps generated values back
+  onto that scale.
+  [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md)
+  reports the decision and the evidence for it,
+  `pmx_roles(endpoint_types = )` overrides it, and scorecard row **A6**
+  checks the finished table. One study changes that nobody would call
+  discrete:
+  [`nlmixr2data::warfarin`](https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html)’s
+  `pca` is a percentage recorded without decimals, so its generated
+  values are now whole numbers too.
+
 - **`subject_properties` is now `strata`** in
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md),
   and `subject_property_summary()` is now
@@ -47,8 +91,8 @@
   `strata` declared nothing changes.
 
 - New vignette, “Checks of the synthetic data”
-  (`vignettes/synthetic-data-checks.Rmd`): the six categories of check
-  to run on generated data, worked on
+  (`vignettes/scorecard-synthetic-data-checks.Rmd`): the six categories
+  of check to run on generated data, worked on
   [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html)
   with
   [`nlmixr2data::pheno_sd`](https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html)
