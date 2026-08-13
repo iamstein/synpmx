@@ -529,6 +529,167 @@ knit_print.pmx_rare_levels <- function(x, ...) {
   ))
 }
 
+# Stratum sizes, both sides ---------------------------------------------------
+#
+# C3 used to explore with `table(synthetic$ARM[!duplicated(synthetic$ID)])`,
+# which prints one side. "19 became 2" is the reading a user needs, and getting
+# it meant running the same call twice and lining the two up by eye.
+
+#' Stratum sizes, source against synthetic
+#'
+#' One row per declared stratum level, with the source size, the synthetic size,
+#' and the size the generator was aiming for. Reported for each `strata` column
+#' on its own, and -- when more than one is declared -- for the joint cells too,
+#' because the joint cell is what the generator balances on.
+#'
+#' `expected` is the source share of the cohort carried to the synthetic cohort
+#' size, which is the generator's own target rule. It matters whenever
+#' `n_subjects` differs from the source size: every stratum then changes size by
+#' design, and comparing the raw counts says "everything moved" when nothing is
+#' wrong.
+#'
+#' `balanced` is whether the cell had enough source patients
+#' (`r .strata_balance_floor`) to be held exactly. Cells below that floor are
+#' deliberately left to vary by seed -- reproducing the size of a two-patient
+#' arm on every run discloses that size. A cell above the floor landing far from
+#' `expected` is not that mechanism, and is worth chasing.
+#'
+#' With more than one `strata` column, `balanced` is `NA` on the single-column
+#' rows: the floor applies to the joint cell, so a column with 19 patients can
+#' still be split into joint cells that all fall below it.
+#'
+#' This reads real patient data on both sides and is marked
+#' `"restricted_not_releasable"`.
+#'
+#' @param source Source PMX data.
+#' @param synthetic Generated synthetic PMX data.
+#' @param roles Explicit roles from [pmx_roles()].
+#'
+#' @return A `pmx_strata_sizes` data frame with `column`, `level`,
+#'   `source_patients`, `synthetic_patients`, `expected` and `balanced`. Zero
+#'   rows when the roles declare no strata.
+#' @seealso [synpmx_scorecard()], which reports this as row C3.
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "A", "B")
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT", strata = "ARM"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' compare_pmx_strata_sizes(data, synthetic, roles)
+compare_pmx_strata_sizes <- function(source, synthetic, roles) {
+  .assert_roles(source, roles)
+  .assert_roles(synthetic, roles)
+
+  empty <- data.frame(
+    column = character(), level = character(), source_patients = integer(),
+    synthetic_patients = integer(), expected = numeric(), balanced = logical(),
+    stringsAsFactors = FALSE
+  )
+  if (!length(roles$strata)) {
+    return(.mark_release(
+      structure(empty, class = c("pmx_strata_sizes", "data.frame")),
+      "restricted_not_releasable"
+    ))
+  }
+
+  subjects <- function(data) length(unique(as.character(data[[roles$id]])))
+  n_source <- subjects(source)
+  n_synthetic <- subjects(synthetic)
+
+  # One key per subject, joined the same way the generator joins them, so the
+  # joint rows here are the cells `.strata_targets()` actually sized.
+  key <- function(data, columns) {
+    parts <- lapply(columns, function(column) {
+      .scorecard_holders(data, roles, column)
+    })
+    do.call(paste, c(parts, list(sep = " | ")))
+  }
+
+  # Each column on its own, then the joint cells when there is more than one.
+  groups <- as.list(roles$strata)
+  if (length(roles$strata) > 1L) groups <- c(groups, list(roles$strata))
+
+  rows <- lapply(groups, function(columns) {
+    source_held <- table(key(source, columns))
+    synthetic_held <- table(key(synthetic, columns))
+    levels <- union(names(source_held), names(synthetic_held))
+    count <- function(counts, level) {
+      at <- match(level, names(counts))
+      if (is.na(at)) 0L else as.integer(counts[[at]])
+    }
+    held <- vapply(levels, count, integer(1), counts = source_held)
+    data.frame(
+      column = paste(columns, collapse = " x "),
+      level = levels,
+      source_patients = held,
+      synthetic_patients = vapply(levels, count, integer(1),
+                                  counts = synthetic_held),
+      expected = if (n_source > 0L) held / n_source * n_synthetic else 0,
+      balanced = if (length(roles$strata) > 1L && length(columns) == 1L) {
+        NA
+      } else {
+        held >= .strata_balance_floor
+      },
+      stringsAsFactors = FALSE
+    )
+  })
+
+  out <- do.call(rbind, rows)
+  out <- out[order(out$column, out$level), , drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "floor") <- .strata_balance_floor
+  attr(out, "source_subjects") <- n_source
+  attr(out, "synthetic_subjects") <- n_synthetic
+  out <- structure(out, class = c("pmx_strata_sizes", "data.frame"))
+  .mark_release(out, "restricted_not_releasable")
+}
+
+# `expected` is fractional and a stratum is a whole number of patients, so
+# `.strata_targets()` hands out either floor(expected) or one more of them by
+# largest remainder. Anything inside that band is on target; only outside it is
+# the size actually somewhere the generator was not aiming.
+.strata_sizes_drifted <- function(x) {
+  x$synthetic_patients < floor(x$expected) |
+    x$synthetic_patients > ceiling(x$expected)
+}
+
+#' @export
+print.pmx_strata_sizes <- function(x, ...) {
+  plain <- as.data.frame(x)
+  cat("Restricted PMX stratum sizes (source against synthetic)\n\n")
+  if (!nrow(plain)) {
+    cat("No strata are declared, so there is nothing to size.\n")
+    return(invisible(x))
+  }
+  cat(sprintf("%d source patients -> %d synthetic patients.\n\n",
+              attr(x, "source_subjects"), attr(x, "synthetic_subjects")))
+  for (column in unique(plain$column)) {
+    block <- plain[plain$column == column, , drop = FALSE]
+    cat(column, ":\n", sep = "")
+    for (i in seq_len(nrow(block))) {
+      drifted <- .strata_sizes_drifted(block)[[i]]
+      cat(sprintf("  %s\n    %d source -> %d synthetic (expected %.1f)%s\n",
+                  block$level[[i]], block$source_patients[[i]],
+                  block$synthetic_patients[[i]], block$expected[[i]],
+                  if (!drifted) "" else if (isTRUE(block$balanced[[i]])) {
+                    " -- OFF TARGET, and large enough to be held exactly"
+                  } else if (is.na(block$balanced[[i]])) {
+                    " -- off target"
+                  } else {
+                    sprintf(" -- off target, under the floor of %d",
+                            attr(x, "floor"))
+                  }))
+    }
+  }
+  cat("\nCells under the floor of ", attr(x, "floor"),
+      " source patients are left to vary by seed on purpose.\n", sep = "")
+  cat("Source-derived; not releasable.\n")
+  invisible(x)
+}
+
 # Post-generation outlier / identifiability check -----------------------------
 #
 # compare_pmx_distributions() compares whole distributions; this checks

@@ -355,8 +355,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     rows <- c(rows, list(.scorecard_row(
       "C3", "Strata keeping their source size", "both",
       paste(matched, "of", length(source_arms)),
-      sprintf("table(synthetic$%s[!duplicated(synthetic$%s)])",
-              roles$strata[[1L]], roles$id),
+      "compare_pmx_strata_sizes(source, synthetic, roles)",
       if (matched == length(source_arms)) TRUE else NA
     )))
   }

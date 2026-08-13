@@ -76,7 +76,7 @@ Three columns need a word of explanation.
 | **B5b** | Did a level too few *source* patients held reach the output? | `compare_pmx_rare_levels()` | both | no exposed level reaching the output — *review* while the check earns its thresholds |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
-| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
+| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `compare_pmx_strata_sizes()` | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
 | **C4** | What features of the study were lost? | `pmx_masking_report()` | both | every distinct set of dose **times** in the source still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | `compare_pmx_distributions()` | both | same magnitude and shape; spread **will** shrink |
 
