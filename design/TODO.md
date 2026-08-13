@@ -17,6 +17,22 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
+## Open 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
+
+Found while rewriting `avatar-evaluation-public-data.Rmd` onto the demo's shape.
+`xgxr::mad` carries binary, count and ordinal PD endpoints in the same numeric
+`LIDV` column as PK, and all three come out continuous: the 0/1 endpoint takes
+600 distinct values from -0.13 to 1.08. Every scorecard row passes, so nothing
+catches it.
+
+- [ ] Decide the fix: round generated values back onto the source level set per
+      endpoint at emit, or refuse and say so. Class restoration is per column and
+      cannot see an endpoint, so neither is free.
+- [ ] Regression test on a fixture with one integer-level endpoint alongside a
+      continuous one.
+- [ ] The `mad` section of the evaluation vignette records it as a known
+      limitation; update it when the fix lands.
+
 ## Done 2026-08-03: run-report readability, and `SIM-038` behind it
 
 Raised by the owner reading `INTERNAL_STUDY`'s output: the alerts were too

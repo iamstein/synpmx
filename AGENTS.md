@@ -47,11 +47,17 @@ document.
   masking mechanisms M1-M6. Promoted from `articles/` on 2026-07-31 because it
   is the method reference, not supporting evidence.
 - `avatar-evaluation-public-data.Rmd` — `synpmx_avatar()` run over every public
-  dataset in the evaluation set, with the masking accounting and exposure
-  measurements for each. Renamed from `synpmx-demo.Rmd` on 2026-08-04: it is an
-  evaluation of algorithm performance, not a tutorial. It carries a table
-  describing every dataset it uses; keep that table in step with the datasets
-  actually run.
+  dataset in the evaluation set, then the exposure measurements across all
+  eight. Renamed from `synpmx-demo.Rmd` on 2026-08-04: it is an evaluation of
+  algorithm performance, not a tutorial. It carries a table describing every
+  dataset it uses; keep that table in step with the datasets actually run.
+  Reworked on 2026-08-13 so all eight worked examples have the same shape as
+  `demo.Rmd` — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
+  `compare_pmx_distributions()`, `pmx_scorecard()` — followed by a subsection
+  per dataset only where something fails or reads oddly, which is where
+  `pmx_masking_report()` and any dataset-specific digging belong. Keep it that
+  way: a new dataset gets the same five steps, and prose only where the numbers
+  need it.
 - `synthetic-data-checks.Rmd` — the six categories of check to run on generated
   data (A validity, B who is singled out, C same study, D distributions, E what
   the checks cannot tell you, F check the output not the algorithm), worked on
