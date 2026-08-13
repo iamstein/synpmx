@@ -223,10 +223,18 @@ pmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )))
   }
 
+  # C4 in the vignette is the open question "what was lost?", which has no pass
+  # mark. This row measures one countable part of it, and that part does: every
+  # distinct source regimen still appearing in the output is nothing lost, so it
+  # is a pass. Fewer is `review` rather than `FAIL` -- declining to build on a
+  # patient whose regimen nobody shares is the correct answer, and the row is
+  # there to say what it cost.
   rows <- c(rows, list(.scorecard_row(
     "C4", "Dose regimens represented", "both",
     paste(settings$dose_regimens_represented, "of",
-          settings$dose_regimens_source)
+          settings$dose_regimens_source),
+    if (settings$dose_regimens_represented ==
+        settings$dose_regimens_source) TRUE else NA
   )))
 
   out <- do.call(rbind, rows)

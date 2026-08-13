@@ -303,10 +303,17 @@ compare_pmx_distributions <- function(source, synthetic = NULL, roles) {
   )
 }
 
-# Round numeric columns for display without touching the stored exact values.
-.round_for_print <- function(df, digits = 4L) {
-  numeric_cols <- vapply(df, is.numeric, logical(1))
-  df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = digits)
+# Three significant digits for display, without touching the stored exact
+# values. Each cell is formatted on its own rather than the column rounded as a
+# vector: these tables put an endpoint in the hundreds next to one around 0.05,
+# and a column laid out in one pass pads every entry to the widest one's decimal
+# places (134.9000). Integer columns -- the n counts -- are left alone, since
+# signif() would turn 1234 subjects into 1230.
+.format_for_print <- function(df, digits = 3L) {
+  double_cols <- vapply(df, is.double, logical(1))
+  df[double_cols] <- lapply(df[double_cols], function(x) {
+    vapply(x, function(v) format(signif(v, digits), trim = TRUE), character(1))
+  })
   df
 }
 
@@ -316,7 +323,7 @@ print.pmx_distribution_summary <- function(x, ...) {
   section <- function(title, df) {
     if (is.null(df)) return(invisible())
     cat("\n", title, ":\n", sep = "")
-    print(.round_for_print(df), row.names = FALSE)
+    print(.format_for_print(df), row.names = FALSE)
   }
   section("Endpoints (dependent variable on observation rows)", x$endpoints)
   section("Continuous covariates (baseline, per subject)", x$covariates_numeric)
@@ -335,10 +342,11 @@ print.pmx_distribution_summary <- function(x, ...) {
 knit_print.pmx_distribution_summary <- function(x, ...) {
   section <- function(df, caption) {
     if (is.null(df)) return(NULL)
-    # Rounding is for display only; the returned object keeps exact values.
-    numeric_cols <- vapply(df, is.numeric, logical(1))
-    df[numeric_cols] <- lapply(df[numeric_cols], signif, digits = 4)
-    paste(knitr::kable(df, row.names = FALSE, caption = caption),
+    # The alignment has to be taken before formatting: .format_for_print() hands
+    # back character columns, which kable would otherwise left-align.
+    align <- ifelse(vapply(df, is.numeric, logical(1)), "r", "l")
+    paste(knitr::kable(.format_for_print(df), row.names = FALSE,
+                       align = align, caption = caption),
           collapse = "\n")
   }
   out <- c(
@@ -1256,7 +1264,7 @@ print.pmx_identifiability <- function(x, ...) {
   cat("Flag = a robust outlier in follow-up time, dose count, dose magnitude,",
       "or DV value.\n\n")
   cat(if (n > 12L) "Twelve most unusual:\n" else "By outlier count:\n")
-  print(.round_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
+  print(.format_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
   if (n > 12L) {
     cat(sprintf("... %d more row(s) in the returned table.\n", n - 12L))
   }
@@ -1976,7 +1984,7 @@ print.pmx_proximity <- function(x, ...) {
   # thing to do with these, and it keeps the class, so handle more than one row
   # rather than failing on a length-2 condition.
   if (nrow(x) != 1L) {
-    print(.round_for_print(as.data.frame(x)), row.names = FALSE)
+    print(.format_for_print(as.data.frame(x)), row.names = FALSE)
     cat("\n", .wrap_plain(paste(
       "0.5 is the target; toward 0 is memorisation. The null interval is wide",
       "at small cohorts, so a value inside it means nothing was detected.",

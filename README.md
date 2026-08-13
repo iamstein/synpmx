@@ -108,7 +108,8 @@ roles <- pmx_roles(
   rate               = "RATE",                  # infusion rate
   cmt                = "CMT",                   # compartment
   dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns may label the same endpoint,
-                                                # If CMT is your only endpoint key, name it in both
+                                                # If CMT is your only endpoint key,
+                                                # name it in both:
                                                 # cmt = "CMT", dvid = "CMT"
   mdv                = "MDV",                   # missing-DV indicator
   nominal_time       = "NTIME",                 # protocol visit time
@@ -137,30 +138,13 @@ roles <- pmx_roles(
   redundant label. A kept value is **one real subject's real value**, so keep
   only what the source data's own access controls already permit.
 
-## The masking options, and their defaults
-
-Every masking argument below is shown at its default, so this call behaves
-exactly like `synpmx_avatar(study, roles, seed = 2026)`:
-
 ``` r
 synthetic <- synpmx_avatar(
   study,             #study data
   roles,             #column desrciption
   n_subjects = NULL, # cohort size; NULL matches the source
   seed       = 2026)
-
-validate_pmx(synthetic, roles)$valid
-#> [1] TRUE
 ```
-
-## The four modes for generating synthetic data
-
-| Mode | Function | Output built from | Guarantee | Works at |
-|----|----|----|----|----|
-| **1. AVATAR blending** | `synpmx_avatar()` | Real subject templates and blended real trajectories | None; governance only | At least 6 subjects |
-| **2. Prior only** | `synpmx_prior()` | A public model and protocol only | `epsilon = 0` (no data read) | Any (data-independent) |
-| **3. Calibration** | `synpmx_calibrated()` | A public model, magnitude corrected by 2 private releases | `(epsilon, delta)` DP | At least 20 subjects |
-| **4. Empirical** | `synpmx_empirical()` | Dozens of noised population summaries | `(epsilon, delta)` DP | At least hundreds |
 
 ## Maintenance status
 
@@ -169,7 +153,7 @@ dependencies beyond base R, and is what to reach for when the output
 stays within the source data’s own access controls and obligations.  However,
 AVATAR does not offer any formal, mathematical guarantees around privacy.  
 
-The three other modes (**prior**, **calibration**,
+The three other modes for generating synthetic data (**prior**, **calibration**,
 **empirical**) are secondary; but, they are present in this repository
 because they cover scenarios where data crosses a trust
 boundary and formal privacy conditions must be met. 
@@ -181,11 +165,11 @@ tradeoff, not as a production ready. That status is enforced in that `synpmx_cal
 
 | Document | Question it answers |
 |----|----|
-| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? **Start here.** |
 | [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
 | [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-evaluation-public-data.html) | How well does it work, and what did the masking cost, on eight public datasets? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 | [Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/synthetic-data-checks.html) | I have a synthetic dataset. Should I use it? |
+| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? |
 
 ## References
 

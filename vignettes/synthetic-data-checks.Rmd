@@ -72,7 +72,7 @@ Three columns need a word of explanation.
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
 | **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; arm sizes match |
-| **C4** | What features of the study were lost? | `pmx_masking_report()` | both | review — this one has no pass mark |
+| **C4** | What features of the study were lost? | `pmx_masking_report()` | both | every source dose regimen still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | `compare_pmx_distributions()` | both | same magnitude and shape; spread **will** shrink |
 
 One requirement is deliberately not in the table, because no function can

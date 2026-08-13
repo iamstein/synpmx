@@ -1,5 +1,5 @@
 ---
-title: "Demo: one dataset, end to end"
+title: "Demo: Using `synpmx_avatar`"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -21,77 +21,59 @@ run <- has_xgxr
 plots <- has_xgxr && has_ggplot2
 ```
 
-Generate a synthetic dataset, look at it, and read the scorecard. That is the
-whole document.
+Generate a synthetic dataset, look at it, and read the checks of the data, sumamrized in a scorecard. 
 
-`vignette("synthetic-data-checks")` is the reference for the checking half: it
-states every check, what each one asks, what counts as passing, and which
-questions no function can answer. Read it once. This demo runs the checks it can
-and does not re-explain them.
+`vignette("synthetic-data-checks")` is the reference for better understanding the synthetic data checks.  
 
-The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to
-300 mg, with a pharmacokinetic (PK) concentration endpoint and a continuous
-pharmacodynamic (PD) endpoint.
+The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to 300 mg, with a pharmacokinetic (PK) concentration endpoint and a continuous pharmacodynamic (PD) endpoint.
 
 ## Configuration
 
-Two chunks. To run this on your own study, edit them and leave the rest alone.
+To run this on your own study, edit the two chunks below that:
 
-```{r data, eval=run}
-raw <- as.data.frame(
-  get(utils::data(list = "case1_pkpd", package = "xgxr"))
-)
+1. Read in the dataset.
+2. Define the column roles. 
+
+The rest of the code can be kept as is.
+
+```{r data, eval=run, message = FALSE}
+library(dplyr)
+raw <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr"))) |>
+  mutate(CENS = ifelse(NAME == "PD - Continuous", 0, CENS))
 SEED <- 808
 ```
 
-The column meanings. This is the whole configuration: AVATAR blending needs no
-structural model, no priors, and no design — only which column plays which role.
-Columns not named here are dropped, which the run says out loud.
+The column meanings.  Columns not specified here are dropped from the synthetic dataset.
 
 ```{r roles, eval=run}
 roles <- pmx_roles(
   id           = "ID",
   time         = "TIME",
   dv           = "LIDV",
+  cens         = "CENS",
   amt          = "AMT",
   evid         = "EVID",
   cmt          = "CMT",
   dvid         = "NAME",        # which endpoint each observation row is
   nominal_time = "NOMTIME",     # the protocol grid
-  strata       = c("TRTACT", "DOSE"),
+  strata       = c("TRTACT", "DOSE"), #treatment arms.
   covariates   = "WEIGHTB",     # blended like everything else
   keep         = "STUDY"        # carried through verbatim
 )
 ```
 
-Two role choices change the result rather than describe the data.
+## Generate Synthetic Data
 
-- **`nominal_time`** is the declared protocol grid. Left out, the run infers a
-  grid and reports it as inferred. Here the study has a real one, so declare it.
-- **`strata`** are the treatment arms. Declaring them keeps the arm balance and
-  stops a 3 mg patient being blended with a 300 mg patient, but it also splits
-  the donor pool six ways. On a small cohort that trade can go the other way.
-
-## Generate
-
-```{r synthesize, eval=run}
+```{r synthesize, eval=run, message = FALSE}
 synthetic <- synpmx_avatar(raw, roles, seed = SEED)
-
-c(rows = nrow(synthetic),
-  subjects = length(unique(synthetic$ID)),
-  shared_ids = length(intersect(synthetic$ID, raw$ID)))
 ```
 
-Same size as the source, and no identifier is shared with it.
-
-## Look at it
-
-Source and synthetic overlaid, by arm. Identifiers are disjoint by
-construction, so grouping on `ID` never joins a real patient's line to an
-avatar's.
+## Plot synthetic data and original data
 
 ```{r overlay-setup, eval=plots}
 library(ggplot2)
+library(xgxr)
+xgx_theme_set()
 
 both <- rbind(
   cbind(raw[, names(synthetic)], DATA = "source"),
@@ -101,43 +83,35 @@ obs <- both[both$EVID == 0 & !is.na(both$LIDV), ]
 obs$TRTACT <- factor(obs$TRTACT,
                      levels = c("Placebo", "3 mg", "10 mg", "30 mg",
                                 "100 mg", "300 mg"))
-arms <- c(source = "grey30", synthetic = "#C1272D")
+arms <- c(source = "red4", synthetic = "blue4")
 ```
 
-The day-1 concentration profile, on a log scale:
-
-```{r overlay-pk, eval=plots, fig.height=3.6}
+```{r overlay-pk, eval=plots, fig.height=5}
 ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
        aes(TIME, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.4) +
-  facet_wrap(~TRTACT, nrow = 1) +
-  scale_y_log10() +
+  facet_grid(DATA~TRTACT) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 24, by = 6)) +
   scale_colour_manual(values = arms) +
   labs(x = "Time (hours)", y = "PK concentration", colour = NULL) +
-  theme_bw() +
-  theme(legend.position = "top")
+  theme(legend.position = "top") + 
+  ggtitle("Day 1 Conc. Profile")
 ```
 
-The full-duration pharmacodynamic response:
-
-```{r overlay-pd, eval=plots, fig.height=3.6}
+```{r overlay-pd, eval=plots, fig.height=5}
 ggplot(obs[obs$NAME == "PD - Continuous", ],
        aes(TIME, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.35) +
-  facet_wrap(~TRTACT, nrow = 1) +
+  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "weeks") +
+  facet_grid(DATA~TRTACT) +
   scale_colour_manual(values = arms) +
   labs(x = "Time (hours)", y = "PD (continuous)", colour = NULL) +
-  theme_bw() +
-  theme(legend.position = "top")
+  theme(legend.position = "top") +
+  ggtitle("PD Response")
 ```
 
-Dose ordering, absorption, elimination and the placebo-to-300 mg separation all
-survive, and the avatars sit inside the source cloud rather than beside it.
-Where they visibly differ is at the edges of each arm: the red band is narrower
-than the grey one everywhere, because blending averages and averaging shrinks
-spread.
-
-The same thing as numbers, source against synthetic:
+## Summary Tables of Synthetic and Original Data
 
 ```{r distributions, eval=run}
 compare_pmx_distributions(raw, synthetic, roles)
@@ -145,40 +119,22 @@ compare_pmx_distributions(raw, synthetic, roles)
 
 Medians track closely on both endpoints. The standard deviations are visibly
 smaller in the synthetic cohort — for the PD endpoint and for baseline weight
-alike. Plan for it: this data is for exercising software, not for estimating a
-variance component.
+alike. This behavior is expected from the AVATAR blending algorithm.  
 
 ## The scorecard
 
-One line. Every check from `vignette("synthetic-data-checks")` that can be run
-automatically, with the answer and whether that answer passes.
+The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("synthetic-data-checks")`.
 
 ```{r scorecard, eval=run}
 pmx_scorecard(raw, synthetic, roles)
 ```
 
-Three things to notice about how this reads.
-
-**`review` is not a soft `pass`.** Four rows have no pass mark because no
+**`review` is not a soft `pass`.** Three rows have no pass mark because no
 threshold would be honest. Doses per patient is the clearest: on this study it
-is unchanged, and on a study with individualised dosing it can halve while
-every guarantee above it still reads 0. Any number picked for it would be wrong
-on some dataset.
-
-**The `reads` column decides where the table can go.** Every row marked `source`
-or `both` was computed from real patient data and inherits its handling
-obligations, so the filled-in scorecard is itself restricted output. Only the
-`synthetic` and `run report` rows can travel with the data.
-
-**The scorecard is not the whole checklist.** It omits what no function can
-produce: dose and observation ordering, the census of how many *real* patients
-held each categorical level, and the one check that decides whether this dataset
-is any use — does the pipeline that will consume the real study run unchanged
-against it? Run your own code against the output and see.
+is unchanged, but on a study with individualised dosing it can change.  
 
 ## Where to go next
 
 - `vignette("synthetic-data-checks")` — every check, what it asks, and what
   passing means.
-- `vignette("synpmx-4-methods")` — why AVATAR blending is the default.
-- `vignette("avatar-algorithm")` — what each generation step does internally.
+- `vignette("avatar-evaluation-public-data")` - AVATAR algorithm applied to 8 public datasets.
