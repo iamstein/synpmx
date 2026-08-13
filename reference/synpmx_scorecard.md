@@ -57,8 +57,17 @@ either table.
 The `explore` column names the call to run when a row needs explaining.
 The calls are written against this function's argument names (`source`,
 `synthetic`, `roles`), so rename them to whatever the session calls
-those objects. Every row carries one, but printing shows it only where
-the verdict is not `"pass"`.
+those objects. Every row carries one; printing lists them under the
+table, for the rows that did not pass, rather than as a sixth column.
+
+Printing and knitting differ on purpose.
+[`print()`](https://rdrr.io/r/base/print.html) is a console layout: the
+verdict table, then the calls to run, then the B5b levels. Knitting a
+chunk that returns this object emits
+[`knitr::kable()`](https://rdrr.io/pkg/knitr/man/kable.html) tables
+instead, so a `.Rmd` or `.qmd` gets the whole card including the
+`explore` column. Running a chunk interactively in an IDE shows the
+console form, since nothing is knitting.
 
 A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 threshold would be honest, and it has to be read.
@@ -97,23 +106,28 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard(data, synthetic, roles)
 #> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
 #> 
-#>   check question                                           reads        result                   verdict explore
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                     pass    
-#>   A2    Source is legal under the declared roles           source       TRUE                     pass    
-#>   A3    Every endpoint survived                            both         2 of 2                   pass    
-#>   A4    Cohort size survived                               both         30 -> 30                 pass    
-#>   A5    Observations per patient                           both         14 -> 14                 review  compare_pmx_distributions(source, synthetic, roles)
-#>   A5    Doses per patient                                  both         2 -> 2                   review  pmx_masking_report(synthetic, source, roles)
-#>   B1a   Avatars wearing one real patient's visit set       run settings 0                        pass    
-#>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                        pass    
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                  review  flag_identifiable_subjects(synthetic, roles)
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]  review  compare_pmx_proximity(source, synthetic, roles)
-#>   B4a   Generated time vectors copying an exposed real one both         0                        pass    
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                        pass    
-#>   C4    Distinct dose-time schedules represented           both         1 of 1                   pass    
+#>   check question                                           reads        result                     verdict
+#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                       pass
+#>   A2    Source is legal under the declared roles           source       TRUE                       pass
+#>   A3    Every endpoint survived                            both         2 of 2                     pass
+#>   A4    Cohort size survived                               both         30 -> 30                   pass
+#>   A5    Observations per patient                           both         14 -> 14                   review
+#>   A5    Doses per patient                                  both         2 -> 2                     review
+#>   B1a   Avatars wearing one real patient's visit set       run settings 0                          pass
+#>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                          pass
+#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                    review
+#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]    review
+#>   B4a   Generated time vectors copying an exposed real one both         0                          pass
+#>   B4b   Generated DV vectors copying an exposed real one   both         0                          pass
+#>   C4    Distinct dose-time schedules represented           both         1 of 1                     pass
+#> 
+#> To explore, with `source`, `synthetic` and `roles` named as you have them:
+#>   A5    compare_pmx_distributions(source, synthetic, roles)
+#>   A5    pmx_masking_report(synthetic, source, roles)
+#>   B2    flag_identifiable_subjects(synthetic, roles)
+#>   B3    compare_pmx_proximity(source, synthetic, roles)
 #> 
 #> no failures, 4 to review.
-#> `explore` is the call that explains a row that did not pass; it uses the argument names `source`, `synthetic`, `roles`.
 #> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
 #> Rows reading `source` or `both` are restricted output.
 ```

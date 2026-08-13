@@ -34,6 +34,15 @@
   both are `review`, and B5b reads the source, so on a study where B5a
   was the only categorical row the card becomes restricted output.
 
+- **The printed scorecard is narrower.** The `explore` calls moved out
+  of the table and under it, listed only for the rows that did not pass,
+  because a sixth column of calls pushed every line past 150 characters
+  and wrapped. The B5b levels print one per line beneath that, and
+  knitting the card emits them as a second `kable()` table, so a report
+  says which levels without the reader running the census again. The
+  returned data frame is unchanged: it still carries `explore` on every
+  row.
+
 - **Only seven scorecard rows can say `FAIL`**: A1, A3, A6, B1a, B1b,
   B4a and B4b — the output is not a legal dataset, it is not the study
   that went in, or it reproduces one real patient’s structure verbatim.
