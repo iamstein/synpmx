@@ -357,7 +357,8 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | A6 | Discrete endpoints keeping their source scale | both | 1 of 1 | pass | pmx_endpoint_types(source, roles) |
-| B5 | Patients holding the least-held categorical level | synthetic | sex = female: 3 | pass | table(synthetic\$sex) |
+| B5a | Patients holding the least-held categorical level | synthetic | sex = female: 3 | pass | table(synthetic\$sex) |
+| B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
 | C4 | Distinct dose-time schedules represented | both | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles) |
 
 Nothing fails. Dose was recomputed from weight here: warfarin is dosed
@@ -1121,7 +1122,8 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.511 in \[0.415, 0.571\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
-| B5 | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
+| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
+|B5b   |Rare source levels copied into the output          |both         |0 of 0 exposed          |pass    |compare_pmx_rare_levels(source, synthetic, roles)       |
 |C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic`$TRTACT\[!duplicated(synthetic\$ID)\]) |
 | C4 | Distinct dose-time schedules represented | both | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles) |
 
@@ -1245,7 +1247,8 @@ synpmx_scorecard(mad, mad_synth, mad_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | A6 | Discrete endpoints keeping their source scale | both | 3 of 3 | pass | pmx_endpoint_types(source, roles) |
-| B5 | Patients holding the least-held categorical level | synthetic | TRTACT = 100 mg: 10 | pass | table(synthetic$`TRTACT)                                 |
+| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 100 mg: 10 | pass | table(synthetic$`TRTACT)                                 |
+|B5b   |Rare source levels copied into the output          |both         |0 of 0 exposed          |pass    |compare_pmx_rare_levels(source, synthetic, roles)       |
 |C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic`$TRTACT\[!duplicated(synthetic\$ID)\]) |
 | C4 | Distinct dose-time schedules represented | both | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles) |
 

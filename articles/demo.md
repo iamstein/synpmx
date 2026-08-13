@@ -160,7 +160,8 @@ synpmx_scorecard(raw, synthetic, roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.544 in \[0.422, 0.561\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
-| B5 | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
+| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
+|B5b   |Rare source levels copied into the output          |both         |0 of 0 exposed          |pass    |compare_pmx_rare_levels(source, synthetic, roles)       |
 |C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic`$TRTACT\[!duplicated(synthetic\$ID)\]) |
 | C4 | Distinct dose-time schedules represented | both | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles) |
 

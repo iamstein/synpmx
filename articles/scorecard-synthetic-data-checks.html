@@ -241,7 +241,7 @@ one?</td>
 <td><strong>0</strong></td>
 </tr>
 <tr class="odd">
-<td><strong>B5</strong></td>
+<td><strong>B5a</strong></td>
 <td>Does any categorical level sit on a single synthetic patient?</td>
 <td>
 <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code>;
@@ -252,6 +252,15 @@ one?</td>
 form of the check</td>
 </tr>
 <tr class="even">
+<td><strong>B5b</strong></td>
+<td>Did a level too few <em>source</em> patients held reach the
+output?</td>
+<td><code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code></td>
+<td>both</td>
+<td>no exposed level reaching the output — <em>review</em> while the
+check earns its thresholds</td>
+</tr>
+<tr class="odd">
 <td><strong>C1</strong></td>
 <td>Is time after dose still what it was?</td>
 <td>
@@ -261,14 +270,14 @@ form of the check</td>
 <td>source</td>
 <td>pass, or a disagreement you can explain</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>C2</strong></td>
 <td>Do dose and observation stay in order?</td>
 <td><em>gap</em></td>
 <td>—</td>
 <td>—</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>C3</strong></td>
 <td>Did every arm keep its endpoints and its size?</td>
 <td>arm x endpoint table; <code>strata_balanced</code>
@@ -278,7 +287,7 @@ form of the check</td>
 size is a pass, a shifted size is <em>review</em>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>C4</strong></td>
 <td>What features of the study were lost?</td>
 <td><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code></td>
@@ -286,7 +295,7 @@ size is a pass, a shifted size is <em>review</em>
 <td>every distinct set of dose <strong>times</strong> in the source
 still represented; the rest of the question has no pass mark</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>D1</strong></td>
 <td>Do the values land in the same range?</td>
 <td><code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code></td>
@@ -1204,8 +1213,10 @@ every categorical covariate, tabulate the levels on both sides, and
 report any level reaching the output together with <strong>how many
 source patients held it</strong>. A level held by one or two real
 patients is the whole risk, and it is invisible in a marginal
-distribution comparison that only checks the proportions look
-similar.</p>
+distribution comparison that only checks the proportions look similar.
+<code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> does this over
+<code>strata</code> and every non-numeric covariate, and the scorecard
+reports it as <strong>B5b</strong>; it is worked below.</p>
 <p>Half of this exists already:
 <code>compare_pmx_distributions()$covariates_categorical</code> is a
 per-patient level census of source against synthetic. Two things keep it
@@ -1240,74 +1251,147 @@ column.</p></li>
 </ol>
 <p>Checks 1 to 4 are mechanical. Check 5 changes what the generator does
 rather than what it reports.</p>
-<p>Here is check 1, in the lines it takes, so the gap is concrete. Note
-the level set is the <strong>union</strong> of both sides rather than
-the synthetic side alone: a level that was dropped on the way out is a
-coverage failure, and a census that cannot see it is only checking one
-of its two directions.</p>
+<p>Check 1 is <code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code>. It censuses every
+categorical axis the roles declare — <code>strata</code> and each
+non-numeric covariate — and the level set it reports is the
+<strong>union</strong> of both sides rather than the synthetic side
+alone: a level that was dropped on the way out is a coverage failure,
+and a census that cannot see it is only checking one of its two
+directions.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">level_census</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">column</span>, <span class="va">id</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">holders</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span>, <span class="va">data</span><span class="op">[[</span><span class="va">id</span><span class="op">]</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="va">source_holders</span> <span class="op">&lt;-</span> <span class="fu">holders</span><span class="op">(</span><span class="va">source</span><span class="op">)</span></span>
-<span>  <span class="va">synth_holders</span> <span class="op">&lt;-</span> <span class="fu">holders</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
-<span>  <span class="va">all_levels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">union</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">count</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">x</span>, levels <span class="op">=</span> <span class="va">all_levels</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    level <span class="op">=</span> <span class="va">all_levels</span>,</span>
-<span>    source_patients <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>,</span>
-<span>    synthetic_patients <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu">level_census</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="st">"TRTACT"</span>, <span class="st">"ID"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
+<caption>RESTRICTED – 0 level(s) held by fewer than 2 source patients; 0
+of them reached the output.</caption>
+<colgroup>
+<col width="10%">
+<col width="12%">
+<col width="24%">
+<col width="28%">
+<col width="12%">
+<col width="12%">
+</colgroup>
 <thead><tr class="header">
+<th align="left">column</th>
 <th align="left">level</th>
 <th align="right">source_patients</th>
 <th align="right">synthetic_patients</th>
+<th align="left">exposed</th>
+<th align="left">reached</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
+<td align="left">DOSE</td>
+<td align="left">0</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">DOSE</td>
+<td align="left">10</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">DOSE</td>
+<td align="left">100</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">DOSE</td>
+<td align="left">3</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">DOSE</td>
+<td align="left">30</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">DOSE</td>
+<td align="left">300</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">TRTACT</td>
 <td align="left">10 mg</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="even">
+<td align="left">TRTACT</td>
 <td align="left">100 mg</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="odd">
+<td align="left">TRTACT</td>
 <td align="left">3 mg</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="even">
+<td align="left">TRTACT</td>
 <td align="left">30 mg</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="odd">
+<td align="left">TRTACT</td>
 <td align="left">300 mg</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 <tr class="even">
+<td align="left">TRTACT</td>
 <td align="left">Placebo</td>
 <td align="right">30</td>
 <td align="right">30</td>
+<td align="left">FALSE</td>
+<td align="left">TRUE</td>
 </tr>
 </tbody>
 </table>
-<p>Read the source column: every arm is held by 30 patients, so nothing
-in this study is at risk on this axis. A study with a two-patient
-stratum would show it here and nowhere else. (The synthetic column moves
-because anchors are sampled with replacement — section C.) A
-<code>0</code> in the synthetic column would be the other failure: a
-level the source had and the output lost.</p>
+<p>Read the source column first. A level is <strong>exposed</strong>
+when fewer than <code>min_pattern_share</code> real patients held it —
+the same floor that already protects visit sets, for the same reason —
+and the row to act on is an exposed level that <code>reached</code> the
+output, because that level is one real patient’s attribute, copied. On
+<code>case1_pkpd</code> nothing is exposed: every arm is held by 30
+patients, so nothing in this study is at risk on this axis. A study with
+a two-patient stratum would show it here and nowhere else.</p>
+<p>The remedies are upstream of generation rather than after it: drop
+the covariate from <code>covariates</code>, or collapse its rare levels
+before generating. (The synthetic column moves because anchors are
+sampled with replacement — section C.) A <code>0</code> in the synthetic
+column is the other failure: a level the source had and the output
+lost.</p>
 </div>
 <div class="section level4">
 <h4 id="the-one-line-of-it-that-can-be-checked-without-the-source">The one line of it that can be checked without the source<a class="anchor" aria-label="anchor" href="#the-one-line-of-it-that-can-be-checked-without-the-source"></a>
@@ -1317,10 +1401,10 @@ output. One weaker question can be asked of the released table alone:
 <strong>does any categorical level sit on exactly one synthetic
 patient?</strong> A level held by a single synthetic patient singles
 that patient out within the release, whatever the source looked like.
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports it as B5, over
+<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports it as B5a, over
 <code>strata</code> and every non-numeric covariate:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">card</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"B5"</span>, <span class="op">]</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">card</span><span class="op">[</span><span class="va">card</span> <span class="op">==</span> <span class="st">"B5a"</span>, <span class="op">]</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="5%">
@@ -1339,7 +1423,7 @@ that patient out within the release, whatever the source looked like.
 <th align="left">explore</th>
 </tr></thead>
 <tbody><tr class="odd">
-<td align="left">B5</td>
+<td align="left">B5a</td>
 <td align="left">Patients holding the least-held categorical level</td>
 <td align="left">synthetic</td>
 <td align="left">TRTACT = 10 mg: 30</td>
@@ -2207,16 +2291,16 @@ the scorecard at the top, with what closing each would take:</p>
 <tbody>
 <tr class="odd">
 <td>B5</td>
-<td>
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports only the synthetic-side
-singleton count, which is the weak form. Nothing flags a level held by
-one or two <em>source</em> patients:
-<code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code> gives that census for declared
-covariates but not for <code>strata</code>, and applies no threshold to
-either</td>
-<td>Checks 1 to 4 are one function over the subject-level table. Check 5
-— declaring which levels are rare <em>in the population</em> — needs an
-API decision first</td>
+<td>The source-side census (check 1) now exists as
+<code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> and scorecard row B5b. Still
+missing: joint combinations, since with <code>d</code> covariates there
+are <code>2^d</code> of them and the census is per column; and check 5,
+which is the one that matters most — declaring which levels are rare
+<em>in the population</em> rather than in this study</td>
+<td>Joint rarity needs a decision about which combinations are worth
+enumerating. Population rarity is not measurable from the study at all:
+it needs domain knowledge, so the realistic form is a declaration on
+<code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, or simply not carrying that covariate</td>
 </tr>
 <tr class="even">
 <td>C2</td>
