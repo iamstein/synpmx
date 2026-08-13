@@ -17,6 +17,39 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
+## Done 2026-08-13: both B1 guarantees failing on an 8-arm study (`SIM-048`)
+
+The owner's own scorecard, on a 52-patient study: 6 avatars wearing a visit set
+nobody else shares, 7 wearing a dose schedule nobody else shares, and
+`strata_crossed = 0` claiming nothing had been traded for it. A regression from
+`af72e77`, which confined re-anchoring to the avatar's own arm and read "the
+stratum has nobody else to offer" as nobody at all rather than nobody who can be
+masked.
+
+- [x] `.reanchor_candidates()` takes the safe set: safe-in-arm, then
+      safe-anywhere (reported as `strata_crossed`), then in-arm, then anyone.
+- [x] Candidates are filtered rather than rejection-sampled, so being masked is
+      not a coin toss where safe anchors are plentiful.
+- [x] The retry loop stops on an anchor whose visit set was drawn for it, not on
+      one it had just moved to.
+- [x] `tests/testthat/test-reanchor-strata.R` pins the preference order and
+      recomputes the count end to end from a two-arm fixture whose second arm
+      doses every patient on their own days.
+- [x] Scorecard B1a/B1b renamed to "wearing a visit set / dose schedule nobody
+      else shares". Wearing a *shared* patient's schedule was never the failure,
+      and the old wording read as though it were.
+- [x] `pheno_sd` now passes both rows, at a cost: 3 of 56 regimens and 1.2 doses
+      a patient. Registry row, `SYNTHETIC_DATA_CHECKS.md` and the vignette all
+      say so, since the privacy tier no longer reports anything on that dataset.
+
+Still open, and the reason `pheno_sd` is kept:
+
+- [ ] **Dose-count fidelity has no check of its own.** A5 shows doses per
+      patient, but nothing states "this study's dosing did not survive" in a
+      unit a pharmacometrician acts on. `dose_regimens_represented` is in the
+      masking report and in no scorecard row. Reaching B1b = 0 by truncating a
+      ten-dose regimen to one dose is a pass that should not read as one.
+
 ## Done 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
 
 Found while rewriting `public-data-examples.Rmd` onto the demo's shape.

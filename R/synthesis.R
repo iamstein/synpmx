@@ -1789,16 +1789,36 @@
 # else. Drawing from the whole pool -- which is what this replaces -- scrambled
 # arm sizes in proportion to how often re-anchoring fired, and nothing said so.
 #
-# The whole pool is still the fallback when the stratum has nobody else to
+# The whole pool is still the fallback when the stratum has nobody SAFE to
 # offer. Emitting an avatar wearing one real patient's visit set is a
 # disclosure; an arm off its target is a fidelity cost, and the caller counts
 # it as `strata_crossed` so the trade is visible rather than silent.
-.reanchor_candidates <- function(allowed, anchor, strata_key, target_stratum) {
+#
+# `safe` is what makes that trade the right way round, and leaving it out was a
+# leak: an arm in which nobody's dose schedule is shared has plenty of members
+# to offer, so the move stayed inside it, drew another unmaskable anchor, and
+# after twelve tries emitted one anyway -- with `strata_crossed = 0` reporting
+# that nothing had been given up. Measured on a 24-patient two-arm fixture with
+# one such arm, every one of its twelve avatars leaked. So "nobody else to
+# offer" has to mean nobody the avatar can safely be built on, not nobody at
+# all.
+.reanchor_candidates <- function(allowed, anchor, strata_key, target_stratum,
+                                 safe = NULL) {
   candidates <- setdiff(allowed, anchor)
+  usable <- if (is.null(safe)) candidates else candidates[safe[candidates]]
   if (is.null(target_stratum) || !length(candidates)) {
-    return(list(candidates = candidates, crossed = FALSE))
+    return(list(candidates = if (length(usable)) usable else candidates,
+                crossed = FALSE))
   }
-  within <- candidates[strata_key[candidates] == target_stratum]
+  in_stratum <- function(x) x[strata_key[x] == target_stratum]
+  # Safe and in the arm; then safe anywhere; then the arm; then anyone. The
+  # last two are the case where no anchor in the cohort can be masked, which
+  # crossing cannot fix, so the arm sizes are kept rather than spent for
+  # nothing.
+  within_safe <- in_stratum(usable)
+  if (length(within_safe)) return(list(candidates = within_safe, crossed = FALSE))
+  if (length(usable)) return(list(candidates = usable, crossed = TRUE))
+  within <- in_stratum(candidates)
   if (length(within)) {
     list(candidates = within, crossed = FALSE)
   } else {
@@ -2614,6 +2634,19 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # holding a schedule it was never given -- a false alarm on `wbcSim`.
     applied_key <- rep(NA_character_, n_subjects)
     dose_truncated <- logical(n_subjects)
+    # Who an avatar may be moved TO when its own anchor cannot be masked.
+    # A patient whose dose schedule nobody shares can never be a safe anchor,
+    # because dose events are copied verbatim. One whose visit set nobody
+    # shares usually can -- a substitute is normally available -- but only when
+    # the pool has one, so they are the second choice rather than the first.
+    # This is a preference: `.reanchor_candidates()` falls back to whoever is
+    # left when nothing here qualifies, which is the honest answer on a study
+    # where no anchor can be masked at all.
+    reanchor_safe <- rep(TRUE, length(subjects))
+    if (dose_maskable) reanchor_safe <- reanchor_safe & !dose_identifying
+    if (!is.null(attendance)) {
+      reanchor_safe <- reanchor_safe & !attendance$identifying
+    }
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -2651,8 +2684,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
             choice$identifying <- isTRUE(attendance$identifying[[anchor]])
           }
           if (!unsafe(anchor)) break
+          # Out of attempts. Stop on an anchor whose `choice` was actually
+          # computed: moving here and falling out of the loop would build the
+          # avatar with a visit set drawn for the anchor it just left.
+          if (attempt == 12L) break
           move <- .reanchor_candidates(allowed, anchor, strata_key,
-                                       target_stratum)
+                                       target_stratum, reanchor_safe)
           if (move$crossed) strata_crossed[synthetic_index] <- TRUE
           if (!length(move$candidates)) break
           anchor <- move$candidates[[

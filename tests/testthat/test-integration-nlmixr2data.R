@@ -260,7 +260,7 @@ test_that("xgxr mad: five observation endpoints, ordinal, count and binary", {
   expect_equal(attr(synthetic, "pmx_settings")$identifying_visit_sets, 0L)
 })
 
-test_that("pheno_sd: 59 real patients whose dosing genuinely cannot be masked", {
+test_that("pheno_sd: dosing that can only be masked by throwing it away", {
   skip_if_not_installed("nlmixr2data")
   source <- load_nlmixr2_dataset("pheno_sd")
   roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
@@ -270,10 +270,23 @@ test_that("pheno_sd: 59 real patients whose dosing genuinely cannot be masked", 
   ))
   settings <- attr(synthetic, "pmx_settings")
   expect_true(validate_pmx(synthetic, roles)$valid)
-  # The observation-side guarantee holds even here.
+  # Both guarantees hold. The dose side used to leak here -- neonatal
+  # phenobarbital is dosed to the individual infant, so 55 of 59 have a dose
+  # schedule nobody shares -- and re-anchoring now finds the few who can be
+  # built on safely instead of rejection-sampling twelve times and giving up.
   expect_equal(settings$identifying_visit_sets, 0L)
-  # The dose side does not, and the run must say so rather than quietly pass:
-  # neonatal phenobarbital dosing is individualised, so most patients have a
-  # dose schedule nobody shares and there is nobody safe to build on instead.
-  expect_gt(settings$identifying_dose_schedules, 0L)
+  expect_equal(settings$identifying_dose_schedules, 0L)
+
+  # What that costs, pinned so it cannot quietly get worse or be forgotten.
+  # The only dose schedule anybody shares is a single dose, so masking this
+  # study's dosing means truncating it to almost nothing: the source gives
+  # 10 doses per patient and the output gives about 1, over 3 of 56 regimens.
+  # This is the registry's example of a study whose dosing survives the
+  # guarantee in name only, and the number to read is not B1b but A5.
+  doses_per_patient <- function(x) {
+    mean(table(x$ID[x$EVID != 0]))
+  }
+  expect_gt(doses_per_patient(source), 9)
+  expect_lt(doses_per_patient(synthetic), 2)
+  expect_lt(settings$dose_regimens_represented, 5L)
 })

@@ -472,12 +472,14 @@ things the specification did not have:
    received twelve doses; the median avatar receives one. Nothing warns. The
    cause is legitimate — dose schedules there are nearly all unique, so
    truncating each to a shared depth collapses most of them to the shortest —
-   and `pmx_masking_report()` does say "16 of 56 regimens represented", but no
-   check states the consequence in the unit a user cares about. `pheno_sd`
-   therefore fails in both directions at once: the masking did not succeed
-   (`identifying_dose_schedules` = 15) *and* it cost most of the dosing anyway.
-   That pairing is now the vignette's argument for why this dataset should not
-   be shipped.
+   and `pmx_masking_report()` does say how many regimens are represented, but no
+   check states the consequence in the unit a user cares about. Since `SIM-048`
+   the masking itself succeeds -- `identifying_dose_schedules` is 0 -- and the
+   dosing cost is *worse*, 3 of 56 regimens and 1.2 doses a patient, because
+   reaching 0 is exactly what truncates them. So the privacy tier now reports
+   nothing at all on this dataset and A5 is the only place it shows. That is the
+   vignette's argument for why this dataset should not be shipped, and the
+   reason a row that must be 0 is never read on its own.
 
 3. **B5's mechanism was misdiagnosed.** Corrected in place above: the operative
    variable is the number of patients holding a level, not whether they are
@@ -532,8 +534,8 @@ candidate, being the only public dataset shaped like a real study report (180
 patients, declared nominal time, six arms, two endpoints, baseline weight) — and
 one deliberately awkward one where checks *fail*, since a document in which
 everything passes teaches nothing. `nlmixr2data::pheno_sd` is the honest failing
-example: 59 real patients whose individualised neonatal dosing genuinely cannot
-be masked, and the run says so.
+example: 59 real patients whose individualised neonatal dosing can only be masked
+by truncating it away, so B1 passes and A5 is where the study is lost.
 
 Order the sections A through F. Lead each with the question in plain language,
 then the check, then how to read a bad answer. Keep the "check the output, not

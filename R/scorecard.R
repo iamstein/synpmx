@@ -237,13 +237,14 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )
   ), a6_rows, list(
     .scorecard_row(
-      "B1a", "Avatars wearing one real patient's visit set", "run settings",
+      "B1a", "Avatars wearing a visit set nobody else shares", "run settings",
       settings$identifying_visit_sets,
       "plot_pmx_schedule(source, roles)",
       settings$identifying_visit_sets == 0L
     ),
     .scorecard_row(
-      "B1b", "Avatars wearing one real patient's dose schedule", "run settings",
+      "B1b", "Avatars wearing a dose schedule nobody else shares",
+      "run settings",
       settings$identifying_dose_schedules,
       "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
       settings$identifying_dose_schedules == 0L

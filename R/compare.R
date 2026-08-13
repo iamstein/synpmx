@@ -1298,15 +1298,20 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   closeness <- if (!nrow(alone) || all(is.na(alone$nearest_set_diff))) {
     NULL
   } else {
+    # `%s` and not `%d` for the two medians: an even number of patients makes
+    # `median()` average the middle pair, so both are doubles half the time and
+    # `%d` is an error rather than a rounded number. Rounding here keeps
+    # "1.5 of about 24" readable instead of printing 1.5000000000000002.
+    typical <- function(v) format(round(v, 1), trim = TRUE)
     sprintf(paste("Those %d are not necessarily far apart. The typical one",
-                  "differs from its nearest neighbour by %d of about %d visit",
+                  "differs from its nearest neighbour by %s of about %s visit",
                   "slots (range %d to %d), where a slot is one endpoint",
                   "measured at one time. A difference of one or two is a missed",
                   "sample, not a different schedule -- which is why the count",
                   "alone is a poor guide."),
             nrow(alone),
-            stats::median(alone$nearest_set_diff, na.rm = TRUE),
-            stats::median(alone$n_visits, na.rm = TRUE),
+            typical(stats::median(alone$nearest_set_diff, na.rm = TRUE)),
+            typical(stats::median(alone$n_visits, na.rm = TRUE)),
             min(alone$nearest_set_diff, na.rm = TRUE),
             max(alone$nearest_set_diff, na.rm = TRUE))
   }

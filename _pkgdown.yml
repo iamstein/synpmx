@@ -114,6 +114,7 @@ reference:
   - compare_pmx
   - compare_pmx_distributions
   - compare_pmx_rare_levels
+  - compare_pmx_strata_sizes
   - skeleton_uniqueness
   - plot_pmx_schedule
   - pmx_masking_report

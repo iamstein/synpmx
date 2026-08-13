@@ -59,6 +59,16 @@ test_that("actual recorded times give every patient a unique schedule", {
   expect_true(all(report$n_share_obs_count == 12L))
 })
 
+test_that("the printed near-miss sentence survives an even patient count", {
+  # An even number of patients alone on their schedule makes `median()` average
+  # the middle pair, so the two medians are doubles and the `%d` that formatted
+  # them was an error rather than a number: "invalid format '%d'; use format
+  # %f, %e, %g or %a for numeric objects". Twelve patients, all unique.
+  report <- skeleton_uniqueness(crs_source(), crs_roles())
+  expect_equal(nrow(report) %% 2L, 0L)
+  expect_output(print(report), "not necessarily far apart")
+})
+
 test_that("coarsening closes SIM-014 on AVATAR and leaving it off does not", {
   source <- crs_source()
   roles <- crs_roles()
