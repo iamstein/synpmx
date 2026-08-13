@@ -112,6 +112,13 @@
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 #' threshold would be honest, and it has to be read.
 #'
+#' `"FAIL"` is reserved for the rows where the answer is always a defect: the
+#' output is not a legal dataset (A1), it is not the study that went in (A3,
+#' A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
+#' B4b). Everything else is `"review"`, including every row whose answer can
+#' move for a legitimate reason -- a subject dropped for want of donors, a
+#' cohort statistic at a small sample size, a source a validator objects to.
+#'
 #' Three checks in the vignette are absent here because no function can produce
 #' them: C2 (dose and observation ordering), the source-side rare-level census
 #' behind B5, and the one that matters most -- whether the pipeline that will
@@ -156,8 +163,6 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   floor <- as.integer(settings$min_pattern_share %||% 2L)
   time_copies <- .scorecard_copies(source, synthetic, roles, roles$time, floor)
   dv_copies <- .scorecard_copies(source, synthetic, roles, roles$dv, floor)
-  inside_null <- proximity$adversarial_accuracy >= proximity$null_lower &&
-    proximity$adversarial_accuracy <= proximity$null_upper
   flagged <- flag_identifiable_subjects(synthetic, roles)
 
   rows <- list(
@@ -167,11 +172,16 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "validate_pmx(synthetic, roles)",
       isTRUE(validate_pmx(synthetic, roles)$valid)
     ),
+    # Review rather than FAIL: this row is about the source and the roles
+    # declared for it, not about the output. A real study that a validator
+    # objects to is a normal thing to have -- the answer is often "yes, and here
+    # is why" -- and the objection has to be read rather than scored.
     .scorecard_row(
       "A2", "Source is legal under the declared roles", "source",
       validate_pmx(source, roles, strict = FALSE)$valid,
       "validate_pmx(source, roles, strict = FALSE)",
-      isTRUE(validate_pmx(source, roles, strict = FALSE)$valid)
+      if (isTRUE(validate_pmx(source, roles, strict = FALSE)$valid)) TRUE
+      else NA
     ),
     .scorecard_row(
       "A3", "Every endpoint survived", "both",
@@ -179,11 +189,17 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "compare_pmx_distributions(source, synthetic, roles)",
       setequal(source_endpoints, synthetic_endpoints)
     ),
+    # Equal is a pass; anything else is review, for the same reason C3 is.
+    # `on_donor_shortfall = "drop"` removes a subject that could not be built
+    # from enough donors, which is the correct answer and not a defect, and it
+    # is the small cohorts that lose one -- a stratum holding a single patient
+    # can legitimately come back empty. Scoring that a FAIL would mark the
+    # generator wrong for declining to build on a patient it could not protect.
     .scorecard_row(
       "A4", "Cohort size survived", "both",
       paste(source_subjects, "->", synthetic_subjects),
       "pmx_masking_report(synthetic, source, roles)",
-      source_subjects == synthetic_subjects
+      if (source_subjects == synthetic_subjects) TRUE else NA
     ),
     .scorecard_row(
       "A5", "Observations per patient", "both",
@@ -214,12 +230,17 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       paste(sum(flagged$flagged), "of", nrow(flagged)),
       "flag_identifiable_subjects(synthetic, roles)"
     ),
+    # Always review. Outside the interval means something, but not one thing:
+    # below it is memorisation, above it is the two sets having separated, which
+    # costs utility and discloses nothing. Either can also be a small-sample
+    # artefact at pharmacometric cohort sizes, where the null interval is wide
+    # and the statistic moves with the seed. The number and its interval are
+    # printed so the direction can be read; no verdict is put on them.
     .scorecard_row(
       "B3", "Adversarial accuracy inside its null interval", "both",
       sprintf("%.3f in [%.3f, %.3f]", proximity$adversarial_accuracy,
               proximity$null_lower, proximity$null_upper),
-      "compare_pmx_proximity(source, synthetic, roles)",
-      inside_null
+      "compare_pmx_proximity(source, synthetic, roles)"
     ),
     .scorecard_row(
       "B4a", "Generated time vectors copying an exposed real one", "both",
@@ -276,7 +297,13 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       sprintf("%s = %s: %d", rarest$column, .scorecard_short(rarest$level),
               rarest$n),
       sprintf("table(synthetic$%s)", rarest$column),
-      rarest$n > 1L
+      # Review rather than FAIL, because this is the weak form of the check and
+      # it is wrong in both directions: a level held by thirty source patients
+      # can land on one avatar and mean nothing, and a level held by two source
+      # patients can be copied onto ten avatars and pass while the disclosure is
+      # real. What the risk is made of is the SOURCE-side count, which nothing
+      # computes yet. This flags a shape worth looking at.
+      if (rarest$n > 1L) TRUE else NA
     )))
   }
 

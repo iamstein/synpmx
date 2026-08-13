@@ -12,7 +12,16 @@
   found rather than reporting a bare count; and C3 marks a stratum that changed
   size `review` rather than `FAIL`, because dropping a subject for want of
   donors is the generator working as designed. The `reads` value `run report` is
-  now `run settings`. `vignettes/synthetic-data-checks.Rmd` is renamed
+  now `run settings`.
+
+* **Only seven scorecard rows can say `FAIL`**: A1, A3, A6, B1a, B1b, B4a and
+  B4b — the output is not a legal dataset, it is not the study that went in, or
+  it reproduces one real patient's structure verbatim. A2, A4, B3 and B5 now say
+  `review` instead, joining A5, B2, C3 and C4. Each of them can move for a
+  legitimate reason: a subject dropped for want of donors (A4), a proximity
+  statistic wandering at a small sample size and meaning opposite things on
+  either side of its interval (B3), the weak synthetic-side form of the rare-
+  level check (B5), or a real source a validator objects to (A2). `vignettes/synthetic-data-checks.Rmd` is renamed
   `scorecard-synthetic-data-checks.Rmd`.
 
 * **Discrete endpoints stay discrete, and this changes generated output for any

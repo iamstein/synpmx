@@ -66,7 +66,7 @@ test_that("a verbatim copy of the source fails the exact-copy row", {
   expect_identical(sc_verdict(card, "B4a"), "pass")
 })
 
-test_that("a lost endpoint and a lost patient are reported as failures", {
+test_that("a lost endpoint fails and a lost patient is review", {
   source <- pmx_simulated_fixture(40)
   roles <- sc_roles()
   synthetic <- sc_synthetic(source, roles)
@@ -79,8 +79,42 @@ test_that("a lost endpoint and a lost patient are reported as failures", {
 
   card <- synpmx_scorecard(source, dropped, roles)
 
+  # An endpoint cannot go missing for a legitimate reason, so A3 is a failure.
+  # A patient can: `on_donor_shortfall = "drop"` removes one that could not be
+  # built, and a one-patient stratum can legitimately come back empty, so A4
+  # says review however far the count moved.
   expect_identical(sc_verdict(card, "A3"), "FAIL")
-  expect_identical(sc_verdict(card, "A4"), "FAIL")
+  expect_identical(sc_verdict(card, "A4"), "review")
+})
+
+test_that("only the rows that are always a defect can say FAIL", {
+  # The whole list, pinned. Adding a FAIL to any other row is a decision about
+  # what the package calls broken, and it should have to change this test.
+  source <- pmx_simulated_fixture(40)
+  source$ARM <- ifelse(as.integer(factor(source$ID)) %% 2L == 0L, "A", "B")
+  roles <- sc_roles(strata = "ARM")
+  card <- synpmx_scorecard(source, sc_synthetic(source, roles), roles)
+
+  can_fail <- c("A1", "A3", "A6", "B1a", "B1b", "B4a", "B4b")
+  expect_true(all(card$check[card$verdict == "FAIL"] %in% can_fail))
+  # And the softened rows are present, so this is not passing by their absence.
+  expect_true(all(c("A2", "A4", "B3", "B5", "C3", "C4") %in% card$check))
+})
+
+test_that("an objection to the source is review, not FAIL", {
+  source <- pmx_simulated_fixture(20)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+  # Break the source after generating from it: time must not run backwards
+  # within a subject. Generation would refuse this, which is why the row exists
+  # -- it reports on the source you handed in, whatever the validator makes of
+  # it, and being handed a real study a validator objects to is ordinary.
+  broken <- source
+  broken[[roles$time]][[2L]] <- broken[[roles$time]][[1L]] - 1
+
+  card <- synpmx_scorecard(broken, synthetic, roles)
+
+  expect_identical(sc_verdict(card, "A2"), "review")
 })
 
 test_that("the optional rows appear only when the roles declare them", {
@@ -99,7 +133,7 @@ test_that("the optional rows appear only when the roles declare them", {
   expect_false("B5" %in% bare$check)
 })
 
-test_that("B5 fails when a level reaches the output on one patient only", {
+test_that("B5 marks a level that reaches the output on one patient only", {
   source <- pmx_simulated_fixture(40)
   ids <- unique(as.character(source$ID))
   # One patient carries a level nobody else has. `strata` are copied from the
@@ -112,7 +146,10 @@ test_that("B5 fails when a level reaches the output on one patient only", {
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_identical(sc_verdict(card, "B5"), "FAIL")
+  # Review rather than FAIL: this is the weak, synthetic-side form of the
+  # check, and it is wrong in both directions. What the risk is made of is how
+  # many SOURCE patients held the level, which nothing computes yet.
+  expect_identical(sc_verdict(card, "B5"), "review")
   # The count alone is not actionable: the row has to say which column and
   # which level, and point at the call that tabulates that column.
   expect_identical(card$result[card$check == "B5"], "ARM = rare: 1")

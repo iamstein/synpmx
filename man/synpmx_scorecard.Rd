@@ -47,6 +47,13 @@ is not \code{"pass"}.
 A \code{"review"} verdict is not a soft \code{"pass"}. It marks a row where no
 threshold would be honest, and it has to be read.
 
+\code{"FAIL"} is reserved for the rows where the answer is always a defect: the
+output is not a legal dataset (A1), it is not the study that went in (A3,
+A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
+B4b). Everything else is \code{"review"}, including every row whose answer can
+move for a legitimate reason -- a subject dropped for want of donors, a
+cohort statistic at a small sample size, a source a validator objects to.
+
 Three checks in the vignette are absent here because no function can produce
 them: C2 (dose and observation ordering), the source-side rare-level census
 behind B5, and the one that matters most -- whether the pipeline that will
