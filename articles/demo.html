@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Demo: one dataset, end to end • synpmx</title>
+<title>Demo: Using synpmx_avatar • synpmx</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Demo: one dataset, end to end">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Demo: Using synpmx_avatar">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -73,7 +73,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Demo: one dataset, end to end</h1>
+      <h1>Demo: Using synpmx_avatar</h1>
                         <h4 data-toc-skip class="author">Andrew
 Stein</h4>
             
@@ -84,696 +84,112 @@ Stein</h4>
 
     
     
-<p>One pharmacometric (PMX) dataset taken from raw event table to
-synthetic event table, in the order you would actually do it. Every
-number below is produced by the run; nothing is quoted from a previous
-one.</p>
+<p>Generate a synthetic dataset, look at it, and read the checks of the
+data, sumamrized in a scorecard.</p>
+<p><code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code> is the reference for
+better understanding the synthetic data checks.</p>
 <p>The dataset is <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code>: 180 patients, six arms
-from placebo to 300 mg, with both a pharmacokinetic (PK) concentration
-endpoint and a continuous pharmacodynamic (PD) endpoint. It is a good
-demonstration case because its recorded sample times are <em>all</em>
-distinct — every patient’s observation schedule is unique before
-anything is done to it — which is the condition the visit-grid machinery
-exists for.</p>
-<p>To run this on your own study, edit the two chunks under
-<strong>Configuration</strong> and leave the rest alone. Every check
-made along the way is collected into a <strong>scorecard</strong> at the
-end, with the answer that counts as passing for each. Companion reading:
-<code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> for why AVATAR blending is the
-default method, <code><a href="../articles/avatar-algorithm.html">vignette("avatar-algorithm")</a></code> for what each
-step does internally, and <code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>
-for the full list of questions to ask of any synthetic dataset.</p>
+from placebo to 300 mg, with a pharmacokinetic (PK) concentration
+endpoint and a continuous pharmacodynamic (PD) endpoint.</p>
 <div class="section level2">
 <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a>
 </h2>
-<p>The data, and one look at it before touching anything.</p>
+<p>To run this on your own study, edit the two chunks below that:</p>
+<ol style="list-style-type: decimal">
+<li>Read in the dataset.</li>
+<li>Define the column roles.</li>
+</ol>
+<p>The rest of the code can be kept as is.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">SEED</span> <span class="op">&lt;-</span> <span class="fl">808</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">raw</span><span class="op">$</span><span class="va">NAME</span>, <span class="va">raw</span><span class="op">$</span><span class="va">TRTACT</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                   </span></span>
-<span><span class="co">#&gt;                    10 mg 100 mg 3 mg 30 mg 300 mg Placebo</span></span>
-<span><span class="co">#&gt;   Dosing            2550   2550 2550  2550   2550    2550</span></span>
-<span><span class="co">#&gt;   PD - Continuous    270    270  270   270    270     270</span></span>
-<span><span class="co">#&gt;   PK Concentration   780    780  780   780    780       0</span></span></code></pre></div>
-<p>The column meanings. This is the whole configuration: AVATAR blending
-needs no structural model, no priors, and no design — only which column
-plays which role. Columns not named here are dropped, which the run says
-out loud.</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>CENS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span>, <span class="fl">0</span>, <span class="va">CENS</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">SEED</span> <span class="op">&lt;-</span> <span class="fl">808</span></span></code></pre></div>
+<p>The column meanings. Columns not specified here are dropped from the
+synthetic dataset.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id           <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  time         <span class="op">=</span> <span class="st">"TIME"</span>,</span>
 <span>  dv           <span class="op">=</span> <span class="st">"LIDV"</span>,</span>
+<span>  cens         <span class="op">=</span> <span class="st">"CENS"</span>,</span>
 <span>  amt          <span class="op">=</span> <span class="st">"AMT"</span>,</span>
 <span>  evid         <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt          <span class="op">=</span> <span class="st">"CMT"</span>,</span>
 <span>  dvid         <span class="op">=</span> <span class="st">"NAME"</span>,        <span class="co"># which endpoint each observation row is</span></span>
-<span>  nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,     <span class="co"># the protocol grid; see below for why it matters</span></span>
-<span>  strata       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
-<span>  covariates   <span class="op">=</span> <span class="st">"WEIGHTB"</span>,     <span class="co"># baseline covariates, blended like everything else</span></span>
+<span>  nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,     <span class="co"># the protocol grid</span></span>
+<span>  strata       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, <span class="co">#treatment arms.</span></span>
+<span>  covariates   <span class="op">=</span> <span class="st">"WEIGHTB"</span>,     <span class="co"># blended like everything else</span></span>
 <span>  keep         <span class="op">=</span> <span class="st">"STUDY"</span>        <span class="co"># carried through verbatim</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Two role choices are worth pausing on, because they are the ones that
-change the result rather than describe the data.</p>
-<ul>
-<li>
-<strong><code>nominal_time</code></strong> is the declared protocol
-grid. Left out, the run infers a grid and reports it as inferred. Here
-the study has a real one, so declare it.</li>
-<li>
-<strong><code>strata</code></strong> are the treatment arms.
-Declaring them keeps the arm balance and stops a 3 mg patient being
-blended with a 300 mg patient, but it also splits the donor pool six
-ways. On a small cohort that trade can go the other way; the run report
-is how you tell.</li>
-</ul>
-<p><code>CENS</code> is deliberately <em>not</em> declared as
-<code>cens</code>. The column exists, but it is all zeros with no
-censored records, and <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> refuses a censoring
-column that never fires — see
-<code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>.</p>
 </div>
 <div class="section level2">
-<h2 id="does-the-source-validate">Does the source validate?<a class="anchor" aria-label="anchor" href="#does-the-source-validate"></a>
+<h2 id="generate-synthetic-data">Generate Synthetic Data<a class="anchor" aria-label="anchor" href="#generate-synthetic-data"></a>
 </h2>
-<p>Structure first. A dataset that fails here will fail confusingly
-later.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, strict <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">report</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span></span>
-<span><span class="va">report</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="how-identifying-is-the-visit-schedule">How identifying is the visit schedule?<a class="anchor" aria-label="anchor" href="#how-identifying-is-the-visit-schedule"></a>
+<h2 id="plot-synthetic-data-and-original-data">Plot synthetic data and original data<a class="anchor" aria-label="anchor" href="#plot-synthetic-data-and-original-data"></a>
 </h2>
-<p>Run this <em>before</em> generating. Every column answers one
-question — <strong>how many patients share this property with me, me
-included</strong> — so <code>1</code> means nobody else.</p>
-<p>Scored as recorded:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Schedule-uniqueness screen.</strong> Scored on the recorded
-times AS GIVEN, before any coarsening. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-coarsens first by default, so run this again with
-<code>coarsen_time = TRUE</code> to see what the grid removes.</p>
-<p>180 of 180 patients (100%) have an observation schedule nobody else
-has: 180 from a one-off observation time, 0 from which visits they
-attended. Declaring <code>nominal_time</code> addresses the first group;
-nothing addresses the second.</p>
-<p>Those 180 are not necessarily far apart. The typical one differs from
-its nearest neighbour by 42 of about 33 visit slots (range 18 to 42),
-where a slot is one endpoint measured at one time. A difference of one
-or two is a missed sample, not a different schedule – which is why the
-count alone is a poor guide.</p>
-<p>This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
-these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
-keeping their anchor’s own visit set”, which should be near 0% however
-high the count above is.</p>
-<table class="table">
-<colgroup>
-<col width="20%">
-<col width="2%">
-<col width="6%">
-<col width="71%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Patients whose …</th>
-<th align="right">n</th>
-<th align="right">% of cohort</th>
-<th align="left">Meaning</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Observation schedule nobody else has</td>
-<td align="right">180</td>
-<td align="right">100</td>
-<td align="left">the headline: an avatar anchored here wears one real
-patient’s schedule</td>
-</tr>
-<tr class="even">
-<td align="left">… a one-off observation time</td>
-<td align="right">180</td>
-<td align="right">100</td>
-<td align="left">sampled when nobody else was. A time grid can absorb
-this: declare <code>nominal_time</code>
-</td>
-</tr>
-<tr class="odd">
-<td align="left">… the set of visits attended</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">every time is shared. A missed visit, a
-discontinuation, or follow-up that has not reached the later visits. No
-grid touches this</td>
-</tr>
-<tr class="even">
-<td align="left">Observation count nobody else has</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">survives any grid; the residual
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> looks at</td>
-</tr>
-<tr class="odd">
-<td align="left">Dosing nobody else has</td>
-<td align="right">6</td>
-<td align="right">3</td>
-<td align="left">dose amounts and gaps. Weight-based dosing makes this
-near-universal</td>
-</tr>
-</tbody>
-</table>
-<p><strong>How crowded is each schedule</strong> (1 = nobody else has
-it):</p>
-<table class="table">
-<thead><tr class="header">
-<th align="right">Patients sharing that schedule</th>
-<th align="right">Patients</th>
-<th align="right">% of cohort</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="right">1</td>
-<td align="right">180</td>
-<td align="right">100</td>
-</tr></tbody>
-</table>
-<p><strong>Which endpoint is doing it.</strong> A schedule is only as
-shared as</p>
-<p>its least shared part.</p>
-<table class="table">
-<colgroup>
-<col width="23%">
-<col width="12%">
-<col width="28%">
-<col width="35%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">endpoint</th>
-<th align="right">patients</th>
-<th align="right">distinct visit sets</th>
-<th align="right">patients alone on theirs</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Continuous</td>
-<td align="right">180</td>
-<td align="right">180</td>
-<td align="right">180</td>
-</tr>
-<tr class="even">
-<td align="left">PK Concentration</td>
-<td align="right">150</td>
-<td align="right">150</td>
-<td align="right">150</td>
-</tr>
-</tbody>
-</table>
-<p><em>One row per patient is in the returned data frame;
-<code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same cohort. Source-derived;
-not releasable unless separately public or privately budgeted.</em></p>
-<p>All 180 patients have an observation schedule nobody else has, and
-the cause is a one-off observation time rather than a one-off pattern of
-attendance. That distinction decides whether it is fixable: a one-off
-<em>time</em> snaps onto the protocol grid, a one-off <em>attendance
-pattern</em> does not snap onto anything.</p>
-<p>Scored on the grid <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> actually generates
-on:</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://opensource.nibr.com/xgx/" class="external-link">xgxr</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_theme_set.html" class="external-link">xgx_theme_set</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">both</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">]</span>, DATA <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">synthetic</span>, DATA <span class="op">=</span> <span class="st">"synthetic"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">obs</span> <span class="op">&lt;-</span> <span class="va">both</span><span class="op">[</span><span class="va">both</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">both</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span>,</span>
+<span>                     levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"3 mg"</span>, <span class="st">"10 mg"</span>, <span class="st">"30 mg"</span>,</span>
+<span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"red4"</span>, synthetic <span class="op">=</span> <span class="st">"blue4"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, coarsen_time <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Schedule-uniqueness screen.</strong> Scored AFTER coarsening,
-on the shared visit grid <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds. These are
-the numbers a run reports.</p>
-<p>Every patient shares their observation schedule with somebody.
-Nothing to do.</p>
-<p>This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
-these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
-keeping their anchor’s own visit set”, which should be near 0% however
-high the count above is.</p>
-<table class="table">
-<colgroup>
-<col width="20%">
-<col width="1%">
-<col width="6%">
-<col width="71%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Patients whose …</th>
-<th align="right">n</th>
-<th align="right">% of cohort</th>
-<th align="left">Meaning</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Observation schedule nobody else has</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">the headline: an avatar anchored here wears one real
-patient’s schedule</td>
-</tr>
-<tr class="even">
-<td align="left">… a one-off observation time</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">sampled when nobody else was. A time grid can absorb
-this: declare <code>nominal_time</code>
-</td>
-</tr>
-<tr class="odd">
-<td align="left">… the set of visits attended</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">every time is shared. A missed visit, a
-discontinuation, or follow-up that has not reached the later visits. No
-grid touches this</td>
-</tr>
-<tr class="even">
-<td align="left">Observation count nobody else has</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">survives any grid; the residual
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> looks at</td>
-</tr>
-<tr class="odd">
-<td align="left">Dosing nobody else has</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">dose amounts and gaps. Weight-based dosing makes this
-near-universal</td>
-</tr>
-</tbody>
-</table>
-<p><strong>How crowded is each schedule</strong> (1 = nobody else has
-it):</p>
-<table class="table">
-<thead><tr class="header">
-<th align="right">Patients sharing that schedule</th>
-<th align="right">Patients</th>
-<th align="right">% of cohort</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="right">30</td>
-<td align="right">30</td>
-<td align="right">17</td>
-</tr>
-<tr class="even">
-<td align="right">150</td>
-<td align="right">150</td>
-<td align="right">83</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Which endpoint is doing it.</strong> A schedule is only as
-shared as</p>
-<p>its least shared part.</p>
-<table class="table">
-<colgroup>
-<col width="23%">
-<col width="12%">
-<col width="28%">
-<col width="35%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">endpoint</th>
-<th align="right">patients</th>
-<th align="right">distinct visit sets</th>
-<th align="right">patients alone on theirs</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Continuous</td>
-<td align="right">180</td>
-<td align="right">1</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">PK Concentration</td>
-<td align="right">150</td>
-<td align="right">1</td>
-<td align="right">0</td>
-</tr>
-</tbody>
-</table>
-<p><em>One row per patient is in the returned data frame;
-<code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same cohort. Source-derived;
-not releasable unless separately public or privately budgeted.</em></p>
-<p>100% to 0%. Coarsening onto <code>NOMTIME</code> collapses 180
-distinct schedules into two — one for the 150 patients with PK sampling,
-one for the 30 placebo patients without. This is the best case for the
-mechanism, and it is why declaring <code>nominal_time</code> is worth
-the effort of finding the column.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">24</span>, <span class="op">]</span>,</span>
+<span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span><span class="va">DATA</span><span class="op">~</span><span class="va">TRTACT</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_y_log10.html" class="external-link">xgx_scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_x_time_units.html" class="external-link">xgx_scale_x_time_units</a></span><span class="op">(</span><span class="st">"hours"</span>, breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">24</span>, by <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PK concentration"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Day 1 Conc. Profile"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="demo_files/figure-html/overlay-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
-<p><img src="demo_files/figure-html/schedule-map-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>Vertical stripes mean patients share visits; a ragged right edge is
-follow-up ending. In the lower panel a bar of height one is a moment
-only one patient was ever sampled at — exactly what would be copied onto
-an avatar — drawn in red.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span>, <span class="op">]</span>,</span>
+<span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_x_time_units.html" class="external-link">xgx_scale_x_time_units</a></span><span class="op">(</span>units_dataset <span class="op">=</span> <span class="st">"hours"</span>, units_plot <span class="op">=</span> <span class="st">"weeks"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span><span class="va">DATA</span><span class="op">~</span><span class="va">TRTACT</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PD (continuous)"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PD Response"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="demo_files/figure-html/overlay-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
-<h2 id="synthesize">Synthesize<a class="anchor" aria-label="anchor" href="#synthesize"></a>
+<h2 id="summary-tables-of-synthetic-and-original-data">Summary Tables of Synthetic and Original Data<a class="anchor" aria-label="anchor" href="#summary-tables-of-synthetic-and-original-data"></a>
 </h2>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span>
-<span><span class="co">#&gt; synpmx_avatar(): dropped 9 undeclared column(s): TIMEUNIT, EVENTU, CENS, eff0, PROFDAY, PROFTIME, CYCLE, PART, IPRED.</span></span>
-<span><span class="co">#&gt;   Declare a column in `keep` to carry it through verbatim.</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span>,</span>
-<span>  subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  shared_ids <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">ID</span>, <span class="va">raw</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       rows   subjects shared_ids </span></span>
-<span><span class="co">#&gt;      20820        180          0</span></span></code></pre></div>
-<p>Same size as the source, and no identifier is shared with it.</p>
-</div>
-<div class="section level2">
-<h2 id="what-the-masking-mechanisms-did">What the masking mechanisms did<a class="anchor" aria-label="anchor" href="#what-the-masking-mechanisms-did"></a>
-</h2>
-<p>Each row carries the sentence that says what its number means, so
-this section is deliberately short.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">raw</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>What each masking mechanism did, and what it cost.</caption>
-<colgroup>
-<col width="19%">
-<col width="5%">
-<col width="75%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Quantity</th>
-<th align="right">Value</th>
-<th align="left">What it means</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">180</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">180 (100%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">180</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">6</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">127 of 180 (71%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.89</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit schedule: WHEN patients were
-observed</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Visit grid used</td>
-<td align="right">nominal</td>
-<td align="left">every visit was snapped to the declared
-<code>nominal_time</code>, which is the protocol grid. This is the
-reliable case</td>
-</tr>
-<tr class="odd">
-<td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">180 (100%)</td>
-<td align="left">patients whose list of observation times nobody else
-shares</td>
-</tr>
-<tr class="even">
-<td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">0 (0%)</td>
-<td align="left">the count that matters: an avatar copies its anchor’s
-times verbatim</td>
-</tr>
-<tr class="odd">
-<td align="left">  because of a one-off observation time</td>
-<td align="right">0 (0%)</td>
-<td align="left">sampled when nobody else was. Declaring
-<code>nominal_time</code> is the fix</td>
-</tr>
-<tr class="even">
-<td align="left">  because of which visits they attended</td>
-<td align="right">0 (0%)</td>
-<td align="left">every time is shared. The visits themselves are missing
-– a missed visit, a discontinuation, or follow-up that has not reached
-them – and no grid can fix that</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">6</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">0 (0%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">180 of 180 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere.
-Every source patient stays a donor and stays available to anchor
-others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero only when the schedule group has no shared set to
-substitute; the run alerts when it happens</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
-<td align="right">0 of 180 (0%)</td>
-<td align="left">the anchor stopped dosing at a depth nobody else used,
-so the avatar stops at a different one – shared, or used by nobody.
-Truncating a schedule to a real dose time is protocol-valid in a way
-that moving dose times is not</td>
-</tr>
-<tr class="odd">
-<td align="left">Distinct dose schedules in the source</td>
-<td align="right">2</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">  represented in the synthetic cohort</td>
-<td align="right">2 (100%)</td>
-<td align="left">a regimen only one patient received cannot be given to
-an avatar without pointing at them, so it is not represented at all.
-This is the cost of the guarantee below, and on a small cohort it is
-unavoidable rather than a setting to tune</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a dose schedule nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>must also be 0%.</strong> Dose events are
-copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero only when EVERY patient is in that
-position, which individualised dosing can cause</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">the 5 distinct dose amounts are not a fixed multiple of
-any declared covariate: WEIGHTB (ratios do not cluster)</td>
-</tr>
-<tr class="even">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
-</tbody>
-</table>
-<p>Four rows carry the verdict, and on this run all four are clean.</p>
-<ul>
-<li>
-<strong>Avatars carrying a visit set nobody else shares —
-0%.</strong> This is the row that must be zero. A non-zero value means
-some avatar wears one real patient’s pattern of missed visits.</li>
-<li>
-<strong>Avatars carrying a dose schedule nobody else shares —
-0%.</strong> The same guarantee for dosing, which is copied from the
-anchor verbatim.</li>
-<li>
-<strong>Visit sets held by fewer than 2 patients, so not reused — 0
-of 6.</strong> This is where the fidelity cost would show, and here
-there is none: no real pattern of absences had to be discarded to get
-the two rows above to zero.</li>
-<li>
-<strong>Effective donors per avatar — about 2.9</strong>, against a
-floor of <code>k = 5</code>. This is the honest number: <code>k</code>
-is how many patients were blended, <code>1 / sum(w^2)</code> is how many
-of them actually mattered. The cap binds on 71% of avatars, so
-<code>max_donor_weight</code> is doing real work rather than sitting
-unused.</li>
-</ul>
-<p>One row is a genuine limitation of this run: <strong>amounts
-recomputed from a covariate — no.</strong> The five dose levels are not
-a fixed multiple of <code>WEIGHTB</code>, so <code>AMT</code> is copied
-from the anchor and each avatar’s implied mg/kg is its anchor’s rather
-than its own. For a weight- or body-surface-area-based study, declare
-<code>dose_covariate</code> and the report will say it succeeded.</p>
-</div>
-<div class="section level2">
-<h2 id="do-the-values-line-up">Do the values line up?<a class="anchor" aria-label="anchor" href="#do-the-values-line-up"></a>
-</h2>
-<p>Ranges and shapes, source against synthetic. These will not match
-exactly, and they are not meant to: blending averages, so it shrinks
-spread.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<table style="width:100%;" class="table">
 <caption>RESTRICTED – endpoints (dependent variable on observation
 rows)</caption>
 <colgroup>
-<col width="15%">
-<col width="9%">
-<col width="4%">
-<col width="10%">
-<col width="8%">
-<col width="8%">
-<col width="10%">
-<col width="9%">
-<col width="9%">
+<col width="20%">
+<col width="11%">
+<col width="5%">
+<col width="13%">
+<col width="7%">
+<col width="7%">
+<col width="5%">
+<col width="7%">
 <col width="8%">
 <col width="7%">
+<col width="5%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">variable</th>
@@ -794,70 +210,58 @@ rows)</caption>
 <td align="left">source</td>
 <td align="right">1620</td>
 <td align="right">180</td>
-<td align="right">134.9000</td>
-<td align="right">237.7000</td>
-<td align="right">-621.00000</td>
-<td align="right">-21.59000</td>
-<td align="right">123.20000</td>
-<td align="right">283.1000</td>
-<td align="right">936.100</td>
+<td align="right">135</td>
+<td align="right">238</td>
+<td align="right">-621</td>
+<td align="right">-21.6</td>
+<td align="right">123</td>
+<td align="right">283</td>
+<td align="right">936</td>
 </tr>
 <tr class="even">
 <td align="left">PD - Continuous</td>
 <td align="left">synthetic</td>
 <td align="right">1620</td>
 <td align="right">180</td>
-<td align="right">132.0000</td>
-<td align="right">161.7000</td>
-<td align="right">-360.80000</td>
-<td align="right">20.00000</td>
-<td align="right">122.80000</td>
-<td align="right">231.1000</td>
-<td align="right">741.600</td>
+<td align="right">130</td>
+<td align="right">161</td>
+<td align="right">-297</td>
+<td align="right">17.4</td>
+<td align="right">116</td>
+<td align="right">231</td>
+<td align="right">657</td>
 </tr>
 <tr class="odd">
 <td align="left">PK Concentration</td>
 <td align="left">source</td>
 <td align="right">3600</td>
 <td align="right">150</td>
-<td align="right">0.3600</td>
-<td align="right">0.7371</td>
-<td align="right">0.05000</td>
-<td align="right">0.05000</td>
-<td align="right">0.06338</td>
-<td align="right">0.2626</td>
-<td align="right">6.996</td>
+<td align="right">0.36</td>
+<td align="right">0.737</td>
+<td align="right">0.05</td>
+<td align="right">0.05</td>
+<td align="right">0.0634</td>
+<td align="right">0.263</td>
+<td align="right">7</td>
 </tr>
 <tr class="even">
 <td align="left">PK Concentration</td>
 <td align="left">synthetic</td>
 <td align="right">3600</td>
 <td align="right">150</td>
-<td align="right">0.3015</td>
-<td align="right">0.5826</td>
-<td align="right">0.01854</td>
-<td align="right">0.04889</td>
-<td align="right">0.07093</td>
-<td align="right">0.2249</td>
-<td align="right">5.224</td>
+<td align="right">0.316</td>
+<td align="right">0.65</td>
+<td align="right">0.05</td>
+<td align="right">0.05</td>
+<td align="right">0.0539</td>
+<td align="right">0.233</td>
+<td align="right">5.84</td>
 </tr>
 </tbody>
 </table>
 <table class="table">
 <caption>RESTRICTED – continuous covariates (baseline, per
 patient)</caption>
-<colgroup>
-<col width="13%">
-<col width="14%">
-<col width="5%">
-<col width="8%">
-<col width="8%">
-<col width="8%">
-<col width="10%">
-<col width="10%">
-<col width="8%">
-<col width="8%">
-</colgroup>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -875,282 +279,44 @@ patient)</caption>
 <td align="left">WEIGHTB</td>
 <td align="left">source</td>
 <td align="right">180</td>
-<td align="right">115.9</td>
-<td align="right">20.53</td>
-<td align="right">80.02</td>
-<td align="right">98.02</td>
-<td align="right">117.0</td>
-<td align="right">133.4</td>
-<td align="right">149.6</td>
+<td align="right">116</td>
+<td align="right">20.5</td>
+<td align="right">80</td>
+<td align="right">98</td>
+<td align="right">117</td>
+<td align="right">133</td>
+<td align="right">150</td>
 </tr>
 <tr class="even">
 <td align="left">WEIGHTB</td>
 <td align="left">synthetic</td>
 <td align="right">180</td>
-<td align="right">117.6</td>
-<td align="right">14.13</td>
-<td align="right">88.27</td>
-<td align="right">105.60</td>
-<td align="right">118.3</td>
-<td align="right">129.3</td>
-<td align="right">143.9</td>
+<td align="right">115</td>
+<td align="right">14.5</td>
+<td align="right">85.8</td>
+<td align="right">104</td>
+<td align="right">114</td>
+<td align="right">127</td>
+<td align="right">148</td>
 </tr>
 </tbody>
 </table>
 <p>Medians track closely on both endpoints. The standard deviations are
 visibly smaller in the synthetic cohort — for the PD endpoint and for
-baseline weight alike — which is blending doing exactly what blending
-does. Plan for it: this data is for exercising software, not for
-estimating a variance component.</p>
-</div>
-<div class="section level2">
-<h2 id="is-any-avatar-too-close-to-a-real-patient">Is any avatar too close to a real patient?<a class="anchor" aria-label="anchor" href="#is-any-avatar-too-close-to-a-real-patient"></a>
-</h2>
-<p>Everything above concerns structure. This measures the values.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">prox</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="va">prox</span></span></code></pre></div>
-<p><strong>Nearest-neighbour proximity check.</strong> - Question: is a
-synthetic patient closer to a real patient than real patients are to
-each other? - Measured 0.511, on a scale where 0.5 means ‘no closer’ and
-is the target; 0 would mean every synthetic patient is glued to a real
-one. - Expected 0.415 to 0.571 if nothing were wrong. That interval is
-not assumed – it is the same statistic run 50 times on two halves of the
-real cohort, 90 patients per half, which is also how many synthetic
-patients were compared. - Verdict: Nothing detected. The value sits
-inside the null interval, which at this cohort size is wide – read it as
-‘no blatant leak’, never as ‘no leak’. - For context, distance to the
-nearest neighbour (5th percentile, so the closest pairs):
-synthetic-to-real 1.163 versus real-to-real 1.451. These are only
-comparable to each other; the units are PCA profile space.</p>
-<p><em>Source-derived; not releasable unless separately public or
-privately budgeted.</em></p>
-<p>Read the two numbers together. <code>0.5</code> is the target rather
-than the maximum: it means a synthetic patient is no more like a real
-patient than one real patient is like another. The expected interval is
-not assumed — it is the same statistic recomputed on halves of the real
-cohort, so small-sample artefacts cancel. Landing inside it means
-<em>nothing was detected</em>, never that nothing is there.</p>
-</div>
-<div class="section level2">
-<h2 id="post-generation-plausibility-screen">Post-generation plausibility screen<a class="anchor" aria-label="anchor" href="#post-generation-plausibility-screen"></a>
-</h2>
-<p><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> scores each
-<strong>synthetic</strong> patient on follow-up time, dose count, dose
-magnitude, and peak dependent variable, and flags robust outliers. It is
-a plausibility check, not a masking step: a conspicuous blended value
-identifies nobody, because it belongs to nobody.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">flagged</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">flagged</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">flagged</span><span class="op">[</span><span class="va">flagged</span><span class="op">$</span><span class="va">flagged</span>, <span class="op">]</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="14%">
-<col width="20%">
-<col width="10%">
-<col width="12%">
-<col width="12%">
-<col width="20%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">subject_id</th>
-<th align="right">follow_up_time</th>
-<th align="right">n_doses</th>
-<th align="right">max_dose</th>
-<th align="right">max_dv</th>
-<th align="left">outlier_axes</th>
-<th align="left">flagged</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">283</td>
-<td align="right">2037.782</td>
-<td align="right">85</td>
-<td align="right">10</td>
-<td align="right">255.4064</td>
-<td align="left">follow-up time</td>
-<td align="left">TRUE</td>
-</tr></tbody>
-</table>
-<p>Look at what it flags before acting on it. On a cohort with two
-clearly different groups it will flag the split rather than a leak.
-<code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> will truncate, drop, or
-replace what it returns.</p>
-</div>
-<div class="section level2">
-<h2 id="source-against-synthetic">Source against synthetic<a class="anchor" aria-label="anchor" href="#source-against-synthetic"></a>
-</h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">both</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">]</span>, DATA <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">synthetic</span>, DATA <span class="op">=</span> <span class="st">"synthetic"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">obs</span> <span class="op">&lt;-</span> <span class="va">both</span><span class="op">[</span><span class="va">both</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">both</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span>, <span class="op">]</span></span>
-<span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span>,</span>
-<span>                     levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"3 mg"</span>, <span class="st">"10 mg"</span>, <span class="st">"30 mg"</span>,</span>
-<span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"grey30"</span>, synthetic <span class="op">=</span> <span class="st">"#C1272D"</span><span class="op">)</span></span></code></pre></div>
-<p>The day-1 concentration profile, by arm, on a log scale:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">24</span>, <span class="op">]</span>,</span>
-<span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">TRTACT</span>, nrow <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PK concentration"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="demo_files/figure-html/overlay-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>Dose ordering, absorption, and elimination all survive, and the
-avatars sit inside the source cloud rather than beside it. Where they
-visibly differ is at the edges of each arm — the most extreme source
-profiles have no synthetic counterpart, which is the shrinkage
-again.</p>
-<p>The full-duration pharmacodynamic response:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span>, <span class="op">]</span>,</span>
-<span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">TRTACT</span>, nrow <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PD (continuous)"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="demo_files/figure-html/overlay-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>The dose-ordered separation between placebo and 300 mg is preserved;
-the red band is narrower than the grey one in every arm. Identifiers are
-disjoint by construction, so grouping on <code>ID</code> never joins a
-real patient’s line to an avatar’s.</p>
+baseline weight alike. This behavior is expected from the AVATAR
+blending algorithm.</p>
 </div>
 <div class="section level2">
 <h2 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
 </h2>
-<p>Every check above, with its answer and whether that answer passes.
-This is the table from <code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>
-filled in by this run — the point of collecting it is that the pass
-criteria are otherwise scattered through the prose above, and deciding
-whether to ship a dataset should not require rereading the document.</p>
-<p>Nothing here is an exported helper. It is about forty lines of
-ordinary R against the run report and the two tables, and it is written
-out rather than hidden so you can lift it into your own study and change
-what it asks.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># One row per check. `ok = NA` means the check has no pass mark and has to be</span></span>
-<span><span class="co"># read -- which is a real answer, not a missing one.</span></span>
-<span><span class="va">row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">check</span>, <span class="va">question</span>, <span class="va">reads</span>, <span class="va">result</span>, <span class="va">ok</span> <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    check <span class="op">=</span> <span class="va">check</span>, question <span class="op">=</span> <span class="va">question</span>, reads <span class="op">=</span> <span class="va">reads</span>, result <span class="op">=</span> <span class="va">result</span>,</span>
-<span>    verdict <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">ok</span><span class="op">)</span><span class="op">)</span> <span class="st">"pass"</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isFALSE</a></span><span class="op">(</span><span class="va">ok</span><span class="op">)</span><span class="op">)</span> <span class="st">"FAIL"</span> <span class="kw">else</span> <span class="st">"review"</span>,</span>
-<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">subjects</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co"># Endpoints are the `dvid` values carried by *observation* rows. This study's</span></span>
-<span><span class="co"># NAME column also has a "Dosing" level on its dose rows, which is not an</span></span>
-<span><span class="co"># endpoint and would inflate the count.</span></span>
-<span><span class="va">endpoints</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">dvid</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">observed</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">which</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">events</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span></span>
-<span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">which</span> <span class="op">==</span> <span class="st">"dose"</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">events</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">events</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">rows</span> <span class="op">/</span> <span class="fu">subjects</span><span class="op">(</span><span class="va">data</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co"># Each subject's sorted observation times, or values, as one string: two</span></span>
-<span><span class="co"># subjects share a string only if that vector is identical.</span></span>
-<span><span class="va">subject_vectors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span>, <span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">","</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co"># One baseline value per subject, as character so a factor cannot collapse to</span></span>
-<span><span class="co"># its integer codes.</span></span>
-<span><span class="va">holders</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                      <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                      <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co"># Scorecard row B5, by hand: how many synthetic patients hold the least-held</span></span>
-<span><span class="co"># categorical level. `strata` are protocol assignments and are categorical</span></span>
-<span><span class="co"># whatever their storage type, so a numerically coded arm is not excluded.</span></span>
-<span><span class="va">numeric_covariate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">covariates</span>,</span>
-<span>                            <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[[</span><span class="va">v</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">categorical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">strata</span>, <span class="va">roles</span><span class="op">$</span><span class="va">covariates</span><span class="op">[</span><span class="op">!</span><span class="va">numeric_covariate</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">rarest_level</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">categorical</span>, <span class="kw">function</span><span class="op">(</span><span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">holders</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">column</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">arm_size</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">first</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">duplicated</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">strata</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="va">first</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">source_arms</span> <span class="op">&lt;-</span> <span class="fu">arm_size</span><span class="op">(</span><span class="va">raw</span><span class="op">)</span></span>
-<span><span class="va">synth_arms</span> <span class="op">&lt;-</span> <span class="fu">arm_size</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">source_arms</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">arms_matched</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">source_arms</span> <span class="op">==</span> <span class="va">synth_arms</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">time_copies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu">subject_vectors</span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>,</span>
-<span>                                <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">dv_copies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu">subject_vectors</span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span>,</span>
-<span>                              <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">inside_null</span> <span class="op">&lt;-</span> <span class="va">prox</span><span class="op">$</span><span class="va">adversarial_accuracy</span> <span class="op">&gt;=</span> <span class="va">prox</span><span class="op">$</span><span class="va">null_lower</span> <span class="op">&amp;&amp;</span></span>
-<span>  <span class="va">prox</span><span class="op">$</span><span class="va">adversarial_accuracy</span> <span class="op">&lt;=</span> <span class="va">prox</span><span class="op">$</span><span class="va">null_upper</span></span>
-<span></span>
-<span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"Synthetic table is a legal PMX dataset"</span>, <span class="st">"synthetic"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span>,</span>
-<span>      <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A2"</span>, <span class="st">"Source is legal under the declared roles"</span>, <span class="st">"source"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">report</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span>, <span class="va">report</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A3"</span>, <span class="st">"Every endpoint survived"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu">endpoints</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span>, <span class="st">"of"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu">endpoints</span><span class="op">(</span><span class="va">raw</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu">endpoints</span><span class="op">(</span><span class="va">raw</span><span class="op">)</span>, <span class="fu">endpoints</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A4"</span>, <span class="st">"Cohort size survived"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">subjects</span><span class="op">(</span><span class="va">raw</span><span class="op">)</span>, <span class="st">"-&gt;"</span>, <span class="fu">subjects</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>      <span class="fu">subjects</span><span class="op">(</span><span class="va">raw</span><span class="op">)</span> <span class="op">==</span> <span class="fu">subjects</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A5"</span>, <span class="st">"Observations per patient"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">per_patient</span><span class="op">(</span><span class="va">raw</span>, <span class="st">"obs"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>, <span class="fu">per_patient</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"obs"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"A5"</span>, <span class="st">"Doses per patient"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">per_patient</span><span class="op">(</span><span class="va">raw</span>, <span class="st">"dose"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>, <span class="fu">per_patient</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"dose"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B1a"</span>, <span class="st">"Avatars wearing one real patient's visit set"</span>, <span class="st">"run report"</span>,</span>
-<span>      <span class="va">settings</span><span class="op">$</span><span class="va">identifying_visit_sets</span>, <span class="va">settings</span><span class="op">$</span><span class="va">identifying_visit_sets</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B1b"</span>, <span class="st">"Avatars wearing one real patient's dose schedule"</span>, <span class="st">"run report"</span>,</span>
-<span>      <span class="va">settings</span><span class="op">$</span><span class="va">identifying_dose_schedules</span>,</span>
-<span>      <span class="va">settings</span><span class="op">$</span><span class="va">identifying_dose_schedules</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B2"</span>, <span class="st">"Synthetic patients unusual within their own arm"</span>, <span class="st">"synthetic"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">flagged</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span>, <span class="st">"of"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">flagged</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B3"</span>, <span class="st">"Adversarial accuracy inside its null interval"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.3f in [%.3f, %.3f]"</span>, <span class="va">prox</span><span class="op">$</span><span class="va">adversarial_accuracy</span>,</span>
-<span>              <span class="va">prox</span><span class="op">$</span><span class="va">null_lower</span>, <span class="va">prox</span><span class="op">$</span><span class="va">null_upper</span><span class="op">)</span>,</span>
-<span>      <span class="va">inside_null</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B4a"</span>, <span class="st">"Generated time vectors copying a real one"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="va">time_copies</span>, <span class="va">time_copies</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B4b"</span>, <span class="st">"Generated DV vectors copying a real one"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="va">dv_copies</span>, <span class="va">dv_copies</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"B5"</span>, <span class="st">"Synthetic patients holding the least-held level"</span>, <span class="st">"synthetic"</span>,</span>
-<span>      <span class="va">rarest_level</span>, <span class="va">rarest_level</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"C3"</span>, <span class="st">"Arms keeping their source size"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">arms_matched</span>, <span class="st">"of"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">source_arms</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>      <span class="va">arms_matched</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">source_arms</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/row.html" class="external-link">row</a></span><span class="op">(</span><span class="st">"C4"</span>, <span class="st">"Dose regimens represented"</span>, <span class="st">"both"</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">dose_regimens_represented</span>, <span class="st">"of"</span>,</span>
-<span>            <span class="va">settings</span><span class="op">$</span><span class="va">dose_regimens_source</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">card</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
+<p>The scorecard computes checks of the synthetic dataset. It is
+described further in <code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_scorecard.html">pmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
 <colgroup>
 <col width="6%">
-<col width="50%">
+<col width="51%">
 <col width="11%">
 <col width="24%">
 <col width="8%">
@@ -1202,7 +368,7 @@ what it asks.</p>
 <td align="left">A5</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
-<td align="left">85 -&gt; 85</td>
+<td align="left">70.8 -&gt; 70.8</td>
 <td align="left">review</td>
 </tr>
 <tr class="odd">
@@ -1221,28 +387,28 @@ what it asks.</p>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their own arm</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
-<td align="left">1 of 180</td>
+<td align="left">0 of 180</td>
 <td align="left">review</td>
 </tr>
 <tr class="even">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
-<td align="left">0.511 in [0.415, 0.571]</td>
+<td align="left">0.544 in [0.422, 0.561]</td>
 <td align="left">pass</td>
 </tr>
 <tr class="odd">
 <td align="left">B4a</td>
-<td align="left">Generated time vectors copying a real one</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
 <td align="left">0</td>
 <td align="left">pass</td>
 </tr>
 <tr class="even">
 <td align="left">B4b</td>
-<td align="left">Generated DV vectors copying a real one</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -1256,7 +422,7 @@ what it asks.</p>
 </tr>
 <tr class="even">
 <td align="left">C3</td>
-<td align="left">Arms keeping their source size</td>
+<td align="left">Strata keeping their source size</td>
 <td align="left">both</td>
 <td align="left">6 of 6</td>
 <td align="left">pass</td>
@@ -1266,56 +432,26 @@ what it asks.</p>
 <td align="left">Dose regimens represented</td>
 <td align="left">both</td>
 <td align="left">2 of 2</td>
-<td align="left">review</td>
+<td align="left">pass</td>
 </tr>
 </tbody>
 </table>
-<p>Three things to notice about how this reads.</p>
 <p><strong><code>review</code> is not a soft <code>pass</code>.</strong>
-Four rows have no pass mark because no threshold would be honest. Doses
-per patient is the clearest: on this study it is unchanged, and on a
-study with individualised dosing it can halve while every guarantee
-above it still reads 0. A checklist that scored that row would have to
-pick a number, and any number picked would be wrong on some dataset.</p>
-<p><strong>The <code>reads</code> column decides where the table can
-go.</strong> Every row marked <code>source</code> or <code>both</code>
-was computed from real patient data and inherits its handling
-obligations, so the filled-in scorecard is itself restricted output.
-Only the <code>synthetic</code> and <code>run report</code> rows can
-travel with the data.</p>
-<p><strong>B5 is the row doing the least work.</strong> It reports how
-many synthetic patients hold the least-held categorical level, which on
-a six-arm study with thirty patients per arm is a comfortable 30. A
-<code>1</code> would mean some level sits on a single avatar, singling
-that avatar out within the release. It reads the synthetic table only,
-which is why it can travel — and also why it is the weak form of the
-question: what the risk is made of is how many <em>real</em> patients
-held the level, and nothing in the package computes that either. See
-<code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code>, section B5.</p>
+Three rows have no pass mark because no threshold would be honest. Doses
+per patient is the clearest: on this study it is unchanged, but on a
+study with individualised dosing it can change.</p>
 </div>
 <div class="section level2">
-<h2 id="what-this-run-does-and-does-not-license">What this run does and does not license<a class="anchor" aria-label="anchor" href="#what-this-run-does-and-does-not-license"></a>
+<h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h2>
-<p>The output is fit for software development, package testing,
-reproducible examples, teaching, and giving a coding agent something
-realistic to work against. It reproduces the <em>structure</em> of a
-clinical trial event table: dosing histories, multiple endpoints, arm
-balance, and the visit schedule.</p>
-<p>It is not fit for estimating population parameters, and this run
-showed why: variance is shrunk by blending.</p>
-<p>The masking report’s dose row is not a second reason here.
-<code>case1_pkpd</code> gives every patient in an arm the same milligram
-dose, so M5 found no covariate the amounts are proportional to and left
-them alone — which is right, and discloses nothing, because thirty
-patients share each amount. On a weight- or body-surface-area-based
-study that row matters: declare <code>dose_covariate</code> in
-<code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, or each avatar carries its anchor’s milligrams
-and therefore its anchor’s weight.</p>
-<p>Two of the tables here (<code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code> and
-<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code>) are computed from the source data
-and are labelled restricted in their own output. They belong in the
-trusted environment with the real data, not in a document that leaves
-it.</p>
+<ul>
+<li>
+<code><a href="../articles/synthetic-data-checks.html">vignette("synthetic-data-checks")</a></code> — every check, what
+it asks, and what passing means.</li>
+<li>
+<code><a href="../articles/avatar-evaluation-public-data.html">vignette("avatar-evaluation-public-data")</a></code> - AVATAR
+algorithm applied to 8 public datasets.</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

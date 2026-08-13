@@ -729,7 +729,7 @@ The invariant is verifiable and the assumption is not. Naming both is
 what distinguishes an argument a data protection officer can evaluate
 from a claim.
 
-### What To Do At Each Cohort Size
+## What To Do At Each Cohort Size
 
 Cohort size decides which checks are interpretable, not only how
 expensive they are. Sizes below are source patients, and the mechanism
@@ -772,7 +772,7 @@ those studies the useful question is not which check to run but whether
 from a public model is enough, since it reads no data and needs no check
 at all.
 
-### A Proposed Holdout Procedure
+## A Proposed Holdout Procedure
 
 Nothing in this section is implemented. It is a proposal for how a
 holdout would work in `synpmx`, written down so that it can be argued
@@ -980,7 +980,7 @@ Four papers, in this order:
 
 Then **Ganev and De Cristofaro** for the critique of items 2 through 4.
 
-#### Summary of measures
+## Summary of measures
 
 | Measure | Question it asks | Granularity | Needs a holdout? |
 |----|----|----|----|

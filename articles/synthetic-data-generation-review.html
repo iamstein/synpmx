@@ -241,6 +241,49 @@ successfully — which is exactly what Woillard and colleagues do, on 253
 patients with a single measurement each. What you cannot do that way is
 keep the longitudinal endpoint, which for pharmacometrics is the
 data.</p>
+<div class="section level4">
+<h4 id="schema-only-synthesis-fakedatar">Schema-only synthesis: FakeDataR<a class="anchor" aria-label="anchor" href="#schema-only-synthesis-fakedatar"></a>
+</h4>
+<p>Take the conditioning step out of column-by-column synthesis and the
+result is a different kind of tool: a table with the right shape and no
+relationships inside it. The <code>FakeDataR</code> package (Ahmed, CRAN
+0.2.2) does this on purpose. It reproduces a dataset’s schema — column
+names, types, factor levels, value ranges, and missingness — and fills
+it with values drawn one column at a time. Categorical columns resample
+the observed levels by empirical frequency, or take generic labels
+<code>Category A</code>, <code>Category B</code>. Numeric columns are
+drawn uniformly between the observed minimum and maximum, or resampled
+from the observed values with replacement.</p>
+<p>The target is the large language model (LLM) workflow.
+<code>llm_bundle()</code> writes the fake table, a scrubbed schema, and
+a README prompt into a single zip archive, so a model can be handed the
+shape of a dataset without the dataset. <code>FakeDataR</code> will also
+build a fake table directly from a structured query language (SQL)
+database schema, reading no rows at all, which is a stronger privacy
+position than any method in this article: there is no input record to
+protect.</p>
+<p>What that costs is every relationship. Columns are drawn
+independently, so a 45 kg subject with the creatinine clearance of a 90
+kg one is the expected output rather than a defect, and the copula
+problem described above is not addressed but skipped. There is no notion
+of a subject, so an event table loses its within-subject trajectory, its
+time ordering, and the link between a dosing row and the observations
+that follow it. In the uniform-range mode the shape of each distribution
+is discarded while the minimum and the maximum, which are real values
+belonging to the two most extreme patients, are carried through to the
+output.</p>
+<p><code>FakeDataR</code> states these limits itself: no formal privacy
+guarantee, no guaranteed statistical fidelity, and not a substitute for
+the original data in statistical modeling. Its documented uses are
+demonstrations, tutorials, bug reports, and testing. That makes it the
+closest thing in this survey to <code>synpmx</code>’s own motivation —
+developing code, and using AI coding tools, without the real study
+present — reached by a different route. A schema-shaped placeholder is
+enough to draft a query or file a reproducible bug report. It is not
+enough to develop a dataset assembly script, a diagnostic plot, or
+model-run plumbing, because those fail on the event grammar and a
+placeholder has none.</p>
+</div>
 </div>
 <div class="section level3">
 <h3 id="record-based-blending">Record-based blending<a class="anchor" aria-label="anchor" href="#record-based-blending"></a>
@@ -493,6 +536,8 @@ synthetic data in R.</em> Journal of Statistical Software.
 <em>Modeling tabular data using conditional GAN.</em> Advances in Neural
 Information Processing Systems 32 (NeurIPS 2019). 2019:7335-7345.
 (CT-GAN and TVAE, from the Synthetic Data Vault project.)</p></li>
+<li><p>Ahmed Z. <em>FakeDataR: Privacy-Preserving Synthetic Data for
+‘LLM’ Workflows.</em> R package version 0.2.2, published 2025-10-06. <a href="https://cran.r-project.org/package=FakeDataR" class="external-link">CRAN</a>, <a href="https://zobaer09.github.io/FakeDataR/" class="external-link">documentation</a>.</p></li>
 <li><p>Guillaudeux M, Rousseau O, Petot J, et al. <em>Patient-centric
 synthetic data generation, no reason to risk re-identification in
 biomedical data analysis.</em> npj Digital Medicine. 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>

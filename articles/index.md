@@ -11,8 +11,8 @@
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 
-- [Demo: one dataset, end to
-  end](https://iamstein.github.io/synpmx/articles/demo.md):
+- [Demo: Using
+  synpmx_avatar](https://iamstein.github.io/synpmx/articles/demo.md):
 
 - [Example: are PK/PD, covariate, and treatment relationships
   preserved?](https://iamstein.github.io/synpmx/articles/example-avatar-PKPD-covariate-treatment-effect.md):

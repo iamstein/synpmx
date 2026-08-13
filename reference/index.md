@@ -101,6 +101,9 @@ Contribution limits, budget, preflight, and the release ledger.
 
 Structural checks on generated data, and restricted comparisons.
 
+- [`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md)
+  : The scorecard for one synthetic dataset
+
 - [`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
   : Validate a pharmacometric event dataset
 

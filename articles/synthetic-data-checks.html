@@ -160,7 +160,7 @@ the table at the end of the vignette collects them.</li>
 <td><strong>A3</strong></td>
 <td>Did every endpoint survive?</td>
 <td>
-<code><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal()</a></code> on the <code>dvid</code> levels</td>
+<code><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setequal()</a></code> on the <code>dvid</code> levels</td>
 <td>both</td>
 <td>sets equal</td>
 </tr>
@@ -210,28 +210,25 @@ the table at the end of the vignette collects them.</li>
 </tr>
 <tr class="even">
 <td><strong>B4a</strong></td>
-<td>Is any generated time vector a copy of a real one?</td>
-<td>
-<em>gap</em> — a few lines by hand</td>
+<td>Is any generated time vector a copy of an exposed real one?</td>
+<td><code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code></td>
 <td>both</td>
 <td><strong>0</strong></td>
 </tr>
 <tr class="odd">
 <td><strong>B4b</strong></td>
-<td>Is any generated <code>DV</code> vector a copy of a real one?</td>
-<td>
-<em>gap</em> — the same lines by hand</td>
+<td>Is any generated <code>DV</code> vector a copy of an exposed real
+one?</td>
+<td><code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code></td>
 <td>both</td>
 <td><strong>0</strong></td>
 </tr>
 <tr class="even">
 <td><strong>B5</strong></td>
 <td>Does any categorical level sit on a single synthetic patient?</td>
-<td>
-<em>gap</em> — level census by hand</td>
+<td><code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code></td>
 <td>synthetic</td>
-<td>
-<strong>0</strong> such levels</td>
+<td>no level on one patient</td>
 </tr>
 <tr class="odd">
 <td><strong>C1</strong></td>
@@ -263,7 +260,8 @@ the table at the end of the vignette collects them.</li>
 <td>What features of the study were lost?</td>
 <td><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code></td>
 <td>both</td>
-<td>review — this one has no pass mark</td>
+<td>every source dose regimen still represented; the rest of the
+question has no pass mark</td>
 </tr>
 <tr class="odd">
 <td><strong>D1</strong></td>
@@ -409,7 +407,7 @@ defect that motivated this check lost an entire endpoint — 108 rows in,
 60 out, every observation in one compartment gone, no warning — and a
 row count alone looked plausible.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setequal</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_pkpd</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_synth</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -432,10 +430,10 @@ because a total hides the thing worth seeing:</p>
 <span>    patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
 <span>                     <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">source</span><span class="op">)</span>, <span class="st">"-&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    obs_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">tally</span><span class="op">(</span><span class="va">source</span>, <span class="st">"obs"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
-<span>                            <span class="fu">tally</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"obs"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    doses_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">tally</span><span class="op">(</span><span class="va">source</span>, <span class="st">"dose"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
-<span>                              <span class="fu">tally</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"dose"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    obs_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">source</span>, <span class="st">"obs"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
+<span>                            <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"obs"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    doses_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">source</span>, <span class="st">"dose"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
+<span>                              <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"dose"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
@@ -992,43 +990,66 @@ recorded at them. They fail independently. A generator can invent a
 schedule and then carry a real patient’s measurements onto it, or place
 real measurements on a new grid, and each is a copy of half the
 patient.</p>
+<p><strong>What counts as a copy is a vector too few real patients
+share</strong>, which is the same rule <code>min_pattern_share</code>
+applies to visit sets. Reproducing a vector a whole arm shares
+identifies nobody: on a fixed protocol grid every patient is sampled at
+the same times, so a check asking merely “does any synthetic time vector
+equal some real one” fails every well-designed study while catching
+nothing. It has to ask whether the vector belonged to <em>one</em>
+patient.</p>
+<p><code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code> computes both rows. Values are sorted
+before comparison, so a reordering of the same numbers still counts as a
+copy — the stricter reading, and the right one, since the reordering is
+not what protects the patient.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">subject_vectors</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, <span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span>, <span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">observed</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">","</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">exact_copies</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span></span>
-<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>,</span>
-<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">time</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    dv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span></span>
-<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span>,</span>
-<span>      <span class="fu">subject_vectors</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">exact_copies</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
-<span><span class="co">#&gt; time   dv </span></span>
-<span><span class="co">#&gt;    0    0</span></span>
-<span><span class="fu">exact_copies</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
-<span><span class="co">#&gt; time   dv </span></span>
-<span><span class="co">#&gt;    0    0</span></span></code></pre></div>
-<p>All zero, as required. Values are sorted before comparison, so a
-reordering of the same numbers still counts as a copy — the stricter
-reading, and the right one, since the reordering is not what protects
-the patient. The same comparison is worth running on whole covariate
-rows.</p>
-<p><strong>There is no exported helper for this</strong> — it is a gate
-in the package’s own tests, and the lines above are what a user has to
-write today. That is a gap.</p>
+<code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_scorecard.html">pmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
+<span><span class="va">card</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4a"</span>, <span class="st">"B4b"</span><span class="op">)</span>, <span class="op">]</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="7%">
+<col width="65%">
+<col width="7%">
+<col width="8%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+</tr>
+<tr class="even">
+<td align="left">B4b</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+</tr>
+</tbody>
+</table>
+<p>Both zero. The same comparison is worth running on whole covariate
+rows, which nothing does for you. And on a study with one protocol grid,
+B4a is close to silent by construction, so B4b is the row doing the
+work.</p>
 </div>
 <div class="section level3">
 <h3 id="b5--rare-categories-and-rare-combinations">B5. Rare categories and rare combinations<a class="anchor" aria-label="anchor" href="#b5--rare-categories-and-rare-combinations"></a>
 </h3>
-<p><strong>Nothing in the package <em>flags</em> this, and it is the
-most valuable thing missing.</strong> The mechanism is worth stating
-first, because it inverts the intuition that blending protects
-everything.</p>
+<p><strong>Nothing in the package flags a level that too few
+<em>source</em> patients held, and it is the most valuable thing
+missing.</strong> <code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code> reports the weaker
+synthetic-side version below. The mechanism is worth stating first,
+because it inverts the intuition that blending protects everything.</p>
 <p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> treats the two kinds of covariate
 completely differently, and only one of them is blended:</p>
 <ul>
@@ -1127,14 +1148,14 @@ of its two directions.</p>
 <span>  <span class="op">}</span></span>
 <span>  <span class="va">source_holders</span> <span class="op">&lt;-</span> <span class="fu">holders</span><span class="op">(</span><span class="va">source</span><span class="op">)</span></span>
 <span>  <span class="va">synth_holders</span> <span class="op">&lt;-</span> <span class="fu">holders</span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
-<span>  <span class="va">all_levels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">union</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">all_levels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">union</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">count</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">x</span>, levels <span class="op">=</span> <span class="va">all_levels</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    level <span class="op">=</span> <span class="va">all_levels</span>,</span>
-<span>    source_patients <span class="op">=</span> <span class="fu">count</span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>,</span>
-<span>    synthetic_patients <span class="op">=</span> <span class="fu">count</span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span></span>
+<span>    source_patients <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">source_holders</span><span class="op">)</span>,</span>
+<span>    synthetic_patients <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">synth_holders</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu">level_census</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="st">"TRTACT"</span>, <span class="st">"ID"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -1192,27 +1213,37 @@ output. One weaker question can be asked of the released table alone:
 <strong>does any categorical level sit on exactly one synthetic
 patient?</strong> A level held by a single synthetic patient singles
 that patient out within the release, whatever the source looked like.
-This is the scorecard’s B5.</p>
+<code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code> reports it as B5, over <code>strata</code>
+and every non-numeric covariate:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">singleton_levels</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">numeric_covariate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">covariates</span>,</span>
-<span>                              <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">v</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                              <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="co"># `strata` are protocol assignments and are categorical whatever their</span></span>
-<span>  <span class="co"># storage type, so a numerically coded arm is not excluded here.</span></span>
-<span>  <span class="va">columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">roles</span><span class="op">$</span><span class="va">strata</span>, <span class="va">roles</span><span class="op">$</span><span class="va">covariates</span><span class="op">[</span><span class="op">!</span><span class="va">numeric_covariate</span><span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">columns</span>, <span class="kw">function</span><span class="op">(</span><span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">column</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                 <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">counts</span><span class="op">[</span><span class="va">counts</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">singleton_levels</span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
-<span><span class="co">#&gt; named integer(0)</span></span></code></pre></div>
-<p>Empty, which is the pass. <code>pheno_sd</code> declares no
-categorical covariate and no <code>strata</code>, so it has no axis for
-this check to read — an empty answer there means <em>not
-applicable</em>, not <em>clean</em>.</p>
+<code class="sourceCode R"><span><span class="va">card</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"B5"</span>, <span class="op">]</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="7%">
+<col width="60%">
+<col width="12%">
+<col width="8%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="left">B5</td>
+<td align="left">Synthetic patients holding the least-held level</td>
+<td align="left">synthetic</td>
+<td align="left">30</td>
+<td align="left">pass</td>
+</tr></tbody>
+</table>
+<p>Thirty, which is the arm size, and the pass is any answer above one.
+<code>pheno_sd</code> declares no categorical covariate and no
+<code>strata</code>, so the row is absent from its scorecard entirely —
+which is <em>not applicable</em>, not <em>clean</em>.</p>
 <p><strong>Two things this does not do</strong>, and they are the reason
 the checks above it stay on the list. A level held by two source
 patients can be copied onto ten avatars and pass this check while the
@@ -1375,7 +1406,7 @@ distributional check.</p>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">observed</span><span class="op">$</span><span class="va">TRTACT</span>, <span class="va">observed</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">out</span><span class="op">$</span><span class="va">dataset</span> <span class="op">&lt;-</span> <span class="va">label</span></span>
 <span>  <span class="va">out</span><span class="op">$</span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span></span>
-<span>  <span class="va">out</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset"</span>, <span class="st">"arm"</span>, <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset"</span>, <span class="st">"arm"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span>  <span class="va">out</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset"</span>, <span class="st">"arm"</span>, <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset"</span>, <span class="st">"arm"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observed_by_arm</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="st">"source"</span><span class="op">)</span>,</span>
@@ -2056,28 +2087,24 @@ the scorecard at the top, with what closing each would take:</p>
 <tbody>
 <tr class="odd">
 <td>B5</td>
-<td>No flag on rare categorical levels. The singleton check above is by
-hand, and it is the weak form: <code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code>
-gives the source-side census for declared covariates but not for
-<code>strata</code>, and applies no threshold to either</td>
+<td>
+<code><a href="../reference/pmx_scorecard.html">pmx_scorecard()</a></code> reports only the synthetic-side
+singleton count, which is the weak form. Nothing flags a level held by
+one or two <em>source</em> patients:
+<code><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions()</a></code> gives that census for declared
+covariates but not for <code>strata</code>, and applies no threshold to
+either</td>
 <td>Checks 1 to 4 are one function over the subject-level table. Check 5
 — declaring which levels are rare <em>in the population</em> — needs an
 API decision first</td>
 </tr>
 <tr class="even">
-<td>B4a, B4b</td>
-<td>No exported helper for exact-copy checks on time or <code>DV</code>
-vectors; it is a gate in the package’s tests, and hand-written user code
-here</td>
-<td>Export the gate over both vectors</td>
-</tr>
-<tr class="odd">
 <td>C2</td>
 <td>Dose/observation ordering and occasion assignment have no check</td>
 <td>A post-generation invariant over the finished table, in the spirit
 of section F</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A5</td>
 <td>Dose-count fidelity is not reported. <code>pheno_sd</code> went from
 a median of twelve doses per patient to one, and no warning fires — the

@@ -97,18 +97,18 @@ flag_identifiable_subjects(synthetic, roles)
 #> 
 #> Twelve most unusual:
 #>  subject_id follow_up_time n_doses max_dose max_dv outlier_axes flagged
-#>          32             20       2    91.99 132.80     DV value    TRUE
-#>          31             20       2    87.00  76.96                FALSE
-#>          33             20       2   102.70  91.64                FALSE
-#>          34             20       2   106.50 101.00                FALSE
-#>          35             20       2    93.61  72.95                FALSE
-#>          36             20       2    88.61  79.78                FALSE
-#>          37             20       2    91.93  72.82                FALSE
-#>          38             20       2   102.80  76.80                FALSE
-#>          39             20       2   124.40  67.74                FALSE
-#>          40             20       2   114.30  51.42                FALSE
-#>          41             20       2    83.29  89.80                FALSE
-#>          42             20       2   111.00  84.60                FALSE
+#>          32             20       2       92    133     DV value    TRUE
+#>          31             20       2       87     77                FALSE
+#>          33             20       2      103   91.6                FALSE
+#>          34             20       2      107    101                FALSE
+#>          35             20       2     93.6     73                FALSE
+#>          36             20       2     88.6   79.8                FALSE
+#>          37             20       2     91.9   72.8                FALSE
+#>          38             20       2      103   76.8                FALSE
+#>          39             20       2      124   67.7                FALSE
+#>          40             20       2      114   51.4                FALSE
+#>          41             20       2     83.3   89.8                FALSE
+#>          42             20       2      111   84.6                FALSE
 #> ... 18 more row(s) in the returned table.
 #> 
 #> Source-derived; not releasable unless separately public or privately budgeted.

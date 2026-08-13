@@ -43,20 +43,20 @@ Three columns need a word of explanation.
 |----|----|----|----|----|
 | **A1** | Is the synthetic table a legal PMX dataset? | `validate_pmx(synthetic, roles)$valid` | synthetic | `TRUE` |
 | **A2** | Is the *source* legal under the roles you declared? | `validate_pmx(source, roles)$valid` | source | `TRUE`, or a refusal you can explain |
-| **A3** | Did every endpoint survive? | [`setequal()`](https://rdrr.io/r/base/sets.html) on the `dvid` levels | both | sets equal |
+| **A3** | Did every endpoint survive? | [`setequal()`](https://generics.r-lib.org/reference/setops.html) on the `dvid` levels | both | sets equal |
 | **A4** | Did the cohort size survive? | count distinct `id` | both | equal |
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
 | **B1a** | Does any avatar wear one real patient’s visit set? | `identifying_visit_sets` | run report | **0** |
 | **B1b** | Does any avatar wear one real patient’s dose schedule? | `identifying_dose_schedules` | run report | **0** |
 | **B2** | Does any synthetic patient stand out from its own stratum? | [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | both | inside the null interval, near 0.5 |
-| **B4a** | Is any generated time vector a copy of a real one? | *gap* — a few lines by hand | both | **0** |
-| **B4b** | Is any generated `DV` vector a copy of a real one? | *gap* — the same lines by hand | both | **0** |
-| **B5** | Does any categorical level sit on a single synthetic patient? | *gap* — level census by hand | synthetic | **0** such levels |
+| **B4a** | Is any generated time vector a copy of an exposed real one? | [`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md) | both | **0** |
+| **B4b** | Is any generated `DV` vector a copy of an exposed real one? | [`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md) | both | **0** |
+| **B5** | Does any categorical level sit on a single synthetic patient? | [`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md) | synthetic | no level on one patient |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
 | **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; arm sizes match |
-| **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | review — this one has no pass mark |
+| **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | every source dose regimen still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) | both | same magnitude and shape; spread **will** shrink |
 
 One requirement is deliberately not in the table, because no function
@@ -644,45 +644,42 @@ independently. A generator can invent a schedule and then carry a real
 patient’s measurements onto it, or place real measurements on a new
 grid, and each is a copy of half the patient.
 
+**What counts as a copy is a vector too few real patients share**, which
+is the same rule `min_pattern_share` applies to visit sets. Reproducing
+a vector a whole arm shares identifies nobody: on a fixed protocol grid
+every patient is sampled at the same times, so a check asking merely
+“does any synthetic time vector equal some real one” fails every
+well-designed study while catching nothing. It has to ask whether the
+vector belonged to *one* patient.
+
+[`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md)
+computes both rows. Values are sorted before comparison, so a reordering
+of the same numbers still counts as a copy — the stricter reading, and
+the right one, since the reordering is not what protects the patient.
+
 ``` r
 
-subject_vectors <- function(data, roles, column) {
-  observed <- data[as.character(data[[roles$evid]]) %in% c("0", "0.0"), ]
-  tapply(as.numeric(observed[[column]]),
-         as.character(observed[[roles$id]]),
-         function(values) paste(sort(values), collapse = ","))
-}
-exact_copies <- function(source, synthetic, roles) {
-  c(time = length(intersect(
-      subject_vectors(source, roles, roles$time),
-      subject_vectors(synthetic, roles, roles$time))),
-    dv = length(intersect(
-      subject_vectors(source, roles, roles$dv),
-      subject_vectors(synthetic, roles, roles$dv))))
-}
-exact_copies(case1_pkpd, case1_synth, case1_roles)
-#> time   dv 
-#>    0    0
-exact_copies(pheno_sd, pheno_synth, pheno_roles)
-#> time   dv 
-#>    0    0
+card <- pmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+card[card$check %in% c("B4a", "B4b"), ]
 ```
 
-All zero, as required. Values are sorted before comparison, so a
-reordering of the same numbers still counts as a copy — the stricter
-reading, and the right one, since the reordering is not what protects
-the patient. The same comparison is worth running on whole covariate
-rows.
+| check | question | reads | result | verdict |
+|:---|:---|:---|:---|:---|
+| B4a | Generated time vectors copying an exposed real one | both | 0 | pass |
+| B4b | Generated DV vectors copying an exposed real one | both | 0 | pass |
 
-**There is no exported helper for this** — it is a gate in the package’s
-own tests, and the lines above are what a user has to write today. That
-is a gap.
+Both zero. The same comparison is worth running on whole covariate rows,
+which nothing does for you. And on a study with one protocol grid, B4a
+is close to silent by construction, so B4b is the row doing the work.
 
 ### B5. Rare categories and rare combinations
 
-**Nothing in the package *flags* this, and it is the most valuable thing
-missing.** The mechanism is worth stating first, because it inverts the
-intuition that blending protects everything.
+**Nothing in the package flags a level that too few *source* patients
+held, and it is the most valuable thing missing.**
+[`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md)
+reports the weaker synthetic-side version below. The mechanism is worth
+stating first, because it inverts the intuition that blending protects
+everything.
 
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 treats the two kinds of covariate completely differently, and only one
@@ -823,31 +820,23 @@ The census above reads real patient data and is therefore restricted
 output. One weaker question can be asked of the released table alone:
 **does any categorical level sit on exactly one synthetic patient?** A
 level held by a single synthetic patient singles that patient out within
-the release, whatever the source looked like. This is the scorecard’s
-B5.
+the release, whatever the source looked like.
+[`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md)
+reports it as B5, over `strata` and every non-numeric covariate:
 
 ``` r
 
-singleton_levels <- function(synthetic, roles) {
-  numeric_covariate <- vapply(roles$covariates,
-                              function(v) is.numeric(synthetic[[v]]),
-                              logical(1))
-  # `strata` are protocol assignments and are categorical whatever their
-  # storage type, so a numerically coded arm is not excluded here.
-  columns <- c(roles$strata, roles$covariates[!numeric_covariate])
-  counts <- unlist(lapply(columns, function(column) {
-    table(tapply(as.character(synthetic[[column]]),
-                 as.character(synthetic[[roles$id]]), function(x) x[1]))
-  }))
-  counts[counts == 1]
-}
-singleton_levels(case1_synth, case1_roles)
-#> named integer(0)
+card[card$check == "B5", ]
 ```
 
-Empty, which is the pass. `pheno_sd` declares no categorical covariate
-and no `strata`, so it has no axis for this check to read — an empty
-answer there means *not applicable*, not *clean*.
+| check | question | reads | result | verdict |
+|:---|:---|:---|:---|:---|
+| B5 | Synthetic patients holding the least-held level | synthetic | 30 | pass |
+
+Thirty, which is the arm size, and the pass is any answer above one.
+`pheno_sd` declares no categorical covariate and no `strata`, so the row
+is absent from its scorecard entirely — which is *not applicable*, not
+*clean*.
 
 **Two things this does not do**, and they are the reason the checks
 above it stay on the list. A level held by two source patients can be
@@ -1308,8 +1297,7 @@ at the top, with what closing each would take:
 
 | \# | Gap | What closing it takes |
 |----|----|----|
-| B5 | No flag on rare categorical levels. The singleton check above is by hand, and it is the weak form: [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) gives the source-side census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
-| B4a, B4b | No exported helper for exact-copy checks on time or `DV` vectors; it is a gate in the package’s tests, and hand-written user code here | Export the gate over both vectors |
+| B5 | [`pmx_scorecard()`](https://iamstein.github.io/synpmx/reference/pmx_scorecard.md) reports only the synthetic-side singleton count, which is the weak form. Nothing flags a level held by one or two *source* patients: [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) gives that census for declared covariates but not for `strata`, and applies no threshold to either | Checks 1 to 4 are one function over the subject-level table. Check 5 — declaring which levels are rare *in the population* — needs an API decision first |
 | C2 | Dose/observation ordering and occasion assignment have no check | A post-generation invariant over the finished table, in the spirit of section F |
 | A5 | Dose-count fidelity is not reported. `pheno_sd` went from a median of twelve doses per patient to one, and no warning fires — the count above is the only way to see it | A row in [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) |
 
