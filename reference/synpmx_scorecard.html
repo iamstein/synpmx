@@ -152,20 +152,20 @@ this output.</p>
 <span class="r-in"><span><span class="fu">synpmx_scorecard</span><span class="op">(</span><span class="va">data</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   check question                                           reads        result                     verdict</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A2    Source is legal under the declared roles           source       TRUE                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A3    Every endpoint survived                            both         2 of 2                     pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A4    Cohort size survived                               both         30 -&gt; 30                   pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Observations per patient                           both         14 -&gt; 14                   review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Doses per patient                                  both         2 -&gt; 2                     review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B1a   Avatars wearing one real patient's visit set       run settings 0                          pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                          pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                    review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]    review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B4a   Generated time vectors copying an exposed real one both         0                          pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B4b   Generated DV vectors copying an exposed real one   both         0                          pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   C4    Distinct dose-time schedules represented           both         1 of 1                     pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   check question                                           reads        result                  verdict</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                    pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A2    Source is legal under the declared roles           source       TRUE                    pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A3    Every endpoint survived                            both         2 of 2                  pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A4    Cohort size survived                               both         30 -&gt; 30                pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Observations per patient                           both         14 -&gt; 14                review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Doses per patient                                  both         2 -&gt; 2                  review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B1a   Avatars wearing one real patient's visit set       run settings 0                       pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                       pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                 review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692] review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B4a   Generated time vectors copying an exposed real one both         0                       pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B4b   Generated DV vectors copying an exposed real one   both         0                       pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C4    Distinct dose-time schedules represented           both         1 of 1                  pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> To explore, with `source`, `synthetic` and `roles` named as you have them:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A5    compare_pmx_distributions(source, synthetic, roles)</span>

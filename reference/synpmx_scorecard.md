@@ -106,20 +106,20 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard(data, synthetic, roles)
 #> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
 #> 
-#>   check question                                           reads        result                     verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                       pass
-#>   A2    Source is legal under the declared roles           source       TRUE                       pass
-#>   A3    Every endpoint survived                            both         2 of 2                     pass
-#>   A4    Cohort size survived                               both         30 -> 30                   pass
-#>   A5    Observations per patient                           both         14 -> 14                   review
-#>   A5    Doses per patient                                  both         2 -> 2                     review
-#>   B1a   Avatars wearing one real patient's visit set       run settings 0                          pass
-#>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                          pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                    review
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]    review
-#>   B4a   Generated time vectors copying an exposed real one both         0                          pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                          pass
-#>   C4    Distinct dose-time schedules represented           both         1 of 1                     pass
+#>   check question                                           reads        result                  verdict
+#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                    pass
+#>   A2    Source is legal under the declared roles           source       TRUE                    pass
+#>   A3    Every endpoint survived                            both         2 of 2                  pass
+#>   A4    Cohort size survived                               both         30 -> 30                pass
+#>   A5    Observations per patient                           both         14 -> 14                review
+#>   A5    Doses per patient                                  both         2 -> 2                  review
+#>   B1a   Avatars wearing one real patient's visit set       run settings 0                       pass
+#>   B1b   Avatars wearing one real patient's dose schedule   run settings 0                       pass
+#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                 review
+#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692] review
+#>   B4a   Generated time vectors copying an exposed real one both         0                       pass
+#>   B4b   Generated DV vectors copying an exposed real one   both         0                       pass
+#>   C4    Distinct dose-time schedules represented           both         1 of 1                  pass
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   A5    compare_pmx_distributions(source, synthetic, roles)
