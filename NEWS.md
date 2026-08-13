@@ -5,6 +5,37 @@
   the first release, at which point this file starts recording user-visible
   changes by version.
 
+* **Donor trajectories are no longer extrapolated past the times a donor was
+  actually observed at** (`SIM-046`). The old fallback rescaled the anchor's
+  time range onto the donor's, which reads as "the same shape on a stretched
+  clock" and is wrong whenever the missing region is a distinct kinetic phase.
+  On `warfarin`, where 19 of 32 subjects have no `cp` sample before 24 h, a
+  donor's 24 h elimination concentration stood in for an anchor's 0.5 h
+  absorption concentration: the generated median at 0.5 h was 8.8 against a
+  source median of 0.0, and the absorption limb came back as a flat plateau.
+  Rows outside a donor's range are now blended over the donors that do cover
+  them; rows no donor covers fall to a per-time cohort median rather than a
+  single dataset-wide one.
+
+* **A generated visit set can no longer reach deeper into the study than
+  `min_pattern_share` real patients reached** (`SIM-047`). A `scattered`
+  attendance shape was placed over the whole union grid, so one subject followed
+  far past the rest lent their tail to every avatar: on `wbcSim` an avatar came
+  out with two observations, at 501 h and 3910 h. Row B1a could not see it --
+  it asks whether a real patient's visit set was *copied*, and a fabricated
+  schedule is exactly what passes.
+
+* **Scorecard row A6 now prints in order.** It was appended after the main row
+  list, so wherever it fired it appeared after B4b instead of after A5.
+
+* **`vignettes/avatar-evaluation-public-data.Rmd` is renamed
+  `public-data-examples.Rmd`**, its figures put source and synthetic side by
+  side on a shared y axis with one row per endpoint (a PK concentration in
+  single digits no longer flattens against a PD score in the hundreds), and its
+  model-based differential-privacy walkthrough is cut -- that vignette is about
+  `synpmx_avatar()`, and the DP modes are documented elsewhere. The old pkgdown
+  URL redirects.
+
 * **`pmx_scorecard()` is now `synpmx_scorecard()`**, and every row carries an
   `explore` column naming the call that explains it. Three rows changed with it:
   C4 is titled "distinct dose-time schedules represented", since the key it

@@ -918,3 +918,70 @@ test_that("a truncation target is never deeper than the schedule it replaces", {
   expect_true(any(moved))
   expect_true(all(plan$target[moved] < plan$depth[moved]))
 })
+
+# Generated follow-up depth (SIM-047) ----------------------------------------
+#
+# A shape says how many visits were missed and how they were arranged, not where
+# the survivors sat. `trailing` and `block` both leave the tail attended so
+# neither can overshoot, but `scattered` may hold any cells at all -- and the
+# grid is the union over the group, so one patient followed far past the rest
+# lends their tail to every avatar.
+
+# `n` patients on a short schedule, one followed far past them, and two holding
+# two-visit scattered sets.
+#
+# Those last two are the whole point, and they mirror `wbcSim`: they hold
+# DIFFERENT keys, so neither set can be reused, but they hold the SAME shape,
+# so `scattered|7` clears the sharing floor and a placement is generated for it.
+# A shape whose every holder is unique is dropped from the pool outright and
+# never reaches `.place_attendance()` at all.
+depth_source <- function(n = 20L) {
+  short <- c(0, 24, 48, 72)
+  tail_times <- c(120, 240, 480, 960, 1920)
+  subject <- function(id, times) data.frame(
+    ID = as.character(id), TIME = c(0, times),
+    DV = c(0, 5 * exp(-0.002 * times)),
+    AMT = c(100, rep(0, length(times))),
+    EVID = c(1L, rep(0L, length(times))),
+    CMT = c(1L, rep(2L, length(times))),
+    WT = 70 + id %% 7, stringsAsFactors = FALSE
+  )
+  rows <- lapply(seq_len(n), function(i) subject(i, short))
+  do.call(rbind, c(rows, list(
+    subject(n + 1L, c(short, tail_times)),
+    subject(n + 2L, c(0, 48)),
+    subject(n + 3L, c(0, 72))
+  )))
+}
+
+test_that("a generated visit set stops at a depth several patients reach", {
+  # SIM-047. The union grid runs to 1920 h because one subject was followed
+  # that long. An avatar wearing a two-visit scattered shape used to be placed
+  # anywhere on it, so it came out with a follow-up length no real patient of
+  # its shape has -- and a fresh signal that somebody was followed to 1920 h.
+  # B1a and B4a cannot see this: the set is precisely one no real patient holds.
+  source <- depth_source()
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, da_roles(), n_subjects = 30, seed = 11)
+  ))
+  depth <- tapply(synthetic$TIME, synthetic$ID, max)
+  # Only one real subject goes past 72 h, so no generated set may either.
+  expect_equal(sum(depth > 72), 0L)
+  # And the short schedule is still fully represented rather than truncated.
+  expect_true(any(depth == 72))
+})
+
+test_that("the shared depth is the last cell min_pattern_share subjects reach", {
+  cells <- paste0("DV@", c(0, 24, 48, 72, 120))
+  keys <- c(
+    paste(cells[1:3], collapse = ";"),   # reaches cell 3
+    paste(cells[1:4], collapse = ";"),   # reaches cell 4
+    paste(cells[1:5], collapse = ";")    # reaches cell 5, alone
+  )
+  # Two subjects reach cell 4, one reaches cell 5.
+  expect_equal(synpmx:::.shared_depth(cells, keys, c(1L, 1L, 1L), 2L), 4L)
+  # With three holders of the deepest set, the cap moves out to it.
+  expect_equal(synpmx:::.shared_depth(cells, keys, c(1L, 1L, 3L), 2L), 5L)
+  # A floor nothing clears must not shrink the grid to nothing.
+  expect_equal(synpmx:::.shared_depth(cells, keys, c(1L, 1L, 1L), 99L), 5L)
+})

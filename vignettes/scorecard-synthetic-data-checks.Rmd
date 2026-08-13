@@ -204,7 +204,7 @@ pmx_endpoint_types(case1_pkpd, case1_roles)
 
 Both endpoints here are continuous, so there is nothing to do and
 `synpmx_scorecard()` omits the A6 row entirely. The check fires on a study with an
-ordinal, binary or count endpoint: `vignette("avatar-evaluation-public-data")`
+ordinal, binary or count endpoint: `vignette("public-data-examples")`
 runs it on `xgxr::mad`, which carries all three.
 
 Two things are worth knowing before you trust the answer. The type is *inferred*
@@ -999,7 +999,7 @@ control streams behave.
   one real run.
 - `vignette("avatar-algorithm")` — how the default generator works, and the six
   masking mechanisms these checks are measuring.
-- `vignette("avatar-evaluation-public-data")` — these checks run across eight
+- `vignette("public-data-examples")` — these checks run across eight
   public datasets, with the masking cost for each.
 - [Literature: checking synthetic data](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html) — the published methods for
   checking synthetic data, what each one asks, and which of them this package

@@ -141,4 +141,4 @@ one is where the answer is.
 
 - `vignette("scorecard-synthetic-data-checks")` — every check, what it asks, and what
   passing means.
-- `vignette("avatar-evaluation-public-data")` - AVATAR algorithm applied to 8 public datasets.
+- `vignette("public-data-examples")` - AVATAR algorithm applied to 8 public datasets.

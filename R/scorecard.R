@@ -165,7 +165,29 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   dv_copies <- .scorecard_copies(source, synthetic, roles, roles$dv, floor)
   flagged <- flag_identifiable_subjects(synthetic, roles)
 
-  rows <- list(
+  # Only where there is something to ask. A study with no discrete endpoint
+  # cannot pass or fail this, and a row reading "0 of 0" on every continuous
+  # study is a row nobody reads on the one study that needs it. Built here
+  # rather than appended, because a conditional row appended after the list is
+  # printed after B4b -- A6 belongs with the other A rows wherever it fires.
+  value_types <- .endpoint_value_types(source, roles)
+  discrete <- names(value_types)[
+    vapply(value_types, function(s) !identical(s$type, "continuous"),
+           logical(1))
+  ]
+  a6_rows <- list()
+  if (length(discrete)) {
+    violations <- .endpoint_type_violations(synthetic, roles, value_types)
+    clean <- sum(violations[discrete] == 0L)
+    a6_rows <- list(.scorecard_row(
+      "A6", "Discrete endpoints keeping their source scale", "both",
+      paste(clean, "of", length(discrete)),
+      "pmx_endpoint_types(source, roles)",
+      clean == length(discrete)
+    ))
+  }
+
+  rows <- c(list(
     .scorecard_row(
       "A1", "Synthetic table is a legal PMX dataset", "synthetic",
       validate_pmx(synthetic, roles)$valid,
@@ -212,7 +234,8 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       paste(.scorecard_rows_per_patient(source, roles, "dose"), "->",
             .scorecard_rows_per_patient(synthetic, roles, "dose")),
       "pmx_masking_report(synthetic, source, roles)"
-    ),
+    )
+  ), a6_rows, list(
     .scorecard_row(
       "B1a", "Avatars wearing one real patient's visit set", "run settings",
       settings$identifying_visit_sets,
@@ -257,26 +280,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "compare_pmx_proximity(source, synthetic, roles)",
       dv_copies == 0L
     )
-  )
-
-  # Only where there is something to ask. A study with no discrete endpoint
-  # cannot pass or fail this, and a row reading "0 of 0" on every continuous
-  # study is a row nobody reads on the one study that needs it.
-  value_types <- .endpoint_value_types(source, roles)
-  discrete <- names(value_types)[
-    vapply(value_types, function(s) !identical(s$type, "continuous"),
-           logical(1))
-  ]
-  if (length(discrete)) {
-    violations <- .endpoint_type_violations(synthetic, roles, value_types)
-    clean <- sum(violations[discrete] == 0L)
-    rows <- c(rows, list(.scorecard_row(
-      "A6", "Discrete endpoints keeping their source scale", "both",
-      paste(clean, "of", length(discrete)),
-      "pmx_endpoint_types(source, roles)",
-      clean == length(discrete)
-    )))
-  }
+  ))
 
   # NULL when the roles declare no categorical axis, which is also when there is
   # no B5 row at all.

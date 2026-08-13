@@ -3,7 +3,7 @@
 - Evaluate scorecard-synthetic-data-checks.Rmd.  See if it can be made simpler.
 - Go through the demo vignette
 - Try out on real data and apply checks (pit, eci), see if I can follow all steps
-- If happy with real data and the data checks, then go through the ~8 examples in avatar-evaluation-public-data
+- If happy with real data and the data checks, then go through the ~8 examples in public-data-examples
 
 - Once happy with all above, then go through full avatar algorithm page
 - Identify a few places to spot check the code. Start with the scorecard-synthetic-data-checks.  Think about if/how to document.  Or think about other validation mechanisms.

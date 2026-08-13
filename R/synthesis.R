@@ -655,6 +655,8 @@
     # so together they clear a floor that neither clears alone.
     cells <- .attendance_cells(names(counts))
     droppable <- .droppable_cells(cells, names(counts))
+    max_depth <- .shared_depth(cells, names(counts), as.integer(counts),
+                               min_pattern_share)
     shapes <- vapply(names(counts), function(key) {
       .attendance_shape(key, cells, droppable)
     }, character(1))
@@ -705,6 +707,7 @@
     pool[[name]] <- list(
       cells = cells,
       droppable = droppable,
+      max_depth = max_depth,
       shapes = names(shape_kept), shape_weight = as.numeric(shape_kept),
       # Exact patterns that clear the floor on their own, indexed by shape, so a
       # real pattern is preferred wherever reusing one is safe.
@@ -792,6 +795,38 @@
   cells <- unique(unlist(strsplit(keys, ";", fixed = TRUE), use.names = FALSE))
   cells <- cells[nzchar(cells)]
   cells[order(.cell_time(cells), cells)]
+}
+
+# How deep into the study a *generated* visit set is allowed to reach: the last
+# cell that `min_pattern_share` subjects were still being observed at.
+#
+# A shape says how many visits were missed and how they were arranged, not where
+# on the calendar the survivors sat, and for `trailing` and `block` that is
+# harmless -- both leave the tail of the grid attended, so neither can push an
+# avatar past where its own kind of patient stops. `scattered` can. It is free
+# to hold any cells at all, and the grid is the union over the whole group, so
+# one patient followed far longer than the rest lends their tail to everybody.
+#
+# That is `SIM-047`, seen on `wbcSim`: the grid runs to 4580 h because a single
+# subject was followed that long, and an avatar holding a two-visit `scattered`
+# shape was placed on cells 501 h and 3910 h -- a follow-up length no real
+# patient of that shape has, and a fresh signal that *somebody* was followed to
+# 3910 h. Nothing else caught it: B1a and B4a ask whether a real patient's set
+# was copied, and this set is precisely one no real patient holds.
+#
+# The floor is `min_pattern_share` and the reading is the usual one -- a
+# generated set may reach a depth several real patients reach, and no further.
+.shared_depth <- function(cells, keys, counts, min_pattern_share) {
+  held <- strsplit(keys, ";", fixed = TRUE)
+  depth <- vapply(held, function(h) {
+    reached <- which(cells %in% h)
+    if (!length(reached)) 0L else max(reached)
+  }, integer(1))
+  # Subjects, not distinct patterns: `counts` is how many subjects hold each.
+  reach <- vapply(seq_along(cells), function(d) sum(counts[depth >= d]),
+                  integer(1))
+  deep_enough <- which(reach >= min_pattern_share)
+  if (!length(deep_enough)) length(cells) else max(deep_enough)
 }
 
 # Describe a pattern by *how* it departs from full attendance rather than by
@@ -996,6 +1031,9 @@
 }
 
 .attendance_key_from <- function(cells, missed) {
+  # `cells[-integer(0)]` is `cells[0]`, not `cells`, so "nothing was missed" has
+  # to be said outright or a complete pattern comes back as the empty key.
+  if (!length(missed)) return(paste(sort(cells), collapse = ";"))
   paste(sort(cells[-missed]), collapse = ";")
 }
 
@@ -1057,24 +1095,41 @@
 # Dropout is the commonest kind of missingness, so this was the normal outcome
 # rather than an edge case: 86% of avatars on a real 21-patient study.
 .place_attendance <- function(cells, shape, rare, tries = 24L,
-                              droppable = NULL) {
+                              droppable = NULL,
+                              max_depth = length(cells)) {
   parts <- strsplit(shape, "|", fixed = TRUE)[[1L]]
   kind <- parts[[1L]]
   wanted <- as.integer(parts[[2L]])
   # Positions are chosen among the cells that may be dropped, then mapped back
   # onto the full grid, so a complete endpoint's cells are never candidates.
   index <- if (is.null(droppable)) seq_along(cells) else which(droppable)
+  # Droppable cells past the depth real patients share (`.shared_depth()`).
+  # They are not candidates for placement -- they are missed outright, and the
+  # arrangement is worked out over what is left. Non-droppable cells beyond the
+  # cap stay attended: a complete endpoint is complete by construction and
+  # dropping one of its cells invents missingness the study does not have.
+  beyond <- index[index > max_depth]
+  index <- index[index <= max_depth]
   n <- length(index)
-  complete <- paste(sort(cells), collapse = ";")
+  # The deepest set a placement may return, and so what "attended everything"
+  # can mean here.
+  complete <- .attendance_key_from(cells, beyond)
   if (kind == "complete" || wanted < 1L) {
-    return(list(key = complete, shifted = FALSE))
+    return(list(key = complete, shifted = length(beyond) > 0L))
   }
+  # `wanted` counts misses over every droppable cell. The capped ones are now
+  # misses too, so what is left to arrange is the remainder -- which keeps the
+  # number of visits the avatar ends up with unchanged, and only moves them
+  # inside the study's shared follow-up.
+  wanted <- max(wanted - length(beyond), 0L)
 
   for (n_miss in .miss_counts(wanted, n)) {
     for (position in .attendance_placements(kind, n_miss, n, tries)) {
-      key <- .attendance_key_from(cells, index[position])
+      key <- .attendance_key_from(cells, c(beyond, index[position]))
       if (!(key %in% rare)) {
-        return(list(key = key, shifted = !identical(n_miss, wanted)))
+        return(list(key = key,
+                    shifted = !identical(n_miss, wanted) ||
+                      length(beyond) > 0L))
       }
     }
   }
@@ -1100,7 +1155,9 @@
                 generated = FALSE, shifted = FALSE))
   }
   placed <- .place_attendance(available$cells, shape, available$rare,
-                              droppable = available$droppable)
+                              droppable = available$droppable,
+                              max_depth = available$max_depth %||%
+                                length(available$cells))
   list(key = placed$key, generated = !is.na(placed$key),
        shifted = isTRUE(placed$shifted))
 }
@@ -1388,26 +1445,96 @@
   list(time = time[okay], value = value[okay])
 }
 
+# A donor's contribution to the anchor's observation times, and NA everywhere
+# the donor was not actually followed.
+#
+# `rule = 1` is the whole point. Interpolating *between* a donor's own
+# observations is a claim about a patient who was measured either side of the
+# gap; extending *beyond* them is a claim about a patient nobody measured, and
+# the two must not be confused.
+#
+# This used to fall back to rescaling the anchor's time range onto the donor's,
+# which reads as "the same shape on a stretched clock". That is wrong whenever
+# the missing region is a distinct kinetic phase rather than a shifted window,
+# and pharmacometric data is full of that case: on `warfarin`, 19 of 32 subjects
+# have no `cp` sample before 24 h, so a donor's 24 h *elimination* concentration
+# was served up as an anchor's 0.5 h *absorption* concentration. The generated
+# median at 0.5 h was 8.8 against a source median of 0.0, the absorption limb
+# was replaced by a flat plateau, and the warped segment rejoined the real data
+# with a visible upward step at 24 h (`SIM-046`).
+#
+# Returning NA instead hands the decision to `.weighted_available()`, which
+# blends over the donors that *do* cover that time and renormalizes their
+# weights. A row no donor covers falls to the caller's dataset-median fallback,
+# which says so out loud -- the correct answer when a study simply never
+# measured anybody at that time, and one the caller can act on.
 .interpolate_trajectory <- function(trajectory, target_time) {
   time <- trajectory$time
   value <- trajectory$value
   if (!length(time)) return(rep(NA_real_, length(target_time)))
-  if (length(unique(time)) == 1L) return(rep(mean(value), length(target_time)))
-
-  absolute <- stats::approx(time, value, xout = target_time,
-                            ties = mean, rule = 1)$y
-  missing <- !is.finite(absolute)
-  if (any(missing) && length(unique(target_time)) > 1L) {
-    target_range <- range(target_time)
-    donor_range <- range(time)
-    target_fraction <- (target_time[missing] - target_range[1L]) /
-      diff(target_range)
-    mapped_time <- donor_range[1L] + target_fraction * diff(donor_range)
-    absolute[missing] <- stats::approx(
-      time, value, xout = mapped_time, ties = mean, rule = 2
-    )$y
+  # One observation carries no shape, so it says nothing about any other time.
+  # It is still the donor's value *at* that time, which interpolation would
+  # give back, so keep it there and nowhere else.
+  if (length(unique(time)) == 1L) {
+    return(ifelse(target_time == time[[1L]], mean(value), NA_real_))
   }
-  absolute
+  stats::approx(time, value, xout = target_time, ties = mean, rule = 1)$y
+}
+
+# What the cohort did at each time, for the rows no donor can speak to.
+#
+# The old fallback was one number -- the endpoint's median over every
+# observation at every time -- which is the one quantity guaranteed to have the
+# wrong shape. On `warfarin` it put 6.4 at 0.5 h, where the four subjects
+# actually sampled then all read 0.0, because it averaged the absorption limb
+# together with five days of elimination.
+#
+# A median *per time* has the right shape and is still a cohort marginal rather
+# than any patient's value. Times backed by a single observation are dropped
+# for that second reason: a median over one subject is that subject. The floor
+# is `min_pattern_share`'s default of 2 and for the same reason -- "at least two
+# real patients stand behind this" is the weakest claim worth making.
+.cohort_median_trajectory <- function(data, roles, endpoint_name, transform,
+                                      source_observed, source_endpoint,
+                                      floor = 2L) {
+  selected <- source_observed & source_endpoint == endpoint_name
+  time <- .aligned_time(data, roles)[selected]
+  value <- .transform_dv(data[[roles$dv]][selected], transform)
+  okay <- is.finite(time) & is.finite(value)
+  time <- time[okay]
+  value <- value[okay]
+  if (!length(value)) {
+    stop("No usable DV values exist for endpoint `", endpoint_name, "`.",
+         call. = FALSE)
+  }
+  held <- table(time)
+  shared <- as.numeric(names(held))[held >= floor]
+  # Every time point held by one subject only. Nothing time-resolved can be
+  # said without naming somebody, so this degrades to the old flat median --
+  # wrong in shape, but it is the only cohort-level answer left.
+  if (!length(shared)) {
+    return(list(time = numeric(), value = numeric(),
+                flat = stats::median(value)))
+  }
+  keep <- time %in% shared
+  medians <- tapply(value[keep], time[keep], stats::median)
+  list(time = as.numeric(names(medians)), value = as.numeric(medians),
+       flat = stats::median(value))
+}
+
+# `rule = 2` here, unlike in `.interpolate_trajectory()`. This curve is the
+# whole cohort rather than one donor, so holding its first or last value beyond
+# the ends is a statement about the study's own observed range, not an invented
+# measurement of a patient nobody followed.
+.interpolate_cohort_median <- function(median_trajectory, target_time) {
+  time <- median_trajectory$time
+  if (length(time) < 2L) {
+    value <- if (length(time) == 1L) median_trajectory$value[[1L]]
+             else median_trajectory$flat
+    return(rep(value, length(target_time)))
+  }
+  stats::approx(time, median_trajectory$value, xout = target_time,
+                ties = mean, rule = 2)$y
 }
 
 .endpoint_noise_scale <- function(data, roles, endpoint_name, transform) {
@@ -1471,20 +1598,20 @@
     blended <- apply(donor_matrix, 1L, .weighted_available, weights = weights)
     missing_blend <- !is.finite(blended)
     if (any(missing_blend)) {
-      fallback <- .transform_dv(
-        data[[roles$dv]][source_observed & source_endpoint == endpoint_name],
-        transform
+      fallback <- .cohort_median_trajectory(
+        data, roles, endpoint_name, transform, source_observed, source_endpoint
       )
-      fallback <- stats::median(fallback[is.finite(fallback)], na.rm = TRUE)
-      if (!is.finite(fallback)) {
-        stop("No usable DV values exist for endpoint `", endpoint_name, "`.",
-             call. = FALSE)
-      }
-      blended[missing_blend] <- fallback
-      warnings$add(paste0(
-        "Endpoint `", endpoint_name,
-        "` required a dataset-median interpolation fallback."
-      ))
+      blended[missing_blend] <- .interpolate_cohort_median(
+        fallback, target_time[missing_blend]
+      )
+      # Deliberately carries no count. The collector dedups on the exact string
+      # and this fires per subject, so a count turns one line into one line per
+      # avatar -- 14 near-identical paragraphs on `warfarin` alone.
+      warnings$add(sprintf(paste0(
+        "Endpoint `%s` has generated observations at times no donor was ",
+        "measured at; the cohort's median trajectory was used for those rows. ",
+        "Expected wherever subjects were sampled on different schedules."
+      ), endpoint_name))
     }
 
     scale <- .endpoint_noise_scale(data, roles, endpoint_name, transform)

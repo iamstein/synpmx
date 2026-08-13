@@ -19,7 +19,7 @@ Internal design record (`design/`, cited by nothing shipped):
 
 ## Done 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
 
-Found while rewriting `avatar-evaluation-public-data.Rmd` onto the demo's shape.
+Found while rewriting `public-data-examples.Rmd` onto the demo's shape.
 `xgxr::mad` carries binary, count and ordinal PD endpoints in the same numeric
 `LIDV` column as PK, and all three came out continuous: the 0/1 endpoint took
 600 distinct values from -0.13 to 1.08. Every scorecard row passed, so nothing
@@ -38,7 +38,7 @@ caught it.
 - [x] `tests/testthat/test-endpoint-types.R`, including a case that reproduces
       the original defect by declaring the discrete endpoints continuous.
 - [x] Documented in `scorecard-synthetic-data-checks.Rmd` (A6) and in the `mad` section of
-      `avatar-evaluation-public-data.Rmd`.
+      `public-data-examples.Rmd`.
 
 One consequence to keep in view: `warfarin`'s `pca` is a percentage recorded
 without decimals, so it now rounds to whole numbers. That matches its source and

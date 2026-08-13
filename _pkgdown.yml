@@ -4,14 +4,16 @@ template:
   bootstrap: 5
 
 # Renamed articles. Keep the old URLs working for anyone holding a link:
-# avatar-mathematics -> avatar-algorithm on 2026-07-27, and synpmx-demo ->
+# avatar-mathematics -> avatar-algorithm on 2026-07-27; synpmx-demo ->
 # avatar-evaluation-public-data on 2026-08-04, when the demo was recognized as
-# an evaluation of the algorithm rather than a tutorial. On 2026-08-11
-# literature-review was split in two; its old URL lands on the generation half,
-# which is where the article used to begin.
+# an evaluation of the algorithm rather than a tutorial, and that in turn ->
+# public-data-examples on 2026-08-13, for a name short enough to say. On
+# 2026-08-11 literature-review was split in two; its old URL lands on the
+# generation half, which is where the article used to begin.
 redirects:
   - ["articles/avatar-mathematics.html", "articles/avatar-algorithm.html"]
-  - ["articles/synpmx-demo.html", "articles/avatar-evaluation-public-data.html"]
+  - ["articles/synpmx-demo.html", "articles/public-data-examples.html"]
+  - ["articles/avatar-evaluation-public-data.html", "articles/public-data-examples.html"]
   - ["articles/literature-review.html", "articles/synthetic-data-generation-review.html"]
 
 navbar:
@@ -28,7 +30,7 @@ navbar:
       - text: The synpmx AVATAR Algorithm
         href: articles/avatar-algorithm.html
       - text: Evaluating AVATAR on public data
-        href: articles/avatar-evaluation-public-data.html
+        href: articles/public-data-examples.html
       - text: Checks of the synthetic data
         href: articles/scorecard-synthetic-data-checks.html
       - text: The four synpmx data generation algorithms

@@ -98,10 +98,10 @@ observed_plot_data <- function(data, roles, dataset,
   )
 }
 
-# Every dataset below gets the same figure: observation rows only, source above
-# synthetic, one column per endpoint. `clock = "tad"` plots time after dose
-# instead of study time, which is the readable view once a study doses more than
-# once.
+# Every dataset below gets the same figure: observation rows only, source beside
+# synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time
+# after dose instead of study time, which is the readable view once a study
+# doses more than once.
 overlay_plot <- function(source, synthetic, roles, title,
                          clock = "study_time",
                          x_label = "Study time (hours)", y_label = "DV",
@@ -123,12 +123,40 @@ overlay_plot <- function(source, synthetic, roles, title,
   ) +
     ggplot2::geom_line(alpha = alpha) +
     ggplot2::geom_point(alpha = alpha, size = 0.7) +
-    ggplot2::facet_grid(dataset ~ endpoint, scales = "free_y") +
+    # Endpoint down the side, source and synthetic across. `facet_grid()` frees
+    # a scale per ROW, so this orientation is the one that gives each endpoint
+    # its own y while holding source and synthetic on a shared one -- which is
+    # the only arrangement the eye can compare. The transpose does the opposite
+    # on both counts: it lets the two panels drift onto different axes, and it
+    # squeezes every endpoint onto one, so a PK concentration reading single
+    # digits flattens to a line next to a PD score in the hundreds.
+    #
+    # A single-endpoint study needs no row strip; it would print the endpoint's
+    # name down the side of the only row, beside the axis title already naming
+    # the same thing.
+    (if (length(unique(plotted$endpoint)) > 1L) {
+      ggplot2::facet_grid(endpoint ~ dataset, scales = "free_y",
+                          switch = "y")
+    } else {
+      ggplot2::facet_wrap(~dataset)
+    }) +
     ggplot2::scale_colour_manual(values = comparison_colours) +
     ggplot2::labs(x = x_label, y = y_label, colour = "Dataset", title = title) +
     ggplot2::theme_minimal() +
-    ggplot2::theme(legend.position = "none")
+    ggplot2::theme(legend.position = "none",
+                   strip.placement = "outside")
   if (isTRUE(log_y)) figure + ggplot2::scale_y_log10() else figure
+}
+
+# Facet rows are endpoints now, so a five-endpoint study needs five times the
+# height a one-endpoint study does. Chunks pass this to `fig.height` rather than
+# every figure inheriting the one-endpoint default and arriving unreadable.
+overlay_height <- function(data, roles, per_endpoint = 2.2, minimum = 3.4) {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  endpoints <- if (is.null(roles$dvid)) 1L else {
+    length(unique(data[[roles$dvid]][observed]))
+  }
+  max(minimum, per_endpoint * endpoints)
 }
 
 # The full masking accounting for one run. `pmx_masking_report()` owns the row
@@ -177,9 +205,7 @@ Every example follows the same five steps:
 5. report the score card for the synthetic dataset.
 
 The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
-one where no threshold would be honest, so it has to be read rather than
-skimmed. `vignette("scorecard-synthetic-data-checks")` states what each check asks and
-what passing it means.
+one where the pharmacometrician could evaluate whether the output is acceptable for use.  If the synthetic dataset will not be crossing a trust boundary, items marked `review` are acceptable.
 
 Two of the eight datasets fail, both on the same check, and both sections say
 why. The runs below are quiet: `synpmx_avatar()` prints an alert for every
@@ -219,42 +245,6 @@ to find, so coarsening takes the twelve unique observation schedules to zero
 without a declared `nominal_time`, and the three visit sets that remain are each
 held by several subjects.
 
-### Dose amounts are copied from the anchor
-
-Theophylline is dosed by weight, and the run declined to say so:
-
-```{r theo-dose-note, eval=has_nlmixr2data}
-attr(theo_synth, "pmx_settings")$dose_basis_note
-```
-
-The recorded milligrams per kilogram run from 3.10 to 5.86, which is 8 distinct
-ratio levels for 11 distinct amounts, so detection fails closed rather than
-impose a multiplier the study did not use. The cost is that each avatar's `amt`
-is its anchor's, and that amount still encodes one real patient's weight.
-Naming the covariate skips the inference and holds each dose row's own ratio:
-
-```{r theo-dose-declared, eval=has_nlmixr2data, message=FALSE}
-theo_roles_dosed <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", covariates = "WT", dose_covariate = "WT"
-)
-theo_declared <- suppressWarnings(
-  synpmx_avatar(theo_md, theo_roles_dosed, seed = 303)
-)
-per_kg <- function(x) {
-  dosed <- x[x$EVID != 0, ]
-  range(dosed$AMT / dosed$WT)
-}
-data.frame(
-  dataset = c("source", "synthetic, inferred", "synthetic, declared"),
-  rbind(per_kg(theo_md), per_kg(theo_synth), per_kg(theo_declared))
-) |> setNames(c("dataset", "min mg/kg", "max mg/kg")) |>
-  knitr::kable(digits = 2, caption = paste(
-    "Dose per kilogram. Declared, each avatar carries its anchor's own ratio,",
-    "so the synthetic cohort spans the source's range; inferred, the amount is",
-    "the anchor's milligrams over the avatar's blended weight."))
-```
-
 ## warfarin: two endpoints on different time courses
 
 32 subjects, a single dose, a pharmacokinetic endpoint (`cp`) and a
@@ -265,14 +255,15 @@ schema with one categorical covariate.
 data("warfarin", package = "nlmixr2data")
 warfarin_roles <- pmx_roles(
   id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
-  dvid = "dvid", covariates = c("wt", "age", "sex")
+  dvid = "dvid", covariates = c("wt", "age", "sex"),
+  dose_covariate = "wt"   # 1.5 mg/kg; say so rather than let it be inferred
 )
 warfarin_synth <- suppressWarnings(
   synpmx_avatar(warfarin, warfarin_roles, seed = 404)
 )
 ```
 
-```{r warfarin-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
+```{r warfarin-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2, fig.height=overlay_height(warfarin, warfarin_roles)}
 overlay_plot(warfarin, warfarin_synth, warfarin_roles,
              "warfarin: PK (cp) and PD (pca) endpoints",
              x_label = "Time (hours)")
@@ -286,45 +277,12 @@ compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 ```
 
-Nothing fails. Dose was recomputed from weight here: warfarin is dosed at
-1.5 mg/kg to within 0.1%, tight enough for detection to fire, so each avatar's
-`amt` comes from its own blended weight rather than from its anchor's.
-
-### Twelve source patients are unique and B1a still passes
-
-B1a reads the synthetic data. The masking report reads the source, and it
-disagrees:
-
-```{r warfarin-masking, eval=has_nlmixr2data}
-masking_table(warfarin, warfarin_roles, warfarin_synth, "warfarin")
-```
-
-Twelve of the 32 subjects still hold an observation schedule nobody else shares
-after coarsening, and not one of them because of *when* they were sampled: every
-one of their observation times is shared with somebody, and what singles them
-out is *which* of those visits they attended. Warfarin has subjects with 13, 14,
-16, 17, 18, 19 and 25 observations, and the rarer counts pick those subjects out
-on their own. No grid resolution helps, because the times are already shared.
-
-Four of the fourteen visit sets are held by one patient each and are discarded,
-and 22% of avatars had their missed visits placed fresh instead. Those four
-patients stay in the cohort and keep contributing measurements as donors; only
-their particular pattern of absences stops being reproduced. That is why B1a is
-0 while twelve real patients are unique.
-
-### Categorical covariates are not held to their source share
-
-The distribution table above shows 5 female subjects of 32 in the source and 3
-in the synthetic cohort. Anchors are sampled with replacement, so a level held
-by 5 of 32 patients lands on however many avatars the draw gives it: across six
-seeds this run produced between 1 and 8. Only columns declared as `strata` are
-held to their source share, which is what `preserve_strata_balance` does for
-`case1_pkpd`'s treatment arms below.
-
-The same table shows the standard deviation of age falling from 10.5 years to
-4.5. Blending `k` real subjects narrows every continuous covariate, and that is
-the algorithm working as designed rather than a defect. No scorecard row covers
-either effect, so read this table on every run.
+Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
+declared as the `dose_covariate` and each avatar's `amt` is rebuilt from its own
+blended weight rather than copied from its anchor's. The ratio here is tight
+enough that inference would have found it unaided, but declaring it is the
+habit worth having: inference fails closed, and a copied amount under
+weight-based dosing discloses one real patient's weight exactly.
 
 ## wbcSim: infusions, and patients too extreme to build on
 
@@ -626,7 +584,7 @@ case1_synth <- suppressWarnings(
 )
 ```
 
-```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2}
+```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(case1_pkpd, case1_roles)}
 overlay_plot(case1_pkpd, case1_synth, case1_roles,
              "case1_pkpd: PK concentration and continuous PD, six arms",
              y_label = "LIDV", alpha = 0.2)
@@ -694,7 +652,7 @@ mad_roles <- pmx_roles(
 mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
 ```
 
-```{r mad-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=6}
+```{r mad-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(mad, mad_roles)}
 overlay_plot(mad, mad_synth, mad_roles, "mad: five endpoints on one time axis",
              y_label = "LIDV", alpha = 0.2) +
   ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
@@ -765,76 +723,6 @@ either direction. And snapping a binary endpoint onto its levels means generated
 values are source values: a 0/1 endpoint has no third value to emit, so what
 protects a patient here is everything in the masking report, never the
 distinctness of the number.
-
-## The model-based path on the same data
-
-Everything above blends real subjects. The alternative is to fit a public model
-to the data through an accounted release and simulate from it, which is what
-`scripts/demo_nlmixr2data.R` does for all five datasets. Repeating it here for
-theophylline shows how much more must be declared, and what is bought.
-
-The empirical engine measures the trajectory shape from the data through noised
-summaries. Every clipping range, contribution limit, and budget share is an
-explicit public input. `synpmx_empirical()` (like `synpmx_calibrated()`)
-refuses to run until `synpmx_enable_dp_engines()` has been called once in the
-session, acknowledging the maintenance status covered in
-the [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html):
-
-```{r enable-dp, eval=has_nlmixr2data}
-synpmx_enable_dp_engines()
-```
-
-```{r empirical, eval=has_nlmixr2data}
-theo_private <- synpmx_empirical(
-  data = theo_md, roles = theo_roles,
-  endpoints = list(cp = pmx_endpoint(
-    alignment = "dose_relative", transform = "log", shape = "occasion", cmt = 2
-  )),
-  epsilon = 5, delta = 0,
-  bounds = pmx_bounds(
-    time = c(0, 170), endpoints = list(cp = c(0, 30)), amt = c(0, 500),
-    covariates = list(WT = c(40, 130))
-  ),
-  public_design = pmx_public_design(
-    pmx_schema(theo_md), dose_evid = 101, dose_cmt = 1
-  ),
-  contribution_limits = pmx_contribution_limits(40, 8, 8, 30, 11),
-  budget_allocation = pmx_budget_allocation(
-    subject_count = 0.10, event = 0.15, timing = 0.15,
-    covariates = 0.10, endpoints = 0.50, censoring = 0
-  ),
-  seed = 707,
-  backend = "public", public_source = TRUE   # theo_md is public; no DP claim
-)
-validate_pmx(theo_private, theo_roles)$valid
-sampling_summary(theo_private)
-```
-
-The confidential data is read once, at the moment `synpmx_empirical()` is
-called. The release it produced travels with the returned dataset, so any
-number of further datasets can be drawn from it as post-processing, without
-spending more budget:
-
-```{r empirical-again, eval=has_nlmixr2data}
-theo_private_2 <- synpmx_generate(theo_private, seed = 708)   # spends nothing
-```
-
-Reach for `synpmx_generate()` rather than calling `synpmx_empirical()` a second
-time — a second call is a second release, and its budget has to be composed
-with the first.
-
-```{r empirical-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
-overlay_plot(theo_md, theo_private, theo_roles,
-             "theo_md: model-based private generation", alpha = 0.35)
-```
-
-Because `theo_md` is already public, this demonstration uses the guarded
-public-fixture backend, which is **noiseless and makes no DP claim** — exactly
-as the demo script does. A confidential fit uses the default OpenDP backend and
-fails closed when it is unavailable. The `synpmx_calibrated()` mode, which
-asserts curve shape from a public structural model and privately calibrates only
-the magnitude, is the better choice at this cohort size; the introduction
-vignette runs it on this same dataset.
 
 ## How well did the obfuscation work?
 

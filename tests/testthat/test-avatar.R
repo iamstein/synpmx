@@ -235,3 +235,33 @@ test_that("the primary dvid column drives endpoint grouping", {
                                                seed = 1))
   expect_true(validate_pmx(synthetic, roles)$valid)
 })
+
+# Donor interpolation (SIM-046) ----------------------------------------------
+
+test_that("a donor is not extrapolated past the times it was observed at", {
+  # SIM-046. This used to rescale the target's range onto the donor's, so a
+  # donor first measured at 24 h answered a 0.5 h query with its 24 h value --
+  # an elimination concentration standing in for an absorption one. On
+  # `warfarin`, where 19 of 32 subjects have no `cp` sample before 24 h, that
+  # replaced the absorption limb with a flat plateau.
+  donor <- list(time = c(24, 36, 48, 72), value = c(8.5, 7.5, 6.3, 4.4))
+  out <- synpmx:::.interpolate_trajectory(donor, c(0.5, 3, 12, 24, 36, 96))
+
+  # Before the donor's first observation, and after its last.
+  expect_true(all(is.na(out[1:3])))
+  expect_true(is.na(out[[6]]))
+  # Its own observations, and interpolation between them, are untouched.
+  expect_equal(out[[4]], 8.5)
+  expect_equal(out[[5]], 7.5)
+  expect_equal(
+    synpmx:::.interpolate_trajectory(donor, 30)[[1L]], 8.0
+  )
+})
+
+test_that("a donor with one observation speaks only for that time", {
+  # A single point carries no shape, so it says nothing about any other time.
+  # It used to be broadcast across the whole target vector.
+  donor <- list(time = 24, value = 8.5)
+  out <- synpmx:::.interpolate_trajectory(donor, c(0.5, 24, 96))
+  expect_equal(out, c(NA, 8.5, NA))
+})

@@ -46,10 +46,14 @@ document.
 - `avatar-algorithm.Rmd` — the default generator step by step, and the seven
   masking mechanisms M1-M6. Promoted from `articles/` on 2026-07-31 because it
   is the method reference, not supporting evidence.
-- `avatar-evaluation-public-data.Rmd` — `synpmx_avatar()` run over every public
+- `public-data-examples.Rmd` — `synpmx_avatar()` run over every public
   dataset in the evaluation set, then the exposure measurements across all
-  eight. Renamed from `synpmx-demo.Rmd` on 2026-08-04: it is an evaluation of
-  algorithm performance, not a tutorial. It carries a table describing every
+  eight. Renamed from `synpmx-demo.Rmd` on 2026-08-04 and from
+  `avatar-evaluation-public-data.Rmd` on 2026-08-13: it is an evaluation of
+  algorithm performance, not a tutorial, under a name short enough to say. The
+  model-based (differential-privacy) walkthrough was cut on 2026-08-13 — this
+  vignette is about `synpmx_avatar()`, and the DP modes have their own
+  documents. It carries a table describing every
   dataset it uses; keep that table in step with the datasets actually run.
   Reworked on 2026-08-13 so all eight worked examples have the same shape as
   `demo.Rmd` — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
