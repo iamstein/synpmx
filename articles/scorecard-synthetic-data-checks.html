@@ -198,14 +198,14 @@ one the source could have held</td>
 </tr>
 <tr class="odd">
 <td><strong>B1a</strong></td>
-<td>Does any avatar wear one real patient’s visit set?</td>
+<td>Does any avatar wear a visit set nobody else shares?</td>
 <td><code>identifying_visit_sets</code></td>
 <td>run settings</td>
 <td><strong>0</strong></td>
 </tr>
 <tr class="even">
 <td><strong>B1b</strong></td>
-<td>Does any avatar wear one real patient’s dose schedule?</td>
+<td>Does any avatar wear a dose schedule nobody else shares?</td>
 <td><code>identifying_dose_schedules</code></td>
 <td>run settings</td>
 <td><strong>0</strong></td>
@@ -280,7 +280,7 @@ check earns its thresholds</td>
 <tr class="odd">
 <td><strong>C3</strong></td>
 <td>Did every arm keep its endpoints and its size?</td>
-<td>arm x endpoint table; <code>strata_balanced</code>
+<td>arm x endpoint table; <code><a href="../reference/compare_pmx_strata_sizes.html">compare_pmx_strata_sizes()</a></code>
 </td>
 <td>both</td>
 <td>no endpoint where the source had none; every arm matching its source
@@ -568,9 +568,9 @@ is.</caption>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="left">59 -&gt; 59</td>
-<td align="left">744 -&gt; 443</td>
-<td align="left">2.6 -&gt; 2.5</td>
-<td align="left">10 -&gt; 5</td>
+<td align="left">744 -&gt; 220</td>
+<td align="left">2.6 -&gt; 2.6</td>
+<td align="left">10 -&gt; 1.1</td>
 </tr>
 </tbody>
 </table>
@@ -579,10 +579,11 @@ and should not</strong> — each avatar’s set of attended visits is
 redrawn, so totals move by a few percent. That is a masking mechanism,
 not a bug, and a row count matching <em>exactly</em> would be the
 surprising result.</p>
-<p><strong>But look at <code>pheno_sd</code>.</strong> It loses 42% of
+<p><strong>But look at <code>pheno_sd</code>.</strong> It loses 70% of
 its rows, and the split says where: its observations are essentially
-intact while its <strong>dosing is halved</strong>. The median real
-infant received twelve doses; the median avatar receives one.</p>
+intact (2.6 per patient either side) while its <strong>dosing is all but
+gone</strong>, 589 dose rows down to 65. The median real infant received
+twelve doses; the median avatar receives one.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">doses_per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -592,16 +593,16 @@ infant received twelve doses; the median avatar receives one.</p>
 <span><span class="co">#&gt;   1.000   7.000  12.000   9.983  13.000  15.000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_synth</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span><span class="co">#&gt;       1       1       1       5       7      15</span></span></code></pre></div>
+<span><span class="co">#&gt;   1.000   1.000   1.000   1.102   1.000   7.000</span></span></code></pre></div>
 <p>Nothing is invalid here — every avatar’s regimen is one a real infant
 received, which is the guarantee section C describes. What happened is
 that dose schedules in this study are nearly all unique, so truncating
 each avatar’s regimen back to a depth several patients share collapses
 most of them to the shortest depths. <strong>The masking worked as
 designed and the result is not usable as a dosing dataset.</strong>
-Section B1 shows the other half of the same story: it did not even
-succeed at masking. This is the check that catches it, and it is three
-lines of counting.</p>
+Section B1 shows the other half of the same story: the privacy rows
+there are 0, so nothing in the privacy tier reports a problem. This is
+the check that catches it, and it is three lines of counting.</p>
 </div>
 </div>
 <div class="section level2">
@@ -894,26 +895,32 @@ source</strong>, and there are two of them. Both must be 0:</p>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="right">0</td>
-<td align="right">16</td>
+<td align="right">0</td>
 </tr>
 </tbody>
 </table>
-<p><strong><code>pheno_sd</code> fails the second one</strong>, and this
-is the failure worth studying. Its visit sets are fine: no avatar wears
-a set of attended visits belonging to one real infant. Its
-<em>dosing</em> is not, because neonatal phenobarbital is dosed to the
-individual infant on the day a clinician decided, so most patients have
-a dose schedule nobody shares and there is no safe patient to anchor on
-instead:</p>
+<p><strong>Both are 0, including on <code>pheno_sd</code></strong> — and
+<code>pheno_sd</code> is still the case worth studying, because passing
+this row is not the same as being fine. Neonatal phenobarbital is dosed
+to the individual infant on the day a clinician decided, so almost
+nobody’s dose schedule is shared:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_unique</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_unique</span><span class="op">$</span><span class="va">n_share_dosing</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 55</span></span></code></pre></div>
 <p>Dose events are copied from the anchor verbatim, because moving a
-dose invents a regimen the protocol never permitted (see section C). So
-where dosing is individualised, this number cannot be fixed by any
-setting — it is a property of the study, and the honest response is to
-say so rather than ship.</p>
+dose invents a regimen the protocol never permitted (see section C). The
+only lever left is to build avatars on the few patients whose dosing
+<em>is</em> shared, and here the one shared schedule is a <strong>single
+dose</strong>. So B1b is 0 because the dosing was truncated away, not
+because it was masked: the source gives ten doses a patient and the
+output gives about one.</p>
+<p><strong>This is why B1a and B1b are read next to A5, never
+alone.</strong> A row that must be 0 says nothing about what reaching 0
+cost, and section A5 above is where that cost showed up: the median
+avatar receives one dose. Where dosing is individualised, no setting
+fixes this — it is a property of the study, and the honest response is
+to say so rather than ship.</p>
 <div class="section level4">
 <h4 id="read-the-near-miss-distance-not-just-the-count">Read the near-miss distance, not just the count<a class="anchor" aria-label="anchor" href="#read-the-near-miss-distance-not-just-the-count"></a>
 </h4>
@@ -1010,7 +1017,7 @@ cohort-wide, and its flags land on follow-up time:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 19</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 36</span></span></code></pre></div>
 <p><strong>A screen’s own statistics need checking too.</strong> This
 one previously flagged every patient who stopped dosing early, because
 its robust scale — the median absolute deviation (MAD) — is exactly
@@ -1061,9 +1068,9 @@ patient’s, taking covariates and trajectory together.</p>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
-<td align="right">0.431</td>
-<td align="right">0.335</td>
-<td align="right">0.643</td>
+<td align="right">0.534</td>
+<td align="right">0.362</td>
+<td align="right">0.591</td>
 <td align="right">29</td>
 </tr>
 </tbody>
@@ -1807,13 +1814,13 @@ avatar</strong></td>
 </tr>
 <tr class="odd">
 <td align="left">  that cap actually bound on</td>
-<td align="right">45 of 59 (76%)</td>
+<td align="right">36 of 59 (61%)</td>
 <td align="left">of avatars. Near 100% means the cap, not distance, is
 setting the weights</td>
 </tr>
 <tr class="even">
 <td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.84</td>
+<td align="right">2.99</td>
 <td align="left">1 / sum(w^2). This, not k, is how many patients an
 avatar is really made of</td>
 </tr>
@@ -1889,13 +1896,13 @@ built from their shape – never from their own anchor alone</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, misses placed fresh</td>
-<td align="right">25 of 59 (42%)</td>
+<td align="right">22 of 59 (37%)</td>
 <td align="left">the kind of missingness was reused; exactly which
 visits were missed was invented</td>
 </tr>
 <tr class="odd">
 <td align="left">  of those, miss count moved</td>
-<td align="right">25 of 59 (42%)</td>
+<td align="right">22 of 59 (37%)</td>
 <td align="left">no arrangement at the wanted number of missing visits
 was free, so the count moved by a visit or two. Misses at the END of a
 record are the case that forces it, because for a given count there is
@@ -1935,7 +1942,7 @@ substitute; the run alerts when it happens</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
-<td align="right">4 of 59 (7%)</td>
+<td align="right">20 of 59 (34%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
 Truncating a schedule to a real dose time is protocol-valid in a way
@@ -1948,7 +1955,7 @@ that moving dose times is not</td>
 </tr>
 <tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
-<td align="right">18 (32%)</td>
+<td align="right">3 (5%)</td>
 <td align="left">a regimen only one patient received cannot be given to
 an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
@@ -1957,7 +1964,7 @@ unavoidable rather than a setting to tune</td>
 <tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
-<td align="right">16 (27%)</td>
+<td align="right">0 (0%)</td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
@@ -1996,11 +2003,12 @@ a patient who stopped after two of three doses is another, and if nobody
 shares it, declining to anchor on them is what removes it from the
 output.</p>
 <p>Three rows of that table are the coverage lost, and on
-<code>pheno_sd</code> they are severe: <strong>16 of 56 distinct dose
+<code>pheno_sd</code> they are severe: <strong>3 of 56 distinct dose
 schedules are represented</strong>, three visit sets were discarded as
-too rare to reuse, and 41% of avatars had their missed visits placed
+too rare to reuse, and 37% of avatars had their missed visits placed
 fresh rather than copied. That is the same finding section A reached by
-counting dose rows, arrived at from the generator’s side.</p>
+counting dose rows, arrived at from the generator’s side — and it is the
+only place the collapse is reported, since B1b passes.</p>
 <p>The reason this belongs in a report rather than in a reader’s head:
 on one study a cohort of nineteen patients on three dose levels, one on
 two and one on one came out as twenty-one patients on three levels — the

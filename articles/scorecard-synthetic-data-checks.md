@@ -49,8 +49,8 @@ Three columns need a word of explanation.
 | **A4** | Did the cohort size survive? | count distinct `id` | both | equal is a pass; a smaller cohort is *review*, since a subject with too few donors is dropped by design |
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
 | **A6** | Did a discrete endpoint stay discrete? | [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md); [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md) | both | every generated value on a binary, ordinal or integer endpoint is one the source could have held |
-| **B1a** | Does any avatar wear one real patient’s visit set? | `identifying_visit_sets` | run settings | **0** |
-| **B1b** | Does any avatar wear one real patient’s dose schedule? | `identifying_dose_schedules` | run settings | **0** |
+| **B1a** | Does any avatar wear a visit set nobody else shares? | `identifying_visit_sets` | run settings | **0** |
+| **B1b** | Does any avatar wear a dose schedule nobody else shares? | `identifying_dose_schedules` | run settings | **0** |
 | **B2** | Does any synthetic patient stand out from its own stratum? | [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | both | inside the null interval, near 0.5 — always *review*, because outside it means two different things |
 | **B4a** | Is any generated time vector a copy of an exposed real one? | [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md) | both | **0** |
@@ -59,7 +59,7 @@ Three columns need a word of explanation.
 | **B5b** | Did a level too few *source* patients held reach the output? | [`compare_pmx_rare_levels()`](https://iamstein.github.io/synpmx/reference/compare_pmx_rare_levels.md) | both | no exposed level reaching the output — *review* while the check earns its thresholds |
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
-| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; `strata_balanced` | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
+| **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; [`compare_pmx_strata_sizes()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_sizes.md) | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
 | **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | every distinct set of dose **times** in the source still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) | both | same magnitude and shape; spread **will** shrink |
 
@@ -302,7 +302,7 @@ knitr::kable(rbind(
 | dataset    | patients    | rows            | obs_per_patient | doses_per_patient |
 |:-----------|:------------|:----------------|:----------------|:------------------|
 | case1_pkpd | 180 -\> 180 | 20820 -\> 20820 | 30.7 -\> 30.7   | 85 -\> 85         |
-| pheno_sd   | 59 -\> 59   | 744 -\> 443     | 2.6 -\> 2.5     | 10 -\> 5          |
+| pheno_sd   | 59 -\> 59   | 744 -\> 220     | 2.6 -\> 2.6     | 10 -\> 1.1        |
 
 Source -\> synthetic. Cohort size is preserved; nothing else is.
 {.table}
@@ -312,10 +312,11 @@ should not** — each avatar’s set of attended visits is redrawn, so
 totals move by a few percent. That is a masking mechanism, not a bug,
 and a row count matching *exactly* would be the surprising result.
 
-**But look at `pheno_sd`.** It loses 42% of its rows, and the split says
-where: its observations are essentially intact while its **dosing is
-halved**. The median real infant received twelve doses; the median
-avatar receives one.
+**But look at `pheno_sd`.** It loses 70% of its rows, and the split says
+where: its observations are essentially intact (2.6 per patient either
+side) while its **dosing is all but gone**, 589 dose rows down to 65.
+The median real infant received twelve doses; the median avatar receives
+one.
 
 ``` r
 
@@ -327,7 +328,7 @@ summary(doses_per_patient(pheno_sd))
 #>   1.000   7.000  12.000   9.983  13.000  15.000
 summary(doses_per_patient(pheno_synth))
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>       1       1       1       5       7      15
+#>   1.000   1.000   1.000   1.102   1.000   7.000
 ```
 
 Nothing is invalid here — every avatar’s regimen is one a real infant
@@ -336,8 +337,9 @@ that dose schedules in this study are nearly all unique, so truncating
 each avatar’s regimen back to a depth several patients share collapses
 most of them to the shortest depths. **The masking worked as designed
 and the result is not usable as a dosing dataset.** Section B1 shows the
-other half of the same story: it did not even succeed at masking. This
-is the check that catches it, and it is three lines of counting.
+other half of the same story: the privacy rows there are 0, so nothing
+in the privacy tier reports a problem. This is the check that catches
+it, and it is three lines of counting.
 
 ## B. Is any single patient singled out?
 
@@ -488,14 +490,12 @@ knitr::kable(rbind(
 | dataset    | identifying_visit_sets | identifying_dose_schedules |
 |:-----------|-----------------------:|---------------------------:|
 | case1_pkpd |                      0 |                          0 |
-| pheno_sd   |                      0 |                         16 |
+| pheno_sd   |                      0 |                          0 |
 
-**`pheno_sd` fails the second one**, and this is the failure worth
-studying. Its visit sets are fine: no avatar wears a set of attended
-visits belonging to one real infant. Its *dosing* is not, because
-neonatal phenobarbital is dosed to the individual infant on the day a
-clinician decided, so most patients have a dose schedule nobody shares
-and there is no safe patient to anchor on instead:
+**Both are 0, including on `pheno_sd`** — and `pheno_sd` is still the
+case worth studying, because passing this row is not the same as being
+fine. Neonatal phenobarbital is dosed to the individual infant on the
+day a clinician decided, so almost nobody’s dose schedule is shared:
 
 ``` r
 
@@ -505,10 +505,17 @@ sum(pheno_unique$n_share_dosing == 1)
 ```
 
 Dose events are copied from the anchor verbatim, because moving a dose
-invents a regimen the protocol never permitted (see section C). So where
-dosing is individualised, this number cannot be fixed by any setting —
-it is a property of the study, and the honest response is to say so
-rather than ship.
+invents a regimen the protocol never permitted (see section C). The only
+lever left is to build avatars on the few patients whose dosing *is*
+shared, and here the one shared schedule is a **single dose**. So B1b is
+0 because the dosing was truncated away, not because it was masked: the
+source gives ten doses a patient and the output gives about one.
+
+**This is why B1a and B1b are read next to A5, never alone.** A row that
+must be 0 says nothing about what reaching 0 cost, and section A5 above
+is where that cost showed up: the median avatar receives one dose. Where
+dosing is individualised, no setting fixes this — it is a property of
+the study, and the honest response is to say so rather than ship.
 
 #### Read the near-miss distance, not just the count
 
@@ -628,7 +635,7 @@ flags land on follow-up time:
 
 pheno_flags <- flag_identifiable_subjects(pheno_synth, pheno_roles)
 sum(pheno_flags$flagged)
-#> [1] 19
+#> [1] 36
 ```
 
 **A screen’s own statistics need checking too.** This one previously
@@ -670,7 +677,7 @@ knitr::kable(rbind(
 | dataset    | adversarial_accuracy | null_lower | null_upper | per_side |
 |:-----------|---------------------:|-----------:|-----------:|---------:|
 | case1_pkpd |                0.600 |      0.426 |      0.559 |       90 |
-| pheno_sd   |                0.431 |      0.335 |      0.643 |       29 |
+| pheno_sd   |                0.534 |      0.362 |      0.591 |       29 |
 
 The statistic asks whether each subject’s nearest neighbour lies in its
 own dataset or the other one. 0.5 means a synthetic subject is no more
@@ -1156,8 +1163,8 @@ knitr::kable(as.data.frame(
 | **How much of one real patient reaches one avatar** |  |  |
 | Donor floor, k | 5 | real patients blended into each avatar |
 | Largest share one donor may hold | 0.5 | `max_donor_weight` |
-|   that cap actually bound on | 45 of 59 (76%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
-| Effective donors per avatar, mean | 2.84 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
+|   that cap actually bound on | 36 of 59 (61%) | of avatars. Near 100% means the cap, not distance, is setting the weights |
+| Effective donors per avatar, mean | 2.99 | 1 / sum(w^2). This, not k, is how many patients an avatar is really made of |
 | **Visit schedule: WHEN patients were observed** |  |  |
 | Visit grid used | derived | no usable `nominal_time`, so a grid was inferred from the recorded times themselves. Declaring `nominal_time` is better |
 | Unique observation schedules, before coarsening | 56 (95%) | patients whose list of observation times nobody else shares |
@@ -1169,16 +1176,16 @@ knitr::kable(as.data.frame(
 |   held by fewer than 2 patients, so not reused | 3 (5%) | `min_pattern_share` is that threshold. These visit sets are lost, not approximated |
 |   real patients holding those | 3 (5%) | those patients are NOT removed – they still anchor avatars and still act as donors. Only their particular pattern of absences stops being copied |
 | Avatars given a visit set from the pool | 59 of 59 (100%) | drawn from the sets that cleared the threshold, or built from their shape – never from their own anchor alone |
-|   of those, misses placed fresh | 25 of 59 (42%) | the kind of missingness was reused; exactly which visits were missed was invented |
-|   of those, miss count moved | 25 of 59 (42%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
+|   of those, misses placed fresh | 22 of 59 (37%) | the kind of missingness was reused; exactly which visits were missed was invented |
+|   of those, miss count moved | 22 of 59 (37%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 59 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
 |   of those, moved to a different anchor | 53 of 59 (90%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 59 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
-|   of those, dosing re-truncated | 4 of 59 (7%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
+|   of those, dosing re-truncated | 20 of 59 (34%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 56 |  |
-|   represented in the synthetic cohort | 18 (32%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 16 (27%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+|   represented in the synthetic cohort | 3 (5%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -1193,11 +1200,12 @@ stopped after two of three doses is another, and if nobody shares it,
 declining to anchor on them is what removes it from the output.
 
 Three rows of that table are the coverage lost, and on `pheno_sd` they
-are severe: **16 of 56 distinct dose schedules are represented**, three
-visit sets were discarded as too rare to reuse, and 41% of avatars had
+are severe: **3 of 56 distinct dose schedules are represented**, three
+visit sets were discarded as too rare to reuse, and 37% of avatars had
 their missed visits placed fresh rather than copied. That is the same
 finding section A reached by counting dose rows, arrived at from the
-generator’s side.
+generator’s side — and it is the only place the collapse is reported,
+since B1b passes.
 
 The reason this belongs in a report rather than in a reader’s head: on
 one study a cohort of nineteen patients on three dose levels, one on two

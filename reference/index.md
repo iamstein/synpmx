@@ -121,6 +121,9 @@ Structural checks on generated data, and restricted comparisons.
 - [`compare_pmx_rare_levels()`](https://iamstein.github.io/synpmx/reference/compare_pmx_rare_levels.md)
   : Which rare source levels reached the synthetic output
 
+- [`compare_pmx_strata_sizes()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_sizes.md)
+  : Stratum sizes, source against synthetic
+
 - [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
   : Score how many patients share each patient's event skeleton
 

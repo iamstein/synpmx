@@ -161,15 +161,15 @@ synpmx_scorecard(raw, synthetic, roles)
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing one real patient’s visit set | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing one real patient’s dose schedule | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.415, 0.578\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
-| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic$`TRTACT)                                 |
-|B5b   |Rare source levels copied into the output          |both         |0 of 0 exposed          |pass    |compare_pmx_rare_levels(source, synthetic, roles)       |
-|C3    |Strata keeping their source size                   |both         |6 of 6                  |pass    |table(synthetic`$TRTACT\[!duplicated(synthetic\$ID)\]) |
+| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic\$TRTACT) |
+| B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
+| C3 | Strata keeping their source size | both | 6 of 6 | pass | compare_pmx_strata_sizes(source, synthetic, roles) |
 | C4 | Distinct dose-time schedules represented | both | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles) |
 
 **`review` is not a soft `pass`.** Three rows have no pass mark because
