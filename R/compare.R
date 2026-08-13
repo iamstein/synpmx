@@ -444,8 +444,11 @@ compare_pmx_rare_levels <- function(source, synthetic, roles, floor = NULL) {
     source_held <- held(source)
     synthetic_held <- held(synthetic)
     levels <- union(names(source_held), names(synthetic_held))
+    # By position, since `[[` on a name never matches the empty string a blank
+    # covariate cell becomes -- a level a real dataset does carry.
     count <- function(counts, level) {
-      if (level %in% names(counts)) as.integer(counts[[level]]) else 0L
+      at <- match(level, names(counts))
+      if (is.na(at)) 0L else as.integer(counts[[at]])
     }
     data.frame(
       column = column,

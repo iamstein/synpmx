@@ -103,3 +103,18 @@ test_that("B5b passes when every level in the output is widely held", {
   expect_identical(card$verdict[card$check == "B5b"], "pass")
   expect_identical(card$result[card$check == "B5b"], "0 of 0 exposed")
 })
+
+test_that("the census counts a blank level like any other", {
+  # A blank cell is a level a real dataset carries, and `[[` on a name never
+  # matches it, which used to take the census out of bounds rather than count it.
+  source <- rare_source()
+  source$ARM[as.character(source$ID) == unique(as.character(source$ID))[[4L]]] <- ""
+  roles <- rare_roles(strata = "ARM")
+  synthetic <- rare_synthetic(source, roles)
+
+  census <- compare_pmx_rare_levels(source, synthetic, roles)
+
+  expect_true("" %in% census$level)
+  expect_identical(census$source_patients[census$level == ""], 1L)
+  expect_true(census$exposed[census$level == ""])
+})
