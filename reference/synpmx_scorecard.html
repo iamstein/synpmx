@@ -146,9 +146,10 @@ it marks a row nothing was measured for.</p>
     <div class="section level2">
     <h2 id="every-card-holds-every-row">Every card holds every row<a class="anchor" aria-label="anchor" href="#every-card-holds-every-row"></a></h2>
     <p>The same checks come back whatever the study declares. Where a study gives a
-check nothing to ask – no discrete endpoint for A6, no <code>strata</code> for C1, no
-categorical axis for B5a and B5b – the <code>result</code> says so and the verdict is
-<code>"pass"</code>, rather than the row going missing. Two cards can then be compared
+check nothing to ask – no discrete endpoint for A6, no <code>strata</code> for C1 and
+C3, no categorical axis for B5a and B5b – the <code>result</code> says so and the
+verdict is <code>"pass"</code>, rather than the row going missing. Two cards can then be
+compared
 row for row, and an absent row cannot be mistaken for one that passed.</p>
     </div>
     <div class="section level2">
@@ -208,6 +209,7 @@ report, <code><a href="compare_pmx.html">compare_pmx()</a></code>, <code><a href
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   C1    Strata keeping their source size                   both         no strata declared                  pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C3    Arms keeping their source endpoints                both         no strata declared                  pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> To explore, with `source`, `synthetic` and `roles` named as you have them:</span>

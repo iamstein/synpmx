@@ -365,6 +365,9 @@ Structural checks on generated data, and restricted comparisons.
 - [`compare_pmx_strata_sizes()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_sizes.md)
   : Stratum sizes, source against synthetic
 
+- [`compare_pmx_strata_endpoints()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_endpoints.md)
+  : Endpoints held by each stratum, source against synthetic
+
 - [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
   : Score how many patients share each patient's event skeleton
 

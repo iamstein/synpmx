@@ -99,10 +99,10 @@ threshold would be honest, and it has to be read. Nor is
 
 The same checks come back whatever the study declares. Where a study
 gives a check nothing to ask – no discrete endpoint for A6, no `strata`
-for C1, no categorical axis for B5a and B5b – the `result` says so and
-the verdict is `"pass"`, rather than the row going missing. Two cards
-can then be compared row for row, and an absent row cannot be mistaken
-for one that passed.
+for C1 and C3, no categorical axis for B5a and B5b – the `result` says
+so and the verdict is `"pass"`, rather than the row going missing. Two
+cards can then be compared row for row, and an absent row cannot be
+mistaken for one that passed.
 
 ## Plot the data as well
 
@@ -167,6 +167,7 @@ synpmx_scorecard(data, synthetic, roles)
 #>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
 #>   C1    Strata keeping their source size                   both         no strata declared                  pass
 #>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
+#>   C3    Arms keeping their source endpoints                both         no strata declared                  pass
 #>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
