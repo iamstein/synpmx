@@ -1,5 +1,0 @@
-Moved. The working task list is design/TODO.md.
-
-This file held two items ("apply to INTERNAL_STUDY data", "get others to test"), both of
-which live in design/TODO.md under "Try it on real data". AGENTS.md names
-design/TODO.md as the queue, and two lists drift.

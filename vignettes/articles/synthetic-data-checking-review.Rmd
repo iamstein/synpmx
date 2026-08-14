@@ -799,7 +799,7 @@ $\mathrm{AA}$ does between two halves of the *same* real cohort, where nothing
 is wrong by construction. A difference smaller than that interval cannot be
 distinguished from the split.
 
-Measured on three public datasets by `scripts/measure_aa_noise_floor.R`, at the
+Measured on three public datasets with `compare_pmx_proximity()`, at the
 `synpmx_avatar()` defaults and seed 1:
 
 | Dataset | Subjects | Compared | Null width | Fraction needed | Patients needed | One patient is worth |

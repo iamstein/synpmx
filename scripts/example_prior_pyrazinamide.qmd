@@ -10,8 +10,8 @@ choice is shown, including the ones the generator cannot represent.
 Prior-only generation reads **no data at all** --- it takes a public structural
 model and a trial design and simulates from those alone --- so nothing here
 needs a privacy argument, and there is no `data` argument to supply. See
-`vignette("synpmx-privacy")` for where this sits among the three method
-families.
+[Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) for
+where this sits among the three method families.
 
 The cardinal rule for this mode: every number below must come from somewhere
 that is *not* the study being simulated. The values used here are literature /

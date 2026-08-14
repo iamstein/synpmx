@@ -212,8 +212,8 @@ grid can change a count and what survives coarsening is visits that are
 missing, for whatever reason; dose amount is neither's, so weight-based dosing leaves a cohort unique
 on signature regardless — declaring `dose_covariate` in `pmx_roles()` is what
 stops the amount itself being one real patient's, by rebuilding it from each
-avatar's own blended covariate. `scripts/measure_skeleton_uniqueness.R` runs the before
-and after over every public dataset.
+avatar's own blended covariate. `vignette("public-data-examples")` runs the
+before and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns, which
 is what differential privacy provides and why the trust-boundary question below

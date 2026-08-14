@@ -111,7 +111,8 @@
 # The visit grid, when no `nominal_time` role names one. Best-effort: it
 # recovers a shared schedule where the data contains one, and declines to invent
 # one where it does not. `nominal_time` is the reliable path, and
-# `scripts/measure_skeleton_uniqueness.R` is how you tell which case you are in.
+# `skeleton_uniqueness(coarsen_time = TRUE)` is how you tell which case you are
+# in: `n_unshared_time` at zero means the grid did its whole job.
 #
 # Pooled times are merged into visit cells agglomeratively, closest pair first,
 # and a merge is taken only when the resulting cell holds no subject twice. That

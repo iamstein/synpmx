@@ -7,9 +7,10 @@ privacy and API" against "simulation defects and their gates") had broken down
 in both directions.
 
 Two ID prefixes survive, as history rather than as a classification. **Never
-reuse or renumber an ID**: `R/`, `tests/testthat/`, `scripts/` and several
-shipped vignettes cite them directly, and a citation that resolves to a
-different defect is worse than one that resolves to nothing.
+reuse or renumber an ID**: `R/`, `tests/testthat/` and `scripts/` cite them
+directly, and a citation that resolves to a different defect is worse than one
+that resolves to nothing. No shipped vignette cites one, and none should —
+`3dd3d87` removed the last of them.
 
 - `REV-###` — found by reading code.
 - `SIM-###` — found by running the generator and looking at its output.

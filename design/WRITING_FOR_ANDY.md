@@ -5,15 +5,18 @@ Who the reader is, and how to write a document he will not have to send back.
 **When to read this.** When asked to draft a new document, or to substantially
 rewrite an existing one — a vignette, an article, `README.md`, or a long
 summary. Not for code, test, or registry work, and not as a session preamble.
-The short list of prose habits that applies to *everything* lives in
-`AGENTS.md`; this file is the calibrated version for one reader.
+Part 3 opens with the short list of prose habits that applies to *everything*,
+including conversation, commit messages and comments; the rest of the file is
+calibrated for one reader.
 
 **Who updates it.** Andy, by asking for a review of recent history. Do not
 append to it during a session. If something here looks wrong, or contradicted by
 what just happened, say so in the conversation and let him decide.
 
 **Status.** Merged 2026-08-14 from `WRITING_STYLE.md` and `_THEORY_OF_MIND.md`.
-Observations first written 2026-08-05; rules accumulated through 2026-08-14.
+Observations first written 2026-08-05; rules accumulated through 2026-08-14. The
+merge dropped `WRITING_STYLE.md`'s tics list and its search step, and both were
+restored to Part 3 on 2026-08-14 at Andy's request.
 Sections are numbered in two independent series — `O###` for observations about
 the reader, plain numbers for the writing rules — and the gaps in the `O###`
 series are deliberate, because those identifiers are cited elsewhere. Do not
@@ -377,10 +380,42 @@ size that does it**.
 
 ---
 
-# Part 3 — Checklist before handing over a draft
+# Part 3 — Before handing over a draft
 
-The list of machine-prose tics to search for lives in `AGENTS.md` and applies to
-everything, not only to documents. This checklist is the rest.
+## The machine-prose tics
+
+Widely reported markers of machine-written prose, several of which appear in
+this repo's own drafts. Unlike the rest of this file, the list applies to
+*everything* — conversation, commit messages and code comments as much as
+documents.
+
+- **Contrastive antithesis.** "It is not X, it is Y." "This is not about X, it is
+  about Y." "not a bug, a feature."
+- **The rule of three** applied to everything: three adjectives, three-clause
+  sentences, three-item lists where two items exist.
+- **Significance announcements.** "crucial", "pivotal", "key insight",
+  "fundamental", "underscores", "highlights", "showcases", "testament to",
+  "the important thing is".
+- **Hedge-then-assert.** "It is worth noting that", "It is important to
+  understand", "arguably", "in many ways".
+- **Vocabulary.** delve, leverage, robust, seamless, landscape, realm, tapestry,
+  navigate the complexities, deep dive, at its core, in essence, that said.
+- **The closing summary** that repeats what the section just said. "In
+  conclusion", "Ultimately", "The takeaway is". If the section needs a summary,
+  it is too long.
+- **Bold as emphasis spray.** Bold marks a term being defined or a verdict.
+  Three bolded phrases in one paragraph mark none of them.
+- **Symmetric sentence pairs.** "X does A. Y does B." repeated for rhythm rather
+  than for content.
+- **Second-person coaching.** "Let us break this down", "Think of it like",
+  "Here is the thing".
+- **Invented framing.** A coined metaphor ("the manifest of what survives") in
+  place of a literal description. Deleted in `f8c22f1`. Rule 12 is the same
+  finding stated as a rule.
+- **Sycophancy.** No "great question", no praising the request, no announcing
+  that something is a strong idea before doing it.
+
+## The checklist
 
 1. Every heading names a subject (rule 2).
 2. No sentence describes the document, its structure, or its own difficulty
@@ -399,6 +434,9 @@ everything, not only to documents. This checklist is the rest.
     does a good number look like* (O1).
 11. A survey ends with a ranked entry path (O9).
 12. Claims are computed on a real dataset where they can be (O12).
+13. The tics above are *searched for*, not read for: crucial, key, worth,
+    honestly, delve, leverage, robust, seamless, "not just", "it is worth
+    noting", "here is why", "the point is".
 
 ---
 
