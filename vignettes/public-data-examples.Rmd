@@ -463,16 +463,54 @@ supporting it.
 
 ### Constructing a nominal time
 
-All three findings have one cause and one fix. The design is ten weekly
-infusions with a declared occasion and time after dose, so the protocol grid is
+All three findings have one cause: there is no protocol grid in this dataset,
+only the times things happened to occur at. The design is ten weekly infusions
+with a declared occasion and time after dose, so the grid can be written down —
 the occasion number times the nominal interval, plus the visit's nominal time
-after dose:
+after dose.
+
+Writing it down is a statement about the protocol, and it takes one decision the
+arithmetic will not make for you. Rounding time after dose to the nearest day
+sends a trough drawn just before the next infusion — `TAD` near 168 h, and 98 of
+the 321 observations here are one — onto that infusion's own nominal time, where
+it stops being a trough and becomes a time-zero sample. Give the pre-dose sample
+a slot of its own instead:
 
 ```{r nimo-nominal, eval=has_nlmixr2data, message=FALSE}
+nimo_interval <- 168                     # the protocol's weekly infusion
 nimo_nominal <- nimoData
-nimo_nominal$NTIME <- (nimo_nominal$OCC - 1) * 168 +
-  ifelse(nimo_nominal$EVID == 0, round(nimo_nominal$TAD / 24) * 24, 0)
+last_occasion <- ave(nimo_nominal$OCC, nimo_nominal$ID, FUN = max)
 
+nominal_tad <- round(nimo_nominal$TAD / 24) * 24
+# A sample at the end of its interval is the NEXT infusion's pre-dose trough,
+# not that infusion's time-zero sample. Only where another infusion follows:
+# after the last one, a long time after dose is real follow-up.
+pre_dose <- nimo_nominal$EVID == 0 & nominal_tad >= nimo_interval &
+  nimo_nominal$OCC < last_occasion
+nominal_tad[pre_dose] <- nimo_interval - 1
+
+nimo_nominal$NTIME <- (nimo_nominal$OCC - 1) * nimo_interval +
+  ifelse(nimo_nominal$EVID == 0, nominal_tad, 0)
+```
+
+`TIME` and `NTIME` side by side, for the first two occasions of one subject.
+The recorded times wander; the nominal ones do not, and that is the whole of
+what the declaration buys:
+
+```{r nimo-nominal-columns, eval=has_nlmixr2data}
+shown <- nimo_nominal[nimo_nominal$ID == nimo_nominal$ID[1] &
+                        nimo_nominal$OCC <= 2,
+                      c("ID", "OCC", "EVID", "TIME", "TAD", "NTIME")]
+knitr::kable(shown, row.names = FALSE, digits = 2)
+```
+
+The two infusions were given at 0 and 167.20 h and land on a nominal 0 and 168.
+The row to look at is the sample at 167.16 h, four minutes *before* that second
+infusion and still carrying occasion 1: it is the trough. It keeps a nominal
+time of 167, an hour ahead of the infusion it precedes, instead of collapsing
+onto it and being recorded as that infusion's time-zero sample.
+
+```{r nimo-nominal-run, eval=has_nlmixr2data, message=FALSE}
 nimo_roles_nominal <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
   rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
@@ -490,25 +528,49 @@ C2 from 7 of 12 to 1 of 1, because on the nominal grid the twelve dose schedules
 become one schedule that all twelve subjects share — so there is nothing left to
 truncate, and no avatar's course has to stop early. Unique observation schedules
 fall from 12 to 5, the twelve visit sets collapse to eight, real sets become
-reusable, and the invented-arrangement share falls from 100% to 17%. B2 falls
-from 3 flagged patients to 0. Two visit sets are discarded either way, which is
+reusable, and the invented-arrangement share falls from 100% to 25%. B2 falls
+from 3 flagged patients to 2. Two visit sets are discarded either way, which is
 why the discard count should never be read on its own.
 
 **Both cards pass, and only one of them is usable.** That is the argument for
 reading A5b rather than stopping at the B rows: the privacy guarantee is
 identical on both sides and the science is not. The samples get their exposure
-back too: 58 of 329 observations sit after the last dose, against 59 of 321 in
-the source, where before it was 317 of 331. Time after dose does *not* come back
-cleanly — its median is 0 here, because generated samples land on the nominal
-dose times themselves, which is the open A1 gap described in
-`vignette("scorecard-synthetic-data-checks")` rather than anything this fix
-addresses.
+back with the doses: 61 of 326 observations sit after the last dose, against 59
+of 321 in the source, where before it was 317 of 331. Median time after dose
+comes back to 72 h against the source's 96 h, where the recorded-time run gave
+935 h — and it is the pre-dose slot above that buys most of that. Rounding the
+trough onto its next infusion instead leaves the median at 0 and doubles the
+share of time-zero samples, which is the A1 gap in
+`vignette("scorecard-synthetic-data-checks")` reached by a construction rather
+than by the generator.
 
-Either declare or construct `nominal_time`, or accept a synthetic cohort with
-one or two infusions per subject in place of ten. What the package does not yet
-do is *notice*: no check asks whether an avatar's observations still have dosing
-supporting them, so the first card passes eighteen of eighteen while describing
-a study nobody ran.
+What the package does not yet do is *notice* the first case: no check asks
+whether an avatar's observations still have dosing supporting them, so that card
+passes eighteen of eighteen while describing a study nobody ran.
+
+### Which path to try
+
+There is no single answer, and the order below is what the datasets in this
+vignette suggest rather than a rule.
+
+1. **Declare a `nominal_time` that already exists.** `case1_pkpd` and `mad` ship
+   with `NOMTIME`, and both reach zero exposure with nothing else done. If your
+   study has the column, this is the whole job.
+2. **Construct one, as above.** Available whenever the protocol can be written
+   down from what the dataset records — here an occasion number and a time after
+   dose. It is a statement about the design, so it belongs in the dataset where a
+   reader can check it, not inside the generator where they cannot. The trough
+   decision above is why: the arithmetic has a choice in it that only somebody
+   who knows the study can make.
+3. **Fall back to the inferred grid.** With no `nominal_time`, `coarsen_time`
+   (on by default) derives one from the recorded times. This is what `pheno_sd`
+   runs on, and it does real work there — but it is a guess at a grid, and on
+   `nimoData` it merges nothing at all, which is the whole of this section.
+4. **Accept the truncation, and read A5b.** Where dosing is genuinely
+   individualised there is no protocol grid to recover, because there was no
+   protocol. `pheno_sd` is that case: routine neonatal care, no occasions, and
+   nothing to construct. The dosing is then shortened to what several patients
+   share, and how much survives is a number to judge rather than a bug to fix.
 
 ## mavoglurant: an occasion-reset clock
 

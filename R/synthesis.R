@@ -1713,7 +1713,8 @@
   c(
     if (!nominal) {
       paste("declare a `nominal_time` role so coarsening puts more patients on",
-            "the same visits")
+            "the same visits -- or construct the column, where the protocol",
+            "can be written down from what the data records")
     },
     if (identical(grid, "mixed")) {
       paste("fill in `nominal_time` on the rows that are missing it -- the run",
