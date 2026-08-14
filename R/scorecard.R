@@ -285,7 +285,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     .scorecard_row(
       "A4", "Cohort size survived", "both",
       paste(source_subjects, "->", synthetic_subjects),
-      "pmx_masking_report(synthetic, source, roles)",
+      'pmx_masking_report(synthetic, source, roles, section = "anchors")',
       if (source_subjects == synthetic_subjects) TRUE else NA
     ),
     .scorecard_row(
@@ -298,7 +298,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "A5", "Doses per patient", "both",
       paste(.scorecard_rows_per_patient(source, roles, "dose"), "->",
             .scorecard_rows_per_patient(synthetic, roles, "dose")),
-      "pmx_masking_report(synthetic, source, roles)"
+      'pmx_masking_report(synthetic, source, roles, section = "dose_schedules")'
     )
   ), a6_rows, list(
     # Both rows name the arm rather than only the count. An avatar is built in
@@ -460,7 +460,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     "C4", "Distinct dose-time schedules represented", settings,
     paste(settings$dose_regimens_represented, "of",
           settings$dose_regimens_source),
-    "pmx_masking_report(synthetic, source, roles)",
+    'pmx_masking_report(synthetic, source, roles, section = "dose_schedules")',
     if (settings$dose_regimens_represented ==
         settings$dose_regimens_source) TRUE else NA
   )))
