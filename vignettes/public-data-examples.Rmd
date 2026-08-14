@@ -719,8 +719,21 @@ nimo_fixed <- suppressWarnings(
   synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
 )
 scorecard <- synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
-synpmx_scorecard_datatable(scorecard)
+synpmx_scorecard_datatable(scorecard[scorecard$check %in% c("A5a", "A5b"), ])
 ```
+
+A5a and A5b are the two rows this construction was for, so only they are shown;
+`scorecard` still holds every row. The same figure as before, drawn on the new
+cohort:
+
+```{r nimo-fixed-schedule, eval=has_nlmixr2data, fig.height=5}
+plot_pmx_schedule(nimo_fixed, nimo_roles_nominal,
+                  main = "nimoData, synthetic with a declared NTIME")
+```
+
+Every avatar carries the full course of ten infusions, each with its cluster of
+samples behind it — the figure the source gives, rather than the two ticks and
+2100 h of unsupported follow-up above.
 
 **The dosing comes back in full.** A5b goes from `10 -> 1.6` to `10 -> 10` and
 C2 from 7 of 12 to 1 of 1, because on the nominal grid the twelve dose schedules
@@ -745,7 +758,7 @@ than by the generator.
 
 What the package does not yet do is *notice* the first case: no check asks
 whether an avatar's observations still have dosing supporting them, so that card
-passes eighteen of eighteen while describing a study nobody ran.
+passes every row while describing a study nobody ran.
 
 ### Which path to try
 

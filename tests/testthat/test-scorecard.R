@@ -273,9 +273,6 @@ test_that("D1 reports the spread that moved furthest, and never passes", {
     card$explore[card$check == "D1"],
     'compare_pmx_distributions(source, synthetic, roles, output = "tables")'
   )
-  # Reading the card is not enough: two distributions with the same mean and
-  # spread can be different shapes, and nothing here draws them.
-  expect_output(print(card), "Plot source and synthetic")
 })
 
 test_that("D1 says so rather than erroring when no spread can be compared", {
@@ -335,8 +332,6 @@ test_that("the datatable colours every verdict the card can carry", {
   # drift into tinting something that is left uncoloured.
   expect_true(all(names(.scorecard_verdict_fills) %in%
                     names(.scorecard_verdict_colours)))
-  # The D1 warning that knitting the card carries is not lost by colouring it.
-  expect_match(paste(unlist(shown), collapse = " "), "D1 reports numbers")
 })
 
 test_that("the datatable keeps the B5b detail that knitting the card shows", {

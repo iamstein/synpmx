@@ -671,15 +671,6 @@ print.synpmx_scorecard <- function(x, ...) {
     }
   }
 
-  # D1 is a summary statistic, and a summary statistic cannot see a shape: two
-  # distributions with the same mean and standard deviation can be one bell or
-  # two humps, and the card would read the same. No function is offered for the
-  # plot because every group already has the plotting code it trusts, and a
-  # generic one would be a worse version of it.
-  cat("\nD1 reports numbers, not shapes. Plot source and synthetic on the",
-      "same axes\n-- `DV` against time, and each covariate -- with whatever",
-      "you normally use.\n")
-
   failed <- sum(plain$verdict == "FAIL")
   unavailable <- sum(plain$verdict == "unavailable")
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
@@ -712,13 +703,6 @@ knit_print.synpmx_scorecard <- function(x, ...) {
                       "copied.")
     ), collapse = "\n"))
   }
-  # Said here as well as in `print()`. A knitted card is the version most
-  # readers meet -- it is what every vignette shows -- and the recommendation
-  # that D1 is not enough on its own is worth as much in a report as in a
-  # console.
-  out <- c(out, paste("*D1 reports numbers, not shapes. Plot source and",
-                      "synthetic on the same axes -- `DV` against time, and",
-                      "each covariate -- with whatever you normally use.*"))
   knitr::asis_output(paste(out, collapse = "\n\n"))
 }
 
@@ -752,8 +736,7 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #' the only thing added.
 #'
 #' What is emitted is what knitting the card itself emits, with the colouring
-#' added: the card, then the B5b rare-level detail where a study has any, then
-#' the reminder that D1 is a number and not a shape.
+#' added: the card, then the B5b rare-level detail where a study has any.
 #'
 #' `DT` is a suggested package rather than a required one -- `synpmx` has no
 #' hard dependencies -- so without it installed this says so and prints the
@@ -818,10 +801,9 @@ synpmx_scorecard_datatable <- function(x, ...) {
                                      default = "transparent")
   )
 
-  # Everything `knit_print()` puts around the card comes too. A reader who
-  # swaps a knitted card for a coloured one is choosing a colour, not agreeing
-  # to lose the B5b levels or the D1 warning, and those are the two places a
-  # card understates what it found.
+  # The B5b levels come too. A reader who swaps a knitted card for a coloured
+  # one is choosing a colour, not agreeing to lose the one row whose answer is
+  # a list.
   parts <- list(coloured)
   rare <- attr(x, "rare_levels")
   if (!is.null(rare) && nrow(rare)) {
@@ -831,11 +813,6 @@ synpmx_scorecard_datatable <- function(x, ...) {
                       "Each is one real patient's attribute, copied.")
     )))
   }
-  parts <- c(parts, list(htmltools::tags$p(htmltools::tags$em(
-    paste("D1 reports numbers, not shapes. Plot source and synthetic on the",
-          "same axes -- DV against time, and each covariate -- with whatever",
-          "you normally use.")
-  ))))
   # Spliced, not passed as one list: `tagList(list(...))` nests the list inside
   # a single element and the pieces stop rendering as siblings.
   do.call(htmltools::tagList, parts)
