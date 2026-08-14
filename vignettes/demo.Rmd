@@ -137,7 +137,7 @@ if (requireNamespace("DT", quietly = TRUE)) {
 
 **`review` is not a soft `pass`.** Five rows here have no pass mark because no
 threshold would be honest. Doses per patient is the clearest: on this study it
-is unchanged, but on a study with individualised dosing it can change.
+is unchanged, but on a study with individualised dosing it can halve.
 
 **Every row names the call that explains it.** When a row reads oddly, run what
 its `explore` column says: the numbers are a summary, and the call behind each

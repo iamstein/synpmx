@@ -206,6 +206,55 @@ test_that("theo_md: inference declines weight-based dosing, declaring it does no
                tolerance = 1e-8)
 })
 
+# SIM-051, on the dataset that is now its worked case. `nimoData` records ten
+# weekly infusions at their actual times, so no two subjects share an opening
+# past the first dose or two. Before SIM-053 this read B1b = 12 FAIL with the
+# dosing intact; it now passes every check with the dosing gone instead. Both
+# halves are pinned, because the point of the row is that the quiet one is the
+# one carrying the finding.
+test_that("nimoData: the guarantee is reached by shortening the dosing", {
+  skip_if_not_installed("nlmixr2data")
+  source <- load_nlmixr2_dataset("nimoData")
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+    covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+  )
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 606)
+  ))
+  settings <- attr(synthetic, "pmx_settings")
+  doses_per_patient <- function(x) mean(table(x$ID[x$EVID != 0]))
+
+  # Nothing fails, and B1b in particular no longer does.
+  card <- synpmx_scorecard(source, synthetic, roles)
+  expect_false(any(card$verdict == "FAIL"))
+  expect_equal(settings$identifying_dose_schedules, 0L)
+
+  # The price is the whole of the dosing, and A5b is the only row that says so.
+  expect_equal(doses_per_patient(source), 10)
+  expect_lt(doses_per_patient(synthetic), 3)
+  expect_equal(settings$dose_truncated_fraction, 1)
+
+  # Constructing the protocol grid the study was actually run on recovers it,
+  # with the privacy rows unchanged. This is the fix the vignette walks through.
+  nominal <- source
+  nominal$NTIME <- (nominal$OCC - 1) * 168 +
+    ifelse(nominal$EVID == 0, round(nominal$TAD / 24) * 24, 0)
+  roles_nominal <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+    nominal_time = "NTIME",
+    covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+  )
+  fixed <- suppressWarnings(suppressMessages(
+    synpmx_avatar(nominal, roles_nominal, seed = 606)
+  ))
+  expect_equal(doses_per_patient(fixed), 10)
+  expect_equal(attr(fixed, "pmx_settings")$identifying_dose_schedules, 0L)
+  expect_equal(attr(fixed, "pmx_settings")$dose_truncated_fraction, 0)
+})
+
 # Coverage the nlmixr2data five do not give us. None of theo_md, warfarin,
 # wbcSim, nimoData or mavoglurant has a declared `nominal_time`, a `cens` role,
 # more than two endpoints, or treatment arms to stratify on -- which is to say
@@ -278,15 +327,55 @@ test_that("pheno_sd: dosing that can only be masked by throwing it away", {
   expect_equal(settings$identifying_dose_schedules, 0L)
 
   # What that costs, pinned so it cannot quietly get worse or be forgotten.
-  # The only dose schedule anybody shares is a single dose, so masking this
-  # study's dosing means truncating it to almost nothing: the source gives
-  # 10 doses per patient and the output gives about 1, over 3 of 56 regimens.
-  # This is the registry's example of a study whose dosing survives the
-  # guarantee in name only, and the number to read is not B1b but A5b.
+  # No infant's complete schedule is reusable, but many share an OPENING: q12h
+  # from time zero for several doses before the individual course diverges. So
+  # about half the dosing survives -- 10 doses per patient in, about 5.5 out,
+  # over roughly 38 of 56 regimens. It used to be 1.1 doses over 3 regimens,
+  # because the truncation grid was the union of every dose time in the cohort
+  # and this study has no single leading grid (`SIM-053`).
   doses_per_patient <- function(x) {
     mean(table(x$ID[x$EVID != 0]))
   }
   expect_gt(doses_per_patient(source), 9)
-  expect_lt(doses_per_patient(synthetic), 2)
-  expect_lt(settings$dose_regimens_represented, 5L)
+  expect_gt(doses_per_patient(synthetic), 4)
+  expect_lt(doses_per_patient(synthetic), doses_per_patient(source))
+  expect_gt(settings$dose_regimens_represented, 25L)
+})
+
+test_that("pheno_sd: no avatar wears one infant's opening", {
+  # The truncation above is only legitimate because every schedule it emits is
+  # one several infants could have produced. Checked on the source, where the
+  # comparison is exact: generated times carry resampled deviations, so the
+  # finished table cannot be compared to the grid the plan reasoned on.
+  skip_if_not_installed("nlmixr2data")
+  source <- load_nlmixr2_dataset("pheno_sd")
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", covariates = c("WT", "APGR"))
+  coarsened <- synpmx:::.coarsen_source_time(source, roles)$source
+  subjects <- as.character(synpmx:::.unique_in_order(coarsened$ID))
+  dosed <- coarsened[coarsened$EVID != 0, ]
+  times <- lapply(subjects, function(s) {
+    sort(unique(as.numeric(dosed$TIME[as.character(dosed$ID) == s])))
+  })
+  plan <- synpmx:::.dose_truncation_plan(coarsened, roles, 2L)
+  kept <- ifelse(is.na(plan$target), plan$depth, plan$target)
+
+  key <- function(t) paste(sprintf("%.12g", t), collapse = ",")
+  complete <- table(vapply(times, key, character(1)))
+  opened <- table(unlist(lapply(times, function(t) {
+    vapply(seq_along(t), function(d) key(t[seq_len(d)]), character(1))
+  })))
+  count <- function(tab, k) {
+    j <- match(k, names(tab))
+    if (is.na(j)) 0L else as.integer(tab[[j]])
+  }
+
+  safe <- vapply(seq_along(times), function(i) {
+    k <- key(times[[i]][seq_len(kept[[i]])])
+    n <- count(complete, k)
+    n >= 2L || (n == 0L && count(opened, k) >= 2L)
+  }, logical(1))
+  expect_true(all(safe))
+  # And the truncation is doing real work rather than passing everything back.
+  expect_true(any(kept < lengths(times)))
 })

@@ -375,8 +375,8 @@ nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
 
 ```{r nimo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
 overlay_plot(nimoData, nimo_synth, nimo_roles,
-             "nimoData: dose-relative profiles across ten infusions",
-             clock = "tad", x_label = "Time after dose (hours)", alpha = 0.2)
+             "nimoData: ten infusions over a long follow-up",
+             alpha = 0.2)
 ```
 
 ```{r nimo-distributions, eval=has_nlmixr2data}
@@ -387,9 +387,12 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 ```
 
-**B1b fails: all twelve avatars carry a dose schedule nobody else shares.** C2
-says what declining to use those schedules would have cost instead: 7 of the 12
-source regimens are represented at all.
+**Every check passes, and the dataset is still not shippable.** A5b is the row
+to read: doses per patient falls from 10 to 1.6. Ten weekly infusions go in and
+between one and two come out, because the only openings any two subjects share
+are the first dose and occasionally the second. C2 agrees from the other side —
+7 of the 12 source regimens are represented, none of them at full length. This
+is the case where a card of passes is worth less than one `review` row.
 
 ### The inferred grid achieves nothing here
 
@@ -411,14 +414,56 @@ and **every avatar's arrangement was built from a shape rather than reused,
 terminal, contiguous, or scattered; which specific visits each patient missed
 does not survive.
 
-The dose schedules fail outright because dose events are copied from the anchor
-verbatim. Moving a dose is not a protocol-valid edit the way moving a sample is,
-so when the ten infusions are recorded at actual times, every avatar has one
-real patient's dosing schedule.
+The dosing is cut back rather than copied, because dose events are copied from
+the anchor verbatim and moving a dose is not a protocol-valid edit the way
+moving a sample is. Truncating one is. When ten infusions are recorded at actual
+times — 165.70, 167.24 and 168.05 for what the protocol called one weekly visit —
+no two subjects share an opening past the first dose or two, so that is where
+every avatar's course stops. Nothing is disclosed and almost nothing is left.
+
+### What that does to the record
+
+One row per subject, a grey tick for each dose and a coloured dot for each
+observation. This is the figure to read before the scorecard:
+
+```{r nimo-schedule, eval=has_nlmixr2data, fig.height=5}
+plot_pmx_schedule(nimoData, nimo_roles, main = "nimoData, source")
+plot_pmx_schedule(nimo_synth, nimo_roles, main = "nimoData, synthetic")
+```
+
+The source has a dose tick standing in front of every cluster of samples, right
+across the follow-up. The synthetic cohort has one or two ticks at the far left
+and then nothing, while the samples carry on to 2100 h regardless — **the same
+follow-up with the exposure taken out from under it.**
+
+The overlay at the top of this section shows what that does to the
+concentrations. The source's sawtooth — a peak after each infusion, a decline,
+then the next one — is absent from the synthetic panel, because there are no
+repeated infusions left to produce it. Both panels span the same follow-up:
+maximum `TIME` is 2135 h against the source's 2252 h. What has changed is
+everything underneath, and time after dose is where it shows up as a number:
+
+```{r nimo-tad, eval=has_nlmixr2data}
+after_last_dose <- function(data) {
+  observed <- data[data$EVID == 0, ]
+  last <- tapply(data$TIME[data$EVID != 0], data$ID[data$EVID != 0], max)
+  c(median_tad = round(median(observed$TAD, na.rm = TRUE), 1),
+    past_last_dose = sum(observed$TIME > last[as.character(observed$ID)]),
+    observations = nrow(observed))
+}
+rbind(source = after_last_dose(nimoData), synthetic = after_last_dose(nimo_synth))
+```
+
+Median time after dose goes from about four days to about thirty-nine, and
+almost every sample ends up with no dose behind it at all. A truncation is the
+right edit for a patient who stopped early, and follow-up continuing past the
+last dose is then real; here the stopping point is an artefact of masking, and
+nothing in the mechanism asks whether the observation record still has exposure
+supporting it.
 
 ### Constructing a nominal time
 
-All three failures have one cause and one fix. The design is ten weekly
+All three findings have one cause and one fix. The design is ten weekly
 infusions with a declared occasion and time after dose, so the protocol grid is
 the occasion number times the nominal interval, plus the visit's nominal time
 after dose:
@@ -440,16 +485,30 @@ nimo_fixed <- suppressWarnings(
 synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 ```
 
-Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of 1, because
-on the nominal grid the twelve dose schedules become one. Unique observation
-schedules fall from 12 to 5, the twelve visit sets collapse to eight, real sets
-become reusable, and the invented-arrangement share falls from 100% to 17%. Two
-visit sets are discarded either way, which is why the discard count should never
-be read on its own.
+**The dosing comes back in full.** A5b goes from `10 -> 1.6` to `10 -> 10` and
+C2 from 7 of 12 to 1 of 1, because on the nominal grid the twelve dose schedules
+become one schedule that all twelve subjects share — so there is nothing left to
+truncate, and no avatar's course has to stop early. Unique observation schedules
+fall from 12 to 5, the twelve visit sets collapse to eight, real sets become
+reusable, and the invented-arrangement share falls from 100% to 17%. B2 falls
+from 3 flagged patients to 0. Two visit sets are discarded either way, which is
+why the discard count should never be read on its own.
 
-A dataset that produces the first scorecard should not be shipped as it stands.
-Either declare or construct `nominal_time`, or treat the avatars as carrying
-real dosing schedules.
+**Both cards pass, and only one of them is usable.** That is the argument for
+reading A5b rather than stopping at the B rows: the privacy guarantee is
+identical on both sides and the science is not. The samples get their exposure
+back too: 58 of 329 observations sit after the last dose, against 59 of 321 in
+the source, where before it was 317 of 331. Time after dose does *not* come back
+cleanly — its median is 0 here, because generated samples land on the nominal
+dose times themselves, which is the open A1 gap described in
+`vignette("scorecard-synthetic-data-checks")` rather than anything this fix
+addresses.
+
+Either declare or construct `nominal_time`, or accept a synthetic cohort with
+one or two infusions per subject in place of ten. What the package does not yet
+do is *notice*: no check asks whether an avatar's observations still have dosing
+supporting them, so the first card passes eighteen of eighteen while describing
+a study nobody ran.
 
 ## mavoglurant: an occasion-reset clock
 
@@ -548,11 +607,11 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 ```
 
 **Nothing fails, and the two rows that moved say what reaching that cost.**
-Doses per patient falls from 10.0 to 1.1 in A5b, and 3 of the 56 source dose
-regimens are represented in C2. B1b passing here is not the dosing being masked;
-it is the dosing being truncated away.
+Doses per patient falls from 10 to 5.6 in A5b, and 35 of the 56 source dose
+regimens are represented in C2. B1b passing here is not each infant's full
+course being masked; it is each course being cut short.
 
-### Dosing that cannot be masked
+### Dosing that can only be masked by shortening it
 
 ```{r pheno-masking, eval=has_nlmixr2data}
 masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd",
@@ -561,32 +620,35 @@ masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd",
 
 One row per infant, a grey tick for each dose and a coloured dot for each
 observation. The dose ticks are the story: a forest of them across the whole
-follow-up in the source, one column at time zero in the output.
+follow-up in the source, and in the output the same forest for the first few
+days, thinning out and stopping well before the source does.
 
 ```{r pheno-schedule, eval=has_nlmixr2data, fig.height=7}
 plot_pmx_schedule(pheno_sd, pheno_roles, main = "pheno_sd, source")
 plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
 ```
 
-The dose schedules are what this study loses; the observation side is fine. On
-the observation side the
-mechanism works: B1a holds at 0, so no avatar has a set of attended visits
-that belongs to one real infant. On the dose side there is almost nothing safe
-to build on. The source holds 56 distinct dose schedules across 59 infants, so
-declining to anchor on a patient whose schedule nobody shares means declining to
-anchor on nearly everybody, and 90% of avatars had to be moved to a different
-anchor before anything legal could be placed at all. What is left to copy is the
-one shared schedule, a single dose — hence the collapse from ten doses a patient
-to one.
+The tail of each course is what this study loses. On the observation side the
+mechanism works: B1a holds at 0, so no avatar has a set of attended visits that
+belongs to one real infant. On the dose side there is almost no *complete*
+schedule safe to copy — the source holds 56 distinct dose schedules across 59
+infants — but that is not the only lever. Most infants **open** the same way,
+twelve-hourly from time zero, and an opening several infants share can be given
+to an avatar as long as no single infant stopped exactly there. So each avatar's
+dosing is truncated back to the deepest such opening, which on this study is
+about half the course: ten doses a patient becomes 5.6, over 35 of the 56
+regimens.
 
-The cause is not a setting. Dose events are copied from the anchor verbatim, and
-coarsening acts on the visit grid while the exposure here is *which days this
-infant was dosed*. When a neonate is dosed to their own weight on the day their
-own clinician decided, most patients have a dose schedule nobody shares and
-there is no safe patient to anchor on instead.
+What is lost is specifically the divergent tail — the part of a course where an
+individual clinician's decisions have separated one infant from every other, and
+therefore exactly the part that identifies them. Dose events are copied from the
+anchor verbatim, so there is no way to keep it. Coarsening does not help either:
+it acts on the visit grid, while the exposure here is *which days this infant
+was dosed*.
 
-A study with this shape either accepts a synthetic cohort whose dosing is a
-fraction of the real one, or does not use AVATAR. `pheno_sd` declares no arms;
+A study with this shape accepts a synthetic cohort whose dosing is a shortened
+version of the real one, and has to decide whether that is enough for the
+purpose. `pheno_sd` declares no arms;
 where a study does, the same shape confined to one arm is reported by arm —
 `unmaskable_strata()` before generating, and rows B1a and B1b afterwards, which
 name the arm that could not be masked. An avatar is never anchored outside the
@@ -898,7 +960,7 @@ to land on a pattern too rare to have been reusable.
 What the fallback rescues is the *avatar*, not the pattern count. A discarded
 pattern stays discarded; what the shape gives is a legal set of visits to hand
 the avatar that would otherwise have worn it. `pmx_masking_report()` shows the price in its
-"misses placed fresh" row, and it varies as much as everything else here: `nimoData` pays it in full at 100%, `pheno_sd` at 41%, `warfarin` at 22%,
+"misses placed fresh" row, and it varies as much as everything else here: `nimoData` pays it in full at 100%, `pheno_sd` at 42%, `warfarin` at 22%,
 `wbcSim` at 2%, and `mavoglurant`, `theo_md`, `case1_pkpd` and `mad` not at all.
 
 What remains lost is *resolution*: how much missingness there was and what kind
@@ -964,7 +1026,7 @@ grid go to 0 and the mechanism has nothing left to do**, through **`mavoglurant`
 where the grid does most of what it can and still leaves 53 of 120 patients
 unique on their visit set**, to **`nimoData`, where the grid achieves nothing at all**,
 and finally to **`pheno_sd`, where the observation side is clean and the *dosing*
-cannot be masked at all**. Same package, same defaults, same seed discipline —
+survives only as far as the shared opening of each course**. Same package, same defaults, same seed discipline —
 the difference is entirely in how the studies were designed and how their times
 were recorded.
 

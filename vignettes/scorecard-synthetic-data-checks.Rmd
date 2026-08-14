@@ -57,22 +57,12 @@ There are four categories of checks, and these are the questions each one asks:
 * D. How much have the covariate and observation distributions changed
     * **D1**: Do the values land in the same range?
 
-**Every card holds all eighteen checks, whatever the study.** A check the study
-gives nothing to ask — no discrete endpoint, no declared arm, no categorical
-covariate — says so in its result and passes, rather than going missing. A card
-whose rows depend on the study cannot be compared with another card, and an
-absent row reads as one that passed when it means the question was never asked.
-
 **Seven checks can say `FAIL`, and no others.** A1, because the output is not a
 legal dataset; A3 and A6, because it is not the study that went in; and B1a,
 B1b, B4a and B4b, because each means one real patient's structure was
 reproduced verbatim. Everything else is `review`, because everything else can
-move for a legitimate reason: a subject dropped for want of donors, an arm that
+be different for a legitimate reason: a subject dropped for want of donors, an arm that
 changed size, a statistic wandering at a small sample size.
-
-One requirement is not in the list, because no function can answer it: **does
-the pipeline that will consume the real study run unchanged against this?** It
-is the only strictly necessary check, and it is the reason the package exists.
 
 ## The two datasets used here
 
@@ -106,9 +96,9 @@ a continuous pharmacodynamic (PD) effect — and a baseline weight. It is shaped
 like a real study report, and most of these checks pass on it.
 
 `nlmixr2data::pheno_sd` is 59 real neonates given phenobarbital in routine
-clinical care, and it is here because **no check on it fails while its full
-dosing history does not survive**: the median infant received twelve doses and
-the median avatar receives one. A dataset on which everything passes teaches
+clinical care, and it is here because **no check on it fails while its dosing
+history is visibly shortened**: the median infant received twelve doses and the
+median avatar receives five. A dataset on which everything passes teaches
 nothing. Where the two disagree is where a check is doing work.
 
 ## The scorecard, computed
@@ -120,7 +110,7 @@ case1_card
 
 Nothing fails. The rest of this vignette is what each check asks and why its
 pass criterion is what it is, using `case1_pkpd` where a check passes and
-`pheno_sd` where one is worth arguing with.
+`pheno_sd` for further exploration.
 
 # A. Is the dataset valid
 
@@ -234,8 +224,8 @@ pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 pheno_card
 ```
 
-Observations are intact at 2.6 per patient either side, while dosing falls from
-10.0 to 1.1. In rows: 744 become 220, and 589 dose rows become 65.
+Observations are near-intact at 2.6 against 2.5 per patient, while dosing falls
+from 10 to 5.6. In rows: 744 become 480, and 589 dose rows become 332.
 
 ```{r a-doses, eval=has_nlmixr2data}
 doses_per_patient <- function(data) {
@@ -245,7 +235,7 @@ summary(doses_per_patient(pheno_sd))
 summary(doses_per_patient(pheno_synth))
 ```
 
-The median real infant received twelve doses. The median avatar receives one.
+The median real infant received twelve doses. The median avatar receives five.
 `plot_pmx_schedule()` draws it, one row per patient, a grey tick for each dose
 and a coloured dot for each observation:
 
@@ -255,19 +245,21 @@ plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
 ```
 
 The source is a forest of dose ticks running the length of follow-up. The
-synthetic cohort has one column of them at time zero, and its observations have
-piled onto a handful of shared grid times. The shading answers a different
-question from B1a and will not agree with it: it marks patients whose visit set
-no other patient *in the drawn table* has, while B1a asks whether an avatar's
-set is one a real infant held.
+synthetic cohort keeps that forest for the first few days and then thins: most
+avatars stop dosing between 75 and 150 h, where real infants are still being
+dosed past 300. The shading answers a different question from B1a and will not
+agree with it: it marks patients whose visit set no other patient *in the drawn
+table* has, while B1a asks whether an avatar's set is one a real infant held.
 
-Nothing is invalid here. Every avatar's regimen is one a real infant received,
-which is the guarantee section C describes. Dose schedules in this study are
-nearly all unique, so truncating each avatar's regimen back to a depth several
-patients share collapses most of them to the shortest depth. The masking worked
-as designed, and the result is not usable as a dosing dataset. Section B1 is the
-other half: the privacy checks read 0, so nothing in that tier reports a
-problem. A5b is what catches it.
+Nothing is invalid here, and the loss is at the tail rather than everywhere.
+No infant's *complete* schedule can be reused — 55 of 59 are held by one patient
+— but most infants open the same way, twelve-hourly from time zero, so each
+avatar's course is cut back to the deepest opening several infants share. That
+is about half the doses. Whether half a course is enough is exactly the
+judgement A5b exists to prompt, and it depends on what the dataset is for:
+enough to develop a fitting workflow, not enough to characterise the tail of an
+individualised regimen. Section B1 is the other half of the story — the privacy
+checks read 0 — and A5b is what says at what price.
 
 ## A6. Did a discrete endpoint stay discrete
 
@@ -354,15 +346,19 @@ sum(pheno_unique$n_share_dosing == 1)
 ```
 
 Dose events are copied from the anchor verbatim, because moving a dose invents
-a regimen the protocol never permitted. The only lever left is to build avatars
-on the few patients whose dosing *is* shared, and here the one shared schedule
-is a single dose. B1b is 0 because the dosing was truncated away, not because
-it was masked.
+a regimen the protocol never permitted. Two levers are left. Build avatars on
+the few patients whose dosing *is* shared — here there are six — or stop an
+avatar's dosing early, at a depth that is somebody else's whole schedule or that
+several patients passed through and nobody stopped at. Truncation is what does
+the work on this study: it fires on 92% of the avatars and takes 10 doses per
+patient down to 5.6. B1b is 0 because the tail of each course was given up, not
+because the course was masked.
 
 **Read B1a and B1b next to A5b.** A check that must be 0 says nothing about
-what reaching 0 cost, and A5b is where that cost showed up. Where dosing is
-individualised, no setting fixes this. It is a property of the study, and the
-honest response is to say so rather than ship.
+what reaching 0 cost, and A5b is where that cost shows up. Where dosing is
+individualised no setting recovers the tail; it is a property of the study, and
+the honest response is to report the price rather than to quote the 0 on its
+own.
 
 ### B1 failures by arm
 
@@ -756,8 +752,8 @@ many strata fell on each side.
 
 C2 counts how many of the source's distinct dose-time schedules are represented
 in the output. Every one still represented is a pass; fewer is `review`, because
-declining to build on a patient whose regimen nobody shares is the correct
-answer and the check is there to say what it cost. The rest of the question,
+shortening a regimen nobody else shares — or declining to build on it at all —
+is the correct answer and the check is there to say what it cost. The rest of the question,
 what else was lost, has no pass mark and is read from
 `pmx_masking_report()`. The dosing section is the one C2 scores; drop the
 `section` argument for the other six.
@@ -777,9 +773,9 @@ visit days at different doses are one schedule; a patient who stopped after two
 of three doses is another, and if nobody shares it, declining to anchor on them
 removes it from the output.
 
-On `pheno_sd` 3 of 56 distinct dose schedules are represented, and a third of
+On `pheno_sd` 35 of 56 distinct dose schedules are represented, and 92% of
 avatars had their dosing re-truncated to reach that. It is the A5b finding
-again, from the generator's side.
+again, from the generator's side: the schedules survive, their tails do not.
 
 # D. How much have the covariate and observation distributions changed
 
@@ -862,13 +858,14 @@ patient data and inherits its handling obligations.
 # What is still missing
 
 **A1: a sample can cross a dose.** Generated observation times move and dose
-times do not, so a sample drawn before a dose can land at or after it. On
-`nlmixr2data::nimoData` that happens to 6 of 12 avatars, each carrying an
-observation labelled occasion 2 at the same time as the occasion-3 dose: a
-trough that is now a time-zero sample, and a declared `occasion` column that no
-longer runs in step with `time`. Closing it takes a post-generation invariant
-over the finished table, checking that each observation keeps the number of
-doses that preceded it and that `occasion` is non-decreasing within a subject.
+times do not, so a sample drawn before a dose can land at or after it: a trough
+becomes a time-zero sample, and a declared `occasion` column no longer runs in
+step with `time`. Counting the avatars holding an observation labelled occasion
+`k` that lands at or after the `k+1`th dose, `nlmixr2data::nimoData` on the
+constructed nominal grid of `vignette("public-data-examples")` gives 12 of 12,
+against 0 of 12 in its source. Closing it takes a post-generation invariant over
+the finished table, checking that each observation keeps the number of doses
+that preceded it and that `occasion` is non-decreasing within a subject.
 
 **B5: rare combinations, and rarity in the world.** The source-side census
 exists as `compare_pmx_rare_levels()` and B5b. Joint combinations do not, since

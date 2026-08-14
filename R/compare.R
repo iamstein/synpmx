@@ -1808,10 +1808,12 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
 #' differ:
 #'
 #' - `unmaskable_dosing` -- their set of dose times is shared by fewer than
-#'   `min_pattern_share` patients and is not a truncation of the cohort's
-#'   schedule that could be moved to a shared depth. Dose events are copied from
-#'   the anchor as they stand, since resampling them would emit regimens the
-#'   protocol never permitted, so there is nothing to substitute.
+#'   `min_pattern_share` patients, and no prefix of it can be given to an avatar
+#'   either: every shorter opening is one that either a single patient stopped
+#'   at, or that fewer than `min_pattern_share` patients passed through. Dose
+#'   events are copied from the anchor as they stand, since resampling them
+#'   would emit regimens the protocol never permitted, so there is nothing to
+#'   substitute.
 #' - `unmaskable_visits` -- the set of visits they have observations at is
 #'   shared by fewer than `min_pattern_share` patients, and their schedule group
 #'   holds no set that is shared widely enough to put in its place. Usually

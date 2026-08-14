@@ -150,7 +150,11 @@ test_that("a study of unique visit sets still masks what it can", {
   pieces <- lapply(1:16, function(s) {
     arm <- c("A", "B", "C", "D")[[(s - 1L) %/% 4L + 1L]]
     dose_times <- if (arm == "D") {
-      (seq_len(10L) * 24)[-(s %% 4L + 2L)]   # each patient's own dose days
+      # Each patient's own dose days, offset from the first dose onwards, so no
+      # OPENING is shared either. Dropping a middle dose is not enough: the
+      # patients still share `{24, 48}`, which `.dose_truncation_plan()` will
+      # rightly truncate them to, and then the arm is maskable after all.
+      seq_len(10L) * 24 + s
     } else {
       seq_len(10L) * 24
     }

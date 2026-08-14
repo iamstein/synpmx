@@ -893,97 +893,106 @@
 # a PREFIX of the full one. That is the dose-side analogue of a trailing
 # attendance shape, and it is the one dose edit that is protocol-valid: a
 # regimen truncated at a real dose time is a regimen the study actually
-# permitted, whereas moving or inventing dose times is not. So a truncation
-# depth held by one patient can be exchanged for one that is held by several,
-# or by nobody at all, exactly as `.miss_counts()` walks a visit-set depth.
+# permitted, whereas moving or inventing dose times is not. So a schedule held
+# by one patient can be exchanged for a shorter one that is held by several, or
+# by nobody at all, exactly as `.miss_counts()` walks a visit-set depth.
+#
+# The prefix that matters is a prefix of the patient's OWN dose times, which is
+# what makes the result a regimen somebody really received. Two separate grounds
+# make a depth safe, and keeping them apart is the whole of this function:
+#
+#   (a) MATCHED. The patient's first `d` dose times are, exactly, the complete
+#       schedule of `min_pattern_share` patients. The avatar then wears a
+#       regimen several real patients had.
+#
+#   (b) FREE. Nobody at all holds that set as a complete schedule, and
+#       `min_pattern_share` patients or more OPENED with it -- it is the first
+#       `d` doses of that many regimens. The only individual fact the schedule
+#       carries is where it stopped, and nobody stopped there, so it is a
+#       stopping point any of those patients could have had.
+#
+# Both halves of (b) are load-bearing and it is the second that is easy to lose.
+# "A depth nobody stopped at identifies nobody" is true only when many patients
+# share the whole opening. Score the times one at a time instead -- every dose
+# time in the set is a time several patients received -- and it collapses: on
+# `pheno_sd` each individual time is shared while the COMBINATION is one
+# infant's, so 29 of the 59 infants are truncated to an opening only they hold
+# -- one real infant's dosing minus its last dose. No exact-set check can see it. `.dose_schedule_sharing()`, B1b
+# and `.scorecard_copies()` all compare complete schedules, so a set no patient
+# holds complete is exactly the set that passes. `SIM-053` is the worked case,
+# and the original union-of-all-dose-times grid was a third way to lose it.
 #
 # It cannot rescue every cohort, and the arithmetic says which. Nineteen
-# patients on three doses, one on two and one on one has depths {1:1, 2:1,
-# 3:19}: depths 1 and 2 have a single holder each and there is no free depth
-# between them, so "stopped after one dose" cannot be represented without
-# pointing at the person who did. Ten stopping depths across forty patients
-# leaves plenty free, which is the case this exists for.
+# patients on three doses, one on two and one on one has complete schedules at
+# depths {1:1, 2:1, 3:19}: depth 2 is held by one patient so (a) fails and (b)
+# fails with it, and depth 1 the same, so "stopped after one dose" cannot be
+# represented without pointing at the person who did.
 #
-# The depth is the only thing this mechanism is allowed to reason about, and
-# that is why the grid below is the SHARED dose times rather than every dose
-# time in the cohort. "A depth nobody stopped at identifies nobody" holds when
-# each of the times up to that depth is one many patients received, so all the
-# schedule says about a patient is where they stopped. It is false as soon as
-# one of those times is a time a single patient received: truncating the last
-# dose off an individualised regimen leaves an avatar carrying the rest of one
-# real patient's dose times, which no patient holds as a complete schedule and
-# which the exact-set checks in `.dose_schedule_sharing()` and the scorecard
-# therefore score as clean. Building the grid from the union let exactly that
-# through -- see the worked case in `SIM-052`.
+# The two conditions serve different studies. A protocol cohort with staggered
+# discontinuation lives on (b): everyone opens on the same grid, so any depth
+# nobody stopped at is free. Routine clinical care lives on both -- on
+# `pheno_sd` no complete schedule repeats, but infants open twelve-hourly
+# together and diverge later, which keeps a mean of 5.5 of the 10 doses.
 .dose_truncation_plan <- function(source, roles, min_pattern_share) {
   subjects <- as.character(.unique_in_order(source[[roles$id]]))
   empty <- list(depth = rep(NA_integer_, length(subjects)),
                 target = rep(NA_integer_, length(subjects)),
-                cells = numeric())
+                cutoff = rep(NA_real_, length(subjects)))
   if (!length(subjects) || is.null(roles$amt)) return(empty)
   time <- suppressWarnings(as.numeric(source[[roles$time]]))
   id <- as.character(source[[roles$id]])
   dosed <- .dose_rows(source, roles) & is.finite(time)
   if (!any(dosed)) return(empty)
 
+  floor_n <- as.integer(min_pattern_share)
   times <- lapply(subjects, function(s) sort(unique(time[dosed & id == s])))
-  # The cohort's shared dose grid: the times `min_pattern_share` patients or
-  # more received. A time only one patient received is left out, so no depth
-  # measured against this grid can hand an avatar a dose time that belongs to
-  # one person. On a protocol study every dose time is shared and this is the
-  # union; on an individualised one it is short, which is the true answer.
-  all_times <- sort(unique(unlist(times)))
-  holders <- table(unlist(lapply(times, .time_key)))
-  cells <- all_times[vapply(all_times, function(x) {
-    key <- .time_key(x)
-    key %in% names(holders) &&
-      as.integer(holders[[key]]) >= as.integer(min_pattern_share)
-  }, logical(1))]
-  # A schedule is a truncation only when it is the first `d` times of that
-  # grid. Anything else -- a missed middle dose, a delay, a dose at a time
-  # nobody else received -- is not a prefix and is left to the anchor-level
-  # rule.
-  depth <- vapply(times, function(t) {
-    d <- length(t)
-    if (!d || d > length(cells)) return(NA_integer_)
-    if (isTRUE(all.equal(t, cells[seq_len(d)]))) as.integer(d) else NA_integer_
-  }, integer(1))
 
-  held <- table(depth[!is.na(depth)])
-  count_at <- function(d) {
-    if (is.na(d) || !as.character(d) %in% names(held)) 0L else
-      as.integer(held[[as.character(d)]])
+  # Every opening in the cohort, counted once per patient per depth, and every
+  # complete schedule. One pass gives both counts the rule below asks for.
+  key_of <- function(t) paste(.time_key(t), collapse = ",")
+  openings <- lapply(times, function(t) {
+    vapply(seq_along(t), function(d) key_of(t[seq_len(d)]), character(1))
+  })
+  opened <- table(unlist(openings))
+  complete <- table(vapply(times, key_of, character(1)))
+  count <- function(tab, key) {
+    if (key %in% names(tab)) as.integer(tab[[key]]) else 0L
   }
-  # Safe means shared by enough patients, or held by none at all: a depth
-  # nobody stopped at identifies nobody. That second clause rests entirely on
-  # `cells` holding only shared times -- read the note above before widening it.
-  safe <- function(d) {
-    d >= 1L && d <= length(cells) &&
-      (count_at(d) == 0L || count_at(d) >= as.integer(min_pattern_share))
+  safe <- function(i, d) {
+    key <- openings[[i]][[d]]
+    n <- count(complete, key)
+    if (n >= floor_n) return(TRUE)                                # (a) matched
+    n == 0L && count(opened, key) >= floor_n                      # (b) free
   }
+
+  depth <- as.integer(lengths(times))
   target <- vapply(seq_along(subjects), function(i) {
     d <- depth[[i]]
-    if (is.na(d) || safe(d)) return(NA_integer_)   # nothing to change
+    if (!d || safe(i, d)) return(NA_integer_)   # nothing to change
     # Downward only. Truncation drops dose rows; it cannot invent one, so a
     # deeper target silently leaves the schedule where it was -- which put an
     # avatar back on the very depth that one patient alone had used.
-    for (candidate in rev(seq_len(max(d - 1L, 0L)))) {
-      if (safe(candidate)) return(as.integer(candidate))
+    for (candidate in rev(seq_len(d - 1L))) {
+      if (safe(i, candidate)) return(as.integer(candidate))
     }
     NA_integer_
   }, integer(1))
-  list(depth = depth, target = target, cells = cells)
+  # The time to stop at, rather than an index into a grid the avatar's own
+  # schedule need not sit on.
+  cutoff <- vapply(seq_along(subjects), function(i) {
+    if (is.na(target[[i]])) NA_real_ else times[[i]][[target[[i]]]]
+  }, numeric(1))
+  list(depth = depth, target = target, cutoff = cutoff)
 }
 
-# Drop the dose rows past `depth`, so the avatar stops dosing where the plan
+# Drop the dose rows after `cutoff`, so the avatar stops dosing where the plan
 # says rather than where its anchor did. Observation rows are untouched: what
 # happens after dosing stops is the attendance mechanism's business.
-.apply_dose_truncation <- function(skeleton, roles, cells, depth) {
-  if (is.na(depth) || !length(cells)) return(skeleton)
+.apply_dose_truncation <- function(skeleton, roles, cutoff) {
+  if (is.na(cutoff)) return(skeleton)
   time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
   dosed <- .dose_rows(skeleton, roles) & is.finite(time)
   if (!any(dosed)) return(skeleton)
-  cutoff <- cells[[min(depth, length(cells))]]
   drop <- dosed & time > cutoff + sqrt(.Machine$double.eps)
   # Never drop every dose: an avatar with no dosing at all is not a truncated
   # regimen, it is a different kind of record.
@@ -2389,7 +2398,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # different, safe stopping depth, so they are not unmaskable after all.
     dose_plan <- if (as.integer(min_pattern_share) <= 1L) {
       list(depth = rep(NA_integer_, length(subjects)),
-           target = rep(NA_integer_, length(subjects)), cells = numeric())
+           target = rep(NA_integer_, length(subjects)),
+           cutoff = rep(NA_real_, length(subjects)))
     } else {
       .dose_truncation_plan(source, source_roles, min_pattern_share)
     }
@@ -2745,8 +2755,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       }
       if (!is.na(dose_plan$target[[anchor]])) {
         skeleton <- .apply_dose_truncation(skeleton, source_roles,
-                                           dose_plan$cells,
-                                           dose_plan$target[[anchor]])
+                                           dose_plan$cutoff[[anchor]])
         original_order <- seq_len(nrow(skeleton))
         dose_truncated[synthetic_index] <- TRUE
       }
