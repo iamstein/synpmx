@@ -336,7 +336,7 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim",
 Forty-two of the 45 subjects have a single infusion at time 0. The other three
 were re-dosed on a schedule nobody else shares, so no avatar can be built on
 them without pointing at them, and every synthetic subject carries the one
-shared regimen. Doses per patient falls from 1.2 to 1.0 in the A5 row. The three
+shared regimen. Doses per patient falls from 1.2 to 1.0 in the A5b row. The three
 patients are not removed and still act as donors, but that part of the study
 design is not in the output, and C2 is `review` rather than `pass` for exactly
 this reason.
@@ -548,7 +548,7 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 ```
 
 **Nothing fails, and the two rows that moved say what reaching that cost.**
-Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56 source dose
+Doses per patient falls from 10.0 to 1.1 in A5b, and 3 of the 56 source dose
 regimens are represented in C2. B1b passing here is not the dosing being masked;
 it is the dosing being truncated away.
 

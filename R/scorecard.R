@@ -330,13 +330,13 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       if (source_subjects == synthetic_subjects) TRUE else NA
     ),
     .scorecard_row(
-      "A5", "Observations per patient", "both",
+      "A5a", "Observations per patient", "both",
       paste(.scorecard_rows_per_patient(source, roles, "obs"), "->",
             .scorecard_rows_per_patient(synthetic, roles, "obs")),
       "compare_pmx_distributions(source, synthetic, roles)"
     ),
     .scorecard_row(
-      "A5", "Doses per patient", "both",
+      "A5b", "Doses per patient", "both",
       paste(.scorecard_rows_per_patient(source, roles, "dose"), "->",
             .scorecard_rows_per_patient(synthetic, roles, "dose")),
       'pmx_masking_report(synthetic, source, roles, section = "dose_schedules")'
@@ -631,5 +631,12 @@ knit_print.synpmx_scorecard <- function(x, ...) {
                       "copied.")
     ), collapse = "\n"))
   }
+  # Said here as well as in `print()`. A knitted card is the version most
+  # readers meet -- it is what every vignette shows -- and the recommendation
+  # that D1 is not enough on its own is worth as much in a report as in a
+  # console.
+  out <- c(out, paste("*D1 reports numbers, not shapes. Plot source and",
+                      "synthetic on the same axes -- `DV` against time, and",
+                      "each covariate -- with whatever you normally use.*"))
   knitr::asis_output(paste(out, collapse = "\n\n"))
 }

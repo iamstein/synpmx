@@ -74,6 +74,8 @@ synthetic <- synpmx_avatar(raw, roles, seed = SEED)
 library(ggplot2)
 library(xgxr)
 xgx_theme_set()
+comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
+
 
 both <- rbind(
   cbind(raw[, names(synthetic)], DATA = "source"),
@@ -83,7 +85,6 @@ obs <- both[both$EVID == 0 & !is.na(both$LIDV), ]
 obs$TRTACT <- factor(obs$TRTACT,
                      levels = c("Placebo", "3 mg", "10 mg", "30 mg",
                                 "100 mg", "300 mg"))
-arms <- c(source = "red4", synthetic = "blue4")
 ```
 
 ```{r overlay-pk, eval=plots, fig.height=5}
@@ -93,7 +94,7 @@ ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
   facet_grid(DATA~TRTACT) +
   xgx_scale_y_log10() +
   xgx_scale_x_time_units("hours", breaks = seq(0, 24, by = 6)) +
-  scale_colour_manual(values = arms) +
+  scale_colour_manual(values = comparison_colours) +
   labs(x = "Time (hours)", y = "PK concentration", colour = NULL) +
   theme(legend.position = "top") + 
   ggtitle("Day 1 Conc. Profile")
@@ -105,7 +106,7 @@ ggplot(obs[obs$NAME == "PD - Continuous", ],
   geom_line(alpha = 0.35) +
   xgx_scale_x_time_units(units_dataset = "hours", units_plot = "weeks") +
   facet_grid(DATA~TRTACT) +
-  scale_colour_manual(values = arms) +
+  scale_colour_manual(values = comparison_colours) +
   labs(x = "Time (hours)", y = "PD (continuous)", colour = NULL) +
   theme(legend.position = "top") +
   ggtitle("PD Response")
@@ -126,10 +127,15 @@ alike. This behavior is expected from the AVATAR blending algorithm.
 The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("scorecard-synthetic-data-checks")`.
 
 ```{r scorecard, eval=run}
-synpmx_scorecard(raw, synthetic, roles)
+scorecard <- synpmx_scorecard(raw, synthetic, roles)
+if (requireNamespace("DT", quietly = TRUE)) {
+  DT::datatable(as.data.frame(scorecard), options = list(paging = FALSE))
+} else {
+  scorecard
+}
 ```
 
-**`review` is not a soft `pass`.** Three rows have no pass mark because no
+**`review` is not a soft `pass`.** Five rows here have no pass mark because no
 threshold would be honest. Doses per patient is the clearest: on this study it
 is unchanged, but on a study with individualised dosing it can change.
 

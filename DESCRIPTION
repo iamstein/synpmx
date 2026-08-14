@@ -20,6 +20,7 @@ Suggests:
     xgxr,
     rxode2,
     dplyr,
+    DT,
     ggplot2,
     knitr,
     nlmixr2data,

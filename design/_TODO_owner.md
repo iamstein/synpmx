@@ -9,5 +9,7 @@
 - In parallel - Meet with an internal colleague (mid august)
 - Make poster (due Sept 28 for online submission)
 
+- consider running /ultrareview for finding bugs
+
 ## Other things to do (off critical path)
 - Go through the literature reviews

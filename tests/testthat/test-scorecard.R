@@ -41,7 +41,8 @@ test_that("a clean run passes the guarantees and marks its judgement calls", {
   expect_identical(sc_verdict(card, "B1a"), "pass")
   expect_identical(sc_verdict(card, "B4a"), "pass")
   # And the rows where no threshold would be honest must not claim one.
-  expect_true(all(sc_verdict(card, "A5") == "review"))
+  expect_identical(sc_verdict(card, "A5a"), "review")
+  expect_identical(sc_verdict(card, "A5b"), "review")
   expect_identical(sc_verdict(card, "B2"), "review")
 })
 

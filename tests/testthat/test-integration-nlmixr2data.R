@@ -282,7 +282,7 @@ test_that("pheno_sd: dosing that can only be masked by throwing it away", {
   # study's dosing means truncating it to almost nothing: the source gives
   # 10 doses per patient and the output gives about 1, over 3 of 56 regimens.
   # This is the registry's example of a study whose dosing survives the
-  # guarantee in name only, and the number to read is not B1b but A5.
+  # guarantee in name only, and the number to read is not B1b but A5b.
   doses_per_patient <- function(x) {
     mean(table(x$ID[x$EVID != 0]))
   }
