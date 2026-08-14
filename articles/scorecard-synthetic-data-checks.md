@@ -30,7 +30,8 @@ There are four categories of checks:
 | **A2**  | Is the *source* legal under the roles you declared?           |
 | **A3**  | Did every endpoint survive?                                   |
 | **A4**  | Did the cohort size survive?                                  |
-| **A5**  | Did number of doses survive?                                  |
+| **A5a** | Did the number of observations per patient survive?           |
+| **A5b** | Did the number of doses per patient survive?                  |
 | **A6**  | Did a discrete endpoint stay discrete?                        |
 | **B1a** | Does any avatar have a visit set nobody else shares?          |
 | **B1b** | Does any avatar have a dose schedule nobody else shares?      |
@@ -489,11 +490,11 @@ shared, and here the one shared schedule is a **single dose**. So B1b is
 0 because the dosing was truncated away, not because it was masked: the
 source gives ten doses a patient and the output gives about one.
 
-**This is why B1a and B1b are read next to A5, never alone.** A row that
-must be 0 says nothing about what reaching 0 cost, and section A5 above
-is where that cost showed up: the median avatar receives one dose. Where
-dosing is individualised, no setting fixes this — it is a property of
-the study, and the honest response is to say so rather than ship.
+**This is why B1a and B1b are read next to A5b, never alone.** A row
+that must be 0 says nothing about what reaching 0 cost, and section A5b
+above is where that cost showed up: the median avatar receives one dose.
+Where dosing is individualised, no setting fixes this — it is a property
+of the study, and the honest response is to say so rather than ship.
 
 #### A B1 failure belongs to an arm
 
@@ -729,6 +730,10 @@ card[card$check %in% c("B4a", "B4b"), ]
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
+
 Both zero. The same comparison is worth running on whole covariate rows,
 which nothing does for you. And on a study with one protocol grid, B4a
 is close to silent by construction, so B4b is the row doing the work.
@@ -899,6 +904,10 @@ card[card == "B5a", ]
 | check | question | reads | result | verdict | explore |
 |:---|:---|:---|:---|:---|:---|
 | B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic\$TRTACT) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 The row names the column and the level it found, not just the count,
 because “1” on its own gives a reader no way to find the patient it is

@@ -533,7 +533,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">22 -&gt; 22</td>
@@ -542,7 +542,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">7 -&gt; 7</td>
@@ -619,6 +619,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
 schedules to zero without a declared <code>nominal_time</code>, and the
@@ -887,7 +890,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">15.1 -&gt; 15.1</td>
@@ -896,7 +899,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">1 -&gt; 1</td>
@@ -997,6 +1000,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so
 <code>wt</code> is declared as the <code>dose_covariate</code> and each
 avatar’s <code>amt</code> is rebuilt from its own blended weight rather
@@ -1132,7 +1138,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">3.9 -&gt; 3.6</td>
@@ -1141,7 +1147,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">1.2 -&gt; 1</td>
@@ -1218,6 +1224,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.</p>
 <div class="section level3">
@@ -1286,7 +1295,7 @@ only ever anchored inside the arm it was allocated to.
 other three were re-dosed on a schedule nobody else shares, so no avatar
 can be built on them without pointing at them, and every synthetic
 subject carries the one shared regimen. Doses per patient falls from 1.2
-to 1.0 in the A5 row. The three patients are not removed and still act
+to 1.0 in the A5b row. The three patients are not removed and still act
 as donors, but that part of the study design is not in the output, and
 C2 is <code>review</code> rather than <code>pass</code> for exactly this
 reason.</p>
@@ -1527,7 +1536,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">26.8 -&gt; 27.3</td>
@@ -1536,7 +1545,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">10 -&gt; 10</td>
@@ -1613,6 +1622,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p><strong>B1b fails: all twelve avatars carry a dose schedule nobody
 else shares.</strong> C2 says what declining to use those schedules
 would have cost instead: 7 of the 12 source regimens are represented at
@@ -1770,7 +1782,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">26.8 -&gt; 27.4</td>
@@ -1779,7 +1791,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">10 -&gt; 10</td>
@@ -1856,6 +1868,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of
 1, because on the nominal grid the twelve dose schedules become one.
 Unique observation schedules fall from 12 to 5, the twelve visit sets
@@ -2126,7 +2141,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">20.2 -&gt; 20.2</td>
@@ -2135,7 +2150,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">1.6 -&gt; 1.6</td>
@@ -2212,6 +2227,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails, and B2 is the row that looks alarming: 40 of the 120
 synthetic patients are flagged as unusual.
 <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> scores each subject against
@@ -2496,7 +2514,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">2.6 -&gt; 2.6</td>
@@ -2505,7 +2523,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">10 -&gt; 1.1</td>
@@ -2582,8 +2600,11 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p><strong>Nothing fails, and the two rows that moved say what reaching
-that cost.</strong> Doses per patient falls from 10.0 to 1.1 in A5, and
+that cost.</strong> Doses per patient falls from 10.0 to 1.1 in A5b, and
 3 of the 56 source dose regimens are represented in C2. B1b passing here
 is not the dosing being masked; it is the dosing being truncated
 away.</p>
@@ -2879,7 +2900,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">30.7 -&gt; 30.7</td>
@@ -2888,7 +2909,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">70.8 -&gt; 70.8</td>
@@ -2989,6 +3010,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails, and C1 passes: all six treatment arms keep their
 source size. An avatar never leaves the arm it was anchored in, because
 <code>TRTACT</code> and <code>DOSE</code> are declared as
@@ -3346,7 +3370,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">61.7 -&gt; 61.7</td>
@@ -3355,7 +3379,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">5 -&gt; 5</td>
@@ -3464,6 +3488,9 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
 than a row count: row counts stayed plausible in the defect that
 motivated the check while an entire compartment disappeared. This is the

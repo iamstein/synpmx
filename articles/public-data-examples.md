@@ -257,8 +257,8 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 22 -\> 22 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 7 -\> 7 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 22 -\> 22 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 7 -\> 7 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 3 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -267,6 +267,10 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.55 on WT (furthest of 2) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -338,8 +342,8 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 2 of 2 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 32 -\> 32 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 15.1 -\> 15.1 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 1 -\> 1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 15.1 -\> 15.1 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 1 -\> 1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | A6 | Discrete endpoints keeping their source scale | both | 1 of 1 | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
@@ -351,6 +355,10 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.43 on age (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
 declared as the `dose_covariate` and each avatar’s `amt` is rebuilt from
@@ -400,8 +408,8 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 45 -\> 45 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 3.9 -\> 3.6 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 1.2 -\> 1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 3.9 -\> 3.6 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 1.2 -\> 1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 16 of 45 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -410,6 +418,10 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 4 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.67 on DV (furthest of 1) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.
@@ -438,7 +450,7 @@ Forty-two of the 45 subjects have a single infusion at time 0. The other
 three were re-dosed on a schedule nobody else shares, so no avatar can
 be built on them without pointing at them, and every synthetic subject
 carries the one shared regimen. Doses per patient falls from 1.2 to 1.0
-in the A5 row. The three patients are not removed and still act as
+in the A5b row. The three patients are not removed and still act as
 donors, but that part of the study design is not in the output, and C2
 is `review` rather than `pass` for exactly this reason.
 
@@ -513,8 +525,8 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 26.8 -\> 27.3 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 26.8 -\> 27.3 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 12 | FAIL | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -523,6 +535,10 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 7 of 12 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.48 on BSA (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 **B1b fails: all twelve avatars carry a dose schedule nobody else
 shares.** C2 says what declining to use those schedules would have cost
@@ -598,8 +614,8 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 26.8 -\> 27.4 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 26.8 -\> 27.4 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -608,6 +624,10 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.42 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of 1,
 because on the nominal grid the twelve dose schedules become one. Unique
@@ -679,8 +699,8 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 120 -\> 120 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 20.2 -\> 20.2 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 1.6 -\> 1.6 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 20.2 -\> 20.2 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 1.6 -\> 1.6 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 41 of 120 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -689,6 +709,10 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.51 on HT (furthest of 5) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails, and B2 is the row that looks alarming: 40 of the 120
 synthetic patients are flagged as unusual.
@@ -791,8 +815,8 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 59 -\> 59 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 2.6 -\> 2.6 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 10 -\> 1.1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 2.6 -\> 2.6 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 10 -\> 1.1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 36 of 59 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -802,8 +826,12 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | C2 | Distinct dose-time schedules represented | run settings | 3 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.66 on APGR (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
+
 **Nothing fails, and the two rows that moved say what reaching that
-cost.** Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56
+cost.** Doses per patient falls from 10.0 to 1.1 in A5b, and 3 of the 56
 source dose regimens are represented in C2. B1b passing here is not the
 dosing being masked; it is the dosing being truncated away.
 
@@ -914,8 +942,8 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 2 of 2 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -927,6 +955,10 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | C1 | Strata keeping their source size | both | 6 of 6 | pass | compare_pmx_strata_sizes(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.64 on PD - Continuous (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails, and C1 passes: all six treatment arms keep their source
 size. An avatar never leaves the arm it was anchored in, because
@@ -1040,8 +1072,8 @@ synpmx_scorecard(mad, mad_synth, mad_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 5 of 5 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 60 -\> 60 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 61.7 -\> 61.7 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 5 -\> 5 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 61.7 -\> 61.7 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 5 -\> 5 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | A6 | Discrete endpoints keeping their source scale | both | 3 of 3 | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
@@ -1054,6 +1086,10 @@ synpmx_scorecard(mad, mad_synth, mad_roles)
 | C1 | Strata keeping their source size | both | 6 of 6 | pass | compare_pmx_strata_sizes(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.6 on WEIGHTB (furthest of 6) | review | compare_pmx_distributions(source, synthetic, roles) |
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
 row count: row counts stayed plausible in the defect that motivated the

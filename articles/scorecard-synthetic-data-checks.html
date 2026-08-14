@@ -136,56 +136,60 @@ changed</li>
 <td>Did the cohort size survive?</td>
 </tr>
 <tr class="odd">
-<td><strong>A5</strong></td>
-<td>Did number of doses survive?</td>
+<td><strong>A5a</strong></td>
+<td>Did the number of observations per patient survive?</td>
 </tr>
 <tr class="even">
+<td><strong>A5b</strong></td>
+<td>Did the number of doses per patient survive?</td>
+</tr>
+<tr class="odd">
 <td><strong>A6</strong></td>
 <td>Did a discrete endpoint stay discrete?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>B1a</strong></td>
 <td>Does any avatar have a visit set nobody else shares?</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>B1b</strong></td>
 <td>Does any avatar have a dose schedule nobody else shares?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>B2</strong></td>
 <td>Does any synthetic patient stand out from its own stratum?</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>B3</strong></td>
 <td>Is any avatar too close to a real patient in value space?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>B4a</strong></td>
 <td>Is any generated time vector a copy of an exposed real one?</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>B4b</strong></td>
 <td>Is any generated <code>DV</code> vector a copy of an exposed real
 one?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>B5a</strong></td>
 <td>Does any categorical level sit on a single synthetic patient?</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>B5b</strong></td>
 <td>Did a level too few <em>source</em> patients held reach the
 output?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>C1</strong></td>
 <td>Did every arm keep its endpoints and its size?</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>C2</strong></td>
 <td>What features of the study were lost?</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>D1</strong></td>
 <td>Do the values land in the same range?</td>
 </tr>
@@ -795,9 +799,9 @@ only lever left is to build avatars on the few patients whose dosing
 dose</strong>. So B1b is 0 because the dosing was truncated away, not
 because it was masked: the source gives ten doses a patient and the
 output gives about one.</p>
-<p><strong>This is why B1a and B1b are read next to A5, never
+<p><strong>This is why B1a and B1b are read next to A5b, never
 alone.</strong> A row that must be 0 says nothing about what reaching 0
-cost, and section A5 above is where that cost showed up: the median
+cost, and section A5b above is where that cost showed up: the median
 avatar receives one dose. Where dosing is individualised, no setting
 fixes this — it is a property of the study, and the honest response is
 to say so rather than ship.</p>
@@ -1057,6 +1061,9 @@ TRUE)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>Both zero. The same comparison is worth running on whole covariate
 rows, which nothing does for you. And on a study with one protocol grid,
 B4a is close to silent by construction, so B4b is the row doing the
@@ -1338,6 +1345,9 @@ that patient out within the release, whatever the source looked like.
 <td align="left">table(synthetic$TRTACT)</td>
 </tr></tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p>The row names the column and the level it found, not just the count,
 because “1” on its own gives a reader no way to find the patient it is
 talking about — and the column it names is where to look, which is what

@@ -143,6 +143,8 @@ synthetic dataset.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://opensource.nibr.com/xgx/" class="external-link">xgxr</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_theme_set.html" class="external-link">xgx_theme_set</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">comparison_colours</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"#1B6CA8"</span>, synthetic <span class="op">=</span> <span class="st">"#D95F02"</span><span class="op">)</span></span>
+<span></span>
 <span></span>
 <span><span class="va">both</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">]</span>, DATA <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span>,</span>
@@ -151,8 +153,7 @@ synthetic dataset.</p>
 <span><span class="va">obs</span> <span class="op">&lt;-</span> <span class="va">both</span><span class="op">[</span><span class="va">both</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">both</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span>,</span>
 <span>                     levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"3 mg"</span>, <span class="st">"10 mg"</span>, <span class="st">"30 mg"</span>,</span>
-<span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"red4"</span>, synthetic <span class="op">=</span> <span class="st">"blue4"</span><span class="op">)</span></span></code></pre></div>
+<span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">24</span>, <span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -160,7 +161,7 @@ synthetic dataset.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span><span class="va">DATA</span><span class="op">~</span><span class="va">TRTACT</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_y_log10.html" class="external-link">xgx_scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_x_time_units.html" class="external-link">xgx_scale_x_time_units</a></span><span class="op">(</span><span class="st">"hours"</span>, breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">24</span>, by <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">comparison_colours</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PK concentration"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Day 1 Conc. Profile"</span><span class="op">)</span></span></code></pre></div>
@@ -171,7 +172,7 @@ synthetic dataset.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_x_time_units.html" class="external-link">xgx_scale_x_time_units</a></span><span class="op">(</span>units_dataset <span class="op">=</span> <span class="st">"hours"</span>, units_plot <span class="op">=</span> <span class="st">"weeks"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span><span class="va">DATA</span><span class="op">~</span><span class="va">TRTACT</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">arms</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">comparison_colours</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"PD (continuous)"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PD Response"</span><span class="op">)</span></span></code></pre></div>
@@ -318,7 +319,12 @@ blending algorithm.</p>
 described further in
 <code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"DT"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">DT</span><span class="fu">::</span><span class="fu">datatable</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span>, options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>paging <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="va">scorecard</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="3%">
@@ -372,7 +378,7 @@ roles)</td>
 “anchors”)</td>
 </tr>
 <tr class="odd">
-<td align="left">A5</td>
+<td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
 <td align="left">30.7 -&gt; 30.7</td>
@@ -381,7 +387,7 @@ roles)</td>
 roles)</td>
 </tr>
 <tr class="even">
-<td align="left">A5</td>
+<td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
 <td align="left">70.8 -&gt; 70.8</td>
@@ -482,10 +488,13 @@ roles)</td>
 </tr>
 </tbody>
 </table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
 <p><strong><code>review</code> is not a soft <code>pass</code>.</strong>
-Three rows have no pass mark because no threshold would be honest. Doses
-per patient is the clearest: on this study it is unchanged, but on a
-study with individualised dosing it can change.</p>
+Five rows here have no pass mark because no threshold would be honest.
+Doses per patient is the clearest: on this study it is unchanged, but on
+a study with individualised dosing it can change.</p>
 <p><strong>Every row names the call that explains it.</strong> When a
 row reads oddly, run what its <code>explore</code> column says: the
 numbers are a summary, and the call behind each one is where the answer

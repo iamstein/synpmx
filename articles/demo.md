@@ -70,6 +70,8 @@ synthetic <- synpmx_avatar(raw, roles, seed = SEED)
 library(ggplot2)
 library(xgxr)
 xgx_theme_set()
+comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
+
 
 both <- rbind(
   cbind(raw[, names(synthetic)], DATA = "source"),
@@ -79,7 +81,6 @@ obs <- both[both$EVID == 0 & !is.na(both$LIDV), ]
 obs$TRTACT <- factor(obs$TRTACT,
                      levels = c("Placebo", "3 mg", "10 mg", "30 mg",
                                 "100 mg", "300 mg"))
-arms <- c(source = "red4", synthetic = "blue4")
 ```
 
 ``` r
@@ -90,7 +91,7 @@ ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
   facet_grid(DATA~TRTACT) +
   xgx_scale_y_log10() +
   xgx_scale_x_time_units("hours", breaks = seq(0, 24, by = 6)) +
-  scale_colour_manual(values = arms) +
+  scale_colour_manual(values = comparison_colours) +
   labs(x = "Time (hours)", y = "PK concentration", colour = NULL) +
   theme(legend.position = "top") + 
   ggtitle("Day 1 Conc. Profile")
@@ -105,7 +106,7 @@ ggplot(obs[obs$NAME == "PD - Continuous", ],
   geom_line(alpha = 0.35) +
   xgx_scale_x_time_units(units_dataset = "hours", units_plot = "weeks") +
   facet_grid(DATA~TRTACT) +
-  scale_colour_manual(values = arms) +
+  scale_colour_manual(values = comparison_colours) +
   labs(x = "Time (hours)", y = "PD (continuous)", colour = NULL) +
   theme(legend.position = "top") +
   ggtitle("PD Response")
@@ -150,7 +151,12 @@ further in
 
 ``` r
 
-synpmx_scorecard(raw, synthetic, roles)
+scorecard <- synpmx_scorecard(raw, synthetic, roles)
+if (requireNamespace("DT", quietly = TRUE)) {
+  DT::datatable(as.data.frame(scorecard), options = list(paging = FALSE))
+} else {
+  scorecard
+}
 ```
 
 | check | question | reads | result | verdict | explore |
@@ -159,8 +165,8 @@ synpmx_scorecard(raw, synthetic, roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 2 of 2 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -173,10 +179,14 @@ synpmx_scorecard(raw, synthetic, roles)
 | C2 | Distinct dose-time schedules represented | run settings | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.64 on PD - Continuous (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
-**`review` is not a soft `pass`.** Three rows have no pass mark because
-no threshold would be honest. Doses per patient is the clearest: on this
-study it is unchanged, but on a study with individualised dosing it can
-change.
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes – `DV` against time, and each covariate – with whatever you
+normally use.*
+
+**`review` is not a soft `pass`.** Five rows here have no pass mark
+because no threshold would be honest. Doses per patient is the clearest:
+on this study it is unchanged, but on a study with individualised dosing
+it can change.
 
 **Every row names the call that explains it.** When a row reads oddly,
 run what its `explore` column says: the numbers are a summary, and the

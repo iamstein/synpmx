@@ -143,8 +143,8 @@ synpmx_scorecard(data, synthetic, roles)
 #>   A2    Source is legal under the declared roles           source       TRUE                          pass
 #>   A3    Every endpoint survived                            both         2 of 2                        pass
 #>   A4    Cohort size survived                               both         30 -> 30                      pass
-#>   A5    Observations per patient                           both         14 -> 14                      review
-#>   A5    Doses per patient                                  both         2 -> 2                        review
+#>   A5a   Observations per patient                           both         14 -> 14                      review
+#>   A5b   Doses per patient                                  both         2 -> 2                        review
 #>   B1a   Avatars with a visit set nobody else shares        run settings 0                             pass
 #>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                             pass
 #>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                       review
@@ -155,8 +155,8 @@ synpmx_scorecard(data, synthetic, roles)
 #>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3) review
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5    compare_pmx_distributions(source, synthetic, roles)
-#>   A5    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
+#>   A5a   compare_pmx_distributions(source, synthetic, roles)
+#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
 #>   B2    flag_identifiable_subjects(synthetic, roles)
 #>   B3    compare_pmx_proximity(source, synthetic, roles)
 #>   D1    compare_pmx_distributions(source, synthetic, roles)
