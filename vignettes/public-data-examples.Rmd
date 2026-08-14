@@ -212,7 +212,8 @@ Every example follows the same five steps:
 1. declare column meanings with `pmx_roles()`;
 2. synthesize with `synpmx_avatar()`;
 3. plot the real and synthetic data;
-4. summarize observations (DV) and covariate statistics
+4. plot the observation (DV) and baseline covariate distributions, source
+   against synthetic
 5. report the score card for the synthetic dataset.
 
 The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
@@ -260,7 +261,7 @@ overlay_plot(case1_pkpd, case1_synth, case1_roles,
              y_label = "LIDV", alpha = 0.2)
 ```
 
-```{r case1-distributions, eval=has_xgxr}
+```{r case1-distributions, eval=has_xgxr, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
 compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 ```
 
@@ -332,7 +333,7 @@ overlay_plot(mad, mad_synth, mad_roles, "mad: five endpoints on one time axis",
   ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
 ```
 
-```{r mad-distributions, eval=has_xgxr}
+```{r mad-distributions, eval=has_xgxr, fig.height=compare_pmx_distributions_height(mad, mad_roles)}
 compare_pmx_distributions(mad, mad_synth, mad_roles)
 ```
 
@@ -346,9 +347,16 @@ count: row counts stayed plausible in the defect that motivated the check while
 an entire compartment disappeared. This is the second declared `NOMTIME` and it
 produces the same clean structural result as `case1_pkpd`.
 
-The distribution table carries the same categorical drift as `warfarin`: `SEX`
-is 30 female and 30 male in the source and 40 to 20 in the synthetic cohort. It
-is declared as a covariate rather than as `strata`, so the anchor draw sets it.
+The `SEX` panel carries the same categorical drift as `warfarin`: an even split
+in the source, two thirds to one third in the synthetic cohort — 30 and 30
+becoming 40 and 20. It is declared as a covariate rather than as `strata`, so
+the anchor draw sets it.
+
+This is also the dataset that shows why the figure switches geometry. A panel
+holding eight or fewer distinct values is drawn as proportion bars rather than
+as a curve, so `PD - Binary` and `PD - Ordinal` come out as bars: a smoothed
+density over `{0, 1}` would be a shape this study does not have. `PD - Count`
+has more levels than that and stays a curve.
 
 ### Discrete endpoints keep their scale
 
@@ -419,7 +427,7 @@ overlay_plot(theo_md, theo_synth, theo_roles,
              clock = "tad", x_label = "Time after dose (hours)", alpha = 0.25)
 ```
 
-```{r theo-distributions, eval=has_nlmixr2data}
+```{r theo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(theo_md, theo_roles)}
 compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 ```
 
@@ -457,7 +465,7 @@ overlay_plot(warfarin, warfarin_synth, warfarin_roles,
              x_label = "Time (hours)")
 ```
 
-```{r warfarin-distributions, eval=has_nlmixr2data}
+```{r warfarin-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(warfarin, warfarin_roles)}
 compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 ```
 
@@ -493,7 +501,7 @@ overlay_plot(wbcSim, wbc_synth, wbc_roles,
              y_label = "WBC")
 ```
 
-```{r wbc-distributions, eval=has_nlmixr2data}
+```{r wbc-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(wbcSim, wbc_roles)}
 compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 ```
 
@@ -558,7 +566,7 @@ overlay_plot(nimoData, nimo_synth, nimo_roles,
              alpha = 0.2)
 ```
 
-```{r nimo-distributions, eval=has_nlmixr2data}
+```{r nimo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(nimoData, nimo_roles)}
 compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
@@ -779,7 +787,7 @@ overlay_plot(mavoglurant, mavo_synth, mavo_roles,
              y_label = "DV (log scale)", log_y = TRUE, alpha = 0.2)
 ```
 
-```{r mavo-distributions, eval=has_nlmixr2data}
+```{r mavo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(mavoglurant, mavo_roles)}
 compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 ```
 
@@ -842,7 +850,7 @@ overlay_plot(pheno_sd, pheno_synth, pheno_roles,
              y_label = "Phenobarbital (ug/mL)")
 ```
 
-```{r pheno-distributions, eval=has_nlmixr2data}
+```{r pheno-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(pheno_sd, pheno_roles)}
 compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 ```
 

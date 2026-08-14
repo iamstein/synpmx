@@ -1763,9 +1763,9 @@ Use the public checks for different questions:
 - `compare_pmx()` reports source/synthetic row counts, subjects, event counts,
   endpoints, column classes, validations, and exploratory trajectories when
   `ggplot2` is installed.
-- `compare_pmx_distributions()` summarizes the dependent variable per endpoint
-  and each baseline covariate, source against synthetic, so their ranges can be
-  compared at a glance.
+- `compare_pmx_distributions()` draws the dependent variable per endpoint and
+  each baseline covariate, source against synthetic, so their ranges can be
+  compared at a glance; `output = "tables"` gives the numbers instead.
 
 None of these establishes distributional equivalence, privacy, or model
 fidelity.

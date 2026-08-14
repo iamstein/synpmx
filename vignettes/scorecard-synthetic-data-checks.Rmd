@@ -787,7 +787,8 @@ because spread shrinking is what the algorithm does rather than something it
 got wrong, and spread growing has no threshold either.
 
 ```{r d-distributions, eval=has_xgxr}
-case1_dist <- compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
+case1_dist <- compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles,
+                                        output = "tables")
 knitr::kable(case1_dist$endpoints, digits = 3,
              caption = "Endpoints, source against synthetic")
 knitr::kable(case1_dist$covariates_numeric, digits = 2,

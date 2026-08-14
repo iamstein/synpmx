@@ -547,15 +547,21 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   # growing has no threshold either, so a pass mark here would be an invention.
   # The row exists to put the number in front of the reader and send them to the
   # table it came from.
+  # `output = "tables"` is load-bearing rather than tidy: the default returns a
+  # figure, a ggplot is a list, and `$endpoints` on one is NULL rather than an
+  # error -- so the bare call would leave D1 reporting "no numeric variable to
+  # compare" on every study, quietly.
   spread <- .scorecard_spread(
-    compare_pmx_distributions(source, synthetic, roles)
+    compare_pmx_distributions(source, synthetic, roles, output = "tables")
   )
   rows <- c(rows, list(.scorecard_row(
     "D1", "Values landing in the same range", "both",
     if (is.null(spread)) "no numeric variable to compare" else
       sprintf("sd x%s on %s (furthest of %d)",
               format(signif(spread$ratio, 2)), spread$variable, spread$n),
-    "compare_pmx_distributions(source, synthetic, roles)",
+    # Pointed at the tables rather than the default figure: this row quotes a
+    # standard deviation, and a density curve does not carry one.
+    'compare_pmx_distributions(source, synthetic, roles, output = "tables")',
     verdict = "review"
   )))
 

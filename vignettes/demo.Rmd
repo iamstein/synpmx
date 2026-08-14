@@ -112,15 +112,23 @@ ggplot(obs[obs$NAME == "PD - Continuous", ],
   ggtitle("PD Response")
 ```
 
-## Summary Tables of Synthetic and Original Data
+## Distributions of Synthetic and Original Data
 
-```{r distributions, eval=run}
+One panel per endpoint and per baseline covariate, source against synthetic.
+`compare_pmx_distributions_height()` sizes the figure, since it grows a row of
+panels at a time; `output = "tables"` gives the numbers behind it.
+
+```{r distributions, eval=run, fig.height=compare_pmx_distributions_height(raw, roles)}
 compare_pmx_distributions(raw, synthetic, roles)
 ```
 
-Medians track closely on both endpoints. The standard deviations are visibly
-smaller in the synthetic cohort — for the PD endpoint and for baseline weight
-alike. This behavior is expected from the AVATAR blending algorithm.  
+The curves sit on top of each other on both endpoints. Look at their widths
+rather than their positions: the orange curve is visibly narrower than the blue
+one for the PD endpoint and for baseline weight, and slightly narrower for PK.
+That narrowing is between-subject variability shrinking, which is what the
+AVATAR blending algorithm does rather than a fault in the run. `output =
+"tables"` puts a number on it, and the scorecard's D1 row reports the variable
+that moved furthest.
 
 ## The scorecard
 

@@ -4,7 +4,12 @@
 \alias{compare_pmx_distributions}
 \title{Compare per-covariate and per-endpoint distributions of source and synthetic}
 \usage{
-compare_pmx_distributions(source, synthetic = NULL, roles)
+compare_pmx_distributions(
+  source,
+  synthetic = NULL,
+  roles,
+  output = c("plots", "tables")
+)
 }
 \arguments{
 \item{source}{Source PMX data.}
@@ -13,29 +18,47 @@ compare_pmx_distributions(source, synthetic = NULL, roles)
 on its own.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
+
+\item{output}{\code{"plots"} for the figure, \code{"tables"} for the numbers behind it.
+The figure needs \code{ggplot2} and \code{patchwork}.}
 }
 \value{
-A \code{pmx_distribution_summary}: a list of \code{endpoints},
-\code{covariates_numeric}, and \code{covariates_categorical} data frames. Each is
-\code{NULL} when the dataset declares no columns of that kind.
+With \code{output = "tables"}, a \code{pmx_distribution_summary}: a list of
+\code{endpoints}, \code{covariates_numeric}, and \code{covariates_categorical} data
+frames, each \code{NULL} when the dataset declares no columns of that kind. With
+\code{output = "plots"}, one composed \code{ggplot}. Either carries a
+\code{"release_status"} attribute.
 }
 \description{
-A numeric sanity check to run right after generating data. For each baseline
-covariate and each endpoint (\code{dvid}), it summarizes the distribution in the
-source and in the synthetic dataset side by side. The dependent variable and
-continuous covariates get n, mean, standard deviation, minimum, quartiles, and
-maximum; categorical covariates get per-level counts and proportions.
+A sanity check to run right after generating data. For each baseline
+covariate and each endpoint (\code{dvid}), it compares the distribution in the
+source against the one in the synthetic dataset.
 }
 \details{
+By default it draws them: one panel per endpoint and per covariate, source in
+blue against synthetic in orange. A panel holding more than eight distinct
+values is drawn as overlaid density curves, each scaled to peak at 1, with a
+rug of the values themselves when there are few enough to see; a panel with
+eight or fewer is drawn as proportion bars, which is what makes an ordinal,
+count or binary endpoint readable. A panel whose values are all positive and
+span more than two orders of magnitude gets a log10 axis. \code{output = "tables"}
+returns the numbers instead: n, mean, standard deviation, minimum, quartiles
+and maximum for the dependent variable and continuous covariates, per-level
+counts and proportions for categorical ones.
+
+Pass \code{\link[=compare_pmx_distributions_height]{compare_pmx_distributions_height()}} to a chunk's \code{fig.height}. The
+figure grows a row of panels at a time and the chunk option is fixed before
+the chunk runs, so nothing else can size it.
+
 This is the distributional companion to \code{\link[=compare_pmx]{compare_pmx()}}. That function answers
 whether the \emph{structure} matches — schema, event grammar, row and event counts;
 this one answers whether the \emph{numbers} land in the same range. It is a
 diagnostic, not a validation of statistical fidelity: AVATAR and the
 differentially private engines deliberately do not reproduce source
-distributions exactly, so expect the summaries to be close in magnitude and
-shape, not identical.
+distributions exactly, so expect the two to be close in magnitude and shape,
+not identical.
 
-Every table is source-derived, so each is marked
+Figure and tables alike are source-derived, so each is marked
 \code{"restricted_not_releasable"}: it reads real covariate and endpoint values and
 stays under the source data's access controls like any other
 source-versus-synthetic diagnostic.
@@ -47,8 +70,9 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = c("WT", "SEX")
 )
 synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-compare_pmx_distributions(data, synthetic, roles)
+compare_pmx_distributions(data, synthetic, roles, output = "tables")
 }
 \seealso{
-\code{\link[=compare_pmx]{compare_pmx()}} for the structural comparison.
+\code{\link[=compare_pmx]{compare_pmx()}} for the structural comparison, and
+\code{\link[=compare_pmx_distributions_height]{compare_pmx_distributions_height()}} for sizing the figure.
 }

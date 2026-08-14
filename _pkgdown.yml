@@ -114,6 +114,7 @@ reference:
   - pmx_endpoint_types
   - compare_pmx
   - compare_pmx_distributions
+  - compare_pmx_distributions_height
   - compare_pmx_rare_levels
   - compare_pmx_strata_sizes
   - skeleton_uniqueness

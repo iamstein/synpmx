@@ -26,6 +26,7 @@ Suggests:
     knitr,
     nlmixr2data,
     opendp,
+    patchwork,
     rmarkdown,
     testthat (>= 3.0.0)
 Additional_repositories: https://opendp.r-universe.dev

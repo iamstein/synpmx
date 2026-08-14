@@ -18,5 +18,8 @@
 
 utils::globalVariables(c(
   "dataset_plot", "subject_plot", "time_plot", "dv_plot",
-  "endpoint_plot"
+  "endpoint_plot",
+  # The distribution figure's columns, plus `scaled`, which stat_density()
+  # computes rather than any frame carrying it.
+  "dataset", "value", "level", "proportion", "scaled"
 ))

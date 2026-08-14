@@ -219,23 +219,308 @@ print.pmx_comparison <- function(x, ...) {
   do.call(rbind, rows)
 }
 
+# Drawing the same summary ----------------------------------------------------
+#
+# The tables above answer the question and are hard to read doing it: nine
+# columns per endpoint and per covariate, source row above synthetic row, is not
+# how anyone judges whether two distributions agree. The figure below carries
+# the same content -- one panel per endpoint and per covariate, source against
+# synthetic -- and is the default.
+
+# Blue for the source, orange for the synthetic cohort, wherever the package
+# draws the two beside each other.
+.comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
+
+# Eight or fewer distinct values is not a shape a density can draw. `mad` keeps
+# ordinal, count and binary endpoints in one numeric column, and a kernel over
+# {0, 1, 2, 3} is three smooth bumps saying nothing about the study. Those
+# panels become bars, like a categorical covariate. The rule doubles as the
+# guard on geom_density(), which needs two distinct values in a group: anything
+# that sparse has already been routed away.
+.distribution_discrete_max <- 8L
+
+# Twelve baseline weights deserve a rug under the curve, since a kernel over
+# twelve points is mostly bandwidth and the reader should see that. Twenty
+# thousand PK observations rug to a solid band, which shows nothing.
+.distribution_rug_max <- 50L
+
+# The values behind one panel: the dependent variable on one endpoint's
+# observation rows, or one baseline value per subject for a covariate. The same
+# selections .endpoint_dv_summary() and the covariate loop make, so the figure
+# and the tables can never describe different numbers.
+.panel_values <- function(data, roles, variable, section) {
+  if (identical(section, "endpoint")) {
+    selected <- .observation_rows(data, roles, require_present = TRUE)
+    dv <- as.numeric(data[[roles$dv]][selected])
+    dv[.endpoint(data, roles)[selected] == variable]
+  } else {
+    .subject_baseline_values(data, roles, variable)
+  }
+}
+
+# Rows for a panel drawn as overlaid density curves.
+.distribution_density_rows <- function(spec, values) {
+  pooled <- unlist(values, use.names = FALSE)
+  pooled <- pooled[is.finite(pooled)]
+  # A panel goes log10 when everything on it is positive and the values span
+  # more than two orders of magnitude: a PK concentration does, a weight does
+  # not. Only the flag is set here -- the values stay in their own units, and
+  # the panel gets its own scale_x_log10(), so the axis reads 1/10/100 rather
+  # than the transformed 0/1/2.
+  log10_panel <- all(pooled > 0) && max(pooled) / min(pooled) > 100
+  rows <- lapply(names(values), function(label) {
+    v <- as.numeric(values[[label]])
+    v <- v[is.finite(v)]
+    if (!length(v)) return(NULL)
+    data.frame(
+      variable = spec$variable, section = spec$section, kind = "density",
+      log10 = log10_panel, dataset = label, value = v,
+      level = NA_character_, proportion = NA_real_, stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+# Rows for a panel drawn as dodged proportion bars. Levels are shared across the
+# two datasets and ordered numerically when they are numbers, so a count
+# endpoint does not come back as 0, 1, 10, 2.
+.distribution_bar_rows <- function(spec, values, numeric) {
+  labelled <- lapply(values, function(x) {
+    if (numeric) {
+      x <- as.numeric(x)
+      vapply(x[is.finite(x)], function(v) format(v, trim = TRUE), character(1))
+    } else {
+      x <- as.character(x)
+      x[is.na(x)] <- "<missing>"
+      .level_label(x)
+    }
+  })
+  distinct <- unique(unlist(labelled, use.names = FALSE))
+  levels_all <- distinct[if (numeric) order(as.numeric(distinct)) else
+    order(distinct)]
+  rows <- lapply(names(labelled), function(label) {
+    counts <- table(factor(labelled[[label]], levels = levels_all))
+    if (!sum(counts)) return(NULL)
+    data.frame(
+      variable = spec$variable, section = spec$section, kind = "bars",
+      log10 = FALSE, dataset = label, value = NA_real_, level = levels_all,
+      proportion = as.numeric(counts) / sum(counts), stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+.distribution_panel_rows <- function(spec, datasets, roles) {
+  values <- lapply(datasets, function(d)
+    .panel_values(d, roles, spec$variable, spec$section))
+  numeric <- all(vapply(values, is.numeric, logical(1)))
+  if (numeric) {
+    pooled <- unlist(values, use.names = FALSE)
+    present <- pooled[is.finite(pooled)]
+    discrete <- length(unique(present)) <= .distribution_discrete_max
+  } else {
+    present <- unlist(lapply(values, as.character), use.names = FALSE)
+    present <- present[!is.na(present)]
+    discrete <- TRUE
+  }
+  if (!length(present)) return(NULL)
+  if (discrete) .distribution_bar_rows(spec, values, numeric) else
+    .distribution_density_rows(spec, values)
+}
+
+# One long frame behind the figure, so the classification is testable without
+# reaching into a plot object. `section` and `kind` are two different splits and
+# both are needed: `section` is the same is.numeric() test the tables make, so
+# the figure groups variables exactly as they do, while `kind` is the
+# distinct-value rule applied on top. A numeric covariate holding three levels
+# is `section = "continuous"` and `kind = "bars"`.
+.distribution_panel_data <- function(source, synthetic = NULL, roles) {
+  datasets <- list(source = source)
+  if (!is.null(synthetic)) datasets$synthetic <- synthetic
+
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoints <- sort(unique(.endpoint(source, roles)[observed]))
+  specs <- lapply(endpoints, function(v)
+    list(variable = v, section = "endpoint"))
+  for (covariate in roles$covariates) {
+    numeric <- is.numeric(.subject_baseline_values(source, roles, covariate))
+    specs[[length(specs) + 1L]] <- list(
+      variable = covariate,
+      section = if (numeric) "continuous" else "categorical"
+    )
+  }
+  # Endpoints, then continuous covariates, then categorical ones. order() is
+  # stable, so variables keep their declared order inside a section.
+  specs <- specs[order(match(vapply(specs, `[[`, character(1), "section"),
+                             c("endpoint", "continuous", "categorical")))]
+
+  parts <- lapply(specs, .distribution_panel_rows, datasets = datasets,
+                  roles = roles)
+  out <- do.call(rbind, Filter(Negate(is.null), parts))
+  if (is.null(out)) return(NULL)
+  rownames(out) <- NULL
+  out
+}
+
+# Panels are square-ish and the figure is read at a vignette's default width, so
+# three across is the most that stays legible. Four variables go 2x2 rather than
+# 3+1, which leaves a lone panel stranded on its own row.
+.distribution_ncol <- function(n) {
+  if (n <= 3L) max(n, 1L) else if (n == 4L) 2L else 3L
+}
+
+.distribution_panel_plot <- function(rows, show_y) {
+  colours <- .comparison_colours[.unique_in_order(rows$dataset)]
+  if (identical(rows$kind[[1L]], "density")) {
+    # after_stat(scaled) peaks every curve at 1, which is what puts a density
+    # panel and a bar panel on one 0-1 axis and lets them sit in one figure.
+    # after_stat(scaled) stays on the density layer rather than in the plot's
+    # own mapping: geom_rug() computes no stat, and would inherit a `y` it
+    # cannot evaluate.
+    figure <- ggplot2::ggplot(rows, ggplot2::aes(
+      x = value, colour = dataset, fill = dataset
+    )) + ggplot2::geom_density(
+      ggplot2::aes(y = ggplot2::after_stat(scaled)),
+      alpha = 0.25, linewidth = 0.6, na.rm = TRUE, key_glyph = "rect"
+    )
+    if (max(table(rows$dataset)) <= .distribution_rug_max) {
+      figure <- figure + ggplot2::geom_rug(
+        alpha = 0.6, length = ggplot2::unit(0.04, "npc"), show.legend = FALSE
+      )
+    }
+    if (isTRUE(rows$log10[[1L]])) figure <- figure + ggplot2::scale_x_log10()
+  } else {
+    rows$level <- factor(rows$level, levels = .unique_in_order(rows$level))
+    figure <- ggplot2::ggplot(rows, ggplot2::aes(
+      x = level, y = proportion, colour = dataset, fill = dataset
+    )) + ggplot2::geom_col(alpha = 0.75, linewidth = 0.3, key_glyph = "rect",
+                           position = ggplot2::position_dodge(
+                             preserve = "single"))
+  }
+  figure +
+    ggplot2::scale_colour_manual(values = colours) +
+    ggplot2::scale_fill_manual(values = colours) +
+    # One legend for the whole figure, and it has to be identical on every
+    # panel or patchwork collects one per variant. Three things have to match:
+    # the colour guide is dropped, the fill guide's alpha is pinned, and both
+    # geoms are told to draw a `rect` key -- a density's own key glyph is a
+    # line, which is enough on its own to make a second legend.
+    ggplot2::guides(
+      colour = "none",
+      fill = ggplot2::guide_legend(override.aes = list(alpha = 0.6,
+                                                       linewidth = 0))
+    ) +
+    ggplot2::labs(x = NULL, y = if (show_y) "Relative frequency" else NULL,
+                  title = rows$variable[[1L]], fill = NULL) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(size = 10),
+      axis.title.y = ggplot2::element_text(size = 8),
+      axis.text = ggplot2::element_text(size = 7),
+      panel.grid.minor = ggplot2::element_blank()
+    )
+}
+
+.distribution_plot <- function(panels) {
+  variables <- .unique_in_order(panels$variable)
+  columns <- .distribution_ncol(length(variables))
+  plots <- lapply(seq_along(variables), function(i) {
+    .distribution_panel_plot(
+      panels[panels$variable == variables[[i]], , drop = FALSE],
+      show_y = ((i - 1L) %% columns) == 0L
+    )
+  })
+  patchwork::wrap_plots(plots, ncol = columns) +
+    patchwork::plot_layout(guides = "collect") +
+    patchwork::plot_annotation(
+      theme = ggplot2::theme(legend.position = "bottom",
+                             legend.justification = "left")
+    )
+}
+
+# ggplot2 and patchwork are both Suggests, so the figure has to say which one is
+# missing and name the way through rather than failing on a namespace call.
+.assert_distribution_plotting <- function() {
+  missing <- Filter(function(p) !requireNamespace(p, quietly = TRUE),
+                    c("ggplot2", "patchwork"))
+  if (length(missing)) {
+    stop(sprintf(
+      "`output = \"plots\"` needs %s. Install %s, or call with `output = \"tables\"`.",
+      paste(sprintf("`%s`", missing), collapse = " and "),
+      if (length(missing) > 1L) "them" else "it"
+    ), call. = FALSE)
+  }
+}
+
+#' How tall the distribution figure should be drawn
+#'
+#' The figure gets one panel per endpoint and per baseline covariate, so a study
+#' with five endpoints needs several times the height of a study with one.
+#' `fig.height` is fixed before a chunk runs and cannot be read off the plot, so
+#' pass this to the chunk option instead of letting every figure inherit one
+#' default and arrive squashed or stranded in white space.
+#'
+#' ````
+#' ```{r, fig.height = compare_pmx_distributions_height(raw, roles)}
+#' compare_pmx_distributions(raw, synthetic, roles)
+#' ```
+#' ````
+#'
+#' @param source Source PMX data.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param per_row Inches per row of panels.
+#' @param minimum Inches below which the figure is never drawn, so a
+#'   single-panel study does not come out as a letterbox.
+#'
+#' @return One number, in inches.
+#' @seealso [compare_pmx_distributions()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = c("WT", "SEX")
+#' )
+#' compare_pmx_distributions_height(data, roles)
+compare_pmx_distributions_height <- function(source, roles, per_row = 2.1,
+                                             minimum = 3) {
+  .assert_roles(source, roles)
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  panels <- length(unique(.endpoint(source, roles)[observed])) +
+    length(roles$covariates)
+  max(minimum, 0.6 + per_row * ceiling(panels / .distribution_ncol(panels)))
+}
+
 #' Compare per-covariate and per-endpoint distributions of source and synthetic
 #'
-#' A numeric sanity check to run right after generating data. For each baseline
-#' covariate and each endpoint (`dvid`), it summarizes the distribution in the
-#' source and in the synthetic dataset side by side. The dependent variable and
-#' continuous covariates get n, mean, standard deviation, minimum, quartiles, and
-#' maximum; categorical covariates get per-level counts and proportions.
+#' A sanity check to run right after generating data. For each baseline
+#' covariate and each endpoint (`dvid`), it compares the distribution in the
+#' source against the one in the synthetic dataset.
+#'
+#' By default it draws them: one panel per endpoint and per covariate, source in
+#' blue against synthetic in orange. A panel holding more than eight distinct
+#' values is drawn as overlaid density curves, each scaled to peak at 1, with a
+#' rug of the values themselves when there are few enough to see; a panel with
+#' eight or fewer is drawn as proportion bars, which is what makes an ordinal,
+#' count or binary endpoint readable. A panel whose values are all positive and
+#' span more than two orders of magnitude gets a log10 axis. `output = "tables"`
+#' returns the numbers instead: n, mean, standard deviation, minimum, quartiles
+#' and maximum for the dependent variable and continuous covariates, per-level
+#' counts and proportions for categorical ones.
+#'
+#' Pass [compare_pmx_distributions_height()] to a chunk's `fig.height`. The
+#' figure grows a row of panels at a time and the chunk option is fixed before
+#' the chunk runs, so nothing else can size it.
 #'
 #' This is the distributional companion to [compare_pmx()]. That function answers
 #' whether the *structure* matches — schema, event grammar, row and event counts;
 #' this one answers whether the *numbers* land in the same range. It is a
 #' diagnostic, not a validation of statistical fidelity: AVATAR and the
 #' differentially private engines deliberately do not reproduce source
-#' distributions exactly, so expect the summaries to be close in magnitude and
-#' shape, not identical.
+#' distributions exactly, so expect the two to be close in magnitude and shape,
+#' not identical.
 #'
-#' Every table is source-derived, so each is marked
+#' Figure and tables alike are source-derived, so each is marked
 #' `"restricted_not_releasable"`: it reads real covariate and endpoint values and
 #' stays under the source data's access controls like any other
 #' source-versus-synthetic diagnostic.
@@ -244,11 +529,16 @@ print.pmx_comparison <- function(x, ...) {
 #' @param synthetic Generated synthetic PMX data, or `NULL` to summarize `source`
 #'   on its own.
 #' @param roles Explicit roles from [pmx_roles()].
+#' @param output `"plots"` for the figure, `"tables"` for the numbers behind it.
+#'   The figure needs `ggplot2` and `patchwork`.
 #'
-#' @return A `pmx_distribution_summary`: a list of `endpoints`,
-#'   `covariates_numeric`, and `covariates_categorical` data frames. Each is
-#'   `NULL` when the dataset declares no columns of that kind.
-#' @seealso [compare_pmx()] for the structural comparison.
+#' @return With `output = "tables"`, a `pmx_distribution_summary`: a list of
+#'   `endpoints`, `covariates_numeric`, and `covariates_categorical` data
+#'   frames, each `NULL` when the dataset declares no columns of that kind. With
+#'   `output = "plots"`, one composed `ggplot`. Either carries a
+#'   `"release_status"` attribute.
+#' @seealso [compare_pmx()] for the structural comparison, and
+#'   [compare_pmx_distributions_height()] for sizing the figure.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(20)
@@ -257,13 +547,25 @@ print.pmx_comparison <- function(x, ...) {
 #'   cmt = "CMT", dvid = "DVID", covariates = c("WT", "SEX")
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
-#' compare_pmx_distributions(data, synthetic, roles)
-compare_pmx_distributions <- function(source, synthetic = NULL, roles) {
+#' compare_pmx_distributions(data, synthetic, roles, output = "tables")
+compare_pmx_distributions <- function(source, synthetic = NULL, roles,
+                                      output = c("plots", "tables")) {
+  output <- match.arg(output)
   .assert_roles(source, roles)
   datasets <- list(source = source)
   if (!is.null(synthetic)) {
     .assert_roles(synthetic, roles)
     datasets$synthetic <- synthetic
+  }
+
+  if (identical(output, "plots")) {
+    .assert_distribution_plotting()
+    panels <- .distribution_panel_data(source, synthetic, roles)
+    if (is.null(panels)) {
+      stop("No endpoint or covariate has values to draw.", call. = FALSE)
+    }
+    return(.mark_release(.distribution_plot(panels),
+                         "restricted_not_releasable"))
   }
 
   numeric_rows <- list()
