@@ -5,24 +5,330 @@ Who the reader is, and how to write a document he will not have to send back.
 **When to read this.** When asked to draft a new document, or to substantially
 rewrite an existing one — a vignette, an article, `README.md`, or a long
 summary. Not for code, test, or registry work, and not as a session preamble.
-Part 3 opens with the short list of prose habits that applies to *everything*,
-including conversation, commit messages and comments; the rest of the file is
-calibrated for one reader.
+Part 1 is what to do; Parts 2 and 3 are the evidence behind it. The
+machine-prose tics in Part 1 apply to *everything*, including conversation,
+commit messages and comments.
 
-**Who updates it.** Andy, by asking for a review of recent history. Do not
-append to it during a session. If something here looks wrong, or contradicted by
-what just happened, say so in the conversation and let him decide.
+**Who updates it.** Andy, by asking for a review of recent history, about once a
+month. Do not append to it during a session; say in the conversation what looks
+wrong and let him decide. He answers in place, marked `[Andy Note]`, left where
+the wrong claim was — two are live, on O14 and on rule 5.
 
-**Status.** Merged 2026-08-14 from `WRITING_STYLE.md` and `_THEORY_OF_MIND.md`.
-Observations first written 2026-08-05; rules accumulated through 2026-08-14. The
-merge dropped `WRITING_STYLE.md`'s tics list and its search step, and both were
-restored to Part 3 on 2026-08-14 at Andy's request.
-Sections are numbered in two independent series — `O###` for observations about
-the reader, plain numbers for the writing rules — and the gaps in the `O###`
-series are deliberate, because those identifiers are cited elsewhere. Do not
-renumber to close them.
+**Numbering.** Two independent series: `O###` for observations about the reader,
+plain numbers for the writing rules. The gaps in `O###` are deliberate. The
+numbers are how he refers to them in conversation and O1 is cited from
+`learning/EFFECTIVE_LEARNING.md`, so do not renumber to close them.
+
+**Update log.**
+
+- 2026-08-05 — first observations, from the session of 08-04/05.
+- 2026-08-14 — merged from `WRITING_STYLE.md` and `_THEORY_OF_MIND.md`; the tics
+  list and its search step restored at Andy's request.
+- 2026-08-14, second pass — reordered actionable-first. Rules 14 to 16 and O17
+  added from his own edits of 08-13 and 08-14; the contract table added; O14 and
+  two open questions closed; the proposals section retired. 546 lines to 574:
+  about 85 lines of new material against 57 cut from the old.
 
 ---
+
+# Part 1 — Before handing over a draft
+
+## The document contract
+
+Documentation comes in four kinds, and a page that tries to be two of them
+serves neither reader: a **tutorial** teaches by doing, a **how-to** accomplishes
+one task, a **reference** answers a lookup, an **explanation** says why. Decide
+which one a document is before writing it, and let that decide how long it may
+be.
+
+| Document | Reader | Kind | Length |
+|---|---|---|---|
+| `README.md` | Deciding whether to try it | how-to | thin |
+| `demo.Rmd` | First run | tutorial | thin |
+| `scorecard-synthetic-data-checks.Rmd` | Judging one run | how-to | as long as the checks need |
+| `public-data-examples.Rmd` | Finding a dataset like theirs | reference | one fixed shape per dataset |
+| `avatar-algorithm.Rmd` | Auditing the mechanism | reference | exhaustive |
+| `synpmx-4-methods.Rmd` | Choosing a method | explanation | thin |
+| `articles/*-review.Rmd` | Learning the field | tutorial | as long as it needs |
+| `design/` | Claude, and him later | reference | exhaustive |
+
+The table is the mechanical form of the O10 / rule 12 tension: he wants a draft
+complete enough that he iterates less, and he cuts shipped entry points in half.
+The tier decides which applies, before drafting rather than in review.
+
+## The machine-prose tics
+
+Widely reported markers of machine-written prose, several of which appear in
+this repo's own drafts. Unlike the rest of this file, the list applies to
+*everything* — conversation, commit messages and code comments as much as
+documents.
+
+- **Contrastive antithesis.** "It is not X, it is Y", "not a bug, a feature". He
+  deletes these by hand: "dropped *rather than quietly copied out of a real
+  patient*" became "dropped" in `c972373`.
+- **The rule of three** applied to everything: three adjectives, three-clause
+  sentences, three-item lists where two items exist.
+- **Significance announcements.** "crucial", "pivotal", "key insight",
+  "fundamental", "underscores", "highlights", "testament to".
+- **Hedge-then-assert.** "It is worth noting that", "It is important to
+  understand", "arguably", "in many ways".
+- **Vocabulary.** delve, leverage, robust, seamless, landscape, realm, tapestry,
+  navigate the complexities, deep dive, at its core, in essence, that said.
+- **The closing summary.** "In conclusion", "Ultimately", "The takeaway is". If
+  the section needs a summary, it is too long.
+- **Bold as emphasis spray.** Bold marks a term being defined or a verdict;
+  three bolded phrases in one paragraph mark none of them.
+- **Symmetric sentence pairs.** "X does A. Y does B." for rhythm, not content.
+- **Second-person coaching.** "Let us break this down", "Think of it like",
+  "Here is the thing".
+- **Invented framing.** A coined metaphor ("the manifest of what survives") in
+  place of a literal description. Deleted in `f8c22f1`; rule 12 says it again.
+- **The aphoristic section opener.** "The tier that is easy to skip and
+  embarrassing to fail." "Two public datasets, and the second one is the point."
+  Both deleted in `d333313`. A section starts at its content.
+- **Sycophancy.** No "great question", no praising the request, no announcing
+  that something is a strong idea before doing it.
+
+## The checklist
+
+1. The document's kind and length are settled against the contract table above.
+2. Every heading names a subject (rule 2).
+3. No sentence describes the document, its structure, or its own difficulty
+   (rule 1).
+4. Each paragraph's first sentence stands alone with the topic explicit (rule 4).
+5. Every acronym expanded at first use, and every method from outside
+   pharmacometrics explained from zero (O8), answering *what is calculated, from
+   what inputs, and what does a good number look like* (O1).
+6. Verdicts lead; nuance follows, and a hedge is a legitimate verdict (rule 10).
+7. Out-of-scope stated explicitly and bluntly, once, at the top (rule 11).
+8. Numbers where a claim is measurable, computed on a real dataset where they
+   can be; no adjective standing in for one (rule 9, O12).
+9. Nothing says the document has two halves (rule 13). Comparable items climb
+   the ladder sentence → list → table → figure and stop at the rung that answers
+   the question (rules 7 and 15).
+10. No number is restated in prose that a function already prints (rule 14).
+11. Read the em dashes. Keep the parentheticals, cut the pauses (rule 8).
+12. A survey ends with a ranked entry path (O9), and repeated things hold the
+    same shape in the same order (O17).
+13. The tics above are *searched for*, not read for: crucial, key, worth,
+    honestly, delve, leverage, robust, seamless, "not just", "it is worth
+    noting", "here is why", "the point is".
+
+---
+
+# Part 2 — The rules
+
+Every rule below is derived from an edit he actually made. The cited commits and
+diffs are the evidence, and when a rule and the evidence disagree, the evidence
+wins.
+
+## 1. Do not describe the document inside the document
+
+Cut on 2026-08-11 from `synthetic-data-checking-review.Rmd`: "is separate from
+the literature on generating it, has its own vocabulary, and is easy to reinvent
+badly if you have not read it" / "written as a tutorial rather than a survey" /
+"and says where `synpmx` fits among them" / "Current as of August 2026".
+
+What survived: "This article is a tutorial on these methods and at each step it
+states which measures `synpmx` implements, which it does not, and why." One
+sentence, describing content rather than the author's intentions. A reader who
+is reading the document does not need to be sold on it.
+
+## 2. A heading names its subject
+
+| Deleted | Replaced with |
+|---|---|
+| The fix, and it is the same fix everywhere | Training vs Control Set |
+| What it costs in pharmacometrics, honestly | Applications of control set to pharmacometrics datasets |
+| Why this is hard: population facts versus patient facts | Introduction |
+| How synthetic data is made | Algorithms for Generating Synthetic Data |
+| Running it on your own study | Generating Synthetic Data with AVATAR algorithm |
+| The checks to run, most of which do not exist yet | B5b. The source-side census |
+
+No stance words (`honestly`, `worth having`), no narrative beats (`The fix`,
+`Now the part that needs the holdout`), no colon-plus-restatement. A reader
+scanning the table of contents should find a topic, not follow a plot. He writes
+headings in title case, and where a document is organized around numbered items
+the heading carries the number.
+
+## 3. Cut transitional stage directions
+
+Deleted: "Here is why the separation is hard." / "Now make it a measurement
+problem." / "If that feels familiar, it should:" / "Here is the part that closes
+the loop." These announce a move instead of making it. Delete the sentence and
+start the paragraph at its content.
+
+## 4. Repeat the noun; do not lean on a pronoun
+
+He *adds* words for this, while deleting words everywhere else.
+
+- "**You cannot tell from the synthetic data alone.**" became "**You cannot tell
+  from the synthetic data alone if a leak of individual information occurred.**"
+- "...only person who could have qualified for it, it is." became "...only person
+  who could have qualified for it, then it is a leak."
+
+A sentence that depends on the previous sentence for its subject fails when the
+reader arrives from the table of contents, and this reader does arrive from the
+table of contents. He also splits appositives rather than nesting them: "AVATAR,
+called by `synpmx_avatar()` needs two things" became "AVATAR is called by
+`synpmx_avatar()`. It needs two things." (`c972373`).
+
+## 5. Do not grade the evidence
+
+[Author Note: Collect more data to confirm if this is truly a signal, I'm not sure.  Might just be an idiosyncratic preference here]
+
+Deleted: "which is the strongest signal in this whole area that it is not
+optional" / "the raw value of either one on its own is close to meaningless" /
+"This is a real reason the technique is rare in this field and not a reason it
+is wrong." Report what the four lines of work do. He will decide how strong that
+is. Superlatives go the same way: "It is the **only** public dataset shaped like
+a real study report" lost its "only" in `d333313`.
+
+## 6. State a recommendation as an instruction
+
+"**Hold some patients out.** Split the real cohort in two: a *training* set the
+generator is allowed to use, and a *control* set it never sees." became "**To
+assess a synthetic data generating algorithm, split real cohort into a training
+and control (holdout) set.**" The bolded clause carries the action and the
+definitions ride along inside it. See rule 10: the verdict comes first, the
+nuance second.
+
+Where the reader has more than one action available, give both. He edited "the
+right answer is to leave it undeclared, which is what the run above does" into
+"leave it undeclared or to correct the censoring variable."
+
+## 7. Two items is a sentence, three is a list, four columns is a table
+
+He collapsed a two-bullet list ("the generator captured the population, which is
+success" / "the generator memorized individual patients, which is failure") back
+into one clause. Bullets start at three items, or where each item is long enough
+to be hard to hold.
+
+**The threshold for a table is columns, not items.** An earlier version of this
+rule said four comparable items go in a table, and his own edit is the
+counter-example: he cut the eighteen-row scorecard table from five columns to
+two, then rewrote it as a nested bullet list under the four category names.
+Eighteen items, no table. Use a table when each item answers *several* questions
+in the same form, a list when each answers one. Prose comparison of five things
+loses him either way.
+
+## 8. Punctuation
+
+- Em dashes are for a genuine parenthesis, not for a rhetorical pause. Most of
+  his edits replace one with a period or a comma. The one measured target comes
+  from `42d6d02`, which took an 846-line vignette from 71 em dashes to 19, about
+  one per forty lines.
+- He types `--` and two spaces after a period. Leave both alone, and do not
+  reflow his paragraphs to 80 columns when editing next to them.
+
+## 9. Numbers survive; adjectives do not
+
+"a *median local cloaking of 11*", "253 patients", "`k` = 5 donors" all survive
+review untouched. "considerably", "genuinely", "wildly", "close to meaningless",
+"the elegant part" are what gets cut. Prefer the measurement to the
+characterization of the measurement.
+
+## 10. A verdict leads, and the verdict may be a hedge
+
+The four use-case lines in `README.md` each open with a marker and a verdict in
+parentheses: **✅ Develop code**, **✅ Teaching tool (Yes)**, **⚠️ Send data past
+a trust boundary (Use Caution)**, **❌ Answer scientific questions (No)**. The
+nuance follows within the same line — "the formal privacy-protecting methods
+provided with this package are illustrative, but not audited" is still there,
+after the verdict rather than softening it.
+
+**An earlier version of this rule said he converts hedged verdicts into binary
+ones. He rejected it in writing and reverted the example.** The trust-boundary
+row was Claude's "Only with care", became his "No", and is now "⚠️ Use Caution".
+What the evidence supports is the *marker* first so the line is scannable. Do not
+flatten a real "it depends" into a "No" to satisfy this rule.
+
+The marker generalizes past prose: `synpmx_scorecard_datatable()` (`9633859`)
+colours `FAIL` red and `review` orange, because five verdicts among thirty-odd
+rows were being found by reading all of them. Mark a verdict that sits inside a
+body of output.
+
+## 11. State the out-of-scope, and state it bluntly, once
+
+"Maybe I want to be explicit about this is not about scientific discovery." His
+own `README.md` rewrite replaced a four-row table of hedged verdicts with four
+bolded lines carrying ✅ / ⚠️ / ❌ markers. Every explanatory document should
+carry an explicit out-of-scope statement, unqualified. The "why almost none of
+this is `synpmx`'s problem" subsection in
+`vignettes/articles/synthetic-data-checking-review.Rmd` exists because of this.
+
+It belongs at the document level, not in each section. He deleted "It does not
+assess scientific validity, and it is not a privacy check." from underneath
+`validate_pmx()`, where it was a third statement of a scope already declared.
+
+## 12. Thin at the entry point; literal over coined
+
+`f8c22f1` cut a fully annotated 13-argument `synpmx_avatar()` call down to four
+arguments and removed the multi-line hanging comments explaining `dvid` and
+`dose_covariate`. The same commit deleted the coinage "The declaration is also
+the **manifest of what survives**" in favour of "The function drops every column
+that is not described."
+
+`c972373` is the same edit a week later: the paragraph arguing why `remotes` is
+the right installer, and the paragraph on pinning a branch and building
+vignettes, both cut from `README.md`. Show the minimum that works; detail
+belongs one document deeper. Prefer literal description to coined framing — the
+metaphors reached for to make something memorable are what he deletes first. The
+contract table in Part 1 says where this applies and where O10 overrides it.
+
+## 13. One document, one question
+
+2026-08-11, unprompted: *"I think the literature review should be split into two
+files"* — generation into one article, checking into another. The article had
+announced itself as having two halves since it was written and survived one
+review pass in that form before he cut it.
+
+Treat "this article has two halves" as a defect report a draft wrote about
+itself. When an outline needs that sentence, propose two documents instead;
+navigation is cheap, and a reader arriving for the checking tutorial should not
+scroll through the generation survey. The shared instinct behind this rule,
+rule 7 and rule 12 is that **each artifact should do one thing, at the smallest
+size that does it**.
+
+## 14. The document names the questions; the output carries the answers
+
+`d333313`, his own edit. The scorecard vignette led with an eighteen-row table
+of `# | Question | What to run | Reads | Pass`, restating in static prose what
+`synpmx_scorecard()` prints on a real run. He cut it to `# | Question` and
+replaced the other three columns with five bullets saying what the function's
+own output contains.
+
+A number written into prose beside a function that computes it will go stale,
+and the reader cannot tell which is current. Name the question in the document,
+run the function, let the output answer. The cross-document contract in
+`AGENTS.md` now has this shape: every row the function emits has a section under
+the same identifier, stating the criterion the function actually scores.
+
+## 15. Past a table, draw it
+
+`cb036bc`: `compare_pmx_distributions()` printed nine columns per endpoint and
+per covariate, "which is not how anyone judges whether two distributions agree",
+and now draws source against synthetic by default.
+
+The full ladder is sentence → list → table → figure. A table answers *what is
+the value*; a figure answers *what is the shape*, and no table of moments does —
+one mode and two modes with the same mean and spread give identical rows. Where
+the question is about a distribution, a trajectory or a schedule, draw it and
+let the table be the supporting detail.
+
+## 16. Fix the wreckage of his edits, and restore nothing
+
+He edits fast and leaves debris: `ollowing`, `hat data`, `teh` and `placae`
+across two commits, a dangling "either." where a sentence was cut in half, and
+"It is the shaped like a real study report" where "only public dataset" came out
+of the middle of a clause. Repair the broken sentence and the mistyped word on
+the next pass over that file, silently. Never reinstate what he removed, never
+reflow the paragraph around it (rule 8), and do not read the debris as license
+to rewrite the passage he has just rewritten.
+
+---
+
+# Part 3 — The reader
 
 ## The original charter, in his words
 
@@ -41,30 +347,26 @@ renumber to close them.
 > humans. To do that, start by using this document. Keep a structured set of
 > observations based on the questions I ask and the documents I create.
 
----
-
-# Part 1 — The reader
-
-The rules in Part 2 read as arbitrary until you know where they came from. This
-part is that.
-
 ## Where the evidence comes from
 
 Three sources, in decreasing order of reliability.
 
 1. **His own commits editing Claude's prose.** `f8c22f1 "simplify readme"`
-   (−123/+31 lines) and the README rewrite in `0edffdc`. These are revealed
-   preference and outrank anything he says about his preferences.
+   (−123/+31), the README rewrite in `0edffdc`, `c972373 "update readme"`
+   (−21/+16), and `d333313 "updating scorecard and its vignette"`. These are
+   revealed preference and outrank anything he says about his preferences, and
+   they are recognizable by their commit messages: lower case, a few words,
+   typos left in.
 2. **The verbatim questions in the 2026-08-04/05 session.** A dense list of
    "I don't know X" / "I'm not sure I get Y" / "I don't care about Z".
 3. **Rules he has written into `AGENTS.md`** — especially the acronym rule and
    the README-ownership rule. Each of those is a scar from earlier friction.
 
-**Standing caveat.** Andy had **not reviewed** the checking-literature article or
-most of `scorecard-synthetic-data-checks.Rmd` when the observations below were
-written. Anything citing those documents is evidence about *what he asked for*,
-not evidence that the result worked. His own edits are the strong evidence
-because they are decisions rather than requests. Mark what turns out to be wrong.
+**Standing caveat.** As of 2026-08-14 he has read and hand-edited `README.md`
+and the front of `scorecard-synthetic-data-checks.Rmd`, and has **not** read the
+two literature-review articles or `avatar-algorithm.Rmd`, both queued in
+`design/_TODO_owner.md`. Anything citing those is evidence about *what he asked
+for*, not that the result worked. Mark what turns out to be wrong.
 
 ## O1 — He asks for the mechanism, not the citation
 
@@ -111,11 +413,10 @@ distributions" (a **scope** decision), "I'm not sure what pMSE is" (an
 you're talking about. On did we lose the tails, is the idea we want to?"
 (**both** — explain the concept, then rule on whether it matters).
 
-**What to do.** Separate the two explicitly. A scope statement should change what
-the document *claims*; an explanation request should change what the document
-*teaches*. Conflating them produces the worst outcome — cutting a section he
-didn't understand but did want, or explaining at length something he had already
-ruled out.
+**What to do.** Separate the two explicitly. A scope statement changes what the
+document *claims*; an explanation request changes what it *teaches*. Conflating
+them cuts a section he did not understand but did want, or explains at length
+something he had already ruled out.
 
 ## O8 — He is an expert in one half of every document and a novice in the other
 
@@ -124,16 +425,12 @@ dosing, arms, or dropout. He needed full definitions of linkability, WP29, pMSE,
 authenticity, local cloaking, and adversarial accuracy. The line falls exactly at
 the pharmacometrics / statistical-disclosure-control boundary.
 
-**What to do.** Make that boundary conscious rather than accidental. In any
-document that crosses it, the pharmacometric side can be terse to the point of
-shorthand and the privacy/statistics side must be taught from zero. The
-`AGENTS.md` acronym rule is a blunt instrument aimed at this problem; the sharper
-version is **expand every acronym, and fully explain every named method that
-comes from outside pharmacometrics.**
-
-This is the *expertise reversal effect* (Part 4): the scaffolding that helps him
-in the unfamiliar half actively annoys him in the familiar half. Uniform
-explanation depth is wrong in both directions at once.
+**What to do.** Make that boundary conscious rather than accidental. The
+pharmacometric side can be terse to the point of shorthand and the
+privacy/statistics side must be taught from zero: **expand every acronym, and
+fully explain every named method that comes from outside pharmacometrics.**
+Uniform explanation depth is wrong in both directions at once — the expertise
+reversal effect, in Part 4.
 
 ## O9 — "Where do I start?" is a literal request
 
@@ -151,11 +448,8 @@ not answer the question he actually asked.
 He will accept a longer first draft if it reduces the number of passes.
 
 **Resolution of the conflict.** The tolerance for length is a function of the
-document *tier*, not of his mood. Internal `design/` documents and proposals
-should be exhaustive — that is where "iterate less" applies. Shipped entry points
-(`README.md`, and the top of each vignette) must be thin — that is where rule 12
-applies. Getting this backwards is what produced the README he had to cut in
-half.
+document *tier*, not of his mood, and the contract table in Part 1 is where the
+tier is written down. Getting it backwards produced the README he cut in half.
 
 ## O11 — A mangled term is a reliable signal that the concept has not landed
 
@@ -177,21 +471,26 @@ every defect was found by looking at output, not by reasoning about the
 algorithm.
 
 **What to do.** Prefer a document that *computes* its claims on a real dataset
-over one that asserts them. The scorecard he accepted immediately has exactly
-this shape: a static table of claims in one document, and a runnable version that
-fills it in on a real run in another. That pairing is worth reusing.
+over one that asserts them. `42d6d02` is the shape that stuck: run
+`synpmx_scorecard()` on both datasets immediately after reading them, so the
+reader meets two filled-in cards before any explanation of what a check asks.
 
-## O14 — Unresolved: the long narrative sections drew no questions
+## O14 — Essay-shaped sections do not earn their length
 
 **Evidence.** He asked nothing at all about sections E ("what these checks cannot
-tell you") and F ("check the output, not the algorithm") of the checks vignette —
-the two most essay-like, least tabular parts of the corpus.
-
-**Two readings, and this file cannot distinguish them.** Either they worked, or
-he skipped them. This matters a lot for how much narrative future documents
-should carry. **Ask him directly.**
+tell you") and F ("check the output, not the algorithm") of the checks vignette,
+the two most essay-like parts of the corpus. This file recorded that as
+ambiguous — they worked, or he skipped them — and asked him.
 
 [Andy Note] These sections were not good and were significantly changed.  F removed altogether.
+
+**What to do.** Silence on a narrative section is not approval. Section F was
+deleted outright in `c17f23e` and section E lost its label; what replaced them is
+a numbered subsection per check, each opening with what it asks and what counts
+as passing (`58fe067`). Where a document is organized around a list of items,
+give every item its own numbered subsection and let the argument live inside it.
+Prose that has to stand alone should be short, under a heading that names a
+subject rather than a stance.
 
 ## O16 — He asks for the design tradeoff to be argued, not just implemented
 
@@ -200,345 +499,76 @@ and a fix for when LIDV is binary or ordinal or categorical. And actually, give
 a thought of whether it's reasonable for this to be determined from the data or
 whether it should be specified in the pmxroles somehow."* The instruction to
 build came first and was unambiguous; the second sentence reopened the interface
-question that the first sentence's phrasing had already implied one answer to.
-He wanted the alternative weighed before the code existed, not after.
-
-Note also what he did not ask for: he named the symptom in his own terms ("when
-LIDV is binary or ordinal or categorical") rather than the ID of the issue that
-had just been filed, and he asked for **a check and a fix**, both, in one
-sentence. Consistent with O12 (he reviews by running things): a fix he cannot
-see fire is half a delivery.
+question the first had already implied an answer to. He wanted the alternative
+weighed before the code existed. Note also that he named the symptom in his own
+terms rather than the ID of the issue just filed, and asked for **a check and a
+fix** in one sentence — per O12, a fix he cannot see fire is half a delivery.
 
 **What to do.** When a task has an inference-versus-declaration fork — or any
 comparable interface choice — state the fork and the answer in the reply, with
 the reason, in a few sentences. Do not present it as an open question to be
-resolved before starting, and do not bury it in a code comment either. The
-answer that fit here was *both*: infer by default where the data answers the
-question outright, and provide the declaration as the override, which is the
-same shape as `dose_covariate` one step further along. Cite the existing
-precedent in the package when there is one; it is the strongest argument
-available and it keeps the API consistent.
+resolved before starting, and do not bury it in a code comment. The answer that
+fit here was *both*: infer by default where the data answers the question
+outright, and offer the declaration as the override, which is `dose_covariate`
+one step further along. Cite the existing precedent when there is one; it is the
+strongest argument available and it keeps the API consistent.
+
+## O17 — He reads by comparing, so repeated things must hold their shape
+
+**Evidence.** `27da2d9` and `58fe067`, both his: every scorecard now emits all
+its rows even where the roles gave a check nothing to ask, because "two cards
+that hold different rows cannot be compared, and the absence reads as a check
+that passed when it means the question was never asked". `c5c8348` is the same
+instinct at document scale — the two `xgxr` study-shaped datasets moved from last
+to first in `public-data-examples.Rmd`, so the six sparser sets after them are
+read against something familiar.
+
+**What to do.** Anything appearing more than once — a card, a dataset section, a
+worked example — holds the same shape in the same order, and says explicitly
+when a slot is empty rather than omitting it. Order a sequence so the first item
+teaches the ones after it, rather than by taxonomy or by date written.
 
 ---
 
-# Part 2 — The rules
+# Part 4 — Where these came from
 
-Every rule below is derived from an edit he actually made. The cited commits and
-diffs are the evidence, and when a rule and the evidence disagree, the evidence
-wins.
+Browsed 2026-08-05. Four sources, each already applied above.
 
-## 1. Do not describe the document inside the document
-
-Cut on 2026-08-11 from `synthetic-data-checking-review.Rmd`:
-
-- "is separate from the literature on generating it, has its own vocabulary,
-  and is easy to reinvent badly if you have not read it"
-- "written as a tutorial rather than a survey"
-- "and says where `synpmx` fits among them"
-- "Current as of August 2026"
-
-What survived: "This article is a tutorial on these methods and at each step it
-states which measures `synpmx` implements, which it does not, and why." One
-sentence, and it describes content rather than the author's intentions. A
-reader who is reading the document does not need to be sold on it.
-
-## 2. A heading names its subject
-
-| Deleted | Replaced with |
-|---|---|
-| The fix, and it is the same fix everywhere | Training vs Control Set |
-| What it costs in pharmacometrics, honestly | Applications of control set to pharmacometrics datasets |
-| Why this is hard: population facts versus patient facts | Introduction |
-| How synthetic data is made | Algorithms for Generating Synthetic Data |
-
-No stance words (`honestly`, `worth having`), no narrative beats (`The fix`,
-`Now the part that needs the holdout`), no colon-plus-restatement. A reader
-scanning the table of contents should be able to find a topic, not follow a
-plot.
-
-## 3. Cut transitional stage directions
-
-Deleted: "Here is why the separation is hard." / "Now make it a measurement
-problem." / "If that feels familiar, it should:" / "Here is the part that closes
-the loop." These announce a move instead of making it. Delete the sentence and
-start the paragraph at its content.
-
-## 4. Repeat the noun; do not lean on a pronoun
-
-He *adds* words for this, while deleting words everywhere else.
-
-- "**You cannot tell from the synthetic data alone.**" became "**You cannot tell
-  from the synthetic data alone if a leak of individual information occurred.**"
-- "...only person who could have qualified for it, it is." became "...only person
-  who could have qualified for it, then it is a leak."
-
-A sentence that depends on the previous sentence for its subject fails when the
-reader arrives from the table of contents, and this reader does arrive from the
-table of contents.
-
-## 5. Do not grade the evidence
-
-[Author Note: Collect more data to confirm if this is truly a signal, I'm not sure.  Might just be an idiosyncratic preference here]
-
-Deleted: "which is the strongest signal in this whole area that it is not
-optional" / "the raw value of either one on its own is close to meaningless" /
-"This is a real reason the technique is rare in this field and not a reason it
-is wrong." Report what the four lines of work do. He will decide how strong that
-is.
-
-## 6. State a recommendation as an instruction
-
-"**Hold some patients out.** Split the real cohort in two: a *training* set the
-generator is allowed to use, and a *control* set it never sees." became "**To
-assess a synthetic data generating algorithm, split real cohort into a training
-and control (holdout) set.**" The bolded clause carries the action and the
-definitions ride along inside it. See rule 10: the verdict comes first, the
-nuance second.
-
-## 7. Two items is a sentence, three is a list, five is a table
-
-He collapsed a two-bullet list ("the generator captured the population, which is
-success" / "the generator memorized individual patients, which is failure") back
-into one clause. Bullets start at three items, or where each item is long enough
-to be hard to hold.
-
-Past about four comparable items, use a table instead. "I like your idea of the
-scorecard table near the top" was accepted without modification, unlike almost
-everything else in that message, and he immediately extended it ("maybe one part
-of the scorecard is just synpmx_validate") — the response of someone who has
-understood a structure well enough to add to it. Use a table when the items
-answer the same question, and make every row answer it in the same form. Prose
-comparison of five things is a reliable way to lose him.
-
-## 8. Punctuation
-
-- Em dashes are for a genuine parenthesis, not for a rhetorical pause. Most of
-  his edits replace one with a period or a comma. Two per page, not two per
-  paragraph.
-- He types `--` and two spaces after a period. Leave both alone, and do not
-  reflow his paragraphs to 80 columns when editing next to them.
-
-## 9. Numbers survive; adjectives do not
-
-"a *median local cloaking of 11*", "253 patients", "`k` = 5 donors" all survive
-review untouched. "considerably", "genuinely", "wildly", "close to meaningless",
-"the elegant part" are what gets cut. Prefer the measurement to the
-characterization of the measurement.
-
-## 10. A verdict leads, and the verdict may be a hedge
-
-The four use-case lines in `README.md` each open with a marker and a verdict in
-parentheses: **✅ Develop code**, **✅ Teaching tool (Yes)**, **⚠️ Send data past
-a trust boundary (Use Caution)**, **❌ Answer scientific questions (No)**. The
-nuance follows within the same line — "the formal privacy-protecting methods
-provided with this package are illustrative, but not audited" is still there,
-after the verdict rather than softening it.
-
-**An earlier version of this rule said he converts hedged verdicts into binary
-ones. He rejected it in writing and reverted the example.** The trust-boundary
-row was Claude's "Only with care", became his "No", and is now "⚠️ Use Caution".
-What the evidence supports is the *marker* first so the line is scannable. Do not
-flatten a real "it depends" into a "No" to satisfy this rule.
-
-## 11. State the out-of-scope, and state it bluntly
-
-"Maybe I want to be explicit about this is not about scientific discovery." His
-own `README.md` rewrite replaced a four-row table of hedged verdicts with four
-bolded lines carrying ✅ / ⚠️ / ❌ markers. Every explanatory document should
-carry an explicit out-of-scope statement, unqualified. The "why almost none of
-this is `synpmx`'s problem" subsection in
-`vignettes/articles/synthetic-data-checking-review.Rmd` exists because of this.
-
-## 12. Thin at the entry point; literal over coined
-
-`f8c22f1` cut a fully annotated 13-argument `synpmx_avatar()` call down to four
-arguments and removed the multi-line hanging comments explaining `dvid` and
-`dose_covariate`. The same commit deleted the coinage "The declaration is also
-the **manifest of what survives**" in favour of "The function drops every column
-that is not described."
-
-Show the minimum that works; detail belongs one document deeper. And prefer
-literal description to coined framing — the metaphors reached for to make
-something memorable are what he deletes first.
-
-In tension with O10, his preference for fewer review rounds: thinning a document
-can cost a round when the cut detail was the answer to his next question. The
-tier decides it — internal `design/` documents exhaustive, shipped entry points
-thin.
-
-## 13. One document, one question
-
-2026-08-11, unprompted: *"I think the literature review should be split into two
-files"* — generation into one article, checking into another. The article had
-announced itself as having two halves since it was written and survived one
-review pass in that form before he cut it.
-
-Treat "this article has two halves" as a defect report a draft wrote about
-itself. When an outline needs that sentence, propose two documents instead;
-navigation is cheap, and a reader arriving for the checking tutorial should not
-scroll through the generation survey. The shared instinct behind this rule,
-rule 7 and rule 12 is that **each artifact should do one thing, at the smallest
-size that does it**.
+- [Diátaxis](https://diataxis.fr/) — the four documentation kinds in Part 1, and
+  the claim that a page serving two of them serves neither reader. It diagnoses
+  O9: the literature review was **explanation** and he needed **tutorial**.
+- [Expertise reversal effect](https://en.wikipedia.org/wiki/Expertise_reversal_effect)
+  — O8 with an evidence base. Support that measurably helps a low-knowledge
+  reader measurably *hurts* a high-knowledge one, competing for working memory.
+- [Curse of knowledge](https://earthly.dev/blog/curse-of-knowledge/) — attributed
+  to *fluency misattribution*, the writer misreading his own ease of retrieval as
+  the reader's. The drafts that failed here were carefully written.
+- [Hedging, verbosity and over-elaboration](https://passo.uno/whats-wrong-ai-generated-docs/)
+  — the catalogued LLM pathologies, which match his edits closely enough to be a
+  default to correct rather than a preference to accommodate.
 
 ---
 
-# Part 3 — Before handing over a draft
+# Part 5 — Open questions
 
-## The machine-prose tics
+Things that cannot be inferred from the evidence available, in order of how much
+they would change future drafts. Two earlier questions are closed: O14 resolved
+itself against the narrative sections, and the ✅/⚠️/❌ marker style did
+generalize, as colour on the scorecard (rule 10).
 
-Widely reported markers of machine-written prose, several of which appear in
-this repo's own drafts. Unlike the rest of this file, the list applies to
-*everything* — conversation, commit messages and code comments as much as
-documents.
-
-- **Contrastive antithesis.** "It is not X, it is Y." "This is not about X, it is
-  about Y." "not a bug, a feature."
-- **The rule of three** applied to everything: three adjectives, three-clause
-  sentences, three-item lists where two items exist.
-- **Significance announcements.** "crucial", "pivotal", "key insight",
-  "fundamental", "underscores", "highlights", "showcases", "testament to",
-  "the important thing is".
-- **Hedge-then-assert.** "It is worth noting that", "It is important to
-  understand", "arguably", "in many ways".
-- **Vocabulary.** delve, leverage, robust, seamless, landscape, realm, tapestry,
-  navigate the complexities, deep dive, at its core, in essence, that said.
-- **The closing summary** that repeats what the section just said. "In
-  conclusion", "Ultimately", "The takeaway is". If the section needs a summary,
-  it is too long.
-- **Bold as emphasis spray.** Bold marks a term being defined or a verdict.
-  Three bolded phrases in one paragraph mark none of them.
-- **Symmetric sentence pairs.** "X does A. Y does B." repeated for rhythm rather
-  than for content.
-- **Second-person coaching.** "Let us break this down", "Think of it like",
-  "Here is the thing".
-- **Invented framing.** A coined metaphor ("the manifest of what survives") in
-  place of a literal description. Deleted in `f8c22f1`. Rule 12 is the same
-  finding stated as a rule.
-- **Sycophancy.** No "great question", no praising the request, no announcing
-  that something is a strong idea before doing it.
-
-## The checklist
-
-1. Every heading names a subject (rule 2).
-2. No sentence describes the document, its structure, or its own difficulty
-   (rule 1).
-3. Each paragraph's first sentence stands alone with the topic explicit (rule 4).
-4. Every acronym expanded at first use, and every method from outside
-   pharmacometrics explained from zero (O8).
-5. Verdicts lead; nuance follows, and a hedge is a legitimate verdict (rule 10).
-6. Out-of-scope stated explicitly and bluntly (rule 11).
-7. Numbers where a claim is measurable; no adjective standing in for one
-   (rule 9).
-8. Nothing says the document has two halves (rule 13). More than four comparable
-   items are in a table (rule 7).
-9. Read the em dashes. Keep the parentheticals, cut the pauses (rule 8).
-10. Every named method answers *what is calculated, from what inputs, and what
-    does a good number look like* (O1).
-11. A survey ends with a ranked entry path (O9).
-12. Claims are computed on a real dataset where they can be (O12).
-13. The tics above are *searched for*, not read for: crucial, key, worth,
-    honestly, delve, leverage, robust, seamless, "not just", "it is worth
-    noting", "here is why", "the point is".
-
----
-
-# Part 4 — What the outside literature says
-
-Browsed 2026-08-05. Three findings map onto the observations closely enough to
-be worth naming.
-
-**Mixing documentation modes is the most common cause of confusing docs.** The
-[Diátaxis framework](https://diataxis.fr/) splits documentation into four kinds
-serving four different needs — *tutorial* (learning-oriented), *how-to*
-(goal-oriented), *reference* (information-oriented), and *explanation*
-(understanding-oriented) — and its central claim is that a page which tries to
-be more than one of them serves none of its readers.
-
-This diagnoses O9 precisely. The literature review was written in **explanation**
-mode: a survey that assumes you already have the vocabulary and want the
-landscape. Andy needed **tutorial** mode: start from zero, one idea at a time, in
-an order chosen for learning rather than for taxonomy. That is why "make it a
-tutorial" was the fix, and it suggests a general rule — *check which of the four
-modes a document is in before writing it, and say so in its first paragraph.*
-The corpus already mostly does this: `demo.Rmd` is a tutorial,
-`avatar-algorithm.Rmd` is reference, `scorecard-synthetic-data-checks.Rmd` is a
-how-to guide wrapped around an explanation.
-
-**The [expertise reversal effect](https://en.wikipedia.org/wiki/Expertise_reversal_effect)**
-— instructional support that measurably helps a low-knowledge reader measurably
-*hurts* a high-knowledge one, because for the expert it is redundant material
-competing for the same working memory. This is O8 with a name and an evidence
-base, and it is the strongest argument against uniform explanation depth.
-
-**The [curse of knowledge](https://earthly.dev/blog/curse-of-knowledge/)** in
-technical writing is attributed to *fluency misattribution* — the writer finds
-the material easy to retrieve and misreads that ease as the reader's. Worth
-naming because the failure mode here is not carelessness: the drafts that failed
-were carefully written, by a writer for whom "pMSE" retrieves a full definition.
-
-**On the style side**, the commonly catalogued LLM writing pathologies —
-[hedging and deferential qualifiers](https://passo.uno/whats-wrong-ai-generated-docs/),
-verbosity, and over-elaboration — match his edits almost exactly. What he deleted
-from the README was hedging and elaboration (rules 10 and 12, though note he
-later restored one hedge and rule 10 records why). This is not a personal
-idiosyncrasy; it is the general complaint, and it should be treated as a default
-to correct rather than a preference to accommodate.
-
----
-
-# Part 5 — Open questions to put to him
-
-Things that cannot be inferred from the evidence available, roughly in order of
-how much they would change future drafts.
-
-1. **Did you read sections E and F of the checks vignette, and did they land?**
-   (Resolves O14 — that is, whether argumentative prose earns its length.)
-2. **Is the mathematics helpful or is it noise?** The literature review carries
+1. **Is the mathematics helpful or is it noise?** The literature review carries
    the adversarial-accuracy formula in display math. It could as easily be three
    sentences of English.
-3. **Inline definitions or a glossary?** Right now every term is defined inline
-   at first use, which is why that section is long.
-4. **What is the length ceiling for a shipped vignette?** `avatar-algorithm.Rmd`
-   is ~2,100 lines. Is that already past the point of usefulness, or is it fine
-   because it is reference material nobody reads end to end?
-5. **Does the ✅/⚠️/❌ marker style from your README rewrite generalize?** If you
-   want it in the vignettes too, that is a cheap and consistent change.
+2. **Inline definitions or a glossary?** Every term is defined inline at first
+   use, which is why that section is long. `learning/GLOSSARY.md` is yours and
+   Claude does not write to it, so a shipped glossary would be a third place a
+   definition lives.
+3. **What is the length ceiling for a shipped vignette?** The contract table says
+   `avatar-algorithm.Rmd` may be exhaustive, and it is 2,114 lines. Whether that
+   is fine because nobody reads reference material end to end is not answerable
+   until you have read it.
 
----
-
-# Part 6 — Proposed changes to this document
-
-Suggestions, for Andy to accept or reject. Nothing here has been done.
-
-1. **Split raw material from conclusions.** Part 1 currently mixes them. Add a
-   question log holding his questions **verbatim and dated**, and keep the
-   observations for distilled findings that cite the log. Verbatim wording
-   matters — "I'm not sure I get what you're talking about" and "I don't care
-   about that" look similar in a summary and mean opposite things (O4).
-
-2. **Give every observation a fixed schema.** *Observation / Evidence / What to
-   do*, as above. An observation without evidence is a guess, and an observation
-   without an action does not change any document.
-
-3. **Adopt an explicit disagreement marker.** Most of Part 1 is Claude's
-   inference about Andy, and it needs a way for him to push back in place rather
-   than have a wrong model re-derived each time. This has happened twice
-   informally — the author note in rule 5 and the rejection recorded in rule 10 —
-   and both are the most useful lines in their sections. A convention such as
-   `**[AS: no, actually...]**` would make it routine.
-
-4. **Add a document contract table.** One row per shipped document: audience,
-   Diátaxis mode, target length, and how thin it must be. That turns the theory
-   into something checkable before writing rather than a description of what went
-   wrong afterwards. It also resolves the O10 conflict with rule 12 mechanically
-   instead of by judgement each time.
-
-5. **Record what was tried and rejected.** If a way of explaining something fails
-   review, that is more informative than the version that passed, and it is
-   currently lost. Two lines per rejection is enough.
-
-6. **Revisit after the reviews.** The documents this file has the most to say
-   about are ones he had not read when it was written. Re-run the analysis after
-   he works through the two literature-review articles and
-   `scorecard-synthetic-data-checks.Rmd`; the questions he asks then will be
-   better evidence than anything above.
+**One convention still to adopt.** Record what was tried and rejected. A way of
+explaining something that fails review is more informative than the version that
+passed, and it is currently lost; two lines per rejection is enough. The two
+that survive are the notes in rule 5 and rule 10, and you wrote both.
