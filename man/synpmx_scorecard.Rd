@@ -72,6 +72,16 @@ interactively in an IDE shows the console form, since nothing is knitting.
 A \code{"review"} verdict is not a soft \code{"pass"}. It marks a row where no
 threshold would be honest, and it has to be read. Nor is \code{"unavailable"}:
 it marks a row nothing was measured for.
+}
+
+\section{Plot the data as well}{
+D1 reports the standard deviation that moved furthest between the two
+tables, and a standard deviation cannot see a shape: one bell and two humps
+with the same mean and spread give the same cell. Plot \code{DV} against time and
+each covariate's distribution, source and synthetic on the same axes, before
+deciding the output is usable. No function is offered for it -- every group
+has plotting code it already trusts for its own study, and a generic one
+would be a worse version of that.
 
 \code{"FAIL"} is reserved for the rows where the answer is always a defect: the
 output is not a legal dataset (A1), it is not the study that went in (A3,

@@ -1,6 +1,6 @@
 ## This is the author's To do list, to be maintained by him
 
-- go through the ~8 examples in public-data-examples (in progress)
+- go through the scorecard vignette carefully - this has not been read yet.
 
 - Once happy with all above, then go through full avatar algorithm page
 - Identify a few places to spot check the code. Start with the scorecard-synthetic-data-checks.  Think about if/how to document.  Or think about other validation mechanisms.

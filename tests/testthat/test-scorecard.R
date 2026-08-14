@@ -221,6 +221,41 @@ test_that("C2 reads the run's record, and says that it does", {
   expect_identical(card$reads[card$check == "C2"], "run settings")
 })
 
+test_that("D1 reports the spread that moved furthest, and never passes", {
+  # The utility tier was on the card in the vignette and absent from the
+  # function, so a reader working from the printed card never saw the one
+  # quantity the algorithm moves on purpose.
+  source <- pmx_simulated_fixture(40)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+
+  card <- synpmx_scorecard(source, synthetic, roles)
+
+  expect_identical(card$verdict[card$check == "D1"], "review")
+  expect_identical(card$reads[card$check == "D1"], "both")
+  expect_match(card$result[card$check == "D1"],
+               "^sd x[0-9.]+ on .+ \\(furthest of [0-9]+\\)$")
+  expect_identical(card$explore[card$check == "D1"],
+                   "compare_pmx_distributions(source, synthetic, roles)")
+  # Reading the card is not enough: two distributions with the same mean and
+  # spread can be different shapes, and nothing here draws them.
+  expect_output(print(card), "Plot source and synthetic")
+})
+
+test_that("D1 says so rather than erroring when no spread can be compared", {
+  # A single observation per endpoint has no `sd`, so the ratio is NaN on every
+  # variable. The row still has to appear -- a card that drops a row on some
+  # studies cannot be compared across them.
+  source <- pmx_simulated_fixture(20)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+  distributions <- compare_pmx_distributions(source, synthetic, roles)
+  distributions$endpoints$sd <- NA_real_
+  distributions$covariates_numeric$sd <- NA_real_
+
+  expect_null(.scorecard_spread(distributions))
+})
+
 test_that("the scorecard is restricted output and reuses a given proximity", {
   source <- pmx_simulated_fixture(40)
   roles <- sc_roles()

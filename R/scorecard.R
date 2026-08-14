@@ -116,6 +116,38 @@
                       function(x) x[[1L]]))
 }
 
+# D1 out of `compare_pmx_distributions()`, which returns a table per variable
+# rather than anything a card can hold. The quantity worth putting in one cell
+# is the spread: an avatar is a weighted mean of several donors, so
+# between-subject variability shrinks on every run, and how far it shrank is the
+# reading a modeller makes before deciding whether the output is usable.
+#
+# The variable reported is the one whose standard deviation moved FURTHEST in
+# either direction, not the one that shrank most. A spread that grew is as much
+# a reason to look -- it usually means an endpoint's noise was reinflated, or a
+# covariate drew donors from across a bimodal cohort.
+.scorecard_spread <- function(distributions) {
+  # Three columns only: the endpoint table carries an `n_subjects` the covariate
+  # table does not, and binding them whole is what an earlier version did.
+  columns <- c("variable", "dataset", "sd")
+  tables <- list(distributions$endpoints, distributions$covariates_numeric)
+  tables <- lapply(tables[!vapply(tables, is.null, logical(1))],
+                   function(df) as.data.frame(df)[, columns, drop = FALSE])
+  rows <- do.call(rbind, tables)
+  if (is.null(rows) || !nrow(rows)) return(NULL)
+  from <- rows[rows$dataset == "source", , drop = FALSE]
+  to <- rows[rows$dataset == "synthetic", , drop = FALSE]
+  ratio <- to$sd[match(from$variable, to$variable)] / from$sd
+  names(ratio) <- from$variable
+  # A variable observed once has no `sd`, and one whose source `sd` is zero has
+  # no ratio. Both are dropped rather than reported as Inf or NaN.
+  ratio <- ratio[is.finite(ratio) & ratio > 0]
+  if (!length(ratio)) return(NULL)
+  furthest <- which.max(abs(log(ratio)))
+  list(variable = names(ratio)[[furthest]], ratio = unname(ratio[[furthest]]),
+       n = length(ratio))
+}
+
 # `strata` are protocol assignments and are categorical whatever their storage
 # type, so a numerically coded arm is not excluded here.
 .scorecard_categorical <- function(data, roles) {
@@ -173,6 +205,16 @@
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 #' threshold would be honest, and it has to be read. Nor is `"unavailable"`:
 #' it marks a row nothing was measured for.
+#'
+#' # Plot the data as well
+#'
+#' D1 reports the standard deviation that moved furthest between the two
+#' tables, and a standard deviation cannot see a shape: one bell and two humps
+#' with the same mean and spread give the same cell. Plot `DV` against time and
+#' each covariate's distribution, source and synthetic on the same axes, before
+#' deciding the output is usable. No function is offered for it -- every group
+#' has plotting code it already trusts for its own study, and a generic one
+#' would be a worse version of that.
 #'
 #' `"FAIL"` is reserved for the rows where the answer is always a defect: the
 #' output is not a legal dataset (A1), it is not the study that went in (A3,
@@ -464,6 +506,23 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
         settings$dose_regimens_source) TRUE else NA
   )))
 
+  # D1, and it is `review` on every study there will ever be. Spread shrinking
+  # is what the algorithm does rather than something it got wrong, and spread
+  # growing has no threshold either, so a pass mark here would be an invention.
+  # The row exists to put the number in front of the reader and send them to the
+  # table it came from.
+  spread <- .scorecard_spread(
+    compare_pmx_distributions(source, synthetic, roles)
+  )
+  rows <- c(rows, list(.scorecard_row(
+    "D1", "Values landing in the same range", "both",
+    if (is.null(spread)) "no numeric variable to compare" else
+      sprintf("sd x%s on %s (furthest of %d)",
+              format(signif(spread$ratio, 2)), spread$variable, spread$n),
+    "compare_pmx_distributions(source, synthetic, roles)",
+    verdict = "review"
+  )))
+
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out <- structure(out, class = c("synpmx_scorecard", "data.frame"))
@@ -530,6 +589,15 @@ print.synpmx_scorecard <- function(x, ...) {
                   rare$source_patients[[i]], rare$synthetic_patients[[i]]))
     }
   }
+
+  # D1 is a summary statistic, and a summary statistic cannot see a shape: two
+  # distributions with the same mean and standard deviation can be one bell or
+  # two humps, and the card would read the same. No function is offered for the
+  # plot because every group already has the plotting code it trusts, and a
+  # generic one would be a worse version of it.
+  cat("\nD1 reports numbers, not shapes. Plot source and synthetic on the",
+      "same axes\n-- `DV` against time, and each covariate -- with whatever",
+      "you normally use.\n")
 
   failed <- sum(plain$verdict == "FAIL")
   unavailable <- sum(plain$verdict == "unavailable")
