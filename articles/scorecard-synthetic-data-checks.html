@@ -170,23 +170,14 @@ size?</li>
 </ul>
 </li>
 </ul>
-<p><strong>Every card holds all eighteen checks, whatever the
-study.</strong> A check the study gives nothing to ask — no discrete
-endpoint, no declared arm, no categorical covariate — says so in its
-result and passes, rather than going missing. A card whose rows depend
-on the study cannot be compared with another card, and an absent row
-reads as one that passed when it means the question was never asked.</p>
 <p><strong>Seven checks can say <code>FAIL</code>, and no
 others.</strong> A1, because the output is not a legal dataset; A3 and
 A6, because it is not the study that went in; and B1a, B1b, B4a and B4b,
 because each means one real patient’s structure was reproduced verbatim.
-Everything else is <code>review</code>, because everything else can move
-for a legitimate reason: a subject dropped for want of donors, an arm
-that changed size, a statistic wandering at a small sample size.</p>
-<p>One requirement is not in the list, because no function can answer
-it: <strong>does the pipeline that will consume the real study run
-unchanged against this?</strong> It is the only strictly necessary
-check, and it is the reason the package exists.</p>
+Everything else is <code>review</code>, because everything else can be
+different for a legitimate reason: a subject dropped for want of donors,
+an arm that changed size, a statistic wandering at a small sample
+size.</p>
 </div>
 <div class="section level3">
 <h3 id="the-two-datasets-used-here">The two datasets used here<a class="anchor" aria-label="anchor" href="#the-two-datasets-used-here"></a>
@@ -220,10 +211,11 @@ effect — and a baseline weight. It is shaped like a real study report,
 and most of these checks pass on it.</p>
 <p><code><a href="https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html" class="external-link">nlmixr2data::pheno_sd</a></code> is 59 real neonates given
 phenobarbital in routine clinical care, and it is here because
-<strong>no check on it fails while its full dosing history does not
-survive</strong>: the median infant received twelve doses and the median
-avatar receives one. A dataset on which everything passes teaches
-nothing. Where the two disagree is where a check is doing work.</p>
+<strong>no check on it fails while its dosing history is visibly
+shortened</strong>: the median infant received twelve doses and the
+median avatar receives five. A dataset on which everything passes
+teaches nothing. Where the two disagree is where a check is doing
+work.</p>
 </div>
 <div class="section level3">
 <h3 id="the-scorecard-computed">The scorecard, computed<a class="anchor" aria-label="anchor" href="#the-scorecard-computed"></a>
@@ -407,8 +399,8 @@ same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
 <p>Nothing fails. The rest of this vignette is what each check asks and
 why its pass criterion is what it is, using <code>case1_pkpd</code>
-where a check passes and <code>pheno_sd</code> where one is worth
-arguing with.</p>
+where a check passes and <code>pheno_sd</code> for further
+exploration.</p>
 </div>
 <div class="section level2">
 <h2 id="a--is-the-dataset-valid">A. Is the dataset valid<a class="anchor" aria-label="anchor" href="#a--is-the-dataset-valid"></a>
@@ -585,7 +577,7 @@ roles)</td>
 <td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
-<td align="left">2.6 -&gt; 2.6</td>
+<td align="left">2.6 -&gt; 2.5</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_distributions(source, synthetic,
 roles)</td>
@@ -594,7 +586,7 @@ roles)</td>
 <td align="left">A5b</td>
 <td align="left">Doses per patient</td>
 <td align="left">both</td>
-<td align="left">10 -&gt; 1.1</td>
+<td align="left">10 -&gt; 5.6</td>
 <td align="left">review</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
@@ -627,7 +619,7 @@ roles)</td>
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
-<td align="left">36 of 59</td>
+<td align="left">25 of 59</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
@@ -635,7 +627,7 @@ roles)</td>
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
-<td align="left">0.534 in [0.362, 0.621]</td>
+<td align="left">0.466 in [0.362, 0.617]</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
@@ -684,7 +676,7 @@ TRUE)</td>
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
-<td align="left">3 of 56</td>
+<td align="left">35 of 56</td>
 <td align="left">review</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
@@ -693,7 +685,7 @@ TRUE)</td>
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
-<td align="left">sd x0.66 on APGR (furthest of 3)</td>
+<td align="left">sd x0.44 on WT (furthest of 3)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_distributions(source, synthetic,
 roles)</td>
@@ -703,9 +695,9 @@ roles)</td>
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
-<p>Observations are intact at 2.6 per patient either side, while dosing
-falls from 10.0 to 1.1. In rows: 744 become 220, and 589 dose rows
-become 65.</p>
+<p>Observations are near-intact at 2.6 against 2.5 per patient, while
+dosing falls from 10 to 5.6. In rows: 744 become 480, and 589 dose rows
+become 332.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">doses_per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -715,9 +707,9 @@ become 65.</p>
 <span><span class="co">#&gt;   1.000   7.000  12.000   9.983  13.000  15.000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_synth</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span><span class="co">#&gt;   1.000   1.000   1.000   1.102   1.000   7.000</span></span></code></pre></div>
+<span><span class="co">#&gt;   1.000   3.000   5.000   5.627   8.500  11.000</span></span></code></pre></div>
 <p>The median real infant received twelve doses. The median avatar
-receives one. <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws it, one row per
+receives five. <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws it, one row per
 patient, a grey tick for each dose and a coloured dot for each
 observation:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -727,20 +719,22 @@ observation:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, synthetic"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="scorecard-synthetic-data-checks_files/figure-html/a-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The source is a forest of dose ticks running the length of follow-up.
-The synthetic cohort has one column of them at time zero, and its
-observations have piled onto a handful of shared grid times. The shading
-answers a different question from B1a and will not agree with it: it
-marks patients whose visit set no other patient <em>in the drawn
-table</em> has, while B1a asks whether an avatar’s set is one a real
-infant held.</p>
-<p>Nothing is invalid here. Every avatar’s regimen is one a real infant
-received, which is the guarantee section C describes. Dose schedules in
-this study are nearly all unique, so truncating each avatar’s regimen
-back to a depth several patients share collapses most of them to the
-shortest depth. The masking worked as designed, and the result is not
-usable as a dosing dataset. Section B1 is the other half: the privacy
-checks read 0, so nothing in that tier reports a problem. A5b is what
-catches it.</p>
+The synthetic cohort keeps that forest for the first few days and then
+thins: most avatars stop dosing between 75 and 150 h, where real infants
+are still being dosed past 300. The shading answers a different question
+from B1a and will not agree with it: it marks patients whose visit set
+no other patient <em>in the drawn table</em> has, while B1a asks whether
+an avatar’s set is one a real infant held.</p>
+<p>Nothing is invalid here, and the loss is at the tail rather than
+everywhere. No infant’s <em>complete</em> schedule can be reused — 55 of
+59 are held by one patient — but most infants open the same way,
+twelve-hourly from time zero, so each avatar’s course is cut back to the
+deepest opening several infants share. That is about half the doses.
+Whether half a course is enough is exactly the judgement A5b exists to
+prompt, and it depends on what the dataset is for: enough to develop a
+fitting workflow, not enough to characterise the tail of an
+individualised regimen. Section B1 is the other half of the story — the
+privacy checks read 0 — and A5b is what says at what price.</p>
 </div>
 <div class="section level3">
 <h3 id="a6--did-a-discrete-endpoint-stay-discrete">A6. Did a discrete endpoint stay discrete<a class="anchor" aria-label="anchor" href="#a6--did-a-discrete-endpoint-stay-discrete"></a>
@@ -1111,15 +1105,19 @@ else has:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_unique</span><span class="op">$</span><span class="va">n_share_dosing</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 55</span></span></code></pre></div>
 <p>Dose events are copied from the anchor verbatim, because moving a
-dose invents a regimen the protocol never permitted. The only lever left
-is to build avatars on the few patients whose dosing <em>is</em> shared,
-and here the one shared schedule is a single dose. B1b is 0 because the
-dosing was truncated away, not because it was masked.</p>
+dose invents a regimen the protocol never permitted. Two levers are
+left. Build avatars on the few patients whose dosing <em>is</em> shared
+— here there are six — or stop an avatar’s dosing early, at a depth that
+is somebody else’s whole schedule or that several patients passed
+through and nobody stopped at. Truncation is what does the work on this
+study: it fires on 92% of the avatars and takes 10 doses per patient
+down to 5.6. B1b is 0 because the tail of each course was given up, not
+because the course was masked.</p>
 <p><strong>Read B1a and B1b next to A5b.</strong> A check that must be 0
 says nothing about what reaching 0 cost, and A5b is where that cost
-showed up. Where dosing is individualised, no setting fixes this. It is
-a property of the study, and the honest response is to say so rather
-than ship.</p>
+shows up. Where dosing is individualised no setting recovers the tail;
+it is a property of the study, and the honest response is to report the
+price rather than to quote the 0 on its own.</p>
 <div class="section level4">
 <h4 id="b1-failures-by-arm">B1 failures by arm<a class="anchor" aria-label="anchor" href="#b1-failures-by-arm"></a>
 </h4>
@@ -1223,7 +1221,7 @@ cohort-wide:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 36</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 25</span></span></code></pre></div>
 <p>The screen’s own statistics need checking too. Its robust scale, the
 median absolute deviation (MAD), is exactly zero whenever more than half
 a cohort shares one value, which on trial data is the ordinary case
@@ -1274,9 +1272,9 @@ reasons below.</p>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
-<td align="right">0.534</td>
-<td align="right">0.362</td>
-<td align="right">0.591</td>
+<td align="right">0.466</td>
+<td align="right">0.353</td>
+<td align="right">0.596</td>
 <td align="right">29</td>
 </tr>
 </tbody>
@@ -1826,12 +1824,12 @@ fell on each side.</p>
 </h3>
 <p>C2 counts how many of the source’s distinct dose-time schedules are
 represented in the output. Every one still represented is a pass; fewer
-is <code>review</code>, because declining to build on a patient whose
-regimen nobody shares is the correct answer and the check is there to
-say what it cost. The rest of the question, what else was lost, has no
-pass mark and is read from <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>. The dosing
-section is the one C2 scores; drop the <code>section</code> argument for
-the other six.</p>
+is <code>review</code>, because shortening a regimen nobody else shares
+— or declining to build on it at all — is the correct answer and the
+check is there to say what it cost. The rest of the question, what else
+was lost, has no pass mark and is read from
+<code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>. The dosing section is the one C2
+scores; drop the <code>section</code> argument for the other six.</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>,</span>
@@ -1857,7 +1855,7 @@ dosed</strong></td>
 </tr>
 <tr class="even">
 <td align="left">Avatars whose dosing was re-truncated</td>
-<td align="right">20 of 59 (34%)</td>
+<td align="right">54 of 59 (92%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
 Truncating a schedule to a real dose time is protocol-valid in a way
@@ -1870,7 +1868,7 @@ that moving dose times is not</td>
 </tr>
 <tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
-<td align="right">3 (5%)</td>
+<td align="right">35 (62%)</td>
 <td align="left">a regimen only one patient received cannot be given to
 an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
@@ -1898,9 +1896,10 @@ their own schedule. Two patients on the same visit days at different
 doses are one schedule; a patient who stopped after two of three doses
 is another, and if nobody shares it, declining to anchor on them removes
 it from the output.</p>
-<p>On <code>pheno_sd</code> 3 of 56 distinct dose schedules are
-represented, and a third of avatars had their dosing re-truncated to
-reach that. It is the A5b finding again, from the generator’s side.</p>
+<p>On <code>pheno_sd</code> 35 of 56 distinct dose schedules are
+represented, and 92% of avatars had their dosing re-truncated to reach
+that. It is the A5b finding again, from the generator’s side: the
+schedules survive, their tails do not.</p>
 </div>
 </div>
 <div class="section level2">
@@ -2131,14 +2130,16 @@ obligations.</p>
 </h2>
 <p><strong>A1: a sample can cross a dose.</strong> Generated observation
 times move and dose times do not, so a sample drawn before a dose can
-land at or after it. On <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> that happens
-to 6 of 12 avatars, each carrying an observation labelled occasion 2 at
-the same time as the occasion-3 dose: a trough that is now a time-zero
-sample, and a declared <code>occasion</code> column that no longer runs
-in step with <code>time</code>. Closing it takes a post-generation
-invariant over the finished table, checking that each observation keeps
-the number of doses that preceded it and that <code>occasion</code> is
-non-decreasing within a subject.</p>
+land at or after it: a trough becomes a time-zero sample, and a declared
+<code>occasion</code> column no longer runs in step with
+<code>time</code>. Counting the avatars holding an observation labelled
+occasion <code>k</code> that lands at or after the <code>k+1</code>th
+dose, <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> on the constructed nominal grid
+of <code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> gives 12 of 12, against
+0 of 12 in its source. Closing it takes a post-generation invariant over
+the finished table, checking that each observation keeps the number of
+doses that preceded it and that <code>occasion</code> is non-decreasing
+within a subject.</p>
 <p><strong>B5: rare combinations, and rarity in the world.</strong> The
 source-side census exists as <code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> and
 B5b. Joint combinations do not, since with <code>d</code> covariates

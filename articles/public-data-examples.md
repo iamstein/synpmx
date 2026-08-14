@@ -398,7 +398,7 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 | variable | dataset   |   n | n_subjects | mean |   sd |  min |  q25 | median |  q75 |  max |
 |:---------|:----------|----:|-----------:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
 | DV       | source    | 176 |         45 | 6.43 | 3.83 |  0.7 | 3.68 |    5.8 | 8.38 | 20.4 |
-| DV       | synthetic | 164 |         45 | 6.44 | 2.57 | 1.53 | 4.62 |   6.37 | 7.91 | 14.3 |
+| DV       | synthetic | 163 |         45 | 6.35 | 2.47 | 1.53 | 4.59 |   6.34 | 7.89 | 14.2 |
 
 Endpoints (dependent variable on observation rows) {.table}
 
@@ -419,14 +419,14 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 16 of 45 | review | flag_identifiable_subjects(synthetic, roles) |
-| B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.318, 0.636\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.477 in \[0.323, 0.614\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
-| C2 | Distinct dose-time schedules represented | run settings | 1 of 4 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
-| D1 | Values landing in the same range | both | sd x0.67 on DV (furthest of 1) | review | compare_pmx_distributions(source, synthetic, roles) |
+| C2 | Distinct dose-time schedules represented | run settings | 2 of 4 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.64 on DV (furthest of 1) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 *D1 reports numbers, not shapes. Plot source and synthetic on the same
 axes – `DV` against time, and each covariate – with whatever you
@@ -446,9 +446,9 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim",
 | Quantity | Value | What it means |
 |:---|---:|:---|
 | **Dose schedules: WHEN each patient was dosed** |  |  |
-| Avatars whose dosing was re-truncated | 0 of 45 (0%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
+| Avatars whose dosing was re-truncated | 1 of 45 (2%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 4 |  |
-|   represented in the synthetic cohort | 1 (25%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
+|   represented in the synthetic cohort | 2 (50%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
 | **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 
 What wbcSim’s run removed, on the `dose_schedules` side.
@@ -505,21 +505,21 @@ nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
 compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |    sd |    min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|------:|-------:|-----:|-------:|-----:|-----:|
-| DV       | source    | 321 |         12 | 4.22 |  1.45 | -0.232 | 3.28 |   4.02 |  5.3 |  8.1 |
-| DV       | synthetic | 328 |         12 | 3.79 | 0.962 |  0.541 | 3.21 |   3.78 | 4.37 | 6.18 |
+| variable | dataset   |   n | n_subjects | mean |   sd |    min |  q25 | median |  q75 |  max |
+|:---------|:----------|----:|-----------:|-----:|-----:|-------:|-----:|-------:|-----:|-----:|
+| DV       | source    | 321 |         12 | 4.22 | 1.45 | -0.232 | 3.28 |   4.02 |  5.3 |  8.1 |
+| DV       | synthetic | 331 |         12 | 3.59 | 1.13 |  0.422 | 2.77 |   3.48 | 4.47 | 6.23 |
 
 Endpoints (dependent variable on observation rows) {.table}
 
 | variable | dataset   |   n | mean |     sd |  min |  q25 | median |  q75 |  max |
 |:---------|:----------|----:|-----:|-------:|-----:|-----:|-------:|-----:|-----:|
 | BSA      | source    |  12 | 1.64 | 0.0969 |  1.5 | 1.58 |   1.62 | 1.71 |  1.8 |
-| BSA      | synthetic |  12 | 1.63 | 0.0466 | 1.59 |  1.6 |    1.6 | 1.67 | 1.72 |
+| BSA      | synthetic |  12 | 1.64 | 0.0594 | 1.56 | 1.59 |   1.63 | 1.68 | 1.75 |
 | AGE      | source    |  12 | 49.7 |   10.2 |   34 |   42 |   45.5 |   59 |   64 |
-| AGE      | synthetic |  12 | 50.2 |   5.41 |   42 | 47.8 |     49 | 51.2 |   61 |
+| AGE      | synthetic |  12 | 49.4 |   3.85 |   41 | 47.8 |     50 |   53 |   54 |
 | HGT      | source    |  12 |  155 |    5.4 |  145 |  152 |    156 |  160 |  162 |
-| HGT      | synthetic |  12 |  155 |   3.07 |  150 |  153 |    155 |  157 |  160 |
+| HGT      | synthetic |  12 |  156 |   2.87 |  151 |  155 |    156 |  158 |  161 |
 
 Continuous covariates (baseline, per patient) {.table}
 
@@ -534,28 +534,32 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5a | Observations per patient | both | 26.8 -\> 27.3 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 26.8 -\> 27.6 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 10 -\> 1.6 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
-| B1b | Avatars with a dose schedule nobody else shares | run settings | 12 | FAIL | unmaskable_strata(source, roles) |
-| B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
-| B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.250, 0.667\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B2 | Synthetic patients unusual within their stratum | synthetic | 3 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.250 in \[0.167, 0.731\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 7 of 12 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
-| D1 | Values landing in the same range | both | sd x0.48 on BSA (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
+| D1 | Values landing in the same range | both | sd x0.38 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 *D1 reports numbers, not shapes. Plot source and synthetic on the same
 axes – `DV` against time, and each covariate – with whatever you
 normally use.*
 
-**B1b fails: all twelve avatars carry a dose schedule nobody else
-shares.** C2 says what declining to use those schedules would have cost
-instead: 7 of the 12 source regimens are represented at all.
+**Every check passes, and the dataset is still not shippable.** A5b is
+the row to read: doses per patient falls from 10 to 1.6. Ten weekly
+infusions go in and between one and two come out, because the only
+openings any two subjects share are the first dose and occasionally the
+second. C2 agrees from the other side — 7 of the 12 source regimens are
+represented, none of them at full length. This is the case where a card
+of passes is worth less than one `review` row.
 
 ### The inferred grid achieves nothing here
 
@@ -591,14 +595,72 @@ from a shape rather than reused, 100%.** The shape is how many visits
 were missed and whether the misses were terminal, contiguous, or
 scattered; which specific visits each patient missed does not survive.
 
-The dose schedules fail outright because dose events are copied from the
-anchor verbatim. Moving a dose is not a protocol-valid edit the way
-moving a sample is, so when the ten infusions are recorded at actual
-times, every avatar has one real patient’s dosing schedule.
+The dosing is cut back rather than copied, because dose events are
+copied from the anchor verbatim and moving a dose is not a
+protocol-valid edit the way moving a sample is. Truncating one is. When
+ten infusions are recorded at actual times — 165.70, 167.24 and 168.05
+for what the protocol called one weekly visit — no two subjects share an
+opening past the first dose or two, so that is where every avatar’s
+course stops. Nothing is disclosed and almost nothing is left.
+
+### What that does to the record
+
+One row per subject, a grey tick for each dose and a coloured dot for
+each observation. This is the figure to read before the scorecard:
+
+``` r
+
+plot_pmx_schedule(nimoData, nimo_roles, main = "nimoData, source")
+```
+
+![](public-data-examples_files/figure-html/nimo-schedule-1.png)
+
+``` r
+
+plot_pmx_schedule(nimo_synth, nimo_roles, main = "nimoData, synthetic")
+```
+
+![](public-data-examples_files/figure-html/nimo-schedule-2.png)
+
+The source has a dose tick standing in front of every cluster of
+samples, right across the follow-up. The synthetic cohort has one or two
+ticks at the far left and then nothing, while the samples carry on to
+2100 h regardless — **the same follow-up with the exposure taken out
+from under it.**
+
+The overlay at the top of this section shows what that does to the
+concentrations. The source’s sawtooth — a peak after each infusion, a
+decline, then the next one — is absent from the synthetic panel, because
+there are no repeated infusions left to produce it. Both panels span the
+same follow-up: maximum `TIME` is 2135 h against the source’s 2252 h.
+What has changed is everything underneath, and time after dose is where
+it shows up as a number:
+
+``` r
+
+after_last_dose <- function(data) {
+  observed <- data[data$EVID == 0, ]
+  last <- tapply(data$TIME[data$EVID != 0], data$ID[data$EVID != 0], max)
+  c(median_tad = round(median(observed$TAD, na.rm = TRUE), 1),
+    past_last_dose = sum(observed$TIME > last[as.character(observed$ID)]),
+    observations = nrow(observed))
+}
+rbind(source = after_last_dose(nimoData), synthetic = after_last_dose(nimo_synth))
+#>           median_tad past_last_dose observations
+#> source          96.3             59          321
+#> synthetic      935.4            317          331
+```
+
+Median time after dose goes from about four days to about thirty-nine,
+and almost every sample ends up with no dose behind it at all. A
+truncation is the right edit for a patient who stopped early, and
+follow-up continuing past the last dose is then real; here the stopping
+point is an artefact of masking, and nothing in the mechanism asks
+whether the observation record still has exposure supporting it.
 
 ### Constructing a nominal time
 
-All three failures have one cause and one fix. The design is ten weekly
+All three findings have one cause and one fix. The design is ten weekly
 infusions with a declared occasion and time after dose, so the protocol
 grid is the occasion number times the nominal interval, plus the visit’s
 nominal time after dose:
@@ -646,16 +708,32 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 axes – `DV` against time, and each covariate – with whatever you
 normally use.*
 
-Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of 1,
-because on the nominal grid the twelve dose schedules become one. Unique
-observation schedules fall from 12 to 5, the twelve visit sets collapse
-to eight, real sets become reusable, and the invented-arrangement share
-falls from 100% to 17%. Two visit sets are discarded either way, which
-is why the discard count should never be read on its own.
+**The dosing comes back in full.** A5b goes from `10 -> 1.6` to
+`10 -> 10` and C2 from 7 of 12 to 1 of 1, because on the nominal grid
+the twelve dose schedules become one schedule that all twelve subjects
+share — so there is nothing left to truncate, and no avatar’s course has
+to stop early. Unique observation schedules fall from 12 to 5, the
+twelve visit sets collapse to eight, real sets become reusable, and the
+invented-arrangement share falls from 100% to 17%. B2 falls from 3
+flagged patients to 0. Two visit sets are discarded either way, which is
+why the discard count should never be read on its own.
 
-A dataset that produces the first scorecard should not be shipped as it
-stands. Either declare or construct `nominal_time`, or treat the avatars
-as carrying real dosing schedules.
+**Both cards pass, and only one of them is usable.** That is the
+argument for reading A5b rather than stopping at the B rows: the privacy
+guarantee is identical on both sides and the science is not. The samples
+get their exposure back too: 58 of 329 observations sit after the last
+dose, against 59 of 321 in the source, where before it was 317 of 331.
+Time after dose does *not* come back cleanly — its median is 0 here,
+because generated samples land on the nominal dose times themselves,
+which is the open A1 gap described in
+[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
+rather than anything this fix addresses.
+
+Either declare or construct `nominal_time`, or accept a synthetic cohort
+with one or two infusions per subject in place of ten. What the package
+does not yet do is *notice*: no check asks whether an avatar’s
+observations still have dosing supporting them, so the first card passes
+eighteen of eighteen while describing a study nobody ran.
 
 ## mavoglurant: an occasion-reset clock
 
@@ -812,16 +890,16 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 | variable | dataset   |   n | n_subjects | mean |   sd |  min |  q25 | median |  q75 |  max |
 |:---------|:----------|----:|-----------:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
 | DV       | source    | 155 |         59 | 25.6 | 8.66 |  6.7 | 19.6 |   24.6 |   31 | 67.9 |
-| DV       | synthetic | 155 |         59 | 25.6 | 7.35 | 6.48 | 20.9 |   24.7 | 30.1 | 47.1 |
+| DV       | synthetic | 148 |         59 | 25.7 | 7.52 | 11.1 | 20.2 |   24.4 | 29.4 | 52.4 |
 
 Endpoints (dependent variable on observation rows) {.table}
 
 | variable | dataset   |   n | mean |    sd |   min |  q25 | median |  q75 |  max |
 |:---------|:----------|----:|-----:|------:|------:|-----:|-------:|-----:|-----:|
 | WT       | source    |  59 | 1.53 | 0.705 |   0.6 |  1.1 |    1.3 |  1.7 |  3.6 |
-| WT       | synthetic |  59 | 1.63 | 0.616 | 0.815 | 1.19 |   1.32 | 2.24 | 2.89 |
+| WT       | synthetic |  59 | 1.34 | 0.309 | 0.843 | 1.15 |   1.26 | 1.45 | 2.23 |
 | APGR     | source    |  59 | 6.42 |  2.24 |     1 |    5 |      7 |    8 |   10 |
-| APGR     | synthetic |  59 |  6.9 |  1.47 |     4 |    5 |      8 |    8 |    9 |
+| APGR     | synthetic |  59 | 6.58 |  1.21 |     3 |    6 |      7 |  7.5 |    8 |
 
 Continuous covariates (baseline, per patient) {.table}
 
@@ -836,31 +914,31 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 59 -\> 59 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5a | Observations per patient | both | 2.6 -\> 2.6 | review | compare_pmx_distributions(source, synthetic, roles) |
-| A5b | Doses per patient | both | 10 -\> 1.1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A5a | Observations per patient | both | 2.6 -\> 2.5 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5b | Doses per patient | both | 10 -\> 5.6 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
-| B2 | Synthetic patients unusual within their stratum | synthetic | 36 of 59 | review | flag_identifiable_subjects(synthetic, roles) |
-| B3 | Adversarial accuracy inside its null interval | both | 0.534 in \[0.362, 0.621\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B2 | Synthetic patients unusual within their stratum | synthetic | 25 of 59 | review | flag_identifiable_subjects(synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.466 in \[0.362, 0.617\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
-| C2 | Distinct dose-time schedules represented | run settings | 3 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
-| D1 | Values landing in the same range | both | sd x0.66 on APGR (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
+| C2 | Distinct dose-time schedules represented | run settings | 35 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.44 on WT (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 *D1 reports numbers, not shapes. Plot source and synthetic on the same
 axes – `DV` against time, and each covariate – with whatever you
 normally use.*
 
 **Nothing fails, and the two rows that moved say what reaching that
-cost.** Doses per patient falls from 10.0 to 1.1 in A5b, and 3 of the 56
-source dose regimens are represented in C2. B1b passing here is not the
-dosing being masked; it is the dosing being truncated away.
+cost.** Doses per patient falls from 10 to 5.6 in A5b, and 35 of the 56
+source dose regimens are represented in C2. B1b passing here is not each
+infant’s full course being masked; it is each course being cut short.
 
-### Dosing that cannot be masked
+### Dosing that can only be masked by shortening it
 
 ``` r
 
@@ -871,9 +949,9 @@ masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd",
 | Quantity | Value | What it means |
 |:---|---:|:---|
 | **Dose schedules: WHEN each patient was dosed** |  |  |
-| Avatars whose dosing was re-truncated | 20 of 59 (34%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
+| Avatars whose dosing was re-truncated | 54 of 59 (92%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 56 |  |
-|   represented in the synthetic cohort | 3 (5%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
+|   represented in the synthetic cohort | 35 (62%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
 | **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 
 What pheno_sd’s run removed, on the `dose_schedules` side.
@@ -882,8 +960,9 @@ without `section` prints all of it. {.table}
 
 One row per infant, a grey tick for each dose and a coloured dot for
 each observation. The dose ticks are the story: a forest of them across
-the whole follow-up in the source, one column at time zero in the
-output.
+the whole follow-up in the source, and in the output the same forest for
+the first few days, thinning out and stopping well before the source
+does.
 
 ``` r
 
@@ -899,28 +978,29 @@ plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
 
 ![](public-data-examples_files/figure-html/pheno-schedule-2.png)
 
-The dose schedules are what this study loses; the observation side is
-fine. On the observation side the mechanism works: B1a holds at 0, so no
-avatar has a set of attended visits that belongs to one real infant. On
-the dose side there is almost nothing safe to build on. The source holds
-56 distinct dose schedules across 59 infants, so declining to anchor on
-a patient whose schedule nobody shares means declining to anchor on
-nearly everybody, and 90% of avatars had to be moved to a different
-anchor before anything legal could be placed at all. What is left to
-copy is the one shared schedule, a single dose — hence the collapse from
-ten doses a patient to one.
+The tail of each course is what this study loses. On the observation
+side the mechanism works: B1a holds at 0, so no avatar has a set of
+attended visits that belongs to one real infant. On the dose side there
+is almost no *complete* schedule safe to copy — the source holds 56
+distinct dose schedules across 59 infants — but that is not the only
+lever. Most infants **open** the same way, twelve-hourly from time zero,
+and an opening several infants share can be given to an avatar as long
+as no single infant stopped exactly there. So each avatar’s dosing is
+truncated back to the deepest such opening, which on this study is about
+half the course: ten doses a patient becomes 5.6, over 35 of the 56
+regimens.
 
-The cause is not a setting. Dose events are copied from the anchor
-verbatim, and coarsening acts on the visit grid while the exposure here
-is *which days this infant was dosed*. When a neonate is dosed to their
-own weight on the day their own clinician decided, most patients have a
-dose schedule nobody shares and there is no safe patient to anchor on
-instead.
+What is lost is specifically the divergent tail — the part of a course
+where an individual clinician’s decisions have separated one infant from
+every other, and therefore exactly the part that identifies them. Dose
+events are copied from the anchor verbatim, so there is no way to keep
+it. Coarsening does not help either: it acts on the visit grid, while
+the exposure here is *which days this infant was dosed*.
 
-A study with this shape either accepts a synthetic cohort whose dosing
-is a fraction of the real one, or does not use AVATAR. `pheno_sd`
-declares no arms; where a study does, the same shape confined to one arm
-is reported by arm —
+A study with this shape accepts a synthetic cohort whose dosing is a
+shortened version of the real one, and has to decide whether that is
+enough for the purpose. `pheno_sd` declares no arms; where a study does,
+the same shape confined to one arm is reported by arm —
 [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
 before generating, and rows B1a and B1b afterwards, which name the arm
 that could not be masked. An avatar is never anchored outside the arm it
@@ -1402,7 +1482,7 @@ of visits to hand the avatar that would otherwise have worn it.
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
 shows the price in its “misses placed fresh” row, and it varies as much
 as everything else here: `nimoData` pays it in full at 100%, `pheno_sd`
-at 41%, `warfarin` at 22%, `wbcSim` at 2%, and `mavoglurant`, `theo_md`,
+at 42%, `warfarin` at 22%, `wbcSim` at 2%, and `mavoglurant`, `theo_md`,
 `case1_pkpd` and `mad` not at all.
 
 What remains lost is *resolution*: how much missingness there was and
@@ -1454,10 +1534,10 @@ knitr::kable(
 |:------------|---------------------:|-----------:|-----------:|---------:|
 | theo_md     |                0.500 |      0.167 |      0.773 |        6 |
 | warfarin    |                0.438 |      0.216 |      0.719 |       16 |
-| wbcSim      |                0.500 |      0.351 |      0.636 |       22 |
-| nimoData    |                0.500 |      0.250 |      0.712 |        6 |
+| wbcSim      |                0.477 |      0.335 |      0.632 |       22 |
+| nimoData    |                0.250 |      0.167 |      0.773 |        6 |
 | mavoglurant |                0.617 |      0.402 |      0.577 |       60 |
-| pheno_sd    |                0.534 |      0.362 |      0.591 |       29 |
+| pheno_sd    |                0.466 |      0.353 |      0.596 |       29 |
 | case1_pkpd  |                0.600 |      0.426 |      0.559 |       90 |
 | mad         |                0.583 |      0.350 |      0.605 |       30 |
 
@@ -1486,10 +1566,10 @@ nominal grid go to 0 and the mechanism has nothing left to do**, through
 **`mavoglurant`, where the grid does most of what it can and still
 leaves 53 of 120 patients unique on their visit set**, to **`nimoData`,
 where the grid achieves nothing at all**, and finally to **`pheno_sd`,
-where the observation side is clean and the *dosing* cannot be masked at
-all**. Same package, same defaults, same seed discipline — the
-difference is entirely in how the studies were designed and how their
-times were recorded.
+where the observation side is clean and the *dosing* survives only as
+far as the shared opening of each course**. Same package, same defaults,
+same seed discipline — the difference is entirely in how the studies
+were designed and how their times were recorded.
 
 That is the point of reporting these per dataset rather than quoting a
 headline number. There is no “synpmx removes X% of the exposure.” There

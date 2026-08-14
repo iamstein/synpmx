@@ -131,11 +131,11 @@ run. Each one is explained in full at the step that fires it.
 - **M3 — redraw which visits the avatar attended.** Reselect which DV
   values at which time points were collected, in case a patient has a
   unique set of missing visits. *Step 2.*
-- **M6 — redraw where dosing stopped.** Where a patient stopped dosing
-  at a point nobody else did, the avatar stops at a different one. Dose
-  *times* are never moved or invented — that would emit a regimen the
-  protocol never permitted — so this only ever truncates a real schedule
-  earlier. *Step 2.*
+- **M6 — redraw where dosing stopped.** Where a patient’s dose schedule
+  is one nobody else has, the avatar stops earlier, at the deepest
+  opening several patients share. Dose *times* are never moved or
+  invented — that would emit a regimen the protocol never permitted — so
+  this only ever truncates a real schedule earlier. *Step 2.*
 - **M4 — blend the values across several donors.** Covariates and DV,
   capped so no one donor dominates, plus noise. *Step 7.*
 - **M5 — recompute the dose from the avatar’s own covariate.** Done when
@@ -460,22 +460,42 @@ that objection. Truncating a schedule at one of its own dose times
 yields a regimen the study did give someone — a patient who stopped
 early. Moving a dose, or inventing one, does not.
 
-So where a patient stopped dosing at a depth nobody else used, the
-avatar stops at a different depth: one that several patients used, or
-one that nobody did. A stopping point nobody reached identifies nobody.
-The walk is **downward only** — truncation removes dose rows and cannot
-add one, so a deeper target would silently leave the schedule exactly
-where it was.
+So where a patient’s schedule is one nobody else has, the avatar stops
+earlier, at the deepest point that satisfies one of two conditions.
+Either **several patients stopped exactly there**, so the avatar wears a
+regimen those patients share; or **nobody stopped there and several
+patients passed through it**, so the stopping point identifies nobody
+while the doses leading up to it are ones many patients received. The
+walk is **downward only** — truncation removes dose rows and cannot add
+one, so a deeper target would silently leave the schedule exactly where
+it was.
+
+The second condition’s two halves are both necessary, and the second
+half is the one that is easy to lose. Judging the doses one at a time —
+every dose time in the kept set is a time several patients received — is
+not enough, because the *combination* can still be one patient’s. On
+`pheno_sd` that mistake leaves 29 of the 59 infants truncated to an
+opening only they hold — one real infant’s dosing minus its last dose —
+and no check catches it: every copy-detection row compares complete
+schedules, so a set nobody holds complete is precisely the set that
+passes. Openings are counted whole.
 
 This does not rescue every cohort, and the arithmetic says which.
 Nineteen patients on three doses, one on two and one on one gives
 stopping depths `{1: one patient, 2: one patient, 3: nineteen}`: both
-early depths have a single holder and there is no free depth between
-them, so “stopped after one dose” cannot be represented at all. That
-cohort falls back to M2 — those patients are not built upon — and the
-report shows the regimen coverage it cost. A study with many patients
-stopping at many depths, which is the ordinary oncology shape, has free
-depths and is fully served.
+early depths have a single holder, and neither is free because that
+single holder stopped there, so “stopped after one dose” cannot be
+represented at all. That cohort falls back to M2 — those patients are
+not built upon — and the report shows the regimen coverage it cost.
+
+Two shapes are fully served rather than one. A study with many patients
+stopping at many depths, the ordinary oncology shape, has free depths
+throughout. So does a study where **no complete schedule repeats but the
+openings do** — routine clinical care, where every patient begins on the
+same interval and diverges as their own clinician decides. `pheno_sd` is
+that second shape: 55 of 59 infants have a dose schedule nobody shares,
+and truncating each course back to its shared opening still keeps about
+half the doses.
 
 ## Step 3: align time without pretending every subject was sampled identically
 

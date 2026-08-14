@@ -115,10 +115,12 @@ is to the study description rather than to the run – see the alert
 <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> raises.</p>
 <p>Two ways a patient cannot be masked, counted separately because the remedies
 differ:</p><ul><li><p><code>unmaskable_dosing</code> – their set of dose times is shared by fewer than
-<code>min_pattern_share</code> patients and is not a truncation of the cohort's
-schedule that could be moved to a shared depth. Dose events are copied from
-the anchor as they stand, since resampling them would emit regimens the
-protocol never permitted, so there is nothing to substitute.</p></li>
+<code>min_pattern_share</code> patients, and no prefix of it can be given to an avatar
+either: every shorter opening is one that either a single patient stopped
+at, or that fewer than <code>min_pattern_share</code> patients passed through. Dose
+events are copied from the anchor as they stand, since resampling them
+would emit regimens the protocol never permitted, so there is nothing to
+substitute.</p></li>
 <li><p><code>unmaskable_visits</code> – the set of visits they have observations at is
 shared by fewer than <code>min_pattern_share</code> patients, and their schedule group
 holds no set that is shared widely enough to put in its place. Usually
