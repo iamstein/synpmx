@@ -50,34 +50,28 @@ remotes::install_github("iamstein/synpmx")
 library(synpmx)
 ```
 
-`remotes` is the smallest thing that does the job, and it is already present in
-most environments. `pak::pak("iamstein/synpmx")` and
-`devtools::install_github("iamstein/synpmx")` do the same, if you already have
+If `remotes` is not available in your environment, you can also try:
+`pak::pak("iamstein/synpmx")` or `devtools::install_github("iamstein/synpmx")`.
 either.
 
-To pin a branch or commit, append it: `remotes::install_github("iamstein/synpmx@main")`.
-Add `build_vignettes = TRUE` if you want `vignette("synpmx-4-methods")` offline;
-otherwise the same material is on the
-[website](https://iamstein.github.io/synpmx/).
-
-**If your environment blocks installing from GitHub** , then download the source archive from
+If your environment blocks installing from GitHub, then download the source archive from
 `https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz` and install from the file. 
-This package needs nothing but base R, and no compiler, since AVATAR is pure R:
+This package needs nothing but base R.
 
 ``` r
 install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
 ```
 
-AVATAR needs nothing beyond base R. The DP methods 
+While the AVATAR method needs nothing beyond base R. The DP methods 
 additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
-## Running it on your own study
+## Generating Synthetic Data with AVATAR algorithm
 
-AVATAR, called by `synpmx_avatar()` needs two things: the data, and a declaration of what its columns mean. A model is not needed.  Every column that is not described is dropped rather than quietly copied out of a real patient. Only `id`, `time`, `dv`, and `evid` are required; everything else is optional.
+AVATAR is called by `synpmx_avatar()`. It needs two things: the data, and a declaration of what its columns mean. A model is not needed.  Every column that is not described is dropped. Only `id`, `time`, `dv`, and `evid` are required; everything else is optional.
 
 The block below stands in for your study — replace the first dozen lines with
 your own data frame and edit the column descriptions to match your dataset. The example below
@@ -118,24 +112,26 @@ roles <- pmx_roles(
   cens               = "CENS",                  # 1 = BLOQ, -1 = above, 0 = not
   limit              = "LIMIT",                 # the other interval boundary
   covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
-  dose_covariate     = "WT",                    # in this case, dose is body-weight based and it should be declared
-  strata             = c("TRT", "TRTN"),        # assigned arm / dose group / cohort
-  keep               = "STUDYID"                # columns to be carried through verbatim
+  dose_covariate     = "WT",                    # if dose is body-weight based and it should be declared
+  strata             = c("TRT"),                # assigned arm / dose group / cohort
+  keep               = c("STUDYID", "TRTN")     # columns to be carried through verbatim
   # addl, ii          -- accepted and carried, but not expanded; expand
   #                      ADDL doses into explicit rows before synthesis
 )
 ```
 
-**Covariates and Strata** are easy roles to confuse:
+**Covariates, Strata, and Keep** are easy roles to confuse:
 
 - `covariates` are *measured* characteristics. They are **blended** across the
   donors, so a synthetic subject's weight is a new number nobody had.
 - `strata` are *assigned* strata — arm, dose group, cohort. They are
   copied from the anchor, and the stratum is what groups the dose rule and the
-  pool of visit patterns an avatar may be given.
-- `keep` is the escape hatch, for anything else you want carried through
+  pool of visit patterns an avatar may be given.  In cases where you have two
+  columns that declare a single strata and you want to keep both (e.g. a 
+  string (`TRT`) and numeric (`TRTN`) column, then placae one of them in `keep`.)
+- `keep` is the escape hatch for anything else you want carried through
   untouched: a study identifier, a randomization sequence, a units column, a
-  redundant label. A kept value is **one real subject's real value**, so keep
+  redundant label. A kept value is one real subject's real value, so keep
   only what the source data's own access controls already permit.
 
 ``` r
@@ -157,7 +153,6 @@ The three other modes for generating synthetic data (**prior**, **calibration**,
 **empirical**) are secondary; but, they are present in this repository
 because they cover scenarios where data crosses a trust
 boundary and formal privacy conditions must be met. 
-The methods are provided as-is: not under active development and **not independently privacy-audited**.
 Treat them as a principled demonstration of the privacy/utility
 tradeoff, not as a production ready. That status is enforced in that `synpmx_calibrated()` and `synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has been called once in the session.
 
