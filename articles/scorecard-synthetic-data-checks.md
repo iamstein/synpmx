@@ -45,6 +45,13 @@ one asks:
 - D. How much have the covariate and observation distributions changed
   - **D1**: Do the values land in the same range?
 
+**Every card holds all eighteen checks, whatever the study.** A check
+the study gives nothing to ask — no discrete endpoint, no declared arm,
+no categorical covariate — says so in its result and passes, rather than
+going missing. A card whose rows depend on the study cannot be compared
+with another card, and an absent row reads as one that passed when it
+means the question was never asked.
+
 **Seven checks can say `FAIL`, and no others.** A1, because the output
 is not a legal dataset; A3 and A6, because it is not the study that went
 in; and B1a, B1b, B4a and B4b, because each means one real patient’s
@@ -287,6 +294,9 @@ pheno_card
 | B3 | Adversarial accuracy inside its null interval | both | 0.534 in \[0.362, 0.621\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 3 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.66 on APGR (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -897,8 +907,9 @@ The result names the column and the level, not just the count, because
 “1” on its own gives a reader no way to find the patient it is talking
 about. Here the answer is an arm size, thirty, and the pass is any
 answer above one. `pheno_sd` declares no categorical covariate and no
-`strata`, so the check is absent from its card, which is *not
-applicable* rather than *clean*.
+`strata`, so both B5 rows read `no categorical covariate or stratum`:
+the question could not be asked, which is a different statement from a
+study that was asked and came back clean.
 
 B5a is the weak form, and both its failure modes are real. A level held
 by two source patients can be copied onto ten avatars and pass while the

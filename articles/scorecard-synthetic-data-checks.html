@@ -170,6 +170,12 @@ size?</li>
 </ul>
 </li>
 </ul>
+<p><strong>Every card holds all eighteen checks, whatever the
+study.</strong> A check the study gives nothing to ask — no discrete
+endpoint, no declared arm, no categorical covariate — says so in its
+result and passes, rather than going missing. A card whose rows depend
+on the study cannot be compared with another card, and an absent row
+reads as one that passed when it means the question was never asked.</p>
 <p><strong>Seven checks can say <code>FAIL</code>, and no
 others.</strong> A1, because the output is not a legal dataset; A3 and
 A6, because it is not the study that went in; and B1a, B1b, B4a and B4b,
@@ -523,12 +529,12 @@ that makes the point:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="va">pheno_card</span></span></code></pre></div>
-<table style="width:100%;" class="table">
+<table class="table">
 <colgroup>
 <col width="3%">
 <col width="27%">
-<col width="7%">
-<col width="17%">
+<col width="6%">
+<col width="19%">
 <col width="4%">
 <col width="39%">
 </colgroup>
@@ -651,6 +657,30 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="even">
+<td align="left">B5a</td>
+<td align="left">Patients holding the least-held categorical level</td>
+<td align="left">synthetic</td>
+<td align="left">no categorical covariate or stratum</td>
+<td align="left">pass</td>
+<td align="left">pmx_roles(strata = , covariates = )</td>
+</tr>
+<tr class="odd">
+<td align="left">B5b</td>
+<td align="left">Rare source levels copied into the output</td>
+<td align="left">both</td>
+<td align="left">no categorical covariate or stratum</td>
+<td align="left">pass</td>
+<td align="left">pmx_roles(strata = , covariates = )</td>
+</tr>
+<tr class="even">
+<td align="left">C1</td>
+<td align="left">Strata keeping their source size</td>
+<td align="left">both</td>
+<td align="left">no strata declared</td>
+<td align="left">pass</td>
+<td align="left">pmx_roles(strata = )</td>
+</tr>
+<tr class="odd">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -659,7 +689,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -1564,8 +1594,10 @@ whatever you normally use.</em></p>
 because “1” on its own gives a reader no way to find the patient it is
 talking about. Here the answer is an arm size, thirty, and the pass is
 any answer above one. <code>pheno_sd</code> declares no categorical
-covariate and no <code>strata</code>, so the check is absent from its
-card, which is <em>not applicable</em> rather than <em>clean</em>.</p>
+covariate and no <code>strata</code>, so both B5 rows read
+<code>no categorical covariate or stratum</code>: the question could not
+be asked, which is a different statement from a study that was asked and
+came back clean.</p>
 <p>B5a is the weak form, and both its failure modes are real. A level
 held by two source patients can be copied onto ten avatars and pass
 while the disclosure is real, since what matters is how many

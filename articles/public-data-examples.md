@@ -266,6 +266,9 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.167, 0.750\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.55 on WT (furthest of 2) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -354,6 +357,7 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | sex = female: 3 | pass | table(synthetic\$sex) |
 | B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.43 on age (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -418,6 +422,9 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.318, 0.636\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 4 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.67 on DV (furthest of 1) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -536,6 +543,9 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.250, 0.667\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 7 of 12 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.48 on BSA (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -626,6 +636,9 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | B3 | Adversarial accuracy inside its null interval | both | 0.583 in \[0.185, 0.731\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.42 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -712,6 +725,9 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.419, 0.606\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.51 on HT (furthest of 5) | review | compare_pmx_distributions(source, synthetic, roles) |
 
@@ -829,6 +845,9 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | B3 | Adversarial accuracy inside its null interval | both | 0.534 in \[0.362, 0.621\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
+| B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
+| C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 3 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | D1 | Values landing in the same range | both | sd x0.66 on APGR (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
