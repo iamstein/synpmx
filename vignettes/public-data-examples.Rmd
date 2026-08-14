@@ -533,10 +533,10 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 ```
 
-**B1b fails: 15 avatars carry a dose schedule nobody else in the cohort
-shares.** Two other rows say what avoiding the rest cost. Doses per patient
-falls from 10 to 4.8 in A5, and 16 of the 56 source dose regimens are
-represented in C4.
+**Nothing fails, and the two rows that moved say what reaching that cost.**
+Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56 source dose
+regimens are represented in C4. B1b passing here is not the dosing being masked;
+it is the dosing being truncated away.
 
 ### Dosing that cannot be masked
 
@@ -548,9 +548,11 @@ Read the dose rows, not the observation rows. On the observation side the
 mechanism works: B1a holds at 0, so no avatar wears a set of attended visits
 that belongs to one real infant. On the dose side there is almost nothing safe
 to build on. The source holds 56 distinct dose schedules across 59 infants, so
-declining to anchor on a patient whose schedule nobody shares would mean
-declining to anchor on nearly everybody, and 90% of avatars had to be moved to a
-different anchor before anything legal could be placed at all.
+declining to anchor on a patient whose schedule nobody shares means declining to
+anchor on nearly everybody, and 90% of avatars had to be moved to a different
+anchor before anything legal could be placed at all. What is left to copy is the
+one shared schedule, a single dose — hence the collapse from ten doses a patient
+to one.
 
 The cause is not a setting. Dose events are copied from the anchor verbatim, and
 coarsening acts on the visit grid while the exposure here is *which days this
@@ -558,9 +560,13 @@ infant was dosed*. When a neonate is dosed to their own weight on the day their
 own clinician decided, most patients have a dose schedule nobody shares and
 there is no safe patient to anchor on instead.
 
-A study with this shape either accepts that its avatars carry real dosing
-schedules, which is defensible only inside the source data's own access
-controls, or does not use AVATAR.
+A study with this shape either accepts a synthetic cohort whose dosing is a
+fraction of the real one, or does not use AVATAR. `pheno_sd` declares no arms;
+where a study does, the same shape confined to one arm is reported by arm —
+`unmaskable_strata()` before generating, and rows B1a and B1b afterwards, which
+name the arm that could not be masked. An avatar is never anchored outside the
+arm it was allocated to, so an arm whose dosing is individualised fails rather
+than borrowing patients from an arm whose dosing is not.
 
 ## case1_pkpd: a declared nominal grid
 

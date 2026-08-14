@@ -1783,47 +1783,45 @@
 # remainder drawn as before.
 # Who an avatar may be re-anchored on when its own anchor cannot be masked.
 #
-# Inside its own stratum, because the anchor's rows are copied into the output
-# with its `strata` values attached: an avatar moved across arms leaves the run
-# reporting the balance it planned while the finished table holds something
+# Inside its own stratum, always. The anchor's rows are copied into the output
+# with its `strata` values attached, so an avatar moved across arms leaves the
+# run reporting the balance it planned while the finished table holds something
 # else. Drawing from the whole pool -- which is what this replaces -- scrambled
 # arm sizes in proportion to how often re-anchoring fired, and nothing said so.
 #
-# The whole pool is still the fallback when the stratum has nobody SAFE to
-# offer. Emitting an avatar wearing one real patient's visit set is a
-# disclosure; an arm off its target is a fidelity cost, and the caller counts
-# it as `strata_crossed` so the trade is visible rather than silent.
+# Crossing was allowed for a while, as the lesser of two evils: an arm off its
+# target looked cheaper than an avatar wearing one real patient's schedule. It
+# is not, and the maintainer's call is that it is not. An arm that has silently
+# borrowed its patients from another arm is a study that never ran, and the
+# reader has no way to see it; a disclosure the scorecard names, by arm, is
+# something they can act on. So the arm is never left, and where it cannot mask
+# its own avatars the run says which arm and B1a/B1b read FAIL.
 #
-# `safe` is what makes that trade the right way round, and leaving it out was a
-# leak: an arm in which nobody's dose schedule is shared has plenty of members
-# to offer, so the move stayed inside it, drew another unmaskable anchor, and
-# after twelve tries emitted one anyway -- with `strata_crossed = 0` reporting
-# that nothing had been given up. Measured on a 24-patient two-arm fixture with
-# one such arm, every one of its twelve avatars leaked. So "nobody else to
-# offer" has to mean nobody the avatar can safely be built on, not nobody at
-# all.
+# `safe` is a LIST of preference tiers, best first, because the two ways an
+# anchor can be unmaskable are not equally bad. Dose outranks visits: a dose
+# schedule is copied verbatim and can never be masked, while a rare visit set
+# usually has a substitute to put in its place. Collapsing the two into one flag
+# was a leak -- where every visit set in the study is unique, "safe on both
+# counts" is nobody, the flag went empty, and the fallback dropped the dose
+# condition with it, drawing from an all-unique-dosing arm again.
+#
+# No tier having a member in the arm returns NOTHING rather than somebody
+# unsafe. The caller then keeps the anchor it has, which is the honest answer:
+# re-drawing among patients who are equally unmaskable only changes which real
+# patient is exposed.
 .reanchor_candidates <- function(allowed, anchor, strata_key, target_stratum,
                                  safe = NULL) {
   candidates <- setdiff(allowed, anchor)
-  usable <- if (is.null(safe)) candidates else candidates[safe[candidates]]
-  if (is.null(target_stratum) || !length(candidates)) {
-    return(list(candidates = if (length(usable)) usable else candidates,
-                crossed = FALSE))
+  if (!is.null(target_stratum)) {
+    candidates <- candidates[strata_key[candidates] == target_stratum]
   }
-  in_stratum <- function(x) x[strata_key[x] == target_stratum]
-  # Safe and in the arm; then safe anywhere; then the arm; then anyone. The
-  # last two are the case where no anchor in the cohort can be masked, which
-  # crossing cannot fix, so the arm sizes are kept rather than spent for
-  # nothing.
-  within_safe <- in_stratum(usable)
-  if (length(within_safe)) return(list(candidates = within_safe, crossed = FALSE))
-  if (length(usable)) return(list(candidates = usable, crossed = TRUE))
-  within <- in_stratum(candidates)
-  if (length(within)) {
-    list(candidates = within, crossed = FALSE)
-  } else {
-    list(candidates = candidates, crossed = TRUE)
-  }
+  if (!length(candidates)) return(list(candidates = candidates))
+  tiers <- if (is.null(safe)) list() else if (is.list(safe)) safe else list(safe)
+  # With no tiers declared there is nothing to prefer, so anyone in the arm will
+  # do; otherwise the best non-empty tier decides on its own.
+  pools <- Filter(length, lapply(tiers, function(flag) candidates[flag[candidates]]))
+  if (!length(tiers)) pools <- list(candidates)
+  list(candidates = if (length(pools)) pools[[1L]] else integer())
 }
 
 .strata_targets <- function(strata_key, allowed, n_subjects,
@@ -2395,9 +2393,11 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                 .count_phrase(sum(dose_identifying), length(subjects))),
         why = paste("dose events are copied from the anchor verbatim, so an",
                     "avatar built on one of these would carry that patient's",
-                    "exact dosing. No avatar is anchored on them; they still",
-                    "contribute as donors, so their measurements still shape",
-                    "the output."),
+                    "exact dosing. No avatar is anchored on them where their",
+                    "own arm holds somebody who can be masked -- and an alert",
+                    "at the end of the run names the arms where it does not.",
+                    "They still contribute as donors either way, so their",
+                    "measurements still shape the output."),
         fix = paste("nothing, unless those regimens need to appear in the",
                     "synthetic data. `min_pattern_share = 1` keeps them and",
                     "gives up the guarantee."),
@@ -2619,13 +2619,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     pattern_substituted <- logical(n_subjects)
     pattern_identifying <- logical(n_subjects)
     # Avatars moved to a different anchor because their first one could not be
-    # given a visit set that masks it.
+    # given a visit set that masks it. Always inside the avatar's own arm.
     pattern_reanchored <- logical(n_subjects)
-    # Re-anchoring that had to leave the avatar's own stratum because nobody
-    # else in it could be masked either. Counted separately from
-    # `pattern_reanchored`: an in-stratum move costs nothing a reader cares
-    # about, and this one costs the arm sizes.
-    strata_crossed <- logical(n_subjects)
     # The visit set each avatar actually ended up with, and whose dose schedule
     # it inherited. Recorded per avatar so the end-to-end checks can be exact.
     # Snapping the finished table back onto the grid was tried and rejected: the
@@ -2634,19 +2629,21 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # holding a schedule it was never given -- a false alarm on `wbcSim`.
     applied_key <- rep(NA_character_, n_subjects)
     dose_truncated <- logical(n_subjects)
-    # Who an avatar may be moved TO when its own anchor cannot be masked.
-    # A patient whose dose schedule nobody shares can never be a safe anchor,
-    # because dose events are copied verbatim. One whose visit set nobody
-    # shares usually can -- a substitute is normally available -- but only when
-    # the pool has one, so they are the second choice rather than the first.
-    # This is a preference: `.reanchor_candidates()` falls back to whoever is
-    # left when nothing here qualifies, which is the honest answer on a study
-    # where no anchor can be masked at all.
-    reanchor_safe <- rep(TRUE, length(subjects))
-    if (dose_maskable) reanchor_safe <- reanchor_safe & !dose_identifying
-    if (!is.null(attendance)) {
-      reanchor_safe <- reanchor_safe & !attendance$identifying
-    }
+    # Who an avatar may be moved TO when its own anchor cannot be masked, best
+    # first. A patient whose dose schedule nobody shares can never be a safe
+    # anchor, because dose events are copied verbatim. One whose visit set
+    # nobody shares usually can -- a substitute is normally available -- so the
+    # two are kept as separate tiers rather than one flag: where every visit set
+    # in the study is unique, the first tier is empty and the run must still
+    # avoid the anchors it CAN do something about instead of giving up on both.
+    # The move never leaves the avatar's arm, so an arm holding no member of any
+    # tier keeps its anchor and is reported by name below.
+    # `unmaskable_strata()` answers this from the source, before generating.
+    dose_safe <- if (dose_maskable) !dose_identifying else
+      rep(TRUE, length(subjects))
+    visit_safe <- if (is.null(attendance)) rep(TRUE, length(subjects)) else
+      unname(!attendance$identifying)
+    reanchor_safe <- list(dose_safe & visit_safe, dose_safe, visit_safe)
 
     for (synthetic_index in seq_len(n_subjects)) {
       anchor <- anchors[synthetic_index]
@@ -2668,8 +2665,8 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         (dose_maskable && isTRUE(dose_identifying[[index]])) ||
           isTRUE(choice$identifying)
       }
-      # The stratum this avatar was allocated to, captured before any move. An
-      # anchor carries its own `strata` values into the output, so re-anchoring
+      # The arm this avatar was allocated to, and the one it will be built in.
+      # An anchor carries its own `strata` values into the output, so a move
       # across arms silently undoes `.strata_targets()`: the run still reports
       # the balance it planned while the finished table holds something else.
       # Measured on a study with 8 arms and 6 unmaskable schedule groups, a
@@ -2690,7 +2687,6 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
           if (attempt == 12L) break
           move <- .reanchor_candidates(allowed, anchor, strata_key,
                                        target_stratum, reanchor_safe)
-          if (move$crossed) strata_crossed[synthetic_index] <- TRUE
           if (!length(move$candidates)) break
           anchor <- move$candidates[[
             sample.int(length(move$candidates), 1L)
@@ -2805,18 +2801,40 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # not be built on its anchor and the failure was silent. These ask the
     # question directly, so the next mechanism that gets it wrong fails a test
     # rather than surfacing in a report months later.
-    identifying_visit_sets <- 0L
+    identifying_visit_set <- rep(FALSE, n_subjects)
     if (!is.null(attendance)) {
       rare_source <- unique(attendance$keys[attendance$identifying])
       rare_source <- rare_source[nzchar(rare_source)]
-      identifying_visit_sets <- sum(!is.na(applied_key) &
-                                      applied_key %in% rare_source)
+      identifying_visit_set <- !is.na(applied_key) &
+        applied_key %in% rare_source
     }
+    identifying_visit_sets <- sum(identifying_visit_set)
     # Dose events are copied from the anchor verbatim -- resampling them would
     # emit regimens the protocol never permitted -- so an avatar's dose schedule
     # simply IS its anchor's, and the question is whether that anchor's was one
     # nobody shared.
-    identifying_dose_schedules <- sum(dose_identifying[anchors])
+    identifying_dose_schedule <- dose_identifying[anchors]
+    identifying_dose_schedules <- sum(identifying_dose_schedule)
+    # WHICH arm, not just how many. Re-anchoring never leaves the arm it was
+    # allocated to, so every one of these avatars is stuck in an arm that holds
+    # nobody it could have been built on instead -- and the arm is the thing the
+    # reader can act on. Reported here, in the scorecard's B1a/B1b rows, and by
+    # `unmaskable_strata()` on the source before any of it is run.
+    leaking_strata <- function(flag) {
+      if (is.null(strata_key) || !any(flag)) return(NULL)
+      counts <- table(gsub("\r", " / ", strata_key[anchors[flag]]))
+      stats::setNames(as.integer(counts), names(counts))
+    }
+    identifying_visit_set_strata <- leaking_strata(identifying_visit_set)
+    identifying_dose_schedule_strata <- leaking_strata(
+      identifying_dose_schedule
+    )
+    # "In ARM3 (5), ARM8 (2)", or nothing at all when no strata are declared.
+    arm_phrase <- function(counts) {
+      if (is.null(counts)) return("")
+      paste0(" In ", paste(sprintf("%s (%d)", names(counts), counts),
+                           collapse = ", "), ".")
+    }
     # What declining to build on those patients COST. Not building on a patient
     # whose dose schedule nobody shares is the only safe answer, but it removes
     # that regimen from the output entirely, and until now nothing said so: a
@@ -2834,17 +2852,45 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       .loud_warn(
         "avatars carrying a visit set nobody else shares",
         sprintf(paste("%d of %d avatars were emitted holding a set of visits",
-                      "that exactly one real patient has."),
-                identifying_visit_sets, n_subjects),
+                      "that exactly one real patient has.%s"),
+                identifying_visit_sets, n_subjects,
+                arm_phrase(identifying_visit_set_strata)),
         why = paste("that pattern of which visits have observations belongs to",
                     "one real person, so an avatar carrying it can be traced",
                     "back to them. Nothing legal was available to put in its",
-                    "place."),
+                    "place, and no arm named above holds a patient who could",
+                    "have been built on instead -- an avatar is never moved to",
+                    "another arm, because that would rewrite the arm sizes."),
         fix = paste0(paste(.schedule_advice(source_roles, min_pattern_share,
                                             coarsened$grid),
                            collapse = "; "),
-                     ". Until then, treat these avatars as individually ",
+                     ". `unmaskable_strata(source, roles)` says which arms and ",
+                     "why. Until then, treat these avatars as individually ",
                      "identifying.")
+      )
+    }
+    # The dose side of the same failure. It had no alert of its own: before
+    # re-anchoring was confined to the avatar's arm, an unmaskable anchor could
+    # always be swapped for a safe one somewhere in the cohort, so this could
+    # not happen. It can now -- in an arm whose every dose schedule is its
+    # patient's own -- and it is the more serious of the two, since a dose
+    # schedule is copied exactly and nothing can substitute for it.
+    if (identifying_dose_schedules > 0L) {
+      .loud_warn(
+        "avatars carrying a dose schedule nobody else shares",
+        sprintf(paste("%d of %d avatars were emitted holding a set of dose",
+                      "times that exactly one real patient has.%s"),
+                identifying_dose_schedules, n_subjects,
+                arm_phrase(identifying_dose_schedule_strata)),
+        why = paste("dose events are copied from the anchor verbatim, so those",
+                    "avatars carry one real patient's exact dosing. No patient",
+                    "in the arms named above can be masked, and an avatar is",
+                    "never anchored in another arm, because that would rewrite",
+                    "the arm sizes."),
+        fix = paste("`unmaskable_strata(source, roles)` says which arms and by",
+                    "how much. Declaring `nominal_time` helps if the dose times",
+                    "are protocol times recorded loosely; otherwise treat those",
+                    "arms as individually identifying on dosing, or drop them.")
       )
     }
 
@@ -2897,9 +2943,6 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       preserve_strata_balance = preserve_strata_balance,
       strata_balanced = as.integer(strata_balanced),
       strata_stochastic = as.integer(strata_stochastic),
-      # Avatars that ended up in an arm other than the one they were allocated
-      # to. Any value above 0 is why C3 does not add up.
-      strata_crossed = as.integer(sum(strata_crossed)),
       coarsen_time = coarsen_time,
       min_pattern_share = as.integer(min_pattern_share),
       pattern_sampled_fraction = mean(pattern_sampled),
@@ -2918,6 +2961,12 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       # is the number the guarantee is stated in terms of, and it must be 0.
       identifying_visit_sets = as.integer(identifying_visit_sets),
       identifying_dose_schedules = as.integer(identifying_dose_schedules),
+      # And which arm each of them is in, since that is where the answer lies:
+      # an avatar is only ever built in the arm it was allocated to, so a leak
+      # means that arm holds nobody who could be masked. NULL when there is
+      # nothing to report, or when no strata are declared.
+      identifying_visit_set_strata = identifying_visit_set_strata,
+      identifying_dose_schedule_strata = identifying_dose_schedule_strata,
       dose_truncated_fraction = mean(dose_truncated),
       dose_regimens_source = as.integer(dose_regimens_source),
       dose_regimens_represented = as.integer(dose_regimens_represented),

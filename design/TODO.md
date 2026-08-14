@@ -17,6 +17,31 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
+## Done 2026-08-13: the same two rows still failing (`SIM-049`)
+
+The owner reran his 52-patient 8-arm study on the `SIM-048` fix and got B1a = 1
+and B1b = 8. The safe set was one flag -- dose schedule shared AND visit set
+shared -- and on a study where nearly every visit set is unique that flag is
+empty for the whole cohort, so the fallback dropped the dose condition with it
+and drew from the unmaskable arm again.
+
+- [x] The safe set is a list of preference tiers: both-safe, then dose-safe,
+      then visit-safe. Dose outranks visits because a dose schedule is copied
+      verbatim and can never be masked.
+- [x] **Re-anchoring never leaves the avatar's arm.** The owner's call, on being
+      shown the trade: an arm that has quietly borrowed patients from another
+      arm is a study that never ran, and the reader cannot see it. A disclosure
+      the scorecard names, they can act on. `strata_crossed` is gone.
+- [x] The run alerts by arm, on both sides -- the dose side had no alert of its
+      own, because before this it could not happen -- and B1a/B1b read
+      `6 in ARM8 (6)` rather than `6`.
+- [x] `unmaskable_strata(source, roles)` answers it from the source before
+      generating: patients per arm, split into unmaskable dosing and unmaskable
+      visits, and `safe_anchors`. An arm with none of those will fail B1 on
+      every seed.
+- [x] `tests/testthat/test-reanchor-strata.R` pins the tier fall-through, the
+      arm-named leak, and that every arm keeps its source size.
+
 ## Done 2026-08-13: both B1 guarantees failing on an 8-arm study (`SIM-048`)
 
 The owner's own scorecard, on a 52-patient study: 6 avatars wearing a visit set

@@ -117,6 +117,7 @@ reference:
   - compare_pmx_strata_sizes
   - skeleton_uniqueness
   - plot_pmx_schedule
+  - unmaskable_strata
   - pmx_masking_report
   - compare_pmx_proximity
   - flag_identifiable_subjects

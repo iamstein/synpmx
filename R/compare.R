@@ -1782,6 +1782,131 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
   out
 }
 
+# Which arms can mask themselves ------------------------------------------------
+#
+# Re-anchoring never leaves the avatar's arm, so masking is decided arm by arm:
+# an arm with no safe anchor cannot mask any avatar allocated to it, however
+# many safe anchors the rest of the study has. That makes "which arm" the first
+# question after a B1a or B1b failure, and it is a property of the source alone
+# -- answerable before anything is generated.
+
+#' Which strata can mask their own avatars
+#'
+#' One row per declared stratum level, counting the patients in it that no
+#' avatar can safely be built on. An avatar is anchored on one real patient and
+#' copies that patient's dose times verbatim, so an arm has to contain somebody
+#' who can be masked; re-anchoring picks a different anchor, but never one from
+#' another arm, because the anchor carries its `strata` values into the output
+#' and moving it would silently rewrite the arm sizes.
+#'
+#' `safe_anchors` is therefore the number that matters. An arm with none of them
+#' will emit avatars carrying a real patient's schedule whatever the generator
+#' does, which is what [synpmx_scorecard()] reports as B1a and B1b, and the fix
+#' is to the study description rather than to the run -- see the alert
+#' [synpmx_avatar()] raises.
+#'
+#' Two ways a patient cannot be masked, counted separately because the remedies
+#' differ:
+#'
+#' - `unmaskable_dosing` -- their set of dose times is shared by fewer than
+#'   `min_pattern_share` patients and is not a truncation of the cohort's
+#'   schedule that could be moved to a shared depth. Dose events are copied from
+#'   the anchor as they stand, since resampling them would emit regimens the
+#'   protocol never permitted, so there is nothing to substitute.
+#' - `unmaskable_visits` -- the set of visits they have observations at is
+#'   shared by fewer than `min_pattern_share` patients, and their schedule group
+#'   holds no set that is shared widely enough to put in its place. Usually
+#'   fixable: a wider pool, or `strata = NULL` so the arms share one.
+#'
+#' This reads real patient data and is marked `"restricted_not_releasable"`.
+#'
+#' @param data A PMX dataset -- the source, before generating.
+#' @param roles Explicit roles from [pmx_roles()].
+#' @param min_pattern_share The floor [synpmx_avatar()] will be run with: how
+#'   many patients must share a pattern before it may be reused.
+#' @param coarsen_time Score the coarsened visit grid (`TRUE`, the default, and
+#'   what [synpmx_avatar()] does) or the recorded times as given.
+#'
+#' @return A `pmx_unmaskable_strata` data frame, worst arm first, with
+#'   `stratum`, `patients`, `unmaskable_dosing`, `unmaskable_visits` and
+#'   `safe_anchors`. One row named `all` when the roles declare no strata.
+#' @seealso [skeleton_uniqueness()] for the same question per patient,
+#'   [synpmx_scorecard()], which reports this as rows B1a and B1b.
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "A", "B")
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT", strata = "ARM"
+#' )
+#' unmaskable_strata(data, roles)
+unmaskable_strata <- function(data, roles, min_pattern_share = 2L,
+                              coarsen_time = TRUE) {
+  .assert_roles(data, roles)
+  min_pattern_share <- as.integer(min_pattern_share)
+  if (isTRUE(coarsen_time)) data <- .coarsen_source_time(data, roles)$source
+  subjects <- .unique_in_order(data[[roles$id]])
+  id <- as.character(data[[roles$id]])
+  subject_rows <- lapply(as.character(subjects), function(s) id == s)
+
+  dose <- unname(.dose_schedule_sharing(data, roles, min_pattern_share))
+  plan <- .dose_truncation_plan(data, roles, min_pattern_share)
+  # Same two-step the run uses: a schedule nobody shares is still maskable when
+  # it is a truncation that can be moved to a depth other patients stopped at.
+  dosing <- dose & is.na(plan$target)
+  # `.attendance_pool()` reads `subject_rows` and nothing else off `profiles`,
+  # so the profile build -- covariate assembly and a PCA -- is skipped.
+  attendance <- .attendance_pool(data, roles, list(subject_rows = subject_rows),
+                                 min_pattern_share)
+  visits <- if (is.null(attendance)) rep(FALSE, length(subjects)) else
+    unname(attendance$identifying)
+
+  stratum <- .subject_strata(data, roles)[
+    vapply(subject_rows, function(rows) which(rows)[[1L]], integer(1))
+  ]
+  levels <- unique(stratum)
+  out <- data.frame(
+    stratum = gsub("\r", " / ", levels),
+    patients = vapply(levels, function(s) sum(stratum == s), integer(1)),
+    unmaskable_dosing = vapply(levels, function(s) {
+      sum(stratum == s & dosing)
+    }, integer(1)),
+    unmaskable_visits = vapply(levels, function(s) {
+      sum(stratum == s & visits)
+    }, integer(1)),
+    safe_anchors = vapply(levels, function(s) {
+      sum(stratum == s & !dosing & !visits)
+    }, integer(1)),
+    stringsAsFactors = FALSE
+  )
+  rownames(out) <- NULL
+  out <- out[order(out$safe_anchors, -out$patients), , drop = FALSE]
+  rownames(out) <- NULL
+  out <- structure(out, class = c("pmx_unmaskable_strata", "data.frame"))
+  .mark_release(out, "restricted_not_releasable")
+}
+
+#' @export
+print.pmx_unmaskable_strata <- function(x, ...) {
+  plain <- as.data.frame(x)
+  cat("Patients no avatar can safely be built on, by arm\n\n")
+  print.data.frame(plain, row.names = FALSE)
+  stuck <- plain$safe_anchors == 0L
+  cat("\n")
+  if (any(stuck)) {
+    cat(sprintf(paste("%s has no safe anchor: every avatar allocated to it",
+                      "carries one real patient's schedule, and no other arm",
+                      "can be built on instead.\n"),
+                paste(plain$stratum[stuck], collapse = ", ")))
+    cat("Widen the pool -- `strata = NULL`, a `nominal_time` role -- or accept",
+        "the disclosure for that arm.\n")
+  } else {
+    cat("Every arm can mask its own avatars.\n")
+  }
+  invisible(x)
+}
+
 # Masking report ---------------------------------------------------------------
 #
 # `attr(synthetic, "pmx_settings")` is a flat list of thirty-odd names, and
@@ -1920,13 +2045,13 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       "the anchor's own set was held by nobody else and no arrangement was free, so the group's most widely held set was used instead -- less faithful to that avatar, and it discloses nothing"),
     c("&nbsp;&nbsp;of those, moved to a different anchor",
       share(settings$pattern_reanchored_fraction, n_built),
-      "the first anchor's own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others"),
+      "the first anchor's own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere -- inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others"),
     c("Avatars keeping their anchor's own visit set",
       share(1 - (settings$pattern_sampled_fraction %||% NA_real_), n_built),
       "not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure"),
     c("**Avatars carrying a visit set nobody else shares**",
       both(settings$identifying_visit_sets, n_built),
-      "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens"),
+      "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar's own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. `unmaskable_strata()` answers it from the source"),
 
     c("&nbsp;&nbsp;of those, dosing re-truncated",
       share(settings$dose_truncated_fraction, n_built),
@@ -1938,7 +2063,7 @@ remediate_identifiable_subjects <- function(data, roles, source = NULL,
       "a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune"),
     c("**Avatars carrying a dose schedule nobody else shares**",
       both(settings$identifying_dose_schedules, n_built),
-      "**must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause"),
+      "**must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position -- individualised dosing, per-patient titration -- because an avatar is only ever anchored inside the arm it was allocated to. `unmaskable_strata()` says which arm"),
 
     header("Dose"),
     c("Amounts recomputed from a covariate",

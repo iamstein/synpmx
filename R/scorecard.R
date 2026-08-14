@@ -28,6 +28,21 @@
   )
 }
 
+# A B1 result: how many avatars leaked, and out of which arms.
+#
+# Two arms at most in the cell. A study with five leaking arms has one answer --
+# `unmaskable_strata()`, which the row already points at -- and five arm labels
+# in a table cell is not it.
+.scorecard_leak <- function(count, strata) {
+  if (!count || !length(strata)) return(as.character(count))
+  strata <- sort(strata, decreasing = TRUE)
+  shown <- utils::head(strata, 2L)
+  paste0(count, " in ",
+         paste(sprintf("%s (%d)", names(shown), shown), collapse = ", "),
+         if (length(strata) > 2L) sprintf(", +%d more", length(strata) - 2L)
+         else "")
+}
+
 .scorecard_subjects <- function(data, roles) {
   length(unique(as.character(data[[roles$id]])))
 }
@@ -236,17 +251,25 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "pmx_masking_report(synthetic, source, roles)"
     )
   ), a6_rows, list(
+    # Both rows name the arm rather than only the count. An avatar is built in
+    # the arm it was allocated to and is never moved out of it -- that would
+    # rewrite the arm sizes -- so one of these failing means one arm holds
+    # nobody who can be masked, and which arm is the whole of what to do next.
+    # `unmaskable_strata()` is the pointer for the same reason: it answers the
+    # question from the source, before a run is made.
     .scorecard_row(
       "B1a", "Avatars wearing a visit set nobody else shares", "run settings",
-      settings$identifying_visit_sets,
-      "plot_pmx_schedule(source, roles)",
+      .scorecard_leak(settings$identifying_visit_sets,
+                      settings$identifying_visit_set_strata),
+      "unmaskable_strata(source, roles)",
       settings$identifying_visit_sets == 0L
     ),
     .scorecard_row(
       "B1b", "Avatars wearing a dose schedule nobody else shares",
       "run settings",
-      settings$identifying_dose_schedules,
-      "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
+      .scorecard_leak(settings$identifying_dose_schedules,
+                      settings$identifying_dose_schedule_strata),
+      "unmaskable_strata(source, roles)",
       settings$identifying_dose_schedules == 0L
     ),
     .scorecard_row(

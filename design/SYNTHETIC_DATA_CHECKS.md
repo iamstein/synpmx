@@ -76,7 +76,11 @@ fixing one does nothing for the others.
   `n_share_obs_count`, `n_share_dosing`, `nearest_set_diff`, per-endpoint
   breakdown), `plot_pmx_schedule()`.
 - The two guarantees, measured on the output: `identifying_visit_sets` and
-  `identifying_dose_schedules` in `pmx_settings`. Both must be 0.
+  `identifying_dose_schedules` in `pmx_settings`. Both must be 0, and both are
+  decided arm by arm -- an avatar is never anchored outside the arm it was
+  allocated to, so an arm holding nobody who can be masked fails whatever the
+  rest of the study looks like. `unmaskable_strata()` answers that from the
+  source; the settings record which arms leaked, and the scorecard names them.
 - **Read the near-miss distance, not just the count.** Exact-set equality is a
   harsh test: on a real 21-patient study, 15 of 21 patients had a "unique"
   observation schedule and every one of them was a *single* missing sample away
@@ -437,6 +441,7 @@ Two corollaries, both learned the hard way and both worth writing down:
 | A | endpoint set comparison | yes |
 | B1 | `skeleton_uniqueness()`, `plot_pmx_schedule()` | yes |
 | B1 | `identifying_visit_sets`, `identifying_dose_schedules` | (recorded at generation) |
+| B1 | `unmaskable_strata()` | yes |
 | B2 | `flag_identifiable_subjects()` (scored within `strata`), `remediate_identifiable_subjects()` | no |
 | B3 | `compare_pmx_proximity()` | yes |
 | B4 | `SIM-014` gate — in tests only, no exported helper | yes |
