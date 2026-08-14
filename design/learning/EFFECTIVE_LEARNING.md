@@ -107,11 +107,11 @@ tests both halves of the aspiration at once, and it is already on your own list.
 
 Your page lists five learning approaches. Reading, Organizing, Teaching, Doing, Recalling.
 
-Reading is heavy. Organizing is heavy, arguably too heavy: `design/` holds 12
-files, four of which are documentation about documentation
-(`WRITING_STYLE.md`, `_THEORY_OF_MIND.md`, `DOCUMENTATION_SCOPE.md`,
-`BUILD_DOCUMENTATION.md`) and serve Claude's output quality rather than your
-understanding. Doing is partial, since the directing is yours and the doing is
+Reading is heavy. Organizing is heavy, arguably too heavy: `design/` holds 11
+files, three of which are documentation about documentation
+(`WRITING_STYLE.md`, `_THEORY_OF_MIND.md`, `BUILD_DOCUMENTATION.md`) and serve
+Claude's output quality rather than your understanding. Doing is partial,
+since the directing is yours and the doing is
 Claude's. Teaching is at zero. Recalling is at zero.
 
 Teaching and recalling are where retention comes from, and you already have two

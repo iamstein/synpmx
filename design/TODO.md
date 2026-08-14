@@ -17,91 +17,27 @@ Internal design record (`design/`, cited by nothing shipped):
 - `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
-## Done 2026-08-13: the same two rows still failing (`SIM-049`)
+## Done 2026-08-13
 
-The owner reran his 52-patient 8-arm study on the `SIM-048` fix and got B1a = 1
-and B1b = 8. The safe set was one flag -- dose schedule shared AND visit set
-shared -- and on a study where nearly every visit set is unique that flag is
-empty for the whole cohort, so the fallback dropped the dose condition with it
-and drew from the unmaskable arm again.
-
-- [x] The safe set is a list of preference tiers: both-safe, then dose-safe,
-      then visit-safe. Dose outranks visits because a dose schedule is copied
-      verbatim and can never be masked.
-- [x] **Re-anchoring never leaves the avatar's arm.** The owner's call, on being
-      shown the trade: an arm that has quietly borrowed patients from another
-      arm is a study that never ran, and the reader cannot see it. A disclosure
-      the scorecard names, they can act on. `strata_crossed` is gone.
-- [x] The run alerts by arm, on both sides -- the dose side had no alert of its
-      own, because before this it could not happen -- and B1a/B1b read
-      `6 in ARM8 (6)` rather than `6`.
-- [x] `unmaskable_strata(source, roles)` answers it from the source before
-      generating: patients per arm, split into unmaskable dosing and unmaskable
-      visits, and `safe_anchors`. An arm with none of those will fail B1 on
-      every seed.
-- [x] `tests/testthat/test-reanchor-strata.R` pins the tier fall-through, the
-      arm-named leak, and that every arm keeps its source size.
-
-## Done 2026-08-13: both B1 guarantees failing on an 8-arm study (`SIM-048`)
-
-The owner's own scorecard, on a 52-patient study: 6 avatars wearing a visit set
-nobody else shares, 7 wearing a dose schedule nobody else shares, and
-`strata_crossed = 0` claiming nothing had been traded for it. A regression from
-`af72e77`, which confined re-anchoring to the avatar's own arm and read "the
-stratum has nobody else to offer" as nobody at all rather than nobody who can be
-masked.
-
-- [x] `.reanchor_candidates()` takes the safe set: safe-in-arm, then
-      safe-anywhere (reported as `strata_crossed`), then in-arm, then anyone.
-- [x] Candidates are filtered rather than rejection-sampled, so being masked is
-      not a coin toss where safe anchors are plentiful.
-- [x] The retry loop stops on an anchor whose visit set was drawn for it, not on
-      one it had just moved to.
-- [x] `tests/testthat/test-reanchor-strata.R` pins the preference order and
-      recomputes the count end to end from a two-arm fixture whose second arm
-      doses every patient on their own days.
-- [x] Scorecard B1a/B1b renamed to "wearing a visit set / dose schedule nobody
-      else shares". Wearing a *shared* patient's schedule was never the failure,
-      and the old wording read as though it were.
-- [x] `pheno_sd` now passes both rows, at a cost: 3 of 56 regimens and 1.2 doses
-      a patient. Registry row, `SYNTHETIC_DATA_CHECKS.md` and the vignette all
-      say so, since the privacy tier no longer reports anything on that dataset.
-
-Still open, and the reason `pheno_sd` is kept:
-
-- [ ] **Dose-count fidelity has no check of its own.** A5 shows doses per
-      patient, but nothing states "this study's dosing did not survive" in a
-      unit a pharmacometrician acts on. `dose_regimens_represented` is in the
-      masking report and in no scorecard row. Reaching B1b = 0 by truncating a
-      ten-dose regimen to one dose is a pass that should not read as one.
-
-## Done 2026-08-13: discrete endpoints come back continuous (`SIM-045`)
-
-Found while rewriting `public-data-examples.Rmd` onto the demo's shape.
-`xgxr::mad` carries binary, count and ordinal PD endpoints in the same numeric
-`LIDV` column as PK, and all three came out continuous: the 0/1 endpoint took
-600 distinct values from -0.13 to 1.08. Every scorecard row passed, so nothing
-caught it.
-
-- [x] Per-endpoint value type decided from the source, and generated values
-      snapped back onto it at emit. Inferred by default, because the question is
-      answered outright by the data and the repair reproduces granularity the
-      source already had.
-- [x] `pmx_roles(endpoint_types = )` to declare or override it, refusing an
-      impossible declaration rather than widening the level set.
-- [x] `pmx_endpoint_types()` reports the decision and the evidence for it.
-- [x] Scorecard row A6, recomputed from the finished table, present only where
-      the study has a discrete endpoint. `endpoint_type_violations` in the run
-      settings is the same number for a run report.
-- [x] `tests/testthat/test-endpoint-types.R`, including a case that reproduces
-      the original defect by declaring the discrete endpoints continuous.
-- [x] Documented in `scorecard-synthetic-data-checks.Rmd` (A6) and in the `mad` section of
-      `public-data-examples.Rmd`.
-
-One consequence to keep in view: `warfarin`'s `pca` is a percentage recorded
-without decimals, so it now rounds to whole numbers. That matches its source and
-is what `endpoint_types` exists to override, but it is the first case where this
-inference changes a study nobody would call discrete.
+- [x] `SIM-049` Re-anchoring safe set collapsed to nothing on a study with
+      near-unique visit sets, silently reopening the `SIM-048` leak. Fixed by
+      preference tiers (both-safe, dose-safe, visit-safe) and confining
+      re-anchoring to the avatar's own arm, reporting the arm by name when it
+      cannot mask itself. `a6050e9`. Full account in `TEST_SIM.md`.
+- [x] `SIM-048` Both B1 guarantees failing on an 8-arm study: re-anchoring's
+      "nobody else to offer" fallback read as nobody at all rather than nobody
+      *maskable*. Fixed via a safe-candidate preference order; superseded same
+      day by `SIM-049`. `pheno_sd` now passes both rows, at the cost of 3 of 56
+      regimens surviving. `66866cf`. Full account in `TEST_SIM.md`.
+      - [ ] Still open: dose-count fidelity has no scorecard row of its own.
+            `dose_regimens_represented` is in the masking report but nothing
+            states "this study's dosing did not survive" where a
+            pharmacometrician would see it.
+- [x] `SIM-045` Discrete (binary/ordinal/count) endpoints came back continuous
+      because class restoration is per-column and PMX tables keep every
+      endpoint in one numeric `DV`. Fixed by per-endpoint value-type inference
+      and snap-back at emit, with `pmx_roles(endpoint_types = )` to override.
+      Scorecard row A6. `a0d5c6d`. Full account in `TEST_SIM.md`.
 
 ## Done 2026-08-03: run-report readability, and `SIM-038` behind it
 
@@ -555,8 +491,9 @@ Deferred.
 ## Done: documentation reorganization (2026-07-23)
 
 Decided and executed. The reasoning, the audience analysis, and the rationale
-for each call are in `design/DOCUMENTATION_SCOPE.md`; delete that file once
-this section is stale. `AGENTS.md` now records the resulting three-tier rule.
+for each call were in `design/DOCUMENTATION_SCOPE.md`, deleted 2026-08-14 once
+this section confirmed it stale. `AGENTS.md` now records the resulting
+three-tier rule.
 
 - [x] Adopt pkgdown. `_pkgdown.yml` with a grouped reference index over all 31
       exports, plus a GitHub Actions workflow deploying to `gh-pages`.
