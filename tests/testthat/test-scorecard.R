@@ -179,10 +179,46 @@ test_that("a stratum that changed size is review, not FAIL", {
   expect_identical(sc_verdict(card, "C3"), "review")
 })
 
-test_that("the scorecard refuses data that did not come from the generator", {
+test_that("a table with no run record is scored, not refused", {
+  # The card used to stop() without `pmx_settings`, which made the one function
+  # meant to score an output unable to score anything but this package's own --
+  # including this package's own, once it had been through `write.csv()`. The
+  # three rows that need the run's record say so; the rest are measured from the
+  # two tables as usual.
+  source <- pmx_simulated_fixture(24)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+  full <- synpmx_scorecard(source, synthetic, roles)
+
+  bare <- synthetic
+  attributes(bare) <- attributes(bare)[c("names", "class", "row.names")]
+  card <- synpmx_scorecard(source, bare, roles)
+
+  recorded <- c("B1a", "B1b", "C4")
+  expect_identical(card$verdict[card$check %in% recorded],
+                   rep("unavailable", length(recorded)))
+  expect_identical(card$result[card$check %in% recorded],
+                   rep("no run record", length(recorded)))
+  # Same rows in the same order, and every other verdict unchanged: a card that
+  # holds different rows on different tables cannot be compared across them.
+  expect_identical(card$check, full$check)
+  expect_identical(card$verdict[!card$check %in% recorded],
+                   full$verdict[!full$check %in% recorded])
+  # `unavailable` is not `pass`: the count line has to say so.
+  expect_output(print(card), "3 unanswered")
+})
+
+test_that("C4 reads the run's record, and says that it does", {
+  # Both of its counts come from `pmx_settings`, so labelling the row `both`
+  # claimed the filled-in card was restricted output on the strength of a row
+  # that reads neither table.
   source <- pmx_simulated_fixture(20)
   roles <- sc_roles()
-  expect_error(synpmx_scorecard(source, source, roles), "pmx_settings")
+  synthetic <- sc_synthetic(source, roles)
+
+  card <- synpmx_scorecard(source, synthetic, roles)
+
+  expect_identical(card$reads[card$check == "C4"], "run settings")
 })
 
 test_that("the scorecard is restricted output and reuses a given proximity", {

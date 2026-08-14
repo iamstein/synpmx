@@ -9,8 +9,9 @@ synpmx_scorecard(source, synthetic, roles, proximity = NULL)
 \arguments{
 \item{source}{Source PMX data.}
 
-\item{synthetic}{Generated synthetic PMX data from \code{\link[=synpmx_avatar]{synpmx_avatar()}},
-carrying its \code{"pmx_settings"} attribute.}
+\item{synthetic}{Generated synthetic PMX data. From \code{\link[=synpmx_avatar]{synpmx_avatar()}} it
+carries a \code{"pmx_settings"} attribute and the whole card can be filled in;
+without one, the three rows that need it read \code{"unavailable"}.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
 
@@ -37,6 +38,24 @@ Only the \code{"synthetic"} and \code{"run settings"} rows can travel with the d
 \code{"run settings"} means the value is the generation run's own record of what
 it did -- \code{attr(synthetic, "pmx_settings")} -- rather than a measurement
 taken from either table.
+}
+\section{Scoring a table this package did not generate}{
+Everything measured from the two tables is measurable on any synthetic
+dataset, whatever produced it, so a table carrying no \code{"pmx_settings"}
+attribute is scored rather than refused: the three \code{"run settings"} rows
+(B1a, B1b, C4) come back with the verdict \code{"unavailable"} and the rest of
+the card is computed as usual. That covers another method's output, and this
+package's own output read back from a file.
+
+Those three rows cannot be recomputed from the finished table, and that is a
+property of the generator rather than an omission here. Generated times are
+the coarsened visit grid plus resampled deviations -- applied to dose rows
+too -- so an avatar's schedule no longer matches any source patient's key
+exactly, and matching it back by snapping to the grid reports schedules that
+were never given. The run measures both guarantees before the deviations are
+applied. \code{\link[=unmaskable_strata]{unmaskable_strata()}} is the part of that question answerable
+without any run record: it reads the source alone and names the arms whose
+patients no method could mask.
 
 The \code{explore} column names the call to run when a row needs explaining. The
 calls are written against this function's argument names (\code{source},
@@ -51,7 +70,8 @@ or \code{.qmd} gets the whole card including the \code{explore} column. Running 
 interactively in an IDE shows the console form, since nothing is knitting.
 
 A \code{"review"} verdict is not a soft \code{"pass"}. It marks a row where no
-threshold would be honest, and it has to be read.
+threshold would be honest, and it has to be read. Nor is \code{"unavailable"}:
+it marks a row nothing was measured for.
 
 \code{"FAIL"} is reserved for the rows where the answer is always a defect: the
 output is not a legal dataset (A1), it is not the study that went in (A3,
@@ -65,6 +85,7 @@ them: C2 (dose and observation ordering), and the one that matters most --
 whether the pipeline that will consume the real study runs unchanged against
 this output.
 }
+
 \examples{
 data <- pmx_simulated_fixture(30)
 roles <- pmx_roles(

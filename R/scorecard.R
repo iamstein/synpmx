@@ -18,14 +18,41 @@
 # copy-pasteable in a session that uses those names, and readable as a pointer
 # in one that does not.
 
-.scorecard_row <- function(check, question, reads, result, explore, ok = NA) {
+.scorecard_row <- function(check, question, reads, result, explore, ok = NA,
+                           verdict = NULL) {
   data.frame(
     check = check, question = question, reads = reads,
     result = as.character(result),
-    verdict = if (isTRUE(ok)) "pass" else if (isFALSE(ok)) "FAIL" else "review",
+    verdict = verdict %||%
+      if (isTRUE(ok)) "pass" else if (isFALSE(ok)) "FAIL" else "review",
     explore = explore,
     stringsAsFactors = FALSE
   )
+}
+
+# A row only the generating run can answer.
+#
+# Three of them -- B1a, B1b and C4 -- read `attr(synthetic, "pmx_settings")`
+# rather than either table, and that is not a shortcut. Generated times are the
+# coarsened grid plus resampled deviations, applied to dose rows as well, so an
+# avatar's schedule cannot be matched back to a source patient's by exact key:
+# snapping the finished table back onto the grid was tried and reported an
+# avatar on `wbcSim` as holding a schedule it was never given. The run measured
+# it before the deviations were applied, and that measurement is the better one.
+#
+# So a table with no such record -- another method's output, or this one's read
+# back from a CSV -- gets the row marked `unavailable` rather than dropped. A
+# card holding sixteen rows on one table and nineteen on another cannot be
+# compared, and "not measured" is a different statement from "passed". `result`
+# and `ok` are evaluated only when the record exists.
+.scorecard_recorded <- function(check, question, settings, result, explore,
+                                ok) {
+  if (is.null(settings)) {
+    return(.scorecard_row(check, question, "run settings",
+                          "no run record", explore,
+                          verdict = "unavailable"))
+  }
+  .scorecard_row(check, question, "run settings", result, explore, ok)
 }
 
 # A B1 result: how many avatars leaked, and out of which arms.
@@ -112,6 +139,25 @@
 #' it did -- `attr(synthetic, "pmx_settings")` -- rather than a measurement
 #' taken from either table.
 #'
+#' # Scoring a table this package did not generate
+#'
+#' Everything measured from the two tables is measurable on any synthetic
+#' dataset, whatever produced it, so a table carrying no `"pmx_settings"`
+#' attribute is scored rather than refused: the three `"run settings"` rows
+#' (B1a, B1b, C4) come back with the verdict `"unavailable"` and the rest of
+#' the card is computed as usual. That covers another method's output, and this
+#' package's own output read back from a file.
+#'
+#' Those three rows cannot be recomputed from the finished table, and that is a
+#' property of the generator rather than an omission here. Generated times are
+#' the coarsened visit grid plus resampled deviations -- applied to dose rows
+#' too -- so an avatar's schedule no longer matches any source patient's key
+#' exactly, and matching it back by snapping to the grid reports schedules that
+#' were never given. The run measures both guarantees before the deviations are
+#' applied. [unmaskable_strata()] is the part of that question answerable
+#' without any run record: it reads the source alone and names the arms whose
+#' patients no method could mask.
+#'
 #' The `explore` column names the call to run when a row needs explaining. The
 #' calls are written against this function's argument names (`source`,
 #' `synthetic`, `roles`), so rename them to whatever the session calls those
@@ -125,7 +171,8 @@
 #' interactively in an IDE shows the console form, since nothing is knitting.
 #'
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
-#' threshold would be honest, and it has to be read.
+#' threshold would be honest, and it has to be read. Nor is `"unavailable"`:
+#' it marks a row nothing was measured for.
 #'
 #' `"FAIL"` is reserved for the rows where the answer is always a defect: the
 #' output is not a legal dataset (A1), it is not the study that went in (A3,
@@ -140,8 +187,9 @@
 #' this output.
 #'
 #' @param source Source PMX data.
-#' @param synthetic Generated synthetic PMX data from [synpmx_avatar()],
-#'   carrying its `"pmx_settings"` attribute.
+#' @param synthetic Generated synthetic PMX data. From [synpmx_avatar()] it
+#'   carries a `"pmx_settings"` attribute and the whole card can be filled in;
+#'   without one, the three rows that need it read `"unavailable"`.
 #' @param roles Explicit roles from [pmx_roles()].
 #' @param proximity An already-computed [compare_pmx_proximity()] result, to
 #'   save recomputing it. Left `NULL` it is computed here, which is the slowest
@@ -162,11 +210,13 @@
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #' synpmx_scorecard(data, synthetic, roles)
 synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
+  # No `pmx_settings` is not an error. Everything the card measures from the two
+  # tables is measurable on any synthetic dataset, whatever produced it, and
+  # refusing the whole card for the three rows that need the run's own record
+  # made the one function meant to score an output unable to score anything but
+  # this package's own -- including this package's own, once it had been through
+  # `write.csv()`. Those three rows say so; the rest are computed as usual.
   settings <- attr(synthetic, "pmx_settings")
-  if (is.null(settings)) {
-    stop("`synthetic` carries no `pmx_settings` attribute; it did not come ",
-         "from `synpmx_avatar()`.", call. = FALSE)
-  }
   if (is.null(proximity)) {
     proximity <- compare_pmx_proximity(source, synthetic, roles)
   }
@@ -257,16 +307,18 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     # nobody who can be masked, and which arm is the whole of what to do next.
     # `unmaskable_strata()` is the pointer for the same reason: it answers the
     # question from the source, before a run is made.
-    .scorecard_row(
-      "B1a", "Avatars wearing a visit set nobody else shares", "run settings",
+    .scorecard_recorded(
+      "B1a", "Avatars wearing a visit set nobody else shares", settings,
       .scorecard_leak(settings$identifying_visit_sets,
                       settings$identifying_visit_set_strata),
+      # Runnable either way, and the only one of the three pointers that is:
+      # it reads the source alone, so it says which arms a table of unknown
+      # provenance could be carrying a real schedule out of.
       "unmaskable_strata(source, roles)",
       settings$identifying_visit_sets == 0L
     ),
-    .scorecard_row(
-      "B1b", "Avatars wearing a dose schedule nobody else shares",
-      "run settings",
+    .scorecard_recorded(
+      "B1b", "Avatars wearing a dose schedule nobody else shares", settings,
       .scorecard_leak(settings$identifying_dose_schedules,
                       settings$identifying_dose_schedule_strata),
       "unmaskable_strata(source, roles)",
@@ -399,8 +451,13 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   # not in it. On a weight-based study every patient's milligrams are their own,
   # so a key including amounts would report one regimen per patient on every run
   # and measure nothing. The row is named for what it counts.
-  rows <- c(rows, list(.scorecard_row(
-    "C4", "Distinct dose-time schedules represented", "both",
+  #
+  # `reads` is `run settings`, not `both`. Both counts come from the run's
+  # record -- which source regimens it anchored on -- and the row said `both`
+  # while reading neither table, which is a claim about where the filled-in card
+  # may travel, not a cosmetic label.
+  rows <- c(rows, list(.scorecard_recorded(
+    "C4", "Distinct dose-time schedules represented", settings,
     paste(settings$dose_regimens_represented, "of",
           settings$dose_regimens_source),
     "pmx_masking_report(synthetic, source, roles)",
@@ -476,10 +533,15 @@ print.synpmx_scorecard <- function(x, ...) {
   }
 
   failed <- sum(plain$verdict == "FAIL")
+  unavailable <- sum(plain$verdict == "unavailable")
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
-      sum(plain$verdict == "review"), " to review.\n",
+      sum(plain$verdict == "review"), " to review",
+      # Said in the count line, not only in the rows: three rows quietly not
+      # answered is the kind of thing a reader takes for three rows passed.
+      if (unavailable) paste0(", ", unavailable, " unanswered") else "", ".\n",
       "`run settings` rows come from the run's own record, ",
-      "`attr(synthetic, \"pmx_settings\")`.\n",
+      "`attr(synthetic, \"pmx_settings\")`",
+      if (unavailable) ", which this table does not carry" else "", ".\n",
       "Rows reading `source` or `both` are restricted output.\n", sep = "")
   invisible(x)
 }
