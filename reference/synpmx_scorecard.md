@@ -145,6 +145,7 @@ synpmx_scorecard(data, synthetic, roles)
 #>   A4    Cohort size survived                               both         30 -> 30                      pass
 #>   A5a   Observations per patient                           both         14 -> 14                      review
 #>   A5b   Doses per patient                                  both         2 -> 2                        review
+#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint          pass
 #>   B1a   Avatars with a visit set nobody else shares        run settings 0                             pass
 #>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                             pass
 #>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                       review

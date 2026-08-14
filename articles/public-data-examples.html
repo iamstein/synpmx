@@ -551,6 +551,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -558,7 +566,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -566,7 +574,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -574,7 +582,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -582,7 +590,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -591,7 +599,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -599,7 +607,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -608,7 +616,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -1156,6 +1164,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -1163,7 +1179,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -1171,7 +1187,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -1179,7 +1195,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -1187,7 +1203,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1196,7 +1212,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1204,7 +1220,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -1213,7 +1229,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -1554,6 +1570,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -1561,7 +1585,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -1569,7 +1593,7 @@ roles)</td>
 <td align="left">FAIL</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -1577,7 +1601,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -1585,7 +1609,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1594,7 +1618,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1602,7 +1626,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -1611,7 +1635,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -1800,6 +1824,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -1807,7 +1839,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -1815,7 +1847,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -1823,7 +1855,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -1831,7 +1863,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1840,7 +1872,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -1848,7 +1880,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -1857,7 +1889,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -2159,6 +2191,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -2166,7 +2206,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -2174,7 +2214,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -2182,7 +2222,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -2190,7 +2230,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2199,7 +2239,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2207,7 +2247,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -2216,7 +2256,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -2532,6 +2572,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -2539,7 +2587,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -2547,7 +2595,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -2555,7 +2603,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -2563,7 +2611,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2572,7 +2620,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2580,7 +2628,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -2589,7 +2637,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -2928,6 +2976,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -2935,7 +2991,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -2943,7 +2999,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -2951,7 +3007,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -2959,7 +3015,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2968,7 +3024,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -2976,7 +3032,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B5a</td>
 <td align="left">Patients holding the least-held categorical level</td>
 <td align="left">synthetic</td>
@@ -2984,7 +3040,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">table(synthetic$TRTACT)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B5b</td>
 <td align="left">Rare source levels copied into the output</td>
 <td align="left">both</td>
@@ -2992,7 +3048,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C1</td>
 <td align="left">Strata keeping their source size</td>
 <td align="left">both</td>
@@ -3000,7 +3056,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -3009,7 +3065,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -3621,9 +3677,9 @@ on that scale. The decision is worth reading before the data:</p>
 </tbody>
 </table>
 <p>A6 in the scorecard above is the check on it, and it reads the
-finished table rather than trusting the mechanism. It appears only on a
-study that has a discrete endpoint, which is why it is absent from the
-seven scorecards before this one.</p>
+finished table rather than trusting the mechanism. It is on every card;
+the seven studies before this one have no discrete endpoint, so theirs
+read <code>no discrete endpoint</code> and pass.</p>
 <p>Two limits. The type is inferred, so an endpoint whose values are
 whole numbers for a reason other than being discrete is called discrete
 anyway — <code>warfarin</code>’s <code>pca</code> is a percentage

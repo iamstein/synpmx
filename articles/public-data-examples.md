@@ -259,6 +259,7 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 22 -\> 22 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 7 -\> 7 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 3 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -410,6 +411,7 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | A4 | Cohort size survived | both | 45 -\> 45 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 3.9 -\> 3.6 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 1.2 -\> 1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 16 of 45 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -527,6 +529,7 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 26.8 -\> 27.3 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 12 | FAIL | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -616,6 +619,7 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 26.8 -\> 27.4 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -701,6 +705,7 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | A4 | Cohort size survived | both | 120 -\> 120 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 20.2 -\> 20.2 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 1.6 -\> 1.6 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 41 of 120 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -817,6 +822,7 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | A4 | Cohort size survived | both | 59 -\> 59 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 2.6 -\> 2.6 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 10 -\> 1.1 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 36 of 59 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -963,6 +969,7 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
 | A5a | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
@@ -1177,9 +1184,9 @@ knitr::kable(
 Values taken by the three discrete endpoints. {.table}
 
 A6 in the scorecard above is the check on it, and it reads the finished
-table rather than trusting the mechanism. It appears only on a study
-that has a discrete endpoint, which is why it is absent from the seven
-scorecards before this one.
+table rather than trusting the mechanism. It is on every card; the seven
+studies before this one have no discrete endpoint, so theirs read
+`no discrete endpoint` and pass.
 
 Two limits. The type is inferred, so an endpoint whose values are whole
 numbers for a reason other than being discrete is called discrete anyway

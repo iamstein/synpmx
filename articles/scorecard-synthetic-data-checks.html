@@ -220,11 +220,10 @@ avatar receives one. A dataset on which everything passes teaches
 nothing. Where the two disagree is where a check is doing work.</p>
 </div>
 <div class="section level3">
-<h3 id="the-two-scorecards">The two scorecards<a class="anchor" aria-label="anchor" href="#the-two-scorecards"></a>
+<h3 id="the-scorecard-computed">The scorecard, computed<a class="anchor" aria-label="anchor" href="#the-scorecard-computed"></a>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
-<span><span class="va">pheno_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="va">case1_card</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -297,6 +296,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -304,7 +311,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -312,7 +319,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -320,7 +327,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -328,7 +335,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -337,7 +344,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -345,7 +352,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B5a</td>
 <td align="left">Patients holding the least-held categorical level</td>
 <td align="left">synthetic</td>
@@ -353,7 +360,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">table(synthetic$TRTACT)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B5b</td>
 <td align="left">Rare source levels copied into the output</td>
 <td align="left">both</td>
@@ -361,7 +368,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C1</td>
 <td align="left">Strata keeping their source size</td>
 <td align="left">both</td>
@@ -369,7 +376,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -378,7 +385,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -392,8 +399,130 @@ roles)</td>
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
+<p>Nothing fails. The rest of this vignette is what each check asks and
+why its pass criterion is what it is, using <code>case1_pkpd</code>
+where a check passes and <code>pheno_sd</code> where one is worth
+arguing with.</p>
+</div>
+<div class="section level2">
+<h2 id="a--is-the-dataset-valid">A. Is the dataset valid<a class="anchor" aria-label="anchor" href="#a--is-the-dataset-valid"></a>
+</h2>
+<div class="section level3">
+<h3 id="a1-a2--is-the-table-a-legal-pmx-dataset">A1, A2. Is the table a legal PMX dataset<a class="anchor" aria-label="anchor" href="#a1-a2--is-the-table-a-legal-pmx-dataset"></a>
+</h3>
+<p>A1 runs <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the synthetic table and A2
+runs the same function on the source. Both must be <code>TRUE</code>.
+The check is structural: schema and column classes, event grammar, time
+monotonicity within subject, censoring flags against their dependent
+variable (<code>DV</code>), infusion start/stop pairing, baseline
+covariates that are actually constant, and strata that do not vary
+within a subject. It does not assess scientific validity, and it is not
+a privacy check.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pheno_card</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><strong>A2 exists because a validator that only ever passes is not
+evidence of anything.</strong> The source is where a mis-declared role
+gets caught before it becomes a generation bug, and
+<code>case1_pkpd</code> has one:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles_cens</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<p>That study’s <code>CENS</code> column is meaningful only for the PK
+endpoint. The PD effect is signed, so a row flagged as below the limit
+of quantification (BLOQ) reports a value <em>above</em> uncensored ones.
+Declaring <code>cens</code> here would produce a coherent-looking
+dataset with nonsense censoring; leave it undeclared, or correct the
+column. A2 is <code>review</code> rather than <code>pass</code> in that
+situation: a real study a validator objects to is a normal thing to
+have, and the objection has to be read rather than scored.</p>
+<div class="section level4">
+<h4 id="caveat-time-after-dose-is-a-warning-not-a-failure">Caveat: time after dose is a warning, not a failure<a class="anchor" aria-label="anchor" href="#caveat-time-after-dose-is-a-warning-not-a-failure"></a>
+</h4>
+<p><code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> reports a disagreement in time after dose
+(<code>TAD</code>) as a <em>warning</em>, so A1 and A2 still pass while
+the disagreement goes unread. A trough sample must stay a trough, and
+this is the column that says whether it did.</p>
+<p><strong><code>tad</code> is an output, not an input.</strong>
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> recomputes it from the generated times and
+dose rows and overwrites whatever the source held. Declaring the role
+says which column to overwrite and carry through. The source values are
+read in one place only, <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the source:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nimo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, tad <span class="op">=</span> <span class="st">"TAD"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BSA"</span>, <span class="st">"AGE"</span>, <span class="st">"HGT"</span><span class="op">)</span>, keep <span class="op">=</span> <span class="st">"DOS"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">nimo_checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">nimo</span>, <span class="va">nimo_roles</span><span class="op">)</span><span class="op">$</span><span class="va">checks</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">nimo_checks</span><span class="op">$</span><span class="va">message</span><span class="op">[</span><span class="va">nimo_checks</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"tad_agreement"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Declared TAD disagrees with time since the most recent dose on 143 of 321 observation row(s) (45%), by up to 311.9. Common causes: TAD is measured from the end of an infusion or from a nominal dose time rather than the recorded dose row; the study uses a dosing occasion rather than the most recent dose. Note that `synpmx_avatar()` recomputes `TAD` from generated times, so the synthetic column will follow the derivation above and not this source's convention.</span></span></code></pre></div>
+<p>Forty-five percent of observation rows disagree, by up to 311.9
+hours. That means one of: the study measures <code>TAD</code> from the
+end of an infusion, from a nominal dose time, or from an assigned
+occasion rather than the most recent dose; or the source column is
+wrong; or the derivation is wrong for this study. The check cannot tell
+you which. The synthetic column follows the derivation, so a silent
+change of convention is what this surfaces.</p>
+<p>Two limits. A sample taken before any dose is reported at
+<code>TAD</code> 0 because <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> refuses a
+negative. And where <code>addl</code>/<code>ii</code> are declared, the
+derivation cannot see the doses they imply, so the check is skipped and
+says so. A related gap, whether a sample stayed on the right side of its
+dose, is in “What is still missing” at the end.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="a3--did-every-endpoint-survive">A3. Did every endpoint survive<a class="anchor" aria-label="anchor" href="#a3--did-every-endpoint-survive"></a>
+</h3>
+<p>A3 compares the set of <code>dvid</code> levels observed in the
+source against the set observed in the output. They must be equal, and a
+missing endpoint is a <code>FAIL</code>: it is not the study that went
+in.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setequal</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_pkpd</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_synth</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><strong>Compare endpoint <em>sets</em>, not row counts.</strong> The
+defect that motivated A3 lost an entire endpoint, 108 rows in and 60
+out, with every observation in one compartment gone and no warning. A
+row count alone looked plausible.</p>
+</div>
+<div class="section level3">
+<h3 id="a4--did-the-cohort-size-survive">A4. Did the cohort size survive<a class="anchor" aria-label="anchor" href="#a4--did-the-cohort-size-survive"></a>
+</h3>
+<p>A4 counts distinct subjects on each side. Equal is a pass. Fewer is
+<code>review</code> rather than <code>FAIL</code>, because
+<code>on_donor_shortfall = "drop"</code> removes a subject that could
+not be built from enough donors, and declining to build on a patient the
+generator cannot protect is the correct answer. It lands on whichever
+stratum was thinnest, so a small cohort is where it shows up: a stratum
+holding a single patient can legitimately come back empty. More subjects
+than the source is not something the generator does.</p>
+</div>
+<div class="section level3">
+<h3 id="a5a-a5b--did-the-observations-and-the-doses-survive">A5a, A5b. Did the observations and the doses survive<a class="anchor" aria-label="anchor" href="#a5a-a5b--did-the-observations-and-the-doses-survive"></a>
+</h3>
+<p>A5a and A5b are rows per patient, split by event type: observations
+in one, dose events in the other. Both are <code>review</code> on every
+study, because no threshold would be honest — the number moves by design
+and how far is a judgement about your study. <strong>They are split
+because a total hides the thing worth seeing.</strong> On
+<code>case1_pkpd</code> both hold. <code>pheno_sd</code> is the case
+that makes the point:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pheno_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
+<span><span class="va">pheno_card</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <colgroup>
 <col width="3%">
@@ -465,6 +594,14 @@ roles)</td>
 “dose_schedules”)</td>
 </tr>
 <tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
 <td align="left">B1a</td>
 <td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
@@ -472,7 +609,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B1b</td>
 <td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
@@ -480,7 +617,7 @@ roles)</td>
 <td align="left">pass</td>
 <td align="left">unmaskable_strata(source, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
@@ -488,7 +625,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
@@ -496,7 +633,7 @@ roles)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">B4a</td>
 <td align="left">Generated time vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -505,7 +642,7 @@ roles)</td>
 <td align="left">skeleton_uniqueness(source, roles, coarsen_time =
 TRUE)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">B4b</td>
 <td align="left">Generated DV vectors copying an exposed real one</td>
 <td align="left">both</td>
@@ -513,7 +650,7 @@ TRUE)</td>
 <td align="left">pass</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
@@ -522,7 +659,7 @@ TRUE)</td>
 <td align="left">pmx_masking_report(synthetic, source, roles, section =
 “dose_schedules”)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
@@ -536,99 +673,9 @@ roles)</td>
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
-<p>Nothing fails on either, and on <code>pheno_sd</code> that is not the
-same as being fine: A5b reads <code>10 -&gt; 1.1</code> doses per
-patient and C2 represents 3 of its 56 dose schedules, both
-<code>review</code>. The rest of this vignette is what each check asks,
-why its pass criterion is what it is, and how a study can lose its
-dosing without a single <code>FAIL</code>.</p>
-</div>
-<div class="section level2">
-<h2 id="a--is-the-dataset-valid">A. Is the dataset valid<a class="anchor" aria-label="anchor" href="#a--is-the-dataset-valid"></a>
-</h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p><code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> checks schema and column classes, event
-grammar, time monotonicity within subject, censoring flags against their
-dependent variable (<code>DV</code>), infusion start/stop pairing,
-baseline covariates that are actually constant, and strata that do not
-vary within a subject. Run it on the source as well as the synthetic
-table, which is what A1 and A2 are:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
-<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
-<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles_cens</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>That study’s <code>CENS</code> column is meaningful only for the PK
-endpoint. The PD effect is signed, so a row flagged as below the limit
-of quantification (BLOQ) reports a value <em>above</em> uncensored ones.
-Declaring <code>cens</code> here would produce a coherent-looking
-dataset with nonsense censoring; leave it undeclared, or correct the
-column.</p>
-<div class="section level3">
-<h3 id="a2--time-after-dose">A2. Time after dose<a class="anchor" aria-label="anchor" href="#a2--time-after-dose"></a>
-</h3>
-<p><code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> reports a disagreement in time after dose
-(<code>TAD</code>) as a <em>warning</em>, so it passes
-<code>$valid</code> and still has to be read. A trough sample must stay
-a trough, and this is the column that says whether it did.</p>
-<p><strong><code>tad</code> is an output, not an input.</strong>
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> recomputes it from the generated times and
-dose rows and overwrites whatever the source held. Declaring the role
-says which column to overwrite and carry through. The source values are
-read in one place only, <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the source, and a
-disagreement there is a real finding every time:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nimo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
-<span>  rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, tad <span class="op">=</span> <span class="st">"TAD"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
-<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BSA"</span>, <span class="st">"AGE"</span>, <span class="st">"HGT"</span><span class="op">)</span>, keep <span class="op">=</span> <span class="st">"DOS"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">nimo_checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">nimo</span>, <span class="va">nimo_roles</span><span class="op">)</span><span class="op">$</span><span class="va">checks</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">nimo_checks</span><span class="op">$</span><span class="va">message</span><span class="op">[</span><span class="va">nimo_checks</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"tad_agreement"</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Declared TAD disagrees with time since the most recent dose on 143 of 321 observation row(s) (45%), by up to 311.9. Common causes: TAD is measured from the end of an infusion or from a nominal dose time rather than the recorded dose row; the study uses a dosing occasion rather than the most recent dose. Note that `synpmx_avatar()` recomputes `TAD` from generated times, so the synthetic column will follow the derivation above and not this source's convention.</span></span></code></pre></div>
-<p>Forty-five percent of observation rows disagree, by up to 311.9
-hours. That means one of: the study measures <code>TAD</code> from the
-end of an infusion, from a nominal dose time, or from an assigned
-occasion rather than the most recent dose; or the source column is
-wrong; or the derivation is wrong for this study. The check cannot tell
-you which. The synthetic column follows the derivation, so a silent
-change of convention is what this check surfaces.</p>
-<p>Two limits. A sample taken before any dose is reported at
-<code>TAD</code> 0 because <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> refuses a
-negative. And where <code>addl</code>/<code>ii</code> are declared, the
-derivation cannot see the doses they imply, so the check is skipped and
-says so. A related gap, whether a sample stayed on the right side of its
-dose, is in “What is still missing” at the end.</p>
-</div>
-<div class="section level3">
-<h3 id="a3--endpoint-survival">A3. Endpoint survival<a class="anchor" aria-label="anchor" href="#a3--endpoint-survival"></a>
-</h3>
-<p>Compare endpoint <em>sets</em>, not row counts. The defect that
-motivated A3 lost an entire endpoint, 108 rows in and 60 out, with every
-observation in one compartment gone and no warning.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setequal</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_pkpd</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_synth</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="a5a-a5b--observations-and-doses-per-patient">A5a, A5b. Observations and doses per patient<a class="anchor" aria-label="anchor" href="#a5a-a5b--observations-and-doses-per-patient"></a>
-</h3>
-<p>A5a and A5b split rows per patient by event type, because a total
-hides the thing worth seeing. On <code>case1_pkpd</code> both hold. On
-<code>pheno_sd</code> observations are intact at 2.6 per patient either
-side while dosing falls from 10.0 to 1.1: 744 rows become 220, and 589
-dose rows become 65.</p>
+<p>Observations are intact at 2.6 per patient either side, while dosing
+falls from 10.0 to 1.1. In rows: 744 become 220, and 589 dose rows
+become 65.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">doses_per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -666,13 +713,18 @@ checks read 0, so nothing in that tier reports a problem. A5b is what
 catches it.</p>
 </div>
 <div class="section level3">
-<h3 id="a6--discrete-endpoints">A6. Discrete endpoints<a class="anchor" aria-label="anchor" href="#a6--discrete-endpoints"></a>
+<h3 id="a6--did-a-discrete-endpoint-stay-discrete">A6. Did a discrete endpoint stay discrete<a class="anchor" aria-label="anchor" href="#a6--did-a-discrete-endpoint-stay-discrete"></a>
 </h3>
-<p>Ask what kind of values each endpoint takes before reading anything
-else about it. Blending is a weighted mean, so a weighted mean of
-several patients’ zeros and ones is a number between them, and a 0/1
-endpoint comes back continuous unless the generated values are put back
-on the scale the source used.</p>
+<p>A6 asks whether every generated value on a binary, ordinal or count
+endpoint is one the source could have held. It is on every card. Where a
+study has no discrete endpoint the result reads
+<code>no discrete endpoint</code> and passes, which is the true answer
+rather than a silently absent row.</p>
+<p>Blending is a weighted mean, so a weighted mean of several patients’
+zeros and ones is a number between them, and a 0/1 endpoint comes back
+continuous unless the generated values are put back on the scale the
+source used. Ask what kind of values each endpoint takes before reading
+anything else about it:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -707,9 +759,8 @@ on the scale the source used.</p>
 </tr>
 </tbody>
 </table>
-<p>Both endpoints here are continuous, so
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> omits A6 entirely. The check fires on a
-study with an ordinal, binary or count endpoint:
+<p>Both endpoints here are continuous. The check does work on a study
+with an ordinal, binary or count endpoint:
 <code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> runs it on
 <code><a href="https://rdrr.io/pkg/xgxr/man/mad.html" class="external-link">xgxr::mad</a></code>, which carries all three.</p>
 <p>The type is <em>inferred</em> from the source — whether every
@@ -726,11 +777,20 @@ endpoint is section B, never the distinctness of any one number.</p>
 data<a class="anchor" aria-label="anchor" href="#b--is-any-individual-patient-identifiable-based-on-the-synthetic-data"></a>
 </h2>
 <div class="section level3">
-<h3 id="b1--timing-and-structure">B1. Timing and structure<a class="anchor" aria-label="anchor" href="#b1--timing-and-structure"></a>
+<h3 id="b1a-b1b--does-any-avatar-carry-one-real-patients-schedule">B1a, B1b. Does any avatar carry one real patient’s schedule<a class="anchor" aria-label="anchor" href="#b1a-b1b--does-any-avatar-carry-one-real-patients-schedule"></a>
 </h3>
-<p>Who was observed when, and who was dosed when. This is the axis most
+<p>B1a counts avatars whose set of attended visits is one that fewer
+than <code>min_pattern_share</code> real patients held; B1b does the
+same for dose schedules. Both must be <strong>0</strong>, and either
+above 0 is a <code>FAIL</code>: it means one real patient’s structure
+was reproduced verbatim. Both are read from the run’s own record,
+<code>attr(synthetic, "pmx_settings")</code>, rather than measured from
+the finished table.</p>
+<p>Who was observed when, and who was dosed when, is the axis most
 specific to longitudinal data, and the one a general-purpose
-synthetic-data tool will not have addressed.</p>
+synthetic-data tool will not have addressed.
+<code><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness()</a></code> is how the source looks before
+anything is generated:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Schedule-uniqueness screen.</strong> Scored on the recorded
@@ -977,8 +1037,8 @@ shared as</p>
 not releasable unless separately public or privately budgeted.</em></p>
 <p>Zero. The declared <code>nominal_time</code> supplies the protocol’s
 grid, so patients land on it exactly.</p>
-<p>The counts to act on are measured on the output, not the source, and
-both must be 0:</p>
+<p>The counts that decide B1a and B1b are about the output, not the
+source:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">guarantees</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
@@ -1083,11 +1143,14 @@ stragglers.</p>
 </div>
 </div>
 <div class="section level3">
-<h3 id="b2--extremes">B2. Extremes<a class="anchor" aria-label="anchor" href="#b2--extremes"></a>
+<h3 id="b2--does-any-synthetic-patient-stand-out-from-its-own-stratum">B2. Does any synthetic patient stand out from its own stratum<a class="anchor" aria-label="anchor" href="#b2--does-any-synthetic-patient-stand-out-from-its-own-stratum"></a>
 </h3>
-<p>Who stands out from the cohort, on follow-up length, dose count, dose
-magnitude or peak <code>DV</code>. This runs on the synthetic table and
-does not read the source.</p>
+<p>B2 screens each synthetic patient on four axes — follow-up length,
+dose count, dose magnitude and peak <code>DV</code> — and reports how
+many are unusual on any of them. It runs on the synthetic table alone
+and does not read the source, so its answer can travel with the released
+data. It is <code>review</code> rather than a threshold: the right count
+is not necessarily 0, and each flagged patient has to be looked at.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">case1_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
@@ -1141,10 +1204,13 @@ identical.</p>
 that reading, by dropping or truncating the subjects it is given.</p>
 </div>
 <div class="section level3">
-<h3 id="b3--values-and-geometry">B3. Values and geometry<a class="anchor" aria-label="anchor" href="#b3--values-and-geometry"></a>
+<h3 id="b3--is-any-avatar-too-close-to-a-real-patient-in-value-space">B3. Is any avatar too close to a real patient in value space<a class="anchor" aria-label="anchor" href="#b3--is-any-avatar-too-close-to-a-real-patient-in-value-space"></a>
 </h3>
-<p>Whether a synthetic patient’s numbers sit too close to a real
-patient’s, taking covariates and trajectory together.</p>
+<p>B3 is adversarial accuracy, and it asks whether a synthetic patient’s
+numbers sit too close to a real patient’s, taking covariates and
+trajectory together. It is reported against a null interval computed by
+resampling, and it is <code>review</code> whatever it lands on, for
+reasons below.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
@@ -1203,13 +1269,14 @@ sets have separated, which costs utility and discloses nothing. At a few
 dozen patients either can also be the seed.</p>
 </div>
 <div class="section level3">
-<h3 id="b4--exact-copies">B4. Exact copies<a class="anchor" aria-label="anchor" href="#b4--exact-copies"></a>
+<h3 id="b4a-b4b--is-any-generated-vector-a-copy-of-a-real-one">B4a, B4b. Is any generated vector a copy of a real one<a class="anchor" aria-label="anchor" href="#b4a-b4b--is-any-generated-vector-a-copy-of-a-real-one"></a>
 </h3>
 <p>Two vectors per subject must not be reproduced: B4a, the observation
-times, and B4b, the <code>DV</code> values recorded at them. They fail
-independently. A generator can invent a schedule and carry a real
-patient’s measurements onto it, or place real measurements on a new
-grid, and each is a copy of half the patient.</p>
+times, and B4b, the <code>DV</code> values recorded at them. Both must
+be <strong>0</strong> and either above 0 is a <code>FAIL</code>. They
+fail independently, because a generator can invent a schedule and carry
+a real patient’s measurements onto it, or place real measurements on a
+new grid, and each is a copy of half the patient.</p>
 <p>What counts as a copy is a vector too few real patients share, the
 same rule <code>min_pattern_share</code> applies to visit sets.
 Reproducing a vector a whole arm shares identifies nobody: on a fixed
@@ -1267,8 +1334,14 @@ same comparison is worth running on whole covariate rows, which nothing
 does for you.</p>
 </div>
 <div class="section level3">
-<h3 id="b5a-b5b--rare-categories">B5a, B5b. Rare categories<a class="anchor" aria-label="anchor" href="#b5a-b5b--rare-categories"></a>
+<h3 id="b5a-b5b--did-a-rare-category-reach-the-output">B5a, B5b. Did a rare category reach the output<a class="anchor" aria-label="anchor" href="#b5a-b5b--did-a-rare-category-reach-the-output"></a>
 </h3>
+<p>B5b asks whether a level too few <em>source</em> patients held
+reached the output, and reads both tables. B5a asks the weaker question
+the released table can answer alone: does any categorical level sit on
+exactly one synthetic patient? Both are <code>review</code>, and the
+mechanism is worth stating first, because it inverts the intuition that
+blending protects everything.</p>
 <p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> treats the two kinds of covariate
 differently, and only one of them is blended:</p>
 <ul>
@@ -1589,10 +1662,12 @@ dose times and only ever truncates a real schedule at one of its own
 dose times. A generator that jitters dose times produces regimens no
 protocol allows, and it looks fine in every distributional check.</p>
 <div class="section level3">
-<h3 id="c1--endpoint-coverage-and-arm-size">C1. Endpoint coverage and arm size<a class="anchor" aria-label="anchor" href="#c1--endpoint-coverage-and-arm-size"></a>
+<h3 id="c1--did-every-arm-keep-its-endpoints-and-its-size">C1. Did every arm keep its endpoints and its size<a class="anchor" aria-label="anchor" href="#c1--did-every-arm-keep-its-endpoints-and-its-size"></a>
 </h3>
-<p>All endpoints present is A3. Whether each endpoint is present <em>for
-the right patients</em> is C1:</p>
+<p>All endpoints present is A3. C1 asks the arm-level question: does
+each arm hold the endpoints its source arm held, and does it hold the
+same number of patients? Every arm matching is a pass; a shifted size is
+<code>review</code>, since a dropped subject has to land somewhere.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">observed_by_arm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="op">]</span></span>
@@ -1715,11 +1790,16 @@ exactly would disclose that size. <code>strata_balanced</code> and
 fell on each side.</p>
 </div>
 <div class="section level3">
-<h3 id="c2--what-the-masking-cost">C2. What the masking cost<a class="anchor" aria-label="anchor" href="#c2--what-the-masking-cost"></a>
+<h3 id="c2--what-features-of-the-study-were-lost">C2. What features of the study were lost<a class="anchor" aria-label="anchor" href="#c2--what-features-of-the-study-were-lost"></a>
 </h3>
-<p><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> says what each mechanism did and
-what it cost. The dosing section is the one C2 reports; drop the
-<code>section</code> argument for the other six.</p>
+<p>C2 counts how many of the source’s distinct dose-time schedules are
+represented in the output. Every one still represented is a pass; fewer
+is <code>review</code>, because declining to build on a patient whose
+regimen nobody shares is the correct answer and the check is there to
+say what it cost. The rest of the question, what else was lost, has no
+pass mark and is read from <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>. The dosing
+section is the one C2 scores; drop the <code>section</code> argument for
+the other six.</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>,</span>
@@ -1796,8 +1876,13 @@ reach that. It is the A5b finding again, from the generator’s side.</p>
 changed<a class="anchor" aria-label="anchor" href="#d--how-much-have-the-covariate-and-observation-distributions-changed"></a>
 </h2>
 <div class="section level3">
-<h3 id="d1--endpoint-and-covariate-distributions">D1. Endpoint and covariate distributions<a class="anchor" aria-label="anchor" href="#d1--endpoint-and-covariate-distributions"></a>
+<h3 id="d1--do-the-values-land-in-the-same-range">D1. Do the values land in the same range<a class="anchor" aria-label="anchor" href="#d1--do-the-values-land-in-the-same-range"></a>
 </h3>
+<p>D1 reports the endpoint or covariate whose standard deviation moved
+furthest between the two tables, in either direction. It is
+<code>review</code> on every study, because spread shrinking is what the
+algorithm does rather than something it got wrong, and spread growing
+has no threshold either.</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">case1_dist</span><span class="op">$</span><span class="va">endpoints</span>, digits <span class="op">=</span> <span class="fl">3</span>,</span>
