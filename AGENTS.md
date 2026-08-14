@@ -26,9 +26,8 @@ Two cross-document contracts, each a defect when broken:
 
 - The scorecard table in `vignettes/scorecard-synthetic-data-checks.Rmd` is the
   contract `synpmx_scorecard()` implements, for the rows it computes — every row
-  except C1, C2 and D1, whose "What to run" column names another function or
-  marks a gap. A computed row's pass criterion changing in one without the other
-  is a defect.
+  except D1, whose "What to run" column names another function. A computed row's
+  pass criterion changing in one without the other is a defect.
 - Every worked dataset in `vignettes/public-data-examples.Rmd` has the same
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where

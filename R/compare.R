@@ -537,7 +537,7 @@ knit_print.pmx_rare_levels <- function(x, ...) {
 
 # Stratum sizes, both sides ---------------------------------------------------
 #
-# C3 used to explore with `table(synthetic$ARM[!duplicated(synthetic$ID)])`,
+# C1 used to explore with `table(synthetic$ARM[!duplicated(synthetic$ID)])`,
 # which prints one side. "19 became 2" is the reading a user needs, and getting
 # it meant running the same call twice and lining the two up by eye.
 
@@ -574,7 +574,7 @@ knit_print.pmx_rare_levels <- function(x, ...) {
 #' @return A `pmx_strata_sizes` data frame with `column`, `level`,
 #'   `source_patients`, `synthetic_patients`, `expected` and `balanced`. Zero
 #'   rows when the roles declare no strata.
-#' @seealso [synpmx_scorecard()], which reports this as row C3.
+#' @seealso [synpmx_scorecard()], which reports this as row C1.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(20)

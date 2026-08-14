@@ -191,6 +191,8 @@ the two most essay-like, least tabular parts of the corpus.
 he skipped them. This matters a lot for how much narrative future documents
 should carry. **Ask him directly.**
 
+[Andy Note] These sections were not good and were significantly changed.  F removed altogether.
+
 ## O16 — He asks for the design tradeoff to be argued, not just implemented
 
 **Evidence.** 2026-08-13, on the discrete-endpoint defect: *"Implement a check

@@ -31,7 +31,7 @@ navbar:
         href: articles/avatar-algorithm.html
       - text: Evaluating AVATAR on public data
         href: articles/public-data-examples.html
-      - text: Checks of the synthetic data
+      - text: "Scorecard: Checks of the synthetic data"
         href: articles/scorecard-synthetic-data-checks.html
       - text: The four synpmx data generation algorithms
         href: articles/synpmx-4-methods.html

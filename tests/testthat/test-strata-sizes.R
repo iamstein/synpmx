@@ -1,4 +1,4 @@
-# C3 reports "how many arms kept their size" as one count. The question a user
+# C1 reports "how many arms kept their size" as one count. The question a user
 # actually has is which arm moved and by how much, and that needs both sides.
 
 sizes_source <- function(n = 60L, arms = c("A", "B", "C")) {
@@ -90,13 +90,13 @@ test_that("no strata means no rows rather than an error", {
   expect_output(print(sizes), "nothing to size")
 })
 
-test_that("C3 sends the reader to the helper", {
+test_that("C1 sends the reader to the helper", {
   source <- sizes_source()
   roles <- sizes_roles(strata = "ARM")
   synthetic <- sizes_synthetic(source, roles, seed = 3)
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_identical(card$explore[card$check == "C3"],
+  expect_identical(card$explore[card$check == "C1"],
                    "compare_pmx_strata_sizes(source, synthetic, roles)")
 })

@@ -43,7 +43,7 @@ taken from either table.
 Everything measured from the two tables is measurable on any synthetic
 dataset, whatever produced it, so a table carrying no \code{"pmx_settings"}
 attribute is scored rather than refused: the three \code{"run settings"} rows
-(B1a, B1b, C4) come back with the verdict \code{"unavailable"} and the rest of
+(B1a, B1b, C2) come back with the verdict \code{"unavailable"} and the rest of
 the card is computed as usual. That covers another method's output, and this
 package's own output read back from a file.
 
@@ -80,10 +80,9 @@ B4b). Everything else is \code{"review"}, including every row whose answer can
 move for a legitimate reason -- a subject dropped for want of donors, a
 cohort statistic at a small sample size, a source a validator objects to.
 
-Two checks in the vignette are absent here because no function can produce
-them: C2 (dose and observation ordering), and the one that matters most --
-whether the pipeline that will consume the real study runs unchanged against
-this output.
+The check that matters most is absent here because no function can produce
+it: whether the pipeline that will consume the real study runs unchanged
+against this output.
 }
 
 \examples{

@@ -32,7 +32,7 @@
 
 # A row only the generating run can answer.
 #
-# Three of them -- B1a, B1b and C4 -- read `attr(synthetic, "pmx_settings")`
+# Three of them -- B1a, B1b and C2 -- read `attr(synthetic, "pmx_settings")`
 # rather than either table, and that is not a shortcut. Generated times are the
 # coarsened grid plus resampled deviations, applied to dose rows as well, so an
 # avatar's schedule cannot be matched back to a source patient's by exact key:
@@ -144,7 +144,7 @@
 #' Everything measured from the two tables is measurable on any synthetic
 #' dataset, whatever produced it, so a table carrying no `"pmx_settings"`
 #' attribute is scored rather than refused: the three `"run settings"` rows
-#' (B1a, B1b, C4) come back with the verdict `"unavailable"` and the rest of
+#' (B1a, B1b, C2) come back with the verdict `"unavailable"` and the rest of
 #' the card is computed as usual. That covers another method's output, and this
 #' package's own output read back from a file.
 #'
@@ -181,10 +181,9 @@
 #' move for a legitimate reason -- a subject dropped for want of donors, a
 #' cohort statistic at a small sample size, a source a validator objects to.
 #'
-#' Two checks in the vignette are absent here because no function can produce
-#' them: C2 (dose and observation ordering), and the one that matters most --
-#' whether the pipeline that will consume the real study runs unchanged against
-#' this output.
+#' The check that matters most is absent here because no function can produce
+#' it: whether the pipeline that will consume the real study runs unchanged
+#' against this output.
 #'
 #' @param source Source PMX data.
 #' @param synthetic Generated synthetic PMX data. From [synpmx_avatar()] it
@@ -276,7 +275,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "compare_pmx_distributions(source, synthetic, roles)",
       setequal(source_endpoints, synthetic_endpoints)
     ),
-    # Equal is a pass; anything else is review, for the same reason C3 is.
+    # Equal is a pass; anything else is review, for the same reason C1 is.
     # `on_donor_shortfall = "drop"` removes a subject that could not be built
     # from enough donors, which is the correct answer and not a defect, and it
     # is the small cohorts that lose one -- a stratum holding a single patient
@@ -432,14 +431,14 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     # therefore a reading about this cohort, not a defect. Only every arm
     # matching is a pass, so the row still has to be looked at.
     rows <- c(rows, list(.scorecard_row(
-      "C3", "Strata keeping their source size", "both",
+      "C1", "Strata keeping their source size", "both",
       paste(matched, "of", length(source_arms)),
       "compare_pmx_strata_sizes(source, synthetic, roles)",
       if (matched == length(source_arms)) TRUE else NA
     )))
   }
 
-  # C4 in the vignette is the open question "what was lost?", which has no pass
+  # C2 in the vignette is the open question "what was lost?", which has no pass
   # mark. This row measures one countable part of it, and that part does: every
   # distinct source regimen still appearing in the output is nothing lost, so it
   # is a pass. Fewer is `review` rather than `FAIL` -- declining to build on a
@@ -457,7 +456,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   # while reading neither table, which is a claim about where the filled-in card
   # may travel, not a cosmetic label.
   rows <- c(rows, list(.scorecard_recorded(
-    "C4", "Distinct dose-time schedules represented", settings,
+    "C2", "Distinct dose-time schedules represented", settings,
     paste(settings$dose_regimens_represented, "of",
           settings$dose_regimens_source),
     'pmx_masking_report(synthetic, source, roles, section = "dose_schedules")',

@@ -55,5 +55,5 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 compare_pmx_strata_sizes(data, synthetic, roles)
 }
 \seealso{
-\code{\link[=synpmx_scorecard]{synpmx_scorecard()}}, which reports this as row C3.
+\code{\link[=synpmx_scorecard]{synpmx_scorecard()}}, which reports this as row C1.
 }

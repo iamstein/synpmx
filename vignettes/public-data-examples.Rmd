@@ -323,7 +323,7 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 ```
 
-Nothing fails, and C4 is the row to read: 1 of the 4 source dose regimens is
+Nothing fails, and C2 is the row to read: 1 of the 4 source dose regimens is
 represented in the output.
 
 ### Three re-dosed patients are not in the synthetic cohort
@@ -338,7 +338,7 @@ were re-dosed on a schedule nobody else shares, so no avatar can be built on
 them without pointing at them, and every synthetic subject carries the one
 shared regimen. Doses per patient falls from 1.2 to 1.0 in the A5 row. The three
 patients are not removed and still act as donors, but that part of the study
-design is not in the output, and C4 is `review` rather than `pass` for exactly
+design is not in the output, and C2 is `review` rather than `pass` for exactly
 this reason.
 
 Two of those three are also the only patients in this vignette that the anchor
@@ -387,7 +387,7 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 ```
 
-**B1b fails: all twelve avatars carry a dose schedule nobody else shares.** C4
+**B1b fails: all twelve avatars carry a dose schedule nobody else shares.** C2
 says what declining to use those schedules would have cost instead: 7 of the 12
 source regimens are represented at all.
 
@@ -440,7 +440,7 @@ nimo_fixed <- suppressWarnings(
 synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 ```
 
-Nothing fails now. B1b goes from 12 to 0 and C4 from 7 of 12 to 1 of 1, because
+Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of 1, because
 on the nominal grid the twelve dose schedules become one. Unique observation
 schedules fall from 12 to 5, the twelve visit sets collapse to eight, real sets
 become reusable, and the invented-arrangement share falls from 100% to 17%. Two
@@ -549,7 +549,7 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 
 **Nothing fails, and the two rows that moved say what reaching that cost.**
 Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56 source dose
-regimens are represented in C4. B1b passing here is not the dosing being masked;
+regimens are represented in C2. B1b passing here is not the dosing being masked;
 it is the dosing being truncated away.
 
 ### Dosing that cannot be masked
@@ -620,7 +620,7 @@ compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 ```
 
-Nothing fails, and C3 passes: all six treatment arms keep their source size. An
+Nothing fails, and C1 passes: all six treatment arms keep their source size. An
 avatar never leaves the arm it was anchored in, because `TRTACT` and `DOSE` are
 declared as `strata` and are copied from the anchor. The arm *sizes* match
 because of a second mechanism: anchors are sampled with replacement, so

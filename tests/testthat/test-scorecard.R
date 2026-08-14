@@ -2,7 +2,7 @@
 # that prove it can say "FAIL". A scorecard that has only ever been seen to pass
 # is an untested branch, not evidence.
 #
-# The rows it emits vary with the roles: no `strata` means no C3, and no
+# The rows it emits vary with the roles: no `strata` means no C1, and no
 # categorical covariate means no B5a or B5b. Both are tested, because a study with
 # neither is the ordinary case at pharmacometric cohort sizes.
 
@@ -98,7 +98,7 @@ test_that("only the rows that are always a defect can say FAIL", {
   can_fail <- c("A1", "A3", "A6", "B1a", "B1b", "B4a", "B4b")
   expect_true(all(card$check[card$verdict == "FAIL"] %in% can_fail))
   # And the softened rows are present, so this is not passing by their absence.
-  expect_true(all(c("A2", "A4", "B3", "B5a", "B5b", "C3", "C4") %in%
+  expect_true(all(c("A2", "A4", "B3", "B5a", "B5b", "C1", "C2") %in%
                     card$check))
 })
 
@@ -124,14 +124,14 @@ test_that("the optional rows appear only when the roles declare them", {
 
   with_strata <- sc_roles(strata = "ARM")
   card <- synpmx_scorecard(source, sc_synthetic(source, with_strata), with_strata)
-  expect_true("C3" %in% card$check)
+  expect_true("C1" %in% card$check)
   expect_true("B5a" %in% card$check)
   expect_true("B5b" %in% card$check)
 
   without <- sc_roles()
   bare <- synpmx_scorecard(source, sc_synthetic(source, without), without)
   # `WT` is numeric, so with no `strata` there is no categorical axis at all.
-  expect_false("C3" %in% bare$check)
+  expect_false("C1" %in% bare$check)
   expect_false("B5a" %in% bare$check)
   expect_false("B5b" %in% bare$check)
 })
@@ -176,7 +176,7 @@ test_that("a stratum that changed size is review, not FAIL", {
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_identical(sc_verdict(card, "C3"), "review")
+  expect_identical(sc_verdict(card, "C1"), "review")
 })
 
 test_that("a table with no run record is scored, not refused", {
@@ -194,7 +194,7 @@ test_that("a table with no run record is scored, not refused", {
   attributes(bare) <- attributes(bare)[c("names", "class", "row.names")]
   card <- synpmx_scorecard(source, bare, roles)
 
-  recorded <- c("B1a", "B1b", "C4")
+  recorded <- c("B1a", "B1b", "C2")
   expect_identical(card$verdict[card$check %in% recorded],
                    rep("unavailable", length(recorded)))
   expect_identical(card$result[card$check %in% recorded],
@@ -208,7 +208,7 @@ test_that("a table with no run record is scored, not refused", {
   expect_output(print(card), "3 unanswered")
 })
 
-test_that("C4 reads the run's record, and says that it does", {
+test_that("C2 reads the run's record, and says that it does", {
   # Both of its counts come from `pmx_settings`, so labelling the row `both`
   # claimed the filled-in card was restricted output on the strength of a row
   # that reads neither table.
@@ -218,7 +218,7 @@ test_that("C4 reads the run's record, and says that it does", {
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_identical(card$reads[card$check == "C4"], "run settings")
+  expect_identical(card$reads[card$check == "C2"], "run settings")
 })
 
 test_that("the scorecard is restricted output and reuses a given proximity", {
