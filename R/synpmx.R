@@ -97,9 +97,9 @@
 #
 # The DP engines' unaudited status was documented but not enforced: calling
 # synpmx_calibrated()/synpmx_empirical() was exactly as frictionless as
-# calling the audited synpmx_avatar(). See REV-023 in
-# design/REVIEW_BACKLOG.md. A per-call argument defaulting to off is too easy
-# to flip once and forget; a warning() is too easy to suppress in a script.
+# calling the audited synpmx_avatar(). A per-call argument defaulting to off
+# is too easy to flip once and forget; a warning() is too easy to suppress in
+# a script.
 # An in-session flag makes the acknowledgment a deliberate, visible action
 # that must be repeated in every fresh session, script run, or CI job.
 .dp_engines_enabled <- new.env(parent = emptyenv())

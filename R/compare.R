@@ -1683,7 +1683,7 @@ print.pmx_identifiability <- function(x, ...) {
 #' Detection is per subject, so one long-followed patient is truncated once and
 #' one extreme patient dropped-and-replaced once -- there is no row-level outlier
 #' spray. With replacement, this is a self-contained alternative to preventing
-#' structural outliers at generation time (skeleton sampling, `REV-026`).
+#' structural outliers at generation time (skeleton sampling).
 #'
 #' @param data A PMX dataset, typically the synthetic output.
 #' @param roles Explicit roles from [pmx_roles()].

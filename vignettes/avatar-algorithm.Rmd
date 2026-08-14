@@ -966,8 +966,8 @@ reader would want to know: what the cohort covers, or how identifying it is.
 
 `"noise"` is **available but not recommended**, and the reason is the defect
 this whole mechanism exists to prevent. A subject blended from one donor, or
-from none, is a noised near-copy of a real patient — exactly the behavior
-`REV-025` was raised about. If you use it because the sparse arm genuinely
+from none, is a noised near-copy of a real patient. If you use it because the
+sparse arm genuinely
 matters more, screen the result with `flag_identifiable_subjects()` and treat
 those subjects as individually identifying.
 
@@ -1309,7 +1309,7 @@ beside its own time course. AVATAR does not know they are linked, so a synthetic
 subject's baseline covariate need not equal the baseline of its own generated
 trajectory. The two are individually plausible but not mutually consistent.
 
-This is a known limitation (`REV-022`). It is usually harmless for
+This is a known limitation. It is usually harmless for
 workflow-development use, where each column need only be realistic on its own.
 If your analysis relies on a covariate agreeing with an endpoint's baseline,
 reconcile them after generation, or do not declare the redundant covariate and
@@ -1618,7 +1618,6 @@ blended. Keeping the multiplier and recomputing the amount from the avatar's own
 covariate stops the dose being a verbatim real value (which under mg/kg dosing
 discloses the anchor's weight exactly) and repairs a coherence defect:
 previously every avatar violated the mg/kg rule its own data claims to follow.
-See `REV-027`.
 
 **Declared or inferred, and the difference matters.** Naming the covariate in
 `pmx_roles(dose_covariate = )` states the relationship outright; leaving it
@@ -1631,7 +1630,7 @@ across the cohort — so a genuinely weight-based study can come through with it
 amounts untouched. Declaring the covariate skips inference and holds **each
 dose row's own ratio** rather than snapping to shared levels, so intra-patient
 escalation survives exactly. `pmx_masking_report()` says which path ran and,
-when inference declined, what it tried. See `SIM-040`.
+when inference declined, what it tried.
 
 The difference on a study that dispenses in vials and escalates within patient,
 which is the shape inference cannot recover:
@@ -1784,7 +1783,7 @@ cohort's 90th percentile, deliberately loose, so only gross outliers are
 excluded. The screen uses a modified z-score at 3.5, which is much tighter and
 reacts badly to a clustered cohort.
 
-The worst version of that was a defect and is fixed (`SIM-041`): the median
+The worst version of that was a defect and is fixed: the median
 absolute deviation is **zero** whenever more than half a cohort shares one exact
 value, which on trial data is the ordinary case rather than a degenerate one —
 most patients complete the protocol and stop at the same visit. Every departure
@@ -1998,8 +1997,8 @@ another, so all three are reported and none substitutes for the rest.
   Observation times are deliberately *not* in it. This is what
   `n_unique_dose_signature` counts, and **coarsening does not touch it**: a
   study with weight-based dosing or per-patient titration leaves patients unique
-  on dose however good the visit grid is. `REV-027`'s dose recomputation is the
-  mechanism that addresses that side.
+  on dose however good the visit grid is. The dose recomputation described
+  above is the mechanism that addresses that side.
 
 So a patient can be unique on sampling, on dosing, on both, or on neither, and
 the two have different remedies.

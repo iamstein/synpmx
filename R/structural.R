@@ -212,7 +212,7 @@ pmx_structural_model <- function(pk, typical, pd = "none", source,
     # The generator never reads `model$rx`; every profile comes from the
     # built-in analytic solution. Silently returning an analytic curve for a
     # user-supplied ODE model would be a fidelity claim the package cannot
-    # keep. See REV-020 in design/REVIEW_BACKLOG.md.
+    # keep.
     warning(
       "`rx` is not yet used: profiles are always evaluated from the built-in ",
       "analytic `", pk, "` solution. Supplying an rxode2 model does not ",

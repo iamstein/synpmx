@@ -70,7 +70,7 @@ Truncation keeps its subject, so it never triggers a replacement.
 Detection is per subject, so one long-followed patient is truncated once and
 one extreme patient dropped-and-replaced once -- there is no row-level outlier
 spray. With replacement, this is a self-contained alternative to preventing
-structural outliers at generation time (skeleton sampling, \code{REV-026}).
+structural outliers at generation time (skeleton sampling).
 }
 \examples{
 data <- pmx_simulated_fixture(30)

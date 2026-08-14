@@ -20,7 +20,7 @@ if (!requireNamespace("nlmixr2data", quietly = TRUE)) {
 
 # synpmx_empirical() is one of the DP engines: complete and tested, but not
 # under active development, carrying known open findings, and not
-# independently privacy-audited (design/REVIEW_BACKLOG.md REV-023). This
+# independently privacy-audited. This
 # script uses `backend = "public"` throughout, which is exempt from the
 # session-level acknowledgment gate, but the call is here anyway so a reader
 # who copies this pattern onto `backend = "opendp"` sees it demonstrated.

@@ -3,12 +3,11 @@
 #
 # synpmx_avatar() copies each avatar's event skeleton verbatim from one anchor.
 # A source subject whose observation time vector is shared with nobody therefore
-# hands an identifying schedule to every avatar anchored on it -- the defect
-# design/TEST_SIM.md records as SIM-014 and, until `coarsen_time`, gated only
-# against the structural/DP engine.
+# hands an identifying schedule to every avatar anchored on it. Until
+# `coarsen_time`, that was gated only against the structural/DP engine.
 #
 # This script measures the before and after on every public dataset, so the
-# registry in design/TEST_SIM.md can be kept honest and so the same table can be
+# recorded numbers can be kept honest and so the same table can be
 # produced for a real study under scripts_private/. The columns match the ones
 # the demo vignette explains in prose, under "How well did the obfuscation
 # work?".
@@ -103,7 +102,7 @@ load_dataset <- function(name) {
 }
 
 # The same public datasets the simulation evaluator uses, so the two reports can
-# be read side by side. Roles mirror design/TEST_SIM.md's dataset registry.
+# be read side by side. Roles mirror tests/testthat/helper-simulation-evaluation.R.
 cases <- list(
   theo_md = function() list(
     data = load_dataset("theo_md"),

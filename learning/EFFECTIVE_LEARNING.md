@@ -5,7 +5,7 @@ checklist from <https://sites.google.com/site/andrewsteinphd/effective-learning>
 to the work in this repository.
 
 Evidence comes from the git history over 2026-07-17 to 2026-08-11,
-`design/_TODO_owner.md`, `design/_THEORY_OF_MIND.md`, and the file sizes of what
+`design/_TODO_owner.md`, `design/WRITING_FOR_ANDY.md`, and the file sizes of what
 has been produced.
 
 ## Aspiration
@@ -39,7 +39,7 @@ consistent output from an agent across 26 days without repeating yourself. Most
 people do not build this. It is the concrete evidence that skill 1 of the
 aspiration is developing.
 
-**Your questions are at the mechanism level.** O1 in `_THEORY_OF_MIND.md`
+**Your questions are at the mechanism level.** O1 in `design/WRITING_FOR_ANDY.md`
 records that a method name, an author, a year, and a one-line gloss are not
 accepted as an explanation. Asking "what is computed, from what, and what does a
 good value look like" is the correct instinct and it is the reason the pMSE and
@@ -60,8 +60,9 @@ not slow down when comprehension does. The repository looks healthier every
 week either way, so the gap between what the package does and what its author
 can explain widens without a signal.
 
-In this repository it shows up in two places. `_THEORY_OF_MIND.md` records that
-the second half of the literature review and most of `scorecard-synthetic-data-checks.Rmd`
+In this repository it shows up in two places. `design/WRITING_FOR_ANDY.md`
+records, in its standing caveat, that the second half of the literature review
+and most of `scorecard-synthetic-data-checks.Rmd`
 have not been read by the owner. And "identify a few places to spot check the
 code" has not started, so the 11,217 lines in `R/` have had no line-by-line
 human read.
@@ -72,12 +73,7 @@ Generating explanation does not.
 
 ## Problem 2: every feedback loop points at the code
 
-`R CMD check`, the test suite, `TEST_SIM.md`, and `REVIEW_BACKLOG.md` are a
-serious feedback on the coding. They measure package progress, but not learning.
-
-`_THEORY_OF_MIND.md` is feedback for Claude, but not feedback for author's learning. 
-
-Because there is no feedback mechanism yet on the author's understanding, the question of how efficiently is the author learning cannot be answered from inside the current setup. You are asking whether the approach is working, and there is no
+There is no feedback mechanism yet on the author's understanding, the question of how efficiently is the author learning cannot be answered from inside the current setup. You are asking whether the approach is working, and there is no
 measurement that could tell you.
 
 The three instruments below are the smallest set that fixes this.
@@ -107,10 +103,12 @@ tests both halves of the aspiration at once, and it is already on your own list.
 
 Your page lists five learning approaches. Reading, Organizing, Teaching, Doing, Recalling.
 
-Reading is heavy. Organizing is heavy, arguably too heavy: `design/` holds 11
-files, three of which are documentation about documentation
-(`WRITING_STYLE.md`, `_THEORY_OF_MIND.md`, `BUILD_DOCUMENTATION.md`) and serve
-Claude's output quality rather than your understanding. Doing is partial,
+Reading is heavy. Organizing is heavy, arguably too heavy: `design/` held 11
+files when this was written, three of which were documentation about
+documentation and served Claude's output quality rather than your understanding.
+As of 2026-08-14 it holds 3 — `ISSUES.md`, `_TODO_owner.md`, and
+`WRITING_FOR_ANDY.md`, which is the last of that documentation-about-
+documentation set. Doing is partial,
 since the directing is yours and the doing is
 Claude's. Teaching is at zero. Recalling is at zero.
 
@@ -193,7 +191,8 @@ Proposed shape, two blocks a week, ninety minutes each:
 
 - **Block 1, comprehension.** Explain-back, then read, then glossary entries.
   No agent-directed generation in this block.
-- **Block 2, building.** Whatever `design/TODO.md` says.
+- **Block 2, building.** Whatever `design/ISSUES.md` and `design/_TODO_owner.md`
+  say.
 
 If only one block happens in a given week, it is block 1. That ordering is the
 whole point of the change.
