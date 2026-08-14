@@ -1863,16 +1863,141 @@ whether the observation record still has exposure supporting it.</p>
 <div class="section level3">
 <h3 id="constructing-a-nominal-time">Constructing a nominal time<a class="anchor" aria-label="anchor" href="#constructing-a-nominal-time"></a>
 </h3>
-<p>All three findings have one cause and one fix. The design is ten
+<p>All three findings have one cause: there is no protocol grid in this
+dataset, only the times things happened to occur at. The design is ten
 weekly infusions with a declared occasion and time after dose, so the
-protocol grid is the occasion number times the nominal interval, plus
-the visit’s nominal time after dose:</p>
+grid can be written down — the occasion number times the nominal
+interval, plus the visit’s nominal time after dose.</p>
+<p>Writing it down is a statement about the protocol, and it takes one
+decision the arithmetic will not make for you. Rounding time after dose
+to the nearest day sends a trough drawn just before the next infusion —
+<code>TAD</code> near 168 h, and 98 of the 321 observations here are one
+— onto that infusion’s own nominal time, where it stops being a trough
+and becomes a time-zero sample. Give the pre-dose sample a slot of its
+own instead:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
-<span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">168</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span>, <span class="fl">0</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">nimo_interval</span> <span class="op">&lt;-</span> <span class="fl">168</span>                     <span class="co"># the protocol's weekly infusion</span></span>
+<span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
+<span><span class="va">last_occasion</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/ave.html" class="external-link">ave</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span>, <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span>, FUN <span class="op">=</span> <span class="va">max</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">nimo_roles_nominal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span><span class="va">nominal_tad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">TAD</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">*</span> <span class="fl">24</span></span>
+<span><span class="co"># A sample at the end of its interval is the NEXT infusion's pre-dose trough,</span></span>
+<span><span class="co"># not that infusion's time-zero sample. Only where another infusion follows:</span></span>
+<span><span class="co"># after the last one, a long time after dose is real follow-up.</span></span>
+<span><span class="va">pre_dose</span> <span class="op">&lt;-</span> <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">nominal_tad</span> <span class="op">&gt;=</span> <span class="va">nimo_interval</span> <span class="op">&amp;</span></span>
+<span>  <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">&lt;</span> <span class="va">last_occasion</span></span>
+<span><span class="va">nominal_tad</span><span class="op">[</span><span class="va">pre_dose</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">nimo_interval</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span></span>
+<span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="va">nimo_interval</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="va">nominal_tad</span>, <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<p><code>TIME</code> and <code>NTIME</code> side by side, for the first
+two occasions of one subject. The recorded times wander; the nominal
+ones do not, and that is the whole of what the declaration buys:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">shown</span> <span class="op">&lt;-</span> <span class="va">nimo_nominal</span><span class="op">[</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span> <span class="op">==</span> <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&amp;</span></span>
+<span>                        <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">&lt;=</span> <span class="fl">2</span>,</span>
+<span>                      <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"OCC"</span>, <span class="st">"EVID"</span>, <span class="st">"TIME"</span>, <span class="st">"TAD"</span>, <span class="st">"NTIME"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">shown</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, digits <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="right">ID</th>
+<th align="right">OCC</th>
+<th align="right">EVID</th>
+<th align="right">TIME</th>
+<th align="right">TAD</th>
+<th align="right">NTIME</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">1.28</td>
+<td align="right">1.28</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">23.16</td>
+<td align="right">23.16</td>
+<td align="right">24</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">46.91</td>
+<td align="right">46.91</td>
+<td align="right">48</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">95.21</td>
+<td align="right">95.21</td>
+<td align="right">96</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">144.13</td>
+<td align="right">144.13</td>
+<td align="right">144</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">167.16</td>
+<td align="right">167.16</td>
+<td align="right">167</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">1</td>
+<td align="right">167.20</td>
+<td align="right">0.00</td>
+<td align="right">168</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">169.02</td>
+<td align="right">1.82</td>
+<td align="right">168</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">333.90</td>
+<td align="right">166.70</td>
+<td align="right">335</td>
+</tr>
+</tbody>
+</table>
+<p>The two infusions were given at 0 and 167.20 h and land on a nominal
+0 and 168. The row to look at is the sample at 167.16 h, four minutes
+<em>before</em> that second infusion and still carrying occasion 1: it
+is the trough. It keeps a nominal time of 167, an hour ahead of the
+infusion it precedes, instead of collapsing onto it and being recorded
+as that infusion’s time-zero sample.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nimo_roles_nominal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, tad <span class="op">=</span> <span class="st">"TAD"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
 <span>  nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>,</span>
@@ -1938,7 +2063,7 @@ roles)</td>
 <td align="left">A5a</td>
 <td align="left">Observations per patient</td>
 <td align="left">both</td>
-<td align="left">26.8 -&gt; 27.4</td>
+<td align="left">26.8 -&gt; 27.2</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_distributions(source, synthetic,
 roles)</td>
@@ -1980,7 +2105,7 @@ roles)</td>
 <td align="left">B2</td>
 <td align="left">Synthetic patients unusual within their stratum</td>
 <td align="left">synthetic</td>
-<td align="left">0 of 12</td>
+<td align="left">2 of 12</td>
 <td align="left">review</td>
 <td align="left">flag_identifiable_subjects(synthetic, roles)</td>
 </tr>
@@ -1988,7 +2113,7 @@ roles)</td>
 <td align="left">B3</td>
 <td align="left">Adversarial accuracy inside its null interval</td>
 <td align="left">both</td>
-<td align="left">0.583 in [0.185, 0.731]</td>
+<td align="left">0.500 in [0.167, 0.731]</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
@@ -2046,7 +2171,7 @@ TRUE)</td>
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">both</td>
-<td align="left">sd x0.42 on AGE (furthest of 4)</td>
+<td align="left">sd x0.51 on AGE (furthest of 4)</td>
 <td align="left">review</td>
 <td align="left">compare_pmx_distributions(source, synthetic,
 roles)</td>
@@ -2063,25 +2188,60 @@ become one schedule that all twelve subjects share — so there is nothing
 left to truncate, and no avatar’s course has to stop early. Unique
 observation schedules fall from 12 to 5, the twelve visit sets collapse
 to eight, real sets become reusable, and the invented-arrangement share
-falls from 100% to 17%. B2 falls from 3 flagged patients to 0. Two visit
+falls from 100% to 25%. B2 falls from 3 flagged patients to 2. Two visit
 sets are discarded either way, which is why the discard count should
 never be read on its own.</p>
 <p><strong>Both cards pass, and only one of them is usable.</strong>
 That is the argument for reading A5b rather than stopping at the B rows:
 the privacy guarantee is identical on both sides and the science is not.
-The samples get their exposure back too: 58 of 329 observations sit
-after the last dose, against 59 of 321 in the source, where before it
-was 317 of 331. Time after dose does <em>not</em> come back cleanly —
-its median is 0 here, because generated samples land on the nominal dose
-times themselves, which is the open A1 gap described in
-<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> rather than
-anything this fix addresses.</p>
-<p>Either declare or construct <code>nominal_time</code>, or accept a
-synthetic cohort with one or two infusions per subject in place of ten.
-What the package does not yet do is <em>notice</em>: no check asks
-whether an avatar’s observations still have dosing supporting them, so
-the first card passes eighteen of eighteen while describing a study
-nobody ran.</p>
+The samples get their exposure back with the doses: 61 of 326
+observations sit after the last dose, against 59 of 321 in the source,
+where before it was 317 of 331. Median time after dose comes back to 72
+h against the source’s 96 h, where the recorded-time run gave 935 h —
+and it is the pre-dose slot above that buys most of that. Rounding the
+trough onto its next infusion instead leaves the median at 0 and doubles
+the share of time-zero samples, which is the A1 gap in
+<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> reached by a
+construction rather than by the generator.</p>
+<p>What the package does not yet do is <em>notice</em> the first case:
+no check asks whether an avatar’s observations still have dosing
+supporting them, so that card passes eighteen of eighteen while
+describing a study nobody ran.</p>
+</div>
+<div class="section level3">
+<h3 id="which-path-to-try">Which path to try<a class="anchor" aria-label="anchor" href="#which-path-to-try"></a>
+</h3>
+<p>There is no single answer, and the order below is what the datasets
+in this vignette suggest rather than a rule.</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Declare a <code>nominal_time</code> that already
+exists.</strong> <code>case1_pkpd</code> and <code>mad</code> ship with
+<code>NOMTIME</code>, and both reach zero exposure with nothing else
+done. If your study has the column, this is the whole job.</li>
+<li>
+<strong>Construct one, as above.</strong> Available whenever the
+protocol can be written down from what the dataset records — here an
+occasion number and a time after dose. It is a statement about the
+design, so it belongs in the dataset where a reader can check it, not
+inside the generator where they cannot. The trough decision above is
+why: the arithmetic has a choice in it that only somebody who knows the
+study can make.</li>
+<li>
+<strong>Fall back to the inferred grid.</strong> With no
+<code>nominal_time</code>, <code>coarsen_time</code> (on by default)
+derives one from the recorded times. This is what <code>pheno_sd</code>
+runs on, and it does real work there — but it is a guess at a grid, and
+on <code>nimoData</code> it merges nothing at all, which is the whole of
+this section.</li>
+<li>
+<strong>Accept the truncation, and read A5b.</strong> Where dosing
+is genuinely individualised there is no protocol grid to recover,
+because there was no protocol. <code>pheno_sd</code> is that case:
+routine neonatal care, no occasions, and nothing to construct. The
+dosing is then shortened to what several patients share, and how much
+survives is a number to judge rather than a bug to fix.</li>
+</ol>
 </div>
 </div>
 <div class="section level2">
@@ -2092,7 +2252,7 @@ resetting within <code>OCC</code>, an occasion-varying assigned
 <code>DOSE</code> carried through with <code>keep</code>, numeric-coded
 <code>SEX</code>, and infusion rows. The reset clock validates within ID
 and occasion.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mavoglurant"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">mavo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -2103,7 +2263,7 @@ and occasion.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -2287,7 +2447,7 @@ and occasion.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -2477,7 +2637,7 @@ than a property of the synthetic data, which is why it is
 <div class="section level3">
 <h3 id="the-largest-residual-in-the-vignette">The largest residual in the vignette<a class="anchor" aria-label="anchor" href="#the-largest-residual-in-the-vignette"></a>
 </h3>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"visits"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2558,7 +2718,7 @@ itself a problem; a large number of singleton sets is.</p>
 clinical care rather than from a protocol. Dosing is individualised to
 the infant, sampling is sparse and irregular, and weight varies over
 time. It is the least protocol-like dataset here.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"pheno_sd"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">pheno_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -2568,7 +2728,7 @@ time. It is the least protocol-like dataset here.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, seed <span class="op">=</span> <span class="fl">1010</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -2692,7 +2852,7 @@ time. It is the least protocol-like dataset here.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -2876,7 +3036,7 @@ being cut short.</p>
 <div class="section level3">
 <h3 id="dosing-that-can-only-be-masked-by-shortening-it">Dosing that can only be masked by shortening it<a class="anchor" aria-label="anchor" href="#dosing-that-can-only-be-masked-by-shortening-it"></a>
 </h3>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span>, <span class="st">"pheno_sd"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2940,10 +3100,10 @@ each observation. The dose ticks are the story: a forest of them across
 the whole follow-up in the source, and in the output the same forest for
 the first few days, thinning out and stopping well before the source
 does.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, source"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-schedule-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, synthetic"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The tail of each course is what this study loses. On the observation
@@ -2983,7 +3143,7 @@ arm whose dosing is not.</p>
 <code>NAME</code> column, a baseline weight, and a <code>CENS</code>
 column. <code><a href="../articles/demo.html">vignette("demo")</a></code> runs this dataset end to end; it
 is here for the contrast with the six above.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_pkpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -2997,7 +3157,7 @@ is here for the contrast with the six above.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -3123,7 +3283,7 @@ is here for the contrast with the six above.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -3320,7 +3480,7 @@ study recorded a nominal time.</p>
 <div class="section level3">
 <h3 id="declaring-cens-on-this-study-is-refused">Declaring <code>cens</code> on this study is refused<a class="anchor" aria-label="anchor" href="#declaring-cens-on-this-study-is-refused"></a>
 </h3>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
@@ -3347,7 +3507,7 @@ observation endpoints keyed by <code>NAME</code>: PK concentration,
 continuous PD, and ordinal, count and binary PD. Everything else here
 has one or two endpoints, and an endpoint silently vanishing during
 generation is invisible with fewer than three.</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"mad"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">mad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -3357,7 +3517,7 @@ generation is invisible with fewer than three.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">mad_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -3601,7 +3761,7 @@ generation is invisible with fewer than three.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <colgroup>
@@ -3800,7 +3960,7 @@ endpoint comes back as 600 distinct values spanning -0.13 to 1.08.</p>
 <p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> therefore decides what kind of values
 each endpoint takes, from the source, and puts the generated values back
 on that scale. The decision is worth reading before the data:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -3855,7 +4015,7 @@ on that scale. The decision is worth reading before the data:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">discrete</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PD - Binary"</span>, <span class="st">"PD - Count"</span>, <span class="st">"PD - Ordinal"</span><span class="op">)</span></span>
 <span><span class="va">values_taken</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">endpoint</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="va">endpoint</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span></span>
@@ -3924,7 +4084,7 @@ still visible in it?</p>
 same quantities in one place, because the <em>contrast</em> between
 datasets is what shows how much the answer depends on study design
 rather than on the package.</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exposure_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span>  <span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
@@ -4060,7 +4220,7 @@ times are genuinely per-patient.</p>
 <p>Exposure is only half the story. The mechanisms that reduce it do so
 by <em>removing</em> things, and the removals are worth seeing next to
 the numbers above.</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -4281,7 +4441,7 @@ each subject’s nearest neighbour lies in its own dataset or the other
 one. Near 0.5 means a synthetic subject is no more like a real subject
 than one real subject is like another, which is the target; toward 0
 means memorisation.</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>

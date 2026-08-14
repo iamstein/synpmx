@@ -660,16 +660,71 @@ whether the observation record still has exposure supporting it.
 
 ### Constructing a nominal time
 
-All three findings have one cause and one fix. The design is ten weekly
-infusions with a declared occasion and time after dose, so the protocol
-grid is the occasion number times the nominal interval, plus the visit’s
-nominal time after dose:
+All three findings have one cause: there is no protocol grid in this
+dataset, only the times things happened to occur at. The design is ten
+weekly infusions with a declared occasion and time after dose, so the
+grid can be written down — the occasion number times the nominal
+interval, plus the visit’s nominal time after dose.
+
+Writing it down is a statement about the protocol, and it takes one
+decision the arithmetic will not make for you. Rounding time after dose
+to the nearest day sends a trough drawn just before the next infusion —
+`TAD` near 168 h, and 98 of the 321 observations here are one — onto
+that infusion’s own nominal time, where it stops being a trough and
+becomes a time-zero sample. Give the pre-dose sample a slot of its own
+instead:
 
 ``` r
 
+nimo_interval <- 168                     # the protocol's weekly infusion
 nimo_nominal <- nimoData
-nimo_nominal$NTIME <- (nimo_nominal$OCC - 1) * 168 +
-  ifelse(nimo_nominal$EVID == 0, round(nimo_nominal$TAD / 24) * 24, 0)
+last_occasion <- ave(nimo_nominal$OCC, nimo_nominal$ID, FUN = max)
+
+nominal_tad <- round(nimo_nominal$TAD / 24) * 24
+# A sample at the end of its interval is the NEXT infusion's pre-dose trough,
+# not that infusion's time-zero sample. Only where another infusion follows:
+# after the last one, a long time after dose is real follow-up.
+pre_dose <- nimo_nominal$EVID == 0 & nominal_tad >= nimo_interval &
+  nimo_nominal$OCC < last_occasion
+nominal_tad[pre_dose] <- nimo_interval - 1
+
+nimo_nominal$NTIME <- (nimo_nominal$OCC - 1) * nimo_interval +
+  ifelse(nimo_nominal$EVID == 0, nominal_tad, 0)
+```
+
+`TIME` and `NTIME` side by side, for the first two occasions of one
+subject. The recorded times wander; the nominal ones do not, and that is
+the whole of what the declaration buys:
+
+``` r
+
+shown <- nimo_nominal[nimo_nominal$ID == nimo_nominal$ID[1] &
+                        nimo_nominal$OCC <= 2,
+                      c("ID", "OCC", "EVID", "TIME", "TAD", "NTIME")]
+knitr::kable(shown, row.names = FALSE, digits = 2)
+```
+
+|  ID | OCC | EVID |   TIME |    TAD | NTIME |
+|----:|----:|-----:|-------:|-------:|------:|
+|   1 |   1 |    1 |   0.00 |   0.00 |     0 |
+|   1 |   1 |    0 |   1.28 |   1.28 |     0 |
+|   1 |   1 |    0 |  23.16 |  23.16 |    24 |
+|   1 |   1 |    0 |  46.91 |  46.91 |    48 |
+|   1 |   1 |    0 |  95.21 |  95.21 |    96 |
+|   1 |   1 |    0 | 144.13 | 144.13 |   144 |
+|   1 |   1 |    0 | 167.16 | 167.16 |   167 |
+|   1 |   2 |    1 | 167.20 |   0.00 |   168 |
+|   1 |   2 |    0 | 169.02 |   1.82 |   168 |
+|   1 |   2 |    0 | 333.90 | 166.70 |   335 |
+
+The two infusions were given at 0 and 167.20 h and land on a nominal 0
+and 168. The row to look at is the sample at 167.16 h, four minutes
+*before* that second infusion and still carrying occasion 1: it is the
+trough. It keeps a nominal time of 167, an hour ahead of the infusion it
+precedes, instead of collapsing onto it and being recorded as that
+infusion’s time-zero sample.
+
+``` r
 
 nimo_roles_nominal <- pmx_roles(
   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
@@ -689,20 +744,20 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | A2 | Source is legal under the declared roles | source | TRUE | pass | validate_pmx(source, roles, strict = FALSE) |
 | A3 | Every endpoint survived | both | 1 of 1 | pass | compare_pmx_distributions(source, synthetic, roles) |
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles, section = “anchors”) |
-| A5a | Observations per patient | both | 26.8 -\> 27.4 | review | compare_pmx_distributions(source, synthetic, roles) |
+| A5a | Observations per patient | both | 26.8 -\> 27.2 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5b | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
 | A6 | Discrete endpoints keeping their source scale | both | no discrete endpoint | pass | pmx_endpoint_types(source, roles) |
 | B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
-| B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
-| B3 | Adversarial accuracy inside its null interval | both | 0.583 in \[0.185, 0.731\] | review | compare_pmx_proximity(source, synthetic, roles) |
+| B2 | Synthetic patients unusual within their stratum | synthetic | 2 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
+| B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.167, 0.731\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | B5a | Patients holding the least-held categorical level | synthetic | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | B5b | Rare source levels copied into the output | both | no categorical covariate or stratum | pass | pmx_roles(strata = , covariates = ) |
 | C1 | Strata keeping their source size | both | no strata declared | pass | pmx_roles(strata = ) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
-| D1 | Values landing in the same range | both | sd x0.42 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
+| D1 | Values landing in the same range | both | sd x0.51 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 *D1 reports numbers, not shapes. Plot source and synthetic on the same
 axes – `DV` against time, and each covariate – with whatever you
@@ -714,26 +769,54 @@ the twelve dose schedules become one schedule that all twelve subjects
 share — so there is nothing left to truncate, and no avatar’s course has
 to stop early. Unique observation schedules fall from 12 to 5, the
 twelve visit sets collapse to eight, real sets become reusable, and the
-invented-arrangement share falls from 100% to 17%. B2 falls from 3
-flagged patients to 0. Two visit sets are discarded either way, which is
+invented-arrangement share falls from 100% to 25%. B2 falls from 3
+flagged patients to 2. Two visit sets are discarded either way, which is
 why the discard count should never be read on its own.
 
 **Both cards pass, and only one of them is usable.** That is the
 argument for reading A5b rather than stopping at the B rows: the privacy
 guarantee is identical on both sides and the science is not. The samples
-get their exposure back too: 58 of 329 observations sit after the last
-dose, against 59 of 321 in the source, where before it was 317 of 331.
-Time after dose does *not* come back cleanly — its median is 0 here,
-because generated samples land on the nominal dose times themselves,
-which is the open A1 gap described in
+get their exposure back with the doses: 61 of 326 observations sit after
+the last dose, against 59 of 321 in the source, where before it was 317
+of 331. Median time after dose comes back to 72 h against the source’s
+96 h, where the recorded-time run gave 935 h — and it is the pre-dose
+slot above that buys most of that. Rounding the trough onto its next
+infusion instead leaves the median at 0 and doubles the share of
+time-zero samples, which is the A1 gap in
 [`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
-rather than anything this fix addresses.
+reached by a construction rather than by the generator.
 
-Either declare or construct `nominal_time`, or accept a synthetic cohort
-with one or two infusions per subject in place of ten. What the package
-does not yet do is *notice*: no check asks whether an avatar’s
-observations still have dosing supporting them, so the first card passes
-eighteen of eighteen while describing a study nobody ran.
+What the package does not yet do is *notice* the first case: no check
+asks whether an avatar’s observations still have dosing supporting them,
+so that card passes eighteen of eighteen while describing a study nobody
+ran.
+
+### Which path to try
+
+There is no single answer, and the order below is what the datasets in
+this vignette suggest rather than a rule.
+
+1.  **Declare a `nominal_time` that already exists.** `case1_pkpd` and
+    `mad` ship with `NOMTIME`, and both reach zero exposure with nothing
+    else done. If your study has the column, this is the whole job.
+2.  **Construct one, as above.** Available whenever the protocol can be
+    written down from what the dataset records — here an occasion number
+    and a time after dose. It is a statement about the design, so it
+    belongs in the dataset where a reader can check it, not inside the
+    generator where they cannot. The trough decision above is why: the
+    arithmetic has a choice in it that only somebody who knows the study
+    can make.
+3.  **Fall back to the inferred grid.** With no `nominal_time`,
+    `coarsen_time` (on by default) derives one from the recorded times.
+    This is what `pheno_sd` runs on, and it does real work there — but
+    it is a guess at a grid, and on `nimoData` it merges nothing at all,
+    which is the whole of this section.
+4.  **Accept the truncation, and read A5b.** Where dosing is genuinely
+    individualised there is no protocol grid to recover, because there
+    was no protocol. `pheno_sd` is that case: routine neonatal care, no
+    occasions, and nothing to construct. The dosing is then shortened to
+    what several patients share, and how much survives is a number to
+    judge rather than a bug to fix.
 
 ## mavoglurant: an occasion-reset clock
 
