@@ -19,6 +19,11 @@ has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 run <- has_xgxr
 plots <- has_xgxr && has_ggplot2
+# `compare_pmx_distributions()` composes its panels with patchwork, so its
+# figure needs one package more than the trajectory plots do, and refuses to
+# draw without it rather than degrading. Guarding the chunk is what keeps a
+# missing suggested package a missing figure instead of a failed build.
+distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
 ```
 
 Generate a synthetic dataset, look at it, and read the checks of the data, sumamrized in a scorecard. 
@@ -118,7 +123,7 @@ One panel per endpoint and per baseline covariate, source against synthetic.
 `compare_pmx_distributions_height()` sizes the figure, since it grows a row of
 panels at a time; `output = "tables"` gives the numbers behind it.
 
-```{r distributions, eval=run, fig.height=compare_pmx_distributions_height(raw, roles)}
+```{r distributions, eval=distributions, fig.height=compare_pmx_distributions_height(raw, roles)}
 compare_pmx_distributions(raw, synthetic, roles)
 ```
 

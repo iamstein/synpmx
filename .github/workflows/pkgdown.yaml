@@ -33,6 +33,16 @@ jobs:
       # Install the hard dependencies plus exactly the suggested packages the
       # documentation actually executes, rather than every Suggests.
       #
+      # A package missing from this list does not always fail the build, which
+      # is what makes the list worth keeping in step with the documentation by
+      # hand. `patchwork` missing stopped the site cold, because
+      # `compare_pmx_distributions()` refuses to draw without it. `DT` and
+      # `htmltools` missing did not: `synpmx_scorecard_datatable()` degrades to
+      # the console form on purpose, so every card on the site rendered as an
+      # uncoloured dump under a "DT is not installed" message and the build went
+      # green. Adding a suggested package that any vignette or article executes
+      # belongs in the same commit as the code that starts executing it.
+      #
       # rxode2 is deliberately absent. Nothing in the documentation runs it:
       # the one rxode2 block, in vignettes/articles/model-elicitation.Rmd, is a
       # plain ```r fence that the article itself notes was never executed.
@@ -47,10 +57,13 @@ jobs:
           dependencies: '"hard"'
           extra-packages: |
             any::pkgdown
+            any::DT
             any::ggplot2
+            any::htmltools
             any::knitr
             any::nlmixr2data
             any::opendp
+            any::patchwork
             any::rmarkdown
             any::xgxr
             local::.

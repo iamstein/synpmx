@@ -18,6 +18,12 @@ library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+# `compare_pmx_distributions()` composes its panels with patchwork and refuses
+# to draw without it, rather than degrading the way the rest of the plotting
+# does. Guarding those chunks keeps a missing suggested package a missing
+# figure instead of a failed build.
+has_distributions <- has_ggplot2 &&
+  requireNamespace("patchwork", quietly = TRUE)
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 ```
 
@@ -190,8 +196,12 @@ masking_table <- function(source, roles, synthetic, label, section = NULL) {
 Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
 `Suggests` of this package.
 
+<!-- Pandoc sizes these columns in proportion to the dashes in the row below,
+     so the last column's width is set by the dashes under it rather than by
+     its contents. Keep them uneven. -->
+
 | Dataset | Package | Patients | Rows | Endpoints | What it is here to exercise |
-|---|---|---|---|---|---|
+|----------|-----------|-----|-----|-----|--------------------------------------------------------|
 | `case1_pkpd` | xgxr | 180 | 20820 | 2 | Six arms, a declared `NOMTIME`, PK and PD, baseline weight, `CENS`. The shape a study report usually arrives in |
 | `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose carrying ordinal, count and binary PD alongside continuous PD and PK |
 | `theo_md` | nlmixr2data | 12 | 348 | 1 | Seven Q24H oral doses with dense profiles on occasions 1 and 7 only. Dosed by weight. |
@@ -220,8 +230,8 @@ The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
 one where the pharmacometrician could evaluate whether the output is acceptable for use.  If the synthetic dataset will not be crossing a trust boundary, items marked `review` are acceptable.
 
 **No dataset here fails a check**, which is a thing to be careful about rather
-than reassured by. One did until recently — `nimoData`, on B1b — and its section
-shows what closing that cost. Every card carries five or six `review` rows
+than reassured by. `nimoData`, on B1b, previously failed, and its section
+shows what fixing the issue involved. Every card carries five or six `review` rows
 instead, and those are where the eight datasets actually differ. The runs below
 are quiet: `synpmx_avatar()` prints an alert for every exposure it could not
 remove, and eighteen of those blocks would say what the scorecard and
@@ -261,7 +271,7 @@ overlay_plot(case1_pkpd, case1_synth, case1_roles,
              y_label = "LIDV", alpha = 0.2)
 ```
 
-```{r case1-distributions, eval=has_xgxr, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
+```{r case1-distributions, eval=has_xgxr && has_distributions, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
 compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 ```
 
@@ -333,7 +343,7 @@ overlay_plot(mad, mad_synth, mad_roles, "mad: five endpoints on one time axis",
   ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
 ```
 
-```{r mad-distributions, eval=has_xgxr, fig.height=compare_pmx_distributions_height(mad, mad_roles)}
+```{r mad-distributions, eval=has_xgxr && has_distributions, fig.height=compare_pmx_distributions_height(mad, mad_roles)}
 compare_pmx_distributions(mad, mad_synth, mad_roles)
 ```
 
@@ -427,7 +437,7 @@ overlay_plot(theo_md, theo_synth, theo_roles,
              clock = "tad", x_label = "Time after dose (hours)", alpha = 0.25)
 ```
 
-```{r theo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(theo_md, theo_roles)}
+```{r theo-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(theo_md, theo_roles)}
 compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 ```
 
@@ -465,7 +475,7 @@ overlay_plot(warfarin, warfarin_synth, warfarin_roles,
              x_label = "Time (hours)")
 ```
 
-```{r warfarin-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(warfarin, warfarin_roles)}
+```{r warfarin-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(warfarin, warfarin_roles)}
 compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 ```
 
@@ -501,7 +511,7 @@ overlay_plot(wbcSim, wbc_synth, wbc_roles,
              y_label = "WBC")
 ```
 
-```{r wbc-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(wbcSim, wbc_roles)}
+```{r wbc-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(wbcSim, wbc_roles)}
 compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 ```
 
@@ -566,7 +576,7 @@ overlay_plot(nimoData, nimo_synth, nimo_roles,
              alpha = 0.2)
 ```
 
-```{r nimo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(nimoData, nimo_roles)}
+```{r nimo-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(nimoData, nimo_roles)}
 compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
@@ -787,7 +797,7 @@ overlay_plot(mavoglurant, mavo_synth, mavo_roles,
              y_label = "DV (log scale)", log_y = TRUE, alpha = 0.2)
 ```
 
-```{r mavo-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(mavoglurant, mavo_roles)}
+```{r mavo-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(mavoglurant, mavo_roles)}
 compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 ```
 
@@ -850,7 +860,7 @@ overlay_plot(pheno_sd, pheno_synth, pheno_roles,
              y_label = "Phenobarbital (ug/mL)")
 ```
 
-```{r pheno-distributions, eval=has_nlmixr2data, fig.height=compare_pmx_distributions_height(pheno_sd, pheno_roles)}
+```{r pheno-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(pheno_sd, pheno_roles)}
 compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 ```
 
