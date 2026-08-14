@@ -130,6 +130,9 @@ Structural checks on generated data, and restricted comparisons.
 - [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
   : Draw a cohort's dosing and observation schedule
 
+- [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
+  : Which strata can mask their own avatars
+
 - [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
   : Report what each masking mechanism did, and what it cost
 

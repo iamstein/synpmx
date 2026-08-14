@@ -365,6 +365,16 @@ is re-anchored somewhere else, and the patient stays in the pool for
 every other avatar. An earlier version excluded such patients outright
 and removed 48% of a cohort to fix a single avatar, which is why.
 
+**Somewhere else in the same arm.** An anchor carries its own `strata`
+values into the output, so moving an avatar to another arm would put a
+patient in an arm they were never in and leave the run reporting a
+balance it did not build. Where an arm holds nobody who can be masked —
+individualised dosing in one cohort of a trial, say — its avatars keep
+the anchor they have, the run raises an alert naming that arm, and the
+scorecard’s B1a/B1b rows fail against it.
+[`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
+answers the same question from the source before anything is generated.
+
 None of the three shrinks the cohort: the remaining anchors are sampled
 with replacement to fill every slot, and excluded subjects still
 contribute measurements as donors. What is lost is coverage of that

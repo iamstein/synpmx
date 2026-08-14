@@ -545,7 +545,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -553,8 +553,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -899,7 +898,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1b</td>
@@ -907,8 +906,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B2</td>
@@ -1126,7 +1124,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -1134,8 +1132,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -1191,9 +1188,9 @@ regimens is represented in the output.</p>
 <caption>Everything wbcSim’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="19%">
-<col width="5%">
-<col width="75%">
+<col width="13%">
+<col width="3%">
+<col width="82%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1377,9 +1374,10 @@ instead – less faithful to that avatar, and it discloses nothing</td>
 <td align="left">  of those, moved to a different anchor</td>
 <td align="right">1 of 45 (2%)</td>
 <td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere.
-Every source patient stays a donor and stays available to anchor
-others</td>
+nothing legal could be placed, so this avatar was anchored elsewhere –
+inside its own arm, always, since an anchor carries its
+<code>strata</code> values into the output. Every source patient stays a
+donor and stays available to anchor others</td>
 </tr>
 <tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
@@ -1395,8 +1393,10 @@ shares</strong></td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
-It is non-zero only when the schedule group has no shared set to
-substitute; the run alerts when it happens</td>
+It is non-zero when the schedule group has no shared set to substitute
+AND the avatar’s own arm holds nobody who could be anchored on instead;
+the run alerts and names the arm when it happens.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
@@ -1426,8 +1426,10 @@ shares</strong></td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero only when EVERY patient is in that
-position, which individualised dosing can cause</td>
+shares are not built upon. Non-zero when a whole ARM is in that position
+– individualised dosing, per-patient titration – because an avatar is
+only ever anchored inside the arm it was allocated to.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Dose</strong></td>
@@ -1718,7 +1720,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -1726,8 +1728,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">12</td>
 <td align="left">FAIL</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -1785,9 +1786,9 @@ all.</p>
 <caption>Everything nimoData’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="15%">
-<col width="4%">
-<col width="79%">
+<col width="13%">
+<col width="3%">
+<col width="82%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1971,9 +1972,10 @@ instead – less faithful to that avatar, and it discloses nothing</td>
 <td align="left">  of those, moved to a different anchor</td>
 <td align="right">0 of 12 (0%)</td>
 <td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere.
-Every source patient stays a donor and stays available to anchor
-others</td>
+nothing legal could be placed, so this avatar was anchored elsewhere –
+inside its own arm, always, since an anchor carries its
+<code>strata</code> values into the output. Every source patient stays a
+donor and stays available to anchor others</td>
 </tr>
 <tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
@@ -1989,8 +1991,10 @@ shares</strong></td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
-It is non-zero only when the schedule group has no shared set to
-substitute; the run alerts when it happens</td>
+It is non-zero when the schedule group has no shared set to substitute
+AND the avatar’s own arm holds nobody who could be anchored on instead;
+the run alerts and names the arm when it happens.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
@@ -2020,8 +2024,10 @@ shares</strong></td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero only when EVERY patient is in that
-position, which individualised dosing can cause</td>
+shares are not built upon. Non-zero when a whole ARM is in that position
+– individualised dosing, per-patient titration – because an avatar is
+only ever anchored inside the arm it was allocated to.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Dose</strong></td>
@@ -2160,7 +2166,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -2168,8 +2174,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -2507,7 +2512,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -2515,8 +2520,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -2581,9 +2585,9 @@ than a property of the synthetic data, which is why it is
 <caption>Everything mavoglurant’s run removed, and what was left to
 build on.</caption>
 <colgroup>
-<col width="18%">
-<col width="5%">
-<col width="75%">
+<col width="13%">
+<col width="4%">
+<col width="81%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -2767,9 +2771,10 @@ instead – less faithful to that avatar, and it discloses nothing</td>
 <td align="left">  of those, moved to a different anchor</td>
 <td align="right">0 of 120 (0%)</td>
 <td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere.
-Every source patient stays a donor and stays available to anchor
-others</td>
+nothing legal could be placed, so this avatar was anchored elsewhere –
+inside its own arm, always, since an anchor carries its
+<code>strata</code> values into the output. Every source patient stays a
+donor and stays available to anchor others</td>
 </tr>
 <tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
@@ -2785,8 +2790,10 @@ shares</strong></td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
-It is non-zero only when the schedule group has no shared set to
-substitute; the run alerts when it happens</td>
+It is non-zero when the schedule group has no shared set to substitute
+AND the avatar’s own arm holds nobody who could be anchored on instead;
+the run alerts and names the arm when it happens.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
@@ -2816,8 +2823,10 @@ shares</strong></td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero only when EVERY patient is in that
-position, which individualised dosing can cause</td>
+shares are not built upon. Non-zero when a whole ARM is in that position
+– individualised dosing, per-patient titration – because an avatar is
+only ever anchored inside the arm it was allocated to.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Dose</strong></td>
@@ -3077,7 +3086,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -3085,8 +3094,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -3131,10 +3139,11 @@ TRUE)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>B1b fails: 15 avatars carry a dose schedule nobody else in
-the cohort shares.</strong> Two other rows say what avoiding the rest
-cost. Doses per patient falls from 10 to 4.8 in A5, and 16 of the 56
-source dose regimens are represented in C4.</p>
+<p><strong>Nothing fails, and the two rows that moved say what reaching
+that cost.</strong> Doses per patient falls from 10.0 to 1.1 in A5, and
+3 of the 56 source dose regimens are represented in C4. B1b passing here
+is not the dosing being masked; it is the dosing being truncated
+away.</p>
 <div class="section level3">
 <h3 id="dosing-that-cannot-be-masked">Dosing that cannot be masked<a class="anchor" aria-label="anchor" href="#dosing-that-cannot-be-masked"></a>
 </h3>
@@ -3144,9 +3153,9 @@ source dose regimens are represented in C4.</p>
 <caption>Everything pheno_sd’s run removed, and what was left to build
 on.</caption>
 <colgroup>
-<col width="19%">
-<col width="5%">
-<col width="75%">
+<col width="13%">
+<col width="3%">
+<col width="82%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -3330,9 +3339,10 @@ instead – less faithful to that avatar, and it discloses nothing</td>
 <td align="left">  of those, moved to a different anchor</td>
 <td align="right">53 of 59 (90%)</td>
 <td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere.
-Every source patient stays a donor and stays available to anchor
-others</td>
+nothing legal could be placed, so this avatar was anchored elsewhere –
+inside its own arm, always, since an anchor carries its
+<code>strata</code> values into the output. Every source patient stays a
+donor and stays available to anchor others</td>
 </tr>
 <tr class="even">
 <td align="left">Avatars keeping their anchor’s own visit set</td>
@@ -3348,8 +3358,10 @@ shares</strong></td>
 <td align="left">
 <strong>this is the row that must be 0%.</strong> That
 pattern of which visits have observations belongs to one real patient.
-It is non-zero only when the schedule group has no shared set to
-substitute; the run alerts when it happens</td>
+It is non-zero when the schedule group has no shared set to substitute
+AND the avatar’s own arm holds nobody who could be anchored on instead;
+the run alerts and names the arm when it happens.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
 </tr>
 <tr class="even">
 <td align="left">  of those, dosing re-truncated</td>
@@ -3379,8 +3391,10 @@ shares</strong></td>
 <td align="left">
 <strong>must also be 0%.</strong> Dose events are
 copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero only when EVERY patient is in that
-position, which individualised dosing can cause</td>
+shares are not built upon. Non-zero when a whole ARM is in that position
+– individualised dosing, per-patient titration – because an avatar is
+only ever anchored inside the arm it was allocated to.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Dose</strong></td>
@@ -3409,18 +3423,26 @@ the mechanism works: B1a holds at 0, so no avatar wears a set of
 attended visits that belongs to one real infant. On the dose side there
 is almost nothing safe to build on. The source holds 56 distinct dose
 schedules across 59 infants, so declining to anchor on a patient whose
-schedule nobody shares would mean declining to anchor on nearly
-everybody, and 90% of avatars had to be moved to a different anchor
-before anything legal could be placed at all.</p>
+schedule nobody shares means declining to anchor on nearly everybody,
+and 90% of avatars had to be moved to a different anchor before anything
+legal could be placed at all. What is left to copy is the one shared
+schedule, a single dose — hence the collapse from ten doses a patient to
+one.</p>
 <p>The cause is not a setting. Dose events are copied from the anchor
 verbatim, and coarsening acts on the visit grid while the exposure here
 is <em>which days this infant was dosed</em>. When a neonate is dosed to
 their own weight on the day their own clinician decided, most patients
 have a dose schedule nobody shares and there is no safe patient to
 anchor on instead.</p>
-<p>A study with this shape either accepts that its avatars carry real
-dosing schedules, which is defensible only inside the source data’s own
-access controls, or does not use AVATAR.</p>
+<p>A study with this shape either accepts a synthetic cohort whose
+dosing is a fraction of the real one, or does not use AVATAR.
+<code>pheno_sd</code> declares no arms; where a study does, the same
+shape confined to one arm is reported by arm —
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> before generating, and rows B1a and B1b
+afterwards, which name the arm that could not be masked. An avatar is
+never anchored outside the arm it was allocated to, so an arm whose
+dosing is individualised fails rather than borrowing patients from an
+arm whose dosing is not.</p>
 </div>
 </div>
 <div class="section level2">
@@ -3649,7 +3671,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
@@ -3657,8 +3679,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B2</td>
@@ -4116,7 +4137,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">plot_pmx_schedule(source, roles)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1b</td>
@@ -4124,8 +4145,7 @@ roles)</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
+<td align="left">unmaskable_strata(source, roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B2</td>

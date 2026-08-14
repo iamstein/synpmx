@@ -228,16 +228,20 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       faithful to that avatar, and it discloses nothing</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     of those, moved to a different anchor          0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the first anchor's own set was shared by nobody and nothing legal</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       could be placed, so this avatar was anchored elsewhere. Every source</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       patient stays a donor and stays available to anchor others</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       could be placed, so this avatar was anchored elsewhere -- inside its</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       own arm, always, since an anchor carries its `strata` values into the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       output. Every source patient stays a donor and stays available to</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       anchor others</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars keeping their anchor's own visit set     0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       not a problem in itself: if several real patients share that set,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       copying it identifies nobody. Only the next row is a disclosure</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a visit set nobody else shares  0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       **this is the row that must be 0%.** That pattern of which visits</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       have observations belongs to one real patient. It is non-zero only</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       when the schedule group has no shared set to substitute; the run</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       alerts when it happens</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       have observations belongs to one real patient. It is non-zero when</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       the schedule group has no shared set to substitute AND the avatar's</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       own arm holds nobody who could be anchored on instead; the run alerts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       and names the arm when it happens. `unmaskable_strata()` answers it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       from the source</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     of those, dosing re-truncated                  0 of 30 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       the anchor stopped dosing at a depth nobody else used, so the avatar</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       stops at a different one -- shared, or used by nobody. Truncating a</span>
@@ -252,8 +256,10 @@ before-coarsening row then reads the source.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Avatars carrying a dose schedule nobody else shares 0 (0%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       **must also be 0%.** Dose events are copied from the anchor verbatim,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       so patients whose dose times nobody shares are not built upon.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       Non-zero only when EVERY patient is in that position, which</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       individualised dosing can cause</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Non-zero when a whole ARM is in that position -- individualised</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       dosing, per-patient titration -- because an avatar is only ever</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       anchored inside the arm it was allocated to. `unmaskable_strata()`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       says which arm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Dose</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Amounts recomputed from a covariate              yes, from `WT` (inferred)</span>

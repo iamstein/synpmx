@@ -248,8 +248,8 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 22 -\> 22 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 7 -\> 7 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 3 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.167, 0.750\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -329,8 +329,8 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | A5 | Observations per patient | both | 15.1 -\> 15.1 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 1 -\> 1 | review | pmx_masking_report(synthetic, source, roles) |
 | A6 | Discrete endpoints keeping their source scale | both | 1 of 1 | pass | pmx_endpoint_types(source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 32 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.438 in \[0.271, 0.712\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -389,8 +389,8 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | A4 | Cohort size survived | both | 45 -\> 45 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 3.9 -\> 3.6 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 1.2 -\> 1 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 16 of 45 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.318, 0.636\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -437,13 +437,13 @@ masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
 |   of those, misses placed fresh | 1 of 45 (2%) | the kind of missingness was reused; exactly which visits were missed was invented |
 |   of those, miss count moved | 1 of 45 (2%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 45 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-|   of those, moved to a different anchor | 1 of 45 (2%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+|   of those, moved to a different anchor | 1 of 45 (2%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere – inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 45 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar’s own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) answers it from the source |
 |   of those, dosing re-truncated | 0 of 45 (0%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 4 |  |
 |   represented in the synthetic cohort | 1 (25%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | no `covariates` are declared, so there is nothing to test the amounts against |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -531,8 +531,8 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 26.8 -\> 27.3 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 12 | FAIL | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 12 | FAIL | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.500 in \[0.250, 0.667\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -580,13 +580,13 @@ masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
 |   of those, misses placed fresh | 12 of 12 (100%) | the kind of missingness was reused; exactly which visits were missed was invented |
 |   of those, miss count moved | 12 of 12 (100%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 12 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-|   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+|   of those, moved to a different anchor | 0 of 12 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere – inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 12 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar’s own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) answers it from the source |
 |   of those, dosing re-truncated | 0 of 12 (0%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 12 |  |
 |   represented in the synthetic cohort | 7 (58%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 12 (100%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+| **Avatars carrying a dose schedule nobody else shares** | 12 (100%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 4 distinct dose amounts are not a fixed multiple of any declared covariate: BSA (10 ratio levels for 4 distinct amounts – too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts – too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -645,8 +645,8 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | A4 | Cohort size survived | both | 12 -\> 12 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 26.8 -\> 27.4 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 10 -\> 10 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 12 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.583 in \[0.185, 0.731\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -725,8 +725,8 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | A4 | Cohort size survived | both | 120 -\> 120 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 20.2 -\> 20.2 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 1.6 -\> 1.6 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 41 of 120 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.419, 0.606\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -781,13 +781,13 @@ masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
 |   of those, misses placed fresh | 0 of 120 (0%) | the kind of missingness was reused; exactly which visits were missed was invented |
 |   of those, miss count moved | 0 of 120 (0%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 120 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-|   of those, moved to a different anchor | 0 of 120 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+|   of those, moved to a different anchor | 0 of 120 (0%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere – inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 120 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar’s own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) answers it from the source |
 |   of those, dosing re-truncated | 0 of 120 (0%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 1 |  |
 |   represented in the synthetic cohort | 1 (100%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 3 distinct dose amounts are not a fixed multiple of any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels for 3 distinct amounts – too many to be a protocol); WT (ratios do not cluster); HT (ratios do not cluster) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -866,18 +866,18 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | A4 | Cohort size survived | both | 59 -\> 59 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 2.6 -\> 2.6 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 10 -\> 1.1 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 36 of 59 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.534 in \[0.362, 0.621\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C4 | Distinct dose-time schedules represented | both | 3 of 56 | review | pmx_masking_report(synthetic, source, roles) |
 
-**B1b fails: 15 avatars carry a dose schedule nobody else in the cohort
-shares.** Two other rows say what avoiding the rest cost. Doses per
-patient falls from 10 to 4.8 in A5, and 16 of the 56 source dose
-regimens are represented in C4.
+**Nothing fails, and the two rows that moved say what reaching that
+cost.** Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56
+source dose regimens are represented in C4. B1b passing here is not the
+dosing being masked; it is the dosing being truncated away.
 
 ### Dosing that cannot be masked
 
@@ -916,13 +916,13 @@ masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd")
 |   of those, misses placed fresh | 22 of 59 (37%) | the kind of missingness was reused; exactly which visits were missed was invented |
 |   of those, miss count moved | 22 of 59 (37%) | no arrangement at the wanted number of missing visits was free, so the count moved by a visit or two. Misses at the END of a record are the case that forces it, because for a given count there is exactly one such arrangement |
 |   of those, a rare set swapped for a shared one | 0 of 59 (0%) | the anchor’s own set was held by nobody else and no arrangement was free, so the group’s most widely held set was used instead – less faithful to that avatar, and it discloses nothing |
-|   of those, moved to a different anchor | 53 of 59 (90%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere. Every source patient stays a donor and stays available to anchor others |
+|   of those, moved to a different anchor | 53 of 59 (90%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere – inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 59 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
-| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero only when the schedule group has no shared set to substitute; the run alerts when it happens |
+| **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar’s own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) answers it from the source |
 |   of those, dosing re-truncated | 20 of 59 (34%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 56 |  |
 |   represented in the synthetic cohort | 3 (5%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
-| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero only when EVERY patient is in that position, which individualised dosing can cause |
+| **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
 | **Dose** |  |  |
 | Amounts recomputed from a covariate | **no** | the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
@@ -935,9 +935,11 @@ the mechanism works: B1a holds at 0, so no avatar wears a set of
 attended visits that belongs to one real infant. On the dose side there
 is almost nothing safe to build on. The source holds 56 distinct dose
 schedules across 59 infants, so declining to anchor on a patient whose
-schedule nobody shares would mean declining to anchor on nearly
-everybody, and 90% of avatars had to be moved to a different anchor
-before anything legal could be placed at all.
+schedule nobody shares means declining to anchor on nearly everybody,
+and 90% of avatars had to be moved to a different anchor before anything
+legal could be placed at all. What is left to copy is the one shared
+schedule, a single dose — hence the collapse from ten doses a patient to
+one.
 
 The cause is not a setting. Dose events are copied from the anchor
 verbatim, and coarsening acts on the visit grid while the exposure here
@@ -946,9 +948,15 @@ own weight on the day their own clinician decided, most patients have a
 dose schedule nobody shares and there is no safe patient to anchor on
 instead.
 
-A study with this shape either accepts that its avatars carry real
-dosing schedules, which is defensible only inside the source data’s own
-access controls, or does not use AVATAR.
+A study with this shape either accepts a synthetic cohort whose dosing
+is a fraction of the real one, or does not use AVATAR. `pheno_sd`
+declares no arms; where a study does, the same shape confined to one arm
+is reported by arm —
+[`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
+before generating, and rows B1a and B1b afterwards, which name the arm
+that could not be masked. An avatar is never anchored outside the arm it
+was allocated to, so an arm whose dosing is individualised fails rather
+than borrowing patients from an arm whose dosing is not.
 
 ## case1_pkpd: a declared nominal grid
 
@@ -1011,8 +1019,8 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 1 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.600 in \[0.423, 0.554\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
@@ -1137,8 +1145,8 @@ synpmx_scorecard(mad, mad_synth, mad_roles)
 | A5 | Observations per patient | both | 61.7 -\> 61.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 5 -\> 5 | review | pmx_masking_report(synthetic, source, roles) |
 | A6 | Discrete endpoints keeping their source scale | both | 3 of 3 | pass | pmx_endpoint_types(source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 6 of 60 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.583 in \[0.350, 0.613\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |

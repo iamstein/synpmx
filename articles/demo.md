@@ -161,8 +161,8 @@ synpmx_scorecard(raw, synthetic, roles)
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | plot_pmx_schedule(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
+| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.415, 0.578\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |

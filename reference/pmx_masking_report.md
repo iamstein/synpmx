@@ -176,16 +176,20 @@ pmx_masking_report(synthetic, data, roles)
 #>       faithful to that avatar, and it discloses nothing
 #>     of those, moved to a different anchor          0 of 30 (0%)
 #>       the first anchor's own set was shared by nobody and nothing legal
-#>       could be placed, so this avatar was anchored elsewhere. Every source
-#>       patient stays a donor and stays available to anchor others
+#>       could be placed, so this avatar was anchored elsewhere -- inside its
+#>       own arm, always, since an anchor carries its `strata` values into the
+#>       output. Every source patient stays a donor and stays available to
+#>       anchor others
 #>   Avatars keeping their anchor's own visit set     0 of 30 (0%)
 #>       not a problem in itself: if several real patients share that set,
 #>       copying it identifies nobody. Only the next row is a disclosure
 #>   Avatars carrying a visit set nobody else shares  0 (0%)
 #>       **this is the row that must be 0%.** That pattern of which visits
-#>       have observations belongs to one real patient. It is non-zero only
-#>       when the schedule group has no shared set to substitute; the run
-#>       alerts when it happens
+#>       have observations belongs to one real patient. It is non-zero when
+#>       the schedule group has no shared set to substitute AND the avatar's
+#>       own arm holds nobody who could be anchored on instead; the run alerts
+#>       and names the arm when it happens. `unmaskable_strata()` answers it
+#>       from the source
 #>     of those, dosing re-truncated                  0 of 30 (0%)
 #>       the anchor stopped dosing at a depth nobody else used, so the avatar
 #>       stops at a different one -- shared, or used by nobody. Truncating a
@@ -200,8 +204,10 @@ pmx_masking_report(synthetic, data, roles)
 #>   Avatars carrying a dose schedule nobody else shares 0 (0%)
 #>       **must also be 0%.** Dose events are copied from the anchor verbatim,
 #>       so patients whose dose times nobody shares are not built upon.
-#>       Non-zero only when EVERY patient is in that position, which
-#>       individualised dosing can cause
+#>       Non-zero when a whole ARM is in that position -- individualised
+#>       dosing, per-patient titration -- because an avatar is only ever
+#>       anchored inside the arm it was allocated to. `unmaskable_strata()`
+#>       says which arm
 #> 
 #> Dose
 #>   Amounts recomputed from a covariate              yes, from `WT` (inferred)
