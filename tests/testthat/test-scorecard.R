@@ -4,7 +4,7 @@
 #
 # The rows it emits do NOT vary with the roles. A study that declares no
 # `strata` and no categorical covariate -- the ordinary case at pharmacometric
-# cohort sizes -- still gets C1, B5a and B5b, saying why they could not be
+# cohort sizes -- still gets C1 and B5, saying why they could not be
 # asked, so two cards can be compared row for row.
 
 sc_roles <- function(...) {
@@ -44,7 +44,29 @@ test_that("a clean run passes the guarantees and marks its judgement calls", {
   # And the rows where no threshold would be honest must not claim one.
   expect_identical(sc_verdict(card, "A5a"), "review")
   expect_identical(sc_verdict(card, "A5b"), "review")
+})
+
+test_that("B2 passes on an empty list and reviews a non-empty one", {
+  source <- pmx_simulated_fixture(40)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+
+  card <- synpmx_scorecard(source, synthetic, roles)
+  expect_identical(card$result[card$check == "B2"], "0 of 40")
+  expect_identical(sc_verdict(card, "B2"), "pass")
+
+  # One avatar followed three times as long as anybody else. The row becomes a
+  # list of one record to read, and never a `FAIL`.
+  odd <- unique(synthetic[[roles$id]])[[1L]]
+  late <- synthetic[synthetic[[roles$id]] == odd, ][1L, ]
+  late[[roles$time]] <- max(synthetic[[roles$time]]) * 3
+  late[[roles$evid]] <- 0
+  stretched <- rbind(synthetic, late)
+  attr(stretched, "pmx_settings") <- attr(synthetic, "pmx_settings")
+
+  card <- synpmx_scorecard(source, stretched, roles)
   expect_identical(sc_verdict(card, "B2"), "review")
+  expect_match(card$result[card$check == "B2"], "^[1-9][0-9]* of 40$")
 })
 
 test_that("a verbatim copy of the source fails the exact-copy row", {
@@ -100,8 +122,7 @@ test_that("only the rows that are always a defect can say FAIL", {
   can_fail <- c("A1", "A3", "A6", "B1a", "B1b", "B4a", "B4b")
   expect_true(all(card$check[card$verdict == "FAIL"] %in% can_fail))
   # And the softened rows are present, so this is not passing by their absence.
-  expect_true(all(c("A2", "A4", "B3", "B5a", "B5b", "C1", "C2") %in%
-                    card$check))
+  expect_true(all(c("A2", "A4", "B3", "B5", "C1", "C2") %in% card$check))
 })
 
 test_that("an objection to the source is review, not FAIL", {
@@ -120,7 +141,7 @@ test_that("an objection to the source is review, not FAIL", {
   expect_identical(sc_verdict(card, "A2"), "review")
 })
 
-test_that("B5a marks a level that reaches the output on one patient only", {
+test_that("B5 marks a level that reaches the output on one patient only", {
   source <- pmx_simulated_fixture(40)
   ids <- unique(as.character(source$ID))
   # One patient carries a level nobody else has. `strata` are copied from the
@@ -133,14 +154,14 @@ test_that("B5a marks a level that reaches the output on one patient only", {
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  # Review rather than FAIL: this is the weak, synthetic-side form of the
-  # check, and it is wrong in both directions. What the risk is made of is how
-  # many SOURCE patients held the level, which nothing computes yet.
-  expect_identical(sc_verdict(card, "B5a"), "review")
-  # The count alone is not actionable: the row has to say which column and
-  # which level, and point at the call that tabulates that column.
-  expect_identical(card$result[card$check == "B5a"], "ARM = rare: 1")
-  expect_identical(card$explore[card$check == "B5a"], "table(synthetic$ARM)")
+  # Review rather than FAIL: on a small cohort a rare `RACE` lights this up
+  # constantly and the answer is usually to stop carrying the covariate.
+  expect_identical(sc_verdict(card, "B5"), "review")
+  # The count alone is not actionable, so the levels ride along on the card.
+  expect_identical(card$result[card$check == "B5"], "1 of 1 exposed")
+  rare <- attr(card, "rare_levels")
+  expect_identical(rare$column, "ARM")
+  expect_identical(rare$level, "rare")
 })
 
 test_that("a stratum that changed size is review, not FAIL", {
@@ -232,7 +253,7 @@ test_that("C2 reads the run's record, and says that it does", {
 test_that("every card holds the same checks, whatever the roles declare", {
   # A card whose rows depend on the study cannot be compared with another card,
   # and an absent row reads as a check that passed when it means the question
-  # was never asked. A6, B5a, B5b and C1 were each conditional on the study
+  # was never asked. A6, B5 and C1 were each conditional on the study
   # having something for them to ask.
   source <- pmx_simulated_fixture(40)
   full_roles <- sc_roles()
@@ -245,8 +266,7 @@ test_that("every card holds the same checks, whatever the roles declare", {
   expect_identical(bare$check, full$check)
   # And each says why it could not be asked, rather than reporting a number.
   not_asked <- c(A6 = "no discrete endpoint",
-                 B5a = "no categorical covariate or stratum",
-                 B5b = "no categorical covariate or stratum",
+                 B5 = "no categorical covariate or stratum",
                  C1 = "no strata declared",
                  C3 = "no strata declared")
   for (check in names(not_asked)) {
@@ -334,7 +354,7 @@ test_that("the datatable colours every verdict the card can carry", {
                     names(.scorecard_verdict_colours)))
 })
 
-test_that("the datatable keeps the B5b detail that knitting the card shows", {
+test_that("the datatable keeps the B5 detail that knitting the card shows", {
   # `knit_print()` emits the rare-level table as well as the card, because the
   # card can only name one level in a cell. Colouring must not be a way to
   # quietly drop the rest of them.

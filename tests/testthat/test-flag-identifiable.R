@@ -143,3 +143,45 @@ test_that("no variation at all yields no outliers rather than infinities", {
   z <- synpmx:::.modified_z(rep(7, 10))
   expect_true(all(z == 0))
 })
+
+# SIM-042. A modified z says a subject is unusual for its cohort; it cannot say
+# the difference is big enough to single anybody out. On a study whose subjects
+# all completed the protocol, follow-up times sit within an hour or two of each
+# other, the median absolute deviation of that is minutes, and a subject forty
+# minutes from the median scores past 3.5 while being identifiable to nobody.
+# `min_relative_gap` is the second condition: the distance to the NEAREST other
+# subject, in units of the group's median.
+test_that("an outlier separated by a trivial amount is not flagged", {
+  # Everybody finishes at about 216 hours, one subject an hour and a half later.
+  finish <- c(215.1, 215.4, 215.6, 215.7, 215.8, 215.9, 216.0, 216.1, 217.5)
+  data <- do.call(rbind, Map(function(id, last) {
+    mk(id, obs_times = c(0.5, 1, 2, last))
+  }, seq_along(finish), finish))
+
+  expect_equal(sum(flag_identifiable_subjects(data, id_roles())$flagged), 0L)
+  # The z alone does call it an outlier, which is the behaviour being fixed.
+  loose <- flag_identifiable_subjects(data, id_roles(), min_relative_gap = 0)
+  expect_true(loose$flagged[loose$subject_id == "9"])
+})
+
+test_that("two subjects sharing an extreme value single out neither", {
+  alone <- rbind(do.call(rbind, lapply(1:5, mk)),
+                 mk(6, obs_times = c(0.5, 1, 2, 40)))
+  paired <- rbind(alone, mk(7, obs_times = c(0.5, 1, 2, 40)))
+
+  expect_true(flag_identifiable_subjects(alone, id_roles())$flagged[
+    flag_identifiable_subjects(alone, id_roles())$subject_id == "6"
+  ])
+  # Same value, now held by two: the gap to the nearest other subject is 0.
+  expect_equal(sum(flag_identifiable_subjects(paired, id_roles())$flagged), 0L)
+})
+
+test_that("min_relative_gap is validated and recorded", {
+  data <- do.call(rbind, lapply(1:6, mk))
+  expect_error(flag_identifiable_subjects(data, id_roles(),
+                                          min_relative_gap = -1),
+               "min_relative_gap")
+  report <- flag_identifiable_subjects(data, id_roles(),
+                                       min_relative_gap = 0.25)
+  expect_equal(attr(report, "min_relative_gap"), 0.25)
+})

@@ -718,7 +718,7 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
 #' @return A `pmx_rare_levels` data frame, one row per categorical column and
 #'   level, with `source_patients`, `synthetic_patients`, `exposed` and
 #'   `reached`. Zero rows when the roles declare no categorical axis.
-#' @seealso [synpmx_scorecard()], which reports this as row B5b,
+#' @seealso [synpmx_scorecard()], which reports this as row B5,
 #'   [compare_pmx_distributions()],
 #'   `vignette("scorecard-synthetic-data-checks")`.
 #' @export
@@ -1195,14 +1195,15 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 # Which patients each subject should be compared against.
 #
 # "Does this patient stand out?" needs a comparison group, and the cohort is the
-# wrong one as soon as a study assigns anything. On a six-arm dose-ranging study
-# the top arm sits about 6.4 modified-z units from the cohort median dose purely
-# by protocol, so a cohort-wide screen flags all thirty of its patients for
-# receiving the dose they were assigned -- measured on `xgxr::case1_pkpd`, where
-# it flagged 59 of 180 avatars, 31 of them on dose magnitude alone. Within the
-# arm every dose is identical, `.modified_z()` returns 0, and nothing is
-# flagged, which is the right answer; a patient who got 600 mg in a 300 mg arm
-# still scores far past the threshold.
+# wrong one as soon as a study assigns anything. The loud version of that -- a
+# cohort-wide screen flagging all thirty patients of a dose-ranging study's top
+# arm for receiving the dose they were assigned, which is what `xgxr::case1_pkpd`
+# did at 59 of 180 -- is now stopped by `min_relative_gap` instead, since thirty
+# patients on one dose are zero apart from each other.
+#
+# What is left needs the arm. A patient given a HIGHER arm's dose is thirty other
+# patients' dose away from nobody when the cohort is the group, and alone in the
+# arm they were actually allocated to. Only the second reading is the true one.
 #
 # Strata are the declared comparison group, so use them where they exist and are
 # big enough to estimate a scale from. This is the same idea as
@@ -1227,6 +1228,51 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
   stratum
 }
 
+# How far each subject sits from the NEAREST other subject on one axis, in units
+# of that group's median.
+#
+# The modified z says a subject is unusual for its group. It cannot say the
+# separation is large enough to single anybody out, and on protocol-driven data
+# that is the question that decides. Every subject in `xgxr::mad` completed the
+# study, so follow-up times sit inside two hours of each other, the median
+# absolute deviation of that is six minutes, and a subject forty minutes from
+# its arm's median scores z = 4.7. Four of the six subjects the screen flagged
+# there were of exactly that kind -- gaps under 1.1 h in a 216 h follow-up --
+# and the count moved between 0 and 9 on the seed alone.
+#
+# The gap is to the nearest other subject rather than to the median, because two
+# subjects sharing an extreme value single out neither of them. That is
+# `min_pattern_share = 2` applied to a number instead of to a pattern, and it is
+# the same floor B1a, B1b, B4a, B4b and B5 use.
+#
+# Relative to the median, since "material" has no meaning on a z scale and every
+# axis here is on its own: hours, counts, milligrams, concentration. The default
+# floor is set against ordinary between-subject variability rather than against
+# any one cohort -- 30-50% on a PK parameter is unremarkable, so a subject
+# separated by less than that is inside the study's own noise, and 1 asks for a
+# separation larger than the group's whole median value. Where the median
+# is zero -- an all-placebo group scored on dose magnitude -- the largest value
+# stands in for it, and a group whose values are all identical returns 0 and
+# flags nobody, which is what it should do.
+.relative_gap <- function(v) {
+  out <- rep(NA_real_, length(v))
+  finite <- which(is.finite(v))
+  if (length(finite) < 2L) return(out)
+  values <- v[finite]
+  scale <- abs(stats::median(values))
+  if (!is.finite(scale) || scale == 0) scale <- max(abs(values))
+  if (!is.finite(scale) || scale == 0) {
+    out[finite] <- 0
+    return(out)
+  }
+  ranked <- order(values)
+  sorted <- values[ranked]
+  steps <- diff(sorted)
+  nearest <- pmin(c(Inf, steps), c(steps, Inf))
+  out[finite[ranked]] <- nearest / scale
+  out
+}
+
 # `.modified_z()` computed inside each stratum, with NA stratum scored against
 # every subject that has one.
 .modified_z_by <- function(v, stratum) {
@@ -1239,6 +1285,19 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
     z[members] <- .modified_z(v[members])
   }
   z
+}
+
+# `.relative_gap()` inside each stratum, on the same footing as the z above.
+.relative_gap_by <- function(v, stratum) {
+  if (is.null(stratum)) return(.relative_gap(v))
+  gap <- rep(NA_real_, length(v))
+  pooled <- is.na(stratum)
+  if (any(pooled)) gap[pooled] <- .relative_gap(v)[pooled]
+  for (level in unique(stratum[!pooled])) {
+    members <- which(!pooled & stratum == level)
+    gap[members] <- .relative_gap(v[members])
+  }
+  gap
 }
 
 #' Flag structurally unusual -- and so easily identifiable -- subjects
@@ -1255,7 +1314,38 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 #' - **dose magnitude** -- a rare dose level (needs an `amt` role); and
 #' - **DV value** -- an extreme peak measurement.
 #'
-#' A subject is flagged when it is an outlier on any axis. This matters because
+#' A subject is flagged on an axis when **both** hold: it is a robust outlier
+#' there, and its gap to the nearest other subject in the comparison group is at
+#' least `min_relative_gap` of that group's median. The second condition is what
+#' makes the answer readable. A modified z says a subject is unusual for its
+#' cohort; it cannot say the difference is big enough to single anybody out, and
+#' on protocol-driven data that is the question that decides. Every subject in
+#' `xgxr::mad` completed the study, so follow-up times sit within two hours of
+#' each other and the median absolute deviation of that is six minutes: a
+#' subject forty minutes from its arm's median scores 4.7 and is identifiable to
+#' nobody. Requiring the gap as well takes that study from 6 flagged of 60 to 0,
+#' `pheno_sd` from 25 of 59 to 0 and `mavoglurant` from 41 of 120 to 0, while
+#' leaving a subject given twice its arm's dose, or followed three times as long
+#' as anyone else, flagged. The gap is measured to the nearest other subject
+#' rather than to the median, because two subjects sharing an extreme value
+#' single out neither -- the same reasoning as `min_pattern_share = 2` on visit
+#' sets.
+#'
+#' The default of 1 is set against ordinary between-subject variability
+#' rather than against any cohort: a 30-50% coefficient of variation is
+#' unremarkable on a pharmacokinetic parameter, so a subject separated by less
+#' than that is inside the noise of the study and could not be picked out of it.
+#' At 1 the separation must exceed the group's whole median value, which is the
+#' glaring case and nothing smaller -- `nlmixr2data::wbcSim` reports the two
+#' patients followed to 1730 and 4580 hours in a cohort that otherwise ends by
+#' 672, and not the one at 1130.
+#'
+#' On that setting no synthetic dataset in `vignette("public-data-examples")`
+#' reports anybody, which is the screen working rather than idling: an avatar is
+#' a blend of several donors, so producing a subject that extreme takes a defect,
+#' and this is the row that would say so.
+#'
+#' This matters because
 #' [synpmx_avatar()] copies each avatar's event skeleton from a single anchor, so
 #' a structurally unique source subject yields a structurally unique -- and
 #' identifiable -- avatar even though its measurements are blended. Run it on the
@@ -1266,20 +1356,26 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 #'
 #' Scores are computed **within each declared stratum** ([pmx_roles()]
 #' `strata`), because "does this patient stand out?" needs a comparison group
-#' and the whole cohort is the wrong one as soon as a study assigns anything. On
-#' a six-arm dose-ranging study the top arm sits far from the cohort median dose
-#' purely by protocol: scored cohort-wide, `xgxr::case1_pkpd` flags 59 of 180
-#' avatars, 31 of them for receiving the dose their arm was assigned. Scored
-#' within arm it flags 1, and a patient given twice their arm's dose is still
-#' flagged. Strata holding fewer than five subjects are scored against the whole
-#' cohort instead, since a scale estimated from four patients describes the four
-#' rather than the one being screened. With no `strata` declared, every subject
-#' is scored against the cohort, as before.
+#' and the whole cohort is the wrong one as soon as a study assigns anything.
+#' The clearest case is a patient given a *higher* arm's dose: cohort-wide that
+#' dose is thirty other patients' dose, so nothing is reported, and it is only
+#' unusual next to the arm the patient was actually allocated to. Strata holding
+#' fewer than five subjects are scored against the whole cohort instead, since a
+#' scale estimated from four patients describes the four rather than the one
+#' being screened. With no `strata` declared, every subject is scored against the
+#' cohort.
 #'
 #' @param data A PMX dataset -- typically the synthetic output, or the source.
 #' @param roles Explicit roles from [pmx_roles()].
 #' @param threshold Absolute modified-z cutoff above which a subject is an
 #'   outlier on an axis. Default 3.5, the Iglewicz--Hoaglin value.
+#' @param min_relative_gap How far a subject must sit from the nearest other
+#'   subject in its comparison group before that outlier counts, as a fraction
+#'   of the group's median on that axis. Default 1, chosen against ordinary
+#'   between-subject variability: a subject 40 minutes from a 216-hour follow-up
+#'   is not a finding, and one followed to 1730 hours where everybody else has
+#'   finished by 672 is. Lower it to widen the net -- 0.5 adds the merely
+#'   striking, 0 leaves the z alone.
 #'
 #' @return A `pmx_identifiability` data frame, most-unusual first, one row per
 #'   subject: `subject_id`, the four axis values (`follow_up_time`, `n_doses`,
@@ -1295,11 +1391,17 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #' flag_identifiable_subjects(synthetic, roles)
-flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
+flag_identifiable_subjects <- function(data, roles, threshold = 3.5,
+                                       min_relative_gap = 1) {
   .assert_roles(data, roles)
   if (!is.numeric(threshold) || length(threshold) != 1L ||
       is.na(threshold) || threshold <= 0) {
     stop("`threshold` must be a single positive number.", call. = FALSE)
+  }
+  if (!is.numeric(min_relative_gap) || length(min_relative_gap) != 1L ||
+      is.na(min_relative_gap) || min_relative_gap < 0) {
+    stop("`min_relative_gap` must be a single non-negative number.",
+         call. = FALSE)
   }
 
   subjects <- .unique_in_order(data[[roles$id]])
@@ -1339,7 +1441,11 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
   outlier <- lapply(axes, function(v) {
     if (sum(is.finite(v)) < 2L) return(rep(FALSE, length(v)))
     z <- .modified_z_by(v, stratum)
-    flagged <- (is.finite(z) & abs(z) > threshold) | is.infinite(z)
+    unusual <- (is.finite(z) & abs(z) > threshold) | is.infinite(z)
+    # Both conditions, never either: unusual for the group, and separated from
+    # every other member of it by enough to matter. See `.relative_gap()`.
+    apart <- .relative_gap_by(v, stratum) >= min_relative_gap
+    flagged <- unusual & apart
     flagged[is.na(flagged)] <- FALSE
     flagged
   })
@@ -1365,6 +1471,7 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5) {
   rownames(out) <- NULL
   attr(out, "n_flagged") <- sum(out$flagged)
   attr(out, "threshold") <- threshold
+  attr(out, "min_relative_gap") <- min_relative_gap
   .mark_release(
     structure(out, class = c("pmx_identifiability", "data.frame")),
     "restricted_not_releasable"
@@ -2052,7 +2159,9 @@ print.pmx_identifiability <- function(x, ...) {
     flagged, n, if (n == 1L) "" else "s"
   ))
   cat("Flag = a robust outlier in follow-up time, dose count, dose magnitude,",
-      "or DV value.\n\n")
+      "or DV value,\nthat is also at least",
+      paste0(format(100 * (attr(x, "min_relative_gap") %||% 0.1)), "%"),
+      "of the group median away from the nearest\nother subject.\n\n")
   cat(if (n > 12L) "Twelve most unusual:\n" else "By outlier count:\n")
   print(.format_for_print(utils::head(as.data.frame(x), 12L)), row.names = FALSE)
   if (n > 12L) {

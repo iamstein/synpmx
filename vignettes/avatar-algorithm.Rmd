@@ -1814,10 +1814,17 @@ places. The scale now falls back to the mean absolute deviation from the median,
 which is zero only when nothing varies at all. `mavoglurant` went from 63 of 120
 flagged to 17.
 
-Even so, this is a screen to read rather than to apply. A genuinely two-humped
-cohort will still produce flags that are the shape of the distribution rather
-than exposure. Run it, read what it flags, and decide — which is why it takes a
-threshold argument and why nothing runs it for you.
+A tight cutoff on a clustered cohort is still the wrong shape of question,
+though, which is why a flag now also requires the subject to be **materially
+alone**: at least `min_relative_gap` of the group's median away from the nearest
+other subject, 1 by default — a separation larger than the group's whole median
+value, since anything smaller is inside ordinary between-subject variability. A two-humped cohort has two crowds and nobody
+apart from anybody, so `mavoglurant` reads 0 rather than 17, while a subject at
+4580 hours in a 650-hour cohort still reads.
+
+Even so, this is a screen to read rather than to apply. Run it, read what it
+flags, and decide — which is why it takes both arguments and why nothing runs it
+for you.
 
 
 The blending in Steps 6–9 protects the *measurements*: every avatar's DV values

@@ -740,9 +740,9 @@ C2 from 7 of 12 to 1 of 1, because on the nominal grid the twelve dose schedules
 become one schedule that all twelve subjects share — so there is nothing left to
 truncate, and no avatar's course has to stop early. Unique observation schedules
 fall from 12 to 5, the twelve visit sets collapse to eight, real sets become
-reusable, and the invented-arrangement share falls from 100% to 25%. B2 falls
-from 3 flagged patients to 2. Two visit sets are discarded either way, which is
-why the discard count should never be read on its own.
+reusable, and the invented-arrangement share falls from 100% to 25%. Two visit
+sets are discarded either way, which is why the discard count should never be
+read on its own.
 
 **Both cards pass, and only one of them is usable.** That is the argument for
 reading A5b rather than stopping at the B rows: the privacy guarantee is
@@ -819,14 +819,14 @@ scorecard <- synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-Nothing fails, and B2 is the row that looks alarming: 40 of the 120 synthetic
-patients are flagged as unusual. `flag_identifiable_subjects()` scores each
-subject against its own stratum, and no `strata` are declared here, so the whole
-cohort is scored as one group. Recorded follow-up length is bimodal in this
-study, because `TIME` restarts within `OCC` and a subject therefore reads as
-either about 24 hours or about 36 to 48. Against a single pooled tolerance,
-subjects at both ends are flagged. The row is reporting the shape of the study
-rather than a property of the synthetic data, which is why it is `review`.
+Nothing fails, and B2 is the row this study used to break. Recorded follow-up
+length is bimodal here, because `TIME` restarts within `OCC` and a subject
+therefore reads as either about 24 hours or about 36 to 48. Scored on a robust z
+against one pooled tolerance — no `strata` are declared, so the cohort is the
+group — subjects at both ends came back flagged, 41 of 120 of them. B2 now
+requires a patient to be separated from the nearest other patient as well, and
+two clusters of sixty single nobody out, so it reads 0. The study's shape is
+still bimodal; it was never a property of the synthetic data.
 
 ### The largest residual in the vignette
 

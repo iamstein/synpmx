@@ -119,19 +119,28 @@ test_that("the identifiability screen scores within stratum, not across arms", {
     synpmx_avatar(source, roles, seed = 808)
   ))
 
-  # Six arms from 3 mg to 300 mg: cohort-wide, the top arm is flagged for
-  # receiving the dose the protocol assigned it.
   no_strata <- pmx_roles(
     id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
     cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
     covariates = "WEIGHTB"
   )
-  expect_gt(sum(flag_identifiable_subjects(synthetic, no_strata)$flagged), 50L)
+  # Six arms from 3 mg to 300 mg. Give one patient in a low arm the dose a
+  # HIGHER arm was assigned: cohort-wide that dose is thirty other patients'
+  # dose, so the gap to the nearest subject is 0 and nothing is reported. It is
+  # only unusual next to the arm it was given in, which is the comparison group
+  # the screen has to use.
+  odd <- unique(synthetic$ID[synthetic$TRTACT == "10 mg"])[[1L]]
+  high <- max(synthetic$AMT[synthetic$TRTACT == "300 mg"], na.rm = TRUE)
+  synthetic$AMT[synthetic$ID == odd & synthetic$EVID != 0] <- high
 
-  # Within arm, every dose is the same one, so nobody stands out on it.
+  cohort_wide <- flag_identifiable_subjects(synthetic, no_strata)
+  expect_false(cohort_wide$flagged[cohort_wide$subject_id == as.character(odd)])
+
   stratified <- flag_identifiable_subjects(synthetic, roles)
-  expect_lt(sum(stratified$flagged), 10L)
-  expect_false(any(grepl("dose magnitude", stratified$outlier_axes)))
+  expect_true(stratified$flagged[stratified$subject_id == as.character(odd)])
+  expect_match(flagged <- stratified$outlier_axes[
+    stratified$subject_id == as.character(odd)
+  ], "dose magnitude")
 })
 
 test_that("a genuine within-stratum outlier is still flagged", {

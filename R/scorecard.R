@@ -197,7 +197,7 @@
 #' rows that did not pass, rather than as a sixth column.
 #'
 #' Printing and knitting differ on purpose. `print()` is a console layout: the
-#' verdict table, then the calls to run, then the B5b levels. Knitting a chunk
+#' verdict table, then the calls to run, then the B5 levels. Knitting a chunk
 #' that returns this object emits `knitr::kable()` tables instead, so a `.Rmd`
 #' or `.qmd` gets the whole card including the `explore` column. Running a chunk
 #' interactively in an IDE shows the console form, since nothing is knitting.
@@ -210,7 +210,7 @@
 #'
 #' The same checks come back whatever the study declares. Where a study gives a
 #' check nothing to ask -- no discrete endpoint for A6, no `strata` for C1 and
-#' C3, no categorical axis for B5a and B5b -- the `result` says so and the
+#' C3, no categorical axis for B5 -- the `result` says so and the
 #' verdict is `"pass"`, rather than the row going missing. Two cards can then be
 #' compared
 #' row for row, and an absent row cannot be mistaken for one that passed.
@@ -228,9 +228,12 @@
 #' `"FAIL"` is reserved for the rows where the answer is always a defect: the
 #' output is not a legal dataset (A1), it is not the study that went in (A3,
 #' A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
-#' B4b). Everything else is `"review"`, including every row whose answer can
-#' move for a legitimate reason -- a subject dropped for want of donors, a
-#' cohort statistic at a small sample size, a source a validator objects to.
+#' B4b). No other row can `"FAIL"`: the rest answer `"pass"` when there is
+#' nothing to read and `"review"` when there is something whose meaning depends
+#' on the study -- a subject dropped for want of donors, a cohort statistic at a
+#' small sample size, a source a validator objects to. Four rows are `"review"`
+#' whatever they land on, because no threshold on them would be honest: A5a,
+#' A5b, B3 and D1.
 #'
 #' The check that matters most is absent here because no function can produce
 #' it: whether the pipeline that will consume the real study runs unchanged
@@ -382,10 +385,15 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "unmaskable_strata(source, roles)",
       settings$identifying_dose_schedules == 0L
     ),
+    # 0 is a pass rather than a review: the row is a list of records to read,
+    # and an empty list has nothing in it to read. Above 0 is `review` and never
+    # `FAIL` -- the right count is not necessarily 0, since a study can contain
+    # a patient who is genuinely unusual and whose avatar therefore is too.
     .scorecard_row(
       "B2", "Synthetic patients unusual within their stratum", "synthetic",
       paste(sum(flagged$flagged), "of", nrow(flagged)),
-      "flag_identifiable_subjects(synthetic, roles)"
+      "flag_identifiable_subjects(synthetic, roles)",
+      verdict = if (sum(flagged$flagged) == 0L) "pass" else "review"
     ),
     # Always review. Outside the interval means something, but not one thing:
     # below it is memorisation, above it is the two sets having separated, which
@@ -416,57 +424,33 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )
   ))
 
-  # NULL when the roles declare no categorical axis. The B5 rows are still
+  # NULL when the roles declare no categorical axis. The B5 row is still
   # emitted in that case, saying so.
   rare_levels <- NULL
   categorical <- .scorecard_categorical(synthetic, roles)
   if (!length(categorical)) {
     rows <- c(rows, list(
       .scorecard_row(
-        "B5a", "Patients holding the least-held categorical level", "synthetic",
-        "no categorical covariate or stratum",
-        "pmx_roles(strata = , covariates = )", TRUE
-      ),
-      .scorecard_row(
-        "B5b", "Rare source levels copied into the output", "both",
+        "B5", "Rare source levels copied into the output", "both",
         "no categorical covariate or stratum",
         "pmx_roles(strata = , covariates = )", TRUE
       )
     ))
   } else {
-    # Which column and which level, not just the count. "1" on its own says a
-    # patient is alone in holding something without saying what, which is not
-    # something a reader can act on -- and the column it names is the one to
-    # look at, since a level held by one patient is what singles that avatar
-    # out.
-    rarest <- do.call(rbind, lapply(categorical, function(column) {
-      holders <- table(.scorecard_holders(synthetic, roles, column))
-      data.frame(column = column,
-                 level = .level_label(names(holders)[[which.min(holders)]]),
-                 n = min(as.integer(holders)), stringsAsFactors = FALSE)
-    }))
-    rarest <- rarest[which.min(rarest$n), , drop = FALSE]
-    rows <- c(rows, list(.scorecard_row(
-      "B5a", "Patients holding the least-held categorical level", "synthetic",
-      sprintf("%s = %s: %d", rarest$column, rarest$level, rarest$n),
-      sprintf("table(synthetic$%s)", rarest$column),
-      # Review rather than FAIL, because this is the weak form of the check and
-      # it is wrong in both directions: a level held by thirty source patients
-      # can land on one avatar and mean nothing, and a level held by two source
-      # patients can be copied onto ten avatars and pass while the disclosure is
-      # real. What the risk is made of is the source-side count, which B5b below
-      # is. This flags a shape worth looking at.
-      if (rarest$n > 1L) TRUE else NA
-    )))
-
-    # B5b is the strong form: not "is anyone alone in the output" but "did a
-    # level too few REAL patients held get copied out at all". It reads the
-    # source, so it is `both` rather than `synthetic` -- on a study where B5a
-    # was the only categorical row, adding it makes the card restricted output.
-    # Review rather than FAIL for now: on a small oncology cohort `RACE` will
-    # light this up constantly, and the answer there is usually "do not carry
-    # `RACE`" rather than "the generator is broken". It earns a verdict once it
-    # has been read on real studies.
+    # One B5 row, and it is the source-side one. A synthetic-side count -- "is
+    # any level held by exactly one avatar" -- was a second row here and is
+    # gone: it is wrong in both directions, since a level held by thirty source
+    # patients can land on one avatar and mean nothing while a level held by two
+    # can be copied onto ten avatars and pass while the disclosure is real. Its
+    # only merit was being answerable without the source, and this function is
+    # handed the source. `table(synthetic$COLUMN)` is that question for whoever
+    # holds the released table and nothing else.
+    #
+    # Not "is anyone alone in the output" but "did a level too few REAL patients
+    # held get copied out at all". Review rather than FAIL for now: on a small
+    # oncology cohort `RACE` will light this up constantly, and the answer there
+    # is usually "do not carry `RACE`" rather than "the generator is broken". It
+    # earns a verdict once it has been read on real studies.
     census <- compare_pmx_rare_levels(source, synthetic, roles, floor = floor)
     exposed <- sum(census$exposed)
     leaked <- census[census$exposed & census$reached, , drop = FALSE]
@@ -474,7 +458,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
                                              "source_patients",
                                              "synthetic_patients")]
     rows <- c(rows, list(.scorecard_row(
-      "B5b", "Rare source levels copied into the output", "both",
+      "B5", "Rare source levels copied into the output", "both",
       # The count only. Which levels they were is a list, and it is printed
       # under the table and knitted as its own table, because a study that
       # trips this trips it several times over and one name in a cell is not
@@ -607,7 +591,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out <- structure(out, class = c("synpmx_scorecard", "data.frame"))
-  # Carried beside the table rather than in it: B5b is one row whose answer is a
+  # Carried beside the table rather than in it: B5 is one row whose answer is a
   # list, and printing that list is what makes the row actionable.
   attr(out, "rare_levels") <- rare_levels
   .mark_release(out, "restricted_not_releasable")
@@ -658,12 +642,12 @@ print.synpmx_scorecard <- function(x, ...) {
     }
   }
 
-  # B5b can only name one level in a table cell, and a study that trips it
+  # B5 can only name one level in a table cell, and a study that trips it
   # usually trips it several times over. The whole list is carried on the card
   # so that reading it does not require running the census again.
   rare <- attr(x, "rare_levels")
   if (!is.null(rare) && nrow(rare)) {
-    cat("\nRare source levels that reached the output (B5b):\n")
+    cat("\nRare source levels that reached the output (B5):\n")
     for (i in seq_len(nrow(rare))) {
       cat(sprintf("  %s = %s -- %d source patient(s), %d avatar(s)\n",
                   rare$column[[i]], .level_label(rare$level[[i]]),
@@ -689,7 +673,7 @@ print.synpmx_scorecard <- function(x, ...) {
 knit_print.synpmx_scorecard <- function(x, ...) {
   # No caption on the card itself: the object is routinely subset to a row or
   # two in prose, and a caption written for the whole card is wrong on every
-  # such excerpt. The B5b detail is a second table rather than a footnote, so
+  # such excerpt. The B5 detail is a second table rather than a footnote, so
   # that a knitted report says which levels without the reader running the
   # census again.
   out <- paste(knitr::kable(as.data.frame(x), row.names = FALSE),
@@ -698,7 +682,7 @@ knit_print.synpmx_scorecard <- function(x, ...) {
   if (!is.null(rare) && nrow(rare)) {
     out <- c(out, paste(knitr::kable(
       rare, row.names = FALSE,
-      caption = paste("B5b: rare source levels that reached",
+      caption = paste("B5: rare source levels that reached",
                       "the output. Each is one real patient's attribute,",
                       "copied.")
     ), collapse = "\n"))
@@ -736,7 +720,7 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #' the only thing added.
 #'
 #' What is emitted is what knitting the card itself emits, with the colouring
-#' added: the card, then the B5b rare-level detail where a study has any.
+#' added: the card, then the B5 rare-level detail where a study has any.
 #'
 #' `DT` is a suggested package rather than a required one -- `synpmx` has no
 #' hard dependencies -- so without it installed this says so and prints the
@@ -801,7 +785,7 @@ synpmx_scorecard_datatable <- function(x, ...) {
                                      default = "transparent")
   )
 
-  # The B5b levels come too. A reader who swaps a knitted card for a coloured
+  # The B5 levels come too. A reader who swaps a knitted card for a coloured
   # one is choosing a colour, not agreeing to lose the one row whose answer is
   # a list.
   parts <- list(coloured)
@@ -809,7 +793,7 @@ synpmx_scorecard_datatable <- function(x, ...) {
   if (!is.null(rare) && nrow(rare)) {
     parts <- c(parts, list(DT::datatable(
       rare, rownames = FALSE, options = list(paging = FALSE),
-      caption = paste("B5b: rare source levels that reached the output.",
+      caption = paste("B5: rare source levels that reached the output.",
                       "Each is one real patient's attribute, copied.")
     )))
   }

@@ -1,7 +1,8 @@
-# The census exists because the synthetic-side check (B5a) is wrong in both
-# directions, so the tests that matter are the two cases where the two answers
-# disagree: a level one real patient held reaching the output, and a level many
-# real patients held landing on a single avatar.
+# B5 is the source-side census. A synthetic-side count -- is any level held by
+# exactly one avatar -- was a second row on the card and is gone, because it is
+# wrong in both directions. The tests that matter are the two cases where the
+# two answers disagreed: a level one real patient held reaching the output, and
+# a level many real patients held landing on a single avatar.
 
 rare_source <- function(n = 40L, solo = 1L, pair = 2:3) {
   source <- pmx_simulated_fixture(n)
@@ -68,7 +69,7 @@ test_that("no categorical axis means an empty census rather than an error", {
   expect_output(print(census), "nothing to census")
 })
 
-test_that("B5b reports a rare source level that was copied into the output", {
+test_that("B5 reports a rare source level that was copied into the output", {
   source <- rare_source()
   roles <- rare_roles(strata = "ARM")
   synthetic <- rare_synthetic(source, roles)
@@ -79,29 +80,29 @@ test_that("B5b reports a rare source level that was copied into the output", {
 
   # Review, not FAIL: on a small cohort a rare `RACE` lights this up constantly
   # and the answer is usually to stop carrying the covariate.
-  expect_identical(card$verdict[card$check == "B5b"], "review")
+  expect_identical(card$verdict[card$check == "B5"], "review")
   # The cell counts; the levels themselves ride along on the card, because
   # which level it was is what decides what to do about it.
-  expect_identical(card$result[card$check == "B5b"], "1 of 1 exposed")
+  expect_identical(card$result[card$check == "B5"], "1 of 1 exposed")
   rare <- attr(card, "rare_levels")
   expect_identical(rare$column, "ARM")
   expect_identical(rare$level, "solo")
   expect_identical(rare$source_patients, 1L)
-  expect_identical(card$explore[card$check == "B5b"],
+  expect_identical(card$explore[card$check == "B5"],
                    "compare_pmx_rare_levels(source, synthetic, roles)")
   # And it reads the source, which is what makes the card restricted here.
-  expect_identical(card$reads[card$check == "B5b"], "both")
+  expect_identical(card$reads[card$check == "B5"], "both")
 })
 
-test_that("B5b passes when every level in the output is widely held", {
+test_that("B5 passes when every level in the output is widely held", {
   source <- rare_source(solo = integer(), pair = integer())
   roles <- rare_roles(strata = "ARM")
   synthetic <- rare_synthetic(source, roles)
 
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_identical(card$verdict[card$check == "B5b"], "pass")
-  expect_identical(card$result[card$check == "B5b"], "0 of 0 exposed")
+  expect_identical(card$verdict[card$check == "B5"], "pass")
+  expect_identical(card$result[card$check == "B5"], "0 of 0 exposed")
 })
 
 test_that("the census counts a blank level like any other", {
