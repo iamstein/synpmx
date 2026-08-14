@@ -37,7 +37,7 @@
     <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Scorecard: Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
@@ -600,7 +600,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">1 of 1</td>
@@ -969,7 +969,7 @@ TRUE)</td>
 <td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
 </tr>
 <tr class="even">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">1 of 1</td>
@@ -1181,7 +1181,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">1 of 4</td>
@@ -1191,7 +1191,7 @@ TRUE)</td>
 </tr>
 </tbody>
 </table>
-<p>Nothing fails, and C4 is the row to read: 1 of the 4 source dose
+<p>Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.</p>
 <div class="section level3">
 <h3 id="three-re-dosed-patients-are-not-in-the-synthetic-cohort">Three re-dosed patients are not in the synthetic cohort<a class="anchor" aria-label="anchor" href="#three-re-dosed-patients-are-not-in-the-synthetic-cohort"></a>
@@ -1261,7 +1261,7 @@ can be built on them without pointing at them, and every synthetic
 subject carries the one shared regimen. Doses per patient falls from 1.2
 to 1.0 in the A5 row. The three patients are not removed and still act
 as donors, but that part of the study design is not in the output, and
-C4 is <code>review</code> rather than <code>pass</code> for exactly this
+C2 is <code>review</code> rather than <code>pass</code> for exactly this
 reason.</p>
 <p>Two of those three are also the only patients in this vignette that
 the anchor screen removes: they are followed far enough past the rest to
@@ -1567,7 +1567,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">7 of 12</td>
@@ -1578,7 +1578,7 @@ TRUE)</td>
 </tbody>
 </table>
 <p><strong>B1b fails: all twelve avatars carry a dose schedule nobody
-else shares.</strong> C4 says what declining to use those schedules
+else shares.</strong> C2 says what declining to use those schedules
 would have cost instead: 7 of the 12 source regimens are represented at
 all.</p>
 <div class="section level3">
@@ -1801,7 +1801,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">1 of 1</td>
@@ -1811,7 +1811,7 @@ TRUE)</td>
 </tr>
 </tbody>
 </table>
-<p>Nothing fails now. B1b goes from 12 to 0 and C4 from 7 of 12 to 1 of
+<p>Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of
 1, because on the nominal grid the twelve dose schedules become one.
 Unique observation schedules fall from 12 to 5, the twelve visit sets
 collapse to eight, real sets become reusable, and the
@@ -2148,7 +2148,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">1 of 1</td>
@@ -2509,7 +2509,7 @@ TRUE)</td>
 <td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">3 of 56</td>
@@ -2521,7 +2521,7 @@ TRUE)</td>
 </table>
 <p><strong>Nothing fails, and the two rows that moved say what reaching
 that cost.</strong> Doses per patient falls from 10.0 to 1.1 in A5, and
-3 of the 56 source dose regimens are represented in C4. B1b passing here
+3 of the 56 source dose regimens are represented in C2. B1b passing here
 is not the dosing being masked; it is the dosing being truncated
 away.</p>
 <div class="section level3">
@@ -2899,7 +2899,7 @@ TRUE)</td>
 <td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C3</td>
+<td align="left">C1</td>
 <td align="left">Strata keeping their source size</td>
 <td align="left">both</td>
 <td align="left">6 of 6</td>
@@ -2907,7 +2907,7 @@ TRUE)</td>
 <td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
 </tr>
 <tr class="even">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">2 of 2</td>
@@ -2917,7 +2917,7 @@ TRUE)</td>
 </tr>
 </tbody>
 </table>
-<p>Nothing fails, and C3 passes: all six treatment arms keep their
+<p>Nothing fails, and C1 passes: all six treatment arms keep their
 source size. An avatar never leaves the arm it was anchored in, because
 <code>TRTACT</code> and <code>DOSE</code> are declared as
 <code>strata</code> and are copied from the anchor. The arm
@@ -3365,7 +3365,7 @@ TRUE)</td>
 <td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
 </tr>
 <tr class="even">
-<td align="left">C3</td>
+<td align="left">C1</td>
 <td align="left">Strata keeping their source size</td>
 <td align="left">both</td>
 <td align="left">6 of 6</td>
@@ -3373,7 +3373,7 @@ TRUE)</td>
 <td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
 </tr>
 <tr class="odd">
-<td align="left">C4</td>
+<td align="left">C2</td>
 <td align="left">Distinct dose-time schedules represented</td>
 <td align="left">run settings</td>
 <td align="left">2 of 2</td>

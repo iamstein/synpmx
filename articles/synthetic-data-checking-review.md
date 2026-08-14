@@ -1006,7 +1006,7 @@ review](https://iamstein.github.io/synpmx/articles/synthetic-data-generation-rev
 
 ## Where to go next
 
-- [Checks of the synthetic
+- [Scorecard: Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html)
   — `synpmx`’s own worked checks, and the gaps between them and the list
   above.

@@ -58,7 +58,7 @@ This reads real patient data on both sides and is marked
 ## See also
 
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md),
-which reports this as row C3.
+which reports this as row C1.
 
 ## Examples
 

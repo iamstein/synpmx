@@ -29,7 +29,7 @@
 - [Evaluating AVATAR on public
   data](https://iamstein.github.io/synpmx/articles/public-data-examples.md):
 
-- [Checks of the synthetic
+- [Scorecard: Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md):
 
 - [The four synpmx data generation
