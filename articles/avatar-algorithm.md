@@ -1039,9 +1039,9 @@ it is.
 
 `"noise"` is **available but not recommended**, and the reason is the
 defect this whole mechanism exists to prevent. A subject blended from
-one donor, or from none, is a noised near-copy of a real patient —
-exactly the behavior `REV-025` was raised about. If you use it because
-the sparse arm genuinely matters more, screen the result with
+one donor, or from none, is a noised near-copy of a real patient. If you
+use it because the sparse arm genuinely matters more, screen the result
+with
 [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
 and treat those subjects as individually identifying.
 
@@ -1416,7 +1416,7 @@ AVATAR does not know they are linked, so a synthetic subject’s baseline
 covariate need not equal the baseline of its own generated trajectory.
 The two are individually plausible but not mutually consistent.
 
-This is a known limitation (`REV-022`). It is usually harmless for
+This is a known limitation. It is usually harmless for
 workflow-development use, where each column need only be realistic on
 its own. If your analysis relies on a covariate agreeing with an
 endpoint’s baseline, reconcile them after generation, or do not declare
@@ -1674,7 +1674,7 @@ and already blended. Keeping the multiplier and recomputing the amount
 from the avatar’s own covariate stops the dose being a verbatim real
 value (which under mg/kg dosing discloses the anchor’s weight exactly)
 and repairs a coherence defect: previously every avatar violated the
-mg/kg rule its own data claims to follow. See `REV-027`.
+mg/kg rule its own data claims to follow.
 
 **Declared or inferred, and the difference matters.** Naming the
 covariate in `pmx_roles(dose_covariate = )` states the relationship
@@ -1689,8 +1689,7 @@ untouched. Declaring the covariate skips inference and holds **each dose
 row’s own ratio** rather than snapping to shared levels, so
 intra-patient escalation survives exactly.
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
-says which path ran and, when inference declined, what it tried. See
-`SIM-040`.
+says which path ran and, when inference declined, what it tried.
 
 The difference on a study that dispenses in vials and escalates within
 patient, which is the shape inference cannot recover:
@@ -1872,17 +1871,16 @@ twice the cohort’s 90th percentile, deliberately loose, so only gross
 outliers are excluded. The screen uses a modified z-score at 3.5, which
 is much tighter and reacts badly to a clustered cohort.
 
-The worst version of that was a defect and is fixed (`SIM-041`): the
-median absolute deviation is **zero** whenever more than half a cohort
-shares one exact value, which on trial data is the ordinary case rather
-than a degenerate one — most patients complete the protocol and stop at
-the same visit. Every departure from the median was then scored as
-infinitely extreme, so every patient who stopped even slightly early was
-flagged. On a 21-patient study that meant 10 of 21 avatars flagged on
-follow-up time, two of them agreeing to three decimal places. The scale
-now falls back to the mean absolute deviation from the median, which is
-zero only when nothing varies at all. `mavoglurant` went from 63 of 120
-flagged to 17.
+The worst version of that was a defect and is fixed: the median absolute
+deviation is **zero** whenever more than half a cohort shares one exact
+value, which on trial data is the ordinary case rather than a degenerate
+one — most patients complete the protocol and stop at the same visit.
+Every departure from the median was then scored as infinitely extreme,
+so every patient who stopped even slightly early was flagged. On a
+21-patient study that meant 10 of 21 avatars flagged on follow-up time,
+two of them agreeing to three decimal places. The scale now falls back
+to the mean absolute deviation from the median, which is zero only when
+nothing varies at all. `mavoglurant` went from 63 of 120 flagged to 17.
 
 Even so, this is a screen to read rather than to apply. A genuinely
 two-humped cohort will still produce flags that are the shape of the
@@ -2093,8 +2091,9 @@ builds two different keys per patient:
   were measured. Observation times are deliberately *not* in it. This is
   what `n_unique_dose_signature` counts, and **coarsening does not touch
   it**: a study with weight-based dosing or per-patient titration leaves
-  patients unique on dose however good the visit grid is. `REV-027`’s
-  dose recomputation is the mechanism that addresses that side.
+  patients unique on dose however good the visit grid is. The dose
+  recomputation described above is the mechanism that addresses that
+  side.
 
 So a patient can be unique on sampling, on dosing, on both, or on
 neither, and the two have different remedies.

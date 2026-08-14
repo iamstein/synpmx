@@ -251,7 +251,7 @@ of the tradeoff, and no framework moves it.</p>
 <h2 id="the-measured-feasibility-frontier">4. The measured feasibility frontier<a class="anchor" aria-label="anchor" href="#the-measured-feasibility-frontier"></a>
 </h2>
 <p>From <code>pmx_simulated_fixture(N)</code>, dose-relative log
-<code>cp</code> endpoint, 8 repetitions, after the <code>SIM-020</code>
+<code>cp</code> endpoint, 8 repetitions, after the presence-decoding
 fix. Error is the median absolute deviation of the decoded population
 curve divided by the true curve’s own dynamic range, so <strong>&gt;= 1
 means the error exceeds the entire signal</strong>.</p>
@@ -432,11 +432,11 @@ priors. It is not on the backlog yet; it should be.</p>
 <h3 id="tier-c-full-dp-population-generator-current-design-improved">Tier C — Full DP population generator (current design,
 improved)<a class="anchor" aria-label="anchor" href="#tier-c-full-dp-population-generator-current-design-improved"></a>
 </h3>
-<p>Viable at N in the high hundreds after
-<code>REV-005</code>/<code>REV-006</code>/<code>REV-007</code>; needs
-thousands at epsilon 1 without them. Appropriate for
-<strong>pooled</strong> corpora: many studies of a compound, a legacy
-database, a consortium dataset.</p>
+<p>Viable at N in the high hundreds given a tighter sensitivity bound, a
+zCDP accountant with a Gaussian measurement, and a low-dimensional
+trajectory release; needs thousands at epsilon 1 without them.
+Appropriate for <strong>pooled</strong> corpora: many studies of a
+compound, a legacy database, a consortium dataset.</p>
 </div>
 <div class="section level3">
 <h3 id="tier-d-avatarblend-synthesis-v1">Tier D — Avatar/blend synthesis (v1)<a class="anchor" aria-label="anchor" href="#tier-d-avatarblend-synthesis-v1"></a>
@@ -472,7 +472,7 @@ no source data and spends no budget — not a fixture backdoor.</li>
 <strong>Scope the DP path explicitly to pooled data.</strong> State
 a minimum viable cohort in the documentation. On today’s implementation
 that is roughly N &gt;= 500 at epsilon 5, or N &gt;= 2,500 at epsilon 1.
-Implement <code>REV-002</code>’s pre-flight check so an infeasible
+Run the <code><a href="../reference/pmx_preflight.html">pmx_preflight()</a></code> check so an infeasible
 configuration is refused <em>before</em> budget is spent, not discovered
 afterward in a plot.</li>
 <li>
@@ -505,9 +505,9 @@ public design inputs and spend no privacy budget at all.</p>
 in section 5 are arithmetic from the error law, not measurements. Build
 it and measure before trusting them.</li>
 <li>
-<strong>A tighter sensitivity analysis</strong>
-(<code>REV-005</code>). If the true per-subject L1 is much smaller than
-<code>ncol</code>, every N threshold here drops proportionally.</li>
+<strong>A tighter sensitivity analysis.</strong> If the true
+per-subject L1 is much smaller than <code>ncol</code>, every N threshold
+here drops proportionally.</li>
 <li>
 <strong>Empirical attack testing on v1</strong> would replace my
 structural argument in section 2 with evidence. A nearest-neighbor
@@ -1169,8 +1169,8 @@ already builds informative structural priors as a matter of course —
 published popPK models, allometric scaling, known elimination pathways,
 established PD mechanisms. <strong>The tightest defensible public prior
 is worth more than any mechanism improvement</strong>, and tightening
-priors is cheaper than any of
-<code>REV-005</code>/<code>REV-006</code>/<code>REV-007</code>.</p>
+priors is cheaper than any of the three improvements listed for Tier C
+above.</p>
 <p>The corresponding hazard is exact: the prior now does most of the
 work, so the temptation to tune it against the data is much stronger,
 and the consequence of doing so is much worse. A prior fitted to the
@@ -1205,7 +1205,7 @@ estimator want the same designs.</p>
 <div class="section level3">
 <h3 id="mechanism-note-do-not-use-gaussian-here">Mechanism note: do not use Gaussian here<a class="anchor" aria-label="anchor" href="#mechanism-note-do-not-use-gaussian-here"></a>
 </h3>
-<p><code>REV-006</code> recommends Gaussian noise under zCDP. That
+<p>Gaussian noise under zCDP is recommended for Tier C above. That
 advice is <strong>dimension dependent and does not apply to Tier
 B</strong>. At <code>d = 6</code> and <code>epsilon = 1</code>, Laplace
 gives a noise scale of 6 on the sum, while a Gaussian at

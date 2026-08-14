@@ -59,8 +59,8 @@ on particular days.
   state, troughs between.
 - **Generator needs:** the dosing interval, number of doses, and **which
   occasions are sampled** — these are different questions, and
-  conflating them was defect `SIM-003`. A Q24H regimen does not mean
-  Q24H sampling.
+  conflating them was a defect. A Q24H regimen does not mean Q24H
+  sampling.
 - **Privacy:** all from the protocol. Public.
 
 ### Level 3 — Intra-patient dose escalation
@@ -103,7 +103,7 @@ Each subject receives multiple treatments in a randomized sequence.
   the reset-clock case.
 - **Privacy:** one person still contributes one record, so the adjacency
   holds — **provided the crossover is not pooled with a parallel study
-  in which the same people also appear** (`REV-016`).
+  in which the same people also appear**.
 
 ### Level 6 — Adaptive designs
 
@@ -197,7 +197,7 @@ Strictly, realized design quantities are functions of the source
 dataset, so treating them as fixed public inputs is an assumption rather
 than a derivation. It belongs in the proof assumptions alongside the
 other public-input assertions, where a reviewer can see it. It is not a
-leak to remediate. Tracked as `REV-017`.
+leak to remediate.
 
 ------------------------------------------------------------------------
 
@@ -213,7 +213,7 @@ not patient data, and costs nothing.
 2.  **Cohort, group, or arm columns**, and their levels.
 3.  **Does any subject appear more than once** across the studies you
     intend to pool — rollover, extension, re-enrollment? This breaks the
-    privacy adjacency (`REV-016`) and must be answered before pooling.
+    privacy adjacency and must be answered before pooling.
 
 ### Time
 

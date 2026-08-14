@@ -141,9 +141,9 @@ and no framework moves it.
 ## 4. The measured feasibility frontier
 
 From `pmx_simulated_fixture(N)`, dose-relative log `cp` endpoint, 8
-repetitions, after the `SIM-020` fix. Error is the median absolute
-deviation of the decoded population curve divided by the true curve’s
-own dynamic range, so **\>= 1 means the error exceeds the entire
+repetitions, after the presence-decoding fix. Error is the median
+absolute deviation of the decoded population curve divided by the true
+curve’s own dynamic range, so **\>= 1 means the error exceeds the entire
 signal**.
 
 |    N | epsilon 1 | epsilon 5 | epsilon 50 |
@@ -241,10 +241,11 @@ priors. It is not on the backlog yet; it should be.
 
 ### Tier C — Full DP population generator (current design, improved)
 
-Viable at N in the high hundreds after `REV-005`/`REV-006`/`REV-007`;
-needs thousands at epsilon 1 without them. Appropriate for **pooled**
-corpora: many studies of a compound, a legacy database, a consortium
-dataset.
+Viable at N in the high hundreds given a tighter sensitivity bound, a
+zCDP accountant with a Gaussian measurement, and a low-dimensional
+trajectory release; needs thousands at epsilon 1 without them.
+Appropriate for **pooled** corpora: many studies of a compound, a legacy
+database, a consortium dataset.
 
 ### Tier D — Avatar/blend synthesis (v1)
 
@@ -274,10 +275,11 @@ that the middle ground does not exist.**
     spends no budget — not a fixture backdoor.
 2.  **Scope the DP path explicitly to pooled data.** State a minimum
     viable cohort in the documentation. On today’s implementation that
-    is roughly N \>= 500 at epsilon 5, or N \>= 2,500 at epsilon 1.
-    Implement `REV-002`’s pre-flight check so an infeasible
-    configuration is refused *before* budget is spent, not discovered
-    afterward in a plot.
+    is roughly N \>= 500 at epsilon 5, or N \>= 2,500 at epsilon 1. Run
+    the
+    [`pmx_preflight()`](https://iamstein.github.io/synpmx/reference/pmx_preflight.md)
+    check so an infeasible configuration is refused *before* budget is
+    spent, not discovered afterward in a plot.
 3.  **Investigate Tier B as the main research direction.** It is the
     only path that makes small-cohort DP genuinely feasible, and it
     exploits the one structural advantage this domain has over generic
@@ -302,9 +304,8 @@ The one-sentence scope statement worth putting in the README:
 - **Tier B prototyping.** The `d = 6` numbers in section 5 are
   arithmetic from the error law, not measurements. Build it and measure
   before trusting them.
-- **A tighter sensitivity analysis** (`REV-005`). If the true
-  per-subject L1 is much smaller than `ncol`, every N threshold here
-  drops proportionally.
+- **A tighter sensitivity analysis.** If the true per-subject L1 is much
+  smaller than `ncol`, every N threshold here drops proportionally.
 - **Empirical attack testing on v1** would replace my structural
   argument in section 2 with evidence. A nearest-neighbor distance-ratio
   test and a membership-inference test against the `21eb6e2` code would
@@ -598,7 +599,7 @@ already builds informative structural priors as a matter of course —
 published popPK models, allometric scaling, known elimination pathways,
 established PD mechanisms. **The tightest defensible public prior is
 worth more than any mechanism improvement**, and tightening priors is
-cheaper than any of `REV-005`/`REV-006`/`REV-007`.
+cheaper than any of the three improvements listed for Tier C above.
 
 The corresponding hazard is exact: the prior now does most of the work,
 so the temptation to tune it against the data is much stronger, and the
@@ -630,8 +631,8 @@ the same designs.
 
 ### Mechanism note: do not use Gaussian here
 
-`REV-006` recommends Gaussian noise under zCDP. That advice is
-**dimension dependent and does not apply to Tier B**. At `d = 6` and
+Gaussian noise under zCDP is recommended for Tier C above. That advice
+is **dimension dependent and does not apply to Tier B**. At `d = 6` and
 `epsilon = 1`, Laplace gives a noise scale of 6 on the sum, while a
 Gaussian at `delta = 1e-6` gives roughly 13. Gaussian wins only once `d`
 is large enough for the `sqrt(d)` sensitivity to beat the

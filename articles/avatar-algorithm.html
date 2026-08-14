@@ -1315,9 +1315,8 @@ identifying it is.</p>
 <p><code>"noise"</code> is <strong>available but not
 recommended</strong>, and the reason is the defect this whole mechanism
 exists to prevent. A subject blended from one donor, or from none, is a
-noised near-copy of a real patient — exactly the behavior
-<code>REV-025</code> was raised about. If you use it because the sparse
-arm genuinely matters more, screen the result with
+noised near-copy of a real patient. If you use it because the sparse arm
+genuinely matters more, screen the result with
 <code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> and treat those subjects as
 individually identifying.</p>
 <p>One case forces the issue: when <em>every</em> arm is below the
@@ -1876,12 +1875,12 @@ own time course. AVATAR does not know they are linked, so a synthetic
 subject’s baseline covariate need not equal the baseline of its own
 generated trajectory. The two are individually plausible but not
 mutually consistent.</p>
-<p>This is a known limitation (<code>REV-022</code>). It is usually
-harmless for workflow-development use, where each column need only be
-realistic on its own. If your analysis relies on a covariate agreeing
-with an endpoint’s baseline, reconcile them after generation, or do not
-declare the redundant covariate and read the baseline from the
-trajectory instead.</p>
+<p>This is a known limitation. It is usually harmless for
+workflow-development use, where each column need only be realistic on
+its own. If your analysis relies on a covariate agreeing with an
+endpoint’s baseline, reconcile them after generation, or do not declare
+the redundant covariate and read the baseline from the trajectory
+instead.</p>
 </div>
 </div>
 <div class="section level2">
@@ -2476,7 +2475,7 @@ and already blended. Keeping the multiplier and recomputing the amount
 from the avatar’s own covariate stops the dose being a verbatim real
 value (which under mg/kg dosing discloses the anchor’s weight exactly)
 and repairs a coherence defect: previously every avatar violated the
-mg/kg rule its own data claims to follow. See <code>REV-027</code>.</p>
+mg/kg rule its own data claims to follow.</p>
 <p><strong>Declared or inferred, and the difference matters.</strong>
 Naming the covariate in <code>pmx_roles(dose_covariate = )</code> states
 the relationship outright; leaving it <code>NULL</code> makes the run
@@ -2490,7 +2489,7 @@ come through with its amounts untouched. Declaring the covariate skips
 inference and holds <strong>each dose row’s own ratio</strong> rather
 than snapping to shared levels, so intra-patient escalation survives
 exactly. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> says which path ran and, when
-inference declined, what it tried. See <code>SIM-040</code>.</p>
+inference declined, what it tried.</p>
 <p>The difference on a study that dispenses in vials and escalates
 within patient, which is the shape inference cannot recover:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -2676,18 +2675,17 @@ trap.</strong> M2 cuts at twice the cohort’s 90th percentile,
 deliberately loose, so only gross outliers are excluded. The screen uses
 a modified z-score at 3.5, which is much tighter and reacts badly to a
 clustered cohort.</p>
-<p>The worst version of that was a defect and is fixed
-(<code>SIM-041</code>): the median absolute deviation is
-<strong>zero</strong> whenever more than half a cohort shares one exact
-value, which on trial data is the ordinary case rather than a degenerate
-one — most patients complete the protocol and stop at the same visit.
-Every departure from the median was then scored as infinitely extreme,
-so every patient who stopped even slightly early was flagged. On a
-21-patient study that meant 10 of 21 avatars flagged on follow-up time,
-two of them agreeing to three decimal places. The scale now falls back
-to the mean absolute deviation from the median, which is zero only when
-nothing varies at all. <code>mavoglurant</code> went from 63 of 120
-flagged to 17.</p>
+<p>The worst version of that was a defect and is fixed: the median
+absolute deviation is <strong>zero</strong> whenever more than half a
+cohort shares one exact value, which on trial data is the ordinary case
+rather than a degenerate one — most patients complete the protocol and
+stop at the same visit. Every departure from the median was then scored
+as infinitely extreme, so every patient who stopped even slightly early
+was flagged. On a 21-patient study that meant 10 of 21 avatars flagged
+on follow-up time, two of them agreeing to three decimal places. The
+scale now falls back to the mean absolute deviation from the median,
+which is zero only when nothing varies at all. <code>mavoglurant</code>
+went from 63 of 120 flagged to 17.</p>
 <p>Even so, this is a screen to read rather than to apply. A genuinely
 two-humped cohort will still produce flags that are the shape of the
 distribution rather than exposure. Run it, read what it flags, and
@@ -3055,7 +3053,7 @@ endpoints were measured. Observation times are deliberately <em>not</em>
 in it. This is what <code>n_unique_dose_signature</code> counts, and
 <strong>coarsening does not touch it</strong>: a study with weight-based
 dosing or per-patient titration leaves patients unique on dose however
-good the visit grid is. <code>REV-027</code>’s dose recomputation is the
+good the visit grid is. The dose recomputation described above is the
 mechanism that addresses that side.</li>
 </ul>
 <p>So a patient can be unique on sampling, on dosing, on both, or on

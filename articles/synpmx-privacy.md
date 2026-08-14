@@ -316,10 +316,10 @@ dp_backend_status()
 ### The unaudited status is enforced, not just documented
 
 Both engines are complete and tested, but not under active development,
-carry known open findings tracked in `design/REVIEW_BACKLOG.md`, and
-have not been independently privacy-audited. Treat them as a principled
-demonstration of the privacy/utility tradeoff, not as a production
-release mechanism — a real regulated release needs specialist review.
+carry known open findings, and have not been independently
+privacy-audited. Treat them as a principled demonstration of the
+privacy/utility tradeoff, not as a production release mechanism — a real
+regulated release needs specialist review.
 
 That distinction used to live in documentation alone, which made the
 risky path exactly as easy to call as
