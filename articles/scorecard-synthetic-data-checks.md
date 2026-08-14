@@ -32,7 +32,11 @@ Three columns need a word of explanation.
   lives in — see section E. `synthetic` and `run settings` do not read
   the source. `run settings` is the generation run’s own record of what
   it did, carried on the output as `attr(synthetic, "pmx_settings")`,
-  rather than a measurement taken from either table.
+  rather than a measurement taken from either table. A table that
+  carries no such record — another generator’s output, or this one’s
+  read back from a file — is still scored: the three `run settings` rows
+  (B1a, B1b, C4) come back `unavailable`, and everything measured from
+  the two tables is measured as usual.
 - **Pass** is deliberately not always a number. Some of these are
   guarantees that must hold exactly; others are readings that need
   judgement, and marking those *review* is more honest than inventing a
@@ -60,7 +64,7 @@ Three columns need a word of explanation.
 | **C1** | Is time after dose still what it was? | `validate_pmx(source, roles)` `tad_agreement` | source | pass, or a disagreement you can explain |
 | **C2** | Do dose and observation stay in order? | *gap* | — | — |
 | **C3** | Did every arm keep its endpoints and its size? | arm x endpoint table; [`compare_pmx_strata_sizes()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_sizes.md) | both | no endpoint where the source had none; every arm matching its source size is a pass, a shifted size is *review* |
-| **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | both | every distinct set of dose **times** in the source still represented; the rest of the question has no pass mark |
+| **C4** | What features of the study were lost? | [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md) | run settings | every distinct set of dose **times** in the source still represented; the rest of the question has no pass mark |
 | **D1** | Do the values land in the same range? | [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md) | both | same magnitude and shape; spread **will** shrink |
 
 **Seven of these rows can say `FAIL`, and no others.** A1, because the

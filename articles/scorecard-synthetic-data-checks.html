@@ -117,7 +117,11 @@ the environment the source lives in — see section E.
 source. <code>run settings</code> is the generation run’s own record of
 what it did, carried on the output as
 <code>attr(synthetic, "pmx_settings")</code>, rather than a measurement
-taken from either table.</li>
+taken from either table. A table that carries no such record — another
+generator’s output, or this one’s read back from a file — is still
+scored: the three <code>run settings</code> rows (B1a, B1b, C4) come
+back <code>unavailable</code>, and everything measured from the two
+tables is measured as usual.</li>
 <li>
 <strong>Pass</strong> is deliberately not always a number. Some of
 these are guarantees that must hold exactly; others are readings that
@@ -297,7 +301,7 @@ size is a pass, a shifted size is <em>review</em>
 <td><strong>C4</strong></td>
 <td>What features of the study were lost?</td>
 <td><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code></td>
-<td>both</td>
+<td>run settings</td>
 <td>every distinct set of dose <strong>times</strong> in the source
 still represented; the rest of the question has no pass mark</td>
 </tr>

@@ -21,9 +21,11 @@ synpmx_scorecard(source, synthetic, roles, proximity = NULL)
 
 - synthetic:
 
-  Generated synthetic PMX data from
-  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
-  carrying its `"pmx_settings"` attribute.
+  Generated synthetic PMX data. From
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  it carries a `"pmx_settings"` attribute and the whole card can be
+  filled in; without one, the three rows that need it read
+  `"unavailable"`.
 
 - roles:
 
@@ -54,6 +56,26 @@ the value is the generation run's own record of what it did –
 `attr(synthetic, "pmx_settings")` – rather than a measurement taken from
 either table.
 
+## Scoring a table this package did not generate
+
+Everything measured from the two tables is measurable on any synthetic
+dataset, whatever produced it, so a table carrying no `"pmx_settings"`
+attribute is scored rather than refused: the three `"run settings"` rows
+(B1a, B1b, C4) come back with the verdict `"unavailable"` and the rest
+of the card is computed as usual. That covers another method's output,
+and this package's own output read back from a file.
+
+Those three rows cannot be recomputed from the finished table, and that
+is a property of the generator rather than an omission here. Generated
+times are the coarsened visit grid plus resampled deviations – applied
+to dose rows too – so an avatar's schedule no longer matches any source
+patient's key exactly, and matching it back by snapping to the grid
+reports schedules that were never given. The run measures both
+guarantees before the deviations are applied.
+[`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
+is the part of that question answerable without any run record: it reads
+the source alone and names the arms whose patients no method could mask.
+
 The `explore` column names the call to run when a row needs explaining.
 The calls are written against this function's argument names (`source`,
 `synthetic`, `roles`), so rename them to whatever the session calls
@@ -70,7 +92,8 @@ instead, so a `.Rmd` or `.qmd` gets the whole card including the
 console form, since nothing is knitting.
 
 A `"review"` verdict is not a soft `"pass"`. It marks a row where no
-threshold would be honest, and it has to be read.
+threshold would be honest, and it has to be read. Nor is
+`"unavailable"`: it marks a row nothing was measured for.
 
 `"FAIL"` is reserved for the rows where the answer is always a defect:
 the output is not a legal dataset (A1), it is not the study that went in
@@ -119,7 +142,7 @@ synpmx_scorecard(data, synthetic, roles)
 #>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692] review
 #>   B4a   Generated time vectors copying an exposed real one both         0                       pass
 #>   B4b   Generated DV vectors copying an exposed real one   both         0                       pass
-#>   C4    Distinct dose-time schedules represented           both         1 of 1                  pass
+#>   C4    Distinct dose-time schedules represented           run settings 1 of 1                  pass
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   A5    compare_pmx_distributions(source, synthetic, roles)
