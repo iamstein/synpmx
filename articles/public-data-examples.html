@@ -267,6 +267,25 @@ Plotting helpers used throughout this vignette
 </tr></thead>
 <tbody>
 <tr class="odd">
+<td><code>case1_pkpd</code></td>
+<td>xgxr</td>
+<td>180</td>
+<td>20820</td>
+<td>2</td>
+<td>Six arms, a declared <code>NOMTIME</code>, PK and PD, baseline
+weight, <code>CENS</code>. The shape a study report usually arrives
+in</td>
+</tr>
+<tr class="even">
+<td><code>mad</code></td>
+<td>xgxr</td>
+<td>60</td>
+<td>4160</td>
+<td>5</td>
+<td>Multiple ascending dose carrying ordinal, count and binary PD
+alongside continuous PD and PK</td>
+</tr>
+<tr class="odd">
 <td><code>theo_md</code></td>
 <td>nlmixr2data</td>
 <td>12</td>
@@ -299,7 +318,8 @@ varies.</td>
 <td>12</td>
 <td>441</td>
 <td>1</td>
-<td>Ten roughly weekly infusions.</td>
+<td>Ten roughly weekly infusions, recorded at the times they
+happened</td>
 </tr>
 <tr class="odd">
 <td><code>mavoglurant</code></td>
@@ -318,23 +338,6 @@ varies.</td>
 <td>1</td>
 <td>Neonatal phenobarbital, individualised dosing, sparse irregular
 sampling, time-varying weight.</td>
-</tr>
-<tr class="odd">
-<td><code>case1_pkpd</code></td>
-<td>xgxr</td>
-<td>180</td>
-<td>20820</td>
-<td>2</td>
-<td>A PK and PD measure with nominal time coarsening.</td>
-</tr>
-<tr class="even">
-<td><code>mad</code></td>
-<td>xgxr</td>
-<td>60</td>
-<td>4160</td>
-<td>5</td>
-<td>Multiple ascending dose carrying ordinal, count and binary PD
-alongside continuous PD and PK.</td>
 </tr>
 </tbody>
 </table>
@@ -359,18 +362,967 @@ or <code>review</code>. A <code>review</code> row is one where the
 pharmacometrician could evaluate whether the output is acceptable for
 use. If the synthetic dataset will not be crossing a trust boundary,
 items marked <code>review</code> are acceptable.</p>
-<p>Two of the eight datasets fail, both on the same check, and both
-sections say why. The runs below are quiet: <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-prints an alert for every exposure it could not remove, and eighteen of
-those blocks would say what the scorecard and
-<code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> say here in tables.</p>
+<p><strong>No dataset here fails a check</strong>, which is a thing to
+be careful about rather than reassured by. One did until recently —
+<code>nimoData</code>, on B1b — and its section shows what closing that
+cost. Every card carries five or six <code>review</code> rows instead,
+and those are where the eight datasets actually differ. The runs below
+are quiet: <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> prints an alert for every
+exposure it could not remove, and eighteen of those blocks would say
+what the scorecard and <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> say here in
+tables.</p>
+</div>
+<div class="section level2">
+<h2 id="case1_pkpd-a-declared-nominal-grid">case1_pkpd: a declared nominal grid<a class="anchor" aria-label="anchor" href="#case1_pkpd-a-declared-nominal-grid"></a>
+</h2>
+<p><strong>Start here: this is what a study report usually looks
+like.</strong> 180 patients across six treatment arms, with a declared
+<code>NOMTIME</code>, two endpoints keyed by a character
+<code>NAME</code> column, a baseline weight, and a <code>CENS</code>
+column — the industry shape, and the one the package is easiest on.
+<code><a href="../articles/demo.html">vignette("demo")</a></code> runs this dataset end to end.</p>
+<p>Almost everything passes, and the reason is the declared nominal
+time: the protocol grid is written down, so coarsening reads it instead
+of guessing at one. Keep that in mind through the six datasets after
+<code>mad</code>, where most of the difficulty turns out to be its
+absence.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_pkpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">case1_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>,</span>
+<span>  keep <span class="op">=</span> <span class="st">"STUDY"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">case1_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Endpoints (dependent variable on observation rows)</caption>
+<colgroup>
+<col width="19%">
+<col width="11%">
+<col width="5%">
+<col width="12%">
+<col width="6%">
+<col width="6%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="6%">
+<col width="5%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">variable</th>
+<th align="left">dataset</th>
+<th align="right">n</th>
+<th align="right">n_subjects</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">min</th>
+<th align="right">q25</th>
+<th align="right">median</th>
+<th align="right">q75</th>
+<th align="right">max</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">PD - Continuous</td>
+<td align="left">source</td>
+<td align="right">1620</td>
+<td align="right">180</td>
+<td align="right">135</td>
+<td align="right">238</td>
+<td align="right">-621</td>
+<td align="right">-21.6</td>
+<td align="right">123</td>
+<td align="right">283</td>
+<td align="right">936</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Continuous</td>
+<td align="left">synthetic</td>
+<td align="right">1620</td>
+<td align="right">180</td>
+<td align="right">132</td>
+<td align="right">153</td>
+<td align="right">-361</td>
+<td align="right">33.5</td>
+<td align="right">119</td>
+<td align="right">217</td>
+<td align="right">742</td>
+</tr>
+<tr class="odd">
+<td align="left">PK Concentration</td>
+<td align="left">source</td>
+<td align="right">3600</td>
+<td align="right">150</td>
+<td align="right">0.36</td>
+<td align="right">0.737</td>
+<td align="right">0.05</td>
+<td align="right">0.05</td>
+<td align="right">0.0634</td>
+<td align="right">0.263</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="left">PK Concentration</td>
+<td align="left">synthetic</td>
+<td align="right">3600</td>
+<td align="right">150</td>
+<td align="right">0.299</td>
+<td align="right">0.582</td>
+<td align="right">0.0185</td>
+<td align="right">0.0485</td>
+<td align="right">0.0689</td>
+<td align="right">0.218</td>
+<td align="right">5.22</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>Continuous covariates (baseline, per patient)</caption>
+<thead><tr class="header">
+<th align="left">variable</th>
+<th align="left">dataset</th>
+<th align="right">n</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">min</th>
+<th align="right">q25</th>
+<th align="right">median</th>
+<th align="right">q75</th>
+<th align="right">max</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">WEIGHTB</td>
+<td align="left">source</td>
+<td align="right">180</td>
+<td align="right">116</td>
+<td align="right">20.5</td>
+<td align="right">80</td>
+<td align="right">98</td>
+<td align="right">117</td>
+<td align="right">133</td>
+<td align="right">150</td>
+</tr>
+<tr class="even">
+<td align="left">WEIGHTB</td>
+<td align="left">synthetic</td>
+<td align="right">180</td>
+<td align="right">118</td>
+<td align="right">14.1</td>
+<td align="right">88.3</td>
+<td align="right">106</td>
+<td align="right">118</td>
+<td align="right">129</td>
+<td align="right">144</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="3%">
+<col width="26%">
+<col width="6%">
+<col width="22%">
+<col width="4%">
+<col width="37%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+<th align="left">explore</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A1</td>
+<td align="left">Synthetic table is a legal PMX dataset</td>
+<td align="left">synthetic</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A2</td>
+<td align="left">Source is legal under the declared roles</td>
+<td align="left">source</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
+</tr>
+<tr class="odd">
+<td align="left">A3</td>
+<td align="left">Every endpoint survived</td>
+<td align="left">both</td>
+<td align="left">2 of 2</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A4</td>
+<td align="left">Cohort size survived</td>
+<td align="left">both</td>
+<td align="left">180 -&gt; 180</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“anchors”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">both</td>
+<td align="left">30.7 -&gt; 30.7</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">both</td>
+<td align="left">70.8 -&gt; 70.8</td>
+<td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">no discrete endpoint</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">synthetic</td>
+<td align="left">1 of 180</td>
+<td align="left">review</td>
+<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B3</td>
+<td align="left">Adversarial accuracy inside its null interval</td>
+<td align="left">both</td>
+<td align="left">0.600 in [0.423, 0.554]</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
+</tr>
+<tr class="odd">
+<td align="left">B4b</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B5a</td>
+<td align="left">Patients holding the least-held categorical level</td>
+<td align="left">synthetic</td>
+<td align="left">TRTACT = 10 mg: 30</td>
+<td align="left">pass</td>
+<td align="left">table(synthetic$TRTACT)</td>
+</tr>
+<tr class="odd">
+<td align="left">B5b</td>
+<td align="left">Rare source levels copied into the output</td>
+<td align="left">both</td>
+<td align="left">0 of 0 exposed</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">C1</td>
+<td align="left">Strata keeping their source size</td>
+<td align="left">both</td>
+<td align="left">6 of 6</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">run settings</td>
+<td align="left">2 of 2</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">both</td>
+<td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+</tbody>
+</table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
+<p>Nothing fails, and C1 passes: all six treatment arms keep their
+source size. An avatar never leaves the arm it was anchored in, because
+<code>TRTACT</code> and <code>DOSE</code> are declared as
+<code>strata</code> and are copied from the anchor. The arm
+<em>sizes</em> match because of a second mechanism: anchors are sampled
+with replacement, so <code>preserve_strata_balance</code> (the default)
+gives each stratum its source share rather than leaving the balance to
+the draw. Only a declared stratum gets this; <code>warfarin</code> below
+has a <code>sex</code> covariate that is never declared as one, and so
+has no equivalent row.</p>
+<p>All 180 patients start with an observation schedule nobody else
+shares and none ends with one, and the difference from every dataset
+that follows is one declared column. With <code>NOMTIME</code> present
+the grid is <code>nominal</code> rather than derived, so coarsening
+reads the protocol instead of guessing at it, 180 patients collapse onto
+six visit sets, none of them rare, and nothing is discarded. Read this
+next to <code>nimoData</code>, which is the same mechanism with nothing
+to work from. The gap between them is not a tuning difference; it is
+whether the study recorded a nominal time.</p>
+<div class="section level3">
+<h3 id="declaring-cens-on-this-study-is-refused">Declaring <code>cens</code> on this study is refused<a class="anchor" aria-label="anchor" href="#declaring-cens-on-this-study-is-refused"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles_cens</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<p>That study’s <code>CENS</code> is meaningful only for the PK
+endpoint. The PD effect is signed, so a left-censored PD row reports a
+value above uncensored ones and the flag cannot mean what it means for
+PK. Running <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the data you are about to
+generate from is how a mis-declared role is caught before it becomes a
+generation bug, and this is the dataset where it fires. Leaving
+<code>cens</code> undeclared, as the run above does, is one right
+answer; <code><a href="../articles/demo.html">vignette("demo")</a></code> takes the other and sets
+<code>CENS</code> to 0 on the PD rows before declaring it.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="mad-five-endpoints-including-ordinal-count-and-binary">mad: five endpoints, including ordinal, count and binary<a class="anchor" aria-label="anchor" href="#mad-five-endpoints-including-ordinal-count-and-binary"></a>
+</h2>
+<p>The second <code>xgxr</code> set, and the other one shaped like a
+study report: 60 subjects in a multiple-ascending-dose study with a
+declared <code>NOMTIME</code>, five observation endpoints keyed by
+<code>NAME</code> — PK concentration, continuous PD, and ordinal, count
+and binary PD. Every other dataset here has one or two endpoints, and an
+endpoint silently vanishing during generation is invisible with fewer
+than three.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"mad"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
+<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
+<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WEIGHTB"</span>, <span class="st">"SEX"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">mad_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
+<table style="width:100%;" class="table">
+<caption>Endpoints (dependent variable on observation rows)</caption>
+<colgroup>
+<col width="20%">
+<col width="11%">
+<col width="5%">
+<col width="13%">
+<col width="7%">
+<col width="7%">
+<col width="7%">
+<col width="7%">
+<col width="8%">
+<col width="5%">
+<col width="5%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">variable</th>
+<th align="left">dataset</th>
+<th align="right">n</th>
+<th align="right">n_subjects</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">min</th>
+<th align="right">q25</th>
+<th align="right">median</th>
+<th align="right">q75</th>
+<th align="right">max</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">PD - Binary</td>
+<td align="left">source</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">0.295</td>
+<td align="right">0.456</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Binary</td>
+<td align="left">synthetic</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">0.235</td>
+<td align="right">0.424</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">PD - Continuous</td>
+<td align="left">source</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">21.1</td>
+<td align="right">12.5</td>
+<td align="right">-3.47</td>
+<td align="right">13.2</td>
+<td align="right">19.5</td>
+<td align="right">28.4</td>
+<td align="right">68.3</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Continuous</td>
+<td align="left">synthetic</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">20.4</td>
+<td align="right">11.1</td>
+<td align="right">-4.59</td>
+<td align="right">13.2</td>
+<td align="right">20.8</td>
+<td align="right">27.8</td>
+<td align="right">51.7</td>
+</tr>
+<tr class="odd">
+<td align="left">PD - Count</td>
+<td align="left">source</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">5.32</td>
+<td align="right">3.75</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">5</td>
+<td align="right">8</td>
+<td align="right">19</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Count</td>
+<td align="left">synthetic</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">5</td>
+<td align="right">3.27</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">5</td>
+<td align="right">7</td>
+<td align="right">15</td>
+</tr>
+<tr class="odd">
+<td align="left">PD - Ordinal</td>
+<td align="left">source</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">2.05</td>
+<td align="right">0.856</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Ordinal</td>
+<td align="left">synthetic</td>
+<td align="right">600</td>
+<td align="right">60</td>
+<td align="right">2.02</td>
+<td align="right">0.81</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">PK Concentration</td>
+<td align="left">source</td>
+<td align="right">1300</td>
+<td align="right">50</td>
+<td align="right">3.99</td>
+<td align="right">7.79</td>
+<td align="right">0.05</td>
+<td align="right">0.506</td>
+<td align="right">1.44</td>
+<td align="right">3.96</td>
+<td align="right">103</td>
+</tr>
+<tr class="even">
+<td align="left">PK Concentration</td>
+<td align="left">synthetic</td>
+<td align="right">1300</td>
+<td align="right">50</td>
+<td align="right">3.7</td>
+<td align="right">6.13</td>
+<td align="right">0.047</td>
+<td align="right">0.52</td>
+<td align="right">1.44</td>
+<td align="right">3.92</td>
+<td align="right">60.1</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>Continuous covariates (baseline, per patient)</caption>
+<thead><tr class="header">
+<th align="left">variable</th>
+<th align="left">dataset</th>
+<th align="right">n</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">min</th>
+<th align="right">q25</th>
+<th align="right">median</th>
+<th align="right">q75</th>
+<th align="right">max</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">WEIGHTB</td>
+<td align="left">source</td>
+<td align="right">60</td>
+<td align="right">79.4</td>
+<td align="right">14.5</td>
+<td align="right">52.8</td>
+<td align="right">69.2</td>
+<td align="right">78.9</td>
+<td align="right">89.8</td>
+<td align="right">109</td>
+</tr>
+<tr class="even">
+<td align="left">WEIGHTB</td>
+<td align="left">synthetic</td>
+<td align="right">60</td>
+<td align="right">79</td>
+<td align="right">8.76</td>
+<td align="right">58.8</td>
+<td align="right">72.9</td>
+<td align="right">78.8</td>
+<td align="right">85.3</td>
+<td align="right">94.4</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>Categorical covariates (baseline, per patient)</caption>
+<thead><tr class="header">
+<th align="left">variable</th>
+<th align="left">dataset</th>
+<th align="left">level</th>
+<th align="right">n</th>
+<th align="right">proportion</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">SEX</td>
+<td align="left">source</td>
+<td align="left">Female</td>
+<td align="right">30</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="even">
+<td align="left">SEX</td>
+<td align="left">source</td>
+<td align="left">Male</td>
+<td align="right">30</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="odd">
+<td align="left">SEX</td>
+<td align="left">synthetic</td>
+<td align="left">Female</td>
+<td align="right">40</td>
+<td align="right">0.667</td>
+</tr>
+<tr class="even">
+<td align="left">SEX</td>
+<td align="left">synthetic</td>
+<td align="left">Male</td>
+<td align="right">20</td>
+<td align="right">0.333</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="3%">
+<col width="27%">
+<col width="6%">
+<col width="18%">
+<col width="4%">
+<col width="39%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+<th align="left">explore</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A1</td>
+<td align="left">Synthetic table is a legal PMX dataset</td>
+<td align="left">synthetic</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A2</td>
+<td align="left">Source is legal under the declared roles</td>
+<td align="left">source</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
+</tr>
+<tr class="odd">
+<td align="left">A3</td>
+<td align="left">Every endpoint survived</td>
+<td align="left">both</td>
+<td align="left">5 of 5</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A4</td>
+<td align="left">Cohort size survived</td>
+<td align="left">both</td>
+<td align="left">60 -&gt; 60</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“anchors”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">both</td>
+<td align="left">61.7 -&gt; 61.7</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">both</td>
+<td align="left">5 -&gt; 5</td>
+<td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A6</td>
+<td align="left">Discrete endpoints keeping their source scale</td>
+<td align="left">both</td>
+<td align="left">3 of 3</td>
+<td align="left">pass</td>
+<td align="left">pmx_endpoint_types(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">synthetic</td>
+<td align="left">6 of 60</td>
+<td align="left">review</td>
+<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B3</td>
+<td align="left">Adversarial accuracy inside its null interval</td>
+<td align="left">both</td>
+<td align="left">0.583 in [0.350, 0.613]</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
+</tr>
+<tr class="odd">
+<td align="left">B4b</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B5a</td>
+<td align="left">Patients holding the least-held categorical level</td>
+<td align="left">synthetic</td>
+<td align="left">TRTACT = 100 mg: 10</td>
+<td align="left">pass</td>
+<td align="left">table(synthetic$TRTACT)</td>
+</tr>
+<tr class="odd">
+<td align="left">B5b</td>
+<td align="left">Rare source levels copied into the output</td>
+<td align="left">both</td>
+<td align="left">0 of 0 exposed</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">C1</td>
+<td align="left">Strata keeping their source size</td>
+<td align="left">both</td>
+<td align="left">6 of 6</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">run settings</td>
+<td align="left">2 of 2</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">both</td>
+<td align="left">sd x0.6 on WEIGHTB (furthest of 6)</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+</tbody>
+</table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
+<p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
+than a row count: row counts stayed plausible in the defect that
+motivated the check while an entire compartment disappeared. This is the
+second declared <code>NOMTIME</code> and it produces the same clean
+structural result as <code>case1_pkpd</code>.</p>
+<p>The distribution table carries the same categorical drift as
+<code>warfarin</code>: <code>SEX</code> is 30 female and 30 male in the
+source and 40 to 20 in the synthetic cohort. It is declared as a
+covariate rather than as <code>strata</code>, so the anchor draw sets
+it.</p>
+<div class="section level3">
+<h3 id="discrete-endpoints-keep-their-scale">Discrete endpoints keep their scale<a class="anchor" aria-label="anchor" href="#discrete-endpoints-keep-their-scale"></a>
+</h3>
+<p>Three of <code>mad</code>‘s five endpoints are discrete, and
+<code>LIDV</code> is one numeric column carrying all five, so restoring
+the <em>column’s</em> class restores nothing about any of them. Blending
+is a weighted mean, and a weighted mean of five donors’ zeros and ones
+is a number between them; the subject and residual noise terms then
+carry it off the level set entirely. Left alone, this study’s 0/1
+endpoint comes back as 600 distinct values spanning -0.13 to 1.08.</p>
+<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> therefore decides what kind of values
+each endpoint takes, from the source, and puts the generated values back
+on that scale. The decision is worth reading before the data:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="18%">
+<col width="12%">
+<col width="8%">
+<col width="12%">
+<col width="47%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">endpoint</th>
+<th align="left">type</th>
+<th align="left">levels</th>
+<th align="left">decided_by</th>
+<th align="left">reason</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">PD - Binary</td>
+<td align="left">binary</td>
+<td align="left">0, 1</td>
+<td align="left">inferred</td>
+<td align="left">every observed value is 0 or 1</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Continuous</td>
+<td align="left">continuous</td>
+<td align="left">–</td>
+<td align="left">inferred</td>
+<td align="left">not every observed value is a whole number</td>
+</tr>
+<tr class="odd">
+<td align="left">PD - Count</td>
+<td align="left">integer</td>
+<td align="left">–</td>
+<td align="left">inferred</td>
+<td align="left">20 whole-number levels, from 0 to 19</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Ordinal</td>
+<td align="left">ordinal</td>
+<td align="left">1, 2, 3</td>
+<td align="left">inferred</td>
+<td align="left">3 whole-number levels: 1, 2, 3</td>
+</tr>
+<tr class="odd">
+<td align="left">PK Concentration</td>
+<td align="left">continuous</td>
+<td align="left">–</td>
+<td align="left">inferred</td>
+<td align="left">not every observed value is a whole number</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">discrete</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PD - Binary"</span>, <span class="st">"PD - Count"</span>, <span class="st">"PD - Ordinal"</span><span class="op">)</span></span>
+<span><span class="va">values_taken</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">endpoint</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="va">endpoint</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%d distinct, %.2f to %.2f"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    endpoint <span class="op">=</span> <span class="va">discrete</span>,</span>
+<span>    source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">discrete</span>, <span class="va">values_taken</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">mad</span><span class="op">)</span>,</span>
+<span>    synthetic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">discrete</span>, <span class="va">values_taken</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">mad_synth</span><span class="op">)</span>,</span>
+<span>    row.names <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Values taken by the three discrete endpoints."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Values taken by the three discrete endpoints.</caption>
+<thead><tr class="header">
+<th align="left">endpoint</th>
+<th align="left">source</th>
+<th align="left">synthetic</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">PD - Binary</td>
+<td align="left">2 distinct, 0.00 to 1.00</td>
+<td align="left">2 distinct, 0.00 to 1.00</td>
+</tr>
+<tr class="even">
+<td align="left">PD - Count</td>
+<td align="left">20 distinct, 0.00 to 19.00</td>
+<td align="left">16 distinct, 0.00 to 15.00</td>
+</tr>
+<tr class="odd">
+<td align="left">PD - Ordinal</td>
+<td align="left">3 distinct, 1.00 to 3.00</td>
+<td align="left">3 distinct, 1.00 to 3.00</td>
+</tr>
+</tbody>
+</table>
+<p>A6 in the scorecard above is the check on it, and it reads the
+finished table rather than trusting the mechanism. It is on every card;
+the seven studies before this one have no discrete endpoint, so theirs
+read <code>no discrete endpoint</code> and pass.</p>
+<p>Two limits. The type is inferred, so an endpoint whose values are
+whole numbers for a reason other than being discrete is called discrete
+anyway — <code>warfarin</code>’s <code>pca</code> is a percentage
+recorded without decimals, and its generated values are rounded to
+match. <code>pmx_roles(endpoint_types = )</code> overrides the inference
+in either direction. And snapping a binary endpoint onto its levels
+means generated values are source values: a 0/1 endpoint has no third
+value to emit, so what protects a patient here is everything in the
+masking report, never the distinctness of the number.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="theo_md-seven-oral-doses-dosed-by-weight">theo_md: seven oral doses, dosed by weight<a class="anchor" aria-label="anchor" href="#theo_md-seven-oral-doses-dosed-by-weight"></a>
 </h2>
 <p>Twelve subjects on one oral regimen, seven doses 24 hours apart, with
 dense concentration sampling around the first and last dose only.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">theo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
@@ -378,7 +1330,7 @@ dense concentration sampling around the first and last dose only.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">theo_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">303</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -478,7 +1430,7 @@ dense concentration sampling around the first and last dose only.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -666,7 +1618,7 @@ three visit sets that remain are each held by several subjects.</p>
 (<code>cp</code>) and a pharmacodynamic one (<code>pca</code>) that run
 on different time courses, and a lower-case schema with one categorical
 covariate.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"warfarin"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">warfarin_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>, time <span class="op">=</span> <span class="st">"time"</span>, dv <span class="op">=</span> <span class="st">"dv"</span>, amt <span class="op">=</span> <span class="st">"amt"</span>, evid <span class="op">=</span> <span class="st">"evid"</span>,</span>
@@ -677,7 +1629,7 @@ covariate.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, seed <span class="op">=</span> <span class="fl">404</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -867,7 +1819,7 @@ covariate.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -1057,14 +2009,14 @@ weight-based dosing discloses one real patient’s weight exactly.</p>
 <p>45 subjects with infusion start/stop pairs and a delayed
 white-blood-cell decline, nadir and recovery. Follow-up time varies, and
 a few subjects are followed far longer than the rest.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">wbc_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, seed <span class="op">=</span> <span class="fl">505</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -1123,7 +2075,7 @@ a few subjects are followed far longer than the rest.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -1304,7 +2256,7 @@ regimens is represented in the output.</p>
 <div class="section level3">
 <h3 id="three-re-dosed-patients-are-not-in-the-synthetic-cohort">Three re-dosed patients are not in the synthetic cohort<a class="anchor" aria-label="anchor" href="#three-re-dosed-patients-are-not-in-the-synthetic-cohort"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span>, <span class="st">"wbcSim"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -1396,7 +2348,7 @@ nominal dose group <code>DOS</code> is carried through with
 <code>keep</code>, which copies it from the same subject that supplied
 the doses so that it stays coherent with them. The redundant
 <code>WGT</code> column is left undeclared and is dropped.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -1405,7 +2357,7 @@ the doses so that it stays coherent with them. The redundant
 <span><span class="op">)</span></span>
 <span><span class="va">nimo_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, seed <span class="op">=</span> <span class="fl">606</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -1553,7 +2505,7 @@ the doses so that it stays coherent with them. The redundant
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -1740,7 +2692,7 @@ the case where a card of passes is worth less than one
 <div class="section level3">
 <h3 id="the-inferred-grid-achieves-nothing-here">The inferred grid achieves nothing here<a class="anchor" aria-label="anchor" href="#the-inferred-grid-achieves-nothing-here"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span>, <span class="st">"nimoData"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"visits"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -1823,10 +2775,10 @@ course stops. Nothing is disclosed and almost nothing is left.</p>
 </h3>
 <p>One row per subject, a grey tick for each dose and a coloured dot for
 each observation. This is the figure to read before the scorecard:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, main <span class="op">=</span> <span class="st">"nimoData, source"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/nimo-schedule-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">nimo_synth</span>, <span class="va">nimo_roles</span>, main <span class="op">=</span> <span class="st">"nimoData, synthetic"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/nimo-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The source has a dose tick standing in front of every cluster of
@@ -1841,7 +2793,7 @@ there are no repeated infusions left to produce it. Both panels span the
 same follow-up: maximum <code>TIME</code> is 2135 h against the source’s
 2252 h. What has changed is everything underneath, and time after dose
 is where it shows up as a number:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">after_last_dose</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="op">]</span></span>
 <span>  <span class="va">last</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span>, <span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span>, <span class="va">max</span><span class="op">)</span></span>
@@ -1875,7 +2827,7 @@ to the nearest day sends a trough drawn just before the next infusion —
 — onto that infusion’s own nominal time, where it stops being a trough
 and becomes a time-zero sample. Give the pre-dose sample a slot of its
 own instead:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_interval</span> <span class="op">&lt;-</span> <span class="fl">168</span>                     <span class="co"># the protocol's weekly infusion</span></span>
 <span><span class="va">nimo_nominal</span> <span class="op">&lt;-</span> <span class="va">nimoData</span></span>
 <span><span class="va">last_occasion</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/ave.html" class="external-link">ave</a></span><span class="op">(</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span>, <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span>, FUN <span class="op">=</span> <span class="va">max</span><span class="op">)</span></span>
@@ -1893,7 +2845,7 @@ own instead:</p>
 <p><code>TIME</code> and <code>NTIME</code> side by side, for the first
 two occasions of one subject. The recorded times wander; the nominal
 ones do not, and that is the whole of what the declaration buys:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shown</span> <span class="op">&lt;-</span> <span class="va">nimo_nominal</span><span class="op">[</span><span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span> <span class="op">==</span> <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&amp;</span></span>
 <span>                        <span class="va">nimo_nominal</span><span class="op">$</span><span class="va">OCC</span> <span class="op">&lt;=</span> <span class="fl">2</span>,</span>
 <span>                      <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"OCC"</span>, <span class="st">"EVID"</span>, <span class="st">"TIME"</span>, <span class="st">"TAD"</span>, <span class="st">"NTIME"</span><span class="op">)</span><span class="op">]</span></span>
@@ -1996,7 +2948,7 @@ ones do not, and that is the whole of what the declaration buys:</p>
 is the trough. It keeps a nominal time of 167, an hour ahead of the
 infusion it precedes, instead of collapsing onto it and being recorded
 as that infusion’s time-zero sample.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo_roles_nominal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  rate <span class="op">=</span> <span class="st">"RATE"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, tad <span class="op">=</span> <span class="st">"TAD"</span>, occasion <span class="op">=</span> <span class="st">"OCC"</span>,</span>
@@ -2252,7 +3204,7 @@ resetting within <code>OCC</code>, an occasion-varying assigned
 <code>DOSE</code> carried through with <code>keep</code>, numeric-coded
 <code>SEX</code>, and infusion rows. The reset clock validates within ID
 and occasion.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"mavoglurant"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">mavo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -2263,7 +3215,7 @@ and occasion.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -2447,7 +3399,7 @@ and occasion.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -2637,7 +3589,7 @@ than a property of the synthetic data, which is why it is
 <div class="section level3">
 <h3 id="the-largest-residual-in-the-vignette">The largest residual in the vignette<a class="anchor" aria-label="anchor" href="#the-largest-residual-in-the-vignette"></a>
 </h3>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"visits"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2718,7 +3670,7 @@ itself a problem; a large number of singleton sets is.</p>
 clinical care rather than from a protocol. Dosing is individualised to
 the infant, sampling is sparse and irregular, and weight varies over
 time. It is the least protocol-like dataset here.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"pheno_sd"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">pheno_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -2728,7 +3680,7 @@ time. It is the least protocol-like dataset here.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, seed <span class="op">=</span> <span class="fl">1010</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -2852,7 +3804,7 @@ time. It is the least protocol-like dataset here.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -3036,7 +3988,7 @@ being cut short.</p>
 <div class="section level3">
 <h3 id="dosing-that-can-only-be-masked-by-shortening-it">Dosing that can only be masked by shortening it<a class="anchor" aria-label="anchor" href="#dosing-that-can-only-be-masked-by-shortening-it"></a>
 </h3>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span>, <span class="st">"pheno_sd"</span>,</span>
 <span>              section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -3100,10 +4052,10 @@ each observation. The dose ticks are the story: a forest of them across
 the whole follow-up in the source, and in the output the same forest for
 the first few days, thinning out and stopping well before the source
 does.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, source"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-schedule-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, synthetic"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/pheno-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The tail of each course is what this study loses. On the observation
@@ -3136,942 +4088,6 @@ arm whose dosing is not.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="case1_pkpd-a-declared-nominal-grid">case1_pkpd: a declared nominal grid<a class="anchor" aria-label="anchor" href="#case1_pkpd-a-declared-nominal-grid"></a>
-</h2>
-<p>180 patients across six treatment arms, with a declared
-<code>NOMTIME</code>, two endpoints keyed by a character
-<code>NAME</code> column, a baseline weight, and a <code>CENS</code>
-column. <code><a href="../articles/demo.html">vignette("demo")</a></code> runs this dataset end to end; it
-is here for the contrast with the six above.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">case1_pkpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">case1_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
-<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
-<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span>,</span>
-<span>  keep <span class="op">=</span> <span class="st">"STUDY"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">case1_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p><img src="public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Endpoints (dependent variable on observation rows)</caption>
-<colgroup>
-<col width="19%">
-<col width="11%">
-<col width="5%">
-<col width="12%">
-<col width="6%">
-<col width="6%">
-<col width="8%">
-<col width="8%">
-<col width="8%">
-<col width="6%">
-<col width="5%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">n_subjects</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Continuous</td>
-<td align="left">source</td>
-<td align="right">1620</td>
-<td align="right">180</td>
-<td align="right">135</td>
-<td align="right">238</td>
-<td align="right">-621</td>
-<td align="right">-21.6</td>
-<td align="right">123</td>
-<td align="right">283</td>
-<td align="right">936</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Continuous</td>
-<td align="left">synthetic</td>
-<td align="right">1620</td>
-<td align="right">180</td>
-<td align="right">132</td>
-<td align="right">153</td>
-<td align="right">-361</td>
-<td align="right">33.5</td>
-<td align="right">119</td>
-<td align="right">217</td>
-<td align="right">742</td>
-</tr>
-<tr class="odd">
-<td align="left">PK Concentration</td>
-<td align="left">source</td>
-<td align="right">3600</td>
-<td align="right">150</td>
-<td align="right">0.36</td>
-<td align="right">0.737</td>
-<td align="right">0.05</td>
-<td align="right">0.05</td>
-<td align="right">0.0634</td>
-<td align="right">0.263</td>
-<td align="right">7</td>
-</tr>
-<tr class="even">
-<td align="left">PK Concentration</td>
-<td align="left">synthetic</td>
-<td align="right">3600</td>
-<td align="right">150</td>
-<td align="right">0.299</td>
-<td align="right">0.582</td>
-<td align="right">0.0185</td>
-<td align="right">0.0485</td>
-<td align="right">0.0689</td>
-<td align="right">0.218</td>
-<td align="right">5.22</td>
-</tr>
-</tbody>
-</table>
-<table class="table">
-<caption>Continuous covariates (baseline, per patient)</caption>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">WEIGHTB</td>
-<td align="left">source</td>
-<td align="right">180</td>
-<td align="right">116</td>
-<td align="right">20.5</td>
-<td align="right">80</td>
-<td align="right">98</td>
-<td align="right">117</td>
-<td align="right">133</td>
-<td align="right">150</td>
-</tr>
-<tr class="even">
-<td align="left">WEIGHTB</td>
-<td align="left">synthetic</td>
-<td align="right">180</td>
-<td align="right">118</td>
-<td align="right">14.1</td>
-<td align="right">88.3</td>
-<td align="right">106</td>
-<td align="right">118</td>
-<td align="right">129</td>
-<td align="right">144</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="3%">
-<col width="26%">
-<col width="6%">
-<col width="22%">
-<col width="4%">
-<col width="37%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">reads</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-<th align="left">explore</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A1</td>
-<td align="left">Synthetic table is a legal PMX dataset</td>
-<td align="left">synthetic</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A2</td>
-<td align="left">Source is legal under the declared roles</td>
-<td align="left">source</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
-</tr>
-<tr class="odd">
-<td align="left">A3</td>
-<td align="left">Every endpoint survived</td>
-<td align="left">both</td>
-<td align="left">2 of 2</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A4</td>
-<td align="left">Cohort size survived</td>
-<td align="left">both</td>
-<td align="left">180 -&gt; 180</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“anchors”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">both</td>
-<td align="left">30.7 -&gt; 30.7</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">both</td>
-<td align="left">70.8 -&gt; 70.8</td>
-<td align="left">review</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A6</td>
-<td align="left">Discrete endpoints keeping their source scale</td>
-<td align="left">both</td>
-<td align="left">no discrete endpoint</td>
-<td align="left">pass</td>
-<td align="left">pmx_endpoint_types(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">synthetic</td>
-<td align="left">1 of 180</td>
-<td align="left">review</td>
-<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B3</td>
-<td align="left">Adversarial accuracy inside its null interval</td>
-<td align="left">both</td>
-<td align="left">0.600 in [0.423, 0.554]</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
-</tr>
-<tr class="odd">
-<td align="left">B4b</td>
-<td align="left">Generated DV vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B5a</td>
-<td align="left">Patients holding the least-held categorical level</td>
-<td align="left">synthetic</td>
-<td align="left">TRTACT = 10 mg: 30</td>
-<td align="left">pass</td>
-<td align="left">table(synthetic$TRTACT)</td>
-</tr>
-<tr class="odd">
-<td align="left">B5b</td>
-<td align="left">Rare source levels copied into the output</td>
-<td align="left">both</td>
-<td align="left">0 of 0 exposed</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">C1</td>
-<td align="left">Strata keeping their source size</td>
-<td align="left">both</td>
-<td align="left">6 of 6</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">run settings</td>
-<td align="left">2 of 2</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">both</td>
-<td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-</tbody>
-</table>
-<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
-same axes – <code>DV</code> against time, and each covariate – with
-whatever you normally use.</em></p>
-<p>Nothing fails, and C1 passes: all six treatment arms keep their
-source size. An avatar never leaves the arm it was anchored in, because
-<code>TRTACT</code> and <code>DOSE</code> are declared as
-<code>strata</code> and are copied from the anchor. The arm
-<em>sizes</em> match because of a second mechanism: anchors are sampled
-with replacement, so <code>preserve_strata_balance</code> (the default)
-gives each stratum its source share rather than leaving the balance to
-the draw. This is the row that <code>warfarin</code>’s undeclared
-<code>sex</code> had no equivalent of.</p>
-<p>All 180 patients start with an observation schedule nobody else
-shares and none ends with one, and the difference from every dataset
-above is one declared column. With <code>NOMTIME</code> present the grid
-is <code>nominal</code> rather than derived, so coarsening reads the
-protocol instead of guessing at it, 180 patients collapse onto six visit
-sets, none of them rare, and nothing is discarded. Read this next to
-<code>nimoData</code>, which is the same mechanism with nothing to work
-from. The gap between them is not a tuning difference; it is whether the
-study recorded a nominal time.</p>
-<div class="section level3">
-<h3 id="declaring-cens-on-this-study-is-refused">Declaring <code>cens</code> on this study is refused<a class="anchor" aria-label="anchor" href="#declaring-cens-on-this-study-is-refused"></a>
-</h3>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
-<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
-<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles_cens</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>That study’s <code>CENS</code> is meaningful only for the PK
-endpoint. The PD effect is signed, so a left-censored PD row reports a
-value above uncensored ones and the flag cannot mean what it means for
-PK. Running <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the data you are about to
-generate from is how a mis-declared role is caught before it becomes a
-generation bug, and this is the dataset where it fires. Leaving
-<code>cens</code> undeclared, as the run above does, is one right
-answer; <code><a href="../articles/demo.html">vignette("demo")</a></code> takes the other and sets
-<code>CENS</code> to 0 on the PD rows before declaring it.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="mad-five-endpoints-including-ordinal-count-and-binary">mad: five endpoints, including ordinal, count and binary<a class="anchor" aria-label="anchor" href="#mad-five-endpoints-including-ordinal-count-and-binary"></a>
-</h2>
-<p>60 subjects in a multiple-ascending-dose study carrying five
-observation endpoints keyed by <code>NAME</code>: PK concentration,
-continuous PD, and ordinal, count and binary PD. Everything else here
-has one or two endpoints, and an endpoint silently vanishing during
-generation is invisible with fewer than three.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"mad"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">mad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
-<span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,</span>
-<span>  strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,</span>
-<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WEIGHTB"</span>, <span class="st">"SEX"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">mad_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>Endpoints (dependent variable on observation rows)</caption>
-<colgroup>
-<col width="20%">
-<col width="11%">
-<col width="5%">
-<col width="13%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="8%">
-<col width="5%">
-<col width="5%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">n_subjects</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Binary</td>
-<td align="left">source</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">0.295</td>
-<td align="right">0.456</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Binary</td>
-<td align="left">synthetic</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">0.235</td>
-<td align="right">0.424</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">PD - Continuous</td>
-<td align="left">source</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">21.1</td>
-<td align="right">12.5</td>
-<td align="right">-3.47</td>
-<td align="right">13.2</td>
-<td align="right">19.5</td>
-<td align="right">28.4</td>
-<td align="right">68.3</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Continuous</td>
-<td align="left">synthetic</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">20.4</td>
-<td align="right">11.1</td>
-<td align="right">-4.59</td>
-<td align="right">13.2</td>
-<td align="right">20.8</td>
-<td align="right">27.8</td>
-<td align="right">51.7</td>
-</tr>
-<tr class="odd">
-<td align="left">PD - Count</td>
-<td align="left">source</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">5.32</td>
-<td align="right">3.75</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">5</td>
-<td align="right">8</td>
-<td align="right">19</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Count</td>
-<td align="left">synthetic</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">5</td>
-<td align="right">3.27</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">5</td>
-<td align="right">7</td>
-<td align="right">15</td>
-</tr>
-<tr class="odd">
-<td align="left">PD - Ordinal</td>
-<td align="left">source</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">2.05</td>
-<td align="right">0.856</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="right">3</td>
-<td align="right">3</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Ordinal</td>
-<td align="left">synthetic</td>
-<td align="right">600</td>
-<td align="right">60</td>
-<td align="right">2.02</td>
-<td align="right">0.81</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="right">3</td>
-<td align="right">3</td>
-</tr>
-<tr class="odd">
-<td align="left">PK Concentration</td>
-<td align="left">source</td>
-<td align="right">1300</td>
-<td align="right">50</td>
-<td align="right">3.99</td>
-<td align="right">7.79</td>
-<td align="right">0.05</td>
-<td align="right">0.506</td>
-<td align="right">1.44</td>
-<td align="right">3.96</td>
-<td align="right">103</td>
-</tr>
-<tr class="even">
-<td align="left">PK Concentration</td>
-<td align="left">synthetic</td>
-<td align="right">1300</td>
-<td align="right">50</td>
-<td align="right">3.7</td>
-<td align="right">6.13</td>
-<td align="right">0.047</td>
-<td align="right">0.52</td>
-<td align="right">1.44</td>
-<td align="right">3.92</td>
-<td align="right">60.1</td>
-</tr>
-</tbody>
-</table>
-<table class="table">
-<caption>Continuous covariates (baseline, per patient)</caption>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">WEIGHTB</td>
-<td align="left">source</td>
-<td align="right">60</td>
-<td align="right">79.4</td>
-<td align="right">14.5</td>
-<td align="right">52.8</td>
-<td align="right">69.2</td>
-<td align="right">78.9</td>
-<td align="right">89.8</td>
-<td align="right">109</td>
-</tr>
-<tr class="even">
-<td align="left">WEIGHTB</td>
-<td align="left">synthetic</td>
-<td align="right">60</td>
-<td align="right">79</td>
-<td align="right">8.76</td>
-<td align="right">58.8</td>
-<td align="right">72.9</td>
-<td align="right">78.8</td>
-<td align="right">85.3</td>
-<td align="right">94.4</td>
-</tr>
-</tbody>
-</table>
-<table class="table">
-<caption>Categorical covariates (baseline, per patient)</caption>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="left">level</th>
-<th align="right">n</th>
-<th align="right">proportion</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">SEX</td>
-<td align="left">source</td>
-<td align="left">Female</td>
-<td align="right">30</td>
-<td align="right">0.5</td>
-</tr>
-<tr class="even">
-<td align="left">SEX</td>
-<td align="left">source</td>
-<td align="left">Male</td>
-<td align="right">30</td>
-<td align="right">0.5</td>
-</tr>
-<tr class="odd">
-<td align="left">SEX</td>
-<td align="left">synthetic</td>
-<td align="left">Female</td>
-<td align="right">40</td>
-<td align="right">0.667</td>
-</tr>
-<tr class="even">
-<td align="left">SEX</td>
-<td align="left">synthetic</td>
-<td align="left">Male</td>
-<td align="right">20</td>
-<td align="right">0.333</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<colgroup>
-<col width="3%">
-<col width="27%">
-<col width="6%">
-<col width="18%">
-<col width="4%">
-<col width="39%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">reads</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-<th align="left">explore</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A1</td>
-<td align="left">Synthetic table is a legal PMX dataset</td>
-<td align="left">synthetic</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A2</td>
-<td align="left">Source is legal under the declared roles</td>
-<td align="left">source</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
-</tr>
-<tr class="odd">
-<td align="left">A3</td>
-<td align="left">Every endpoint survived</td>
-<td align="left">both</td>
-<td align="left">5 of 5</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A4</td>
-<td align="left">Cohort size survived</td>
-<td align="left">both</td>
-<td align="left">60 -&gt; 60</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“anchors”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">both</td>
-<td align="left">61.7 -&gt; 61.7</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">both</td>
-<td align="left">5 -&gt; 5</td>
-<td align="left">review</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A6</td>
-<td align="left">Discrete endpoints keeping their source scale</td>
-<td align="left">both</td>
-<td align="left">3 of 3</td>
-<td align="left">pass</td>
-<td align="left">pmx_endpoint_types(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">synthetic</td>
-<td align="left">6 of 60</td>
-<td align="left">review</td>
-<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B3</td>
-<td align="left">Adversarial accuracy inside its null interval</td>
-<td align="left">both</td>
-<td align="left">0.583 in [0.350, 0.613]</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
-</tr>
-<tr class="odd">
-<td align="left">B4b</td>
-<td align="left">Generated DV vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B5a</td>
-<td align="left">Patients holding the least-held categorical level</td>
-<td align="left">synthetic</td>
-<td align="left">TRTACT = 100 mg: 10</td>
-<td align="left">pass</td>
-<td align="left">table(synthetic$TRTACT)</td>
-</tr>
-<tr class="odd">
-<td align="left">B5b</td>
-<td align="left">Rare source levels copied into the output</td>
-<td align="left">both</td>
-<td align="left">0 of 0 exposed</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">C1</td>
-<td align="left">Strata keeping their source size</td>
-<td align="left">both</td>
-<td align="left">6 of 6</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">run settings</td>
-<td align="left">2 of 2</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">both</td>
-<td align="left">sd x0.6 on WEIGHTB (furthest of 6)</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-</tbody>
-</table>
-<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
-same axes – <code>DV</code> against time, and each covariate – with
-whatever you normally use.</em></p>
-<p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
-than a row count: row counts stayed plausible in the defect that
-motivated the check while an entire compartment disappeared. This is the
-second declared <code>NOMTIME</code> and it produces the same clean
-structural result as <code>case1_pkpd</code>.</p>
-<p>The distribution table carries the same categorical drift as
-<code>warfarin</code>: <code>SEX</code> is 30 female and 30 male in the
-source and 40 to 20 in the synthetic cohort. It is declared as a
-covariate rather than as <code>strata</code>, so the anchor draw sets
-it.</p>
-<div class="section level3">
-<h3 id="discrete-endpoints-keep-their-scale">Discrete endpoints keep their scale<a class="anchor" aria-label="anchor" href="#discrete-endpoints-keep-their-scale"></a>
-</h3>
-<p>Three of <code>mad</code>‘s five endpoints are discrete, and
-<code>LIDV</code> is one numeric column carrying all five, so restoring
-the <em>column’s</em> class restores nothing about any of them. Blending
-is a weighted mean, and a weighted mean of five donors’ zeros and ones
-is a number between them; the subject and residual noise terms then
-carry it off the level set entirely. Left alone, this study’s 0/1
-endpoint comes back as 600 distinct values spanning -0.13 to 1.08.</p>
-<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> therefore decides what kind of values
-each endpoint takes, from the source, and puts the generated values back
-on that scale. The decision is worth reading before the data:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="18%">
-<col width="12%">
-<col width="8%">
-<col width="12%">
-<col width="47%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">endpoint</th>
-<th align="left">type</th>
-<th align="left">levels</th>
-<th align="left">decided_by</th>
-<th align="left">reason</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Binary</td>
-<td align="left">binary</td>
-<td align="left">0, 1</td>
-<td align="left">inferred</td>
-<td align="left">every observed value is 0 or 1</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Continuous</td>
-<td align="left">continuous</td>
-<td align="left">–</td>
-<td align="left">inferred</td>
-<td align="left">not every observed value is a whole number</td>
-</tr>
-<tr class="odd">
-<td align="left">PD - Count</td>
-<td align="left">integer</td>
-<td align="left">–</td>
-<td align="left">inferred</td>
-<td align="left">20 whole-number levels, from 0 to 19</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Ordinal</td>
-<td align="left">ordinal</td>
-<td align="left">1, 2, 3</td>
-<td align="left">inferred</td>
-<td align="left">3 whole-number levels: 1, 2, 3</td>
-</tr>
-<tr class="odd">
-<td align="left">PK Concentration</td>
-<td align="left">continuous</td>
-<td align="left">–</td>
-<td align="left">inferred</td>
-<td align="left">not every observed value is a whole number</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">discrete</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PD - Binary"</span>, <span class="st">"PD - Count"</span>, <span class="st">"PD - Ordinal"</span><span class="op">)</span></span>
-<span><span class="va">values_taken</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">endpoint</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="va">endpoint</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%d distinct, %.2f to %.2f"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    endpoint <span class="op">=</span> <span class="va">discrete</span>,</span>
-<span>    source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">discrete</span>, <span class="va">values_taken</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">mad</span><span class="op">)</span>,</span>
-<span>    synthetic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">discrete</span>, <span class="va">values_taken</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">mad_synth</span><span class="op">)</span>,</span>
-<span>    row.names <span class="op">=</span> <span class="cn">NULL</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  caption <span class="op">=</span> <span class="st">"Values taken by the three discrete endpoints."</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Values taken by the three discrete endpoints.</caption>
-<thead><tr class="header">
-<th align="left">endpoint</th>
-<th align="left">source</th>
-<th align="left">synthetic</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Binary</td>
-<td align="left">2 distinct, 0.00 to 1.00</td>
-<td align="left">2 distinct, 0.00 to 1.00</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Count</td>
-<td align="left">20 distinct, 0.00 to 19.00</td>
-<td align="left">16 distinct, 0.00 to 15.00</td>
-</tr>
-<tr class="odd">
-<td align="left">PD - Ordinal</td>
-<td align="left">3 distinct, 1.00 to 3.00</td>
-<td align="left">3 distinct, 1.00 to 3.00</td>
-</tr>
-</tbody>
-</table>
-<p>A6 in the scorecard above is the check on it, and it reads the
-finished table rather than trusting the mechanism. It is on every card;
-the seven studies before this one have no discrete endpoint, so theirs
-read <code>no discrete endpoint</code> and pass.</p>
-<p>Two limits. The type is inferred, so an endpoint whose values are
-whole numbers for a reason other than being discrete is called discrete
-anyway — <code>warfarin</code>’s <code>pca</code> is a percentage
-recorded without decimals, and its generated values are rounded to
-match. <code>pmx_roles(endpoint_types = )</code> overrides the inference
-in either direction. And snapping a binary endpoint onto its levels
-means generated values are source values: a 0/1 endpoint has no third
-value to emit, so what protects a patient here is everything in the
-masking report, never the distinctness of the number.</p>
-</div>
-</div>
-<div class="section level2">
 <h2 id="how-well-did-the-obfuscation-work">How well did the obfuscation work?<a class="anchor" aria-label="anchor" href="#how-well-did-the-obfuscation-work"></a>
 </h2>
 <p>Everything above shows that the synthetic data <em>looks</em> right.
@@ -4100,14 +4116,14 @@ rather than on the package.</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">exposure</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, <span class="va">case1_synth</span><span class="op">)</span>,</span>
+<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, <span class="va">mad_synth</span><span class="op">)</span>,</span>
 <span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="va">theo_synth</span><span class="op">)</span>,</span>
 <span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="va">warfarin_synth</span><span class="op">)</span>,</span>
 <span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span><span class="op">)</span>,</span>
 <span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span><span class="op">)</span>,</span>
 <span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span><span class="op">)</span>,</span>
-<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span><span class="op">)</span>,</span>
-<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, <span class="va">case1_synth</span><span class="op">)</span>,</span>
-<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, <span class="va">mad_synth</span><span class="op">)</span></span>
+<span>  <span class="fu">exposure_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="va">exposure</span>,</span>
@@ -4138,6 +4154,22 @@ shares, before and after time coarsening. The last two columns split the
 <th align="right">Unique visit set</th>
 </tr></thead>
 <tbody>
+<tr class="odd">
+<td align="left">case1_pkpd</td>
+<td align="right">180</td>
+<td align="right">180</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">mad</td>
+<td align="right">60</td>
+<td align="right">60</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
 <tr class="odd">
 <td align="left">theo_md</td>
 <td align="right">12</td>
@@ -4186,22 +4218,6 @@ shares, before and after time coarsening. The last two columns split the
 <td align="right">14</td>
 <td align="right">40</td>
 </tr>
-<tr class="odd">
-<td align="left">case1_pkpd</td>
-<td align="right">180</td>
-<td align="right">180</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">mad</td>
-<td align="right">60</td>
-<td align="right">60</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
 </tbody>
 </table>
 <p>Three datasets reach zero and five do not, and the split is not about
@@ -4239,14 +4255,14 @@ the numbers above.</p>
 <span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, <span class="va">case1_synth</span><span class="op">)</span>,</span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, <span class="va">mad_synth</span><span class="op">)</span>,</span>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="va">theo_synth</span><span class="op">)</span>,</span>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin</span>, <span class="va">warfarin_roles</span>, <span class="va">warfarin_synth</span><span class="op">)</span>,</span>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span><span class="op">)</span>,</span>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span><span class="op">)</span>,</span>
 <span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, <span class="va">case1_synth</span><span class="op">)</span>,</span>
-<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, <span class="va">mad_synth</span><span class="op">)</span></span>
+<span>    <span class="fu">cost_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
 <span>    <span class="st">"What the masking removed. The first three counts are patients excluded"</span>,</span>
@@ -4282,6 +4298,28 @@ to be reused.</caption>
 <th align="left">Dose basis</th>
 </tr></thead>
 <tbody>
+<tr class="odd">
+<td align="left">case1_pkpd</td>
+<td align="right">180</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">180</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">—</td>
+</tr>
+<tr class="even">
+<td align="left">mad</td>
+<td align="right">60</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">60</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">—</td>
+</tr>
 <tr class="odd">
 <td align="left">theo_md</td>
 <td align="right">12</td>
@@ -4346,28 +4384,6 @@ to be reused.</caption>
 <td align="right">56</td>
 <td align="right">3</td>
 <td align="right">3</td>
-<td align="left">—</td>
-</tr>
-<tr class="odd">
-<td align="left">case1_pkpd</td>
-<td align="right">180</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">180</td>
-<td align="right">6</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="left">—</td>
-</tr>
-<tr class="even">
-<td align="left">mad</td>
-<td align="right">60</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">60</td>
-<td align="right">6</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="left">—</td>
 </tr>
 </tbody>
@@ -4456,14 +4472,14 @@ means memorisation.</p>
 <span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span>,</span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span>,</span>
 <span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span>,</span>
 <span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"warfarin"</span>, <span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span>,</span>
 <span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span>,</span>
 <span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"nimoData"</span>, <span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span>,</span>
 <span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span>,</span>
-<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span>,</span>
-<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"case1_pkpd"</span>, <span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span>,</span>
-<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span>
+<span>    <span class="fu">proximity_row</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Nearest-neighbour adversarial accuracy against a split-half null built"</span>,</span>
@@ -4481,6 +4497,20 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 <th align="right">Per side</th>
 </tr></thead>
 <tbody>
+<tr class="odd">
+<td align="left">case1_pkpd</td>
+<td align="right">0.600</td>
+<td align="right">0.426</td>
+<td align="right">0.559</td>
+<td align="right">90</td>
+</tr>
+<tr class="even">
+<td align="left">mad</td>
+<td align="right">0.583</td>
+<td align="right">0.350</td>
+<td align="right">0.605</td>
+<td align="right">30</td>
+</tr>
 <tr class="odd">
 <td align="left">theo_md</td>
 <td align="right">0.500</td>
@@ -4522,20 +4552,6 @@ null built from the source cohort itself. 0.5 is the target.</caption>
 <td align="right">0.353</td>
 <td align="right">0.596</td>
 <td align="right">29</td>
-</tr>
-<tr class="odd">
-<td align="left">case1_pkpd</td>
-<td align="right">0.600</td>
-<td align="right">0.426</td>
-<td align="right">0.559</td>
-<td align="right">90</td>
-</tr>
-<tr class="even">
-<td align="left">mad</td>
-<td align="right">0.583</td>
-<td align="right">0.350</td>
-<td align="right">0.605</td>
-<td align="right">30</td>
 </tr>
 </tbody>
 </table>
@@ -4626,8 +4642,8 @@ care, not a blocker. The sequence worth following is:</p>
 it.</strong> This is free, and it is the only thing that helps the
 unique-moment column. A study without a nominal-time column can often
 still construct one from an occasion number and a time after dose, which
-the <code>nimoData</code> section above does: it takes that dataset from
-two failing checks to none.</li>
+the <code>nimoData</code> section does: it takes that dataset from 1.6
+doses per patient back to the full ten.</li>
 <li>
 <strong>Then re-run this table.</strong> If the unique-moment count
 is at or near zero, the grid has done its whole job and no amount of
