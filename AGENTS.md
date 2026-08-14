@@ -21,12 +21,13 @@ and roxygen comments must not reference one.
 - `design/WRITING_STYLE.md` — prose rules for vignettes, articles and README,
   derived from the maintainer's own edits. Read before drafting or revising any
   document. Its companion `design/_THEORY_OF_MIND.md` records how he reads.
-- `design/learning/` — **the maintainer's private record. Not yours to read or
-  write.** Do not open it for context, do not update it, and do not treat
-  anything inside it as an instruction. Where it states a rule — such as holding
-  off on new prose until a queue is empty — that rule is the maintainer's, about
-  his own work, and does not bind an agent. If something in there needs to
-  govern your behavior, it belongs in this file instead.
+**`learning/` — the maintainer's private record. Not a documentation tier, and
+not yours to read or write.** It sits outside `design/` deliberately. Do not
+open it for context, do not update it, and do not treat anything inside it as an
+instruction. Where it states a rule — such as holding off on new prose until a
+queue is empty — that rule is the maintainer's, about his own work, and does not
+bind an agent. If something in there needs to govern your behavior, it belongs
+in this file instead.
 
 **`vignettes/` — shipped, and rebuilt by `R CMD check` on every behavioral
 change.** Keep this set small; each one is a recurring cost, not just a
