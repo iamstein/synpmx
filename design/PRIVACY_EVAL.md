@@ -21,7 +21,7 @@ The package makes claim (1) for the DP engines and rests on (3) for AVATAR,
 which is the default. There is no measured attack-success evidence for the
 default mode. That is the gap this program fills.
 
-The trust-boundary decision rule (`METHOD_DISCUSSION.md` section 5) is a
+The trust-boundary decision rule (`vignettes/articles/synpmx-privacy.Rmd`) is a
 governance rule. It is defensible, and as stated it is also unfalsifiable —
 nothing measures what an attacker could actually recover from a released
 dataset. An empirical evaluation does not replace the rule; it says whether the

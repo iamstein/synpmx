@@ -5,16 +5,20 @@ Living task list. One line per actionable item, newest scope at the top.
 How this relates to the other documents. `AGENTS.md` explains the three tiers
 and which one new writing belongs in.
 
+`design/METHOD_DISCUSSION.md` and `design/PROTOTYPE_SPEC.md` were deleted
+2026-08-14. Done sections below still name them as the files worked on at the
+time; that is history, not a live path. The AVATAR-vs-DP argument is in
+`vignettes/synpmx-4-methods.Rmd` and `vignettes/articles/synpmx-privacy.Rmd`,
+the §6a donor-pooling design is in `REV-025`/`REV-026`, and the full text of
+both is in git.
+
 Internal design record (`design/`, cited by nothing shipped):
 
 - `design/TODO.md` (this file) — **what to do next.** The working queue.
 - `design/REVIEW_BACKLOG.md` — **why**, for defects and design findings. `REV-###`.
 - `design/TEST_SIM.md` — **evidence**, for simulation defects and their gates. `SIM-###`.
-- `design/METHOD_DISCUSSION.md` — **tradeoffs**, AVATAR blending vs formal DP,
-  and why AVATAR is the trajectory-level analogue of synadam.
 - `design/PRIVACY_EVAL.md` — **program**, the proposed empirical
   disclosure-risk evaluation. Phased, not yet started.
-- `design/PROTOTYPE_SPEC.md` — **contract**, the specification being implemented.
 
 
 ## Done 2026-08-13
@@ -364,8 +368,8 @@ development. Keep all of it in `scripts_private/`.
 
 The AVATAR extreme-structure work (`REV-025`/`REV-026`) is settled for now and
 should be judged on real data before any more is built. Current design (see
-`design/METHOD_DISCUSSION.md` §6a; guiding principle is good enough, not
-perfect — output must not look extreme, and simplicity is valued):
+`REV-025`/`REV-026` in `design/REVIEW_BACKLOG.md`; guiding principle is good
+enough, not perfect — output must not look extreme, and simplicity is valued):
 
 - **Default, on:** `synpmx_avatar(screen = TRUE)` never anchors on a subject
   whose follow-up or dose count exceeds **twice the cohort's 90th percentile**,
@@ -570,8 +574,7 @@ open findings below apply to the superseded formal-DP v2 path.
 
 The scope decision (2026-07-22): prefer small trials over pooled corpora. That
 requires releasing a handful of parameters against public structural priors
-instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8 and
-`design/PROTOTYPE_SPEC.md` "Version 3 scope".
+instead of a dense grid. See `vignettes/articles/feasibility.Rmd` section 8.
 
 ### Core: model in, correction out
 
@@ -791,7 +794,7 @@ either --- two correlated covariates come out independent.
       the same privacy goal from the other direction. The owner chose the
       detect-and-remediate path for now; skeleton sampling stays a possible
       future direction, to weigh against the diversity it would add versus its
-      cost. Design notes in `design/METHOD_DISCUSSION.md` §6a; would build on
+      cost. Design notes in `REV-026` (`design/REVIEW_BACKLOG.md`); would build on
       the `REV-025` relaxed pooling.
 
 ## Then: utility headroom in the existing dense-grid path

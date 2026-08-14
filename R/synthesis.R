@@ -205,8 +205,8 @@
 #
 # The removed deviations are pooled across the whole cohort and resampled
 # independently afterwards. A single deviation value is weakly identifying in the
-# same sense a resampled covariate value is (`design/METHOD_DISCUSSION.md` s4),
-# while the vector an avatar receives is a fresh combination. Resampling them is
+# same sense a resampled covariate value is, while the vector an avatar
+# receives is a fresh combination. Resampling them is
 # what keeps `TIME` distinct from `NTIME` in the output, so workflow code that
 # reconciles the two still has something to reconcile.
 .coarsen_source_time <- function(source, roles) {

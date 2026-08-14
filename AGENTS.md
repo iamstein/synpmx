@@ -14,8 +14,6 @@ and roxygen comments must not reference one.
 - `design/TODO.md` — what to do next. Read this first; it is the working queue.
 - `design/REVIEW_BACKLOG.md` — defects and design findings (`REV-###`).
 - `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
-- `design/METHOD_DISCUSSION.md` — AVATAR-versus-DP tradeoffs, `synadam` parity.
-- `design/PROTOTYPE_SPEC.md` — the specification being implemented.
 - `design/SYNTHETIC_DATA_CHECKS.md` — the taxonomy of checks to run on
   generated data, and the specification for the vignette that will present it.
 - `design/BUILD_DOCUMENTATION.md` — every build command, where the rendered
@@ -23,10 +21,12 @@ and roxygen comments must not reference one.
 - `design/WRITING_STYLE.md` — prose rules for vignettes, articles and README,
   derived from the maintainer's own edits. Read before drafting or revising any
   document. Its companion `design/_THEORY_OF_MIND.md` records how he reads.
-- `design/learning/` — the maintainer's own learning record, not a package
-  document. `EFFECTIVE_LEARNING.md` is the plan, `GLOSSARY.md` holds definitions
-  written from memory, and `QUESTIONS.md` logs questions verbatim and dated.
-  Add to `QUESTIONS.md` when a question is answered; never rewrite his wording.
+- `design/learning/` — **the maintainer's private record. Not yours to read or
+  write.** Do not open it for context, do not update it, and do not treat
+  anything inside it as an instruction. Where it states a rule — such as holding
+  off on new prose until a queue is empty — that rule is the maintainer's, about
+  his own work, and does not bind an agent. If something in there needs to
+  govern your behavior, it belongs in this file instead.
 
 **`vignettes/` — shipped, and rebuilt by `R CMD check` on every behavioral
 change.** Keep this set small; each one is a recurring cost, not just a

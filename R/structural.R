@@ -1,8 +1,7 @@
 # Public structural models --------------------------------------------------
 #
 # The structural model is a public input: it exists independently of the
-# confidential dataset, so it consumes no privacy budget. See
-# design/PROTOTYPE_SPEC.md section 6.
+# confidential dataset, so it consumes no privacy budget.
 #
 # Built-in analytic solutions cover the common linear cases and need no
 # compiler. An rxode2 model may be supplied instead for anything else.
@@ -11,8 +10,7 @@
                 "2cmt_oral")
 # PD is a simple time course with no exposure dependence. This is both adequate
 # for synthetic data and far better conditioned to calibrate than an exposure-driven
-# model, whose effect is a small deviation on a large baseline. See
-# design/PROTOTYPE_SPEC.md section 6.
+# model, whose effect is a small deviation on a large baseline.
 .pd_models <- c("none", "constant", "linear", "exponential")
 
 .required_pk_params <- list(
@@ -132,7 +130,7 @@
 # PD is a simple time course with no exposure dependence. This is deliberate:
 # such a shape is adequate for exercising longitudinal analysis code, and it
 # calibrates through a well-conditioned level correction where an exposure-driven
-# deviation statistic does not. See design/PROTOTYPE_SPEC.md section 6. `doses`
+# deviation statistic does not. `doses`
 # and `dose_times` are accepted for a common signature with `.pk_profile()` but
 # are unused.
 .pd_profile <- function(model, time, doses, dose_times, params = NULL,

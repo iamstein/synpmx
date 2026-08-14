@@ -3,7 +3,7 @@
 # The release is a multiplicative correction to the structural model's
 # prediction, not an absolute parameter. The prior on "how wrong is the
 # prediction" is far tighter than any prior on the parameter itself, and it is
-# free. See design/PROTOTYPE_SPEC.md section 6.
+# free.
 
 #' Declare one public prior range
 #'
