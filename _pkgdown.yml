@@ -109,6 +109,7 @@ reference:
   desc: Structural checks on generated data, and restricted comparisons.
   contents:
   - synpmx_scorecard
+  - synpmx_scorecard_datatable
   - validate_pmx
   - pmx_endpoint_types
   - compare_pmx

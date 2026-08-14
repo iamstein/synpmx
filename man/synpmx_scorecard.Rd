@@ -113,6 +113,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard(data, synthetic, roles)
 }
 \seealso{
-\code{\link[=compare_pmx]{compare_pmx()}}, \code{\link[=pmx_masking_report]{pmx_masking_report()}}, \code{\link[=pmx_endpoint_types]{pmx_endpoint_types()}},
+\code{\link[=synpmx_scorecard_datatable]{synpmx_scorecard_datatable()}} to colour the verdicts in an HTML
+report, \code{\link[=compare_pmx]{compare_pmx()}}, \code{\link[=pmx_masking_report]{pmx_masking_report()}}, \code{\link[=pmx_endpoint_types]{pmx_endpoint_types()}},
 \code{vignette("scorecard-synthetic-data-checks")}.
 }

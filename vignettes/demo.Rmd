@@ -128,11 +128,7 @@ The scorecard computes checks of the synthetic dataset.  It is described further
 
 ```{r scorecard, eval=run}
 scorecard <- synpmx_scorecard(raw, synthetic, roles)
-if (requireNamespace("DT", quietly = TRUE)) {
-  DT::datatable(as.data.frame(scorecard), options = list(paging = FALSE))
-} else {
-  scorecard
-}
+synpmx_scorecard_datatable(scorecard)
 ```
 
 **`review` is not a soft `pass`.** Five rows here have no pass mark because no

@@ -247,7 +247,8 @@
 #' @return A `synpmx_scorecard` data frame with columns `check`, `question`,
 #'   `reads`, `result`, `verdict` and `explore`, marked
 #'   `"restricted_not_releasable"`.
-#' @seealso [compare_pmx()], [pmx_masking_report()], [pmx_endpoint_types()],
+#' @seealso [synpmx_scorecard_datatable()] to colour the verdicts in an HTML
+#'   report, [compare_pmx()], [pmx_masking_report()], [pmx_endpoint_types()],
 #'   `vignette("scorecard-synthetic-data-checks")`.
 #' @export
 #' @examples
@@ -674,4 +675,123 @@ knit_print.synpmx_scorecard <- function(x, ...) {
                       "synthetic on the same axes -- `DV` against time, and",
                       "each covariate -- with whatever you normally use.*"))
   knitr::asis_output(paste(out, collapse = "\n\n"))
+}
+
+# One place for the palette, so the function and its documentation cannot
+# disagree about which colour means what. The two dark shades are chosen to
+# stay legible as text on white rather than to be the brightest orange and red
+# available: plain `red` and `orange` are respectively glaring and washed out
+# at this size, and the card is read, not glanced at. Grey says "nothing was
+# measured here", which is a quieter statement than either.
+.scorecard_verdict_colours <- c(FAIL = "#B00020", review = "#B45309",
+                                unavailable = "#6C757D")
+
+# The tints behind those two. Pale enough that the bold text on top stays the
+# thing being read -- both clear 7:1 against their own foreground -- and pale
+# enough that five tinted cells on a thirty-row card look like marks rather
+# than like a warning banner. `"unavailable"` gets none: it is deliberately the
+# quiet verdict, and a tint would put it back alongside the loud two.
+.scorecard_verdict_fills <- c(FAIL = "#FDECEA", review = "#FFF4E5")
+
+#' A scorecard as a coloured HTML table
+#'
+#' Displays a [synpmx_scorecard()] as an interactive table with the verdicts
+#' coloured: `"FAIL"` in bold red on a light red, `"review"` in bold orange on
+#' a light orange, `"unavailable"` in muted grey, and `"pass"` left as ordinary
+#' text. A card is five verdicts among thirty-odd rows of prose, and the rows
+#' that need reading are the ones that have to be findable without reading all
+#' of it.
+#'
+#' `synpmx_scorecard()` computes the card and this displays it, so the object
+#' is unchanged and can be subset, saved or printed as usual. The colouring is
+#' the only thing added.
+#'
+#' What is emitted is what knitting the card itself emits, with the colouring
+#' added: the card, then the B5b rare-level detail where a study has any, then
+#' the reminder that D1 is a number and not a shape.
+#'
+#' `DT` is a suggested package rather than a required one -- `synpmx` has no
+#' hard dependencies -- so without it installed this says so and prints the
+#' card in the console form instead. The verdicts are all still there; only the
+#' colour is missing.
+#'
+#' The same restriction applies as to the card itself. Rows reading `"source"`
+#' or `"both"` were computed from real patient data, so an HTML file holding
+#' the whole table belongs in the environment the source lives in.
+#'
+#' @param x A [synpmx_scorecard()].
+#' @param ... Passed to `DT::datatable()`. Paging is off and row numbers are
+#'   suppressed by default, since the whole card is meant to be read at once
+#'   and `check` already names each row.
+#'
+#' @return An `htmltools::tagList` holding the coloured card and the notes that
+#'   knitting one carries. Without `DT` installed, `x` invisibly, having
+#'   printed it.
+#' @seealso [synpmx_scorecard()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(30)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles))
+synpmx_scorecard_datatable <- function(x, ...) {
+  # `htmltools` is what `DT` itself is built on, so the second test only fails
+  # on a broken installation; it is here so that a missing one is a message
+  # rather than an error from inside the assembly below.
+  if (!requireNamespace("DT", quietly = TRUE) ||
+      !requireNamespace("htmltools", quietly = TRUE)) {
+    message("DT is not installed, so the scorecard is printed uncoloured. ",
+            "Install DT for the coloured table.")
+    print(x)
+    return(invisible(x))
+  }
+  verdicts <- names(.scorecard_verdict_colours)
+  # Built through `do.call` so that the two defaults are defaults rather than
+  # fixtures: passing `options` to a call that already names it is an error,
+  # and a caller who wants paging or a caption should get it.
+  arguments <- list(...)
+  arguments$data <- as.data.frame(x)
+  arguments$rownames <- arguments$rownames %||% FALSE
+  arguments$options <- arguments$options %||% list(paging = FALSE)
+  table <- do.call(DT::datatable, arguments)
+  coloured <- DT::formatStyle(
+    table, "verdict",
+    color = DT::styleEqual(verdicts, unname(.scorecard_verdict_colours),
+                           default = "inherit"),
+    # `"unavailable"` is not bold. It marks a row nothing was measured for,
+    # which is worth seeing but is not a finding to act on, and bolding it
+    # would put it alongside the rows that are.
+    fontWeight = DT::styleEqual(c("FAIL", "review"), c("bold", "bold"),
+                                default = "normal"),
+    # `"transparent"` rather than a white, so the table's own row striping and
+    # hover still show through on the verdicts that are not tinted.
+    backgroundColor = DT::styleEqual(names(.scorecard_verdict_fills),
+                                     unname(.scorecard_verdict_fills),
+                                     default = "transparent")
+  )
+
+  # Everything `knit_print()` puts around the card comes too. A reader who
+  # swaps a knitted card for a coloured one is choosing a colour, not agreeing
+  # to lose the B5b levels or the D1 warning, and those are the two places a
+  # card understates what it found.
+  parts <- list(coloured)
+  rare <- attr(x, "rare_levels")
+  if (!is.null(rare) && nrow(rare)) {
+    parts <- c(parts, list(DT::datatable(
+      rare, rownames = FALSE, options = list(paging = FALSE),
+      caption = paste("B5b: rare source levels that reached the output.",
+                      "Each is one real patient's attribute, copied.")
+    )))
+  }
+  parts <- c(parts, list(htmltools::tags$p(htmltools::tags$em(
+    paste("D1 reports numbers, not shapes. Plot source and synthetic on the",
+          "same axes -- DV against time, and each covariate -- with whatever",
+          "you normally use.")
+  ))))
+  # Spliced, not passed as one list: `tagList(list(...))` nests the list inside
+  # a single element and the pieces stop rendering as siblings.
+  do.call(htmltools::tagList, parts)
 }

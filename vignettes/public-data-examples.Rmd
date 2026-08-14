@@ -265,7 +265,8 @@ compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 ```
 
 ```{r case1-scorecard, eval=has_xgxr}
-synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+scorecard <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails, and C1 passes: all six treatment arms keep their source size. An
@@ -336,7 +337,8 @@ compare_pmx_distributions(mad, mad_synth, mad_roles)
 ```
 
 ```{r mad-scorecard, eval=has_xgxr}
-synpmx_scorecard(mad, mad_synth, mad_roles)
+scorecard <- synpmx_scorecard(mad, mad_synth, mad_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a row
@@ -422,7 +424,8 @@ compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 ```
 
 ```{r theo-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(theo_md, theo_synth, theo_roles)
+scorecard <- synpmx_scorecard(theo_md, theo_synth, theo_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious visit grid
@@ -459,7 +462,8 @@ compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 ```
 
 ```{r warfarin-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
+scorecard <- synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
@@ -494,7 +498,8 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 ```
 
 ```{r wbc-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
+scorecard <- synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose regimens is
@@ -558,7 +563,8 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
 ```{r nimo-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
+scorecard <- synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 **Every check passes, and the dataset is still not shippable.** A5b is the row
@@ -694,7 +700,8 @@ nimo_roles_nominal <- pmx_roles(
 nimo_fixed <- suppressWarnings(
   synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
 )
-synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
+scorecard <- synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 **The dosing comes back in full.** A5b goes from `10 -> 1.6` to `10 -> 10` and
@@ -777,7 +784,8 @@ compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 ```
 
 ```{r mavo-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
+scorecard <- synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 Nothing fails, and B2 is the row that looks alarming: 40 of the 120 synthetic
@@ -839,7 +847,8 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 ```
 
 ```{r pheno-scorecard, eval=has_nlmixr2data}
-synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
+scorecard <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
+synpmx_scorecard_datatable(scorecard)
 ```
 
 **Nothing fails, and the two rows that moved say what reaching that cost.**

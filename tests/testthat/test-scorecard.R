@@ -278,3 +278,71 @@ test_that("the scorecard is restricted output and reuses a given proximity", {
   expect_match(card$result[card$check == "B3"],
                sprintf("^%.3f", proximity$adversarial_accuracy))
 })
+
+test_that("the datatable colours every verdict the card can carry", {
+  # The colouring is a lookup keyed on the verdict strings, so the test worth
+  # having is that the keys and the verdicts cannot drift apart: a renamed or
+  # added verdict would silently stop being coloured rather than error.
+  skip_if_not_installed("DT")
+  source <- pmx_simulated_fixture(30)
+  roles <- sc_roles()
+  # Settings stripped, so the card carries "unavailable" rows as well.
+  synthetic <- sc_synthetic(source, roles)
+  attr(synthetic, "pmx_settings") <- NULL
+  card <- synpmx_scorecard(source, synthetic, roles)
+
+  expect_true(any(card$verdict == "unavailable"))
+  expect_true(all(setdiff(unique(card$verdict), "pass") %in%
+                    names(.scorecard_verdict_colours)))
+
+  shown <- synpmx_scorecard_datatable(card)
+
+  expect_s3_class(shown, "shiny.tag.list")
+  expect_s3_class(shown[[1]], "datatables")
+  rendered <- paste(unlist(shown[[1]]$x), collapse = " ")
+  expect_true(all(vapply(c(.scorecard_verdict_colours, .scorecard_verdict_fills),
+                         function(colour) grepl(colour, rendered, fixed = TRUE),
+                         logical(1))))
+  # Every tint is a verdict the text palette also names, so the two cannot
+  # drift into tinting something that is left uncoloured.
+  expect_true(all(names(.scorecard_verdict_fills) %in%
+                    names(.scorecard_verdict_colours)))
+  # The D1 warning that knitting the card carries is not lost by colouring it.
+  expect_match(paste(unlist(shown), collapse = " "), "D1 reports numbers")
+})
+
+test_that("the datatable keeps the B5b detail that knitting the card shows", {
+  # `knit_print()` emits the rare-level table as well as the card, because the
+  # card can only name one level in a cell. Colouring must not be a way to
+  # quietly drop the rest of them.
+  skip_if_not_installed("DT")
+  source <- pmx_simulated_fixture(30)
+  roles <- sc_roles()
+  card <- synpmx_scorecard(source, sc_synthetic(source, roles), roles)
+  attr(card, "rare_levels") <- data.frame(
+    column = "RACE", level = "OTHER",
+    source_patients = 1L, synthetic_patients = 2L,
+    stringsAsFactors = FALSE
+  )
+
+  shown <- synpmx_scorecard_datatable(card)
+
+  expect_length(Filter(function(part) inherits(part, "datatables"), shown), 2L)
+  expect_match(paste(unlist(shown), collapse = " "), "OTHER")
+})
+
+test_that("the datatable says so and prints the card when DT is missing", {
+  source <- pmx_simulated_fixture(20)
+  roles <- sc_roles()
+  card <- synpmx_scorecard(source, sc_synthetic(source, roles), roles)
+  local_mocked_bindings(requireNamespace = function(...) FALSE,
+                        .package = "base")
+
+  printed <- capture.output(
+    expect_message(result <- synpmx_scorecard_datatable(card),
+                   "DT is not installed")
+  )
+
+  expect_s3_class(result, "synpmx_scorecard")
+  expect_true(any(grepl("verdict", printed)))
+})

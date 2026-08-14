@@ -105,7 +105,7 @@ nothing. Where the two disagree is where a check is doing work.
 
 ```{r cards, eval=both}
 case1_card <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
-case1_card
+synpmx_scorecard_datatable(case1_card)
 ```
 
 Nothing fails. The rest of this vignette is what each check asks and why its
@@ -221,7 +221,7 @@ your study. **They are split because a total hides the thing worth seeing.** On
 
 ```{r pheno-card, eval=both}
 pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
-pheno_card
+synpmx_scorecard_datatable(pheno_card)
 ```
 
 Observations are near-intact at 2.6 against 2.5 per patient, while dosing falls
