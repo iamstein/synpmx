@@ -271,21 +271,28 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   dv_copies <- .scorecard_copies(source, synthetic, roles, roles$dv, floor)
   flagged <- flag_identifiable_subjects(synthetic, roles)
 
-  # Only where there is something to ask. A study with no discrete endpoint
-  # cannot pass or fail this, and a row reading "0 of 0" on every continuous
-  # study is a row nobody reads on the one study that needs it. Built here
-  # rather than appended, because a conditional row appended after the list is
-  # printed after B4b -- A6 belongs with the other A rows wherever it fires.
+  # Always present, including on a study with nothing discrete to check. The row
+  # was conditional, and a card whose rows depend on the study cannot be
+  # compared across studies -- worse, an absent row reads as a row that passed,
+  # when it means the question was never asked. A continuous study says so in
+  # the result and passes, which is the true answer: no endpoint left its
+  # source scale, because none had one to leave. Built here rather than
+  # appended, because a row appended after the list prints after B4b, and A6
+  # belongs with the other A rows.
   value_types <- .endpoint_value_types(source, roles)
   discrete <- names(value_types)[
     vapply(value_types, function(s) !identical(s$type, "continuous"),
            logical(1))
   ]
-  a6_rows <- list()
-  if (length(discrete)) {
+  a6_rows <- if (!length(discrete)) {
+    list(.scorecard_row(
+      "A6", "Discrete endpoints keeping their source scale", "both",
+      "no discrete endpoint", "pmx_endpoint_types(source, roles)", TRUE
+    ))
+  } else {
     violations <- .endpoint_type_violations(synthetic, roles, value_types)
     clean <- sum(violations[discrete] == 0L)
-    a6_rows <- list(.scorecard_row(
+    list(.scorecard_row(
       "A6", "Discrete endpoints keeping their source scale", "both",
       paste(clean, "of", length(discrete)),
       "pmx_endpoint_types(source, roles)",

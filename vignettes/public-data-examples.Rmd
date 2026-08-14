@@ -742,9 +742,9 @@ knitr::kable(
 ```
 
 A6 in the scorecard above is the check on it, and it reads the finished table
-rather than trusting the mechanism. It appears only on a study that has a
-discrete endpoint, which is why it is absent from the seven scorecards before
-this one.
+rather than trusting the mechanism. It is on every card; the seven studies
+before this one have no discrete endpoint, so theirs read
+`no discrete endpoint` and pass.
 
 Two limits. The type is inferred, so an endpoint whose values are whole numbers
 for a reason other than being discrete is called discrete anyway — `warfarin`'s

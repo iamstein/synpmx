@@ -166,7 +166,7 @@ test_that("`endpoint_types` is not treated as a column name", {
   expect_false("binary" %in% synpmx:::.retained_role_columns(roles))
 })
 
-test_that("the scorecard asks the question only where there is one to ask", {
+test_that("A6 is on every card, discrete endpoints or not", {
   data <- discrete_fixture()
   roles <- discrete_roles()
   synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 11))
@@ -182,7 +182,13 @@ test_that("the scorecard asks the question only where there is one to ask", {
   continuous_card <- as.data.frame(
     synpmx_scorecard(continuous_only, continuous_synthetic, continuous_roles)
   )
-  expect_false("A6" %in% continuous_card$check)
+  # Present and passing, not absent. A card whose rows depend on the study
+  # cannot be compared across studies, and an absent row reads as one that
+  # passed when it means the question was never asked.
+  expect_identical(continuous_card$result[continuous_card$check == "A6"],
+                   "no discrete endpoint")
+  expect_identical(continuous_card$verdict[continuous_card$check == "A6"],
+                   "pass")
 })
 
 test_that("the scorecard fails when a discrete endpoint left its scale", {
