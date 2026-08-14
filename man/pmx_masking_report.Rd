@@ -4,7 +4,7 @@
 \alias{pmx_masking_report}
 \title{Report what each masking mechanism did, and what it cost}
 \usage{
-pmx_masking_report(synthetic, source = NULL, roles = NULL)
+pmx_masking_report(synthetic, source = NULL, roles = NULL, section = NULL)
 }
 \arguments{
 \item{synthetic}{A dataset from \code{\link[=synpmx_avatar]{synpmx_avatar()}}, carrying its
@@ -15,6 +15,13 @@ adds the before-coarsening schedule count, so the table shows what
 coarsening removed rather than only what was left.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}. Required with \code{source}.}
+
+\item{section}{Which blocks of the report to keep, as a character vector of
+\code{"anchors"}, \code{"donors"}, \code{"blend"}, \code{"visits"}, \code{"visit_sets"},
+\code{"dose_schedules"}, \code{"dose_amounts"}. \code{NULL} (default) keeps all of them.
+The whole table is the right thing to read once after a run, and the wrong
+thing to print in a document making one point: a section discussing what
+became of the dosing wants \code{section = "dose_schedules"} and its five rows.}
 }
 \value{
 A \code{pmx_masking_report} data frame with columns \code{Quantity}, \code{Value},
@@ -33,7 +40,7 @@ Every row carries a sentence saying what the number means, because none of
 them mean anything on their own. The rows worth looking at hardest:
 \itemize{
 \item \strong{Unique observation schedules, after coarsening} -- patients whose list
-of observation times nobody else shares. An avatar anchored on one wears a
+of observation times nobody else shares. An avatar anchored on one has a
 schedule belonging to one real person. Its two sub-rows have opposite
 remedies: a one-off observation time is what declaring \code{nominal_time}
 fixes, and a unique set of \emph{attended} visits is missing visits, which no grid

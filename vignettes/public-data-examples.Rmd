@@ -159,15 +159,26 @@ overlay_height <- function(data, roles, per_endpoint = 2.2, minimum = 3.4) {
   max(minimum, per_endpoint * endpoints)
 }
 
-# The full masking accounting for one run. `pmx_masking_report()` owns the row
-# labels and the explanation next to each one, so this vignette and the study
-# reports under `scripts_private/` cannot drift apart; only the caption is local.
-masking_table <- function(source, roles, synthetic, label) {
+# The masking accounting for one run. `pmx_masking_report()` owns the row labels
+# and the explanation next to each one, so this vignette and the study reports
+# under `scripts_private/` cannot drift apart; only the caption is local.
+#
+# `section` is what keeps these tables readable. The whole report is thirty-odd
+# rows -- the right size to read once after a run, and the wrong size under a
+# paragraph making one point about one mechanism, where the five rows it is
+# discussing arrive buried in twenty-eight it is not.
+masking_table <- function(source, roles, synthetic, label, section = NULL) {
   knitr::kable(
-    as.data.frame(pmx_masking_report(synthetic, source, roles)),
+    as.data.frame(pmx_masking_report(synthetic, source, roles,
+                                     section = section)),
     row.names = FALSE, align = c("l", "r", "l"),
-    caption = paste0("Everything ", label,
-                     "'s run removed, and what was left to build on.")
+    caption = paste0(
+      "What ", label, "'s run removed",
+      if (is.null(section)) ", and what was left to build on." else
+        paste0(", on the ",
+               paste0("`", section, "`", collapse = " and "),
+               " side. `pmx_masking_report()` without `section` prints all of it.")
+    )
   )
 }
 ```
@@ -318,7 +329,8 @@ represented in the output.
 ### Three re-dosed patients are not in the synthetic cohort
 
 ```{r wbc-masking, eval=has_nlmixr2data}
-masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim")
+masking_table(wbcSim, wbc_roles, wbc_synth, "wbcSim",
+              section = "dose_schedules")
 ```
 
 Forty-two of the 45 subjects have a single infusion at time 0. The other three
@@ -332,12 +344,12 @@ this reason.
 Two of those three are also the only patients in this vignette that the anchor
 screen removes: they are followed far enough past the rest to exceed twice the
 cohort's 90th percentile, so `synpmx_avatar()` builds no avatar on them
-(`screen = TRUE`, the default). Read the first block of the table above as a
-pair: **43 anchors available, 45 avatars built.** Screening removes a subject
+(`screen = TRUE`, the default). `section = "anchors"` prints that as a pair:
+**43 anchors available, 45 avatars built.** Screening removes a subject
 from the pool avatars are drawn from, not from the cohort. The remaining 43 are
 sampled with replacement to fill the same 45 slots, and the screened subjects
 still contribute measurements as donors. What is lost is the possibility of an
-avatar wearing their distinctive follow-up length. `screen = FALSE` keeps every
+avatar with their distinctive follow-up length. `screen = FALSE` keeps every
 subject in the pool.
 
 Dose amounts are not recomputed: `wbcSim` declares no covariates, so there is
@@ -382,7 +394,8 @@ source regimens are represented at all.
 ### The inferred grid achieves nothing here
 
 ```{r nimo-masking, eval=has_nlmixr2data}
-masking_table(nimoData, nimo_roles, nimo_synth, "nimoData")
+masking_table(nimoData, nimo_roles, nimo_synth, "nimoData",
+              section = "visits")
 ```
 
 12 of 12 subjects are unique before coarsening, 12 of 12 after, and every one of
@@ -391,16 +404,16 @@ follow-up means no two subjects were ever dosed or sampled close enough together
 for an inferred grid to merge them, so every subject is observed at moments that
 are theirs alone.
 
-The visit-set rows show the same thing from the other side. Twelve subjects hold
-twelve distinct visit sets, two of them held by a single patient and discarded,
+`section = "visit_sets"` shows the same thing from the other side. Twelve
+subjects hold twelve distinct visit sets, two of them held by a single patient and discarded,
 and **every avatar's arrangement was built from a shape rather than reused,
 100%.** The shape is how many visits were missed and whether the misses were
 terminal, contiguous, or scattered; which specific visits each patient missed
 does not survive.
 
-The dose row fails outright because dose events are copied from the anchor
+The dose schedules fail outright because dose events are copied from the anchor
 verbatim. Moving a dose is not a protocol-valid edit the way moving a sample is,
-so when the ten infusions are recorded at actual times, every avatar wears one
+so when the ten infusions are recorded at actual times, every avatar has one
 real patient's dosing schedule.
 
 ### Constructing a nominal time
@@ -484,7 +497,8 @@ rather than a property of the synthetic data, which is why it is `review`.
 ### The largest residual in the vignette
 
 ```{r mavo-masking, eval=has_nlmixr2data}
-masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant")
+masking_table(mavoglurant, mavo_roles, mavo_synth, "mavoglurant",
+              section = "visits")
 ```
 
 Of the 64 patients still unique after coarsening, eleven have a one-off
@@ -494,8 +508,8 @@ absolute residual here, and no grid setting moves them. This is what the two
 sub-rows are for: they separate a problem that declaring `nominal_time` fixes
 from one that can only be dropped, remediated, or accepted.
 
-The visit-set rows are the other half of the picture. Mavoglurant has by far the
-most distinct visit sets of any dataset here, 73, and only two of them are held
+`section = "visit_sets"` is the other half of the picture. Mavoglurant has by far
+the most distinct visit sets of any dataset here, 73, and only two of them are held
 by a single patient, so only those two are discarded and no arrangement had to
 be invented at all. For every one of the 120 avatars a set that several real
 patients share was available to reuse. A large number of distinct visit sets is
@@ -541,11 +555,13 @@ it is the dosing being truncated away.
 ### Dosing that cannot be masked
 
 ```{r pheno-masking, eval=has_nlmixr2data}
-masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd")
+masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd",
+              section = "dose_schedules")
 ```
 
-Read the dose rows, not the observation rows. On the observation side the
-mechanism works: B1a holds at 0, so no avatar wears a set of attended visits
+The dose schedules are what this study loses; the observation side is fine. On
+the observation side the
+mechanism works: B1a holds at 0, so no avatar has a set of attended visits
 that belongs to one real infant. On the dose side there is almost nothing safe
 to build on. The source holds 56 distinct dose schedules across 59 infants, so
 declining to anchor on a patient whose schedule nobody shares means declining to

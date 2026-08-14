@@ -53,8 +53,7 @@
     ggplot2::facet_wrap(~endpoint_plot, scales = "free_y") +
     ggplot2::labs(
       x = roles$time, y = roles$dv, colour = "Dataset",
-      title = "Restricted source-versus-synthetic trajectory diagnostic",
-      subtitle = "Not releasable unless separately privatized and budgeted"
+      title = "Source-versus-synthetic trajectory diagnostic"
     ) + ggplot2::theme_minimal()
   faceted <- ggplot2::ggplot(
     trajectories,
@@ -63,7 +62,7 @@
     ggplot2::geom_line(alpha = 0.4, linewidth = 0.45) +
     ggplot2::facet_grid(dataset_plot ~ endpoint_plot, scales = "free_y") +
     ggplot2::labs(x = roles$time, y = roles$dv,
-                  title = "Restricted individual-trajectory diagnostic") +
+                  title = "Individual-trajectory diagnostic") +
     ggplot2::theme_minimal()
   list(overlay = overlay, faceted = faceted)
 }
@@ -145,7 +144,7 @@ compare_pmx <- function(source, synthetic, roles, endpoints = NULL) {
 
 #' @export
 print.pmx_comparison <- function(x, ...) {
-  cat("Restricted PMX source-versus-synthetic comparison\n")
+  cat("PMX source-versus-synthetic comparison\n")
   print(x$summary, row.names = FALSE)
   cat("Source-derived components are not releasable unless separately public or privately budgeted.\n")
   invisible(x)
@@ -326,7 +325,7 @@ compare_pmx_distributions <- function(source, synthetic = NULL, roles) {
 
 #' @export
 print.pmx_distribution_summary <- function(x, ...) {
-  cat("Restricted PMX source-versus-synthetic distribution summary\n")
+  cat("PMX source-versus-synthetic distribution summary\n")
   section <- function(title, df) {
     if (is.null(df)) return(invisible())
     cat("\n", title, ":\n", sep = "")
@@ -358,11 +357,11 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
   }
   out <- c(
     section(x$endpoints,
-            "RESTRICTED -- endpoints (dependent variable on observation rows)"),
+            "Endpoints (dependent variable on observation rows)"),
     section(x$covariates_numeric,
-            "RESTRICTED -- continuous covariates (baseline, per patient)"),
+            "Continuous covariates (baseline, per patient)"),
     section(x$covariates_categorical,
-            "RESTRICTED -- categorical covariates (baseline, per patient)")
+            "Categorical covariates (baseline, per patient)")
   )
   knitr::asis_output(paste(Filter(Negate(is.null), out), collapse = "\n\n"))
 }
@@ -494,7 +493,7 @@ compare_pmx_rare_levels <- function(source, synthetic, roles, floor = NULL) {
 #' @export
 print.pmx_rare_levels <- function(x, ...) {
   plain <- as.data.frame(x)
-  cat("Restricted PMX rare-level census (source against synthetic)\n\n")
+  cat("PMX rare-level census (source against synthetic)\n\n")
   if (!nrow(plain)) {
     cat("No categorical axis is declared, so there is nothing to census.\n")
     return(invisible(x))
@@ -532,7 +531,7 @@ knit_print.pmx_rare_levels <- function(x, ...) {
   }
   knitr::knit_print(knitr::kable(
     plain, row.names = FALSE,
-    caption = paste("RESTRICTED --", .rare_levels_headline(x))
+    caption = .rare_levels_headline(x)
   ))
 }
 
@@ -666,7 +665,7 @@ compare_pmx_strata_sizes <- function(source, synthetic, roles) {
 #' @export
 print.pmx_strata_sizes <- function(x, ...) {
   plain <- as.data.frame(x)
-  cat("Restricted PMX stratum sizes (source against synthetic)\n\n")
+  cat("PMX stratum sizes (source against synthetic)\n\n")
   if (!nrow(plain)) {
     cat("No strata are declared, so there is nothing to size.\n")
     return(invisible(x))
@@ -1217,7 +1216,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   pattern_only <- max(unique_schedule - unshared, 0L)
   rows <- list(
     c("Observation schedule nobody else has", unique_schedule,
-      "the headline: an avatar anchored here wears one real patient's schedule"),
+      "the headline: an avatar anchored here has one real patient's schedule"),
     c("... a one-off observation time", unshared,
       "sampled when nobody else was. A time grid can absorb this: declare `nominal_time`"),
     c("... the set of visits attended", pattern_only,
@@ -1322,7 +1321,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   # none of those schedules into the output.
   scope <- paste(
     "This is a property of the SOURCE, and nothing in generation can lower it.",
-    "What generation controls is whether an avatar ends up wearing one of these",
+    "What generation controls is whether an avatar ends up with one of these",
     "schedules -- that is `pmx_masking_report()`'s \"avatars keeping their",
     "anchor's own visit set\", which should be near 0% however high the count",
     "above is."
@@ -1342,7 +1341,7 @@ skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
 #' @export
 print.pmx_skeleton_uniqueness <- function(x, ...) {
   parts <- .skeleton_headline(x)
-  cat("Restricted PMX schedule-uniqueness screen\n")
+  cat("PMX schedule-uniqueness screen\n")
   cat(.wrap_plain(parts$scored), "\n\n", sep = "")
   cat(.wrap_plain(parts$verdict), "\n\n", sep = "")
   if (!is.null(parts$closeness)) {
@@ -1600,7 +1599,7 @@ print.pmx_identifiability <- function(x, ...) {
   n <- nrow(x)
   flagged <- attr(x, "n_flagged") %||% sum(x$flagged)
   cat(sprintf(
-    "Restricted PMX outlier / identifiability check: %d of %d subject%s flagged\n",
+    "PMX outlier / identifiability check: %d of %d subject%s flagged\n",
     flagged, n, if (n == 1L) "" else "s"
   ))
   cat("Flag = a robust outlier in follow-up time, dose count, dose magnitude,",
@@ -2053,7 +2052,8 @@ print.pmx_unmaskable_strata <- function(x, ...) {
       both(settings$identifying_visit_sets, n_built),
       "**this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar's own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. `unmaskable_strata()` answers it from the source"),
 
-    c("&nbsp;&nbsp;of those, dosing re-truncated",
+    header("Dose schedules: WHEN each patient was dosed"),
+    c("Avatars whose dosing was re-truncated",
       share(settings$dose_truncated_fraction, n_built),
       "the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one -- shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not"),
     c("Distinct dose schedules in the source",
@@ -2065,7 +2065,7 @@ print.pmx_unmaskable_strata <- function(x, ...) {
       both(settings$identifying_dose_schedules, n_built),
       "**must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position -- individualised dosing, per-patient titration -- because an avatar is only ever anchored inside the arm it was allocated to. `unmaskable_strata()` says which arm"),
 
-    header("Dose"),
+    header("Dose amounts: HOW MUCH each patient received"),
     c("Amounts recomputed from a covariate",
       if (is.na(settings$dose_basis)) "**no**" else
         paste0("**yes**, from `", settings$dose_basis, "`",
@@ -2087,6 +2087,39 @@ print.pmx_unmaskable_strata <- function(x, ...) {
   do.call(rbind, Filter(Negate(is.null), rows))
 }
 
+# The report's sections, as short names a caller can ask for. The full table is
+# thirty-odd rows, which is the right size for reading a run once and the wrong
+# size for a document making one point about one mechanism -- a vignette section
+# discussing what happened to the dosing should print the five dose rows, not
+# print thirty-three and ask the reader to find them.
+.masking_sections <- c(
+  anchors        = "Who was available to build on",
+  donors         = "Donor pools: who may be blended with whom",
+  blend          = "How much of one real patient reaches one avatar",
+  visits         = "Visit schedule: WHEN patients were observed",
+  visit_sets     = "Visit sets: WHICH of those visits each patient attended",
+  dose_schedules = "Dose schedules: WHEN each patient was dosed",
+  dose_amounts   = "Dose amounts: HOW MUCH each patient received"
+)
+
+# Keep only the requested sections, header row and all. Section membership is
+# read off the header rows themselves rather than tracked alongside them, so a
+# row added to `.masking_rows()` lands in a section without being registered
+# anywhere -- there is one list of rows, in one order, and this reads it.
+.masking_subset <- function(out, section) {
+  unknown <- setdiff(section, names(.masking_sections))
+  if (length(unknown)) {
+    stop("Unknown `section`: ", paste(unknown, collapse = ", "),
+         ". Available: ", paste(names(.masking_sections), collapse = ", "),
+         ".", call. = FALSE)
+  }
+  is_header <- !nzchar(out$Value) & !nzchar(out[["What it means"]])
+  which_section <- cumsum(is_header)
+  headers <- gsub("\\*", "", out$Quantity[is_header])
+  wanted <- match(unname(.masking_sections[section]), headers)
+  out[which_section %in% wanted, , drop = FALSE]
+}
+
 #' Report what each masking mechanism did, and what it cost
 #'
 #' [synpmx_avatar()] records everything it removed on the
@@ -2099,7 +2132,7 @@ print.pmx_unmaskable_strata <- function(x, ...) {
 #' them mean anything on their own. The rows worth looking at hardest:
 #'
 #' - **Unique observation schedules, after coarsening** -- patients whose list
-#'   of observation times nobody else shares. An avatar anchored on one wears a
+#'   of observation times nobody else shares. An avatar anchored on one has a
 #'   schedule belonging to one real person. Its two sub-rows have opposite
 #'   remedies: a one-off observation time is what declaring `nominal_time`
 #'   fixes, and a unique set of *attended* visits is missing visits, which no grid
@@ -2136,6 +2169,12 @@ print.pmx_unmaskable_strata <- function(x, ...) {
 #'   adds the before-coarsening schedule count, so the table shows what
 #'   coarsening removed rather than only what was left.
 #' @param roles Explicit roles from [pmx_roles()]. Required with `source`.
+#' @param section Which blocks of the report to keep, as a character vector of
+#'   `"anchors"`, `"donors"`, `"blend"`, `"visits"`, `"visit_sets"`,
+#'   `"dose_schedules"`, `"dose_amounts"`. `NULL` (default) keeps all of them.
+#'   The whole table is the right thing to read once after a run, and the wrong
+#'   thing to print in a document making one point: a section discussing what
+#'   became of the dosing wants `section = "dose_schedules"` and its five rows.
 #'
 #' @return A `pmx_masking_report` data frame with columns `Quantity`, `Value`,
 #'   and `What it means`. Section headers appear as rows whose `Quantity` is
@@ -2151,7 +2190,8 @@ print.pmx_unmaskable_strata <- function(x, ...) {
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #' pmx_masking_report(synthetic, data, roles)
-pmx_masking_report <- function(synthetic, source = NULL, roles = NULL) {
+pmx_masking_report <- function(synthetic, source = NULL, roles = NULL,
+                               section = NULL) {
   settings <- attr(synthetic, "pmx_settings")
   if (is.null(settings)) {
     stop("`synthetic` carries no `pmx_settings` attribute; it did not come ",
@@ -2164,6 +2204,7 @@ pmx_masking_report <- function(synthetic, source = NULL, roles = NULL) {
   out <- as.data.frame(.masking_rows(settings, before),
                        stringsAsFactors = FALSE)
   names(out) <- c("Quantity", "Value", "What it means")
+  if (!is.null(section)) out <- .masking_subset(out, as.character(section))
   rownames(out) <- NULL
   out <- structure(out, class = c("pmx_masking_report", "data.frame"))
   if (is.null(source)) out else
@@ -2446,7 +2487,7 @@ compare_pmx_proximity <- function(source, synthetic, roles, replicates = 50L,
 
 #' @export
 print.pmx_proximity <- function(x, ...) {
-  cat("Restricted PMX nearest-neighbour proximity check\n\n")
+  cat("PMX nearest-neighbour proximity check\n\n")
   # `rbind()`-ing several reports to tabulate a set of datasets is the obvious
   # thing to do with these, and it keeps the class, so handle more than one row
   # rather than failing on a length-2 condition.

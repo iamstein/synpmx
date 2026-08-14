@@ -308,7 +308,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     # `unmaskable_strata()` is the pointer for the same reason: it answers the
     # question from the source, before a run is made.
     .scorecard_recorded(
-      "B1a", "Avatars wearing a visit set nobody else shares", settings,
+      "B1a", "Avatars with a visit set nobody else shares", settings,
       .scorecard_leak(settings$identifying_visit_sets,
                       settings$identifying_visit_set_strata),
       # Runnable either way, and the only one of the three pointers that is:
@@ -318,7 +318,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       settings$identifying_visit_sets == 0L
     ),
     .scorecard_recorded(
-      "B1b", "Avatars wearing a dose schedule nobody else shares", settings,
+      "B1b", "Avatars with a dose schedule nobody else shares", settings,
       .scorecard_leak(settings$identifying_dose_schedules,
                       settings$identifying_dose_schedule_strata),
       "unmaskable_strata(source, roles)",
@@ -559,7 +559,7 @@ knit_print.synpmx_scorecard <- function(x, ...) {
   if (!is.null(rare) && nrow(rare)) {
     out <- c(out, paste(knitr::kable(
       rare, row.names = FALSE,
-      caption = paste("RESTRICTED -- B5b: rare source levels that reached",
+      caption = paste("B5b: rare source levels that reached",
                       "the output. Each is one real patient's attribute,",
                       "copied.")
     ), collapse = "\n"))

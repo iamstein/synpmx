@@ -69,8 +69,8 @@ Three columns need a word of explanation.
 | **A4** | Did the cohort size survive? | count distinct `id` | both | equal is a pass; a smaller cohort is *review*, since a subject with too few donors is dropped by design |
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
 | **A6** | Did a discrete endpoint stay discrete? | `pmx_endpoint_types()`; `synpmx_scorecard()` | both | every generated value on a binary, ordinal or integer endpoint is one the source could have held |
-| **B1a** | Does any avatar wear a visit set nobody else shares? | `identifying_visit_sets`; `unmaskable_strata()` | run settings | **0** |
-| **B1b** | Does any avatar wear a dose schedule nobody else shares? | `identifying_dose_schedules`; `unmaskable_strata()` | run settings | **0** |
+| **B1a** | Does any avatar have a visit set nobody else shares? | `identifying_visit_sets`; `unmaskable_strata()` | run settings | **0** |
+| **B1b** | Does any avatar have a dose schedule nobody else shares? | `identifying_dose_schedules`; `unmaskable_strata()` | run settings | **0** |
 | **B2** | Does any synthetic patient stand out from its own stratum? | `flag_identifiable_subjects()` | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | `compare_pmx_proximity()` | both | inside the null interval, near 0.5 — always *review*, because outside it means two different things |
 | **B4a** | Is any generated time vector a copy of an exposed real one? | `synpmx_scorecard()` | both | **0** |
@@ -354,7 +354,7 @@ therefore fails, whatever the rest of the study looks like, and the result cell
 names it:
 
 ```
-B1b   Avatars wearing a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
+B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
 ```
 
 `unmaskable_strata(source, roles)` answers the same question before generating,
@@ -926,7 +926,7 @@ they compose no better than the weakest one. That is what the differentially
 private modes are for.
 
 **The guarantees are about reproduction, not similarity.** `identifying_visit_sets`
-counts avatars wearing a visit set that is *exactly* one real patient's. An
+counts avatars with a visit set that is *exactly* one real patient's. An
 avatar whose visits sit merely *near* a real patient's is not covered by it, and
 `nearest_set_diff` is the only thing that will tell you how near.
 

@@ -558,7 +558,7 @@
 # decides where the columns are; it has no say in which cells hold a 1.
 #
 # So sample the bitmap instead of copying the anchor's, drawing only from
-# patterns that at least `min_pattern_share` subjects hold. No avatar then wears
+# patterns that at least `min_pattern_share` subjects hold. No avatar then has
 # a one-of-a-kind attendance pattern, and -- unlike dropping the exposed
 # subjects -- nobody leaves the cohort: a subject with a rare pattern still
 # contributes their measurements as a donor, only their distinctive absences
@@ -1790,7 +1790,7 @@
 # arm sizes in proportion to how often re-anchoring fired, and nothing said so.
 #
 # Crossing was allowed for a while, as the lesser of two evils: an arm off its
-# target looked cheaper than an avatar wearing one real patient's schedule. It
+# target looked cheaper than an avatar with one real patient's schedule. It
 # is not, and the maintainer's call is that it is not. An arm that has silently
 # borrowed its patients from another arm is a study that never ran, and the
 # reader has no way to see it; a disclosure the scorecard names, by arm, is
@@ -2266,7 +2266,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                 "were sampled at a moment no other patient was, even after",
                 "coarsening."),
           why = paste("an avatar copies its anchor's observation times",
-                      "verbatim, so it wears a schedule that belongs to one",
+                      "verbatim, so it has a schedule that belongs to one",
                       "real patient."),
           fix = paste("declare a `nominal_time` role. Coarsening then snaps",
                       "visits onto the real protocol grid instead of a",
@@ -2649,7 +2649,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       anchor <- anchors[synthetic_index]
       # Decide the visit set BEFORE building anything. An anchor whose own set
       # nobody shares, and for whom nothing legal can be placed, cannot be
-      # masked -- any avatar built on it wears that one real patient's exact
+      # masked -- any avatar built on it has that one real patient's exact
       # pattern of which visits have observations. Rather than emit it, or drop
       # the patient from the cohort entirely, this avatar is simply anchored
       # somewhere else. Only the avatar moves; every source patient stays a
