@@ -12,7 +12,8 @@ commit messages and comments.
 **Who updates it.** Andy, by asking for a review of recent history, about once a
 month. Do not append to it during a session; say in the conversation what looks
 wrong and let him decide. He answers in place, marked `[Andy Note]`, left where
-the wrong claim was — two are live, on O14 and on rule 5.
+the wrong claim was — three are live, on O14 and on two of the open questions in
+Part 5.
 
 **Numbering.** Two independent series: `O###` for observations about the reader,
 plain numbers for the writing rules. The gaps in `O###` are deliberate. The
@@ -93,24 +94,20 @@ documents.
 
 1. The document's kind and length are settled against the contract table above.
 2. Every heading names a subject (rule 2).
-3. No sentence describes the document, its structure, or its own difficulty
-   (rule 1).
-4. Each paragraph's first sentence stands alone with the topic explicit (rule 4).
-5. Every acronym expanded at first use, and every method from outside
+3. Each paragraph's first sentence stands alone with the topic explicit (rule 4).
+4. Every acronym expanded at first use, and every method from outside
    pharmacometrics explained from zero (O8), answering *what is calculated, from
    what inputs, and what does a good number look like* (O1).
-6. Verdicts lead; nuance follows, and a hedge is a legitimate verdict (rule 10).
-7. Out-of-scope stated explicitly and bluntly, once, at the top (rule 11).
-8. Numbers where a claim is measurable, computed on a real dataset where they
+5. Verdicts lead; nuance follows, and a hedge is a legitimate verdict (rule 10).
+6. Out-of-scope stated explicitly and bluntly, once, at the top (rule 11).
+7. Numbers where a claim is measurable, computed on a real dataset where they
    can be; no adjective standing in for one (rule 9, O12).
-9. Nothing says the document has two halves (rule 13). Comparable items climb
-   the ladder sentence → list → table → figure and stop at the rung that answers
-   the question (rules 7 and 15).
-10. No number is restated in prose that a function already prints (rule 14).
-11. Read the em dashes. Keep the parentheticals, cut the pauses (rule 8).
-12. A survey ends with a ranked entry path (O9), and repeated things hold the
+8. Comparable items climb the ladder sentence → list → table → figure and stop
+   at the rung that answers the question (rule 15).
+9. No number is restated in prose that a function already prints (rule 14).
+10. A survey ends with a ranked entry path (O9), and repeated things hold the
     same shape in the same order (O17).
-13. The tics above are *searched for*, not read for: crucial, key, worth,
+11. The tics above are *searched for*, not read for: crucial, key, worth,
     honestly, delve, leverage, robust, seamless, "not just", "it is worth
     noting", "here is why", "the point is".
 
@@ -173,17 +170,6 @@ table of contents. He also splits appositives rather than nesting them: "AVATAR,
 called by `synpmx_avatar()` needs two things" became "AVATAR is called by
 `synpmx_avatar()`. It needs two things." (`c972373`).
 
-## 5. Do not grade the evidence
-
-[Author Note: Collect more data to confirm if this is truly a signal, I'm not sure.  Might just be an idiosyncratic preference here]
-
-Deleted: "which is the strongest signal in this whole area that it is not
-optional" / "the raw value of either one on its own is close to meaningless" /
-"This is a real reason the technique is rare in this field and not a reason it
-is wrong." Report what the four lines of work do. He will decide how strong that
-is. Superlatives go the same way: "It is the **only** public dataset shaped like
-a real study report" lost its "only" in `d333313`.
-
 ## 6. State a recommendation as an instruction
 
 "**Hold some patients out.** Split the real cohort in two: a *training* set the
@@ -197,29 +183,12 @@ Where the reader has more than one action available, give both. He edited "the
 right answer is to leave it undeclared, which is what the run above does" into
 "leave it undeclared or to correct the censoring variable."
 
-## 7. Two items is a sentence, three is a list, four columns is a table
-
-He collapsed a two-bullet list ("the generator captured the population, which is
-success" / "the generator memorized individual patients, which is failure") back
-into one clause. Bullets start at three items, or where each item is long enough
-to be hard to hold.
-
-**The threshold for a table is columns, not items.** An earlier version of this
-rule said four comparable items go in a table, and his own edit is the
-counter-example: he cut the eighteen-row scorecard table from five columns to
-two, then rewrote it as a nested bullet list under the four category names.
-Eighteen items, no table. Use a table when each item answers *several* questions
-in the same form, a list when each answers one. Prose comparison of five things
-loses him either way.
-
 ## 8. Punctuation
 
 - Em dashes are for a genuine parenthesis, not for a rhetorical pause. Most of
   his edits replace one with a period or a comma. The one measured target comes
   from `42d6d02`, which took an 846-line vignette from 71 em dashes to 19, about
   one per forty lines.
-- He types `--` and two spaces after a period. Leave both alone, and do not
-  reflow his paragraphs to 80 columns when editing next to them.
 
 ## 9. Numbers survive; adjectives do not
 
@@ -275,20 +244,6 @@ vignettes, both cut from `README.md`. Show the minimum that works; detail
 belongs one document deeper. Prefer literal description to coined framing — the
 metaphors reached for to make something memorable are what he deletes first. The
 contract table in Part 1 says where this applies and where O10 overrides it.
-
-## 13. One document, one question
-
-2026-08-11, unprompted: *"I think the literature review should be split into two
-files"* — generation into one article, checking into another. The article had
-announced itself as having two halves since it was written and survived one
-review pass in that form before he cut it.
-
-Treat "this article has two halves" as a defect report a draft wrote about
-itself. When an outline needs that sentence, propose two documents instead;
-navigation is cheap, and a reader arriving for the checking tutorial should not
-scroll through the generation survey. The shared instinct behind this rule,
-rule 7 and rule 12 is that **each artifact should do one thing, at the smallest
-size that does it**.
 
 ## 14. The document names the questions; the output carries the answers
 
@@ -558,11 +513,11 @@ generalize, as colour on the scorecard (rule 10).
 
 1. **Is the mathematics helpful or is it noise?** The literature review carries
    the adversarial-accuracy formula in display math. It could as easily be three
-   sentences of English.
+   sentences of English. [Andy Note - The Math is helpful]
 2. **Inline definitions or a glossary?** Every term is defined inline at first
    use, which is why that section is long. `learning/GLOSSARY.md` is yours and
    Claude does not write to it, so a shipped glossary would be a third place a
-   definition lives.
+   definition lives. [Andy Note - Inline definitions]
 3. **What is the length ceiling for a shipped vignette?** The contract table says
    `avatar-algorithm.Rmd` may be exhaustive, and it is 2,114 lines. Whether that
    is fine because nobody reads reference material end to end is not answerable
@@ -570,5 +525,5 @@ generalize, as colour on the scorecard (rule 10).
 
 **One convention still to adopt.** Record what was tried and rejected. A way of
 explaining something that fails review is more informative than the version that
-passed, and it is currently lost; two lines per rejection is enough. The two
-that survive are the notes in rule 5 and rule 10, and you wrote both.
+passed, and it is currently lost; two lines per rejection is enough. The one
+that survives is the reverted verdict in rule 10.
