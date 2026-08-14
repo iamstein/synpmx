@@ -2670,6 +2670,16 @@ only ever anchored inside the arm it was allocated to.
 </tr>
 </tbody>
 </table>
+<p>One row per infant, a grey tick for each dose and a coloured dot for
+each observation. The dose ticks are the story: a forest of them across
+the whole follow-up in the source, one column at time zero in the
+output.</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, source"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="public-data-examples_files/figure-html/pheno-schedule-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, synthetic"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="public-data-examples_files/figure-html/pheno-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The dose schedules are what this study loses; the observation side is
 fine. On the observation side the mechanism works: B1a holds at 0, so no
 avatar has a set of attended visits that belongs to one real infant. On
@@ -2705,7 +2715,7 @@ arm whose dosing is not.</p>
 <code>NAME</code> column, a baseline weight, and a <code>CENS</code>
 column. <code><a href="../articles/demo.html">vignette("demo")</a></code> runs this dataset end to end; it
 is here for the contrast with the six above.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_pkpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -2719,7 +2729,7 @@ is here for the contrast with the six above.</p>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -2845,7 +2855,7 @@ is here for the contrast with the six above.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -3034,7 +3044,7 @@ study recorded a nominal time.</p>
 <div class="section level3">
 <h3 id="declaring-cens-on-this-study-is-refused">Declaring <code>cens</code> on this study is refused<a class="anchor" aria-label="anchor" href="#declaring-cens-on-this-study-is-refused"></a>
 </h3>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
@@ -3061,7 +3071,7 @@ observation endpoints keyed by <code>NAME</code>: PK concentration,
 continuous PD, and ordinal, count and binary PD. Everything else here
 has one or two endpoints, and an endpoint silently vanishing during
 generation is invisible with fewer than three.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"mad"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">mad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -3071,7 +3081,7 @@ generation is invisible with fewer than three.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">mad_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <caption>Endpoints (dependent variable on observation rows)</caption>
@@ -3315,7 +3325,7 @@ generation is invisible with fewer than three.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <colgroup>
@@ -3514,7 +3524,7 @@ endpoint comes back as 600 distinct values spanning -0.13 to 1.08.</p>
 <p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> therefore decides what kind of values
 each endpoint takes, from the source, and puts the generated values back
 on that scale. The decision is worth reading before the data:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -3569,7 +3579,7 @@ on that scale. The decision is worth reading before the data:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">discrete</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PD - Binary"</span>, <span class="st">"PD - Count"</span>, <span class="st">"PD - Ordinal"</span><span class="op">)</span></span>
 <span><span class="va">values_taken</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">endpoint</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="va">endpoint</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span></span>
@@ -3638,7 +3648,7 @@ still visible in it?</p>
 same quantities in one place, because the <em>contrast</em> between
 datasets is what shows how much the answer depends on study design
 rather than on the package.</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exposure_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span>  <span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
@@ -3774,7 +3784,7 @@ times are genuinely per-patient.</p>
 <p>Exposure is only half the story. The mechanisms that reduce it do so
 by <em>removing</em> things, and the removals are worth seeing next to
 the numbers above.</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cost_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -3995,7 +4005,7 @@ each subject’s nearest neighbour lies in its own dataset or the other
 one. Near 0.5 means a synthetic subject is no more like a real subject
 than one real subject is like another, which is the target; toward 0
 means memorisation.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">label</span>, <span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>

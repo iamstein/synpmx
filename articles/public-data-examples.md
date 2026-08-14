@@ -855,6 +855,25 @@ What pheno_sd’s run removed, on the `dose_schedules` side.
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
 without `section` prints all of it. {.table}
 
+One row per infant, a grey tick for each dose and a coloured dot for
+each observation. The dose ticks are the story: a forest of them across
+the whole follow-up in the source, one column at time zero in the
+output.
+
+``` r
+
+plot_pmx_schedule(pheno_sd, pheno_roles, main = "pheno_sd, source")
+```
+
+![](public-data-examples_files/figure-html/pheno-schedule-1.png)
+
+``` r
+
+plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
+```
+
+![](public-data-examples_files/figure-html/pheno-schedule-2.png)
+
 The dose schedules are what this study loses; the observation side is
 fine. On the observation side the mechanism works: B1a holds at 0, so no
 avatar has a set of attended visits that belongs to one real infant. On

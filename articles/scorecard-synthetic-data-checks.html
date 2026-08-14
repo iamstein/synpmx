@@ -90,128 +90,97 @@ this and this Vignette explains it.</p>
 <div class="section level3">
 <h3 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
 </h3>
-<p>The scorecard contains a table of the ollowing items:</p>
+<p>The scorecard contains a table of the following items:</p>
 <ul>
 <li>The check of the dataset that is performed.</li>
-<li>hat data is read (source data, synthetic data, or both)</li>
+<li>That data is read (source data, synthetic data, or both)</li>
 <li>The resulting calculation from the check</li>
 <li>A verdict for whether the check passed, failed or needs review</li>
 <li>An <code>explore</code> function to help assess any checks that
 failed or need review.</li>
 </ul>
-<p>There are four categories of checks:</p>
+<p>There are four categories of checks, and these are the questions each
+one asks:</p>
 <ul>
-<li>A. Is the dataset valid</li>
-<li>B. Is any individual patient identifiable based on the synthetic
-data</li>
-<li>C. Has the synthetic study design significantly changed from the
-source</li>
-<li>D. How much have the covariate and observation distributions
-changed</li>
+<li>A. Is the dataset valid
+<ul>
+<li>
+<strong>A1</strong>: Is the synthetic table a legal PMX
+dataset?</li>
+<li>
+<strong>A2</strong>: Is the <em>source</em> legal under the roles
+you declared?</li>
+<li>
+<strong>A3</strong>: Did every endpoint survive?</li>
+<li>
+<strong>A4</strong>: Did the cohort size survive?</li>
+<li>
+<strong>A5a</strong>: Did the number of observations per patient
+survive?</li>
+<li>
+<strong>A5b</strong>: Did the number of doses per patient
+survive?</li>
+<li>
+<strong>A6</strong>: Did a discrete endpoint stay discrete?</li>
 </ul>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>#</th>
-<th>Question</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><strong>A1</strong></td>
-<td>Is the synthetic table a legal PMX dataset?</td>
-</tr>
-<tr class="even">
-<td><strong>A2</strong></td>
-<td>Is the <em>source</em> legal under the roles you declared?</td>
-</tr>
-<tr class="odd">
-<td><strong>A3</strong></td>
-<td>Did every endpoint survive?</td>
-</tr>
-<tr class="even">
-<td><strong>A4</strong></td>
-<td>Did the cohort size survive?</td>
-</tr>
-<tr class="odd">
-<td><strong>A5a</strong></td>
-<td>Did the number of observations per patient survive?</td>
-</tr>
-<tr class="even">
-<td><strong>A5b</strong></td>
-<td>Did the number of doses per patient survive?</td>
-</tr>
-<tr class="odd">
-<td><strong>A6</strong></td>
-<td>Did a discrete endpoint stay discrete?</td>
-</tr>
-<tr class="even">
-<td><strong>B1a</strong></td>
-<td>Does any avatar have a visit set nobody else shares?</td>
-</tr>
-<tr class="odd">
-<td><strong>B1b</strong></td>
-<td>Does any avatar have a dose schedule nobody else shares?</td>
-</tr>
-<tr class="even">
-<td><strong>B2</strong></td>
-<td>Does any synthetic patient stand out from its own stratum?</td>
-</tr>
-<tr class="odd">
-<td><strong>B3</strong></td>
-<td>Is any avatar too close to a real patient in value space?</td>
-</tr>
-<tr class="even">
-<td><strong>B4a</strong></td>
-<td>Is any generated time vector a copy of an exposed real one?</td>
-</tr>
-<tr class="odd">
-<td><strong>B4b</strong></td>
-<td>Is any generated <code>DV</code> vector a copy of an exposed real
-one?</td>
-</tr>
-<tr class="even">
-<td><strong>B5a</strong></td>
-<td>Does any categorical level sit on a single synthetic patient?</td>
-</tr>
-<tr class="odd">
-<td><strong>B5b</strong></td>
-<td>Did a level too few <em>source</em> patients held reach the
-output?</td>
-</tr>
-<tr class="even">
-<td><strong>C1</strong></td>
-<td>Did every arm keep its endpoints and its size?</td>
-</tr>
-<tr class="odd">
-<td><strong>C2</strong></td>
-<td>What features of the study were lost?</td>
-</tr>
-<tr class="even">
-<td><strong>D1</strong></td>
-<td>Do the values land in the same range?</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Seven of these rows can say <code>FAIL</code>, and no
+</li>
+<li>B. Is any individual patient identifiable based on the synthetic
+data
+<ul>
+<li>
+<strong>B1a</strong>: Does any avatar have a visit set nobody else
+shares?</li>
+<li>
+<strong>B1b</strong>: Does any avatar have a dose schedule nobody
+else shares?</li>
+<li>
+<strong>B2</strong>: Does any synthetic patient stand out from its
+own stratum?</li>
+<li>
+<strong>B3</strong>: Is any avatar too close to a real patient in
+value space?</li>
+<li>
+<strong>B4a</strong>: Is any generated time vector a copy of an
+exposed real one?</li>
+<li>
+<strong>B4b</strong>: Is any generated <code>DV</code> vector a copy
+of an exposed real one?</li>
+<li>
+<strong>B5a</strong>: Does any categorical level sit on a single
+synthetic patient?</li>
+<li>
+<strong>B5b</strong>: Did a level too few <em>source</em> patients
+held reach the output?</li>
+</ul>
+</li>
+<li>C. Has the synthetic study design significantly changed from the
+source
+<ul>
+<li>
+<strong>C1</strong>: Did every arm keep its endpoints and its
+size?</li>
+<li>
+<strong>C2</strong>: What features of the study were lost?</li>
+</ul>
+</li>
+<li>D. How much have the covariate and observation distributions changed
+<ul>
+<li>
+<strong>D1</strong>: Do the values land in the same range?</li>
+</ul>
+</li>
+</ul>
+<p><strong>Seven checks can say <code>FAIL</code>, and no
 others.</strong> A1, because the output is not a legal dataset; A3 and
-A6, because it is not the study that went in — an endpoint missing, or a
-value on a discrete endpoint that the source could not have held; and
-B1a, B1b, B4a and B4b, because each of them means one real patient’s
-structure was reproduced verbatim. Every other row is
-<code>review</code> even when its answer is unwelcome, because every
-other row can move for a legitimate reason: a subject dropped for want
-of donors, an arm that changed size, a statistic wandering at a small
-sample size, a real source a validator objects to. A card of
-<code>review</code>s is a card to read, not a card that failed.</p>
-<p>One requirement is deliberately not in the table, because no function
-can answer it: <strong>does the pipeline that will consume the real
-study run unchanged against this?</strong> It is the only strictly
-necessary check, and it is the reason the package exists.</p>
-<p><code><a href="../articles/demo.html">vignette("demo")</a></code> closes by computing this scorecard on a
-real run, so you can see what the filled-in version looks like.</p>
+A6, because it is not the study that went in; and B1a, B1b, B4a and B4b,
+because each means one real patient’s structure was reproduced verbatim.
+Everything else is <code>review</code>, because everything else can move
+for a legitimate reason: a subject dropped for want of donors, an arm
+that changed size, a statistic wandering at a small sample size.</p>
+<p>One requirement is not in the list, because no function can answer
+it: <strong>does the pipeline that will consume the real study run
+unchanged against this?</strong> It is the only strictly necessary
+check, and it is the reason the package exists.</p>
 </div>
 <div class="section level3">
 <h3 id="the-two-datasets-used-here">The two datasets used here<a class="anchor" aria-label="anchor" href="#the-two-datasets-used-here"></a>
@@ -241,18 +210,339 @@ real run, so you can see what the filled-in version looks like.</p>
 <p><code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code> is the worked example: 180 patients,
 six treatment arms, a declared nominal time, two endpoints — a
 pharmacokinetic (PK) concentration and a continuous pharmacodynamic (PD)
-effect — and a baseline weight. It is the shaped like a real study
-report, and most of these checks pass on it.</p>
+effect — and a baseline weight. It is shaped like a real study report,
+and most of these checks pass on it.</p>
 <p><code><a href="https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html" class="external-link">nlmixr2data::pheno_sd</a></code> is 59 real neonates given
 phenobarbital in routine clinical care. Its checks
 <strong>fail</strong>, and it is here for that reason: a document in
 which everything passes teaches nothing. Where the two disagree is where
 the check is doing work.</p>
 </div>
-<div class="section level2">
-<h2 id="a--is-it-a-valid-dataset-at-all">A. Is it a valid dataset at all?<a class="anchor" aria-label="anchor" href="#a--is-it-a-valid-dataset-at-all"></a>
-</h2>
+<div class="section level3">
+<h3 id="the-two-scorecards">The two scorecards<a class="anchor" aria-label="anchor" href="#the-two-scorecards"></a>
+</h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
+<span><span class="va">pheno_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
+<span><span class="va">case1_card</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="3%">
+<col width="26%">
+<col width="6%">
+<col width="22%">
+<col width="4%">
+<col width="37%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+<th align="left">explore</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A1</td>
+<td align="left">Synthetic table is a legal PMX dataset</td>
+<td align="left">synthetic</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A2</td>
+<td align="left">Source is legal under the declared roles</td>
+<td align="left">source</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
+</tr>
+<tr class="odd">
+<td align="left">A3</td>
+<td align="left">Every endpoint survived</td>
+<td align="left">both</td>
+<td align="left">2 of 2</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A4</td>
+<td align="left">Cohort size survived</td>
+<td align="left">both</td>
+<td align="left">180 -&gt; 180</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“anchors”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">both</td>
+<td align="left">30.7 -&gt; 30.7</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">both</td>
+<td align="left">70.8 -&gt; 70.8</td>
+<td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">synthetic</td>
+<td align="left">1 of 180</td>
+<td align="left">review</td>
+<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B3</td>
+<td align="left">Adversarial accuracy inside its null interval</td>
+<td align="left">both</td>
+<td align="left">0.600 in [0.423, 0.554]</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
+</tr>
+<tr class="even">
+<td align="left">B4b</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B5a</td>
+<td align="left">Patients holding the least-held categorical level</td>
+<td align="left">synthetic</td>
+<td align="left">TRTACT = 10 mg: 30</td>
+<td align="left">pass</td>
+<td align="left">table(synthetic$TRTACT)</td>
+</tr>
+<tr class="even">
+<td align="left">B5b</td>
+<td align="left">Rare source levels copied into the output</td>
+<td align="left">both</td>
+<td align="left">0 of 0 exposed</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">C1</td>
+<td align="left">Strata keeping their source size</td>
+<td align="left">both</td>
+<td align="left">6 of 6</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">run settings</td>
+<td align="left">2 of 2</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="odd">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">both</td>
+<td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+</tbody>
+</table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pheno_card</span></span></code></pre></div>
+<table style="width:100%;" class="table">
+<colgroup>
+<col width="3%">
+<col width="27%">
+<col width="7%">
+<col width="17%">
+<col width="4%">
+<col width="39%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">reads</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+<th align="left">explore</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A1</td>
+<td align="left">Synthetic table is a legal PMX dataset</td>
+<td align="left">synthetic</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A2</td>
+<td align="left">Source is legal under the declared roles</td>
+<td align="left">source</td>
+<td align="left">TRUE</td>
+<td align="left">pass</td>
+<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
+</tr>
+<tr class="odd">
+<td align="left">A3</td>
+<td align="left">Every endpoint survived</td>
+<td align="left">both</td>
+<td align="left">1 of 1</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A4</td>
+<td align="left">Cohort size survived</td>
+<td align="left">both</td>
+<td align="left">59 -&gt; 59</td>
+<td align="left">pass</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“anchors”)</td>
+</tr>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">both</td>
+<td align="left">2.6 -&gt; 2.6</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">both</td>
+<td align="left">10 -&gt; 1.1</td>
+<td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">run settings</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">unmaskable_strata(source, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">synthetic</td>
+<td align="left">36 of 59</td>
+<td align="left">review</td>
+<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
+</tr>
+<tr class="even">
+<td align="left">B3</td>
+<td align="left">Adversarial accuracy inside its null interval</td>
+<td align="left">both</td>
+<td align="left">0.534 in [0.362, 0.621]</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
+TRUE)</td>
+</tr>
+<tr class="even">
+<td align="left">B4b</td>
+<td align="left">Generated DV vectors copying an exposed real one</td>
+<td align="left">both</td>
+<td align="left">0</td>
+<td align="left">pass</td>
+<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">run settings</td>
+<td align="left">3 of 56</td>
+<td align="left">review</td>
+<td align="left">pmx_masking_report(synthetic, source, roles, section =
+“dose_schedules”)</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">both</td>
+<td align="left">sd x0.66 on APGR (furthest of 3)</td>
+<td align="left">review</td>
+<td align="left">compare_pmx_distributions(source, synthetic,
+roles)</td>
+</tr>
+</tbody>
+</table>
+<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
+same axes – <code>DV</code> against time, and each covariate – with
+whatever you normally use.</em></p>
+<p>Nothing fails on either. The rest of this vignette is what each check
+asks, why its pass criterion is what it is, and where
+<code>pheno_sd</code> is worse than its card suggests.</p>
+</div>
+<div class="section level2">
+<h2 id="a--is-the-dataset-valid">A. Is the dataset valid<a class="anchor" aria-label="anchor" href="#a--is-the-dataset-valid"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
@@ -261,9 +551,9 @@ the check is doing work.</p>
 grammar, time monotonicity within subject, censoring flags against their
 dependent variable (<code>DV</code>), infusion start/stop pairing,
 baseline covariates that are actually constant, and strata that do not
-vary within a subject. This check is run on both the synthetic data and
-teh source.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+vary within a subject. Run it on the source as well as the synthetic
+table, which is what A1 and A2 are:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_roles_cens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>,</span>
@@ -273,13 +563,12 @@ teh source.</p>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p>That study’s <code>CENS</code> column is meaningful only for the PK
 endpoint. The PD effect is signed, so a row flagged as below the limit
-of quantification (BLOQ) reports a value <em>above</em> uncensored ones,
-and the flag cannot mean for PD what it means for PK. Declaring
-<code>cens</code> here would have produced a coherent-looking dataset
-with nonsense censoring; the right answer is to leave it undeclared or
-to correct the censoring variable.</p>
+of quantification (BLOQ) reports a value <em>above</em> uncensored ones.
+Declaring <code>cens</code> here would produce a coherent-looking
+dataset with nonsense censoring; leave it undeclared, or correct the
+column.</p>
 <div class="section level3">
-<h3 id="time-after-dose">Time after dose<a class="anchor" aria-label="anchor" href="#time-after-dose"></a>
+<h3 id="a2--time-after-dose">A2. Time after dose<a class="anchor" aria-label="anchor" href="#a2--time-after-dose"></a>
 </h3>
 <p><code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> reports a disagreement in time after dose
 (<code>TAD</code>) as a <em>warning</em>, so it passes
@@ -288,11 +577,10 @@ a trough, and this is the column that says whether it did.</p>
 <p><strong><code>tad</code> is an output, not an input.</strong>
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> recomputes it from the generated times and
 dose rows and overwrites whatever the source held. Declaring the role
-says which column to overwrite and carry through; the source’s values
-never generate anything. <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the
-<strong>source</strong> is the one place those values are read, and a
+says which column to overwrite and carry through. The source values are
+read in one place only, <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the source, and a
 disagreement there is a real finding every time:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nimo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"nimoData"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">nimo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
@@ -304,36 +592,25 @@ disagreement there is a real finding every time:</p>
 <span><span class="co">#&gt; Declared TAD disagrees with time since the most recent dose on 143 of 321 observation row(s) (45%), by up to 311.9. Common causes: TAD is measured from the end of an infusion or from a nominal dose time rather than the recorded dose row; the study uses a dosing occasion rather than the most recent dose. Note that `synpmx_avatar()` recomputes `TAD` from generated times, so the synthetic column will follow the derivation above and not this source's convention.</span></span></code></pre></div>
 <p>Forty-five percent of observation rows disagree, by up to 311.9
 hours. That means one of: the study measures <code>TAD</code> from the
-end of an infusion, or from a nominal dose time, or from an assigned
+end of an infusion, from a nominal dose time, or from an assigned
 occasion rather than the most recent dose; or the source column is
 wrong; or the derivation is wrong for this study. The check cannot tell
-you which, and says so rather than guessing — but the synthetic column
-will follow the derivation, so a silent change of convention is exactly
-what this check exists to surface.</p>
-<p>Two limits: a sample taken before any dose is reported at
+you which. The synthetic column follows the derivation, so a silent
+change of convention is what this check surfaces.</p>
+<p>Two limits. A sample taken before any dose is reported at
 <code>TAD</code> 0 because <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> refuses a
-negative, not because it is genuinely zero hours after a dose it
-precedes; and where <code>addl</code>/<code>ii</code> are declared the
+negative. And where <code>addl</code>/<code>ii</code> are declared, the
 derivation cannot see the doses they imply, so the check is skipped and
-says so.</p>
-<p><strong>Still missing:</strong> whether a sample stayed on the right
-side of its dose. Generated observation times move and dose times do
-not, so a sample drawn before a dose can land at or after it. On
-<code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> that happens to 6 of 12 avatars, each
-carrying an observation labelled occasion 2 at the same time as the
-occasion-3 dose. <code>TAD</code> cannot flag it, because
-<code>TAD</code> is recomputed from the generated times and therefore
-agrees with the sample’s new position. The check belongs on the finished
-table, next to <code>$valid</code>.</p>
+says so. A related gap, whether a sample stayed on the right side of its
+dose, is in “What is still missing” at the end.</p>
 </div>
 <div class="section level3">
-<h3 id="endpoint-survival">Endpoint survival<a class="anchor" aria-label="anchor" href="#endpoint-survival"></a>
+<h3 id="a3--endpoint-survival">A3. Endpoint survival<a class="anchor" aria-label="anchor" href="#a3--endpoint-survival"></a>
 </h3>
-<p><strong>Compare endpoint <em>sets</em>, not row counts.</strong> The
-defect that motivated this check lost an entire endpoint — 108 rows in,
-60 out, every observation in one compartment gone, no warning — and a
-row count alone looked plausible.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p>Compare endpoint <em>sets</em>, not row counts. The defect that
+motivated A3 lost an entire endpoint, 108 rows in and 60 out, with every
+observation in one compartment gone and no warning.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setequal</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_pkpd</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">case1_synth</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
@@ -341,14 +618,58 @@ row count alone looked plausible.</p>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="discrete-endpoints">Discrete endpoints<a class="anchor" aria-label="anchor" href="#discrete-endpoints"></a>
+<h3 id="a5a-a5b--observations-and-doses-per-patient">A5a, A5b. Observations and doses per patient<a class="anchor" aria-label="anchor" href="#a5a-a5b--observations-and-doses-per-patient"></a>
 </h3>
-<p><strong>Ask what kind of values each endpoint takes before reading
-anything else about it.</strong> Blending is a weighted mean, so a
-weighted mean of several patients’ zeros and ones is a number between
-them, and a 0/1 endpoint comes back continuous unless the generated
-values are put back on the scale the source used.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>A5a and A5b split rows per patient by event type, because a total
+hides the thing worth seeing. On <code>case1_pkpd</code> both hold. On
+<code>pheno_sd</code> observations are intact at 2.6 per patient either
+side while dosing falls from 10.0 to 1.1: 744 rows become 220, and 589
+dose rows become 65.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">doses_per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_sd</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span><span class="co">#&gt;   1.000   7.000  12.000   9.983  13.000  15.000</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_synth</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span><span class="co">#&gt;   1.000   1.000   1.000   1.102   1.000   7.000</span></span></code></pre></div>
+<p>The median real infant received twelve doses. The median avatar
+receives one. <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws it, one row per
+patient, a grey tick for each dose and a coloured dot for each
+observation:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, source"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="scorecard-synthetic-data-checks_files/figure-html/a-schedule-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, main <span class="op">=</span> <span class="st">"pheno_sd, synthetic"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="scorecard-synthetic-data-checks_files/figure-html/a-schedule-2.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p>The source is a forest of dose ticks running the length of follow-up.
+The synthetic cohort has one column of them at time zero, and its
+observations have piled onto a handful of shared grid times. The shading
+answers a different question from B1a and will not agree with it: it
+marks patients whose visit set no other patient <em>in the drawn
+table</em> has, while B1a asks whether an avatar’s set is one a real
+infant held.</p>
+<p>Nothing is invalid here. Every avatar’s regimen is one a real infant
+received, which is the guarantee section C describes. Dose schedules in
+this study are nearly all unique, so truncating each avatar’s regimen
+back to a depth several patients share collapses most of them to the
+shortest depth. The masking worked as designed, and the result is not
+usable as a dosing dataset. Section B1 is the other half: the privacy
+checks read 0, so nothing in that tier reports a problem. A5b is what
+catches it.</p>
+</div>
+<div class="section level3">
+<h3 id="a6--discrete-endpoints">A6. Discrete endpoints<a class="anchor" aria-label="anchor" href="#a6--discrete-endpoints"></a>
+</h3>
+<p>Ask what kind of values each endpoint takes before reading anything
+else about it. Blending is a weighted mean, so a weighted mean of
+several patients’ zeros and ones is a number between them, and a 0/1
+endpoint comes back continuous unless the generated values are put back
+on the scale the source used.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_endpoint_types.html">pmx_endpoint_types</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -382,127 +703,31 @@ values are put back on the scale the source used.</p>
 </tr>
 </tbody>
 </table>
-<p>Both endpoints here are continuous, so there is nothing to do and
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> omits the A6 row entirely. The check
-fires on a study with an ordinal, binary or count endpoint:
+<p>Both endpoints here are continuous, so
+<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> omits A6 entirely. The check fires on a
+study with an ordinal, binary or count endpoint:
 <code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> runs it on
 <code><a href="https://rdrr.io/pkg/xgxr/man/mad.html" class="external-link">xgxr::mad</a></code>, which carries all three.</p>
-<p>Two things are worth knowing before you trust the answer. The type is
-<em>inferred</em> from the source — whether every observed value is a
-whole number, and how many distinct ones there are — and
-<code>pmx_roles(endpoint_types = )</code> overrides it where that
-inference reads the study wrongly. And putting a binary endpoint back on
-its levels means generated values are source values, because a 0/1
-endpoint has no third value to emit. What protects a patient on a
-discrete endpoint is section B’s machinery, never the distinctness of
-any one number.</p>
-</div>
-<div class="section level3">
-<h3 id="counts-against-the-source">Counts against the source<a class="anchor" aria-label="anchor" href="#counts-against-the-source"></a>
-</h3>
-<p>Count patients, and count rows <strong>split by event type</strong>,
-because a total hides the thing worth seeing:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">tally</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">which</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">events</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span></span>
-<span>    <span class="va">rows</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">which</span> <span class="op">==</span> <span class="st">"dose"</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">events</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">events</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">rows</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    dataset <span class="op">=</span> <span class="va">label</span>,</span>
-<span>    patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">source</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
-<span>                     <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">source</span><span class="op">)</span>, <span class="st">"-&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    obs_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">source</span>, <span class="st">"obs"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
-<span>                            <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"obs"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    doses_per_patient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">source</span>, <span class="st">"dose"</span><span class="op">)</span>, <span class="st">"-&gt;"</span>,</span>
-<span>                              <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">tally</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"dose"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu">counts</span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span>, <span class="st">"case1_pkpd"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">counts</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span>, <span class="st">"pheno_sd"</span><span class="op">)</span></span>
-<span><span class="op">)</span>, caption <span class="op">=</span> <span class="st">"Source -&gt; synthetic. Cohort size is preserved; nothing else is."</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Source -&gt; synthetic. Cohort size is preserved; nothing else
-is.</caption>
-<colgroup>
-<col width="15%">
-<col width="15%">
-<col width="21%">
-<col width="22%">
-<col width="25%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">dataset</th>
-<th align="left">patients</th>
-<th align="left">rows</th>
-<th align="left">obs_per_patient</th>
-<th align="left">doses_per_patient</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">case1_pkpd</td>
-<td align="left">180 -&gt; 180</td>
-<td align="left">20820 -&gt; 20820</td>
-<td align="left">30.7 -&gt; 30.7</td>
-<td align="left">85 -&gt; 85</td>
-</tr>
-<tr class="even">
-<td align="left">pheno_sd</td>
-<td align="left">59 -&gt; 59</td>
-<td align="left">744 -&gt; 220</td>
-<td align="left">2.6 -&gt; 2.6</td>
-<td align="left">10 -&gt; 1.1</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Patient counts match exactly, and should. Row counts do not,
-and should not</strong> — each avatar’s set of attended visits is
-redrawn, so totals move by a few percent. That is a masking mechanism,
-not a bug, and a row count matching <em>exactly</em> would be the
-surprising result.</p>
-<p><strong>But look at <code>pheno_sd</code>.</strong> It loses 70% of
-its rows, and the split says where: its observations are essentially
-intact (2.6 per patient either side) while its <strong>dosing is all but
-gone</strong>, 589 dose rows down to 65. The median real infant received
-twelve doses; the median avatar receives one.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">doses_per_patient</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_sd</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span><span class="co">#&gt;   1.000   7.000  12.000   9.983  13.000  15.000</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">doses_per_patient</span><span class="op">(</span><span class="va">pheno_synth</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span><span class="co">#&gt;   1.000   1.000   1.000   1.102   1.000   7.000</span></span></code></pre></div>
-<p>Nothing is invalid here — every avatar’s regimen is one a real infant
-received, which is the guarantee section C describes. What happened is
-that dose schedules in this study are nearly all unique, so truncating
-each avatar’s regimen back to a depth several patients share collapses
-most of them to the shortest depths. <strong>The masking worked as
-designed and the result is not usable as a dosing dataset.</strong>
-Section B1 shows the other half of the same story: the privacy rows
-there are 0, so nothing in the privacy tier reports a problem. This is
-the check that catches it, and it is three lines of counting.</p>
+<p>The type is <em>inferred</em> from the source — whether every
+observed value is a whole number, and how many distinct ones there are —
+and <code>pmx_roles(endpoint_types = )</code> overrides it where that
+inference reads the study wrongly. Putting a binary endpoint back on its
+levels means generated values are source values, since a 0/1 endpoint
+has no third value to emit. What protects a patient on a discrete
+endpoint is section B, never the distinctness of any one number.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="b--is-any-single-patient-singled-out">B. Is any single patient singled out?<a class="anchor" aria-label="anchor" href="#b--is-any-single-patient-singled-out"></a>
+<h2 id="b--is-any-individual-patient-identifiable-based-on-the-synthetic-data">B. Is any individual patient identifiable based on the synthetic
+data<a class="anchor" aria-label="anchor" href="#b--is-any-individual-patient-identifiable-based-on-the-synthetic-data"></a>
 </h2>
-<p>The privacy tier, and the one worth splitting, because “identifying”
-is not one property. A patient can be singled out through any of the six
-routes below independently, and fixing one does nothing for the
-others.</p>
 <div class="section level3">
 <h3 id="b1--timing-and-structure">B1. Timing and structure<a class="anchor" aria-label="anchor" href="#b1--timing-and-structure"></a>
 </h3>
 <p>Who was observed when, and who was dosed when. This is the axis most
 specific to longitudinal data, and the one a general-purpose
-synthetic-data tool will not have thought about at all.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+synthetic-data tool will not have addressed.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Schedule-uniqueness screen.</strong> Scored on the recorded
 times AS GIVEN, before any coarsening. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
@@ -624,10 +849,9 @@ shared as</p>
 <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same cohort. Source-derived;
 not releasable unless separately public or privately budgeted.</em></p>
 <p>Every one of the 180 patients has an observation schedule nobody else
-has — and that is <em>before</em> any coarsening, which is the state the
-source arrives in, not a verdict on the output. Run it again on the
-visit grid <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> actually builds:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+has, before any coarsening. On the visit grid
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> actually builds:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, coarsen_time <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Schedule-uniqueness screen.</strong> Scored AFTER coarsening,
 on the shared visit grid <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds. These are
@@ -747,11 +971,11 @@ shared as</p>
 <p><em>One row per patient is in the returned data frame;
 <code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same cohort. Source-derived;
 not releasable unless separately public or privately budgeted.</em></p>
-<p>Zero. That is what a declared <code>nominal_time</code> buys: the
-grid is the protocol’s, so patients land on it exactly.</p>
-<p><strong>The counts to act on are measured on the output, not the
-source</strong>, and there are two of them. Both must be 0:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<p>Zero. The declared <code>nominal_time</code> supplies the protocol’s
+grid, so patients land on it exactly.</p>
+<p>The counts to act on are measured on the output, not the source, and
+both must be 0:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">guarantees</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_settings"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -783,96 +1007,84 @@ source</strong>, and there are two of them. Both must be 0:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Both are 0, including on <code>pheno_sd</code></strong> — and
-<code>pheno_sd</code> is still the case worth studying, because passing
-this row is not the same as being fine. Neonatal phenobarbital is dosed
-to the individual infant on the day a clinician decided, so almost
-nobody’s dose schedule is shared:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<p>Both are 0, <code>pheno_sd</code> included, and <code>pheno_sd</code>
+is still the case worth studying: passing is not the same as being fine.
+Neonatal phenobarbital is dosed to the individual infant on the day a
+clinician decided, so 55 of its 59 infants have a dose schedule nobody
+else has:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_unique</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_unique</span><span class="op">$</span><span class="va">n_share_dosing</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 55</span></span></code></pre></div>
 <p>Dose events are copied from the anchor verbatim, because moving a
-dose invents a regimen the protocol never permitted (see section C). The
-only lever left is to build avatars on the few patients whose dosing
-<em>is</em> shared, and here the one shared schedule is a <strong>single
-dose</strong>. So B1b is 0 because the dosing was truncated away, not
-because it was masked: the source gives ten doses a patient and the
-output gives about one.</p>
-<p><strong>This is why B1a and B1b are read next to A5b, never
-alone.</strong> A row that must be 0 says nothing about what reaching 0
-cost, and section A5b above is where that cost showed up: the median
-avatar receives one dose. Where dosing is individualised, no setting
-fixes this — it is a property of the study, and the honest response is
-to say so rather than ship.</p>
+dose invents a regimen the protocol never permitted. The only lever left
+is to build avatars on the few patients whose dosing <em>is</em> shared,
+and here the one shared schedule is a single dose. B1b is 0 because the
+dosing was truncated away, not because it was masked.</p>
+<p><strong>Read B1a and B1b next to A5b.</strong> A check that must be 0
+says nothing about what reaching 0 cost, and A5b is where that cost
+showed up. Where dosing is individualised, no setting fixes this. It is
+a property of the study, and the honest response is to say so rather
+than ship.</p>
 <div class="section level4">
-<h4 id="a-b1-failure-belongs-to-an-arm">A B1 failure belongs to an arm<a class="anchor" aria-label="anchor" href="#a-b1-failure-belongs-to-an-arm"></a>
+<h4 id="b1-failures-by-arm">B1 failures by arm<a class="anchor" aria-label="anchor" href="#b1-failures-by-arm"></a>
 </h4>
 <p><code>pheno_sd</code> declares no arms, so its dosing problem is the
-whole cohort’s. Where <code>strata</code> are declared, both rows are
+whole cohort’s. Where <code>strata</code> are declared, both checks are
 decided arm by arm, because an avatar is anchored on one real patient
-and is never moved out of the arm it was allocated to — moving it would
-hand that arm a patient it never had and leave the run reporting a
-balance it did not build. An arm holding nobody who can be masked
-therefore fails, whatever the rest of the study looks like, and the
-result cell names it:</p>
+and is never moved out of the arm it was allocated to. An arm holding
+nobody who can be masked therefore fails whatever the rest of the study
+looks like, and the result cell names it:</p>
 <pre><code>B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL</code></pre>
 <p><code>unmaskable_strata(source, roles)</code> answers the same
 question before generating, one row per arm, splitting the patients no
-avatar can be built on into the two kinds —
-<code>unmaskable_dosing</code>, which nothing can substitute for, and
-<code>unmaskable_visits</code>, which a wider pool usually can. An arm
-with <code>safe_anchors = 0</code> will fail these rows on every
-seed.</p>
+avatar can be built on into <code>unmaskable_dosing</code>, which
+nothing can substitute for, and <code>unmaskable_visits</code>, which a
+wider pool usually can. An arm with <code>safe_anchors = 0</code> fails
+on every seed.</p>
 </div>
 <div class="section level4">
-<h4 id="read-the-near-miss-distance-not-just-the-count">Read the near-miss distance, not just the count<a class="anchor" aria-label="anchor" href="#read-the-near-miss-distance-not-just-the-count"></a>
+<h4 id="near-miss-distance">Near-miss distance<a class="anchor" aria-label="anchor" href="#near-miss-distance"></a>
 </h4>
 <p>Exact-set equality is a harsh test. A patient one missing sample away
-from a neighbour is counted exactly like a patient with a genuinely
-ad-hoc schedule, and the remedies are completely different.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+from a neighbour is counted exactly like a patient with an ad-hoc
+schedule, and the remedies are different.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">pheno_unique</span><span class="op">$</span><span class="va">nearest_set_diff</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span><span class="co">#&gt;   0.000   2.000   3.000   2.831   4.000   6.000</span></span></code></pre></div>
 <p><code>nearest_set_diff</code> is how many observation slots separate
 a patient from their nearest neighbour. A median of a few slots on a
 sparse study is a different situation from a median of twenty, and the
-headline count cannot tell them apart. On one real 21-patient study, 15
-of 21 patients had a “unique” schedule and every one of them was a
-<em>single</em> missing sample from somebody else.</p>
+headline count cannot tell them apart.</p>
 </div>
 <div class="section level4">
-<h4 id="say-which-endpoint-is-responsible">Say which endpoint is responsible<a class="anchor" aria-label="anchor" href="#say-which-endpoint-is-responsible"></a>
+<h4 id="which-endpoint-is-responsible">Which endpoint is responsible<a class="anchor" aria-label="anchor" href="#which-endpoint-is-responsible"></a>
 </h4>
-<p>A schedule is only as shared as its least-shared part, so attribute
-it:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<p>A schedule is only as shared as its least-shared part:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/skeleton_uniqueness.html">skeleton_uniqueness</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, coarsen_time <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>     <span class="st">"by_endpoint"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;           endpoint patients distinct visit sets patients alone on theirs</span></span>
 <span><span class="co">#&gt; 1  PD - Continuous      180                   1                        0</span></span>
 <span><span class="co">#&gt; 2 PK Concentration      150                   1                        0</span></span></code></pre></div>
-<p>Here neither endpoint is responsible, because neither is exposed. On
-a study where the count is nonzero this table is what tells you whether
-it is the dense PK sampling or the sparse biomarker driving it — and on
-one real study the PK sampling accounted for all of it and the biomarker
-for none, which made the fix obvious and cheap.</p>
+<p>Neither endpoint is responsible here, because neither is exposed.
+Where the count is nonzero, this table says whether dense PK sampling or
+a sparse biomarker is driving it.</p>
 <p><code><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule()</a></code> draws the same thing, and a count
-that looks alarming and one that is ordinary look completely different
-on the page:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_pmx_schedule.html">plot_pmx_schedule</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
-<p><img src="scorecard-synthetic-data-checks_files/figure-html/b1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+that looks alarming and one that is ordinary look different on the page.
+The <code>pheno_sd</code> figures above are that picture: 54 of 59 rows
+shaded is a study where being alone is the norm, not a study with a few
+stragglers.</p>
 </div>
 </div>
 <div class="section level3">
 <h3 id="b2--extremes">B2. Extremes<a class="anchor" aria-label="anchor" href="#b2--extremes"></a>
 </h3>
 <p>Who stands out from the cohort, on follow-up length, dose count, dose
-magnitude, or peak <code>DV</code>. This one runs on the
-<strong>synthetic</strong> table and does not read the source.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+magnitude or peak <code>DV</code>. This runs on the synthetic table and
+does not read the source.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">case1_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1</span></span>
@@ -880,57 +1092,47 @@ magnitude, or peak <code>DV</code>. This one runs on the
 <span>     decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; follow-up time </span></span>
 <span><span class="co">#&gt;              1</span></span></code></pre></div>
-<p>One flagged, on follow-up time. <strong>What makes that the right
-answer is the comparison group</strong>, and this dataset is the one
-that shows why it matters: <code>case1_pkpd</code> is a six-arm
-dose-ranging study running from 3 mg to 300 mg, so dose magnitude is
-spread by <em>protocol</em>.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<p>One flagged, on follow-up time. What makes that the right answer is
+the comparison group. <code>case1_pkpd</code> is a six-arm dose-ranging
+study from 3 mg to 300 mg, so dose magnitude is spread by
+<em>protocol</em>:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">case1_flags</span><span class="op">$</span><span class="va">max_dose</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   3  10  30 100 300 </span></span>
 <span><span class="co">#&gt;  30  30  30  30  30</span></span></code></pre></div>
 <p>Those are the six arms, not six kinds of outlier. Scored against the
-<strong>whole cohort</strong>, the top arm sits about 6.4 modified-z
-units from the median dose, so all thirty of its patients get flagged
-for receiving the dose they were assigned. You can see it by taking the
-strata away:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+whole cohort, the top arm sits about 6.4 modified-z units from the
+median dose, so all thirty of its patients are flagged for receiving the
+dose they were assigned. Taking the strata away shows it:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_roles_flat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"LIDV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>, covariates <span class="op">=</span> <span class="st">"WEIGHTB"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="va">case1_roles_flat</span><span class="op">)</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 60</span></span></code></pre></div>
-<p><strong><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> therefore scores
-each axis within the declared <code>strata</code>.</strong> Within an
-arm every dose is identical, so nobody stands out on it and what
-survives is the patient who is genuinely unusual — while a patient given
-twice their own arm’s dose is still flagged, because that is a real
-outlier among people who could have looked like them.</p>
-<p><strong>This part generalizes past this package.</strong> “Does this
-patient stand out?” is meaningless without saying <em>from whom</em>,
-and the cohort is the wrong answer as soon as a study assigns anything.
-A screen that ignores assignment reports the protocol back to you as a
-privacy finding. Strata holding fewer than five patients are scored
-against the cohort instead, since a scale estimated from four patients
-describes those four rather than the one being screened.</p>
-<p><code>pheno_sd</code> has no strata to declare — its dose is a
-property of the infant, not a protocol assignment — so it is scored
-cohort-wide, and its flags land on follow-up time:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> therefore scores each axis
+within the declared <code>strata</code>. Within an arm every dose is
+identical, so nobody stands out on it and what survives is the patient
+who is genuinely unusual, while a patient given twice their own arm’s
+dose is still flagged. “Does this patient stand out?” is meaningless
+without saying <em>from whom</em>, and a screen that ignores treatment
+assignment reports the protocol back to you as a privacy finding. Strata
+holding fewer than five patients are scored against the cohort instead,
+since a scale estimated from four patients describes those four.</p>
+<p><code>pheno_sd</code> has no strata to declare, so it is scored
+cohort-wide:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flags</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pheno_flags</span><span class="op">$</span><span class="va">flagged</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 36</span></span></code></pre></div>
-<p><strong>A screen’s own statistics need checking too.</strong> This
-one previously flagged every patient who stopped dosing early, because
-its robust scale — the median absolute deviation (MAD) — is exactly
-<strong>zero</strong> whenever more than half a cohort shares one value.
-On trial data that is the ordinary case, not a degenerate one: most
-patients complete the same number of doses. A zero scale makes every
-deviation infinitely many scale units, so everything is an outlier. If
-you build a screen like this, test it on a cohort where half the values
-are identical.</p>
+<p>The screen’s own statistics need checking too. Its robust scale, the
+median absolute deviation (MAD), is exactly zero whenever more than half
+a cohort shares one value, which on trial data is the ordinary case
+rather than a degenerate one. A zero scale makes everything an outlier.
+Test a screen like this on a cohort where half the values are
+identical.</p>
 <p><code><a href="../reference/remediate_identifiable_subjects.html">remediate_identifiable_subjects()</a></code> acts on what survives
 that reading, by dropping or truncating the subjects it is given.</p>
 </div>
@@ -939,7 +1141,7 @@ that reading, by dropping or truncating the subjects it is given.</p>
 </h3>
 <p>Whether a synthetic patient’s numbers sit too close to a real
 patient’s, taking covariates and trajectory together.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proximity</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity</a></span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, replicates <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -979,51 +1181,40 @@ patient’s, taking covariates and trajectory together.</p>
 </tr>
 </tbody>
 </table>
-<p>The statistic asks whether each subject’s nearest neighbour lies in
-its own dataset or the other one. 0.5 means a synthetic subject is no
-more like a real subject than two real subjects are like each other;
-toward 0 means memorisation.</p>
+<p>Adversarial accuracy asks whether each subject’s nearest neighbour
+lies in its own dataset or the other one. 0.5 means a synthetic subject
+is no more like a real subject than two real subjects are like each
+other; toward 0 means memorisation.</p>
 <p><strong>Read the null interval before the point estimate.</strong> It
 is wide at pharmacometric cohort sizes, and a value inside it means
 <em>nothing was detected</em>, never <em>nothing is there</em>. What it
 reliably catches is a blatant leak: hand this function a verbatim copy
-of the source and it drives to zero and objects, which is what the
-package’s own regression test requires of it.</p>
-<p><strong>Read the direction before reacting to the miss.</strong> The
-scorecard marks this row <em>review</em> whatever it lands on, because
-falling outside the interval means two opposite things.
-<strong>Below</strong> it is memorisation — synthetic subjects sitting
-closer to real ones than real ones sit to each other — and is the
-failure this statistic exists to find. <strong>Above</strong> it means
-the two sets have separated, which costs utility and discloses nothing.
-At a few dozen patients either can also be the seed.</p>
+of the source and it drives to zero and objects.</p>
+<p><strong>Read the direction before reacting to a miss.</strong> B3 is
+<code>review</code> whatever it lands on, because falling outside the
+interval means two opposite things. Below it is memorisation, synthetic
+subjects sitting closer to real ones than real ones sit to each other,
+and is the failure this statistic exists to find. Above it means the two
+sets have separated, which costs utility and discloses nothing. At a few
+dozen patients either can also be the seed.</p>
 </div>
 <div class="section level3">
 <h3 id="b4--exact-copies">B4. Exact copies<a class="anchor" aria-label="anchor" href="#b4--exact-copies"></a>
 </h3>
-<p>The crudest check, and worth keeping precisely because it catches a
-whole class of plumbing mistakes that the subtle checks miss. Two
-vectors per subject must not be reproduced: <strong>B4a</strong>, the
-observation times, and <strong>B4b</strong>, the <code>DV</code> values
-recorded at them. They fail independently. A generator can invent a
-schedule and then carry a real patient’s measurements onto it, or place
-real measurements on a new grid, and each is a copy of half the
-patient.</p>
-<p><strong>What counts as a copy is a vector too few real patients
-share</strong>, which is the same rule <code>min_pattern_share</code>
-applies to visit sets. Reproducing a vector a whole arm shares
-identifies nobody: on a fixed protocol grid every patient is sampled at
-the same times, so a check asking merely “does any synthetic time vector
-equal some real one” fails every well-designed study while catching
-nothing. It has to ask whether the vector belonged to <em>one</em>
-patient.</p>
-<p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> computes both rows. Values are sorted
-before comparison, so a reordering of the same numbers still counts as a
-copy — the stricter reading, and the right one, since the reordering is
-not what protects the patient.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
-<span><span class="va">card</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4a"</span>, <span class="st">"B4b"</span><span class="op">)</span>, <span class="op">]</span></span></code></pre></div>
+<p>Two vectors per subject must not be reproduced: B4a, the observation
+times, and B4b, the <code>DV</code> values recorded at them. They fail
+independently. A generator can invent a schedule and carry a real
+patient’s measurements onto it, or place real measurements on a new
+grid, and each is a copy of half the patient.</p>
+<p>What counts as a copy is a vector too few real patients share, the
+same rule <code>min_pattern_share</code> applies to visit sets.
+Reproducing a vector a whole arm shares identifies nobody: on a fixed
+protocol grid every patient is sampled at the same times, so a check
+asking “does any synthetic time vector equal some real one” fails every
+well-designed study while catching nothing. It has to ask whether the
+vector belonged to <em>one</em> patient.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_card</span><span class="op">[</span><span class="va">case1_card</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B4a"</span>, <span class="st">"B4b"</span><span class="op">)</span>, <span class="op">]</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="4%">
@@ -1064,115 +1255,63 @@ TRUE)</td>
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
-<p>Both zero. The same comparison is worth running on whole covariate
-rows, which nothing does for you. And on a study with one protocol grid,
-B4a is close to silent by construction, so B4b is the row doing the
-work.</p>
+<p>Both zero. Values are sorted before comparison, so a reordering of
+the same numbers still counts as a copy, since the reordering is not
+what protects the patient. On a study with one protocol grid B4a is
+close to silent by construction, so B4b is the check doing the work. The
+same comparison is worth running on whole covariate rows, which nothing
+does for you.</p>
 </div>
 <div class="section level3">
-<h3 id="b5--rare-categories-and-rare-combinations">B5. Rare categories and rare combinations<a class="anchor" aria-label="anchor" href="#b5--rare-categories-and-rare-combinations"></a>
+<h3 id="b5a-b5b--rare-categories">B5a, B5b. Rare categories<a class="anchor" aria-label="anchor" href="#b5a-b5b--rare-categories"></a>
 </h3>
-<p><strong>Nothing in the package flags a level that too few
-<em>source</em> patients held, and it is the most valuable thing
-missing.</strong> <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports the weaker
-synthetic-side version below. The mechanism is worth stating first,
-because it inverts the intuition that blending protects everything.</p>
 <p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> treats the two kinds of covariate
-completely differently, and only one of them is blended:</p>
+differently, and only one of them is blended:</p>
 <ul>
 <li>
 <strong>Numeric</strong> covariates become a weighted mean of the
 donors’ values plus noise. The result is a new number nobody had.</li>
 <li>
 <strong>Categorical</strong> covariates are <code><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample()</a></code>d
-from the donors’ values. That is not blending, and there is nothing to
-average: a synthetic patient’s category is always <strong>some real
-patient’s actual category, copied</strong>.</li>
+from the donors’ values. There is nothing to average: a synthetic
+patient’s category is always some real patient’s actual category,
+copied.</li>
 <li>
 <strong><code>strata</code></strong> (arm, dose group) are copied
-from the anchor, exactly, by design — they are protocol facts.</li>
+from the anchor exactly, because they are protocol facts.</li>
 </ul>
-<p>So the question is when a copied category reaches the output, and the
-answer is measured rather than assumed.
+<p>So the question is when a copied category reaches the output.
 <code><a href="../articles/avatar-algorithm.html">vignette("avatar-algorithm")</a></code>, under step 8, runs a
 40-patient fixture in which one categorical level is held by a varying
-number of otherwise-ordinary patients. The result:</p>
-<p><strong>A level held by one patient never reaches the output; a level
-held by two does.</strong> By ten holders the output tracks the source
-frequency closely. The mechanism is geometric rather than protective —
-the sole holder of a level sits alone on its own one-hot axis, is
-nobody’s nearest neighbour, and is therefore almost never chosen as a
-donor — so <strong>it is not something to rely on.</strong> Nothing
-enforces it, nothing reports it, and it degrades smoothly.</p>
-<p><strong>The dangerous shape is a rare level on <em>typical</em>
-patients.</strong> A patient who is unusual on their covariates is
-nobody’s nearest neighbour and is self-protecting; a patient who is
-ordinary in every way except one rare category — an ultra-rare mutation
-status, say — sits in the middle of the profile space, is selected as a
-donor constantly, and their category is copied out. Being an outlier
-protects you. Being ordinary except in one respect does not.</p>
-<p><strong>And the disclosure is not “this value is unique in the
-dataset”.</strong> It is that the value may be rare <strong>in the
-world</strong>. If five people alive carry a mutation, a synthetic
-dataset containing it discloses that someone with that mutation was in
-this study, which for a named trial with public inclusion criteria can
-be nearly identifying on its own. No cohort size helps.</p>
+number of otherwise-ordinary patients. <strong>A level held by one
+patient never reaches the output; a level held by two does.</strong> By
+ten holders the output tracks the source frequency closely. That is
+geometry rather than protection — the sole holder of a level sits alone
+on its own one-hot axis, is nobody’s nearest neighbour, and is therefore
+almost never chosen as a donor — so nothing enforces it and nothing
+reports it.</p>
+<p>The dangerous shape is a rare level on a <em>typical</em> patient. A
+patient who is unusual on their covariates is nobody’s nearest neighbour
+and is self-protecting. A patient who is ordinary in every way except
+one rare category, an ultra-rare mutation status say, sits in the middle
+of the profile space, is selected as a donor constantly, and their
+category is copied out.</p>
+<p>The disclosure is also not “this value is unique in the dataset”. It
+is that the value may be rare <strong>in the world</strong>. If five
+people alive carry a mutation, a synthetic dataset containing it
+discloses that someone with that mutation was in this study, which for a
+named trial with public inclusion criteria can be nearly identifying on
+its own. No cohort size helps.</p>
 <div class="section level4">
-<h4 id="the-checks-to-run-most-of-which-do-not-exist-yet">The checks to run, most of which do not exist yet<a class="anchor" aria-label="anchor" href="#the-checks-to-run-most-of-which-do-not-exist-yet"></a>
+<h4 id="b5b--the-source-side-census">B5b. The source-side census<a class="anchor" aria-label="anchor" href="#b5b--the-source-side-census"></a>
 </h4>
-<ol style="list-style-type: decimal">
-<li>
-<p><strong>Level census, source against synthetic.</strong> For
-every categorical covariate, tabulate the levels on both sides, and
-report any level reaching the output together with <strong>how many
-source patients held it</strong>. A level held by one or two real
-patients is the whole risk, and it is invisible in a marginal
-distribution comparison that only checks the proportions look similar.
-<code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> does this over
-<code>strata</code> and every non-numeric covariate, and the scorecard
-reports it as <strong>B5b</strong>; it is worked below.</p>
-<p>Half of this exists already:
-<code>compare_pmx_distributions()$covariates_categorical</code> is a
-per-patient level census of source against synthetic. Two things keep it
-from answering the question. It reports no threshold, so a one-holder
-level and a thirty-holder level look alike in the table; and it loops
-over declared <code>covariates</code> only, so
-<strong><code>strata</code> are absent from it</strong> — which is the
-one categorical axis copied from the anchor verbatim, and therefore the
-one where a two-patient cell is reproduced exactly. That is why the
-chunk below has to be written by hand for <code>TRTACT</code>.</p>
-</li>
-<li><p><strong>Minimum holders, as a threshold.</strong> Flag any level
-in the output that fewer than <code>min_pattern_share</code> source
-patients held — the same number that already protects visit sets, for
-the same reason.</p></li>
-<li><p><strong>Cross-tabulation with <code>strata</code>.</strong> Arm x
-category, then arm x category x any other categorical. Arms are copied
-exactly, so any joint cell involving one is as rare as its rarest
-part.</p></li>
-<li><p><strong>Numeric covariates: is anyone in a cluster of their
-own?</strong> A nearest-neighbour distance in covariate space, source
-against synthetic. <code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> answers this
-over the <em>whole</em> profile and would mask a covariate-only
-effect.</p></li>
-<li><p><strong>Levels the user declares rare in the population.</strong>
-The four above can only see the dataset. Rarity in the world has to be
-declared, and nothing in <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code> accepts such a
-declaration today. It is also the only one where the right answer may be
-to <strong>suppress or coarsen the level</strong> rather than report it:
-collapse a specific variant to “mutation present”, or drop the
-column.</p></li>
-</ol>
-<p>Checks 1 to 4 are mechanical. Check 5 changes what the generator does
-rather than what it reports.</p>
-<p>Check 1 is <code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code>. It censuses every
-categorical axis the roles declare — <code>strata</code> and each
-non-numeric covariate — and the level set it reports is the
-<strong>union</strong> of both sides rather than the synthetic side
-alone: a level that was dropped on the way out is a coverage failure,
-and a census that cannot see it is only checking one of its two
-directions.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> censuses every categorical
+axis the roles declare, <code>strata</code> and each non-numeric
+covariate. The level set it reports is the <strong>union</strong> of
+both sides rather than the synthetic side alone, because a level dropped
+on the way out is a coverage failure that a one-sided census cannot
+see.</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>0 level(s) held by fewer than 2 source patients; 0 of them
@@ -1292,33 +1431,29 @@ reached the output.</caption>
 </tr>
 </tbody>
 </table>
-<p>Read the source column first. A level is <strong>exposed</strong>
-when fewer than <code>min_pattern_share</code> real patients held it —
-the same floor that already protects visit sets, for the same reason —
-and the row to act on is an exposed level that <code>reached</code> the
-output, because that level is one real patient’s attribute, copied. On
-<code>case1_pkpd</code> nothing is exposed: every arm is held by 30
-patients, so nothing in this study is at risk on this axis. A study with
-a two-patient stratum would show it here and nowhere else.</p>
-<p>The remedies are upstream of generation rather than after it: drop
-the covariate from <code>covariates</code>, or collapse its rare levels
-before generating. (The synthetic column moves because anchors are
-sampled with replacement — section C.) A <code>0</code> in the synthetic
-column is the other failure: a level the source had and the output
-lost.</p>
+<p>A level is <strong>exposed</strong> when fewer than
+<code>min_pattern_share</code> real patients held it, the same floor
+that protects visit sets. The row to act on is an exposed level that
+<code>reached</code> the output, because that level is one real
+patient’s attribute, copied. On <code>case1_pkpd</code> nothing is
+exposed: every arm is held by 30 patients. A study with a two-patient
+stratum would show it here and nowhere else. A <code>0</code> in the
+synthetic column is the other failure, a level the source had and the
+output lost.</p>
+<p>The remedies are upstream of generation: drop the covariate from
+<code>covariates</code>, or collapse its rare levels before generating.
+The synthetic column moves because anchors are sampled with
+replacement.</p>
 </div>
 <div class="section level4">
-<h4 id="the-one-line-of-it-that-can-be-checked-without-the-source">The one line of it that can be checked without the source<a class="anchor" aria-label="anchor" href="#the-one-line-of-it-that-can-be-checked-without-the-source"></a>
+<h4 id="b5a--what-can-be-checked-without-the-source">B5a. What can be checked without the source<a class="anchor" aria-label="anchor" href="#b5a--what-can-be-checked-without-the-source"></a>
 </h4>
-<p>The census above reads real patient data and is therefore restricted
-output. One weaker question can be asked of the released table alone:
-<strong>does any categorical level sit on exactly one synthetic
-patient?</strong> A level held by a single synthetic patient singles
-that patient out within the release, whatever the source looked like.
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports it as B5a, over
-<code>strata</code> and every non-numeric covariate:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">card</span><span class="op">[</span><span class="va">card</span> <span class="op">==</span> <span class="st">"B5a"</span>, <span class="op">]</span></span></code></pre></div>
+<p>The census above reads real patient data and is restricted output.
+One weaker question can be asked of the released table alone: does any
+categorical level sit on exactly one synthetic patient? That patient is
+singled out within the release, whatever the source looked like.</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">case1_card</span><span class="op">[</span><span class="va">case1_card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"B5a"</span>, <span class="op">]</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="5%">
@@ -1348,127 +1483,113 @@ that patient out within the release, whatever the source looked like.
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
-<p>The row names the column and the level it found, not just the count,
+<p>The result names the column and the level, not just the count,
 because “1” on its own gives a reader no way to find the patient it is
-talking about — and the column it names is where to look, which is what
-its <code>explore</code> call tabulates. Here the answer is an arm size,
-thirty, and the pass is any answer above one. <code>pheno_sd</code>
-declares no categorical covariate and no <code>strata</code>, so the row
-is absent from its scorecard entirely — which is <em>not
-applicable</em>, not <em>clean</em>.</p>
-<p><strong>Two things this does not do</strong>, and they are the reason
-the checks above it stay on the list. A level held by two source
-patients can be copied onto ten avatars and pass this check while the
-disclosure is real, since what matters is how many <em>real</em>
-patients held it. And a level held by thirty source patients can land on
-one avatar by chance and fail it harmlessly. The synthetic-side count is
-what you can compute on a table that has left the trusted environment;
-the source-side count is what the risk is actually made of.</p>
+talking about. Here the answer is an arm size, thirty, and the pass is
+any answer above one. <code>pheno_sd</code> declares no categorical
+covariate and no <code>strata</code>, so the check is absent from its
+card, which is <em>not applicable</em> rather than <em>clean</em>.</p>
+<p>B5a is the weak form, and both its failure modes are real. A level
+held by two source patients can be copied onto ten avatars and pass
+while the disclosure is real, since what matters is how many
+<em>real</em> patients held it. A level held by thirty source patients
+can land on one avatar by chance and fail harmlessly. The synthetic-side
+count is what you can compute on a table that has left the trusted
+environment; the source-side count is what the risk is made of.</p>
 </div>
 <div class="section level4">
-<h4 id="what-none-of-this-can-do">What none of this can do<a class="anchor" aria-label="anchor" href="#what-none-of-this-can-do"></a>
+<h4 id="combinations-which-nothing-enumerates">Combinations, which nothing enumerates<a class="anchor" aria-label="anchor" href="#combinations-which-nothing-enumerates"></a>
 </h4>
-<p>Enumerate combinations. With <code>d</code> covariates there are
-<code>2^d</code> subsets that could serve as a quasi-identifier — arm x
-sex x age band x mutation — and an attacker’s chosen combination need
-not be one you checked. One mitigation is already accidentally present:
-each covariate is sampled <strong>independently</strong>, so sex may
-come from one donor and race from another, and a rare <em>joint</em>
-combination is less likely to be reproduced whole than any of its parts.
-That is a fidelity cost (real correlations between covariates are
-broken) doing double duty as a weak privacy benefit, and it should be
-read as such rather than relied on.</p>
+<p>With <code>d</code> covariates there are <code>2^d</code> subsets
+that could serve as a quasi-identifier — arm x sex x age band x mutation
+— and an attacker’s chosen combination need not be one you checked. One
+mitigation is accidentally present: each covariate is sampled
+independently, so sex may come from one donor and race from another, and
+a rare <em>joint</em> combination is less likely to be reproduced whole
+than any of its parts. That is a fidelity cost, real correlations
+between covariates broken, doing double duty as a weak privacy
+benefit.</p>
 </div>
 <div class="section level4">
-<h4 id="this-is-the-strongest-argument-for-the-differentially-private-modes">This is the strongest argument for the differentially private
-modes<a class="anchor" aria-label="anchor" href="#this-is-the-strongest-argument-for-the-differentially-private-modes"></a>
+<h4 id="differentially-private-modes">Differentially private modes<a class="anchor" aria-label="anchor" href="#differentially-private-modes"></a>
 </h4>
-<p>It is the clearest difference between the two families in this
+<p>This is the clearest difference between the two families in this
 package. AVATAR’s protections are <strong>enumerated</strong> — visit
 sets, dose schedules, extremes, proximity — so a risk nobody named is a
-risk nobody covered, and this section is exactly such a risk. An
+risk nobody covered, and combinations are exactly such a risk. An
 (epsilon, delta) differential privacy (DP) guarantee is
 <strong>unenumerated</strong>: it bounds the influence of any one
 individual on <em>any</em> function of the output, so it holds for
-combinations nobody thought to check, including ones constructed later
-with data that does not exist yet.</p>
-<p>Concretely, the DP path never copies a category.
+combinations nobody thought to check.</p>
+<p>The DP path never copies a category.
 <code>pmx_covariate(levels = )</code> releases a noisy count vector over
 the levels, normalises it to probabilities, and generation draws from
 that distribution; a level held by two patients of forty is swamped by
-noise at any sensible epsilon. Three honest caveats:</p>
+noise at any sensible epsilon. Three caveats:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>The level set must be public.</strong> A domain derived from
 the data leaks the domain, which is why <code><a href="../reference/pmx_covariate.html">pmx_covariate()</a></code>
-requires <code>levels</code> and a citation for where that public
-knowledge came from. “The mutations observed in this trial” is itself
-disclosive.</li>
+requires <code>levels</code> and a citation.</li>
 <li>
-<strong>Delta matters more than usual here.</strong> (epsilon,
-delta)-DP permits the guarantee to fail with probability delta, and for
-a category held by one or two people that is the failure that matters.
-Keep delta well below 1/n.</li>
+<strong>Delta matters more than usual.</strong> (epsilon, delta)-DP
+permits the guarantee to fail with probability delta, and for a category
+held by one or two people that is the failure that matters. Keep delta
+well below 1/n.</li>
 <li>
 <strong>DP bounds the mechanism, not the world.</strong> If
 inclusion criteria are public and only a handful of people could
 qualify, membership may be inferable regardless.</li>
 </ol>
 <p>The <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">privacy
-article</a> works through that trade-off.</p>
+article</a> works through the trade-off.</p>
 </div>
 </div>
 <div class="section level3">
-<h3 id="deterministic-proxies">Deterministic proxies<a class="anchor" aria-label="anchor" href="#deterministic-proxies"></a>
+<h3 id="deterministic-proxies-which-nothing-checks">Deterministic proxies, which nothing checks<a class="anchor" aria-label="anchor" href="#deterministic-proxies-which-nothing-checks"></a>
 </h3>
 <p>A column that is a function of a covariate discloses that covariate
-exactly, and every dataset has candidates. This is not a scorecard row,
-because there is nothing to run: the generator handles the one case it
-can detect, and the rest is a reading of your own columns.</p>
+exactly. This is not a scorecard check, because there is nothing to run:
+the generator handles the one case it can detect, and the rest is a
+reading of your own columns.</p>
 <p>The worked case is dosing. Under milligram-per-kilogram dosing, an
 <code>AMT</code> copied from the anchor reveals the anchor’s weight to
-the gram — the blending of the weight column is irrelevant, because the
-dose gives it back. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> detects proportional
-dosing and recomputes the amount from the avatar’s own blended
-covariate, and reports which path it took:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+the gram, and blending the weight column is irrelevant because the dose
+gives it back. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> detects proportional dosing,
+recomputes the amount from the avatar’s own blended covariate, and
+reports which path it took:</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">$</span><span class="va">dose_basis_note</span></span>
 <span><span class="co">#&gt; [1] "the 5 distinct dose amounts are not a fixed multiple of any declared covariate: WEIGHTB (ratios do not cluster)"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">$</span><span class="va">dose_basis_note</span></span>
 <span><span class="co">#&gt; [1] "the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts -- too many to be a protocol)"</span></span></code></pre></div>
 <p>Neither study is dosed proportionally to a declared covariate, so
-inference declines rather than imposing a rule the study did not use —
-and says why. When it does fire, <code>dose_basis</code> names the
-covariate.</p>
-<p><strong>The general rule is worth stating</strong>, because detection
-covers only the dose: body surface area from height and weight, body
-mass index, creatinine clearance, any derived exposure column carried
-through with <code>keep</code>. Each is a covariate written down twice,
-and masking one copy does nothing. Look for them by hand.</p>
+inference declines rather than imposing a rule the study did not use.
+When it does fire, <code>dose_basis</code> names the covariate.</p>
+<p>Detection covers only the dose. Body surface area from height and
+weight, body mass index, creatinine clearance, any derived exposure
+column carried through with <code>keep</code> — each is a covariate
+written down twice, and masking one copy does nothing. Look for them by
+hand.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="c--is-it-still-the-same-study">C. Is it still the same study?<a class="anchor" aria-label="anchor" href="#c--is-it-still-the-same-study"></a>
+<h2 id="c--has-the-synthetic-study-design-significantly-changed-from-the-source">C. Has the synthetic study design significantly changed from the
+source<a class="anchor" aria-label="anchor" href="#c--has-the-synthetic-study-design-significantly-changed-from-the-source"></a>
 </h2>
-<p>The plausibility tier. These are not privacy checks, and failing them
-endangers nobody — it produces data nobody can develop against, which is
-the entire purpose of the package.</p>
+<p>Failing these endangers nobody. It produces data nobody can develop
+against, which is the entire purpose of the package.</p>
+<p>Dose counts, intervals and amounts must be ones the protocol
+permitted, which is why <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> never resamples
+dose times and only ever truncates a real schedule at one of its own
+dose times. A generator that jitters dose times produces regimens no
+protocol allows, and it looks fine in every distributional check.</p>
 <div class="section level3">
-<h3 id="regimen-validity">Regimen validity<a class="anchor" aria-label="anchor" href="#regimen-validity"></a>
+<h3 id="c1--endpoint-coverage-and-arm-size">C1. Endpoint coverage and arm size<a class="anchor" aria-label="anchor" href="#c1--endpoint-coverage-and-arm-size"></a>
 </h3>
-<p>No invented regimen. Dose counts, intervals and amounts must be ones
-the protocol permitted, which is why <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> never
-resamples dose times and only ever truncates a real schedule at one of
-its own dose times. A generator that jitters dose times will produce
-regimens no protocol allows, and it will look fine in every
-distributional check.</p>
-</div>
-<div class="section level3">
-<h3 id="endpoint-coverage-and-coverage-lost">Endpoint coverage, and coverage lost<a class="anchor" aria-label="anchor" href="#endpoint-coverage-and-coverage-lost"></a>
-</h3>
-<p>All endpoints present is category A. Whether each endpoint is present
-<em>for the right patients</em> is this one:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<p>All endpoints present is A3. Whether each endpoint is present <em>for
+the right patients</em> is C1:</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">observed_by_arm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">observed</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>, <span class="op">]</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">observed</span><span class="op">$</span><span class="va">TRTACT</span>, <span class="va">observed</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span><span class="op">)</span></span>
@@ -1562,19 +1683,17 @@ distributional check.</p>
 </tr>
 </tbody>
 </table>
-<p>Two things to read here. <strong>The placebo arm has no PK
-concentration in either table</strong>, which is correct and is the
+<p>The placebo arm has no PK concentration in either table, which is the
 check passing: an avatar never leaves the arm it was anchored in, so it
 cannot acquire an endpoint its arm never had.</p>
-<p><strong>And the arm sizes match</strong>, which they did not until
-this check was written. Anchors are sampled with replacement, so left
-alone the arm sizes are whatever the draw gives: this design of exactly
-30 per arm came back between 21 and 39 per arm depending only on the
-seed, with cohort size and arm membership both exact and only the
-<em>balance</em> wrong. <code>preserve_strata_balance</code> (default
-<code>TRUE</code>) now gives each declared stratum its source share.
-Turning it off shows what the check was catching:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<p>The arm sizes also match, which they did not until this check was
+written. Anchors are sampled with replacement, so left alone the arm
+sizes are whatever the draw gives: this design of exactly 30 per arm
+came back between 21 and 39 per arm depending only on the seed, with
+cohort size and arm membership both exact and only the <em>balance</em>
+wrong. <code>preserve_strata_balance</code> (default <code>TRUE</code>)
+gives each declared stratum its source share:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">unbalanced</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span>,</span>
 <span>                preserve_strata_balance <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -1585,17 +1704,22 @@ Turning it off shows what the check was catching:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   10 mg  100 mg    3 mg   30 mg  300 mg Placebo </span></span>
 <span><span class="co">#&gt;      30      33      34      26      32      25</span></span></code></pre></div>
-<p>One deliberate exception: <strong>a stratum holding fewer than three
-source patients is left unbalanced on purpose</strong>, because
-reproducing its size exactly would disclose that size — a joint cell
-with one real patient in it would get exactly one avatar on every seed.
-<code>strata_balanced</code> and <code>strata_stochastic</code> in the
-run settings say how many strata fell on each side.</p>
-<p>Finally, the masking mechanisms buy safety with fidelity, and the
-cost is invisible unless reported:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<p>One deliberate exception: a stratum holding fewer than three source
+patients is left unbalanced on purpose, because reproducing its size
+exactly would disclose that size. <code>strata_balanced</code> and
+<code>strata_stochastic</code> in the run settings say how many strata
+fell on each side.</p>
+</div>
+<div class="section level3">
+<h3 id="c2--what-the-masking-cost">C2. What the masking cost<a class="anchor" aria-label="anchor" href="#c2--what-the-masking-cost"></a>
+</h3>
+<p><code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> says what each mechanism did and
+what it cost. The dosing section is the one C2 reports; drop the
+<code>section</code> argument for the other six.</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">pheno_synth</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>,</span>
+<span>                     section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span>
 <span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"l"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -1610,212 +1734,12 @@ cost is invisible unless reported:</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">59</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">59 (100%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">59</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">59</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">36 of 59 (61%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.99</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit schedule: WHEN patients were
-observed</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Visit grid used</td>
-<td align="right">derived</td>
-<td align="left">no usable <code>nominal_time</code>, so a grid was
-inferred from the recorded times themselves. Declaring
-<code>nominal_time</code> is better</td>
-</tr>
-<tr class="odd">
-<td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">56 (95%)</td>
-<td align="left">patients whose list of observation times nobody else
-shares</td>
-</tr>
-<tr class="even">
-<td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">54 (92%)</td>
-<td align="left">the count that matters: an avatar copies its anchor’s
-times verbatim</td>
-</tr>
-<tr class="odd">
-<td align="left">  because of a one-off observation time</td>
-<td align="right">14 (24%)</td>
-<td align="left">sampled when nobody else was. Declaring
-<code>nominal_time</code> is the fix</td>
-</tr>
-<tr class="even">
-<td align="left">  because of which visits they attended</td>
-<td align="right">40 (68%)</td>
-<td align="left">every time is shared. The visits themselves are missing
-– a missed visit, a discontinuation, or follow-up that has not reached
-them – and no grid can fix that</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">56</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">3 (5%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">3 (5%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">59 of 59 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">22 of 59 (37%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">22 of 59 (37%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 59 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">53 of 59 (90%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere –
-inside its own arm, always, since an anchor carries its
-<code>strata</code> values into the output. Every source patient stays a
-donor and stays available to anchor others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 59 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero when the schedule group has no shared set to substitute
-AND the avatar’s own arm holds nobody who could be anchored on instead;
-the run alerts and names the arm when it happens.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
-</tr>
-<tr class="even">
 <td align="left"><strong>Dose schedules: WHEN each patient was
 dosed</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Avatars whose dosing was re-truncated</td>
 <td align="right">20 of 59 (34%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
@@ -1823,12 +1747,12 @@ so the avatar stops at a different one – shared, or used by nobody.
 Truncating a schedule to a real dose time is protocol-valid in a way
 that moving dose times is not</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">56</td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">3 (5%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -1836,7 +1760,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -1848,57 +1772,29 @@ shares are not built upon. Non-zero when a whole ARM is in that position
 only ever anchored inside the arm it was allocated to.
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
-<tr class="odd">
-<td align="left"><strong>Dose amounts: HOW MUCH each patient
-received</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">the 54 distinct dose amounts are not a fixed multiple
-of any declared covariate: WT (ratios do not cluster); APGR (65 ratio
-levels for 54 distinct amounts – too many to be a protocol)</td>
-</tr>
-<tr class="odd">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
 </tbody>
 </table>
-<p>A “dose schedule” here, and in the scorecard’s C2 row, is <strong>the
-set of dose times a patient received, and nothing else</strong> — the
-amounts are not part of it. That is deliberate: on a weight-based study
-every patient’s milligrams are their own, so counting amounts would make
-every patient their own schedule and the number would measure nothing.
-Two patients on the same visit days at different doses are one schedule;
-a patient who stopped after two of three doses is another, and if nobody
-shares it, declining to anchor on them is what removes it from the
-output.</p>
-<p>Three rows of that table are the coverage lost, and on
-<code>pheno_sd</code> they are severe: <strong>3 of 56 distinct dose
-schedules are represented</strong>, three visit sets were discarded as
-too rare to reuse, and 37% of avatars had their missed visits placed
-fresh rather than copied. That is the same finding section A reached by
-counting dose rows, arrived at from the generator’s side — and it is the
-only place the collapse is reported, since B1b passes.</p>
-<p>The reason this belongs in a report rather than in a reader’s head:
-on one study a cohort of nineteen patients on three dose levels, one on
-two and one on one came out as twenty-one patients on three levels — the
-two smallest regimens silently gone — and nothing said so until this
-report was made to print “1 of 3 regimens represented”.</p>
+<p>A “dose schedule”, here and in C2, is the set of dose
+<strong>times</strong> a patient received, and nothing else. Amounts are
+deliberately not part of it: on a weight-based study every patient’s
+milligrams are their own, so counting amounts would make every patient
+their own schedule. Two patients on the same visit days at different
+doses are one schedule; a patient who stopped after two of three doses
+is another, and if nobody shares it, declining to anchor on them removes
+it from the output.</p>
+<p>On <code>pheno_sd</code> 3 of 56 distinct dose schedules are
+represented, and a third of avatars had their dosing re-truncated to
+reach that. It is the A5b finding again, from the generator’s side.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="d--how-close-are-the-distributions">D. How close are the distributions?<a class="anchor" aria-label="anchor" href="#d--how-close-are-the-distributions"></a>
+<h2 id="d--how-much-have-the-covariate-and-observation-distributions-changed">D. How much have the covariate and observation distributions
+changed<a class="anchor" aria-label="anchor" href="#d--how-much-have-the-covariate-and-observation-distributions-changed"></a>
 </h2>
-<p>The utility tier: the covariates and the dependent variables.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="d1--endpoint-and-covariate-distributions">D1. Endpoint and covariate distributions<a class="anchor" aria-label="anchor" href="#d1--endpoint-and-covariate-distributions"></a>
+</h3>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">case1_dist</span><span class="op">$</span><span class="va">endpoints</span>, digits <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Endpoints, source against synthetic"</span><span class="op">)</span></span></code></pre></div>
@@ -1985,7 +1881,7 @@ report was made to print “1 of 3 regimens represented”.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">case1_dist</span><span class="op">$</span><span class="va">covariates_numeric</span>, digits <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Baseline weight, source against synthetic"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2041,17 +1937,15 @@ report was made to print “1 of 3 regimens represented”.</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Between-subject variability shrinks, necessarily, and this
-should be expected rather than discovered.</strong> An avatar is an
-average of several donors, and averaging reduces variance. Baseline
-weight above has a source standard deviation of about 20.5 kg and a
-synthetic one of about 14.1. <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> reports
-this as D1, naming whichever endpoint or covariate moved furthest — on
-this run <code>sd x0.64</code> on the PD endpoint — and always as
-<code>review</code>, since neither direction has a threshold that would
-be right on a second study. The quantities that explain how much are
-reported with the run:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<p><strong>Between-subject variability shrinks, necessarily.</strong> An
+avatar is an average of several donors, and averaging reduces variance.
+Baseline weight above has a source standard deviation of about 20.5 kg
+and a synthetic one of about 14.1. D1 reports whichever endpoint or
+covariate moved furthest, <code>sd x0.64</code> on the PD endpoint here,
+and is always <code>review</code>, since neither direction has a
+threshold that would be right on a second study. The quantities that
+explain how much are reported with the run:</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">case1_synth</span>, <span class="st">"pmx_settings"</span><span class="op">)</span><span class="op">[</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"k"</span>, <span class="st">"mean_effective_donors"</span>, <span class="st">"max_donor_weight"</span>, <span class="st">"cap_binding_fraction"</span><span class="op">)</span></span>
 <span><span class="op">]</span><span class="op">)</span></span>
@@ -2060,38 +1954,28 @@ reported with the run:</p>
 <span><span class="co">#&gt;  cap_binding_fraction </span></span>
 <span><span class="co">#&gt;             0.7055556</span></span></code></pre></div>
 <p><code>mean_effective_donors</code> is how many donors an avatar is
-genuinely averaged over once the weights are accounted for — under 3
-here, out of <code>k = 5</code> — and <code>cap_binding_fraction</code>
-is how often the single-donor weight cap bound. Fewer effective donors
-means more fidelity and less masking; that trade is the whole
-design.</p>
+genuinely averaged over once the weights are accounted for, under 3 here
+out of <code>k = 5</code>, and <code>cap_binding_fraction</code> is how
+often the single-donor weight cap bound. Fewer effective donors means
+more fidelity and less masking; that trade is the whole design.</p>
 <p><strong>Plot the data as well.</strong> Everything above is summary
 statistics, and a summary statistic cannot see a shape: a single mode
 and two modes with the same mean and spread give identical rows. Overlay
-source and synthetic on the same axes — <code>DV</code> against time,
-and each covariate’s distribution — before deciding the output is
-usable. <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> says the same thing when it
-prints. No function here draws it, and none is planned: every group has
-plotting code it already trusts for its own study, and a generic one
-would be a worse version of that.</p>
+source and synthetic on the same axes, <code>DV</code> against time and
+each covariate’s distribution, before deciding the output is usable. No
+function here draws it, because every group has plotting code it already
+trusts for its own study.</p>
 <p><strong>Do the covariate–response relationships survive?</strong> The
 question a modeller actually cares about, and the least covered by
 anything above: a weight–exposure slope, a dose–response relationship, a
 treatment effect. Marginal distributions can match while the
 relationship between them is destroyed. The <a href="https://iamstein.github.io/synpmx/articles/example-avatar-PKPD-covariate-treatment-effect.html">covariate
 and treatment effect article</a> is the worked evidence.</p>
-<p><strong>Both failure directions matter.</strong> Too close is a
-privacy failure; too far is a utility failure.
-<code><a href="../reference/compare_pmx_proximity.html">compare_pmx_proximity()</a></code> is the one diagnostic that reports
-both from a single statistic — near 0 is memorisation, near 1 means the
-synthetic cohort is nothing like the real one, and 0.5 is the target.
-Most of these checks have two tails, and a check with only one is
-usually a check that has picked a side without saying so.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="e--what-these-checks-cannot-tell-you">E. What these checks cannot tell you<a class="anchor" aria-label="anchor" href="#e--what-these-checks-cannot-tell-you"></a>
+<h2 id="what-these-checks-cannot-tell-you">What these checks cannot tell you<a class="anchor" aria-label="anchor" href="#what-these-checks-cannot-tell-you"></a>
 </h2>
-<p>A section, not an afterthought.</p>
 <p><strong>Nothing here bounds what an adversary learns.</strong> These
 checks reduce the ways a real patient can be singled out. They do not
 limit how often that succeeds, and they compose no better than the
@@ -2104,9 +1988,8 @@ it, and <code>nearest_set_diff</code> is the only thing that will tell
 you how near.</p>
 <p><strong>Most checks read the source, and are therefore restricted
 output.</strong> They may not leave the environment the source data
-lives in. <code><a href="../reference/compare_pmx.html">compare_pmx()</a></code> reports this per component rather
-than leaving it to be inferred:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+lives in. <code><a href="../reference/compare_pmx.html">compare_pmx()</a></code> reports this per component:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx.html">compare_pmx</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">$</span><span class="va">release_status</span></span>
 <span><span class="co">#&gt;              component             release_status</span></span>
 <span><span class="co">#&gt; 1              summary  restricted_not_releasable</span></span>
@@ -2116,92 +1999,65 @@ than leaving it to be inferred:</p>
 <span><span class="co">#&gt; 5 validation.synthetic releasable_post_processing</span></span>
 <span><span class="co">#&gt; 6                plots  restricted_not_releasable</span></span></code></pre></div>
 <p>Only two things in this vignette do not read the source:
-<code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> on the synthetic table, and
-<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code> on the synthetic table.
-Everything else — every uniqueness count, every distribution comparison,
-every proximity statistic — is computed from real patient data and
-inherits its handling obligations.</p>
+<code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> and
+<code><a href="../reference/flag_identifiable_subjects.html">flag_identifiable_subjects()</a></code>, both on the synthetic table.
+Every uniqueness count, distribution comparison and proximity statistic
+is computed from real patient data and inherits its handling
+obligations.</p>
 </div>
 <div class="section level2">
 <h2 id="what-is-still-missing">What is still missing<a class="anchor" aria-label="anchor" href="#what-is-still-missing"></a>
 </h2>
-<table class="table">
-<colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
-</colgroup>
-<thead><tr class="header">
-<th>#</th>
-<th>Gap</th>
-<th>What closing it takes</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>B5</td>
-<td>The source-side census (check 1) now exists as
-<code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> and scorecard row B5b. Still
-missing: joint combinations, since with <code>d</code> covariates there
-are <code>2^d</code> of them and the census is per column; and check 5,
-which is the one that matters most — declaring which levels are rare
-<em>in the population</em> rather than in this study</td>
-<td>Joint rarity needs a decision about which combinations are worth
-enumerating. Population rarity is not measurable from the study at all:
-it needs domain knowledge, so the realistic form is a declaration on
-<code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, or simply not carrying that covariate</td>
-</tr>
-<tr class="even">
-<td>A1</td>
-<td>A sample can cross a dose. Generated observation times move; dose
-times do not. On <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> that lands an
-observation carrying occasion 2 at the same time as the occasion-3 dose,
-in 6 of 12 avatars — a trough that is now a time-zero sample, and a
-declared <code>occasion</code> column that no longer runs in step with
-<code>time</code>. <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> checks event grammar and
-time monotonicity, and neither of these</td>
-<td>A post-generation invariant over the finished table: each
-observation keeps the number of doses that preceded it, and
-<code>occasion</code> is non-decreasing within a subject</td>
-</tr>
-</tbody>
-</table>
-<p>All but one are reporting gaps: they change what you know, not what
-the generator does. The exception is the fifth B5 check — declaring
-which levels are rare in the population — which would change generation
-itself, by suppressing or coarsening a level rather than reporting
-it.</p>
-<p>Two further gaps are not in the scorecard because they are not checks
-the package half-does — they are whole measurement approaches it does
-not attempt, and both are covered in the <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">checking
+<p><strong>A1: a sample can cross a dose.</strong> Generated observation
+times move and dose times do not, so a sample drawn before a dose can
+land at or after it. On <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> that happens
+to 6 of 12 avatars, each carrying an observation labelled occasion 2 at
+the same time as the occasion-3 dose: a trough that is now a time-zero
+sample, and a declared <code>occasion</code> column that no longer runs
+in step with <code>time</code>. Closing it takes a post-generation
+invariant over the finished table, checking that each observation keeps
+the number of doses that preceded it and that <code>occasion</code> is
+non-decreasing within a subject.</p>
+<p><strong>B5: rare combinations, and rarity in the world.</strong> The
+source-side census exists as <code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> and
+B5b. Joint combinations do not, since with <code>d</code> covariates
+there are <code>2^d</code> of them and the census is per column; closing
+that takes a decision about which combinations are worth enumerating.
+The one that matters most is declaring which levels are rare <em>in the
+population</em> rather than in this study, which is not measurable from
+the study at all. Its realistic form is a declaration on
+<code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, or not carrying that covariate. It is also the
+only gap here that would change generation rather than reporting, by
+suppressing or coarsening a level.</p>
+<p>Two further gaps are whole measurement approaches the package does
+not attempt, both covered in the <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">checking
 literature review</a>:</p>
 <ul>
 <li>
-<strong>No control group.</strong> Every check above that reads the
-source compares the synthetic data against patients the generator was
-allowed to use. That confounds <em>the generator captured the
-population</em> with <em>the generator memorized a patient</em>, and the
-standard remedy — holding patients out of generation and asking the
-question twice — is not implemented. It is the reason B3’s null interval
-says less than it appears to.</li>
+<strong>No control group.</strong> Every check that reads the source
+compares the synthetic data against patients the generator was allowed
+to use. That confounds <em>the generator captured the population</em>
+with <em>the generator memorized a patient</em>, and the standard remedy
+— holding patients out of generation and asking the question twice — is
+not implemented. It is why B3’s null interval says less than it appears
+to.</li>
 <li>
 <strong>Nothing measures linkability, and nothing is per patient on
 the privacy side.</strong> The AVATAR literature’s own per-patient
 measures, local cloaking and hidden rate, apply directly to this
 generator and are not computed.</li>
 </ul>
-<p>And one check is not on this list because it cannot be: <strong>does
-the pipeline that will consume the real study run unchanged against
-this?</strong> That is the reason the package exists, no function here
-can answer it, and only you can — run your own code against the output
-and see whether the joins, reshapes, derivations and control streams
-behave.</p>
+<p>And one check cannot be on this list: <strong>does the pipeline that
+will consume the real study run unchanged against this?</strong> Only
+you can answer it. Run your own code against the output and see whether
+the joins, reshapes, derivations and control streams behave.</p>
 <div class="section level3">
 <h3 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h3>
 <ul>
 <li>
-<code><a href="../articles/demo.html">vignette("demo")</a></code> — the scorecard at the top of this
-vignette, computed on one real run.</li>
+<code><a href="../articles/demo.html">vignette("demo")</a></code> — generating a dataset and reading its
+scorecard, on one study end to end.</li>
 <li>
 <code><a href="../articles/avatar-algorithm.html">vignette("avatar-algorithm")</a></code> — how the default
 generator works, and the six masking mechanisms these checks are
