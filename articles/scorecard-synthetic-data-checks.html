@@ -222,181 +222,43 @@ work.</p>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">case1_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span>
-<span><span class="va">case1_card</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="3%">
-<col width="26%">
-<col width="6%">
-<col width="22%">
-<col width="4%">
-<col width="37%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">reads</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-<th align="left">explore</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A1</td>
-<td align="left">Synthetic table is a legal PMX dataset</td>
-<td align="left">synthetic</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A2</td>
-<td align="left">Source is legal under the declared roles</td>
-<td align="left">source</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
-</tr>
-<tr class="odd">
-<td align="left">A3</td>
-<td align="left">Every endpoint survived</td>
-<td align="left">both</td>
-<td align="left">2 of 2</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A4</td>
-<td align="left">Cohort size survived</td>
-<td align="left">both</td>
-<td align="left">180 -&gt; 180</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“anchors”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">both</td>
-<td align="left">30.7 -&gt; 30.7</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">both</td>
-<td align="left">70.8 -&gt; 70.8</td>
-<td align="left">review</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A6</td>
-<td align="left">Discrete endpoints keeping their source scale</td>
-<td align="left">both</td>
-<td align="left">no discrete endpoint</td>
-<td align="left">pass</td>
-<td align="left">pmx_endpoint_types(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">synthetic</td>
-<td align="left">1 of 180</td>
-<td align="left">review</td>
-<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B3</td>
-<td align="left">Adversarial accuracy inside its null interval</td>
-<td align="left">both</td>
-<td align="left">0.600 in [0.423, 0.554]</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
-</tr>
-<tr class="odd">
-<td align="left">B4b</td>
-<td align="left">Generated DV vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B5a</td>
-<td align="left">Patients holding the least-held categorical level</td>
-<td align="left">synthetic</td>
-<td align="left">TRTACT = 10 mg: 30</td>
-<td align="left">pass</td>
-<td align="left">table(synthetic$TRTACT)</td>
-</tr>
-<tr class="odd">
-<td align="left">B5b</td>
-<td align="left">Rare source levels copied into the output</td>
-<td align="left">both</td>
-<td align="left">0 of 0 exposed</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_rare_levels(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">C1</td>
-<td align="left">Strata keeping their source size</td>
-<td align="left">both</td>
-<td align="left">6 of 6</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_strata_sizes(source, synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">run settings</td>
-<td align="left">2 of 2</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">both</td>
-<td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-</tbody>
-</table>
-<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
-same axes – <code>DV</code> against time, and each covariate – with
-whatever you normally use.</em></p>
+<span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">case1_card</span><span class="op">)</span></span>
+<span><span class="co">#&gt; DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.</span></span>
+<span><span class="co">#&gt; Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   check question                                           reads        result                                      verdict</span></span>
+<span><span class="co">#&gt;   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                        pass</span></span>
+<span><span class="co">#&gt;   A2    Source is legal under the declared roles           source       TRUE                                        pass</span></span>
+<span><span class="co">#&gt;   A3    Every endpoint survived                            both         2 of 2                                      pass</span></span>
+<span><span class="co">#&gt;   A4    Cohort size survived                               both         180 -&gt; 180                                  pass</span></span>
+<span><span class="co">#&gt;   A5a   Observations per patient                           both         30.7 -&gt; 30.7                                review</span></span>
+<span><span class="co">#&gt;   A5b   Doses per patient                                  both         70.8 -&gt; 70.8                                review</span></span>
+<span><span class="co">#&gt;   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                        pass</span></span>
+<span><span class="co">#&gt;   B1a   Avatars with a visit set nobody else shares        run settings 0                                           pass</span></span>
+<span><span class="co">#&gt;   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                           pass</span></span>
+<span><span class="co">#&gt;   B2    Synthetic patients unusual within their stratum    synthetic    1 of 180                                    review</span></span>
+<span><span class="co">#&gt;   B3    Adversarial accuracy inside its null interval      both         0.600 in [0.423, 0.554]                     review</span></span>
+<span><span class="co">#&gt;   B4a   Generated time vectors copying an exposed real one both         0                                           pass</span></span>
+<span><span class="co">#&gt;   B4b   Generated DV vectors copying an exposed real one   both         0                                           pass</span></span>
+<span><span class="co">#&gt;   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 10 mg: 30                          pass</span></span>
+<span><span class="co">#&gt;   B5b   Rare source levels copied into the output          both         0 of 0 exposed                              pass</span></span>
+<span><span class="co">#&gt;   C1    Strata keeping their source size                   both         6 of 6                                      pass</span></span>
+<span><span class="co">#&gt;   C2    Distinct dose-time schedules represented           run settings 2 of 2                                      pass</span></span>
+<span><span class="co">#&gt;   D1    Values landing in the same range                   both         sd x0.64 on PD - Continuous (furthest of 3) review</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; To explore, with `source`, `synthetic` and `roles` named as you have them:</span></span>
+<span><span class="co">#&gt;   A5a   compare_pmx_distributions(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt;   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span></span>
+<span><span class="co">#&gt;   B2    flag_identifiable_subjects(synthetic, roles)</span></span>
+<span><span class="co">#&gt;   B3    compare_pmx_proximity(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt;   D1    compare_pmx_distributions(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; D1 reports numbers, not shapes. Plot source and synthetic on the same axes</span></span>
+<span><span class="co">#&gt; -- `DV` against time, and each covariate -- with whatever you normally use.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; no failures, 5 to review.</span></span>
+<span><span class="co">#&gt; `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.</span></span>
+<span><span class="co">#&gt; Rows reading `source` or `both` are restricted output.</span></span></code></pre></div>
 <p>Nothing fails. The rest of this vignette is what each check asks and
 why its pass criterion is what it is, using <code>case1_pkpd</code>
 where a check passes and <code>pheno_sd</code> for further
@@ -520,181 +382,44 @@ because a total hides the thing worth seeing.</strong> On
 that makes the point:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span>
-<span><span class="va">pheno_card</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="3%">
-<col width="27%">
-<col width="6%">
-<col width="19%">
-<col width="4%">
-<col width="39%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">reads</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-<th align="left">explore</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A1</td>
-<td align="left">Synthetic table is a legal PMX dataset</td>
-<td align="left">synthetic</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A2</td>
-<td align="left">Source is legal under the declared roles</td>
-<td align="left">source</td>
-<td align="left">TRUE</td>
-<td align="left">pass</td>
-<td align="left">validate_pmx(source, roles, strict = FALSE)</td>
-</tr>
-<tr class="odd">
-<td align="left">A3</td>
-<td align="left">Every endpoint survived</td>
-<td align="left">both</td>
-<td align="left">1 of 1</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A4</td>
-<td align="left">Cohort size survived</td>
-<td align="left">both</td>
-<td align="left">59 -&gt; 59</td>
-<td align="left">pass</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“anchors”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">both</td>
-<td align="left">2.6 -&gt; 2.5</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">both</td>
-<td align="left">10 -&gt; 5.6</td>
-<td align="left">review</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="odd">
-<td align="left">A6</td>
-<td align="left">Discrete endpoints keeping their source scale</td>
-<td align="left">both</td>
-<td align="left">no discrete endpoint</td>
-<td align="left">pass</td>
-<td align="left">pmx_endpoint_types(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">run settings</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">unmaskable_strata(source, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">synthetic</td>
-<td align="left">25 of 59</td>
-<td align="left">review</td>
-<td align="left">flag_identifiable_subjects(synthetic, roles)</td>
-</tr>
-<tr class="odd">
-<td align="left">B3</td>
-<td align="left">Adversarial accuracy inside its null interval</td>
-<td align="left">both</td>
-<td align="left">0.466 in [0.362, 0.617]</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">skeleton_uniqueness(source, roles, coarsen_time =
-TRUE)</td>
-</tr>
-<tr class="odd">
-<td align="left">B4b</td>
-<td align="left">Generated DV vectors copying an exposed real one</td>
-<td align="left">both</td>
-<td align="left">0</td>
-<td align="left">pass</td>
-<td align="left">compare_pmx_proximity(source, synthetic, roles)</td>
-</tr>
-<tr class="even">
-<td align="left">B5a</td>
-<td align="left">Patients holding the least-held categorical level</td>
-<td align="left">synthetic</td>
-<td align="left">no categorical covariate or stratum</td>
-<td align="left">pass</td>
-<td align="left">pmx_roles(strata = , covariates = )</td>
-</tr>
-<tr class="odd">
-<td align="left">B5b</td>
-<td align="left">Rare source levels copied into the output</td>
-<td align="left">both</td>
-<td align="left">no categorical covariate or stratum</td>
-<td align="left">pass</td>
-<td align="left">pmx_roles(strata = , covariates = )</td>
-</tr>
-<tr class="even">
-<td align="left">C1</td>
-<td align="left">Strata keeping their source size</td>
-<td align="left">both</td>
-<td align="left">no strata declared</td>
-<td align="left">pass</td>
-<td align="left">pmx_roles(strata = )</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">run settings</td>
-<td align="left">35 of 56</td>
-<td align="left">review</td>
-<td align="left">pmx_masking_report(synthetic, source, roles, section =
-“dose_schedules”)</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">both</td>
-<td align="left">sd x0.44 on WT (furthest of 3)</td>
-<td align="left">review</td>
-<td align="left">compare_pmx_distributions(source, synthetic,
-roles)</td>
-</tr>
-</tbody>
-</table>
-<p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
-same axes – <code>DV</code> against time, and each covariate – with
-whatever you normally use.</em></p>
+<span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">pheno_card</span><span class="op">)</span></span>
+<span><span class="co">#&gt; DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.</span></span>
+<span><span class="co">#&gt; Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   check question                                           reads        result                              verdict</span></span>
+<span><span class="co">#&gt;   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass</span></span>
+<span><span class="co">#&gt;   A2    Source is legal under the declared roles           source       TRUE                                pass</span></span>
+<span><span class="co">#&gt;   A3    Every endpoint survived                            both         1 of 1                              pass</span></span>
+<span><span class="co">#&gt;   A4    Cohort size survived                               both         59 -&gt; 59                            pass</span></span>
+<span><span class="co">#&gt;   A5a   Observations per patient                           both         2.6 -&gt; 2.5                          review</span></span>
+<span><span class="co">#&gt;   A5b   Doses per patient                                  both         10 -&gt; 5.6                           review</span></span>
+<span><span class="co">#&gt;   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass</span></span>
+<span><span class="co">#&gt;   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass</span></span>
+<span><span class="co">#&gt;   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass</span></span>
+<span><span class="co">#&gt;   B2    Synthetic patients unusual within their stratum    synthetic    25 of 59                            review</span></span>
+<span><span class="co">#&gt;   B3    Adversarial accuracy inside its null interval      both         0.466 in [0.362, 0.617]             review</span></span>
+<span><span class="co">#&gt;   B4a   Generated time vectors copying an exposed real one both         0                                   pass</span></span>
+<span><span class="co">#&gt;   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass</span></span>
+<span><span class="co">#&gt;   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass</span></span>
+<span><span class="co">#&gt;   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass</span></span>
+<span><span class="co">#&gt;   C1    Strata keeping their source size                   both         no strata declared                  pass</span></span>
+<span><span class="co">#&gt;   C2    Distinct dose-time schedules represented           run settings 35 of 56                            review</span></span>
+<span><span class="co">#&gt;   D1    Values landing in the same range                   both         sd x0.44 on WT (furthest of 3)      review</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; To explore, with `source`, `synthetic` and `roles` named as you have them:</span></span>
+<span><span class="co">#&gt;   A5a   compare_pmx_distributions(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt;   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span></span>
+<span><span class="co">#&gt;   B2    flag_identifiable_subjects(synthetic, roles)</span></span>
+<span><span class="co">#&gt;   B3    compare_pmx_proximity(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt;   C2    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span></span>
+<span><span class="co">#&gt;   D1    compare_pmx_distributions(source, synthetic, roles)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; D1 reports numbers, not shapes. Plot source and synthetic on the same axes</span></span>
+<span><span class="co">#&gt; -- `DV` against time, and each covariate -- with whatever you normally use.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; no failures, 6 to review.</span></span>
+<span><span class="co">#&gt; `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.</span></span>
+<span><span class="co">#&gt; Rows reading `source` or `both` are restricted output.</span></span></code></pre></div>
 <p>Observations are near-intact at 2.6 against 2.5 per patient, while
 dosing falls from 10 to 5.6. In rows: 744 become 480, and 589 dose rows
 become 332.</p>

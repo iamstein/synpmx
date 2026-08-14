@@ -339,6 +339,9 @@ Structural checks on generated data, and restricted comparisons.
 - [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
   : The scorecard for one synthetic dataset
 
+- [`synpmx_scorecard_datatable()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard_datatable.md)
+  : A scorecard as a coloured HTML table
+
 - [`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
   : Validate a pharmacometric event dataset
 

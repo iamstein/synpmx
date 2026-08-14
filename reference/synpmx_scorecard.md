@@ -128,6 +128,8 @@ unchanged against this output.
 
 ## See also
 
+[`synpmx_scorecard_datatable()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard_datatable.md)
+to colour the verdicts in an HTML report,
 [`compare_pmx()`](https://iamstein.github.io/synpmx/reference/compare_pmx.md),
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md),
 [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md),
