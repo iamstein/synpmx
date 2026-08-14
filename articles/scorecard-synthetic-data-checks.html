@@ -213,10 +213,11 @@ pharmacokinetic (PK) concentration and a continuous pharmacodynamic (PD)
 effect — and a baseline weight. It is shaped like a real study report,
 and most of these checks pass on it.</p>
 <p><code><a href="https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html" class="external-link">nlmixr2data::pheno_sd</a></code> is 59 real neonates given
-phenobarbital in routine clinical care. Its checks
-<strong>fail</strong>, and it is here for that reason: a document in
-which everything passes teaches nothing. Where the two disagree is where
-the check is doing work.</p>
+phenobarbital in routine clinical care, and it is here because
+<strong>no check on it fails while its full dosing history does not
+survive</strong>: the median infant received twelve doses and the median
+avatar receives one. A dataset on which everything passes teaches
+nothing. Where the two disagree is where a check is doing work.</p>
 </div>
 <div class="section level3">
 <h3 id="the-two-scorecards">The two scorecards<a class="anchor" aria-label="anchor" href="#the-two-scorecards"></a>
@@ -535,9 +536,12 @@ roles)</td>
 <p><em>D1 reports numbers, not shapes. Plot source and synthetic on the
 same axes – <code>DV</code> against time, and each covariate – with
 whatever you normally use.</em></p>
-<p>Nothing fails on either. The rest of this vignette is what each check
-asks, why its pass criterion is what it is, and where
-<code>pheno_sd</code> is worse than its card suggests.</p>
+<p>Nothing fails on either, and on <code>pheno_sd</code> that is not the
+same as being fine: A5b reads <code>10 -&gt; 1.1</code> doses per
+patient and C2 represents 3 of its 56 dose schedules, both
+<code>review</code>. The rest of this vignette is what each check asks,
+why its pass criterion is what it is, and how a study can lose its
+dosing without a single <code>FAIL</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="a--is-the-dataset-valid">A. Is the dataset valid<a class="anchor" aria-label="anchor" href="#a--is-the-dataset-valid"></a>
