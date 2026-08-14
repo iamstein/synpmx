@@ -206,6 +206,14 @@
 #' threshold would be honest, and it has to be read. Nor is `"unavailable"`:
 #' it marks a row nothing was measured for.
 #'
+#' # Every card holds every row
+#'
+#' The same checks come back whatever the study declares. Where a study gives a
+#' check nothing to ask -- no discrete endpoint for A6, no `strata` for C1, no
+#' categorical axis for B5a and B5b -- the `result` says so and the verdict is
+#' `"pass"`, rather than the row going missing. Two cards can then be compared
+#' row for row, and an absent row cannot be mistaken for one that passed.
+#'
 #' # Plot the data as well
 #'
 #' D1 reports the standard deviation that moved furthest between the two
@@ -406,11 +414,24 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )
   ))
 
-  # NULL when the roles declare no categorical axis, which is also when there is
-  # no B5 row at all.
+  # NULL when the roles declare no categorical axis. The B5 rows are still
+  # emitted in that case, saying so.
   rare_levels <- NULL
   categorical <- .scorecard_categorical(synthetic, roles)
-  if (length(categorical)) {
+  if (!length(categorical)) {
+    rows <- c(rows, list(
+      .scorecard_row(
+        "B5a", "Patients holding the least-held categorical level", "synthetic",
+        "no categorical covariate or stratum",
+        "pmx_roles(strata = , covariates = )", TRUE
+      ),
+      .scorecard_row(
+        "B5b", "Rare source levels copied into the output", "both",
+        "no categorical covariate or stratum",
+        "pmx_roles(strata = , covariates = )", TRUE
+      )
+    ))
+  } else {
     # Which column and which level, not just the count. "1" on its own says a
     # patient is alone in holding something without saying what, which is not
     # something a reader can act on -- and the column it names is the one to
@@ -462,7 +483,14 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     )))
   }
 
-  if (length(roles$strata)) {
+  if (!length(roles$strata)) {
+    # A study with no declared arm has no balance to preserve, so there is
+    # nothing here to get wrong. The row says which of those two it is.
+    rows <- c(rows, list(.scorecard_row(
+      "C1", "Strata keeping their source size", "both",
+      "no strata declared", "pmx_roles(strata = )", TRUE
+    )))
+  } else {
     arm_size <- function(data) {
       first <- !duplicated(as.character(data[[roles$id]]))
       table(as.character(data[[roles$strata[[1L]]]])[first])

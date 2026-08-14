@@ -919,6 +919,59 @@ test_that("a truncation target is never deeper than the schedule it replaces", {
   expect_true(all(plan$target[moved] < plan$depth[moved]))
 })
 
+# SIM-052. A truncation depth is only a shape when the times up to it are times
+# many patients received. Ten patients dosed on {0, 336} and one dosed on
+# {0, 168, 336}: 168 is that one patient's alone.
+onc_offgrid_source <- function() {
+  mk <- function(i, dt) {
+    out <- rbind(
+      data.frame(ID = i, TIME = dt, DV = NA_real_, AMT = 100, EVID = 1L,
+                 CMT = 1L, WT = 60 + i),
+      data.frame(ID = i, TIME = dt + 24, DV = 5 + i / 10, AMT = 0, EVID = 0L,
+                 CMT = 2L, WT = 60 + i))
+    out[order(out$TIME, -out$EVID), ]
+  }
+  do.call(rbind, c(lapply(1:10, function(i) mk(i, c(0, 336))),
+                   list(mk(11, c(0, 168, 336)))))
+}
+
+onc_offgrid_roles <- function() {
+  pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+            cmt = "CMT", covariates = "WT")
+}
+
+test_that("the truncation grid holds only dose times several patients share", {
+  # The grid was the union of every dose time in the cohort, so 168 was a cell
+  # on it and patient 11's schedule read as a three-deep truncation. Depth 3 is
+  # held by one patient, depth 2 by none, so the plan "safely" moved the avatar
+  # to depth 2 -- {0, 168}, a set no real patient holds and which therefore
+  # scores clean, while 168 came from exactly one infant.
+  plan <- synpmx:::.dose_truncation_plan(onc_offgrid_source(),
+                                         onc_offgrid_roles(), 2L)
+
+  expect_false(168 %in% plan$cells)
+  # And the property the grid exists to have, stated directly.
+  dose <- onc_offgrid_source()
+  holders <- table(unique(dose[dose$EVID == 1L, c("ID", "TIME")])$TIME)
+  expect_true(all(as.integer(holders[as.character(plan$cells)]) >= 2L))
+  # Patient 11 is not truncatable at all: they are left to the anchor rule,
+  # which declines to build on them.
+  expect_true(is.na(plan$depth[[11L]]))
+  expect_true(is.na(plan$target[[11L]]))
+})
+
+test_that("no avatar receives a dose at a time one patient alone received", {
+  source <- onc_offgrid_source()
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, onc_offgrid_roles(), n_subjects = 11, seed = 7)
+  ))
+
+  dosed <- unique(source[source$EVID == 1L, c("ID", "TIME")])
+  alone <- as.numeric(names(which(table(dosed$TIME) < 2L)))
+  expect_equal(alone, 168)                     # the fixture really is loaded
+  expect_equal(sum(synthetic$TIME[synthetic$EVID == 1L] %in% alone), 0L)
+})
+
 # Generated follow-up depth (SIM-047) ----------------------------------------
 #
 # A shape says how many visits were missed and how they were arranged, not where

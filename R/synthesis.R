@@ -903,6 +903,18 @@
 # between them, so "stopped after one dose" cannot be represented without
 # pointing at the person who did. Ten stopping depths across forty patients
 # leaves plenty free, which is the case this exists for.
+#
+# The depth is the only thing this mechanism is allowed to reason about, and
+# that is why the grid below is the SHARED dose times rather than every dose
+# time in the cohort. "A depth nobody stopped at identifies nobody" holds when
+# each of the times up to that depth is one many patients received, so all the
+# schedule says about a patient is where they stopped. It is false as soon as
+# one of those times is a time a single patient received: truncating the last
+# dose off an individualised regimen leaves an avatar carrying the rest of one
+# real patient's dose times, which no patient holds as a complete schedule and
+# which the exact-set checks in `.dose_schedule_sharing()` and the scorecard
+# therefore score as clean. Building the grid from the union let exactly that
+# through -- see the worked case in `SIM-052`.
 .dose_truncation_plan <- function(source, roles, min_pattern_share) {
   subjects <- as.character(.unique_in_order(source[[roles$id]]))
   empty <- list(depth = rep(NA_integer_, length(subjects)),
@@ -915,10 +927,22 @@
   if (!any(dosed)) return(empty)
 
   times <- lapply(subjects, function(s) sort(unique(time[dosed & id == s])))
-  cells <- sort(unique(unlist(times)))
-  # A schedule is a truncation only when it is the first `d` dose times of the
-  # cohort's union. Anything else -- a missed middle dose, a delay -- is not a
-  # prefix and is left to the anchor-level rule.
+  # The cohort's shared dose grid: the times `min_pattern_share` patients or
+  # more received. A time only one patient received is left out, so no depth
+  # measured against this grid can hand an avatar a dose time that belongs to
+  # one person. On a protocol study every dose time is shared and this is the
+  # union; on an individualised one it is short, which is the true answer.
+  all_times <- sort(unique(unlist(times)))
+  holders <- table(unlist(lapply(times, .time_key)))
+  cells <- all_times[vapply(all_times, function(x) {
+    key <- .time_key(x)
+    key %in% names(holders) &&
+      as.integer(holders[[key]]) >= as.integer(min_pattern_share)
+  }, logical(1))]
+  # A schedule is a truncation only when it is the first `d` times of that
+  # grid. Anything else -- a missed middle dose, a delay, a dose at a time
+  # nobody else received -- is not a prefix and is left to the anchor-level
+  # rule.
   depth <- vapply(times, function(t) {
     d <- length(t)
     if (!d || d > length(cells)) return(NA_integer_)
@@ -931,7 +955,8 @@
       as.integer(held[[as.character(d)]])
   }
   # Safe means shared by enough patients, or held by none at all: a depth
-  # nobody stopped at identifies nobody.
+  # nobody stopped at identifies nobody. That second clause rests entirely on
+  # `cells` holding only shared times -- read the note above before widening it.
   safe <- function(d) {
     d >= 1L && d <= length(cells) &&
       (count_at(d) == 0L || count_at(d) >= as.integer(min_pattern_share))

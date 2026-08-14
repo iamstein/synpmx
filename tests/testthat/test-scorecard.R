@@ -2,9 +2,10 @@
 # that prove it can say "FAIL". A scorecard that has only ever been seen to pass
 # is an untested branch, not evidence.
 #
-# The rows it emits vary with the roles: no `strata` means no C1, and no
-# categorical covariate means no B5a or B5b. Both are tested, because a study with
-# neither is the ordinary case at pharmacometric cohort sizes.
+# The rows it emits do NOT vary with the roles. A study that declares no
+# `strata` and no categorical covariate -- the ordinary case at pharmacometric
+# cohort sizes -- still gets C1, B5a and B5b, saying why they could not be
+# asked, so two cards can be compared row for row.
 
 sc_roles <- function(...) {
   pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
@@ -119,24 +120,6 @@ test_that("an objection to the source is review, not FAIL", {
   expect_identical(sc_verdict(card, "A2"), "review")
 })
 
-test_that("the optional rows appear only when the roles declare them", {
-  source <- pmx_simulated_fixture(40)
-  source$ARM <- ifelse(as.integer(factor(source$ID)) %% 2L == 0L, "A", "B")
-
-  with_strata <- sc_roles(strata = "ARM")
-  card <- synpmx_scorecard(source, sc_synthetic(source, with_strata), with_strata)
-  expect_true("C1" %in% card$check)
-  expect_true("B5a" %in% card$check)
-  expect_true("B5b" %in% card$check)
-
-  without <- sc_roles()
-  bare <- synpmx_scorecard(source, sc_synthetic(source, without), without)
-  # `WT` is numeric, so with no `strata` there is no categorical axis at all.
-  expect_false("C1" %in% bare$check)
-  expect_false("B5a" %in% bare$check)
-  expect_false("B5b" %in% bare$check)
-})
-
 test_that("B5a marks a level that reaches the output on one patient only", {
   source <- pmx_simulated_fixture(40)
   ids <- unique(as.character(source$ID))
@@ -220,6 +203,31 @@ test_that("C2 reads the run's record, and says that it does", {
   card <- synpmx_scorecard(source, synthetic, roles)
 
   expect_identical(card$reads[card$check == "C2"], "run settings")
+})
+
+test_that("every card holds the same checks, whatever the roles declare", {
+  # A card whose rows depend on the study cannot be compared with another card,
+  # and an absent row reads as a check that passed when it means the question
+  # was never asked. A6, B5a, B5b and C1 were each conditional on the study
+  # having something for them to ask.
+  source <- pmx_simulated_fixture(40)
+  full_roles <- sc_roles()
+  bare_roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                          evid = "EVID", cmt = "CMT", dvid = "DVID")
+
+  full <- synpmx_scorecard(source, sc_synthetic(source, full_roles), full_roles)
+  bare <- synpmx_scorecard(source, sc_synthetic(source, bare_roles), bare_roles)
+
+  expect_identical(bare$check, full$check)
+  # And each says why it could not be asked, rather than reporting a number.
+  not_asked <- c(A6 = "no discrete endpoint",
+                 B5a = "no categorical covariate or stratum",
+                 B5b = "no categorical covariate or stratum",
+                 C1 = "no strata declared")
+  for (check in names(not_asked)) {
+    expect_identical(bare$result[bare$check == check], not_asked[[check]])
+    expect_identical(bare$verdict[bare$check == check], "pass")
+  }
 })
 
 test_that("D1 reports the spread that moved furthest, and never passes", {
