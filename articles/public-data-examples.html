@@ -220,15 +220,26 @@ Plotting helpers used throughout this vignette
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">minimum</span>, <span class="va">per_endpoint</span> <span class="op">*</span> <span class="va">endpoints</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># The full masking accounting for one run. `pmx_masking_report()` owns the row</span></span>
-<span><span class="co"># labels and the explanation next to each one, so this vignette and the study</span></span>
-<span><span class="co"># reports under `scripts_private/` cannot drift apart; only the caption is local.</span></span>
-<span><span class="va">masking_table</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co"># The masking accounting for one run. `pmx_masking_report()` owns the row labels</span></span>
+<span><span class="co"># and the explanation next to each one, so this vignette and the study reports</span></span>
+<span><span class="co"># under `scripts_private/` cannot drift apart; only the caption is local.</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co"># `section` is what keeps these tables readable. The whole report is thirty-odd</span></span>
+<span><span class="co"># rows -- the right size to read once after a run, and the wrong size under a</span></span>
+<span><span class="co"># paragraph making one point about one mechanism, where the five rows it is</span></span>
+<span><span class="co"># discussing arrive buried in twenty-eight it is not.</span></span>
+<span><span class="va">masking_table</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="va">synthetic</span>, <span class="va">label</span>, <span class="va">section</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">source</span>, <span class="va">roles</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_masking_report.html">pmx_masking_report</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">source</span>, <span class="va">roles</span>,</span>
+<span>                                     section <span class="op">=</span> <span class="va">section</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    row.names <span class="op">=</span> <span class="cn">FALSE</span>, align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"l"</span><span class="op">)</span>,</span>
-<span>    caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Everything "</span>, <span class="va">label</span>,</span>
-<span>                     <span class="st">"'s run removed, and what was left to build on."</span><span class="op">)</span></span>
+<span>    caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>      <span class="st">"What "</span>, <span class="va">label</span>, <span class="st">"'s run removed"</span>,</span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">section</span><span class="op">)</span><span class="op">)</span> <span class="st">", and what was left to build on."</span> <span class="kw">else</span></span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">", on the "</span>,</span>
+<span>               <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"`"</span>, <span class="va">section</span>, <span class="st">"`"</span>, collapse <span class="op">=</span> <span class="st">" and "</span><span class="op">)</span>,</span>
+<span>               <span class="st">" side. `pmx_masking_report()` without `section` prints all of it."</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </details><div class="section level2">
@@ -370,8 +381,7 @@ dense concentration sampling around the first and last dose only.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="13%">
@@ -428,8 +438,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -541,7 +550,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -549,7 +558,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -624,8 +633,7 @@ covariate.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="14%">
@@ -708,8 +716,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -774,8 +781,7 @@ patient)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – categorical covariates (baseline, per
-patient)</caption>
+<caption>Categorical covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -894,7 +900,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -902,7 +908,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -991,8 +997,7 @@ a few subjects are followed far longer than the rest.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="14%">
@@ -1120,7 +1125,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -1128,7 +1133,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -1183,14 +1188,16 @@ regimens is represented in the output.</p>
 <h3 id="three-re-dosed-patients-are-not-in-the-synthetic-cohort">Three re-dosed patients are not in the synthetic cohort<a class="anchor" aria-label="anchor" href="#three-re-dosed-patients-are-not-in-the-synthetic-cohort"></a>
 </h3>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span>, <span class="st">"wbcSim"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, <span class="va">wbc_synth</span>, <span class="st">"wbcSim"</span>,</span>
+<span>              section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Everything wbcSim’s run removed, and what was left to build
-on.</caption>
+<caption>What wbcSim’s run removed, on the <code>dose_schedules</code>
+side. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> without <code>section</code>
+prints all of it.</caption>
 <colgroup>
 <col width="13%">
 <col width="3%">
-<col width="82%">
+<col width="83%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1199,207 +1206,13 @@ on.</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
+<td align="left"><strong>Dose schedules: WHEN each patient was
+dosed</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
 <tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">45</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">2 (4%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">43 (96%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">45</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">28</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">26 of 45 (58%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.94</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit schedule: WHEN patients were
-observed</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Visit grid used</td>
-<td align="right">derived</td>
-<td align="left">no usable <code>nominal_time</code>, so a grid was
-inferred from the recorded times themselves. Declaring
-<code>nominal_time</code> is better</td>
-</tr>
-<tr class="odd">
-<td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">30 (67%)</td>
-<td align="left">patients whose list of observation times nobody else
-shares</td>
-</tr>
-<tr class="even">
-<td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">17 (38%)</td>
-<td align="left">the count that matters: an avatar copies its anchor’s
-times verbatim</td>
-</tr>
-<tr class="odd">
-<td align="left">  because of a one-off observation time</td>
-<td align="right">2 (4%)</td>
-<td align="left">sampled when nobody else was. Declaring
-<code>nominal_time</code> is the fix</td>
-</tr>
-<tr class="even">
-<td align="left">  because of which visits they attended</td>
-<td align="right">15 (33%)</td>
-<td align="left">every time is shared. The visits themselves are missing
-– a missed visit, a discontinuation, or follow-up that has not reached
-them – and no grid can fix that</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">25</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">5 (20%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">5 (11%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">45 of 45 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">1 of 45 (2%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">1 of 45 (2%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 45 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">1 of 45 (2%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere –
-inside its own arm, always, since an anchor carries its
-<code>strata</code> values into the output. Every source patient stays a
-donor and stays available to anchor others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 45 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero when the schedule group has no shared set to substitute
-AND the avatar’s own arm holds nobody who could be anchored on instead;
-the run alerts and names the arm when it happens.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
+<td align="left">Avatars whose dosing was re-truncated</td>
 <td align="right">0 of 45 (0%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
@@ -1431,25 +1244,6 @@ shares are not built upon. Non-zero when a whole ARM is in that position
 only ever anchored inside the arm it was allocated to.
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">no <code>covariates</code> are declared, so there is
-nothing to test the amounts against</td>
-</tr>
-<tr class="even">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
 </tbody>
 </table>
 <p>Forty-two of the 45 subjects have a single infusion at time 0. The
@@ -1464,14 +1258,14 @@ reason.</p>
 the anchor screen removes: they are followed far enough past the rest to
 exceed twice the cohort’s 90th percentile, so
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> builds no avatar on them
-(<code>screen = TRUE</code>, the default). Read the first block of the
-table above as a pair: <strong>43 anchors available, 45 avatars
-built.</strong> Screening removes a subject from the pool avatars are
-drawn from, not from the cohort. The remaining 43 are sampled with
-replacement to fill the same 45 slots, and the screened subjects still
-contribute measurements as donors. What is lost is the possibility of an
-avatar wearing their distinctive follow-up length.
-<code>screen = FALSE</code> keeps every subject in the pool.</p>
+(<code>screen = TRUE</code>, the default).
+<code>section = "anchors"</code> prints that as a pair: <strong>43
+anchors available, 45 avatars built.</strong> Screening removes a
+subject from the pool avatars are drawn from, not from the cohort. The
+remaining 43 are sampled with replacement to fill the same 45 slots, and
+the screened subjects still contribute measurements as donors. What is
+lost is the possibility of an avatar with their distinctive follow-up
+length. <code>screen = FALSE</code> keeps every subject in the pool.</p>
 <p>Dose amounts are not recomputed: <code>wbcSim</code> declares no
 covariates, so there is nothing to test the amounts against.</p>
 </div>
@@ -1497,8 +1291,7 @@ the doses so that it stays coherent with them. The redundant
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="13%">
@@ -1555,8 +1348,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -1716,7 +1508,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -1724,7 +1516,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">12</td>
 <td align="left">FAIL</td>
@@ -1781,14 +1573,16 @@ all.</p>
 <h3 id="the-inferred-grid-achieves-nothing-here">The inferred grid achieves nothing here<a class="anchor" aria-label="anchor" href="#the-inferred-grid-achieves-nothing-here"></a>
 </h3>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span>, <span class="st">"nimoData"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, <span class="va">nimo_synth</span>, <span class="st">"nimoData"</span>,</span>
+<span>              section <span class="op">=</span> <span class="st">"visits"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Everything nimoData’s run removed, and what was left to build
-on.</caption>
+<caption>What nimoData’s run removed, on the <code>visits</code> side.
+<code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> without <code>section</code> prints
+all of it.</caption>
 <colgroup>
-<col width="13%">
-<col width="3%">
-<col width="82%">
+<col width="22%">
+<col width="4%">
+<col width="72%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -1796,87 +1590,6 @@ on.</caption>
 <th align="left">What it means</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">12</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">12 (100%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">12</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">12</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">9 of 12 (75%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">3.07</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
 <tr class="odd">
 <td align="left"><strong>Visit schedule: WHEN patients were
 observed</strong></td>
@@ -1915,142 +1628,6 @@ times verbatim</td>
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
 </tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">12</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">2 (17%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">2 (17%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">12 of 12 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">12 of 12 (100%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">12 of 12 (100%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 12 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">0 of 12 (0%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere –
-inside its own arm, always, since an anchor carries its
-<code>strata</code> values into the output. Every source patient stays a
-donor and stays available to anchor others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 12 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero when the schedule group has no shared set to substitute
-AND the avatar’s own arm holds nobody who could be anchored on instead;
-the run alerts and names the arm when it happens.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
-<td align="right">0 of 12 (0%)</td>
-<td align="left">the anchor stopped dosing at a depth nobody else used,
-so the avatar stops at a different one – shared, or used by nobody.
-Truncating a schedule to a real dose time is protocol-valid in a way
-that moving dose times is not</td>
-</tr>
-<tr class="odd">
-<td align="left">Distinct dose schedules in the source</td>
-<td align="right">12</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">  represented in the synthetic cohort</td>
-<td align="right">7 (58%)</td>
-<td align="left">a regimen only one patient received cannot be given to
-an avatar without pointing at them, so it is not represented at all.
-This is the cost of the guarantee below, and on a small cohort it is
-unavoidable rather than a setting to tune</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a dose schedule nobody else
-shares</strong></td>
-<td align="right">12 (100%)</td>
-<td align="left">
-<strong>must also be 0%.</strong> Dose events are
-copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero when a whole ARM is in that position
-– individualised dosing, per-patient titration – because an avatar is
-only ever anchored inside the arm it was allocated to.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">the 4 distinct dose amounts are not a fixed multiple of
-any declared covariate: BSA (10 ratio levels for 4 distinct amounts –
-too many to be a protocol); AGE (10 ratio levels for 4 distinct amounts
-– too many to be a protocol); HGT (8 ratio levels for 4 distinct amounts
-– too many to be a protocol)</td>
-</tr>
-<tr class="even">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
 </tbody>
 </table>
 <p>12 of 12 subjects are unique before coarsening, 12 of 12 after, and
@@ -2058,17 +1635,17 @@ every one of them on a one-off observation time. Ten roughly weekly
 infusions over a long follow-up means no two subjects were ever dosed or
 sampled close enough together for an inferred grid to merge them, so
 every subject is observed at moments that are theirs alone.</p>
-<p>The visit-set rows show the same thing from the other side. Twelve
-subjects hold twelve distinct visit sets, two of them held by a single
-patient and discarded, and <strong>every avatar’s arrangement was built
-from a shape rather than reused, 100%.</strong> The shape is how many
-visits were missed and whether the misses were terminal, contiguous, or
-scattered; which specific visits each patient missed does not
-survive.</p>
-<p>The dose row fails outright because dose events are copied from the
-anchor verbatim. Moving a dose is not a protocol-valid edit the way
+<p><code>section = "visit_sets"</code> shows the same thing from the
+other side. Twelve subjects hold twelve distinct visit sets, two of them
+held by a single patient and discarded, and <strong>every avatar’s
+arrangement was built from a shape rather than reused, 100%.</strong>
+The shape is how many visits were missed and whether the misses were
+terminal, contiguous, or scattered; which specific visits each patient
+missed does not survive.</p>
+<p>The dose schedules fail outright because dose events are copied from
+the anchor verbatim. Moving a dose is not a protocol-valid edit the way
 moving a sample is, so when the ten infusions are recorded at actual
-times, every avatar wears one real patient’s dosing schedule.</p>
+times, every avatar has one real patient’s dosing schedule.</p>
 </div>
 <div class="section level3">
 <h3 id="constructing-a-nominal-time">Constructing a nominal time<a class="anchor" aria-label="anchor" href="#constructing-a-nominal-time"></a>
@@ -2162,7 +1739,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -2170,7 +1747,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -2253,8 +1830,7 @@ and occasion.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="14%">
@@ -2311,8 +1887,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <colgroup>
 <col width="14%">
 <col width="16%">
@@ -2508,7 +2083,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -2516,7 +2091,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -2580,14 +2155,16 @@ than a property of the synthetic data, which is why it is
 <h3 id="the-largest-residual-in-the-vignette">The largest residual in the vignette<a class="anchor" aria-label="anchor" href="#the-largest-residual-in-the-vignette"></a>
 </h3>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, <span class="va">mavo_synth</span>, <span class="st">"mavoglurant"</span>,</span>
+<span>              section <span class="op">=</span> <span class="st">"visits"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Everything mavoglurant’s run removed, and what was left to
-build on.</caption>
+<caption>What mavoglurant’s run removed, on the <code>visits</code>
+side. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> without <code>section</code>
+prints all of it.</caption>
 <colgroup>
-<col width="13%">
+<col width="22%">
 <col width="4%">
-<col width="81%">
+<col width="73%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Quantity</th>
@@ -2595,87 +2172,6 @@ build on.</caption>
 <th align="left">What it means</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">120</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">120 (100%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">120</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">6</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">77 of 120 (64%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.96</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
 <tr class="odd">
 <td align="left"><strong>Visit schedule: WHEN patients were
 observed</strong></td>
@@ -2714,141 +2210,6 @@ times verbatim</td>
 – a missed visit, a discontinuation, or follow-up that has not reached
 them – and no grid can fix that</td>
 </tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">73</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">2 (3%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">2 (2%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">120 of 120 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere –
-inside its own arm, always, since an anchor carries its
-<code>strata</code> values into the output. Every source patient stays a
-donor and stays available to anchor others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero when the schedule group has no shared set to substitute
-AND the avatar’s own arm holds nobody who could be anchored on instead;
-the run alerts and names the arm when it happens.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
-<td align="right">0 of 120 (0%)</td>
-<td align="left">the anchor stopped dosing at a depth nobody else used,
-so the avatar stops at a different one – shared, or used by nobody.
-Truncating a schedule to a real dose time is protocol-valid in a way
-that moving dose times is not</td>
-</tr>
-<tr class="odd">
-<td align="left">Distinct dose schedules in the source</td>
-<td align="right">1</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">  represented in the synthetic cohort</td>
-<td align="right">1 (100%)</td>
-<td align="left">a regimen only one patient received cannot be given to
-an avatar without pointing at them, so it is not represented at all.
-This is the cost of the guarantee below, and on a small cohort it is
-unavoidable rather than a setting to tune</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a dose schedule nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>must also be 0%.</strong> Dose events are
-copied from the anchor verbatim, so patients whose dose times nobody
-shares are not built upon. Non-zero when a whole ARM is in that position
-– individualised dosing, per-patient titration – because an avatar is
-only ever anchored inside the arm it was allocated to.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">the 3 distinct dose amounts are not a fixed multiple of
-any declared covariate: AGE (ratios do not cluster); SEX (5 ratio levels
-for 3 distinct amounts – too many to be a protocol); WT (ratios do not
-cluster); HT (ratios do not cluster)</td>
-</tr>
-<tr class="even">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
 </tbody>
 </table>
 <p>Of the 64 patients still unique after coarsening, eleven have a
@@ -2858,13 +2219,13 @@ Those 53 are the largest absolute residual here, and no grid setting
 moves them. This is what the two sub-rows are for: they separate a
 problem that declaring <code>nominal_time</code> fixes from one that can
 only be dropped, remediated, or accepted.</p>
-<p>The visit-set rows are the other half of the picture. Mavoglurant has
-by far the most distinct visit sets of any dataset here, 73, and only
-two of them are held by a single patient, so only those two are
-discarded and no arrangement had to be invented at all. For every one of
-the 120 avatars a set that several real patients share was available to
-reuse. A large number of distinct visit sets is not by itself a problem;
-a large number of singleton sets is.</p>
+<p><code>section = "visit_sets"</code> is the other half of the picture.
+Mavoglurant has by far the most distinct visit sets of any dataset here,
+73, and only two of them are held by a single patient, so only those two
+are discarded and no arrangement had to be invented at all. For every
+one of the 120 avatars a set that several real patients share was
+available to reuse. A large number of distinct visit sets is not by
+itself a problem; a large number of singleton sets is.</p>
 </div>
 </div>
 <div class="section level2">
@@ -2887,8 +2248,7 @@ time. It is the least protocol-like dataset here.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="12%">
 <col width="14%">
@@ -2945,8 +2305,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -3082,7 +2441,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -3090,7 +2449,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -3148,10 +2507,12 @@ away.</p>
 <h3 id="dosing-that-cannot-be-masked">Dosing that cannot be masked<a class="anchor" aria-label="anchor" href="#dosing-that-cannot-be-masked"></a>
 </h3>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span>, <span class="st">"pheno_sd"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">masking_table</span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, <span class="va">pheno_synth</span>, <span class="st">"pheno_sd"</span>,</span>
+<span>              section <span class="op">=</span> <span class="st">"dose_schedules"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Everything pheno_sd’s run removed, and what was left to build
-on.</caption>
+<caption>What pheno_sd’s run removed, on the <code>dose_schedules</code>
+side. <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code> without <code>section</code>
+prints all of it.</caption>
 <colgroup>
 <col width="13%">
 <col width="3%">
@@ -3164,207 +2525,13 @@ on.</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left"><strong>Who was available to build on</strong></td>
+<td align="left"><strong>Dose schedules: WHEN each patient was
+dosed</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
 <tr class="even">
-<td align="left">Patients in the source</td>
-<td align="right">59</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">  excluded as structurally extreme</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>screen</code>: follow-up or dose count over twice
-the cohort’s 90th percentile</td>
-</tr>
-<tr class="even">
-<td align="left">  excluded, route arm too small</td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<code>on_donor_shortfall</code>: a route arm holding
-fewer than k + 1 patients</td>
-</tr>
-<tr class="odd">
-<td align="left">  left to anchor avatars on</td>
-<td align="right">59 (100%)</td>
-<td align="left">an excluded patient still contributes as a donor</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars built</td>
-<td align="right">59</td>
-<td align="left">cohort size is unaffected by the exclusions above</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Donor pools: who may be blended with
-whom</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Administration routes</td>
-<td align="right">1</td>
-<td align="left">oral, infusion, and so on. Donors are NEVER blended
-across a route, so each is a separate pool</td>
-</tr>
-<tr class="odd">
-<td align="left">Dose/schedule groups</td>
-<td align="right">59</td>
-<td align="left">patients with an identical dose pattern and endpoint
-set. Donors are looked for here first; many small groups means the
-search falls back to the wider route pool</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>How much of one real patient reaches one
-avatar</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Donor floor, k</td>
-<td align="right">5</td>
-<td align="left">real patients blended into each avatar</td>
-</tr>
-<tr class="even">
-<td align="left">Largest share one donor may hold</td>
-<td align="right">0.5</td>
-<td align="left"><code>max_donor_weight</code></td>
-</tr>
-<tr class="odd">
-<td align="left">  that cap actually bound on</td>
-<td align="right">36 of 59 (61%)</td>
-<td align="left">of avatars. Near 100% means the cap, not distance, is
-setting the weights</td>
-</tr>
-<tr class="even">
-<td align="left">Effective donors per avatar, mean</td>
-<td align="right">2.99</td>
-<td align="left">1 / sum(w^2). This, not k, is how many patients an
-avatar is really made of</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit schedule: WHEN patients were
-observed</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Visit grid used</td>
-<td align="right">derived</td>
-<td align="left">no usable <code>nominal_time</code>, so a grid was
-inferred from the recorded times themselves. Declaring
-<code>nominal_time</code> is better</td>
-</tr>
-<tr class="odd">
-<td align="left">Unique observation schedules, before coarsening</td>
-<td align="right">56 (95%)</td>
-<td align="left">patients whose list of observation times nobody else
-shares</td>
-</tr>
-<tr class="even">
-<td align="left">Unique observation schedules, after coarsening</td>
-<td align="right">54 (92%)</td>
-<td align="left">the count that matters: an avatar copies its anchor’s
-times verbatim</td>
-</tr>
-<tr class="odd">
-<td align="left">  because of a one-off observation time</td>
-<td align="right">14 (24%)</td>
-<td align="left">sampled when nobody else was. Declaring
-<code>nominal_time</code> is the fix</td>
-</tr>
-<tr class="even">
-<td align="left">  because of which visits they attended</td>
-<td align="right">40 (68%)</td>
-<td align="left">every time is shared. The visits themselves are missing
-– a missed visit, a discontinuation, or follow-up that has not reached
-them – and no grid can fix that</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Visit sets: WHICH of those visits each patient
-attended</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">Distinct visit sets in the source</td>
-<td align="right">56</td>
-<td align="left">a visit set is which of the shared grid visits one
-patient actually had</td>
-</tr>
-<tr class="odd">
-<td align="left">  held by fewer than 2 patients, so not reused</td>
-<td align="right">3 (5%)</td>
-<td align="left">
-<code>min_pattern_share</code> is that threshold. These
-visit sets are lost, not approximated</td>
-</tr>
-<tr class="even">
-<td align="left">  real patients holding those</td>
-<td align="right">3 (5%)</td>
-<td align="left">those patients are NOT removed – they still anchor
-avatars and still act as donors. Only their particular pattern of
-absences stops being copied</td>
-</tr>
-<tr class="odd">
-<td align="left">Avatars given a visit set from the pool</td>
-<td align="right">59 of 59 (100%)</td>
-<td align="left">drawn from the sets that cleared the threshold, or
-built from their shape – never from their own anchor alone</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, misses placed fresh</td>
-<td align="right">22 of 59 (37%)</td>
-<td align="left">the kind of missingness was reused; exactly which
-visits were missed was invented</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, miss count moved</td>
-<td align="right">22 of 59 (37%)</td>
-<td align="left">no arrangement at the wanted number of missing visits
-was free, so the count moved by a visit or two. Misses at the END of a
-record are the case that forces it, because for a given count there is
-exactly one such arrangement</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, a rare set swapped for a shared one</td>
-<td align="right">0 of 59 (0%)</td>
-<td align="left">the anchor’s own set was held by nobody else and no
-arrangement was free, so the group’s most widely held set was used
-instead – less faithful to that avatar, and it discloses nothing</td>
-</tr>
-<tr class="odd">
-<td align="left">  of those, moved to a different anchor</td>
-<td align="right">53 of 59 (90%)</td>
-<td align="left">the first anchor’s own set was shared by nobody and
-nothing legal could be placed, so this avatar was anchored elsewhere –
-inside its own arm, always, since an anchor carries its
-<code>strata</code> values into the output. Every source patient stays a
-donor and stays available to anchor others</td>
-</tr>
-<tr class="even">
-<td align="left">Avatars keeping their anchor’s own visit set</td>
-<td align="right">0 of 59 (0%)</td>
-<td align="left">not a problem in itself: if several real patients share
-that set, copying it identifies nobody. Only the next row is a
-disclosure</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Avatars carrying a visit set nobody else
-shares</strong></td>
-<td align="right">0 (0%)</td>
-<td align="left">
-<strong>this is the row that must be 0%.</strong> That
-pattern of which visits have observations belongs to one real patient.
-It is non-zero when the schedule group has no shared set to substitute
-AND the avatar’s own arm holds nobody who could be anchored on instead;
-the run alerts and names the arm when it happens.
-<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
-</tr>
-<tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
+<td align="left">Avatars whose dosing was re-truncated</td>
 <td align="right">20 of 59 (34%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
@@ -3396,38 +2563,18 @@ shares are not built upon. Non-zero when a whole ARM is in that position
 only ever anchored inside the arm it was allocated to.
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
-<td align="right"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Amounts recomputed from a covariate</td>
-<td align="right"><strong>no</strong></td>
-<td align="left">the 54 distinct dose amounts are not a fixed multiple
-of any declared covariate: WT (ratios do not cluster); APGR (65 ratio
-levels for 54 distinct amounts – too many to be a protocol)</td>
-</tr>
-<tr class="even">
-<td align="left">  so <code>amt</code> is copied verbatim</td>
-<td align="right">from the anchor</td>
-<td align="left">each avatar’s implied dose per kg is therefore its
-anchor’s, not its own, and the amount still encodes one real patient’s
-covariate. Declare <code>dose_covariate</code> if this study is weight-
-or BSA-based</td>
-</tr>
 </tbody>
 </table>
-<p>Read the dose rows, not the observation rows. On the observation side
-the mechanism works: B1a holds at 0, so no avatar wears a set of
-attended visits that belongs to one real infant. On the dose side there
-is almost nothing safe to build on. The source holds 56 distinct dose
-schedules across 59 infants, so declining to anchor on a patient whose
-schedule nobody shares means declining to anchor on nearly everybody,
-and 90% of avatars had to be moved to a different anchor before anything
-legal could be placed at all. What is left to copy is the one shared
-schedule, a single dose — hence the collapse from ten doses a patient to
-one.</p>
+<p>The dose schedules are what this study loses; the observation side is
+fine. On the observation side the mechanism works: B1a holds at 0, so no
+avatar has a set of attended visits that belongs to one real infant. On
+the dose side there is almost nothing safe to build on. The source holds
+56 distinct dose schedules across 59 infants, so declining to anchor on
+a patient whose schedule nobody shares means declining to anchor on
+nearly everybody, and 90% of avatars had to be moved to a different
+anchor before anything legal could be placed at all. What is left to
+copy is the one shared schedule, a single dose — hence the collapse from
+ten doses a patient to one.</p>
 <p>The cause is not a setting. Dose events are copied from the anchor
 verbatim, and coarsening acts on the visit grid while the exposure here
 is <em>which days this infant was dosed</em>. When a neonate is dosed to
@@ -3470,8 +2617,7 @@ is here for the contrast with the six above.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="19%">
 <col width="11%">
@@ -3554,8 +2700,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -3667,7 +2812,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -3675,7 +2820,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -3809,8 +2954,7 @@ generation is invisible with fewer than three.</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
-<caption>RESTRICTED – endpoints (dependent variable on observation
-rows)</caption>
+<caption>Endpoints (dependent variable on observation rows)</caption>
 <colgroup>
 <col width="20%">
 <col width="11%">
@@ -3971,8 +3115,7 @@ rows)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – continuous covariates (baseline, per
-patient)</caption>
+<caption>Continuous covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -4013,8 +3156,7 @@ patient)</caption>
 </tbody>
 </table>
 <table class="table">
-<caption>RESTRICTED – categorical covariates (baseline, per
-patient)</caption>
+<caption>Categorical covariates (baseline, per patient)</caption>
 <thead><tr class="header">
 <th align="left">variable</th>
 <th align="left">dataset</th>
@@ -4133,7 +3275,7 @@ roles)</td>
 </tr>
 <tr class="even">
 <td align="left">B1a</td>
-<td align="left">Avatars wearing a visit set nobody else shares</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>
@@ -4141,7 +3283,7 @@ roles)</td>
 </tr>
 <tr class="odd">
 <td align="left">B1b</td>
-<td align="left">Avatars wearing a dose schedule nobody else shares</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
 <td align="left">run settings</td>
 <td align="left">0</td>
 <td align="left">pass</td>

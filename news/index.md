@@ -7,6 +7,26 @@
   history until the first release, at which point this file starts
   recording user-visible changes by version.
 
+- **[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)
+  takes a `section` argument.** The full report is thirty-odd rows,
+  which is the right size to read once after a run and the wrong size
+  under a paragraph making one point: `section = "dose_schedules"`
+  prints the five dose rows instead. Sections are `anchors`, `donors`,
+  `blend`, `visits`, `visit_sets`, `dose_schedules`, `dose_amounts`. The
+  dose rows were previously the tail of the visit-set block and are now
+  their own section, and the old `Dose` header is
+  `Dose amounts: HOW MUCH each patient received`. Every masking table in
+  `public-data-examples.Rmd` now prints one section.
+
+- **Captions no longer say RESTRICTED.** The word was printed on the
+  output of every comparison, census, screen, and scorecard, including
+  runs over public package data where nothing is restricted. The
+  `"release_status"` attribute still records
+  `"restricted_not_releasable"`, which is where that judgement belongs.
+
+- **Scorecard rows B1a and B1b read “Avatars with a visit set / dose
+  schedule nobody else shares”**, not “wearing”.
+
 - **Donor trajectories are no longer extrapolated past the times a donor
   was actually observed at** (`SIM-046`). The old fallback rescaled the
   anchor’s time range onto the donor’s, which reads as “the same shape

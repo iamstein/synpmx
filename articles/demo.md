@@ -127,7 +127,7 @@ compare_pmx_distributions(raw, synthetic, roles)
 | PK Concentration | source | 3600 | 150 | 0.36 | 0.737 | 0.05 | 0.05 | 0.0634 | 0.263 | 7 |
 | PK Concentration | synthetic | 3600 | 150 | 0.313 | 0.649 | 0.05 | 0.05 | 0.0517 | 0.227 | 5.84 |
 
-RESTRICTED – endpoints (dependent variable on observation rows) {.table
+Endpoints (dependent variable on observation rows) {.table
 style="width:100%;"}
 
 | variable | dataset   |   n | mean |   sd |  min | q25 | median | q75 | max |
@@ -135,7 +135,7 @@ style="width:100%;"}
 | WEIGHTB  | source    | 180 |  116 | 20.5 |   80 |  98 |    117 | 133 | 150 |
 | WEIGHTB  | synthetic | 180 |  115 | 14.5 | 85.8 | 104 |    114 | 127 | 148 |
 
-RESTRICTED – continuous covariates (baseline, per patient) {.table}
+Continuous covariates (baseline, per patient) {.table}
 
 Medians track closely on both endpoints. The standard deviations are
 visibly smaller in the synthetic cohort — for the PD endpoint and for
@@ -161,8 +161,8 @@ synpmx_scorecard(raw, synthetic, roles)
 | A4 | Cohort size survived | both | 180 -\> 180 | pass | pmx_masking_report(synthetic, source, roles) |
 | A5 | Observations per patient | both | 30.7 -\> 30.7 | review | compare_pmx_distributions(source, synthetic, roles) |
 | A5 | Doses per patient | both | 70.8 -\> 70.8 | review | pmx_masking_report(synthetic, source, roles) |
-| B1a | Avatars wearing a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
-| B1b | Avatars wearing a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1a | Avatars with a visit set nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
+| B1b | Avatars with a dose schedule nobody else shares | run settings | 0 | pass | unmaskable_strata(source, roles) |
 | B2 | Synthetic patients unusual within their stratum | synthetic | 0 of 180 | review | flag_identifiable_subjects(synthetic, roles) |
 | B3 | Adversarial accuracy inside its null interval | both | 0.617 in \[0.415, 0.578\] | review | compare_pmx_proximity(source, synthetic, roles) |
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |

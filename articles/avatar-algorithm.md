@@ -359,7 +359,7 @@ pool too (`on_donor_shortfall`).
 A third exclusion enforces the guarantee stated at the top of this page.
 A patient whose set of observation times, or set of dose times, is
 shared by nobody and cannot be exchanged for a safe one is not built
-upon — any avatar anchored there would wear that one person’s schedule.
+upon — any avatar anchored there would have that one person’s schedule.
 This one is decided **per avatar rather than per patient**: the avatar
 is re-anchored somewhere else, and the patient stays in the pool for
 every other avatar. An earlier version excluded such patients outright
@@ -2117,7 +2117,7 @@ count, split by cause**, and the split is what tells you what to do
 next:
 
 - **`unique_schedule_n`** — patients whose list of observation times no
-  other patient shares. An avatar anchored on one wears a schedule
+  other patient shares. An avatar anchored on one has a schedule
   belonging to exactly one real person, however carefully its
   measurements were blended. This is the number to drive to zero. It
   always equals the sum of the next two.

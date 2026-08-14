@@ -133,7 +133,7 @@ roles <- pmx_roles(
   cmt = "CMT", dvid = "DVID", covariates = "WT"
 )
 skeleton_uniqueness(data, roles)
-#> Restricted PMX schedule-uniqueness screen
+#> PMX schedule-uniqueness screen
 #> Scored on the recorded times AS GIVEN, before any coarsening.
 #> `synpmx_avatar()` coarsens first by default, so run this again with
 #> `coarsen_time = TRUE` to see what the grid removes.
@@ -142,7 +142,7 @@ skeleton_uniqueness(data, roles)
 #> do.
 #> 
 #> This is a property of the SOURCE, and nothing in generation can lower it.
-#> What generation controls is whether an avatar ends up wearing one of these
+#> What generation controls is whether an avatar ends up with one of these
 #> schedules -- that is `pmx_masking_report()`'s "avatars keeping their
 #> anchor's own visit set", which should be near 0% however high the count
 #> above is.
@@ -167,7 +167,7 @@ skeleton_uniqueness(data, roles)
 #> draws the same cohort. Source-derived; not releasable unless separately
 #> public or privately budgeted.
 skeleton_uniqueness(data, roles, coarsen_time = TRUE)
-#> Restricted PMX schedule-uniqueness screen
+#> PMX schedule-uniqueness screen
 #> Scored AFTER coarsening, on the shared visit grid `synpmx_avatar()` builds.
 #> These are the numbers a run reports.
 #> 
@@ -175,7 +175,7 @@ skeleton_uniqueness(data, roles, coarsen_time = TRUE)
 #> do.
 #> 
 #> This is a property of the SOURCE, and nothing in generation can lower it.
-#> What generation controls is whether an avatar ends up wearing one of these
+#> What generation controls is whether an avatar ends up with one of these
 #> schedules -- that is `pmx_masking_report()`'s "avatars keeping their
 #> anchor's own visit set", which should be near 0% however high the count
 #> above is.

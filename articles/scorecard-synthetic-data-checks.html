@@ -202,7 +202,7 @@ one the source could have held</td>
 </tr>
 <tr class="odd">
 <td><strong>B1a</strong></td>
-<td>Does any avatar wear a visit set nobody else shares?</td>
+<td>Does any avatar have a visit set nobody else shares?</td>
 <td>
 <code>identifying_visit_sets</code>;
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code>
@@ -212,7 +212,7 @@ one the source could have held</td>
 </tr>
 <tr class="even">
 <td><strong>B1b</strong></td>
-<td>Does any avatar wear a dose schedule nobody else shares?</td>
+<td>Does any avatar have a dose schedule nobody else shares?</td>
 <td>
 <code>identifying_dose_schedules</code>;
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code>
@@ -368,7 +368,7 @@ real run, so you can see what the filled-in version looks like.</p>
 <span><span class="co">#&gt;   14 of 59 patients (24%) were sampled at a moment no other patient was,</span></span>
 <span><span class="co">#&gt;   even after coarsening.</span></span>
 <span><span class="co">#&gt;   Why it matters: an avatar copies its anchor's observation times verbatim,</span></span>
-<span><span class="co">#&gt;     so it wears a schedule that belongs to one real patient.</span></span>
+<span><span class="co">#&gt;     so it has a schedule that belongs to one real patient.</span></span>
 <span><span class="co">#&gt;   Fix: declare a `nominal_time` role. Coarsening then snaps visits onto the</span></span>
 <span><span class="co">#&gt;     real protocol grid instead of a guessed one.</span></span>
 <span><span class="co">#&gt; SYNPMX ALERT: unique visit sets</span></span>
@@ -646,7 +646,7 @@ where a slot is one endpoint measured at one time. A difference of one
 or two is a missed sample, not a different schedule – which is why the
 count alone is a poor guide.</p>
 <p>This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
+it. What generation controls is whether an avatar ends up with one of
 these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
 keeping their anchor’s own visit set”, which should be near 0% however
 high the count above is.</p>
@@ -668,7 +668,7 @@ high the count above is.</p>
 <td align="left">Observation schedule nobody else has</td>
 <td align="right">180</td>
 <td align="right">100</td>
-<td align="left">the headline: an avatar anchored here wears one real
+<td align="left">the headline: an avatar anchored here has one real
 patient’s schedule</td>
 </tr>
 <tr class="even">
@@ -763,7 +763,7 @@ the numbers a run reports.</p>
 <p>Every patient shares their observation schedule with somebody.
 Nothing to do.</p>
 <p>This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
+it. What generation controls is whether an avatar ends up with one of
 these schedules – that is <code><a href="../reference/pmx_masking_report.html">pmx_masking_report()</a></code>’s “avatars
 keeping their anchor’s own visit set”, which should be near 0% however
 high the count above is.</p>
@@ -785,7 +785,7 @@ high the count above is.</p>
 <td align="left">Observation schedule nobody else has</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="left">the headline: an avatar anchored here wears one real
+<td align="left">the headline: an avatar anchored here has one real
 patient’s schedule</td>
 </tr>
 <tr class="even">
@@ -944,7 +944,7 @@ hand that arm a patient it never had and leave the run reporting a
 balance it did not build. An arm holding nobody who can be masked
 therefore fails, whatever the rest of the study looks like, and the
 result cell names it:</p>
-<pre><code>B1b   Avatars wearing a dose schedule nobody else shares   6 in ARM8 (6)   FAIL</code></pre>
+<pre><code>B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL</code></pre>
 <p><code>unmaskable_strata(source, roles)</code> answers the same
 question before generating, one row per arm, splitting the patients no
 avatar can be built on into the two kinds —
@@ -1300,8 +1300,8 @@ directions.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>RESTRICTED – 0 level(s) held by fewer than 2 source patients; 0
-of them reached the output.</caption>
+<caption>0 level(s) held by fewer than 2 source patients; 0 of them
+reached the output.</caption>
 <colgroup>
 <col width="10%">
 <col width="12%">
@@ -1976,19 +1976,25 @@ the run alerts and names the arm when it happens.
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> answers it from the source</td>
 </tr>
 <tr class="even">
-<td align="left">  of those, dosing re-truncated</td>
+<td align="left"><strong>Dose schedules: WHEN each patient was
+dosed</strong></td>
+<td align="right"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Avatars whose dosing was re-truncated</td>
 <td align="right">20 of 59 (34%)</td>
 <td align="left">the anchor stopped dosing at a depth nobody else used,
 so the avatar stops at a different one – shared, or used by nobody.
 Truncating a schedule to a real dose time is protocol-valid in a way
 that moving dose times is not</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Distinct dose schedules in the source</td>
 <td align="right">56</td>
 <td align="left"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  represented in the synthetic cohort</td>
 <td align="right">3 (5%)</td>
 <td align="left">a regimen only one patient received cannot be given to
@@ -1996,7 +2002,7 @@ an avatar without pointing at them, so it is not represented at all.
 This is the cost of the guarantee below, and on a small cohort it is
 unavoidable rather than a setting to tune</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><strong>Avatars carrying a dose schedule nobody else
 shares</strong></td>
 <td align="right">0 (0%)</td>
@@ -2008,19 +2014,20 @@ shares are not built upon. Non-zero when a whole ARM is in that position
 only ever anchored inside the arm it was allocated to.
 <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> says which arm</td>
 </tr>
-<tr class="even">
-<td align="left"><strong>Dose</strong></td>
+<tr class="odd">
+<td align="left"><strong>Dose amounts: HOW MUCH each patient
+received</strong></td>
 <td align="right"></td>
 <td align="left"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Amounts recomputed from a covariate</td>
 <td align="right"><strong>no</strong></td>
 <td align="left">the 54 distinct dose amounts are not a fixed multiple
 of any declared covariate: WT (ratios do not cluster); APGR (65 ratio
 levels for 54 distinct amounts – too many to be a protocol)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">  so <code>amt</code> is copied verbatim</td>
 <td align="right">from the anchor</td>
 <td align="left">each avatar’s implied dose per kg is therefore its
@@ -2244,10 +2251,10 @@ limit how often that succeeds, and they compose no better than the
 weakest one. That is what the differentially private modes are for.</p>
 <p><strong>The guarantees are about reproduction, not
 similarity.</strong> <code>identifying_visit_sets</code> counts avatars
-wearing a visit set that is <em>exactly</em> one real patient’s. An
-avatar whose visits sit merely <em>near</em> a real patient’s is not
-covered by it, and <code>nearest_set_diff</code> is the only thing that
-will tell you how near.</p>
+with a visit set that is <em>exactly</em> one real patient’s. An avatar
+whose visits sit merely <em>near</em> a real patient’s is not covered by
+it, and <code>nearest_set_diff</code> is the only thing that will tell
+you how near.</p>
 <p><strong>Passing on every dataset you have is not proof.</strong> One
 change to this package’s time coarsening measured strictly better on all
 five public datasets available at the time and still collapsed three

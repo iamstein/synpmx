@@ -287,7 +287,7 @@ limitations but treating them as the specification.
   is what turns a cohort of individually identifiable sampling schedules
   into a shared one
 - A pattern of attended visits held by fewer than two real patients is
-  refused rather than copied, so no avatar wears one person’s history of
+  refused rather than copied, so no avatar has one person’s history of
   absences
 - Structurally extreme subjects are screened out of the anchor pool, and
   donors are never blended across routes of administration

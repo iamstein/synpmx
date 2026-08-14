@@ -53,8 +53,8 @@ Three columns need a word of explanation.
 | **A4** | Did the cohort size survive? | count distinct `id` | both | equal is a pass; a smaller cohort is *review*, since a subject with too few donors is dropped by design |
 | **A5** | Did dosing survive? | rows per patient, **split by event type** | both | review — totals hide this |
 | **A6** | Did a discrete endpoint stay discrete? | [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md); [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md) | both | every generated value on a binary, ordinal or integer endpoint is one the source could have held |
-| **B1a** | Does any avatar wear a visit set nobody else shares? | `identifying_visit_sets`; [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) | run settings | **0** |
-| **B1b** | Does any avatar wear a dose schedule nobody else shares? | `identifying_dose_schedules`; [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) | run settings | **0** |
+| **B1a** | Does any avatar have a visit set nobody else shares? | `identifying_visit_sets`; [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) | run settings | **0** |
+| **B1b** | Does any avatar have a dose schedule nobody else shares? | `identifying_dose_schedules`; [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) | run settings | **0** |
 | **B2** | Does any synthetic patient stand out from its own stratum? | [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) | synthetic | review each; not necessarily 0 |
 | **B3** | Is any avatar too close to a real patient in value space? | [`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md) | both | inside the null interval, near 0.5 — always *review*, because outside it means two different things |
 | **B4a** | Is any generated time vector a copy of an exposed real one? | [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md) | both | **0** |
@@ -124,7 +124,7 @@ pheno_synth <- suppressWarnings(
 #>   14 of 59 patients (24%) were sampled at a moment no other patient was,
 #>   even after coarsening.
 #>   Why it matters: an avatar copies its anchor's observation times verbatim,
-#>     so it wears a schedule that belongs to one real patient.
+#>     so it has a schedule that belongs to one real patient.
 #>   Fix: declare a `nominal_time` role. Coarsening then snaps visits onto the
 #>     real protocol grid instead of a guessed one.
 #> SYNPMX ALERT: unique visit sets
@@ -382,7 +382,7 @@ or two is a missed sample, not a different schedule – which is why the
 count alone is a poor guide.
 
 This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
+it. What generation controls is whether an avatar ends up with one of
 these schedules – that is
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)’s
 “avatars keeping their anchor’s own visit set”, which should be near 0%
@@ -390,7 +390,7 @@ however high the count above is.
 
 | Patients whose … | n | % of cohort | Meaning |
 |:---|---:|---:|:---|
-| Observation schedule nobody else has | 180 | 100 | the headline: an avatar anchored here wears one real patient’s schedule |
+| Observation schedule nobody else has | 180 | 100 | the headline: an avatar anchored here has one real patient’s schedule |
 | … a one-off observation time | 180 | 100 | sampled when nobody else was. A time grid can absorb this: declare `nominal_time` |
 | … the set of visits attended | 0 | 0 | every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this |
 | Observation count nobody else has | 0 | 0 | survives any grid; the residual [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) looks at |
@@ -436,7 +436,7 @@ Every patient shares their observation schedule with somebody. Nothing
 to do.
 
 This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up wearing one of
+it. What generation controls is whether an avatar ends up with one of
 these schedules – that is
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)’s
 “avatars keeping their anchor’s own visit set”, which should be near 0%
@@ -444,7 +444,7 @@ however high the count above is.
 
 | Patients whose … | n | % of cohort | Meaning |
 |:---|---:|---:|:---|
-| Observation schedule nobody else has | 0 | 0 | the headline: an avatar anchored here wears one real patient’s schedule |
+| Observation schedule nobody else has | 0 | 0 | the headline: an avatar anchored here has one real patient’s schedule |
 | … a one-off observation time | 0 | 0 | sampled when nobody else was. A time grid can absorb this: declare `nominal_time` |
 | … the set of visits attended | 0 | 0 | every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this |
 | Observation count nobody else has | 0 | 0 | survives any grid; the residual [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) looks at |
@@ -533,7 +533,7 @@ it never had and leave the run reporting a balance it did not build. An
 arm holding nobody who can be masked therefore fails, whatever the rest
 of the study looks like, and the result cell names it:
 
-    B1b   Avatars wearing a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
+    B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
 
 `unmaskable_strata(source, roles)` answers the same question before
 generating, one row per arm, splitting the patients no avatar can be
@@ -891,8 +891,8 @@ compare_pmx_rare_levels(case1_pkpd, case1_synth, case1_roles)
 | TRTACT | 300 mg  |              30 |                 30 | FALSE   | TRUE    |
 | TRTACT | Placebo |              30 |                 30 | FALSE   | TRUE    |
 
-RESTRICTED – 0 level(s) held by fewer than 2 source patients; 0 of them
-reached the output. {.table}
+0 level(s) held by fewer than 2 source patients; 0 of them reached the
+output. {.table}
 
 Read the source column first. A level is **exposed** when fewer than
 `min_pattern_share` real patients held it — the same floor that already
@@ -1206,11 +1206,12 @@ knitr::kable(as.data.frame(
 |   of those, moved to a different anchor | 53 of 59 (90%) | the first anchor’s own set was shared by nobody and nothing legal could be placed, so this avatar was anchored elsewhere – inside its own arm, always, since an anchor carries its `strata` values into the output. Every source patient stays a donor and stays available to anchor others |
 | Avatars keeping their anchor’s own visit set | 0 of 59 (0%) | not a problem in itself: if several real patients share that set, copying it identifies nobody. Only the next row is a disclosure |
 | **Avatars carrying a visit set nobody else shares** | 0 (0%) | **this is the row that must be 0%.** That pattern of which visits have observations belongs to one real patient. It is non-zero when the schedule group has no shared set to substitute AND the avatar’s own arm holds nobody who could be anchored on instead; the run alerts and names the arm when it happens. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) answers it from the source |
-|   of those, dosing re-truncated | 20 of 59 (34%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
+| **Dose schedules: WHEN each patient was dosed** |  |  |
+| Avatars whose dosing was re-truncated | 20 of 59 (34%) | the anchor stopped dosing at a depth nobody else used, so the avatar stops at a different one – shared, or used by nobody. Truncating a schedule to a real dose time is protocol-valid in a way that moving dose times is not |
 | Distinct dose schedules in the source | 56 |  |
 |   represented in the synthetic cohort | 3 (5%) | a regimen only one patient received cannot be given to an avatar without pointing at them, so it is not represented at all. This is the cost of the guarantee below, and on a small cohort it is unavoidable rather than a setting to tune |
 | **Avatars carrying a dose schedule nobody else shares** | 0 (0%) | **must also be 0%.** Dose events are copied from the anchor verbatim, so patients whose dose times nobody shares are not built upon. Non-zero when a whole ARM is in that position – individualised dosing, per-patient titration – because an avatar is only ever anchored inside the arm it was allocated to. [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md) says which arm |
-| **Dose** |  |  |
+| **Dose amounts: HOW MUCH each patient received** |  |  |
 | Amounts recomputed from a covariate | **no** | the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts – too many to be a protocol) |
 |   so `amt` is copied verbatim | from the anchor | each avatar’s implied dose per kg is therefore its anchor’s, not its own, and the amount still encodes one real patient’s covariate. Declare `dose_covariate` if this study is weight- or BSA-based |
 
@@ -1320,7 +1321,7 @@ that succeeds, and they compose no better than the weakest one. That is
 what the differentially private modes are for.
 
 **The guarantees are about reproduction, not similarity.**
-`identifying_visit_sets` counts avatars wearing a visit set that is
+`identifying_visit_sets` counts avatars with a visit set that is
 *exactly* one real patient’s. An avatar whose visits sit merely *near* a
 real patient’s is not covered by it, and `nearest_set_diff` is the only
 thing that will tell you how near.

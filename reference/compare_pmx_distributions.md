@@ -68,7 +68,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 8 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE.
 #>   Declare a column in `keep` to carry it through verbatim.
 compare_pmx_distributions(data, synthetic, roles)
-#> Restricted PMX source-versus-synthetic distribution summary
+#> PMX source-versus-synthetic distribution summary
 #> 
 #> Endpoints (dependent variable on observation rows):
 #>  variable   dataset   n n_subjects mean   sd   min  q25 median  q75  max

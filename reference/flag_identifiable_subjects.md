@@ -92,7 +92,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 flag_identifiable_subjects(synthetic, roles)
-#> Restricted PMX outlier / identifiability check: 1 of 30 subjects flagged
+#> PMX outlier / identifiability check: 1 of 30 subjects flagged
 #> Flag = a robust outlier in follow-up time, dose count, dose magnitude, or DV value.
 #> 
 #> Twelve most unusual:

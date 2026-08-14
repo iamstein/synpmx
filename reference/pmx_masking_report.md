@@ -10,7 +10,7 @@ reuse, and whether dose amounts were recomputed.
 ## Usage
 
 ``` r
-pmx_masking_report(synthetic, source = NULL, roles = NULL)
+pmx_masking_report(synthetic, source = NULL, roles = NULL, section = NULL)
 ```
 
 ## Arguments
@@ -33,6 +33,16 @@ pmx_masking_report(synthetic, source = NULL, roles = NULL)
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md).
   Required with `source`.
 
+- section:
+
+  Which blocks of the report to keep, as a character vector of
+  `"anchors"`, `"donors"`, `"blend"`, `"visits"`, `"visit_sets"`,
+  `"dose_schedules"`, `"dose_amounts"`. `NULL` (default) keeps all of
+  them. The whole table is the right thing to read once after a run, and
+  the wrong thing to print in a document making one point: a section
+  discussing what became of the dosing wants
+  `section = "dose_schedules"` and its five rows.
+
 ## Value
 
 A `pmx_masking_report` data frame with columns `Quantity`, `Value`, and
@@ -46,8 +56,8 @@ of them mean anything on their own. The rows worth looking at hardest:
 
 - **Unique observation schedules, after coarsening** – patients whose
   list of observation times nobody else shares. An avatar anchored on
-  one wears a schedule belonging to one real person. Its two sub-rows
-  have opposite remedies: a one-off observation time is what declaring
+  one has a schedule belonging to one real person. Its two sub-rows have
+  opposite remedies: a one-off observation time is what declaring
   `nominal_time` fixes, and a unique set of *attended* visits is missing
   visits, which no grid touches.
 
@@ -190,7 +200,9 @@ pmx_masking_report(synthetic, data, roles)
 #>       own arm holds nobody who could be anchored on instead; the run alerts
 #>       and names the arm when it happens. `unmaskable_strata()` answers it
 #>       from the source
-#>     of those, dosing re-truncated                  0 of 30 (0%)
+#> 
+#> Dose schedules: WHEN each patient was dosed
+#>   Avatars whose dosing was re-truncated            0 of 30 (0%)
 #>       the anchor stopped dosing at a depth nobody else used, so the avatar
 #>       stops at a different one -- shared, or used by nobody. Truncating a
 #>       schedule to a real dose time is protocol-valid in a way that moving
@@ -209,7 +221,7 @@ pmx_masking_report(synthetic, data, roles)
 #>       anchored inside the arm it was allocated to. `unmaskable_strata()`
 #>       says which arm
 #> 
-#> Dose
+#> Dose amounts: HOW MUCH each patient received
 #>   Amounts recomputed from a covariate              yes, from `WT` (inferred)
 #>       the 30 distinct dose amounts are a fixed multiple of `WT`, at 9
 #>       protocol level(s)

@@ -106,7 +106,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 compare_pmx_proximity(data, synthetic, roles, replicates = 10)
-#> Restricted PMX nearest-neighbour proximity check
+#> PMX nearest-neighbour proximity check
 #> 
 #>   Question: is a synthetic patient closer to a real patient than real
 #>     patients are to each other?

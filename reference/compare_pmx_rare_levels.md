@@ -79,7 +79,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 8 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE.
 #>   Declare a column in `keep` to carry it through verbatim.
 compare_pmx_rare_levels(data, synthetic, roles)
-#> Restricted PMX rare-level census (source against synthetic)
+#> PMX rare-level census (source against synthetic)
 #> 
 #> 0 level(s) held by fewer than 2 source patients; 0 of them reached the output.
 #> 
