@@ -998,6 +998,153 @@ print.pmx_strata_sizes <- function(x, ...) {
   invisible(x)
 }
 
+# Which endpoints each stratum holds ------------------------------------------
+#
+# A3 compares endpoint sets across the whole cohort, which a placebo arm passes
+# while holding no PK concentration at all. The arm-level question is separate:
+# an avatar never leaves the arm it was anchored in, so an arm that comes back
+# without an endpoint its source arm held is a defect this is the only thing
+# that would see.
+#
+# Counts are patients, not rows. Measurement counts move whenever a sampling
+# schedule was truncated, with every arm and every endpoint intact, so they
+# answer a question nobody asked here.
+
+#' Endpoints held by each stratum, source against synthetic
+#'
+#' One row per stratum level and endpoint, with how many source patients and how
+#' many synthetic patients contributed an observation of that endpoint. A zero
+#' on both sides is an endpoint the arm never held -- a placebo arm with no
+#' pharmacokinetic concentration -- and is the normal case rather than a
+#' finding. A nonzero source count against a zero synthetic count is the row to
+#' act on: that arm lost an endpoint on the way out.
+#'
+#' Reported for the first `strata` column only, which is the column
+#' [synpmx_scorecard()] scores row C3 on. Zero rows when the roles declare no
+#' strata.
+#'
+#' This reads real patient data on both sides and is marked
+#' `"restricted_not_releasable"`.
+#'
+#' @param source Source PMX data.
+#' @param synthetic Generated synthetic PMX data.
+#' @param roles Explicit roles from [pmx_roles()].
+#'
+#' @return A `pmx_strata_endpoints` data frame with `level`, `endpoint`,
+#'   `source_patients` and `synthetic_patients`.
+#' @seealso [synpmx_scorecard()], which reports this as row C3, and
+#'   [compare_pmx_strata_sizes()] for the size half of the same question.
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(20)
+#' data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "A", "B")
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", dvid = "DVID", covariates = "WT", strata = "ARM"
+#' )
+#' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+#' compare_pmx_strata_endpoints(data, synthetic, roles)
+compare_pmx_strata_endpoints <- function(source, synthetic, roles) {
+  .assert_roles(source, roles)
+  .assert_roles(synthetic, roles)
+
+  empty <- data.frame(
+    level = character(), endpoint = character(),
+    source_patients = integer(), synthetic_patients = integer(),
+    stringsAsFactors = FALSE
+  )
+  if (!length(roles$strata)) {
+    return(.mark_release(
+      structure(empty, class = c("pmx_strata_endpoints", "data.frame")),
+      "restricted_not_releasable"
+    ))
+  }
+
+  column <- roles$strata[[1L]]
+  held <- function(data) .strata_endpoint_holders(data, roles, column)
+  source_held <- held(source)
+  synthetic_held <- held(synthetic)
+
+  levels <- union(names(source_held), names(synthetic_held))
+  endpoints <- union(unlist(source_held, use.names = FALSE),
+                     unlist(synthetic_held, use.names = FALSE))
+  grid <- expand.grid(endpoint = sort(endpoints), level = sort(levels),
+                      stringsAsFactors = FALSE)
+  count <- function(sets, level, endpoint) {
+    at <- match(level, names(sets))
+    if (is.na(at)) 0L else sum(sets[[at]] == endpoint)
+  }
+
+  out <- data.frame(
+    level = grid$level,
+    endpoint = grid$endpoint,
+    source_patients = mapply(count, grid$level, grid$endpoint,
+                             MoreArgs = list(sets = source_held)),
+    synthetic_patients = mapply(count, grid$level, grid$endpoint,
+                                MoreArgs = list(sets = synthetic_held)),
+    stringsAsFactors = FALSE
+  )
+  rownames(out) <- NULL
+  attr(out, "column") <- column
+  out <- structure(out, class = c("pmx_strata_endpoints", "data.frame"))
+  .mark_release(out, "restricted_not_releasable")
+}
+
+# One entry per stratum level, holding that level's patients' endpoints with one
+# element per patient-endpoint pair. Counting entries therefore counts patients
+# who contributed the endpoint, whatever their sampling schedule looked like.
+.strata_endpoint_holders <- function(data, roles, column) {
+  observed <- .observation_rows(data, roles)
+  pairs <- unique(data.frame(
+    id = as.character(data[[roles$id]])[observed],
+    level = as.character(data[[column]])[observed],
+    endpoint = .endpoint(data, roles)[observed],
+    stringsAsFactors = FALSE
+  ))
+  split(pairs$endpoint, pairs$level)
+}
+
+# The rows worth acting on: an arm whose source patients held an endpoint that
+# no synthetic patient in that arm holds.
+.strata_endpoints_lost <- function(x) {
+  x$source_patients > 0L & x$synthetic_patients == 0L
+}
+
+#' @export
+print.pmx_strata_endpoints <- function(x, ...) {
+  plain <- as.data.frame(x)
+  cat("PMX endpoints by stratum (source against synthetic)\n\n")
+  if (!nrow(plain)) {
+    cat("No strata are declared, so there is nothing to compare.\n")
+    return(invisible(x))
+  }
+  cat(attr(x, "column"), ", patients contributing each endpoint:\n\n", sep = "")
+  lost <- .strata_endpoints_lost(plain)
+  for (i in seq_len(nrow(plain))) {
+    cat(sprintf("  %s / %s\n    %d source -> %d synthetic%s\n",
+                .level_label(plain$level[[i]]), plain$endpoint[[i]],
+                plain$source_patients[[i]], plain$synthetic_patients[[i]],
+                if (lost[[i]]) " -- LOST BY THIS ARM" else ""))
+  }
+  cat("\nA zero on both sides is an endpoint the arm never held.\n")
+  cat("Source-derived; not releasable.\n")
+  invisible(x)
+}
+
+#' @exportS3Method knitr::knit_print
+knit_print.pmx_strata_endpoints <- function(x, ...) {
+  plain <- as.data.frame(x)
+  if (!nrow(plain)) {
+    return(knitr::asis_output("No strata are declared, so there is nothing ",
+                              "to compare."))
+  }
+  knitr::knit_print(knitr::kable(
+    plain, row.names = FALSE,
+    caption = paste0("Patients contributing each endpoint, by ",
+                     attr(x, "column"))
+  ))
+}
+
 # Post-generation outlier / identifiability check -----------------------------
 #
 # compare_pmx_distributions() compares whole distributions; this checks

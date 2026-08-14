@@ -209,9 +209,10 @@
 #' # Every card holds every row
 #'
 #' The same checks come back whatever the study declares. Where a study gives a
-#' check nothing to ask -- no discrete endpoint for A6, no `strata` for C1, no
-#' categorical axis for B5a and B5b -- the `result` says so and the verdict is
-#' `"pass"`, rather than the row going missing. Two cards can then be compared
+#' check nothing to ask -- no discrete endpoint for A6, no `strata` for C1 and
+#' C3, no categorical axis for B5a and B5b -- the `result` says so and the
+#' verdict is `"pass"`, rather than the row going missing. Two cards can then be
+#' compared
 #' row for row, and an absent row cannot be mistaken for one that passed.
 #'
 #' # Plot the data as well
@@ -541,6 +542,44 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     if (settings$dose_regimens_represented ==
         settings$dose_regimens_source) TRUE else NA
   )))
+
+  # C3 is the other half of the arm-level question C1 asks, and it is separate
+  # because A3 does not cover it: A3 compares endpoint sets across the whole
+  # cohort, which a placebo arm passes while holding no PK concentration of its
+  # own. An avatar never leaves the arm it was anchored in, so an arm coming
+  # back without an endpoint its source arm held is a real loss and nothing else
+  # on the card would see it.
+  #
+  # `review` rather than `FAIL`, on the same reasoning as A4 and C1: an endpoint
+  # held by one patient in an arm leaves with that patient when
+  # `on_donor_shortfall = "drop"` removes them, which is the correct answer.
+  # Only every arm matching is a pass.
+  if (!length(roles$strata)) {
+    rows <- c(rows, list(.scorecard_row(
+      "C3", "Arms keeping their source endpoints", "both",
+      "no strata declared", "pmx_roles(strata = )", TRUE
+    )))
+  } else {
+    arm_endpoints <- function(data) {
+      lapply(.strata_endpoint_holders(data, roles, roles$strata[[1L]]),
+             function(endpoints) sort(unique(endpoints)))
+    }
+    source_endpoints_by_arm <- arm_endpoints(source)
+    synthetic_endpoints_by_arm <- arm_endpoints(synthetic)
+    # By name rather than by position: an arm that lost every patient has no
+    # entry on the synthetic side at all, and `[[` on a missing name errors.
+    matched_arms <- vapply(names(source_endpoints_by_arm), function(level) {
+      at <- match(level, names(synthetic_endpoints_by_arm))
+      setequal(source_endpoints_by_arm[[level]],
+               if (is.na(at)) character() else synthetic_endpoints_by_arm[[at]])
+    }, logical(1))
+    rows <- c(rows, list(.scorecard_row(
+      "C3", "Arms keeping their source endpoints", "both",
+      paste(sum(matched_arms), "of", length(matched_arms)),
+      "compare_pmx_strata_endpoints(source, synthetic, roles)",
+      if (all(matched_arms)) TRUE else NA
+    )))
+  }
 
   # D1, and it is `review` on every study there will ever be. Spread shrinking
   # is what the algorithm does rather than something it got wrong, and spread

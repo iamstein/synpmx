@@ -76,9 +76,10 @@ it marks a row nothing was measured for.
 
 \section{Every card holds every row}{
 The same checks come back whatever the study declares. Where a study gives a
-check nothing to ask -- no discrete endpoint for A6, no \code{strata} for C1, no
-categorical axis for B5a and B5b -- the \code{result} says so and the verdict is
-\code{"pass"}, rather than the row going missing. Two cards can then be compared
+check nothing to ask -- no discrete endpoint for A6, no \code{strata} for C1 and
+C3, no categorical axis for B5a and B5b -- the \code{result} says so and the
+verdict is \code{"pass"}, rather than the row going missing. Two cards can then be
+compared
 row for row, and an absent row cannot be mistaken for one that passed.
 }
 

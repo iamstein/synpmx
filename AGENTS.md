@@ -24,9 +24,13 @@ synthetic pharmacometric datasets.
 
 Two cross-document contracts, each a defect when broken:
 
-- The question list in `vignettes/scorecard-synthetic-data-checks.Rmd` are the checks that `synpmx_scorecard()` implements: every check in the bulleted list at the top is a row the function emits, and the section introducing a row states the pass criterion the
-  function scores it against. A row appearing in one and not the other, or a pass
-  criterion changing in one without the other, is a defect.
+- `vignettes/scorecard-synthetic-data-checks.Rmd` documents the checks that
+  `synpmx_scorecard()` implements: every row the function emits has a section
+  under the same identifier, and that section states the pass criterion the
+  function scores it against — not a wider question the reader might wish it
+  asked. A row appearing in one and not the other, or a pass criterion changing
+  in one without the other, is a defect. It was one: C1's section described a
+  per-arm endpoint check nothing computed until `C3` was added.
 - Every worked dataset in `vignettes/public-data-examples.Rmd` has the same
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where

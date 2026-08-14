@@ -117,6 +117,7 @@ reference:
   - compare_pmx_distributions_height
   - compare_pmx_rare_levels
   - compare_pmx_strata_sizes
+  - compare_pmx_strata_endpoints
   - skeleton_uniqueness
   - plot_pmx_schedule
   - unmaskable_strata

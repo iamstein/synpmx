@@ -163,6 +163,30 @@ test_that("a stratum that changed size is review, not FAIL", {
   expect_identical(sc_verdict(card, "C1"), "review")
 })
 
+test_that("an arm that lost an endpoint is C3, and A3 does not see it", {
+  # A3 compares endpoint sets across the whole cohort, so an arm losing an
+  # endpoint the rest of the study still holds passes it. C3 is the only row
+  # that looks arm by arm, and the vignette described this check for weeks
+  # before anything computed it.
+  source <- pmx_simulated_fixture(40)
+  source$ARM <- ifelse(as.integer(factor(source$ID)) %% 2L == 0L, "A", "B")
+  roles <- sc_roles(strata = "ARM")
+  synthetic <- sc_synthetic(source, roles, seed = 4)
+
+  endpoint <- sort(unique(as.character(synthetic$DVID)))[[1L]]
+  lost <- synthetic[!(synthetic$ARM == "A" & synthetic$DVID == endpoint &
+                        synthetic$EVID == 0), ]
+  attr(lost, "pmx_settings") <- attr(synthetic, "pmx_settings")
+
+  card <- suppressWarnings(synpmx_scorecard(source, lost, roles))
+
+  expect_identical(sc_verdict(card, "C3"), "review")
+  expect_identical(card$result[card$check == "C3"], "1 of 2")
+  expect_identical(sc_verdict(card, "A3"), "pass")
+  expect_identical(sc_verdict(synpmx_scorecard(source, synthetic, roles), "C3"),
+                   "pass")
+})
+
 test_that("a table with no run record is scored, not refused", {
   # The card used to stop() without `pmx_settings`, which made the one function
   # meant to score an output unable to score anything but this package's own --
@@ -223,7 +247,8 @@ test_that("every card holds the same checks, whatever the roles declare", {
   not_asked <- c(A6 = "no discrete endpoint",
                  B5a = "no categorical covariate or stratum",
                  B5b = "no categorical covariate or stratum",
-                 C1 = "no strata declared")
+                 C1 = "no strata declared",
+                 C3 = "no strata declared")
   for (check in names(not_asked)) {
     expect_identical(bare$result[bare$check == check], not_asked[[check]])
     expect_identical(bare$verdict[bare$check == check], "pass")
