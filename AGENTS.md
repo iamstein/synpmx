@@ -11,7 +11,6 @@ Three tiers, and the tier decides both the audience and the maintenance cost.
 installed the package cannot follow a `design/` path, so vignettes, articles,
 and roxygen comments must not reference one.
 
-- `design/TODO.md` — what to do next. Read this first; it is the working queue.
 - `design/REVIEW_BACKLOG.md` — defects and design findings (`REV-###`).
 - `design/TEST_SIM.md` — simulation defects and their regression gates (`SIM-###`).
 - `design/SYNTHETIC_DATA_CHECKS.md` — the taxonomy of checks to run on
@@ -21,6 +20,7 @@ and roxygen comments must not reference one.
 - `design/WRITING_STYLE.md` — prose rules for vignettes, articles and README,
   derived from the maintainer's own edits. Read before drafting or revising any
   document. Its companion `design/_THEORY_OF_MIND.md` records how he reads.
+
 **`learning/` — the maintainer's private record. Not a documentation tier, and
 not yours to read or write.** It sits outside `design/` deliberately. Do not
 open it for context, do not update it, and do not treat anything inside it as an
@@ -107,9 +107,15 @@ and changing what it says.
   document the maintainer owns. Describe what you would change and why, and get
   confirmation first.
 
-Keep `design/TODO.md` current: tick items as they close, add newly discovered
-work, and record the reasoning in the registry that owns it rather than in the
-task list itself.
+There is no single task list. Each registry carries its own open work, and a
+finding belongs in the one that owns it: `REV-###` in `REVIEW_BACKLOG.md` for
+mechanism, privacy-accounting and API defects, `SIM-###` in `TEST_SIM.md` for
+simulation defects and their gates, `PRIVACY_EVAL.md` for the disclosure-risk
+program, and the gap list inside `scorecard-synthetic-data-checks.Rmd` for
+checks not yet built. `design/_TODO_owner.md` is the maintainer's own queue —
+read it to know what he is working on, but do not write to it. A combined
+`design/TODO.md` existed until 2026-08-14 and was deleted as duplication: it
+indexed the registries rather than adding to them.
 
 - Put package functions in `R/`, tests in `tests/testthat/`, and runnable
   demonstrations in `scripts/`.
@@ -197,4 +203,15 @@ task list itself.
 
 ## Theory of Mind
 
-Consult the design/_THEORY_OF_MIND.md and update.
+`design/_THEORY_OF_MIND.md` records how the maintainer reads and reviews. Read
+it **when drafting or revising prose he will read** — a vignette, an article,
+`README.md`, or a substantial summary — the same trigger as its companion
+`design/WRITING_STYLE.md`. It is not a general-purpose session preamble, so do
+not load it for code, test, or registry work.
+
+Write to it rarely. An entry earns its place only when a pattern is genuinely
+new and would change how a future document is written. When it repeats or
+refines something an existing `O###` already says, **merge it into that entry
+rather than appending a new one** — the file is a fixed set of observations
+that get sharper, not a log that grows. If two observations have converged on
+the same point, collapse them.

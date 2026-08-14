@@ -2,9 +2,8 @@
 
 **Status: proposed 2026-07-29 by the owner. Not started.**
 
-This is a research program, not a queue item. `design/TODO.md` carries a pointer
-and whichever slice is live; the reasoning, the phasing, and the honest costs
-live here.
+This is a research program, not a queue item. This file is its own queue: the
+reasoning, the phasing, and the honest costs all live here.
 
 ## 1. Why, and where it fits
 
@@ -76,8 +75,7 @@ Decide whether the answer justifies the build before building all of it. Phases
 Read and summarise: membership inference; singling out; linkability; attribute
 inference; Anonymeter (the closest off-the-shelf framework, built around the
 first three); and AVATAR's own metrics — hidden rate and local cloaking — from
-Guillaudeux 2023 (`references/Guillaudeux23.pdf`, already owed a read under
-`TODO.md`).
+Guillaudeux 2023 (`references/Guillaudeux23.pdf`, already owed a read).
 
 The decision this forces: **every framework named assumes one flat record per
 subject.** Pharmacometric data is a variable-length event table. So either each
@@ -192,15 +190,15 @@ worth doing once P2–P4 produce a privacy number that actually moves.
 
 **No new identifier namespace.** Phases live in this file. When a phase produces
 buildable work it becomes a `REV-###` in `REVIEW_BACKLOG.md`; when it produces a
-regression gate it becomes a `SIM-###` in `TEST_SIM.md`. `design/TODO.md` holds
-the pointer and the live slice only. Two registries are enough.
+regression gate it becomes a `SIM-###` in `TEST_SIM.md`. Two registries are
+enough.
 
 ## 6. Open questions for the owner
 
 - **What is this for?** Internal defensibility, the ACoP poster, or a paper. P1
   and P2 alone cover defensibility; the full program is a paper, and it competes
   directly with the poster deadline and the real-data validation currently
-  pacing `TODO.md`.
+  pacing the project.
 - **"Differentially private synthesis, if available."** It is available —
   `synpmx_empirical()` — but gated behind `synpmx_enable_dp_engines()` as
   unaudited. Usable as a comparator, with that caveat attached to any number it

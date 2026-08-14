@@ -346,7 +346,7 @@ anyone; it produces data nobody can develop against.
   **Still missing from category C**: dose/observation ordering and occasion
   assignment have no check. TAD covers the first only indirectly. This is the owner's own example
   and it is the check that would have caught the first two attempts at the
-  dose-authoritative grid (see `design/TODO.md`), both of which put a dose
+  dose-authoritative grid (see `SIM-050` in `design/TEST_SIM.md`), both of which put a dose
   *before* the sample that preceded it.
 - **Regimen validity.** No invented regimen. Dose counts, intervals and
   amounts must be ones the protocol permitted — which is why `synpmx` never
@@ -524,7 +524,7 @@ three gaps are already visible:
    declared `TAD` disagrees with the derivation. What is still missing is the
    ordering itself — that a dose never moves past a sample that preceded it, and
    that occasion assignment survives. That is the check the dose-grid work
-   needed and did not have (`design/TODO.md`).
+   needed and did not have (`SIM-050` in `design/TEST_SIM.md`).
 3. **B4 as an exported helper** rather than a test-only gate, so a user can run
    it on their own output.
 
@@ -914,7 +914,7 @@ several of the proposals without further argument:
 The reasoning is written up for readers in `vignettes/articles/literature-
 review.Rmd`, under "why almost none of this is `synpmx`'s problem".
 
-**Accepted and implemented 2026-08-05** (see `design/TODO.md` for the entry):
+**Accepted and implemented 2026-08-05:**
 
 1. The scorecard, in both forms — static index at the top of the checks
    vignette, runnable version at the end of `demo.Rmd`.
