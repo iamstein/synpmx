@@ -559,6 +559,15 @@ masking_table(pheno_sd, pheno_roles, pheno_synth, "pheno_sd",
               section = "dose_schedules")
 ```
 
+One row per infant, a grey tick for each dose and a coloured dot for each
+observation. The dose ticks are the story: a forest of them across the whole
+follow-up in the source, one column at time zero in the output.
+
+```{r pheno-schedule, eval=has_nlmixr2data, fig.height=7}
+plot_pmx_schedule(pheno_sd, pheno_roles, main = "pheno_sd, source")
+plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
+```
+
 The dose schedules are what this study loses; the observation side is fine. On
 the observation side the
 mechanism works: B1a holds at 0, so no avatar has a set of attended visits

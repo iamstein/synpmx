@@ -24,15 +24,13 @@ synthetic pharmacometric datasets.
 
 Two cross-document contracts, each a defect when broken:
 
-- The question list in `vignettes/scorecard-synthetic-data-checks.Rmd` is the
-  contract `synpmx_scorecard()` implements: every row in that table is a row the
-  function emits, and the section introducing a row states the pass criterion the
+- The question list in `vignettes/scorecard-synthetic-data-checks.Rmd` are the checks that `synpmx_scorecard()` implements: every check in the bulleted list at the top is a row the function emits, and the section introducing a row states the pass criterion the
   function scores it against. A row appearing in one and not the other, or a pass
   criterion changing in one without the other, is a defect.
 - Every worked dataset in `vignettes/public-data-examples.Rmd` has the same
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
-  the numbers need it. A ninth dataset gets the same five steps.
+  the numbers need it. Additional datasets get the same five steps.
 
 ## `README.md`
 
@@ -44,17 +42,16 @@ The entry point, and its voice belongs to the maintainer.
 - **Ask before adding or rewriting.** New sections, added explanation and
   restructuring need confirmation first.
 
-## Registries
+## Issue Registries
 
-`design/ISSUES.md` is the registry. Every defect and design finding goes in it,
+`design/ISSUES.md` is the issue registry. Every defect and design finding goes in it,
 as `REV-###` for mechanism, privacy-accounting and API defects or `SIM-###` for
 simulation defects and their gates. It records its own lineage; do not recreate
 the files it replaced, and do not add a document that indexes it — that is what
 the last one was, and why it went.
 
 One list lives outside it, deliberately: checks the package does not yet run are
-named in the gap list inside `scorecard-synthetic-data-checks.Rmd`, beside the
-checks that do exist, because a reader of that vignette needs to see both.
+named in the gap list inside `scorecard-synthetic-data-checks.Rmd`.
 
 For every defect do all three of the registry entry, a regression check, and the
 fix, adding a focused fixture where that is the smallest reliable reproduction.
