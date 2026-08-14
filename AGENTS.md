@@ -59,15 +59,14 @@ Never close one on visual inspection alone. Both ID prefixes are cited from
 `tests/` and from comments in `R/`, so never reuse or renumber one.
 
 **The registry is not a dependency of the code.** Never write a `design/` path
-into `R/`, `tests/`, `scripts/` or a vignette — the registry has moved twice and
-a shipped reader cannot follow the path anyway. A comment or a paragraph has to
+into `R/`, `tests/`, `scripts/` or a vignette.  A comment or a paragraph has to
 explain itself; an ID may ride along in an internal comment or a test as a
 lookup token, but never as the thing that carries the meaning.
 
 The same goes for **`scripts/`**, which `.Rbuildignore` holds out of the package:
 do not cite a script by path from `R/`, a vignette, an article, or `NEWS.md`.
 Name the function that does the work instead — a reader can call
-`skeleton_uniqueness()`, and cannot open a file they did not install. A script
+`skeleton_uniqueness()`. A script
 may name itself and its siblings in its own header.
 
 Acceptance gates are not written down twice. The per-dataset gates live in

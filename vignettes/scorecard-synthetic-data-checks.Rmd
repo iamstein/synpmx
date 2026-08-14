@@ -100,9 +100,10 @@ a continuous pharmacodynamic (PD) effect — and a baseline weight. It is shaped
 like a real study report, and most of these checks pass on it.
 
 `nlmixr2data::pheno_sd` is 59 real neonates given phenobarbital in routine
-clinical care. Its checks **fail**, and it is here for that reason: a document
-in which everything passes teaches nothing. Where the two disagree is where the
-check is doing work.
+clinical care, and it is here because **no check on it fails while its full
+dosing history does not survive**: the median infant received twelve doses and
+the median avatar receives one. A dataset on which everything passes teaches
+nothing. Where the two disagree is where a check is doing work.
 
 ## The two scorecards
 
@@ -113,9 +114,11 @@ case1_card
 pheno_card
 ```
 
-Nothing fails on either. The rest of this vignette is what each check asks, why
-its pass criterion is what it is, and where `pheno_sd` is worse than its card
-suggests.
+Nothing fails on either, and on `pheno_sd` that is not the same as being fine:
+A5b reads `10 -> 1.1` doses per patient and C2 represents 3 of its 56 dose
+schedules, both `review`. The rest of this vignette is what each check asks,
+why its pass criterion is what it is, and how a study can lose its dosing
+without a single `FAIL`.
 
 # A. Is the dataset valid
 
