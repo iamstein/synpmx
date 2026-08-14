@@ -211,8 +211,8 @@ on signature regardless — declaring `dose_covariate` in
 [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
 is what stops the amount itself being one real patient’s, by rebuilding
 it from each avatar’s own blended covariate.
-`scripts/measure_skeleton_uniqueness.R` runs the before and after over
-every public dataset.
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+runs the before and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns,
 which is what differential privacy provides and why the trust-boundary

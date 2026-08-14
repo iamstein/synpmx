@@ -2165,9 +2165,10 @@ study recorded a shared visit structure and the other did not. There is
 no headline “synpmx removes X% of the exposure”, and any such claim
 would be about the datasets it was measured on rather than about yours.
 
-So every run reports its own numbers, loudly, and
-`scripts/explore_nimodata_coarsening.qmd` works one failure through to a
-fix to show what reading them looks like in practice.
+So every run reports its own numbers, loudly.
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+works one such failure through to a fix on `nimoData`, which is what
+reading them looks like in practice.
 
 ## Glossary
 

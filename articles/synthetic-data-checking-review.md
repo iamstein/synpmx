@@ -896,7 +896,8 @@ is the noise floor: what $`\mathrm{AA}`$ does between two halves of the
 *same* real cohort, where nothing is wrong by construction. A difference
 smaller than that interval cannot be distinguished from the split.
 
-Measured on three public datasets by `scripts/measure_aa_noise_floor.R`,
+Measured on three public datasets with
+[`compare_pmx_proximity()`](https://iamstein.github.io/synpmx/reference/compare_pmx_proximity.md),
 at the
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 defaults and seed 1:
