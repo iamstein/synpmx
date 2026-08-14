@@ -192,14 +192,14 @@ Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
 
 | Dataset | Package | Patients | Rows | Endpoints | What it is here to exercise |
 |---|---|---|---|---|---|
+| `case1_pkpd` | xgxr | 180 | 20820 | 2 | Six arms, a declared `NOMTIME`, PK and PD, baseline weight, `CENS`. The shape a study report usually arrives in |
+| `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose carrying ordinal, count and binary PD alongside continuous PD and PK |
 | `theo_md` | nlmixr2data | 12 | 348 | 1 | Seven Q24H oral doses with dense profiles on occasions 1 and 7 only. Dosed by weight. |
 | `warfarin` | nlmixr2data | 32 | 515 | 2 | One dose, PK and PD running on different time courses, categorical covariates |
 | `wbcSim` | nlmixr2data | 45 | 280 | 1 | Infusion start/stop pairs and a delayed WBC response. Follow-up time varies. |
-| `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions. |
+| `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions, recorded at the times they happened |
 | `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period crossover, `TIME` resetting within `OCC`, an occasion-varying assigned dose, infusion rows. |
 | `pheno_sd` | nlmixr2data | 59 | 744 | 1 | Neonatal phenobarbital, individualised dosing, sparse irregular sampling, time-varying weight. |
-| `case1_pkpd` | xgxr | 180 | 20820 | 2 | A PK and PD measure with nominal time coarsening.  |
-| `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose carrying ordinal, count and binary PD alongside continuous PD and PK. |
 
 **None of these datasets uses steady state, `ADDL`, or `II`.** Every dose is
 written out as its own row, so the handling of compressed dose records is
@@ -218,10 +218,184 @@ Every example follows the same five steps:
 The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
 one where the pharmacometrician could evaluate whether the output is acceptable for use.  If the synthetic dataset will not be crossing a trust boundary, items marked `review` are acceptable.
 
-Two of the eight datasets fail, both on the same check, and both sections say
-why. The runs below are quiet: `synpmx_avatar()` prints an alert for every
-exposure it could not remove, and eighteen of those blocks would say what the
-scorecard and `pmx_masking_report()` say here in tables.
+**No dataset here fails a check**, which is a thing to be careful about rather
+than reassured by. One did until recently — `nimoData`, on B1b — and its section
+shows what closing that cost. Every card carries five or six `review` rows
+instead, and those are where the eight datasets actually differ. The runs below
+are quiet: `synpmx_avatar()` prints an alert for every exposure it could not
+remove, and eighteen of those blocks would say what the scorecard and
+`pmx_masking_report()` say here in tables.
+
+## case1_pkpd: a declared nominal grid
+
+**Start here: this is what a study report usually looks like.** 180 patients
+across six treatment arms, with a declared `NOMTIME`, two endpoints keyed by a
+character `NAME` column, a baseline weight, and a `CENS` column — the industry
+shape, and the one the package is easiest on. `vignette("demo")` runs this
+dataset end to end.
+
+Almost everything passes, and the reason is the declared nominal time: the
+protocol grid is written down, so coarsening reads it instead of guessing at
+one. Keep that in mind through the six datasets after `mad`, where most of the
+difficulty turns out to be its absence.
+
+```{r case1, eval=has_xgxr, message=FALSE}
+case1_pkpd <- as.data.frame(
+  get(utils::data(list = "case1_pkpd", package = "xgxr"))
+)
+case1_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+  keep = "STUDY"
+)
+case1_synth <- suppressWarnings(
+  synpmx_avatar(case1_pkpd, case1_roles, seed = 808)
+)
+```
+
+```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(case1_pkpd, case1_roles)}
+overlay_plot(case1_pkpd, case1_synth, case1_roles,
+             "case1_pkpd: PK concentration and continuous PD, six arms",
+             y_label = "LIDV", alpha = 0.2)
+```
+
+```{r case1-distributions, eval=has_xgxr}
+compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
+```
+
+```{r case1-scorecard, eval=has_xgxr}
+synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
+```
+
+Nothing fails, and C1 passes: all six treatment arms keep their source size. An
+avatar never leaves the arm it was anchored in, because `TRTACT` and `DOSE` are
+declared as `strata` and are copied from the anchor. The arm *sizes* match
+because of a second mechanism: anchors are sampled with replacement, so
+`preserve_strata_balance` (the default) gives each stratum its source share
+rather than leaving the balance to the draw. Only a declared stratum gets this;
+`warfarin` below has a `sex` covariate that is never declared as one, and so has
+no equivalent row.
+
+All 180 patients start with an observation schedule nobody else shares and none
+ends with one, and the difference from every dataset that follows is one
+declared column. With `NOMTIME` present the grid is `nominal` rather than derived, so
+coarsening reads the protocol instead of guessing at it, 180 patients collapse
+onto six visit sets, none of them rare, and nothing is discarded. Read this next
+to `nimoData`, which is the same mechanism with nothing to work from. The gap
+between them is not a tuning difference; it is whether the study recorded a
+nominal time.
+
+### Declaring `cens` on this study is refused
+
+```{r case1-cens, eval=has_xgxr}
+case1_roles_cens <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+)
+validate_pmx(case1_pkpd, case1_roles_cens)$valid
+```
+
+That study's `CENS` is meaningful only for the PK endpoint. The PD effect is
+signed, so a left-censored PD row reports a value above uncensored ones and the
+flag cannot mean what it means for PK. Running `validate_pmx()` on the data you
+are about to generate from is how a mis-declared role is caught before it
+becomes a generation bug, and this is the dataset where it fires. Leaving `cens`
+undeclared, as the run above does, is one right answer; `vignette("demo")` takes
+the other and sets `CENS` to 0 on the PD rows before declaring it.
+
+## mad: five endpoints, including ordinal, count and binary
+
+The second `xgxr` set, and the other one shaped like a study report: 60 subjects
+in a multiple-ascending-dose study with a declared `NOMTIME`, five observation
+endpoints keyed by `NAME` — PK concentration, continuous PD, and ordinal, count
+and binary PD. Every other dataset here has one or two endpoints, and an
+endpoint silently vanishing during generation is invisible with fewer than
+three.
+
+```{r mad, eval=has_xgxr, message=FALSE}
+mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
+mad_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+  strata = c("TRTACT", "DOSE"),
+  covariates = c("WEIGHTB", "SEX")
+)
+mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
+```
+
+```{r mad-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(mad, mad_roles)}
+overlay_plot(mad, mad_synth, mad_roles, "mad: five endpoints on one time axis",
+             y_label = "LIDV", alpha = 0.2) +
+  ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
+```
+
+```{r mad-distributions, eval=has_xgxr}
+compare_pmx_distributions(mad, mad_synth, mad_roles)
+```
+
+```{r mad-scorecard, eval=has_xgxr}
+synpmx_scorecard(mad, mad_synth, mad_roles)
+```
+
+Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a row
+count: row counts stayed plausible in the defect that motivated the check while
+an entire compartment disappeared. This is the second declared `NOMTIME` and it
+produces the same clean structural result as `case1_pkpd`.
+
+The distribution table carries the same categorical drift as `warfarin`: `SEX`
+is 30 female and 30 male in the source and 40 to 20 in the synthetic cohort. It
+is declared as a covariate rather than as `strata`, so the anchor draw sets it.
+
+### Discrete endpoints keep their scale
+
+Three of `mad`'s five endpoints are discrete, and `LIDV` is one numeric column
+carrying all five, so restoring the *column's* class restores nothing about any
+of them. Blending is a weighted mean, and a weighted mean of five donors' zeros
+and ones is a number between them; the subject and residual noise terms then
+carry it off the level set entirely. Left alone, this study's 0/1 endpoint comes
+back as 600 distinct values spanning -0.13 to 1.08.
+
+`synpmx_avatar()` therefore decides what kind of values each endpoint takes,
+from the source, and puts the generated values back on that scale. The decision
+is worth reading before the data:
+
+```{r mad-endpoint-types, eval=has_xgxr}
+pmx_endpoint_types(mad, mad_roles)
+```
+
+```{r mad-discrete, eval=has_xgxr}
+discrete <- c("PD - Binary", "PD - Count", "PD - Ordinal")
+values_taken <- function(data, endpoint) {
+  values <- data$LIDV[data$NAME == endpoint & data$EVID == 0]
+  sprintf("%d distinct, %.2f to %.2f", length(unique(values)),
+          min(values), max(values))
+}
+knitr::kable(
+  data.frame(
+    endpoint = discrete,
+    source = vapply(discrete, values_taken, character(1), data = mad),
+    synthetic = vapply(discrete, values_taken, character(1), data = mad_synth),
+    row.names = NULL
+  ),
+  caption = "Values taken by the three discrete endpoints."
+)
+```
+
+A6 in the scorecard above is the check on it, and it reads the finished table
+rather than trusting the mechanism. It is on every card; the seven studies
+before this one have no discrete endpoint, so theirs read
+`no discrete endpoint` and pass.
+
+Two limits. The type is inferred, so an endpoint whose values are whole numbers
+for a reason other than being discrete is called discrete anyway — `warfarin`'s
+`pca` is a percentage recorded without decimals, and its generated values are
+rounded to match. `pmx_roles(endpoint_types = )` overrides the inference in
+either direction. And snapping a binary endpoint onto its levels means generated
+values are source values: a 0/1 endpoint has no third value to emit, so what
+protects a patient here is everything in the masking report, never the
+distinctness of the number.
 
 ## theo_md: seven oral doses, dosed by weight
 
@@ -717,168 +891,6 @@ name the arm that could not be masked. An avatar is never anchored outside the
 arm it was allocated to, so an arm whose dosing is individualised fails rather
 than borrowing patients from an arm whose dosing is not.
 
-## case1_pkpd: a declared nominal grid
-
-180 patients across six treatment arms, with a declared `NOMTIME`, two endpoints
-keyed by a character `NAME` column, a baseline weight, and a `CENS` column.
-`vignette("demo")` runs this dataset end to end; it is here for the contrast
-with the six above.
-
-```{r case1, eval=has_xgxr, message=FALSE}
-case1_pkpd <- as.data.frame(
-  get(utils::data(list = "case1_pkpd", package = "xgxr"))
-)
-case1_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
-  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
-  keep = "STUDY"
-)
-case1_synth <- suppressWarnings(
-  synpmx_avatar(case1_pkpd, case1_roles, seed = 808)
-)
-```
-
-```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(case1_pkpd, case1_roles)}
-overlay_plot(case1_pkpd, case1_synth, case1_roles,
-             "case1_pkpd: PK concentration and continuous PD, six arms",
-             y_label = "LIDV", alpha = 0.2)
-```
-
-```{r case1-distributions, eval=has_xgxr}
-compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
-```
-
-```{r case1-scorecard, eval=has_xgxr}
-synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
-```
-
-Nothing fails, and C1 passes: all six treatment arms keep their source size. An
-avatar never leaves the arm it was anchored in, because `TRTACT` and `DOSE` are
-declared as `strata` and are copied from the anchor. The arm *sizes* match
-because of a second mechanism: anchors are sampled with replacement, so
-`preserve_strata_balance` (the default) gives each stratum its source share
-rather than leaving the balance to the draw. This is the row that `warfarin`'s
-undeclared `sex` had no equivalent of.
-
-All 180 patients start with an observation schedule nobody else shares and none
-ends with one, and the difference from every dataset above is one declared
-column. With `NOMTIME` present the grid is `nominal` rather than derived, so
-coarsening reads the protocol instead of guessing at it, 180 patients collapse
-onto six visit sets, none of them rare, and nothing is discarded. Read this next
-to `nimoData`, which is the same mechanism with nothing to work from. The gap
-between them is not a tuning difference; it is whether the study recorded a
-nominal time.
-
-### Declaring `cens` on this study is refused
-
-```{r case1-cens, eval=has_xgxr}
-case1_roles_cens <- pmx_roles(
-  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
-  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
-)
-validate_pmx(case1_pkpd, case1_roles_cens)$valid
-```
-
-That study's `CENS` is meaningful only for the PK endpoint. The PD effect is
-signed, so a left-censored PD row reports a value above uncensored ones and the
-flag cannot mean what it means for PK. Running `validate_pmx()` on the data you
-are about to generate from is how a mis-declared role is caught before it
-becomes a generation bug, and this is the dataset where it fires. Leaving `cens`
-undeclared, as the run above does, is one right answer; `vignette("demo")` takes
-the other and sets `CENS` to 0 on the PD rows before declaring it.
-
-## mad: five endpoints, including ordinal, count and binary
-
-60 subjects in a multiple-ascending-dose study carrying five observation
-endpoints keyed by `NAME`: PK concentration, continuous PD, and ordinal, count
-and binary PD. Everything else here has one or two endpoints, and an endpoint
-silently vanishing during generation is invisible with fewer than three.
-
-```{r mad, eval=has_xgxr, message=FALSE}
-mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
-mad_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-  strata = c("TRTACT", "DOSE"),
-  covariates = c("WEIGHTB", "SEX")
-)
-mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
-```
-
-```{r mad-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(mad, mad_roles)}
-overlay_plot(mad, mad_synth, mad_roles, "mad: five endpoints on one time axis",
-             y_label = "LIDV", alpha = 0.2) +
-  ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
-```
-
-```{r mad-distributions, eval=has_xgxr}
-compare_pmx_distributions(mad, mad_synth, mad_roles)
-```
-
-```{r mad-scorecard, eval=has_xgxr}
-synpmx_scorecard(mad, mad_synth, mad_roles)
-```
-
-Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a row
-count: row counts stayed plausible in the defect that motivated the check while
-an entire compartment disappeared. This is the second declared `NOMTIME` and it
-produces the same clean structural result as `case1_pkpd`.
-
-The distribution table carries the same categorical drift as `warfarin`: `SEX`
-is 30 female and 30 male in the source and 40 to 20 in the synthetic cohort. It
-is declared as a covariate rather than as `strata`, so the anchor draw sets it.
-
-### Discrete endpoints keep their scale
-
-Three of `mad`'s five endpoints are discrete, and `LIDV` is one numeric column
-carrying all five, so restoring the *column's* class restores nothing about any
-of them. Blending is a weighted mean, and a weighted mean of five donors' zeros
-and ones is a number between them; the subject and residual noise terms then
-carry it off the level set entirely. Left alone, this study's 0/1 endpoint comes
-back as 600 distinct values spanning -0.13 to 1.08.
-
-`synpmx_avatar()` therefore decides what kind of values each endpoint takes,
-from the source, and puts the generated values back on that scale. The decision
-is worth reading before the data:
-
-```{r mad-endpoint-types, eval=has_xgxr}
-pmx_endpoint_types(mad, mad_roles)
-```
-
-```{r mad-discrete, eval=has_xgxr}
-discrete <- c("PD - Binary", "PD - Count", "PD - Ordinal")
-values_taken <- function(data, endpoint) {
-  values <- data$LIDV[data$NAME == endpoint & data$EVID == 0]
-  sprintf("%d distinct, %.2f to %.2f", length(unique(values)),
-          min(values), max(values))
-}
-knitr::kable(
-  data.frame(
-    endpoint = discrete,
-    source = vapply(discrete, values_taken, character(1), data = mad),
-    synthetic = vapply(discrete, values_taken, character(1), data = mad_synth),
-    row.names = NULL
-  ),
-  caption = "Values taken by the three discrete endpoints."
-)
-```
-
-A6 in the scorecard above is the check on it, and it reads the finished table
-rather than trusting the mechanism. It is on every card; the seven studies
-before this one have no discrete endpoint, so theirs read
-`no discrete endpoint` and pass.
-
-Two limits. The type is inferred, so an endpoint whose values are whole numbers
-for a reason other than being discrete is called discrete anyway — `warfarin`'s
-`pca` is a percentage recorded without decimals, and its generated values are
-rounded to match. `pmx_roles(endpoint_types = )` overrides the inference in
-either direction. And snapping a binary endpoint onto its levels means generated
-values are source values: a 0/1 endpoint has no third value to emit, so what
-protects a patient here is everything in the masking report, never the
-distinctness of the number.
-
 ## How well did the obfuscation work?
 
 Everything above shows that the synthetic data *looks* right. This section asks
@@ -906,14 +918,14 @@ exposure_row <- function(label, source, roles, synthetic) {
 }
 
 exposure <- rbind(
+  exposure_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
+  exposure_row("mad", mad, mad_roles, mad_synth),
   exposure_row("theo_md", theo_md, theo_roles, theo_synth),
   exposure_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
   exposure_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
   exposure_row("nimoData", nimoData, nimo_roles, nimo_synth),
   exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
-  exposure_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
-  exposure_row("mad", mad, mad_roles, mad_synth)
+  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
 )
 knitr::kable(
   exposure,
@@ -957,14 +969,14 @@ cost_row <- function(label, source, roles, synthetic) {
 
 knitr::kable(
   rbind(
+    cost_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
+    cost_row("mad", mad, mad_roles, mad_synth),
     cost_row("theo_md", theo_md, theo_roles, theo_synth),
     cost_row("warfarin", warfarin, warfarin_roles, warfarin_synth),
     cost_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
     cost_row("nimoData", nimoData, nimo_roles, nimo_synth),
     cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
-    cost_row("case1_pkpd", case1_pkpd, case1_roles, case1_synth),
-    cost_row("mad", mad, mad_roles, mad_synth)
+    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
   ),
   caption = paste(
     "What the masking removed. The first three counts are patients excluded",
@@ -1051,14 +1063,14 @@ proximity_row <- function(label, source, synthetic, roles) {
 
 knitr::kable(
   rbind(
+    proximity_row("case1_pkpd", case1_pkpd, case1_synth, case1_roles),
+    proximity_row("mad", mad, mad_synth, mad_roles),
     proximity_row("theo_md", theo_md, theo_synth, theo_roles),
     proximity_row("warfarin", warfarin, warfarin_synth, warfarin_roles),
     proximity_row("wbcSim", wbcSim, wbc_synth, wbc_roles),
     proximity_row("nimoData", nimoData, nimo_synth, nimo_roles),
     proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles),
-    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles),
-    proximity_row("case1_pkpd", case1_pkpd, case1_synth, case1_roles),
-    proximity_row("mad", mad, mad_synth, mad_roles)
+    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles)
   ),
   caption = paste(
     "Nearest-neighbour adversarial accuracy against a split-half null built",
@@ -1143,8 +1155,8 @@ sequence worth following is:
 1. **Declare `nominal_time` if the study has it.** This is free, and it is the
    only thing that helps the unique-moment column. A study without a
    nominal-time column can often still construct one from an occasion number and
-   a time after dose, which the `nimoData` section above does: it takes that
-   dataset from two failing checks to none.
+   a time after dose, which the `nimoData` section does: it takes that dataset
+   from 1.6 doses per patient back to the full ten.
 2. **Then re-run this table.** If the unique-moment count is at or near zero,
    the grid has done its whole job and no amount of tuning will improve it.
 3. **Then decide about the pattern column.** These are missing-visit
