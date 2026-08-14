@@ -146,7 +146,7 @@ synpmx_scorecard(data, synthetic, roles)
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   A5    compare_pmx_distributions(source, synthetic, roles)
-#>   A5    pmx_masking_report(synthetic, source, roles)
+#>   A5    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
 #>   B2    flag_identifiable_subjects(synthetic, roles)
 #>   B3    compare_pmx_proximity(source, synthetic, roles)
 #> 
