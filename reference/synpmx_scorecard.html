@@ -142,6 +142,16 @@ interactively in an IDE shows the console form, since nothing is knitting.</p>
 <p>A <code>"review"</code> verdict is not a soft <code>"pass"</code>. It marks a row where no
 threshold would be honest, and it has to be read. Nor is <code>"unavailable"</code>:
 it marks a row nothing was measured for.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="plot-the-data-as-well">Plot the data as well<a class="anchor" aria-label="anchor" href="#plot-the-data-as-well"></a></h2>
+    <p>D1 reports the standard deviation that moved furthest between the two
+tables, and a standard deviation cannot see a shape: one bell and two humps
+with the same mean and spread give the same cell. Plot <code>DV</code> against time and
+each covariate's distribution, source and synthetic on the same axes, before
+deciding the output is usable. No function is offered for it – every group
+has plotting code it already trusts for its own study, and a generic one
+would be a worse version of that.</p>
 <p><code>"FAIL"</code> is reserved for the rows where the answer is always a defect: the
 output is not a legal dataset (A1), it is not the study that went in (A3,
 A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
@@ -171,28 +181,33 @@ against this output.</p>
 <span class="r-in"><span><span class="fu">synpmx_scorecard</span><span class="op">(</span><span class="va">data</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   check question                                           reads        result                  verdict</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                    pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A2    Source is legal under the declared roles           source       TRUE                    pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A3    Every endpoint survived                            both         2 of 2                  pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A4    Cohort size survived                               both         30 -&gt; 30                pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Observations per patient                           both         14 -&gt; 14                review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Doses per patient                                  both         2 -&gt; 2                  review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B1a   Avatars with a visit set nobody else shares        run settings 0                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                 review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692] review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B4a   Generated time vectors copying an exposed real one both         0                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   B4b   Generated DV vectors copying an exposed real one   both         0                       pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   C2    Distinct dose-time schedules represented           run settings 1 of 1                  pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   check question                                           reads        result                        verdict</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                          pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A2    Source is legal under the declared roles           source       TRUE                          pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A3    Every endpoint survived                            both         2 of 2                        pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A4    Cohort size survived                               both         30 -&gt; 30                      pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Observations per patient                           both         14 -&gt; 14                      review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5    Doses per patient                                  both         2 -&gt; 2                        review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B1a   Avatars with a visit set nobody else shares        run settings 0                             pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                             pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                       review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]       review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B4a   Generated time vectors copying an exposed real one both         0                             pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   B4b   Generated DV vectors copying an exposed real one   both         0                             pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   C2    Distinct dose-time schedules represented           run settings 1 of 1                        pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3) review</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> To explore, with `source`, `synthetic` and `roles` named as you have them:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A5    compare_pmx_distributions(source, synthetic, roles)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A5    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B2    flag_identifiable_subjects(synthetic, roles)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B3    compare_pmx_proximity(source, synthetic, roles)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   D1    compare_pmx_distributions(source, synthetic, roles)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> no failures, 4 to review.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> D1 reports numbers, not shapes. Plot source and synthetic on the same axes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -- `DV` against time, and each covariate -- with whatever you normally use.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> no failures, 5 to review.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Rows reading `source` or `both` are restricted output.</span>
 </code></pre></div>

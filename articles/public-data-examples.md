@@ -266,6 +266,7 @@ synpmx_scorecard(theo_md, theo_synth, theo_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.55 on WT (furthest of 2) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -349,6 +350,7 @@ synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 | B5a | Patients holding the least-held categorical level | synthetic | sex = female: 3 | pass | table(synthetic\$sex) |
 | B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.43 on age (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
 declared as the `dose_covariate` and each avatar’s `amt` is rebuilt from
@@ -407,6 +409,7 @@ synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 4 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.67 on DV (furthest of 1) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.
@@ -519,6 +522,7 @@ synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 7 of 12 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.48 on BSA (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 **B1b fails: all twelve avatars carry a dose schedule nobody else
 shares.** C2 says what declining to use those schedules would have cost
@@ -603,6 +607,7 @@ synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.42 on AGE (furthest of 4) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails now. B1b goes from 12 to 0 and C2 from 7 of 12 to 1 of 1,
 because on the nominal grid the twelve dose schedules become one. Unique
@@ -683,6 +688,7 @@ synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 1 of 1 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.51 on HT (furthest of 5) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails, and B2 is the row that looks alarming: 40 of the 120
 synthetic patients are flagged as unusual.
@@ -794,6 +800,7 @@ synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 | B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
 | B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 3 of 56 | review | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.66 on APGR (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 **Nothing fails, and the two rows that moved say what reaching that
 cost.** Doses per patient falls from 10.0 to 1.1 in A5, and 3 of the 56
@@ -919,6 +926,7 @@ synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 | B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
 | C1 | Strata keeping their source size | both | 6 of 6 | pass | compare_pmx_strata_sizes(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.64 on PD - Continuous (furthest of 3) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails, and C1 passes: all six treatment arms keep their source
 size. An avatar never leaves the arm it was anchored in, because
@@ -1045,6 +1053,7 @@ synpmx_scorecard(mad, mad_synth, mad_roles)
 | B5b | Rare source levels copied into the output | both | 0 of 0 exposed | pass | compare_pmx_rare_levels(source, synthetic, roles) |
 | C1 | Strata keeping their source size | both | 6 of 6 | pass | compare_pmx_strata_sizes(source, synthetic, roles) |
 | C2 | Distinct dose-time schedules represented | run settings | 2 of 2 | pass | pmx_masking_report(synthetic, source, roles, section = “dose_schedules”) |
+| D1 | Values landing in the same range | both | sd x0.6 on WEIGHTB (furthest of 6) | review | compare_pmx_distributions(source, synthetic, roles) |
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
 row count: row counts stayed plausible in the defect that motivated the

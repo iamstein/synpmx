@@ -95,6 +95,16 @@ A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 threshold would be honest, and it has to be read. Nor is
 `"unavailable"`: it marks a row nothing was measured for.
 
+## Plot the data as well
+
+D1 reports the standard deviation that moved furthest between the two
+tables, and a standard deviation cannot see a shape: one bell and two
+humps with the same mean and spread give the same cell. Plot `DV`
+against time and each covariate's distribution, source and synthetic on
+the same axes, before deciding the output is usable. No function is
+offered for it – every group has plotting code it already trusts for its
+own study, and a generic one would be a worse version of that.
+
 `"FAIL"` is reserved for the rows where the answer is always a defect:
 the output is not a legal dataset (A1), it is not the study that went in
 (A3, A6), or it reproduces one real patient's structure verbatim (B1a,
@@ -128,28 +138,33 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard(data, synthetic, roles)
 #> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
 #> 
-#>   check question                                           reads        result                  verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                    pass
-#>   A2    Source is legal under the declared roles           source       TRUE                    pass
-#>   A3    Every endpoint survived                            both         2 of 2                  pass
-#>   A4    Cohort size survived                               both         30 -> 30                pass
-#>   A5    Observations per patient                           both         14 -> 14                review
-#>   A5    Doses per patient                                  both         2 -> 2                  review
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                       pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                       pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                 review
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692] review
-#>   B4a   Generated time vectors copying an exposed real one both         0                       pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                       pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                  pass
+#>   check question                                           reads        result                        verdict
+#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                          pass
+#>   A2    Source is legal under the declared roles           source       TRUE                          pass
+#>   A3    Every endpoint survived                            both         2 of 2                        pass
+#>   A4    Cohort size survived                               both         30 -> 30                      pass
+#>   A5    Observations per patient                           both         14 -> 14                      review
+#>   A5    Doses per patient                                  both         2 -> 2                        review
+#>   B1a   Avatars with a visit set nobody else shares        run settings 0                             pass
+#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                             pass
+#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                       review
+#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]       review
+#>   B4a   Generated time vectors copying an exposed real one both         0                             pass
+#>   B4b   Generated DV vectors copying an exposed real one   both         0                             pass
+#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                        pass
+#>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3) review
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   A5    compare_pmx_distributions(source, synthetic, roles)
 #>   A5    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
 #>   B2    flag_identifiable_subjects(synthetic, roles)
 #>   B3    compare_pmx_proximity(source, synthetic, roles)
+#>   D1    compare_pmx_distributions(source, synthetic, roles)
 #> 
-#> no failures, 4 to review.
+#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
+#> -- `DV` against time, and each covariate -- with whatever you normally use.
+#> 
+#> no failures, 5 to review.
 #> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
 #> Rows reading `source` or `both` are restricted output.
 ```
