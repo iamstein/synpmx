@@ -193,7 +193,8 @@ Every example follows the same five steps:
 2.  synthesize with
     [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md);
 3.  plot the real and synthetic data;
-4.  summarize observations (DV) and covariate statistics
+4.  plot the observation (DV) and baseline covariate distributions,
+    source against synthetic
 5.  report the score card for the synthetic dataset.
 
 The scorecard marks each check `pass`, `FAIL`, or `review`. A `review`
@@ -202,8 +203,8 @@ is acceptable for use. If the synthetic dataset will not be crossing a
 trust boundary, items marked `review` are acceptable.
 
 **No dataset here fails a check**, which is a thing to be careful about
-rather than reassured by. One did until recently — `nimoData`, on B1b —
-and its section shows what closing that cost. Every card carries five or
+rather than reassured by. `nimoData`, on B1b, previously failed, and its
+section shows what fixing the issue involved. Every card carries five or
 six `review` rows instead, and those are where the eight datasets
 actually differ. The runs below are quiet:
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -250,63 +251,17 @@ case1_synth <- suppressWarnings(
 compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 ```
 
-| variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PD - Continuous | source | 1620 | 180 | 135 | 238 | -621 | -21.6 | 123 | 283 | 936 |
-| PD - Continuous | synthetic | 1620 | 180 | 132 | 153 | -361 | 33.5 | 119 | 217 | 742 |
-| PK Concentration | source | 3600 | 150 | 0.36 | 0.737 | 0.05 | 0.05 | 0.0634 | 0.263 | 7 |
-| PK Concentration | synthetic | 3600 | 150 | 0.299 | 0.582 | 0.0185 | 0.0485 | 0.0689 | 0.218 | 5.22 |
-
-Endpoints (dependent variable on observation rows) {.table}
-
-| variable | dataset   |   n | mean |   sd |  min | q25 | median | q75 | max |
-|:---------|:----------|----:|-----:|-----:|-----:|----:|-------:|----:|----:|
-| WEIGHTB  | source    | 180 |  116 | 20.5 |   80 |  98 |    117 | 133 | 150 |
-| WEIGHTB  | synthetic | 180 |  118 | 14.1 | 88.3 | 106 |    118 | 129 | 144 |
-
-Continuous covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/case1-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                                      verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                        pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                        pass
-#>   A3    Every endpoint survived                            both         2 of 2                                      pass
-#>   A4    Cohort size survived                               both         180 -> 180                                  pass
-#>   A5a   Observations per patient                           both         30.7 -> 30.7                                review
-#>   A5b   Doses per patient                                  both         70.8 -> 70.8                                review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                        pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                           pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                           pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 180                                    review
-#>   B3    Adversarial accuracy inside its null interval      both         0.600 in [0.423, 0.554]                     review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                           pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                           pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 10 mg: 30                          pass
-#>   B5b   Rare source levels copied into the output          both         0 of 0 exposed                              pass
-#>   C1    Strata keeping their source size                   both         6 of 6                                      pass
-#>   C2    Distinct dose-time schedules represented           run settings 2 of 2                                      pass
-#>   D1    Values landing in the same range                   both         sd x0.64 on PD - Continuous (furthest of 3) review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails, and C1 passes: all six treatment arms keep their source
 size. An avatar never leaves the arm it was anchored in, because
@@ -380,79 +335,17 @@ mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
 compare_pmx_distributions(mad, mad_synth, mad_roles)
 ```
 
-| variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PD - Binary | source | 600 | 60 | 0.295 | 0.456 | 0 | 0 | 0 | 1 | 1 |
-| PD - Binary | synthetic | 600 | 60 | 0.235 | 0.424 | 0 | 0 | 0 | 0 | 1 |
-| PD - Continuous | source | 600 | 60 | 21.1 | 12.5 | -3.47 | 13.2 | 19.5 | 28.4 | 68.3 |
-| PD - Continuous | synthetic | 600 | 60 | 20.4 | 11.1 | -4.59 | 13.2 | 20.8 | 27.8 | 51.7 |
-| PD - Count | source | 600 | 60 | 5.32 | 3.75 | 0 | 2 | 5 | 8 | 19 |
-| PD - Count | synthetic | 600 | 60 | 5 | 3.27 | 0 | 2 | 5 | 7 | 15 |
-| PD - Ordinal | source | 600 | 60 | 2.05 | 0.856 | 1 | 1 | 2 | 3 | 3 |
-| PD - Ordinal | synthetic | 600 | 60 | 2.02 | 0.81 | 1 | 1 | 2 | 3 | 3 |
-| PK Concentration | source | 1300 | 50 | 3.99 | 7.79 | 0.05 | 0.506 | 1.44 | 3.96 | 103 |
-| PK Concentration | synthetic | 1300 | 50 | 3.7 | 6.13 | 0.047 | 0.52 | 1.44 | 3.92 | 60.1 |
-
-Endpoints (dependent variable on observation rows) {.table
-style="width:100%;"}
-
-| variable | dataset   |   n | mean |   sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
-| WEIGHTB  | source    |  60 | 79.4 | 14.5 | 52.8 | 69.2 |   78.9 | 89.8 |  109 |
-| WEIGHTB  | synthetic |  60 |   79 | 8.76 | 58.8 | 72.9 |   78.8 | 85.3 | 94.4 |
-
-Continuous covariates (baseline, per patient) {.table}
-
-| variable | dataset   | level  |   n | proportion |
-|:---------|:----------|:-------|----:|-----------:|
-| SEX      | source    | Female |  30 |        0.5 |
-| SEX      | source    | Male   |  30 |        0.5 |
-| SEX      | synthetic | Female |  40 |      0.667 |
-| SEX      | synthetic | Male   |  20 |      0.333 |
-
-Categorical covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/mad-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(mad, mad_synth, mad_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                             verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                               pass
-#>   A2    Source is legal under the declared roles           source       TRUE                               pass
-#>   A3    Every endpoint survived                            both         5 of 5                             pass
-#>   A4    Cohort size survived                               both         60 -> 60                           pass
-#>   A5a   Observations per patient                           both         61.7 -> 61.7                       review
-#>   A5b   Doses per patient                                  both         5 -> 5                             review
-#>   A6    Discrete endpoints keeping their source scale      both         3 of 3                             pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                  pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                  pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    6 of 60                            review
-#>   B3    Adversarial accuracy inside its null interval      both         0.583 in [0.350, 0.613]            review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                  pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                  pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 100 mg: 10                pass
-#>   B5b   Rare source levels copied into the output          both         0 of 0 exposed                     pass
-#>   C1    Strata keeping their source size                   both         6 of 6                             pass
-#>   C2    Distinct dose-time schedules represented           run settings 2 of 2                             pass
-#>   D1    Values landing in the same range                   both         sd x0.6 on WEIGHTB (furthest of 6) review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
 row count: row counts stayed plausible in the defect that motivated the
@@ -460,10 +353,16 @@ check while an entire compartment disappeared. This is the second
 declared `NOMTIME` and it produces the same clean structural result as
 `case1_pkpd`.
 
-The distribution table carries the same categorical drift as `warfarin`:
-`SEX` is 30 female and 30 male in the source and 40 to 20 in the
-synthetic cohort. It is declared as a covariate rather than as `strata`,
-so the anchor draw sets it.
+The `SEX` panel carries the same categorical drift as `warfarin`: an
+even split in the source, two thirds to one third in the synthetic
+cohort — 30 and 30 becoming 40 and 20. It is declared as a covariate
+rather than as `strata`, so the anchor draw sets it.
+
+This is also the dataset that shows why the figure switches geometry. A
+panel holding eight or fewer distinct values is drawn as proportion bars
+rather than as a curve, so `PD - Binary` and `PD - Ordinal` come out as
+bars: a smoothed density over `{0, 1}` would be a shape this study does
+not have. `PD - Count` has more levels than that and stays a curve.
 
 ### Discrete endpoints keep their scale
 
@@ -556,62 +455,17 @@ theo_synth <- suppressWarnings(synpmx_avatar(theo_md, theo_roles, seed = 303))
 compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd |   min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|-----:|------:|-----:|-------:|-----:|-----:|
-| DV       | source    | 264 |         12 | 5.53 |    3 | -1.13 |  3.3 |   5.74 |  7.8 | 12.7 |
-| DV       | synthetic | 264 |         12 | 5.18 | 2.57 |     0 | 3.56 |   5.37 | 6.82 | 11.8 |
-
-Endpoints (dependent variable on observation rows) {.table
-style="width:100%;"}
-
-| variable | dataset   |   n | mean |   sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
-| WT       | source    |  12 | 69.6 |  9.5 | 54.6 | 63.6 |   70.5 | 74.4 | 86.4 |
-| WT       | synthetic |  12 | 68.5 | 5.18 | 58.2 | 65.5 |   69.7 | 71.7 | 77.1 |
-
-Continuous covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/theo-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(theo_md, theo_synth, theo_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         12 -> 12                            pass
-#>   A5a   Observations per patient                           both         22 -> 22                            review
-#>   A5b   Doses per patient                                  both         7 -> 7                              review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    3 of 12                             review
-#>   B3    Adversarial accuracy inside its null interval      both         0.500 in [0.167, 0.750]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
-#>   D1    Values landing in the same range                   both         sd x0.55 on WT (furthest of 2)      review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -644,75 +498,17 @@ warfarin_synth <- suppressWarnings(
 compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd | min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|-----:|----:|-----:|-------:|-----:|-----:|
-| cp       | source    | 251 |         32 | 6.41 | 3.82 |   0 |  3.2 |    6.1 |  8.9 | 17.6 |
-| cp       | synthetic | 258 |         32 | 6.67 | 3.86 |   0 | 3.12 |   6.44 | 9.67 | 14.7 |
-| pca      | source    | 232 |         32 | 37.5 | 26.1 |   9 |   20 |     28 |   42 |  100 |
-| pca      | synthetic | 224 |         32 | 34.4 | 25.8 |   8 | 19.8 |     25 |   37 |  126 |
-
-Endpoints (dependent variable on observation rows) {.table
-style="width:100%;"}
-
-| variable | dataset   |   n | mean |   sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
-| wt       | source    |  32 |   70 | 12.7 |   40 | 61.5 |   71.6 | 78.5 |  102 |
-| wt       | synthetic |  32 | 71.6 | 7.57 | 53.7 | 67.9 |   72.9 | 76.3 | 86.5 |
-| age      | source    |  32 |   31 | 10.5 |   21 |   22 |   27.5 |   36 |   63 |
-| age      | synthetic |  32 | 26.2 |  4.5 |   21 |   23 |   24.5 | 28.2 |   39 |
-
-Continuous covariates (baseline, per patient) {.table}
-
-| variable | dataset   | level  |   n | proportion |
-|:---------|:----------|:-------|----:|-----------:|
-| sex      | source    | female |   5 |      0.156 |
-| sex      | source    | male   |  27 |      0.844 |
-| sex      | synthetic | female |   3 |     0.0938 |
-| sex      | synthetic | male   |  29 |      0.906 |
-
-Categorical covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/warfarin-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                          verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                            pass
-#>   A2    Source is legal under the declared roles           source       TRUE                            pass
-#>   A3    Every endpoint survived                            both         2 of 2                          pass
-#>   A4    Cohort size survived                               both         32 -> 32                        pass
-#>   A5a   Observations per patient                           both         15.1 -> 15.1                    review
-#>   A5b   Doses per patient                                  both         1 -> 1                          review
-#>   A6    Discrete endpoints keeping their source scale      both         1 of 1                          pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                               pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                               pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    0 of 32                         review
-#>   B3    Adversarial accuracy inside its null interval      both         0.438 in [0.271, 0.712]         review
-#>   B4a   Generated time vectors copying an exposed real one both         0                               pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                               pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    sex = female: 3                 pass
-#>   B5b   Rare source levels copied into the output          both         0 of 0 exposed                  pass
-#>   C1    Strata keeping their source size                   both         no strata declared              pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                          pass
-#>   D1    Values landing in the same range                   both         sd x0.43 on age (furthest of 4) review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
 declared as the `dose_covariate` and each avatar’s `amt` is rebuilt from
@@ -744,55 +540,17 @@ wbc_synth <- suppressWarnings(synpmx_avatar(wbcSim, wbc_roles, seed = 505))
 compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
-| DV       | source    | 176 |         45 | 6.43 | 3.83 |  0.7 | 3.68 |    5.8 | 8.38 | 20.4 |
-| DV       | synthetic | 163 |         45 | 6.35 | 2.47 | 1.53 | 4.59 |   6.34 | 7.89 | 14.2 |
-
-Endpoints (dependent variable on observation rows) {.table}
+![](public-data-examples_files/figure-html/wbc-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         45 -> 45                            pass
-#>   A5a   Observations per patient                           both         3.9 -> 3.6                          review
-#>   A5b   Doses per patient                                  both         1.2 -> 1                            review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    16 of 45                            review
-#>   B3    Adversarial accuracy inside its null interval      both         0.477 in [0.323, 0.614]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 2 of 4                              review
-#>   D1    Values landing in the same range                   both         sd x0.64 on DV (furthest of 1)      review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   C2    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 6 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.
@@ -867,66 +625,17 @@ nimo_synth <- suppressWarnings(synpmx_avatar(nimoData, nimo_roles, seed = 606))
 compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd |    min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|-----:|-------:|-----:|-------:|-----:|-----:|
-| DV       | source    | 321 |         12 | 4.22 | 1.45 | -0.232 | 3.28 |   4.02 |  5.3 |  8.1 |
-| DV       | synthetic | 331 |         12 | 3.59 | 1.13 |  0.422 | 2.77 |   3.48 | 4.47 | 6.23 |
-
-Endpoints (dependent variable on observation rows) {.table}
-
-| variable | dataset   |   n | mean |     sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|-------:|-----:|-----:|-------:|-----:|-----:|
-| BSA      | source    |  12 | 1.64 | 0.0969 |  1.5 | 1.58 |   1.62 | 1.71 |  1.8 |
-| BSA      | synthetic |  12 | 1.64 | 0.0594 | 1.56 | 1.59 |   1.63 | 1.68 | 1.75 |
-| AGE      | source    |  12 | 49.7 |   10.2 |   34 |   42 |   45.5 |   59 |   64 |
-| AGE      | synthetic |  12 | 49.4 |   3.85 |   41 | 47.8 |     50 |   53 |   54 |
-| HGT      | source    |  12 |  155 |    5.4 |  145 |  152 |    156 |  160 |  162 |
-| HGT      | synthetic |  12 |  156 |   2.87 |  151 |  155 |    156 |  158 |  161 |
-
-Continuous covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/nimo-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         12 -> 12                            pass
-#>   A5a   Observations per patient                           both         26.8 -> 27.6                        review
-#>   A5b   Doses per patient                                  both         10 -> 1.6                           review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    3 of 12                             review
-#>   B3    Adversarial accuracy inside its null interval      both         0.250 in [0.167, 0.731]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 7 of 12                             review
-#>   D1    Values landing in the same range                   both         sd x0.38 on AGE (furthest of 4)     review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   C2    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 6 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 **Every check passes, and the dataset is still not shippable.** A5b is
 the row to read: doses per patient falls from 10 to 1.6. Ten weekly
@@ -1112,42 +821,11 @@ nimo_fixed <- suppressWarnings(
 )
 scorecard <- synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
 synpmx_scorecard_datatable(scorecard)
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         12 -> 12                            pass
-#>   A5a   Observations per patient                           both         26.8 -> 27.2                        review
-#>   A5b   Doses per patient                                  both         10 -> 10                            review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    2 of 12                             review
-#>   B3    Adversarial accuracy inside its null interval      both         0.500 in [0.167, 0.731]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
-#>   D1    Values landing in the same range                   both         sd x0.51 on AGE (furthest of 4)     review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 **The dosing comes back in full.** A5b goes from `10 -> 1.6` to
 `10 -> 10` and C2 from 7 of 12 to 1 of 1, because on the nominal grid
@@ -1231,68 +909,17 @@ mavo_synth <- suppressWarnings(
 compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 ```
 
-| variable | dataset   |    n | n_subjects | mean |  sd |  min |  q25 | median | q75 |  max |
-|:---------|:----------|-----:|-----------:|-----:|----:|-----:|-----:|-------:|----:|-----:|
-| DV       | source    | 2427 |        120 |  199 | 230 | 2.01 | 32.8 |   94.6 | 308 | 1730 |
-| DV       | synthetic | 2426 |        120 |  184 | 189 |  1.5 | 31.8 |   88.4 | 328 |  936 |
-
-Endpoints (dependent variable on observation rows) {.table
-style="width:100%;"}
-
-| variable | dataset   |   n | mean |     sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|-------:|-----:|-----:|-------:|-----:|-----:|
-| AGE      | source    | 120 |   33 |   8.98 |   18 |   26 |     31 | 40.2 |   50 |
-| AGE      | synthetic | 120 | 31.2 |   5.89 |   21 |   26 |     31 |   35 |   47 |
-| SEX      | source    | 120 | 1.13 |  0.341 |    1 |    1 |      1 |    1 |    2 |
-| SEX      | synthetic | 120 | 1.06 |  0.235 |    1 |    1 |      1 |    1 |    2 |
-| WT       | source    | 120 | 82.6 |   12.5 | 56.6 | 73.2 |   82.1 | 90.1 |  115 |
-| WT       | synthetic | 120 |   81 |   7.71 | 65.9 | 74.4 |   81.1 | 87.4 | 98.1 |
-| HT       | source    | 120 | 1.76 | 0.0855 | 1.52 |  1.7 |   1.77 | 1.81 | 1.93 |
-| HT       | synthetic | 120 | 1.76 | 0.0437 | 1.61 | 1.74 |   1.76 | 1.79 | 1.87 |
-
-Continuous covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/mavo-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         120 -> 120                          pass
-#>   A5a   Observations per patient                           both         20.2 -> 20.2                        review
-#>   A5b   Doses per patient                                  both         1.6 -> 1.6                          review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    41 of 120                           review
-#>   B3    Adversarial accuracy inside its null interval      both         0.617 in [0.419, 0.606]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
-#>   D1    Values landing in the same range                   both         sd x0.51 on HT (furthest of 5)      review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails, and B2 is the row that looks alarming: 40 of the 120
 synthetic patients are flagged as unusual.
@@ -1368,64 +995,17 @@ pheno_synth <- suppressWarnings(
 compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 ```
 
-| variable | dataset   |   n | n_subjects | mean |   sd |  min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----------:|-----:|-----:|-----:|-----:|-------:|-----:|-----:|
-| DV       | source    | 155 |         59 | 25.6 | 8.66 |  6.7 | 19.6 |   24.6 |   31 | 67.9 |
-| DV       | synthetic | 148 |         59 | 25.7 | 7.52 | 11.1 | 20.2 |   24.4 | 29.4 | 52.4 |
-
-Endpoints (dependent variable on observation rows) {.table}
-
-| variable | dataset   |   n | mean |    sd |   min |  q25 | median |  q75 |  max |
-|:---------|:----------|----:|-----:|------:|------:|-----:|-------:|-----:|-----:|
-| WT       | source    |  59 | 1.53 | 0.705 |   0.6 |  1.1 |    1.3 |  1.7 |  3.6 |
-| WT       | synthetic |  59 | 1.34 | 0.309 | 0.843 | 1.15 |   1.26 | 1.45 | 2.23 |
-| APGR     | source    |  59 | 6.42 |  2.24 |     1 |    5 |      7 |    8 |   10 |
-| APGR     | synthetic |  59 | 6.58 |  1.21 |     3 |    6 |      7 |  7.5 |    8 |
-
-Continuous covariates (baseline, per patient) {.table}
+![](public-data-examples_files/figure-html/pheno-distributions-1.png)
 
 ``` r
 
 scorecard <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         59 -> 59                            pass
-#>   A5a   Observations per patient                           both         2.6 -> 2.5                          review
-#>   A5b   Doses per patient                                  both         10 -> 5.6                           review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    25 of 59                            review
-#>   B3    Adversarial accuracy inside its null interval      both         0.466 in [0.362, 0.617]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 35 of 56                            review
-#>   D1    Values landing in the same range                   both         sd x0.44 on WT (furthest of 3)      review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   C2    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 6 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 **Nothing fails, and the two rows that moved say what reaching that
 cost.** Doses per patient falls from 10 to 5.6 in A5b, and 35 of the 56

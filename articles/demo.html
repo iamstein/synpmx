@@ -69,8 +69,12 @@
 
 
 
-
-<div class="row">
+<link href="demo_files/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
+<script src="demo_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="demo_files/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="demo_files/datatables-binding-0.34.0/datatables.js"></script><link href="demo_files/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="demo_files/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="demo_files/dt-core-1.13.6/js/jquery.dataTables.min.js"></script><link href="demo_files/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+<script src="demo_files/crosstalk-1.2.2/js/crosstalk.min.js"></script><div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Demo: Using synpmx_avatar</h1>
@@ -179,138 +183,22 @@ synthetic dataset.</p>
 <p><img src="demo_files/figure-html/overlay-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
-<h2 id="summary-tables-of-synthetic-and-original-data">Summary Tables of Synthetic and Original Data<a class="anchor" aria-label="anchor" href="#summary-tables-of-synthetic-and-original-data"></a>
+<h2 id="distributions-of-synthetic-and-original-data">Distributions of Synthetic and Original Data<a class="anchor" aria-label="anchor" href="#distributions-of-synthetic-and-original-data"></a>
 </h2>
+<p>One panel per endpoint and per baseline covariate, source against
+synthetic. <code><a href="../reference/compare_pmx_distributions_height.html">compare_pmx_distributions_height()</a></code> sizes the
+figure, since it grows a row of panels at a time;
+<code>output = "tables"</code> gives the numbers behind it.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>Endpoints (dependent variable on observation rows)</caption>
-<colgroup>
-<col width="20%">
-<col width="11%">
-<col width="5%">
-<col width="13%">
-<col width="7%">
-<col width="7%">
-<col width="5%">
-<col width="7%">
-<col width="8%">
-<col width="7%">
-<col width="5%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">n_subjects</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">PD - Continuous</td>
-<td align="left">source</td>
-<td align="right">1620</td>
-<td align="right">180</td>
-<td align="right">135</td>
-<td align="right">238</td>
-<td align="right">-621</td>
-<td align="right">-21.6</td>
-<td align="right">123</td>
-<td align="right">283</td>
-<td align="right">936</td>
-</tr>
-<tr class="even">
-<td align="left">PD - Continuous</td>
-<td align="left">synthetic</td>
-<td align="right">1620</td>
-<td align="right">180</td>
-<td align="right">130</td>
-<td align="right">153</td>
-<td align="right">-297</td>
-<td align="right">27.9</td>
-<td align="right">114</td>
-<td align="right">221</td>
-<td align="right">657</td>
-</tr>
-<tr class="odd">
-<td align="left">PK Concentration</td>
-<td align="left">source</td>
-<td align="right">3600</td>
-<td align="right">150</td>
-<td align="right">0.36</td>
-<td align="right">0.737</td>
-<td align="right">0.05</td>
-<td align="right">0.05</td>
-<td align="right">0.0634</td>
-<td align="right">0.263</td>
-<td align="right">7</td>
-</tr>
-<tr class="even">
-<td align="left">PK Concentration</td>
-<td align="left">synthetic</td>
-<td align="right">3600</td>
-<td align="right">150</td>
-<td align="right">0.313</td>
-<td align="right">0.649</td>
-<td align="right">0.05</td>
-<td align="right">0.05</td>
-<td align="right">0.0517</td>
-<td align="right">0.227</td>
-<td align="right">5.84</td>
-</tr>
-</tbody>
-</table>
-<table class="table">
-<caption>Continuous covariates (baseline, per patient)</caption>
-<thead><tr class="header">
-<th align="left">variable</th>
-<th align="left">dataset</th>
-<th align="right">n</th>
-<th align="right">mean</th>
-<th align="right">sd</th>
-<th align="right">min</th>
-<th align="right">q25</th>
-<th align="right">median</th>
-<th align="right">q75</th>
-<th align="right">max</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">WEIGHTB</td>
-<td align="left">source</td>
-<td align="right">180</td>
-<td align="right">116</td>
-<td align="right">20.5</td>
-<td align="right">80</td>
-<td align="right">98</td>
-<td align="right">117</td>
-<td align="right">133</td>
-<td align="right">150</td>
-</tr>
-<tr class="even">
-<td align="left">WEIGHTB</td>
-<td align="left">synthetic</td>
-<td align="right">180</td>
-<td align="right">115</td>
-<td align="right">14.5</td>
-<td align="right">85.8</td>
-<td align="right">104</td>
-<td align="right">114</td>
-<td align="right">127</td>
-<td align="right">148</td>
-</tr>
-</tbody>
-</table>
-<p>Medians track closely on both endpoints. The standard deviations are
-visibly smaller in the synthetic cohort — for the PD endpoint and for
-baseline weight alike. This behavior is expected from the AVATAR
-blending algorithm.</p>
+<p><img src="demo_files/figure-html/distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p>The curves sit on top of each other on both endpoints. Look at their
+widths rather than their positions: the orange curve is visibly narrower
+than the blue one for the PD endpoint and for baseline weight, and
+slightly narrower for PK. That narrowing is between-subject variability
+shrinking, which is what the AVATAR blending algorithm does rather than
+a fault in the run. <code>output = "tables"</code> puts a number on it,
+and the scorecard’s D1 row reports the variable that moved furthest.</p>
 </div>
 <div class="section level2">
 <h2 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
@@ -320,43 +208,11 @@ described further in
 <code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span></span>
-<span><span class="co">#&gt; DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.</span></span>
-<span><span class="co">#&gt; Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   check question                                           reads        result                                      verdict</span></span>
-<span><span class="co">#&gt;   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                        pass</span></span>
-<span><span class="co">#&gt;   A2    Source is legal under the declared roles           source       TRUE                                        pass</span></span>
-<span><span class="co">#&gt;   A3    Every endpoint survived                            both         2 of 2                                      pass</span></span>
-<span><span class="co">#&gt;   A4    Cohort size survived                               both         180 -&gt; 180                                  pass</span></span>
-<span><span class="co">#&gt;   A5a   Observations per patient                           both         30.7 -&gt; 30.7                                review</span></span>
-<span><span class="co">#&gt;   A5b   Doses per patient                                  both         70.8 -&gt; 70.8                                review</span></span>
-<span><span class="co">#&gt;   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                        pass</span></span>
-<span><span class="co">#&gt;   B1a   Avatars with a visit set nobody else shares        run settings 0                                           pass</span></span>
-<span><span class="co">#&gt;   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                           pass</span></span>
-<span><span class="co">#&gt;   B2    Synthetic patients unusual within their stratum    synthetic    0 of 180                                    review</span></span>
-<span><span class="co">#&gt;   B3    Adversarial accuracy inside its null interval      both         0.617 in [0.415, 0.578]                     review</span></span>
-<span><span class="co">#&gt;   B4a   Generated time vectors copying an exposed real one both         0                                           pass</span></span>
-<span><span class="co">#&gt;   B4b   Generated DV vectors copying an exposed real one   both         0                                           pass</span></span>
-<span><span class="co">#&gt;   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 10 mg: 30                          pass</span></span>
-<span><span class="co">#&gt;   B5b   Rare source levels copied into the output          both         0 of 0 exposed                              pass</span></span>
-<span><span class="co">#&gt;   C1    Strata keeping their source size                   both         6 of 6                                      pass</span></span>
-<span><span class="co">#&gt;   C2    Distinct dose-time schedules represented           run settings 2 of 2                                      pass</span></span>
-<span><span class="co">#&gt;   D1    Values landing in the same range                   both         sd x0.64 on PD - Continuous (furthest of 3) review</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; To explore, with `source`, `synthetic` and `roles` named as you have them:</span></span>
-<span><span class="co">#&gt;   A5a   compare_pmx_distributions(source, synthetic, roles)</span></span>
-<span><span class="co">#&gt;   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span></span>
-<span><span class="co">#&gt;   B2    flag_identifiable_subjects(synthetic, roles)</span></span>
-<span><span class="co">#&gt;   B3    compare_pmx_proximity(source, synthetic, roles)</span></span>
-<span><span class="co">#&gt;   D1    compare_pmx_distributions(source, synthetic, roles)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; D1 reports numbers, not shapes. Plot source and synthetic on the same axes</span></span>
-<span><span class="co">#&gt; -- `DV` against time, and each covariate -- with whatever you normally use.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; no failures, 5 to review.</span></span>
-<span><span class="co">#&gt; `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.</span></span>
-<span><span class="co">#&gt; Rows reading `source` or `both` are restricted output.</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5a","B5b","C1","C2","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Patients holding the least-held categorical level","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","synthetic","both","both","run settings","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 30.7","70.8 -&gt; 70.8","no discrete endpoint","0","0","0 of 180","0.617 in [0.415, 0.578]","0","0","TRTACT = 10 mg: 30","0 of 0 exposed","6 of 6","2 of 2","sd x0.64 on PD - Continuous (furthest of 3)"],["pass","pass","pass","pass","review","review","pass","pass","pass","review","review","pass","pass","pass","pass","pass","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","table(synthetic$TRTACT)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>
+<em>D1 reports numbers, not shapes. Plot source and synthetic on the same axes -- DV against time, and each covariate -- with whatever you normally use.</em>
+</p>
 <p><strong><code>review</code> is not a soft <code>pass</code>.</strong>
 Five rows here have no pass mark because no threshold would be honest.
 Doses per patient is the clearest: on this study it is unchanged, but on

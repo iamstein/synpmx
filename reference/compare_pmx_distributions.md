@@ -1,16 +1,18 @@
 # Compare per-covariate and per-endpoint distributions of source and synthetic
 
-A numeric sanity check to run right after generating data. For each
-baseline covariate and each endpoint (`dvid`), it summarizes the
-distribution in the source and in the synthetic dataset side by side.
-The dependent variable and continuous covariates get n, mean, standard
-deviation, minimum, quartiles, and maximum; categorical covariates get
-per-level counts and proportions.
+A sanity check to run right after generating data. For each baseline
+covariate and each endpoint (`dvid`), it compares the distribution in
+the source against the one in the synthetic dataset.
 
 ## Usage
 
 ``` r
-compare_pmx_distributions(source, synthetic = NULL, roles)
+compare_pmx_distributions(
+  source,
+  synthetic = NULL,
+  roles,
+  output = c("plots", "tables")
+)
 ```
 
 ## Arguments
@@ -29,13 +31,38 @@ compare_pmx_distributions(source, synthetic = NULL, roles)
   Explicit roles from
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md).
 
+- output:
+
+  `"plots"` for the figure, `"tables"` for the numbers behind it. The
+  figure needs `ggplot2` and `patchwork`.
+
 ## Value
 
-A `pmx_distribution_summary`: a list of `endpoints`,
-`covariates_numeric`, and `covariates_categorical` data frames. Each is
-`NULL` when the dataset declares no columns of that kind.
+With `output = "tables"`, a `pmx_distribution_summary`: a list of
+`endpoints`, `covariates_numeric`, and `covariates_categorical` data
+frames, each `NULL` when the dataset declares no columns of that kind.
+With `output = "plots"`, one composed `ggplot`. Either carries a
+`"release_status"` attribute.
 
 ## Details
+
+By default it draws them: one panel per endpoint and per covariate,
+source in blue against synthetic in orange. A panel holding more than
+eight distinct values is drawn as overlaid density curves, each scaled
+to peak at 1, with a rug of the values themselves when there are few
+enough to see; a panel with eight or fewer is drawn as proportion bars,
+which is what makes an ordinal, count or binary endpoint readable. A
+panel whose values are all positive and span more than two orders of
+magnitude gets a log10 axis. `output = "tables"` returns the numbers
+instead: n, mean, standard deviation, minimum, quartiles and maximum for
+the dependent variable and continuous covariates, per-level counts and
+proportions for categorical ones.
+
+Pass
+[`compare_pmx_distributions_height()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions_height.md)
+to a chunk's `fig.height`. The figure grows a row of panels at a time
+and the chunk option is fixed before the chunk runs, so nothing else can
+size it.
 
 This is the distributional companion to
 [`compare_pmx()`](https://iamstein.github.io/synpmx/reference/compare_pmx.md).
@@ -44,9 +71,9 @@ grammar, row and event counts; this one answers whether the *numbers*
 land in the same range. It is a diagnostic, not a validation of
 statistical fidelity: AVATAR and the differentially private engines
 deliberately do not reproduce source distributions exactly, so expect
-the summaries to be close in magnitude and shape, not identical.
+the two to be close in magnitude and shape, not identical.
 
-Every table is source-derived, so each is marked
+Figure and tables alike are source-derived, so each is marked
 `"restricted_not_releasable"`: it reads real covariate and endpoint
 values and stays under the source data's access controls like any other
 source-versus-synthetic diagnostic.
@@ -54,7 +81,9 @@ source-versus-synthetic diagnostic.
 ## See also
 
 [`compare_pmx()`](https://iamstein.github.io/synpmx/reference/compare_pmx.md)
-for the structural comparison.
+for the structural comparison, and
+[`compare_pmx_distributions_height()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions_height.md)
+for sizing the figure.
 
 ## Examples
 
@@ -67,7 +96,7 @@ roles <- pmx_roles(
 synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 8 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE.
 #>   Declare a column in `keep` to carry it through verbatim.
-compare_pmx_distributions(data, synthetic, roles)
+compare_pmx_distributions(data, synthetic, roles, output = "tables")
 #> PMX source-versus-synthetic distribution summary
 #> 
 #> Endpoints (dependent variable on observation rows):

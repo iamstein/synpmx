@@ -174,7 +174,7 @@ synpmx_scorecard(data, synthetic, roles)
 #>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
 #>   B2    flag_identifiable_subjects(synthetic, roles)
 #>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
+#>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")
 #> 
 #> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
 #> -- `DV` against time, and each covariate -- with whatever you normally use.

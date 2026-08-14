@@ -121,6 +121,9 @@ Structural checks on generated data, and restricted comparisons.
   : Compare per-covariate and per-endpoint distributions of source and
   synthetic
 
+- [`compare_pmx_distributions_height()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions_height.md)
+  : How tall the distribution figure should be drawn
+
 - [`compare_pmx_rare_levels()`](https://iamstein.github.io/synpmx/reference/compare_pmx_rare_levels.md)
   : Which rare source levels reached the synthetic output
 

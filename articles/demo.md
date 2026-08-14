@@ -114,34 +114,28 @@ ggplot(obs[obs$NAME == "PD - Continuous", ],
 
 ![](demo_files/figure-html/overlay-pd-1.png)
 
-## Summary Tables of Synthetic and Original Data
+## Distributions of Synthetic and Original Data
+
+One panel per endpoint and per baseline covariate, source against
+synthetic.
+[`compare_pmx_distributions_height()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions_height.md)
+sizes the figure, since it grows a row of panels at a time;
+`output = "tables"` gives the numbers behind it.
 
 ``` r
 
 compare_pmx_distributions(raw, synthetic, roles)
 ```
 
-| variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
-|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PD - Continuous | source | 1620 | 180 | 135 | 238 | -621 | -21.6 | 123 | 283 | 936 |
-| PD - Continuous | synthetic | 1620 | 180 | 130 | 153 | -297 | 27.9 | 114 | 221 | 657 |
-| PK Concentration | source | 3600 | 150 | 0.36 | 0.737 | 0.05 | 0.05 | 0.0634 | 0.263 | 7 |
-| PK Concentration | synthetic | 3600 | 150 | 0.313 | 0.649 | 0.05 | 0.05 | 0.0517 | 0.227 | 5.84 |
+![](demo_files/figure-html/distributions-1.png)
 
-Endpoints (dependent variable on observation rows) {.table
-style="width:100%;"}
-
-| variable | dataset   |   n | mean |   sd |  min | q25 | median | q75 | max |
-|:---------|:----------|----:|-----:|-----:|-----:|----:|-------:|----:|----:|
-| WEIGHTB  | source    | 180 |  116 | 20.5 |   80 |  98 |    117 | 133 | 150 |
-| WEIGHTB  | synthetic | 180 |  115 | 14.5 | 85.8 | 104 |    114 | 127 | 148 |
-
-Continuous covariates (baseline, per patient) {.table}
-
-Medians track closely on both endpoints. The standard deviations are
-visibly smaller in the synthetic cohort — for the PD endpoint and for
-baseline weight alike. This behavior is expected from the AVATAR
-blending algorithm.
+The curves sit on top of each other on both endpoints. Look at their
+widths rather than their positions: the orange curve is visibly narrower
+than the blue one for the PD endpoint and for baseline weight, and
+slightly narrower for PK. That narrowing is between-subject variability
+shrinking, which is what the AVATAR blending algorithm does rather than
+a fault in the run. `output = "tables"` puts a number on it, and the
+scorecard’s D1 row reports the variable that moved furthest.
 
 ## The scorecard
 
@@ -153,43 +147,11 @@ further in
 
 scorecard <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(scorecard)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                                      verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                        pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                        pass
-#>   A3    Every endpoint survived                            both         2 of 2                                      pass
-#>   A4    Cohort size survived                               both         180 -> 180                                  pass
-#>   A5a   Observations per patient                           both         30.7 -> 30.7                                review
-#>   A5b   Doses per patient                                  both         70.8 -> 70.8                                review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                        pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                           pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                           pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    0 of 180                                    review
-#>   B3    Adversarial accuracy inside its null interval      both         0.617 in [0.415, 0.578]                     review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                           pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                           pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 10 mg: 30                          pass
-#>   B5b   Rare source levels copied into the output          both         0 of 0 exposed                              pass
-#>   C1    Strata keeping their source size                   both         6 of 6                                      pass
-#>   C2    Distinct dose-time schedules represented           run settings 2 of 2                                      pass
-#>   D1    Values landing in the same range                   both         sd x0.64 on PD - Continuous (furthest of 3) review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 **`review` is not a soft `pass`.** Five rows here have no pass mark
 because no threshold would be honest. Doses per patient is the clearest:

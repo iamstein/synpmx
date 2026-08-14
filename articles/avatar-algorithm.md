@@ -1847,9 +1847,9 @@ Use the public checks for different questions:
   endpoints, column classes, validations, and exploratory trajectories
   when `ggplot2` is installed.
 - [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
-  summarizes the dependent variable per endpoint and each baseline
-  covariate, source against synthetic, so their ranges can be compared
-  at a glance.
+  draws the dependent variable per endpoint and each baseline covariate,
+  source against synthetic, so their ranges can be compared at a glance;
+  `output = "tables"` gives the numbers instead.
 
 None of these establishes distributional equivalence, privacy, or model
 fidelity.

@@ -24,9 +24,10 @@ synpmx_scorecard_datatable(x, ...)
 
 - ...:
 
-  Passed to `DT::datatable()`. Paging is off and row numbers are
-  suppressed by default, since the whole card is meant to be read at
-  once and `check` already names each row.
+  Passed to
+  [`DT::datatable()`](https://rdrr.io/pkg/DT/man/datatable.html). Paging
+  is off and row numbers are suppressed by default, since the whole card
+  is meant to be read at once and `check` already names each row.
 
 ## Value
 
@@ -72,40 +73,9 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles))
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         2 of 2                              pass
-#>   A4    Cohort size survived                               both         30 -> 30                            pass
-#>   A5a   Observations per patient                           both         14 -> 14                            review
-#>   A5b   Doses per patient                                  both         2 -> 2                              review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                             review
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
-#>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
+#> <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+#> <script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5a","B5b","C1","C2","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Patients holding the least-held categorical level","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","synthetic","both","both","run settings","both"],["TRUE","TRUE","2 of 2","30 -&gt; 30","14 -&gt; 14","2 -&gt; 2","no discrete endpoint","0","0","1 of 30","0.767 in [0.248, 0.692]","0","0","no categorical covariate or stratum","no categorical covariate or stratum","no strata declared","1 of 1","sd x1.4 on pd (furthest of 3)"],["pass","pass","pass","pass","review","review","pass","pass","pass","review","review","pass","pass","pass","pass","pass","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
+#> <p>
+#>   <em>D1 reports numbers, not shapes. Plot source and synthetic on the same axes -- DV against time, and each covariate -- with whatever you normally use.</em>
+#> </p>
 ```

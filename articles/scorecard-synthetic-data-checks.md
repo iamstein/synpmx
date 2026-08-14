@@ -99,43 +99,11 @@ teaches nothing. Where the two disagree is where a check is doing work.
 
 case1_card <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 synpmx_scorecard_datatable(case1_card)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                                      verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                        pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                        pass
-#>   A3    Every endpoint survived                            both         2 of 2                                      pass
-#>   A4    Cohort size survived                               both         180 -> 180                                  pass
-#>   A5a   Observations per patient                           both         30.7 -> 30.7                                review
-#>   A5b   Doses per patient                                  both         70.8 -> 70.8                                review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                        pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                           pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                           pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 180                                    review
-#>   B3    Adversarial accuracy inside its null interval      both         0.600 in [0.423, 0.554]                     review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                           pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                           pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    TRTACT = 10 mg: 30                          pass
-#>   B5b   Rare source levels copied into the output          both         0 of 0 exposed                              pass
-#>   C1    Strata keeping their source size                   both         6 of 6                                      pass
-#>   C2    Distinct dose-time schedules represented           run settings 2 of 2                                      pass
-#>   D1    Values landing in the same range                   both         sd x0.64 on PD - Continuous (furthest of 3) review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Nothing fails. The rest of this vignette is what each check asks and why
 its pass criterion is what it is, using `case1_pkpd` where a check
@@ -276,44 +244,11 @@ that makes the point:
 
 pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard_datatable(pheno_card)
-#> DT is not installed, so the scorecard is printed uncoloured. Install DT for the coloured table.
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
-#> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         1 of 1                              pass
-#>   A4    Cohort size survived                               both         59 -> 59                            pass
-#>   A5a   Observations per patient                           both         2.6 -> 2.5                          review
-#>   A5b   Doses per patient                                  both         10 -> 5.6                           review
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    25 of 59                            review
-#>   B3    Adversarial accuracy inside its null interval      both         0.466 in [0.362, 0.617]             review
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 35 of 56                            review
-#>   D1    Values landing in the same range                   both         sd x0.44 on WT (furthest of 3)      review
-#> 
-#> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   A5a   compare_pmx_distributions(source, synthetic, roles)
-#>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
-#>   C2    pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   D1    compare_pmx_distributions(source, synthetic, roles)
-#> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 6 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
-#> Rows reading `source` or `both` are restricted output.
 ```
+
+*D1 reports numbers, not shapes. Plot source and synthetic on the same
+axes -- DV against time, and each covariate -- with whatever you
+normally use.*
 
 Observations are near-intact at 2.6 against 2.5 per patient, while
 dosing falls from 10 to 5.6. In rows: 744 become 480, and 589 dose rows
@@ -1146,7 +1081,8 @@ than something it got wrong, and spread growing has no threshold either.
 
 ``` r
 
-case1_dist <- compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
+case1_dist <- compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles,
+                                        output = "tables")
 knitr::kable(case1_dist$endpoints, digits = 3,
              caption = "Endpoints, source against synthetic")
 ```
