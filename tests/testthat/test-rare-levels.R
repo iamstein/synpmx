@@ -124,3 +124,51 @@ test_that("the census counts a blank level like any other", {
   # Printed as something rather than as nothing.
   expect_output(print(census), "<blank>")
 })
+
+# The claim `avatar-algorithm.Rmd` makes about categorical covariates, pinned
+# here because the vignette states it in prose rather than computing it.
+#
+# A categorical covariate has nothing to average, so a synthetic patient's
+# category is always some real patient's category, copied. What decides whether
+# a level escapes is the number of patients holding it, and the mechanism is
+# geometric rather than protective: `.build_profiles()` one-hot encodes every
+# level, so a sole holder sits alone on that axis, is nobody's nearest
+# neighbour, and is almost never a donor. A second holder makes the two each
+# other's nearest neighbour and the level travels between them.
+propagation_fixture <- function(n_holders, n = 40L) {
+  set.seed(1)
+  do.call(rbind, lapply(seq_len(n), function(i) {
+    times <- c(0, 1, 2, 4, 8, 24)
+    data.frame(
+      ID = i, TIME = c(0, times), NTIME = c(0, times),
+      DV = c(NA, round(10 * exp(-0.1 * times) +
+                         stats::rnorm(length(times), 0, 0.3), 3)),
+      AMT = c(100, rep(0, length(times))),
+      EVID = c(1L, rep(0L, length(times))),
+      CMT = c(1L, rep(2L, length(times))),
+      WT = round(stats::runif(1, 60, 80), 1),
+      RARE = if (i <= n_holders) "rare-level" else "common",
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
+avatars_carrying <- function(n_holders, n_subjects = 200L) {
+  source <- propagation_fixture(n_holders)
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+    cmt = "CMT", nominal_time = "NTIME", covariates = c("WT", "RARE")
+  )
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, n_subjects = n_subjects, seed = 9)
+  ))
+  length(unique(synthetic$ID[synthetic$RARE == "rare-level"]))
+}
+
+test_that("a level held by one patient stays in, and two holders leak it", {
+  expect_identical(avatars_carrying(1L), 0L)
+  expect_gt(avatars_carrying(2L), 0L)
+  # And it is the holder count that does it, not rarity as such: by ten holders
+  # the level is ordinary and tracks its source frequency.
+  expect_gt(avatars_carrying(10L), avatars_carrying(2L))
+})

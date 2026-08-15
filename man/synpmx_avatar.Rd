@@ -16,7 +16,6 @@ synpmx_avatar(
   subject_noise_sd = 0.15,
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
-  time_jitter = 0,
   screen = TRUE,
   coarsen_time = TRUE,
   min_pattern_share = 2L,
@@ -61,13 +60,6 @@ neighborhood distances.}
 \item{residual_phi}{AR(1) correlation in observation order, strictly between
 -1 and 1.}
 
-\item{time_jitter}{Standard deviation for coherent tied-time jitter. Zero,
-the default, leaves the event template's times unchanged. This is a realism
-control, \strong{not} a privacy control: every jittered time is clamped inside
-its own Voronoi cell, so no value of \code{time_jitter} moves a visit more than
-half a gap from where the source subject's visit was, and the source
-schedule stays recoverable. Use \code{coarsen_time} for that.}
-
 \item{screen}{When \code{TRUE} (default), a source subject whose follow-up length
 or dose count is more than twice the cohort's 90th percentile is not used as
 an anchor, so no avatar inherits an extreme skeleton (the long tail a reader
@@ -88,7 +80,7 @@ carrying one real subject's exact visit schedule: the event skeleton is
 copied verbatim from a single anchor, and under actual recorded times almost
 every subject is alone in its event-signature class, so the copy is
 identifying. Snapping is many-to-one and \emph{destroys} the deviation rather
-than perturbing it, which is what distinguishes this from \code{time_jitter}. A
+than perturbing it, so the source value is not recoverable from the output. A
 source already on nominal time has no deviation to remove or restore, so its
 output is unchanged. Run \code{\link[=skeleton_uniqueness]{skeleton_uniqueness()}} on the source to see how
 much this has to do, and what it leaves behind. The cost is timing

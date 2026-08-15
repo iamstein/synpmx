@@ -55,6 +55,11 @@ dev_list <- function() {
     ifelse(out$kind == "vignette", "vignettes", "articles"),
     paste0(out$name, ".html")
   ))
+  # dev_preview() writes through pkgdown into docs/articles/, so a document can
+  # be rendered without output/ knowing about it.
+  out$previewed <- file.exists(file.path(
+    .dev_root, "docs", "articles", paste0(out$name, ".html")
+  ))
   out[order(out$kind, out$name), ]
 }
 
@@ -78,23 +83,57 @@ dev_list <- function() {
 #' install. That speed is the whole point, and also the catch: it can succeed
 #' on something a clean install would fail. Run dev_articles() before pushing.
 #'
+#' Rendered through pkgdown, so the page looks the way readers will see it:
+#' contents in the right-hand sidebar, site CSS, real navbar. The .Rmd's own
+#' `output:` format puts its table of contents inline at the top instead, which
+#' is what makes a long page hard to judge.
+#'
+#' `new_process = FALSE` is load-bearing. pkgdown defaults to rendering in a
+#' fresh R session, where `library(synpmx)` would pick up whatever is installed
+#' and the working tree would go untested. In-process, the load_all() namespace
+#' below is already attached and that call is a no-op.
+#'
 #' @param pattern Any substring of the file name, e.g. "pyraz" or "avatar-alg".
 #' @param open Open the rendered HTML when done.
-dev_preview <- function(pattern, open = TRUE) {
+#' @param site Render through the site template. FALSE falls back to the .Rmd's
+#'   own format in output/preview/, which is a little faster and does not need
+#'   the site assets.
+dev_preview <- function(pattern, open = TRUE, site = TRUE) {
   rmd <- .dev_find(pattern)
-  dest <- file.path(.dev_root, "output", "preview")
-  dir.create(dest, recursive = TRUE, showWarnings = FALSE)
   # Attach the working tree BEFORE rendering. Each document calls
   # library(synpmx) in its setup chunk, which would otherwise pick up whatever
   # is installed; with the namespace already loaded from source, that call is a
   # no-op and the render genuinely exercises R/.
   devtools::load_all(.dev_root, quiet = TRUE)
-  message("rendering ", basename(rmd), " (working tree via load_all)")
-  elapsed <- system.time(
-    rmarkdown::render(rmd, output_dir = dest, quiet = TRUE,
-                      envir = new.env(parent = globalenv()))
-  )[["elapsed"]]
-  html <- file.path(dest, paste0(tools::file_path_sans_ext(basename(rmd)), ".html"))
+  name <- tools::file_path_sans_ext(basename(rmd))
+
+  if (site) {
+    # The site assets are copied once and then reused; docs/ is gitignored.
+    if (!file.exists(file.path(.dev_root, "docs", "pkgdown.yml"))) {
+      message("initialising the site (once)")
+      pkgdown::init_site(.dev_root)
+    }
+    # pkgdown names an article by its path under vignettes/, without extension.
+    article <- sub("\\.Rmd$", "",
+                   sub(file.path(.dev_root, "vignettes", ""), "", rmd,
+                       fixed = TRUE))
+    message("rendering ", basename(rmd), " through pkgdown (working tree)")
+    elapsed <- system.time(
+      pkgdown::build_article(article, pkg = .dev_root, new_process = FALSE,
+                             quiet = TRUE)
+    )[["elapsed"]]
+    html <- file.path(.dev_root, "docs", "articles", paste0(name, ".html"))
+  } else {
+    dest <- file.path(.dev_root, "output", "preview")
+    dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+    message("rendering ", basename(rmd), " (working tree via load_all)")
+    elapsed <- system.time(
+      rmarkdown::render(rmd, output_dir = dest, quiet = TRUE,
+                        envir = new.env(parent = globalenv()))
+    )[["elapsed"]]
+    html <- file.path(dest, paste0(name, ".html"))
+  }
+
   message(sprintf("%.1fs -> %s", elapsed, html))
   if (open) utils::browseURL(html)
   invisible(html)
@@ -103,9 +142,11 @@ dev_preview <- function(pattern, open = TRUE) {
 #' Open an already-rendered document without re-rendering it.
 dev_open <- function(pattern) {
   name <- tools::file_path_sans_ext(basename(.dev_find(pattern)))
-  candidates <- file.path(.dev_root, "output",
-                          c("preview", "articles", "vignettes"),
-                          paste0(name, ".html"))
+  candidates <- c(
+    file.path(.dev_root, "docs", "articles", paste0(name, ".html")),
+    file.path(.dev_root, "output", c("preview", "articles", "vignettes"),
+              paste0(name, ".html"))
+  )
   found <- candidates[file.exists(candidates)]
   if (length(found) == 0L) {
     stop("no rendered HTML for ", sQuote(name),
@@ -119,7 +160,7 @@ dev_open <- function(pattern) {
 
 message(
   "dev helpers loaded:\n",
-  "  dev_preview(\"name\")  fast render of one doc + open   (while writing)\n",
+  "  dev_preview(\"name\")  render one doc as the site shows it + open\n",
   "  dev_open(\"name\")     open what is already rendered\n",
   "  dev_list()           what exists and what is rendered\n",
   "  dev_articles()       clean-library render of all articles (before pushing)\n",

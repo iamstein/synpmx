@@ -6,9 +6,9 @@
 # The mechanism is a two-step that only works in one order: snap every subject
 # onto a shared visit grid, which is many-to-one and *destroys* the per-subject
 # deviation, and only then resample deviations pooled across the cohort. Adding
-# noise to the original time instead -- what `time_jitter` does -- leaves the
-# original recoverable, because `.offset_unique_times()` clamps every time inside
-# its own Voronoi cell. These tests pin the order, not just the outcome.
+# noise to the original time instead would leave the original recoverable,
+# because `.offset_unique_times()` clamps every time inside its own Voronoi
+# cell. These tests pin the order, not just the outcome.
 
 crs_sub <- function(id, times, offset) {
   data.frame(
@@ -91,39 +91,6 @@ test_that("coarsening closes SIM-014 on AVATAR and leaving it off does not", {
   # copied verbatim and the mechanism can be reconsidered.
   expect_true(timing_vector_copied(source, verbatim, roles))
   expect_true(validate_pmx(coarsened, roles)$valid)
-})
-
-test_that("time_jitter cannot substitute, at any magnitude", {
-  source <- crs_source()
-  roles <- crs_roles()
-  # The Voronoi clamp holds each time within half a gap of the source value, so
-  # jitter saturates instead of hiding the schedule. A generated vector stops
-  # being byte-identical, but stays nearest to the subject it was copied from.
-  worst_departure <- function(jitter_sd) {
-    jittered <- suppressWarnings(
-      synpmx_avatar(source, roles, n_subjects = 12, seed = 1,
-                    coarsen_time = FALSE, time_jitter = jitter_sd,
-                    min_pattern_share = 1)
-    )
-    src <- split(as.numeric(source$TIME), source$ID)
-    gen <- split(as.numeric(jittered$TIME), jittered$ID)
-    distances <- vapply(gen, function(g) {
-      matches <- Filter(function(s) length(s) == length(g), src)
-      if (!length(matches)) return(NA_real_)
-      min(vapply(matches, function(s) max(abs(g - s)), numeric(1)))
-    }, numeric(1))
-    max(distances[is.finite(distances)])
-  }
-
-  # Every time is clamped into its own Voronoi cell, so a jittered vector can
-  # never depart its source by more than half the widest gap in the schedule --
-  # here 4 hours between the last two visits, so 2. The standard deviation is
-  # therefore irrelevant past that point: a hundred and a hundred thousand give
-  # the same bound. Whatever `time_jitter` is set to, the source schedule stays
-  # recoverable, which is why it cannot be the privacy mechanism.
-  bound <- max(diff(sort(unique(source$TIME)))) / 2 + 0.25
-  expect_lt(worst_departure(100), bound)
-  expect_lt(worst_departure(1e5), bound)
 })
 
 test_that("subjects sharing a schedule become exchangeable before generation", {

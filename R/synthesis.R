@@ -1,7 +1,7 @@
 .validate_generator_options <- function(n_subjects, source_n, event_method,
                                         dv_method, k, pca_variance,
                                         subject_noise_sd, residual_noise_sd,
-                                        residual_phi, time_jitter,
+                                        residual_phi,
                                         max_donor_weight, coarsen_time,
                                         min_pattern_share) {
   if (is.null(n_subjects)) n_subjects <- source_n
@@ -24,7 +24,7 @@
       pca_variance <= 0 || pca_variance > 1) {
     stop("`pca_variance` must be in (0, 1].", call. = FALSE)
   }
-  for (argument in c("subject_noise_sd", "residual_noise_sd", "time_jitter")) {
+  for (argument in c("subject_noise_sd", "residual_noise_sd")) {
     value <- get(argument)
     if (length(value) != 1L || is.na(value) || !is.finite(value) || value < 0) {
       stop("`", argument, "` must be one finite nonnegative number.",
@@ -87,13 +87,6 @@
   }
   skeleton[[roles$time]] <- moved[match(time, unique_time)]
   skeleton
-}
-
-.jitter_skeleton_time <- function(skeleton, roles, time_jitter) {
-  if (time_jitter == 0) return(skeleton)
-  .offset_unique_times(skeleton, roles, function(n) {
-    stats::rnorm(n, sd = time_jitter)
-  })
 }
 
 # Nearest-grid-point snap. `findInterval()` keeps this O(n log k) and monotone,
@@ -2019,12 +2012,6 @@
 #' @param residual_noise_sd Nonnegative within-trajectory noise multiplier.
 #' @param residual_phi AR(1) correlation in observation order, strictly between
 #'   -1 and 1.
-#' @param time_jitter Standard deviation for coherent tied-time jitter. Zero,
-#'   the default, leaves the event template's times unchanged. This is a realism
-#'   control, **not** a privacy control: every jittered time is clamped inside
-#'   its own Voronoi cell, so no value of `time_jitter` moves a visit more than
-#'   half a gap from where the source subject's visit was, and the source
-#'   schedule stays recoverable. Use `coarsen_time` for that.
 #' @param screen When `TRUE` (default), a source subject whose follow-up length
 #'   or dose count is more than twice the cohort's 90th percentile is not used as
 #'   an anchor, so no avatar inherits an extreme skeleton (the long tail a reader
@@ -2044,7 +2031,7 @@
 #'   copied verbatim from a single anchor, and under actual recorded times almost
 #'   every subject is alone in its event-signature class, so the copy is
 #'   identifying. Snapping is many-to-one and *destroys* the deviation rather
-#'   than perturbing it, which is what distinguishes this from `time_jitter`. A
+#'   than perturbing it, so the source value is not recoverable from the output. A
 #'   source already on nominal time has no deviation to remove or restore, so its
 #'   output is unchanged. Run [skeleton_uniqueness()] on the source to see how
 #'   much this has to do, and what it leaves behind. The cost is timing
@@ -2196,7 +2183,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
                      dv_method = "avatar_blend", k = 5,
                      pca_variance = 0.90, subject_noise_sd = 0.15,
                      residual_noise_sd = 0.05, residual_phi = 0.6,
-                     time_jitter = 0, screen = TRUE, coarsen_time = TRUE,
+                     screen = TRUE, coarsen_time = TRUE,
                      min_pattern_share = 2L,
                      max_donor_weight = 0.50,
                      preserve_strata_balance = TRUE,
@@ -2232,7 +2219,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   subjects <- .unique_in_order(source[[source_roles$id]])
   n_subjects <- .validate_generator_options(
     n_subjects, length(subjects), event_method, dv_method, k, pca_variance,
-    subject_noise_sd, residual_noise_sd, residual_phi, time_jitter,
+    subject_noise_sd, residual_noise_sd, residual_phi,
     max_donor_weight, coarsen_time, min_pattern_share
   )
 
@@ -2760,7 +2747,6 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
         original_order <- seq_len(nrow(skeleton))
         dose_truncated[synthetic_index] <- TRUE
       }
-      skeleton <- .jitter_skeleton_time(skeleton, source_roles, time_jitter)
       if (length(time_deviations)) {
         skeleton <- .offset_unique_times(skeleton, source_roles, function(n) {
           sample(time_deviations, n, replace = TRUE)
@@ -2960,7 +2946,6 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       subject_noise_sd = subject_noise_sd,
       residual_noise_sd = residual_noise_sd,
       residual_phi = residual_phi,
-      time_jitter = time_jitter,
       # Who was available to build on. `source_subjects` is the cohort as given;
       # the two exclusions are real patients this run declined to anchor any
       # avatar on, and `anchors_available` is what was left to sample from.

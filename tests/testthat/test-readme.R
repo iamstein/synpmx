@@ -68,7 +68,6 @@ test_that("the README full-declaration example runs as shown", {
       subject_noise_sd   = 0.15,
       residual_noise_sd  = 0.05,
       residual_phi       = 0.6,
-      time_jitter        = 0,
       pca_variance       = 0.90
     )
   )

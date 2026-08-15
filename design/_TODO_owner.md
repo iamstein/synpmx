@@ -1,7 +1,7 @@
 ## This is the author's To do list, to be maintained by him
 
-- go through the scorecard vignette again
 - go through avatar algorith again
+
 - Identify a few places to spot check the code. 
     - validating scorecard
     - validating avatar
@@ -9,6 +9,8 @@
 
 - In parallel - Meet with an internal colleague (mid august)
 - Make poster (due Sept 28 for online submission)
+
+- go through the scorecard vignette again
 
 ## Other things to do (off critical path)
 - Go through the literature reviews
