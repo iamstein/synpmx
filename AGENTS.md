@@ -9,7 +9,7 @@ synthetic pharmacometric datasets.
   shipped. A reader who installed the package cannot follow a `design/` path, so
   vignettes, articles and roxygen must not reference one.
 - **`vignettes/`** — shipped, and rebuilt by `R CMD check` on every behavioral
-  change. Keep the set small; each one is a recurring cost.
+  change. 
 - **`vignettes/articles/`** — pkgdown only, held out of the package by
   `.Rbuildignore`. They are not installed, so cross-references to them must be
   website URLs rather than `vignette("name")`. `R CMD check` never executes
@@ -27,10 +27,8 @@ Two cross-document contracts, each a defect when broken:
 - `vignettes/scorecard-synthetic-data-checks.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
   under the same identifier, and that section states the pass criterion the
-  function scores it against — not a wider question the reader might wish it
-  asked. A row appearing in one and not the other, or a pass criterion changing
-  in one without the other, is a defect. It was one: C1's section described a
-  per-arm endpoint check nothing computed until `C3` was added.
+  function scores it against. A row appearing in one and not the other, or a pass criterion changing
+  in one without the other, is a defect. 
 - Every worked dataset in `vignettes/public-data-examples.Rmd` has the same
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
@@ -50,11 +48,9 @@ The entry point, and its voice belongs to the maintainer.
 
 `design/ISSUES.md` is the issue registry. Every defect and design finding goes in it,
 as `REV-###` for mechanism, privacy-accounting and API defects or `SIM-###` for
-simulation defects and their gates. It records its own lineage; do not recreate
-the files it replaced, and do not add a document that indexes it — that is what
-the last one was, and why it went.
+simulation defects and their gates. 
 
-One list lives outside it, deliberately: checks the package does not yet run are
+Checks the package does not yet run are
 named in the gap list inside `scorecard-synthetic-data-checks.Rmd`.
 
 For every defect do all three of the registry entry, a regression check, and the
