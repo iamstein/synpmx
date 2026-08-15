@@ -1,6 +1,6 @@
 ## This is the author's To do list, to be maintained by him
 
-- go through avatar algorith again (on sec 10)
+- Try with a couple more datasets
 
 - Spot check the code (ask co-author and colleague if they'd like to help here)
     - consider /ultrareview
@@ -12,8 +12,6 @@
 
 ## Other things to do (off critical path)
 - Go through the literature reviews
-- Can WRITING_FOR_ANDY.md be updated once per month.
-
 
 ## Broader GenAI activities
 - Move WRITING_FOR_ANDY.md to TrinityMetrics/skills/ so it can serve
