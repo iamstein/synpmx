@@ -26,11 +26,12 @@ library(synpmx)
 This article is the full specification of the AVATAR synthetic data generator applied
 to pharmacometrics modeling datasets.  The original method [1] was extended to population
 pharmacokinetic (PK) datasets in [2], and here further extensions are provided
-so that it works well with more realistic datasets.
+so that it works well with more realistic datasets.  Use of the algorithm is demonstrated in:
 
-AVATAR makes no formal privacy claim. It also does not preserve the dose-exposure
-relationship.  Use the synthetic datasets to develop and debug analysis code. Do not use
-it to estimate parameters.
+* `vignette("demo")` - AVATAR demonstration on a single dataset
+* `vignette("public-data-examples")` - AVATAR demonstration on a series of public datasets
+
+AVATAR makes no formal privacy claim. It also does not necessarily fully preserve the dose-exposure-response relationship.  Use the synthetic datasets to develop and debug analysis code. Do not use it to estimate parameters.
 
 Because modeling datasets are generally longitudinal, one set of identifying features are
 the unique dose or observation times each patient will have.  The default setting of 
@@ -1133,19 +1134,23 @@ structural requirements.
 
 ## Evaluating a Synthetic Dataset with the Scorecard
 
-`synpmx_scorecard()` is the function that assess a synthetic dataset.  It is explained in 
-`vignette("scorecard-synthetic-data-checks")`, and demonstrated in both `vignette("demo")` 
- and `vignette("public-data-examples")`.  
+`synpmx_scorecard()` is the function that assesses a synthetic dataset.  It is explained in 
+`vignette("scorecard-synthetic-data-checks")`, and demonstrated in:
+
+* `vignette("demo")` - AVATAR demonstration on a single dataset
+* `vignette("public-data-examples")` - AVATAR demonstration on a series of public datasets
 
 ## Conclusions
 
-Is summary, this documented described an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets which can contain 
+In summary, this document describes an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets, which can contain
 
 * Multiple PK and PD observations
 * Binary, ordinal, or continuous observations
 * BLOQ data
 
-In addition, the algorithm provides additional mechanisms for masking the event skeleton (dose and observation times), and a mechanism for handling weight-based dosing.  However, it does not meet formal differential privacy criteria.
+In addition, the algorithm provides additional mechanisms for masking the event skeleton (dose and observation times), and a mechanism for handling weight-based dosing. 
+
+This algorithm makes no formal privacy claim, and it does not necessarily fully preserve the dose-exposure-response relationship. It is intended for generating synthetic datasets that carry many of the properties of the source data, for developing and debugging analysis code.
 
 
 ## References
