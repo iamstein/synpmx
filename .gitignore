@@ -79,6 +79,11 @@ references/private/
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
+# Quarto site over the templates above: config and landing page only. The
+# rendered site and its execution cache (_site/, _freeze/, .quarto/) are
+# source-derived and stay ignored by the rule at the top of this block.
+!/scripts_private/_quarto.yml
+!/scripts_private/index.qmd
 
 # The study templates write their synthetic CSV to a relative `OUT_DIR`, which
 # lands beside the .qmd when Quarto renders it (already covered above) but at
