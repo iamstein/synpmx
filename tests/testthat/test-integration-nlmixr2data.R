@@ -175,7 +175,7 @@ test_that("theo_md: inference declines weight-based dosing, declaring it does no
     dosed <- x[x$EVID != 0, ]
     dosed$AMT / dosed$WT
   }
-  # Each patient's whole course, as the thing M5 has to keep coherent.
+  # Each patient's whole course, as the thing M6 has to keep coherent.
   profiles <- function(x) {
     dosed <- x[x$EVID != 0, ]
     vapply(split(round(per_kg(x), 4), dosed$ID),

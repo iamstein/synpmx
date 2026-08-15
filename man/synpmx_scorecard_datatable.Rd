@@ -32,7 +32,7 @@ is unchanged and can be subset, saved or printed as usual. The colouring is
 the only thing added.
 
 What is emitted is what knitting the card itself emits, with the colouring
-added: the card, then the B5b rare-level detail where a study has any.
+added: the card, then the B5 rare-level detail where a study has any.
 
 \code{DT} is a suggested package rather than a required one -- \code{synpmx} has no
 hard dependencies -- so without it installed this says so and prints the

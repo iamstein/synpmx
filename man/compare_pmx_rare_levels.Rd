@@ -57,7 +57,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 compare_pmx_rare_levels(data, synthetic, roles)
 }
 \seealso{
-\code{\link[=synpmx_scorecard]{synpmx_scorecard()}}, which reports this as row B5b,
+\code{\link[=synpmx_scorecard]{synpmx_scorecard()}}, which reports this as row B5,
 \code{\link[=compare_pmx_distributions]{compare_pmx_distributions()}},
 \code{vignette("scorecard-synthetic-data-checks")}.
 }

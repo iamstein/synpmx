@@ -29,6 +29,9 @@ numbers are how he refers to them in conversation and O1 is cited from
   added from his own edits of 08-13 and 08-14; the contract table added; O14 and
   two open questions closed; the proposals section retired. 546 lines to 574:
   about 85 lines of new material against 57 cut from the old.
+- 2026-08-15 — at his instruction, rule 14 and checklist items 7 and 9 split
+  dataset-specific numbers from algorithmic ones, from the `avatar-algorithm.Rmd`
+  revision. Nothing else changed.
 
 ---
 
@@ -100,11 +103,12 @@ documents.
    what inputs, and what does a good number look like* (O1).
 5. Verdicts lead; nuance follows, and a hedge is a legitimate verdict (rule 10).
 6. Out-of-scope stated explicitly and bluntly, once, at the top (rule 11).
-7. Numbers where a claim is measurable, computed on a real dataset where they
-   can be; no adjective standing in for one (rule 9, O12).
+7. Numbers where a claim is measurable, computed by a chunk that runs rather
+   than written into the prose; no adjective standing in for one (rule 9, O12).
 8. Comparable items climb the ladder sentence → list → table → figure and stop
    at the rung that answers the question (rule 15).
-9. No number is restated in prose that a function already prints (rule 14).
+9. No number measured on a named dataset is written into prose; an algorithm
+   number such as a default or a property of the formula stays (rule 14).
 10. A survey ends with a ranked entry path (O9), and repeated things hold the
     same shape in the same order (O17).
 11. The tics above are *searched for*, not read for: crucial, key, worth,
@@ -258,6 +262,24 @@ and the reader cannot tell which is current. Name the question in the document,
 run the function, let the output answer. The cross-document contract in
 `AGENTS.md` now has this shape: every row the function emits has a section under
 the same identifier, stating the criterion the function actually scores.
+
+**Which numbers this applies to: the dataset-specific ones.** A figure measured
+on a named study — 63 of 120 `mavoglurant` avatars flagged, 29 of 59 `pheno_sd`
+infants truncated, `theo_md`'s between-subject variability by cap setting — goes
+stale on the next default change, is about a dataset that is not the reader's,
+and is what a function already prints on a run. It comes out. A number that is a
+property of the algorithm — `k` = 5, `max_donor_weight` = 0.50, the 15-point
+grid, the uncapped weight formula putting a median 58% of an avatar into one
+donor — holds whatever study is loaded, and stays. His instruction on 2026-08-15,
+revising `avatar-algorithm.Rmd`: "I'd prefer to remove references to specific
+numbers on datasets. I don't think they're needed." Where the per-dataset number
+is the point, name the dataset qualitatively and let the run report the figure.
+
+This does not weaken rule 9. Rule 9 governs the choice between a number and an
+adjective, and a number still wins every time; the survivals cited there —
+"253 patients", "a median local cloaking of 11" — were in documents working that
+dataset in front of the reader, which is not the same as a measurement asserted
+about a study the page never runs.
 
 ## 15. Past a table, draw it
 

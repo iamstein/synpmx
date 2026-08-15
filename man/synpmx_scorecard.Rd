@@ -64,7 +64,7 @@ objects. Every row carries one; printing lists them under the table, for the
 rows that did not pass, rather than as a sixth column.
 
 Printing and knitting differ on purpose. \code{print()} is a console layout: the
-verdict table, then the calls to run, then the B5b levels. Knitting a chunk
+verdict table, then the calls to run, then the B5 levels. Knitting a chunk
 that returns this object emits \code{knitr::kable()} tables instead, so a \code{.Rmd}
 or \code{.qmd} gets the whole card including the \code{explore} column. Running a chunk
 interactively in an IDE shows the console form, since nothing is knitting.
@@ -77,7 +77,7 @@ it marks a row nothing was measured for.
 \section{Every card holds every row}{
 The same checks come back whatever the study declares. Where a study gives a
 check nothing to ask -- no discrete endpoint for A6, no \code{strata} for C1 and
-C3, no categorical axis for B5a and B5b -- the \code{result} says so and the
+C3, no categorical axis for B5 -- the \code{result} says so and the
 verdict is \code{"pass"}, rather than the row going missing. Two cards can then be
 compared
 row for row, and an absent row cannot be mistaken for one that passed.
