@@ -1,6 +1,6 @@
 ## This is the author's To do list, to be maintained by him
 
-- go through avatar algorith again
+- go through avatar algorith again (on sec 10)
 
 - Spot check the code. 
     - consider /ultrareview

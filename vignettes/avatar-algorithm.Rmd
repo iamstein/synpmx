@@ -443,21 +443,14 @@ Setting `preserve_strata_balance = FALSE` allows strata sizes to vary.
 
 ## Step 7: Copy the Anchor's Event Skeleton, and Redraw the Visit Schedule
 
-Let subject $i$ have source rows $D_i$. For every requested synthetic subject,
-the generator takes its sampled **anchor** $a$ and begins with
-
-$$
-S^{(0)} = D_a.
-$$
-
-Thus $S^{(0)}$ contains the anchor's **event skeleton**: row-wise combination of
-TIME, EVID, AMT, RATE, CMT, DVID, and any other source columns. 
+The anchor's **event skeleton** is a row-wise combination of
+TIME, EVID, AMT, RATE, CMT, DVID. 
 
 ### M3. Redrawing Which Visits the Avatar Attended
 
 After coarsening, every subject sits on the same grid of visit times. What still
 differs between them is which of those visits carry an observation, and that
-combination can identify a patient on its own.
+combination can identify a patient on its own, as shown in the example below.
 
 ```
 grid            wk1  wk2  wk3  wk4  wk5  wk6
@@ -471,21 +464,10 @@ week 3, then "attended everything except week 3" points at patient C as surely a
 an unusual sampling time would.
 
 So the avatar is given a different visit set from its anchor's. The doses and the
-grid times are untouched; only which cells carry an observation changes. Three
-things are tried in order, and the first that works is used:
+grid times are untouched; only which cells carry an observation changes.
 
-1. **Reuse a set.** Take a visit set that at least `min_pattern_share` patients
-   hold. The avatar then has a schedule several real patients had.
-2. **Build one with a shared shape.** Where no set is held that widely, take a
-   *shape* that at least `min_pattern_share` patients share and build a fresh set
-   with it.
-3. **Build one with a shared arrangement.** Where no shape is shared either, use
-   the arrangement alone and take the count from what is typical for it. This is
-   what a study with staggered follow-up needs, where every stopping point has a
-   single holder.
-
-A **shape** is how many visits were missed paired with how they were arranged. It
-says nothing about which ones:
+Two descriptions of a visit set are used to decide what the avatar may be given.
+Its **arrangement** is where the misses sit, one of four labels:
 
 | Arrangement | Meaning |
 |---|---|
@@ -497,7 +479,34 @@ says nothing about which ones:
 With $n$ visit cells of which $m$ are missed, the arrangement is `trailing` when
 every missed index exceeds $n-m$, `block` when the missed indices are consecutive
 but not trailing, and `scattered` otherwise. One missed visit that is not the
-last is a block of one.
+last is a block of one. In the picture above, patient B is `trailing` and patient
+C is `block`.
+
+Its **shape** is that arrangement paired with the number of misses, written
+`trailing|2` or `block|1`. The count is the only difference between the two
+descriptions: patient B above is `trailing|2`, and a patient who stopped one week
+later, missing week 6 alone, is `trailing|1`. Same arrangement, different shape.
+Neither says *which* visits were missed.
+
+The two are separate because they are used at different points below. A shape is
+specific enough that a set built to it resembles the patients it came from, so it
+is tried first. An arrangement is coarser, and groups patients a shape cannot,
+which is what makes it a usable last resort.
+
+With those two, the avatar's visit set is chosen by trying three things in order
+and using the first that works:
+
+1. **Reuse a set.** Take a visit set that at least `min_pattern_share` patients
+   hold. The avatar then has a schedule several real patients had.
+2. **Build one with a shared shape.** Where no set is held that widely, take a
+   shape that at least `min_pattern_share` patients share and build a fresh set
+   with it.
+3. **Build one with a shared arrangement.** Where no shape is shared either, only
+   the arrangement is used, and the number of misses is set to the median of the
+   counts among the patients holding that arrangement. A study with staggered
+   follow-up needs this: patients who each stopped at a different visit share no
+   set and no shape, because every count has a single holder, while `trailing`
+   is a label all of them carry.
 
 Pairing the arrangement with the count is what makes step 2 work. Two patients
 who each missed a single early visit hold different sets, so each is a group of
@@ -518,69 +527,58 @@ lost is which weeks any one patient missed.
 ### M4. Redrawing Where Dosing Stopped
 
 A patient's dose schedule is their list of dose times, and it identifies them
-whenever nobody else has the same one. Two terms for talking about it, both
-counting doses from the start of therapy rather than describing gaps within it.
-A patient's **depth** is how many doses they received, and their **opening at
-depth $d$** is their own first $d$ dose times. A patient dosed at 0, 12, 24 and
-36 hours has depth 4 and an opening at depth 2 of {0, 12}.
+whenever nobody else has the same list.
 
 Dose times are never moved or invented, because a drawn regimen could be one no
-protocol permits. The one edit allowed is truncation: keeping an opening and
-dropping the doses after it leaves a course some patient could have been given,
-namely one who stopped early.
+protocol permits. The one edit allowed is to shorten: dropping the doses at the
+end of a schedule leaves a course some patient could have been given, namely one
+who stopped early.
 
-So where a patient's schedule is one nobody else has, the avatar's is shortened.
-The search starts one dose short of the patient's depth and walks **downward**,
-taking the first depth that is safe. It walks down rather than up because
-truncation can only remove dose rows, so a deeper target would leave the schedule
-where it was. A depth is safe on either of two grounds:
+So when a patient's schedule is one nobody else has, the avatar's is shortened.
+Shortening to $d$ doses means the avatar keeps that patient's own first $d$ dose
+times and stops there. A patient dosed at 0, 12, 24 and 36 hours shortened to 3
+doses is dosed at 0, 12 and 24, and their 36-hour dose row is dropped.
 
-- **Matched.** The opening is exactly the complete schedule of at least
+The search tries one dose fewer than the patient received, then one fewer again,
+and stops at the first length that is safe.  A length is safe on either of two grounds:
+
+- **Matched.** Those first $d$ times are exactly the whole schedule of at least
   `min_pattern_share` patients, so the avatar finishes where they finished.
-- **Free.** Nobody holds that opening as a complete schedule, and at least
-  `min_pattern_share` patients opened with it. The only individual fact such a
-  schedule carries is where it stopped, and nobody stopped there.
+- **Free.** No patient's whole schedule is those $d$ times, and at least
+  `min_pattern_share` patients were dosed at all of them and then carried on
+  further. Nobody stopped there, so the stopping point identifies nobody, and
+  every dose leading up to it is one that many patients received.
 
 Worked through, with a floor of two:
 
 ```
 dose times (h)       0   12   24   36   48
-patient A            x    x    x                depth 3
-patient B            x    x    x                depth 3
-patient C            x    x    x                depth 3
-patient D            x    x    x    x    x      depth 5, shared by nobody
+patient A            x    x    x                3 doses
+patient B            x    x    x                3 doses
+patient C            x    x    x                3 doses
+patient D            x    x    x    x    x      5 doses, shared by nobody
 ```
 
-An avatar anchored on D would carry D's schedule alone. Depth 4 is tried first:
-{0, 12, 24, 36} is nobody's complete schedule, but only D ever opened with it, so
-it is neither matched nor free. Depth 3 is {0, 12, 24}, which is the complete
-schedule of A, B and C, so it is matched and the avatar stops at 24 hours. Had A,
-B and C instead run to depths 4, 5 and 6, depth 3 would have been free rather
-than matched: nobody would have stopped there, and three patients would have
-opened with it.
+An avatar anchored on D would carry D's schedule alone. Four doses is tried
+first: {0, 12, 24, 36} is nobody's whole schedule, but D is also the only patient
+dosed at all four of those times, so it is neither matched nor free. Three doses
+is {0, 12, 24}, which is exactly the whole schedule of A, B and C, so it is
+matched and the avatar stops at 24 hours.
 
-Both halves of *free* are needed, and the second is the one easily lost. Checking
-the dose times one at a time, so that each kept time is one several patients
-received, is not enough, because the combination can still belong to one patient.
-Getting that wrong leaves avatars truncated to an opening only one real patient
-holds, that patient's dosing minus its last dose, and nothing detects it: the
-copy-detection checks compare complete schedules, so a set nobody holds complete
-is exactly the set that passes. Openings are counted whole.
-
-Not every cohort can be served. Where the patients who stopped early are the sole
-holders of their depths, no depth is matched or free, and that regimen cannot be
-represented. Those patients fall to M2 and are not built upon, and the masking
-report shows the regimen coverage it cost.
+If it happens that a set of non-informative doses cannot be built for a particluar cohort, then that cohort cannot be represented and this will be shown in the reporting scorecard. 
 
 Two study shapes are served. In a protocol cohort with staggered discontinuation,
-everyone opens on the same schedule, so any depth nobody stopped at is free and a
-target is available almost anywhere. The other is routine clinical care, where
-every patient begins on the same interval and diverges as their own clinician
-decides, so complete schedules rarely repeat while openings do. `pheno_sd` is
-that second shape, and truncating each course back to its shared opening keeps a
-substantial part of the dosing.
+everyone is dosed on the same schedule, so any length nobody stopped at is free
+and a target is available almost anywhere. The other is routine clinical care,
+where every patient begins on the same interval and diverges as their own
+clinician decides, so whole schedules rarely repeat while the first several doses
+are common to many patients. 
 
 ## Step 8: Choose the Donors
+
+### M5. Blending 
+
+Blending subject data together across donors spans Steps 8 to 11.  
 
 ### The Distance
 
@@ -594,19 +592,17 @@ d_{ar}=\left\|\boldsymbol{\xi}_a-
 =\left(\sum_{h=1}^{H}(\xi_{ah}-\xi_{rh})^2\right)^{1/2},
 $$
 
-where $h$ runs over the $H$ retained principal components. All the work went
-into choosing the coordinates; this is Pythagoras in $H$ dimensions.
-
-This is the only distance in the selection rule. There is no separate structural
-metric trading dose differences against schedule differences: structure enters as
-the two-stage ordering below rather than as a score.
+where $h$ runs over the $H$ retained principal components.
 
 ### The Selection Algorithm
 
-To choose $k$ donors for anchor $a$, using the route and the dosing history of
-Step 5:
+Every other subject in the study that shares the anchor's route is a candidate,
+whatever arm they were in. Strata never restrict donors, so an avatar allocated
+to one arm can be blended from patients in another, and only route excludes
+anybody. To choose $k$ donors for anchor $a$, using the route and the dosing
+history of Step 5:
 
-1. **Same-history stage.** Among the other subjects on the anchor's route that
+1. **Same-history stage.** Among the other subjects sharing the anchor's route that
    also share its dosing history, take the $k$ nearest by $d_{ar}$, breaking
    ties by subject index. If there are at least $k$ of them, stop.
 2. **Fallback stage.** Otherwise fill the remainder from the nearest subjects on
@@ -616,34 +612,17 @@ Step 5:
    all, the floor is unreachable, because the only remaining candidates are on
    another route and route is never crossed.
 
-Selection is therefore deterministic under a fixed seed. The fallback stage
-matters most for datasets with individualized dosing, where an exact dose magnitude can leave
-nearly every subject holding a dosing history of its own and the fallback stage
-does essentially all the work.
-
-### What the Fallback Stage Costs
-
-Be clear about what the fallback distance does and does not know. `AMT` is not a
-profile feature, so the fallback ranking never compares doses directly. It
+Selection is deterministic under a fixed seed. Note that `AMT` is not a
+profile feature, so the choice of donors never directyl uses dose.  It
 compares baseline covariates and the shape and level of the DV trajectory. Dose
-does influence it, but only *indirectly*: a subject given a much larger dose has
-higher concentrations, and those concentrations are profile features, so it lands
-further away. The ranking therefore tends to prefer similar-dose donors without
+does influence the DV trajectory, but only *indirectly*: a subject given a much larger dose 
+than the anchor has higher concentrations, and those concentrations are profile features, so that
+potential donor lands further away. The ranking therefore tends to prefer similar-dose donors without
 being told to.
-
-Tendency is not a guarantee, and nothing rescales. A borrowed donor's values are
-interpolated onto the anchor's times and blended **raw**, by deliberate design,
-choosing structural realism over statistical fidelity. The consequence is the
-one stated at the top of this page: a synthetic subject carries its anchor's
-`AMT` while its concentrations may be blended from donors given a different
-dose, so **the dose-exposure relationship in AVATAR output is not guaranteed to
-be preserved**. Fitting a structural model to AVATAR output can recover a
-dose-exposure relationship that is an artifact of blending. Use
-`synpmx_calibrated()` when the parameters themselves have to mean something.
 
 ### When the Donor Floor Cannot Be Reached
 
-Because route is absolute, a route arm holding fewer than $k+1$ subjects can
+A route arm holding fewer than $k+1$ subjects can
 never supply a legal donor set. There is no good answer in that situation, only a
 choice between two bad ones, and which is worse depends on whether the sparse arm
 matters more than the disclosure risk of reproducing it. That is the caller's
@@ -655,31 +634,47 @@ judgement, so `on_donor_shortfall` makes it explicit:
 | `"noise"` | Keep them, blending however many same-route donors exist, possibly none, and relying on `subject_noise_sd` and `residual_noise_sd` for the rest. |
 | `"error"` | Refuse to generate, naming the arm and both alternatives. |
 
-Every branch alerts loudly, because each one silently changes something a reader
-would want to know: what the cohort covers, or how identifying it is.
-
-`"noise"` is **available but not recommended**, and the reason is the defect this
-whole mechanism exists to prevent. A subject blended from one donor, or from
+`"noise"` is available but not recommended because a subject blended from one donor, or from
 none, is a noised near-copy of a real patient. If you use it because the sparse
-arm genuinely matters more, screen the result and treat those subjects as
-individually identifying.
-
-One case forces the issue: when *every* arm is below the floor, `"drop"` would
+arm genuinely matters for the synthetic data, screen the result and treat those subjects as
+individually identifying.  If *every* arm is below the floor, `"drop"` would
 leave nothing to generate, so generation proceeds as if `"noise"` and says so.
 
 ## Step 9: Randomize and Cap the Donor Weights
 
-Suppose $K$ donors have been selected. Let $E_r\sim\mathrm{Exponential}(1)$ and
-let $R_r$ be a random permutation of $1,\ldots,K$. Importantly, $R_r$ is a
-randomized rank rather than the distance order, which is what stops the nearest
-neighbour from being systematically the largest contributor. The raw donor weight
-is
+Suppose $K$ donors have been selected. Each one draws an independent
+$E_r\sim\mathrm{Exponential}(1)$, a random positive number from the exponential
+distribution with rate 1. Such a draw has mean 1 and
+median 0.69, falls below 2 about 86% of the time, and occasionally comes out
+several times larger, allowing a donor take a
+large share at times regardless of distance. 
+
+Let $R_r$ be a random permutation of $1,\ldots,K$. It is a randomized rank that stops the nearest neighbour from being systematically the largest contributor. The raw donor weight is
 
 $$
 q_r=\frac{E_r}{\max(d_{ar},\varepsilon)}2^{-R_r},
 $$
 
-where
+where $d_{ar}$ is the profile distance between the anchor and donor $r$ from
+Step 8. Dividing by it is what makes a nearer donor count for more.
+
+The $2^{-R_r}$ term is **rank attenuation**. Since $R_r$ is a permutation of
+$1,\ldots,K$, the $K$ donors are handed the multipliers $\tfrac12$, $\tfrac14$,
+$\tfrac18$ and so on in random order, so one donor counts for twice the next,
+four times the one after, and the last counts for almost nothing.
+
+It is there to stop an avatar being a cohort average. The $k$ nearest neighbours
+sit at comparable distances from the anchor, so inverse distance alone would give
+them near-equal weights, and an even average of five patients is smoother and
+flatter than any one of them: every avatar would land near the middle of the
+cohort and the synthetic between-subject variability would collapse. Attenuating
+by rank leaves each avatar mostly resembling one or two real patients, which is
+what keeps that variability. It is inherited from the published AVATAR method,
+and it is also the term that pushes hardest against privacy, which is what the
+cap below exists to limit.
+
+A donor whose profile is identical to the anchor's has $d_{ar}=0$, which would
+divide by zero, so the distance is floored at $\varepsilon$:
 
 $$
 \varepsilon=
@@ -689,6 +684,9 @@ $$
 10^{-8}, & \text{otherwise}.
 \end{cases}
 $$
+
+The floor is scaled to the cohort's own distances rather than fixed, so it stays
+negligible against a real distance whatever units the profile happens to be in.
 
 The first normalization is $w_r=q_r/\sum_s q_s$. If the raw weights are
 nonfinite or have a nonpositive total, the implementation replaces them with
@@ -721,131 +719,12 @@ where $P$ is the set of donors already pinned at $c$. And that redistribution ca
 itself push a donor over the ceiling. Starting from $(0.50, 0.25, 0.15, 0.06,
 0.04)$ with a tight $c = 0.30$: cutting the leader to $0.30$ frees $0.20$, and
 the second donor's share of it takes them from $0.25$ to $0.35$, over the
-ceiling. Capping only the largest weight and stopping, which is what the
-implementation did throughout the $0.80$ era, leaves exactly that violation in
-place: the stated maximum, broken by the donor the redistribution created.
+ceiling.
 
 So the rule repeats, pinning everything over $c$, redistributing, and looking
 again, which is the standard construction called **water-filling**. Pinned donors
 are never topped up, so each pass pins at least one more and it terminates. The
 tight example settles at $(0.30, 0.30, 0.24, 0.096, 0.064)$.
-
-### One Pass Suffices at the Default Cap
-
-A second pass is needed only when redistribution lifts the runner-up over the
-ceiling, that is when
-
-$$
-(1-c)\,\frac{w_2}{1-w_1}>c .
-$$
-
-At $c=0.5$ this requires $w_2>1-w_1$, i.e. $w_1+w_2>1$, which no pair of weights
-can satisfy. **At any cap of $0.5$ or above the loop runs at most once**, and
-simulation agrees exactly: at $c=0.5$ the cap is untouched 33% of the time and
-pinned once 67%, never twice. Only tighter caps exercise the iteration; at
-$c=0.3$ two passes are needed 53% of the time and three passes 11%.
-
-The general routine is kept because `max_donor_weight` is an argument and a user
-may set it below $0.5$, where a single pass is genuinely wrong. But at the
-shipped default, the simple thing and the correct thing coincide.
-
-### The Infeasible-Cap Boundary
-
-With $K$ donors the weights average $1/K$, so **no weight vector can satisfy a
-ceiling below $1/K$**: asking for $c=0.3$ from three donors is asking three
-numbers below $0.3$ to sum to 1. Such a cap relaxes to exactly $1/K$, uniform
-weights and the flattest blend available, rather than an error. Two donors under
-$c=0.5$ give $(0.5,0.5)$, which meets the cap exactly. With one donor the weight
-is necessarily 1, since a cap cannot invent a second donor.
-
-### What an Uncapped Blend Looks Like
-
-It is reasonable to ask whether the cap earns its place, given that $k$ already
-forces five donors into every avatar. The answer is that **without a cap, the
-floor is largely decorative.** Simulating the raw weight formula at $k=5$ with
-representative donor distances:
-
-| uncapped largest donor share | value |
-|---|---|
-| median | 0.58 |
-| interquartile range | 0.47 - 0.72 |
-| $P(\text{largest} > 0.5)$ | 0.67 |
-| $P(\text{largest} > 0.8)$ | 0.14 |
-| effective donors $1/\sum_r w_r^2$ | 2.37 |
-
-So the unconstrained formula typically puts **58% of an avatar into a single
-donor**, and one avatar in seven takes more than 80% from one person. Nominally
-five patients are blended; effectively about two and a half are. The cap is the
-only thing that closes that gap.
-
-### Choosing the Cap
-
-The useful diagnostic is **how often the cap fires**, because that says what role
-it is playing:
-
-| `max_donor_weight` | binds on | effective donors |
-|---|---|---|
-| 0.30 | 99% | 3.92 |
-| 0.40 | 89% | 3.28 |
-| 0.50 *(default)* | 68% | 2.90 |
-| 0.60 | 47% | 2.64 |
-| 0.80 | 15% | 2.40 |
-| none | 0% | 2.37 |
-
-Both ends of that table are the wrong kind of parameter. A cap that fires on 99%
-of subjects is not a guardrail, it *is* the weighting scheme, and the
-inverse-distance term underneath it barely matters. A cap at $0.80$ fires on 15%,
-trimming only the worst tail while still permitting one patient to be four-fifths
-of an avatar; that was the old default, and it was never really protecting
-anything.
-
-The default is **$0.50$**, which states as a single checkable sentence: *no
-single real patient is more than half of any synthetic patient.* It fires on
-about two thirds of subjects, so it genuinely constrains without wholly replacing
-the distance weighting.
-
-Its honest cost is that "five donors are blended" is really "about three
-effective donors". Tightening to $0.30$ buys about one more at the price of a cap
-that fires essentially always. Both are defensible; $0.50$ is the one that can be
-explained in a sentence.
-
-### What the Cap Costs
-
-Treating donors as independent, a weighted blend retains $\sum_r w_r^2$ of
-individual variance, so the synthetic cohort's between-subject standard deviation
-shrinks by $(\sum_r w_r^2)^{1/2}$. The reciprocal $1/\sum_r w_r^2$ is the
-effective number of donors, and it reads as a privacy floor and as the
-variability cost in one number: $K$ for uniform weights, $1$ for a sole donor.
-Because both depend on the cohort, `cap_binding_fraction` and
-`mean_effective_donors` are recorded for every run, so the question can be asked
-of real data rather than of a simulation.
-
-That independence assumption is pessimistic in the direction that matters.
-Donors are *nearest neighbours*, so they are strongly positively correlated, and
-averaging them destroys much less variance than the formula implies; the
-subject-level perturbation of Step 11 then restores more. Measured on a real
-study, tightening the cap raises the effective donor count substantially while
-between-subject variability stays flat within noise, where the independence
-formula would have predicted a steep fall. This is why the cap can be chosen on
-privacy grounds: the fidelity side of the trade is nearly flat.
-
-The same selected subjects and weights are used for every declared covariate and
-endpoint. When donor $r$ lacks a usable value at target location $j$, the
-available weights are renormalized locally:
-
-$$
-w_{rj}^{*}=\frac{w_r I_{rj}}
-                 {\sum_s w_s I_{sj}},
-$$
-
-where $I_{rj}=1$ when the value is finite and zero otherwise.
-
-### M5. Blending as the Mechanism That Protects the Values
-
-Spanning Steps 8 to 11, this is the mechanism that protects the measurements,
-and the only one whose strength grows with cohort size. That is why a source with
-fewer than `k + 1` subjects raises a loud alert instead of quietly producing
-near-copies.
 
 ## Step 10: Synthesize the Baseline Covariates
 
@@ -1142,15 +1021,9 @@ structural requirements.
 
 ## Conclusions
 
-In summary, this document describes an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets, which can contain
+In summary, this document describes an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets, which can contain: multiple PK and PD observation types, binary, ordinal, or continuous observations, and BLOQ data.  The algorithm also provides additional mechanisms for masking the event skeleton (dose and observation times), and handles weight-based dosing. 
 
-* Multiple PK and PD observations
-* Binary, ordinal, or continuous observations
-* BLOQ data
-
-In addition, the algorithm provides additional mechanisms for masking the event skeleton (dose and observation times), and a mechanism for handling weight-based dosing. 
-
-This algorithm makes no formal privacy claim, and it does not necessarily fully preserve the dose-exposure-response relationship. It is intended for generating synthetic datasets that carry many of the properties of the source data, for developing and debugging analysis code.
+However, this algorithm offers no formal privacy guarantees, nor does it guarantee preservation of the true relationship between observation variables and covariates.  The algorithm is desgined to produce synthetic datasets that carries many of the properties of the source data, for use in developing and debugging analysis code.
 
 
 ## References
