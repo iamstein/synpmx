@@ -63,7 +63,7 @@ and enumerating them is not something this does.
 ## See also
 
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md),
-which reports this as row B5b,
+which reports this as row B5,
 [`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md),
 [`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md).
 

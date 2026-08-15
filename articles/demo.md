@@ -149,10 +149,6 @@ scorecard <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 **`review` is not a soft `pass`.** Five rows here have no pass mark
 because no threshold would be honest. Doses per patient is the clearest:
 on this study it is unchanged, but on a study with individualised dosing

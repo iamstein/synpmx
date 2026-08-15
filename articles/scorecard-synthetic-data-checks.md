@@ -32,27 +32,25 @@ identifier.
 **Seven checks can say `FAIL`, and no others.** A1, because the output
 is not a legal dataset; A3 and A6, because it is not the study that went
 in; and B1a, B1b, B4a and B4b, because each means one real patient’s
-structure was reproduced verbatim. Everything else is `review`, because
-everything else can be different for a legitimate reason: a subject
-dropped for want of donors, an arm that changed size, a statistic
-wandering at a small sample size.
+structure was reproduced verbatim. No other row can fail. The rest
+answer `pass` when there is nothing to read and `review` when there is
+something whose meaning depends on the study: a subject dropped for want
+of donors, an arm that changed size, a statistic wandering at a small
+sample size. Four rows are `review` however they land, because no
+threshold on them would be honest — A5a, A5b, B3 and D1.
 
 ### The two datasets used here
 
 ``` r
 
-case1_pkpd <- as.data.frame(
-  get(utils::data(list = "case1_pkpd", package = "xgxr"))
-)
-case1_roles <- pmx_roles(
+mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
+mad_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
-  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
-  keep = "STUDY"
+  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+  strata = c("TRTACT", "DOSE"),
+  covariates = c("WEIGHTB", "SEX")
 )
-case1_synth <- suppressWarnings(
-  synpmx_avatar(case1_pkpd, case1_roles, seed = 808)
-)
+mad_synth <- suppressWarnings(synpmx_avatar(mad, mad_roles, seed = 909))
 
 data("pheno_sd", package = "nlmixr2data")
 pheno_roles <- pmx_roles(
@@ -64,38 +62,45 @@ pheno_synth <- suppressWarnings(
 )
 ```
 
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) is
-the worked example: 180 patients, six treatment arms, a declared nominal
-time, two endpoints — a pharmacokinetic (PK) concentration and a
-continuous pharmacodynamic (PD) effect — and a baseline weight. It is
+[`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html) is the worked
+example: 60 subjects in a multiple-ascending-dose study, six arms of ten
+(placebo and five dose levels), a declared nominal time, a baseline
+weight and a sex, and **five** endpoints keyed by `NAME` — a
+pharmacokinetic (PK) concentration, a continuous pharmacodynamic (PD)
+effect, and PD endpoints that are ordinal, count and binary. It is
 shaped like a real study report, and most of these checks pass on it.
+
+Five endpoints and a categorical covariate are why it is the example
+here. On a study with one continuous endpoint and no category, A6 and B5
+both report that there was nothing to ask, A3 compares a set of size one
+against itself, and C3 asks each arm about one endpoint.
 
 [`nlmixr2data::pheno_sd`](https://nlmixr2.github.io/nlmixr2data/reference/pheno_sd.html)
 is 59 real neonates given phenobarbital in routine clinical care, and it
 is here because **no check on it fails while its dosing history is
 visibly shortened**: the median infant received twelve doses and the
-median avatar receives five. A dataset on which everything passes
-teaches nothing. Where the two disagree is where a check is doing work.
+median avatar receives five.
 
 ### The scorecard, computed
 
 ``` r
 
-case1_card <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
-synpmx_scorecard_datatable(case1_card)
+mad_card <- synpmx_scorecard(mad, mad_synth, mad_roles)
+synpmx_scorecard_datatable(mad_card)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 Nothing fails. The rest of this vignette is what each check asks and why
-its pass criterion is what it is, using `case1_pkpd` where a check
-passes and `pheno_sd` for further exploration.
+its pass criterion is what it is, using `mad` where a check passes and
+`pheno_sd` for further exploration.
+
+Each section below opens with its own rows of this card, so the check
+being discussed is on the screen with the discussion. The card is a
+`data.frame` and that is all those tables are — a row subset of it, in
+the form shown under A5a and A5b.
 
 ## A. Is the dataset valid
 
-### A1, A2. Is the table a legal PMX dataset
+### A1, A2. Are the synthetic and source data legal PMX datasets
 
 A1 runs
 [`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
@@ -104,47 +109,40 @@ must be `TRUE`. The check is structural: schema and column classes,
 event grammar, time monotonicity within subject, censoring flags against
 their dependent variable (`DV`), infusion start/stop pairing, baseline
 covariates that are actually constant, and strata that do not vary
-within a subject. It does not assess scientific validity, and it is not
-a privacy check.
+within a subject.
 
 ``` r
 
-validate_pmx(case1_synth, case1_roles)$valid
-#> [1] TRUE
-validate_pmx(pheno_synth, pheno_roles)$valid
+validate_pmx(mad_synth, mad_roles)$valid
 #> [1] TRUE
 ```
 
-A2 exists because a validator that only ever passes is not evidence of
-anything. The source is where a mis-declared role gets caught before it
-becomes a generation bug, and `case1_pkpd` has one:
-
 ``` r
 
-case1_roles_cens <- pmx_roles(
+mad_roles_cens <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", cens = "CENS",
-  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+  cens = "CENS", strata = c("TRTACT", "DOSE"),
+  covariates = c("WEIGHTB", "SEX")
 )
-validate_pmx(case1_pkpd, case1_roles_cens)$valid
+validate_pmx(mad, mad_roles_cens)$valid
 #> [1] FALSE
 ```
 
-That study’s `CENS` column is meaningful only for the PK endpoint. The
-PD effect is signed, so a row flagged as below the limit of
-quantification (BLOQ) reports a value *above* uncensored ones. Declaring
-`cens` here would produce a coherent-looking dataset with nonsense
-censoring; leave it undeclared, or correct the column. A2 is `review`
-rather than `pass` in that situation: a real study a validator objects
-to is a normal thing to have, and the objection has to be read rather
-than scored.
+That study’s `CENS` column is meaningful only for the PK concentration,
+and all five endpoints share the one `LIDV` column, so the flag lands on
+the four PD endpoints as well. None of them is a concentration with a
+lower assay limit: on the ordinal endpoint a row flagged as below the
+limit of quantification (BLOQ) reports a severity of 2 while uncensored
+rows go down to 1, and the continuous, count and binary endpoints each
+do the same. Declaring `cens` here would produce a coherent-looking
+dataset with nonsense censoring on four endpoints out of five; leave it
+undeclared, or restrict the flag to the rows it describes. A2 is
+`review` rather than `pass` in that situation: a real study a validator
+objects to is a normal thing to have, and the objection has to be read
+rather than scored.
 
 #### Time after dose (TAD)
-
-[`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
-reports a disagreement in time after dose (`TAD`) as a *warning*, so A1
-and A2 still pass while the disagreement goes unread. A trough sample
-must stay a trough, and this is the column that says whether it did.
 
 **`tad` is an output, not an input.**
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -155,35 +153,6 @@ only,
 [`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
 on the source:
 
-``` r
-
-nimo <- get(utils::data(list = "nimoData", package = "nlmixr2data"))
-nimo_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
-  rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
-  covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
-)
-nimo_checks <- validate_pmx(nimo, nimo_roles)$checks
-cat(nimo_checks$message[nimo_checks$check == "tad_agreement"])
-#> Declared TAD disagrees with time since the most recent dose on 143 of 321 observation row(s) (45%), by up to 311.9. Common causes: TAD is measured from the end of an infusion or from a nominal dose time rather than the recorded dose row; the study uses a dosing occasion rather than the most recent dose. Note that `synpmx_avatar()` recomputes `TAD` from generated times, so the synthetic column will follow the derivation above and not this source's convention.
-```
-
-Forty-five percent of observation rows disagree, by up to 311.9 hours.
-That means one of: the study measures `TAD` from the end of an infusion,
-from a nominal dose time, or from an assigned occasion rather than the
-most recent dose; or the source column is wrong; or the derivation is
-wrong for this study. The check cannot tell you which. The synthetic
-column follows the derivation, so a silent change of convention is what
-this surfaces.
-
-Two limits. A sample taken before any dose is reported at `TAD` 0
-because
-[`validate_pmx()`](https://iamstein.github.io/synpmx/reference/validate_pmx.md)
-refuses a negative. And where `addl`/`ii` are declared, the derivation
-cannot see the doses they imply, so the check is skipped and says so. A
-related gap, whether a sample stayed on the right side of its dose, is
-in “What is still missing” at the end.
-
 ### A3. Did every endpoint survive
 
 A3 compares the set of `dvid` levels observed in the source against the
@@ -193,50 +162,49 @@ is a `FAIL`: it is not the study that went in.
 ``` r
 
 setequal(
-  unique(as.character(case1_pkpd$NAME)),
-  unique(as.character(case1_synth$NAME))
+  unique(as.character(mad$NAME)),
+  unique(as.character(mad_synth$NAME))
 )
 #> [1] TRUE
 ```
 
-**Compare endpoint *sets*, not row counts.** The defect that motivated
-A3 lost an entire endpoint, 108 rows in and 60 out, with every
-observation in one compartment gone and no warning. A row count alone
-looked plausible.
+It is a set comparison rather than a row count, because row counts stay
+plausible while a whole endpoint disappears. That is also why five
+endpoints are worth having in the example: A3 reads `5 of 5` here, and
+on a one-endpoint study the check can only ever say that the one
+endpoint is still there.
 
-### A4. Did the cohort size survive
+### A4. Did the strata (cohort) size survive
 
-A4 counts distinct subjects on each side. Equal is a pass. Fewer is
+A4 counts distinct subjects on strata. Equal is a pass. Fewer is
 `review` rather than `FAIL`, because `on_donor_shortfall = "drop"`
 removes a subject that could not be built from enough donors, and
 declining to build on a patient the generator cannot protect is the
 correct answer. It lands on whichever stratum was thinnest, so a small
 cohort is where it shows up: a stratum holding a single patient can
-legitimately come back empty. More subjects than the source is not
-something the generator does.
+legitimately come back empty.
 
-### A5a, A5b. Did the observations and the doses survive
+### A5a, A5b. Did the number of observations and doses survive
 
 A5a and A5b are rows per patient, split by event type: observations in
 one, dose events in the other. Both are `review` on every study, because
-no threshold would be honest: the number moves by design, and how far is
-a judgement about your study. They are split because a total hides the
-thing worth seeing. On `case1_pkpd` both hold. `pheno_sd` is the case
-that makes the point:
+the number is permitted to move.
+
+On `mad` neither moves — 61.7 observations and 5 doses per patient on
+both sides, a fixed protocol grid coming through intact. `pheno_sd` is
+where they move, and the card is a `data.frame`, so a section of it is
+an ordinary row subset:
 
 ``` r
 
 pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
-synpmx_scorecard_datatable(pheno_card)
+synpmx_scorecard_datatable(pheno_card[pheno_card$check %in% c("A5a", "A5b"), ])
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 Observations are near-intact at 2.6 against 2.5 per patient, while
-dosing falls from 10 to 5.6. In rows: 744 become 480, and 589 dose rows
-become 332.
+dosing falls from 10 to 5.6. This occurs from
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+trying to infer a nominal time grid.
 
 ``` r
 
@@ -271,24 +239,23 @@ plot_pmx_schedule(pheno_synth, pheno_roles, main = "pheno_sd, synthetic")
 
 ![](scorecard-synthetic-data-checks_files/figure-html/a-schedule-2.png)
 
-The source is a forest of dose ticks running the length of follow-up.
-The synthetic cohort keeps that forest for the first few days and then
-thins: most avatars stop dosing between 75 and 150 h, where real infants
-are still being dosed past 300. The shading answers a different question
-from B1a and will not agree with it: it marks patients whose visit set
-no other patient *in the drawn table* has, while B1a asks whether an
-avatar’s set is one a real infant held.
+Nothing is invalid here. No infant’s *complete* schedule can be reused —
+55 of 59 are held by one patient — but most infants open the same way,
+twelve-hourly from time zero, so each avatar’s course is cut back to the
+deepest opening several infants share. That is about half the doses.
+Whether half a course is enough is exactly the judgement A5b exists to
+prompt, and it depends on what the dataset is for: enough to develop a
+fitting workflow, not enough to characterise the tail of an
+individualised regimen. Section B1 is the other half of the story, where
+the privacy checks read 0, and A5b is what says at what price.
 
-Nothing is invalid here, and the loss is at the tail rather than
-everywhere. No infant’s *complete* schedule can be reused — 55 of 59 are
-held by one patient — but most infants open the same way, twelve-hourly
-from time zero, so each avatar’s course is cut back to the deepest
-opening several infants share. That is about half the doses. Whether
-half a course is enough is exactly the judgement A5b exists to prompt,
-and it depends on what the dataset is for: enough to develop a fitting
-workflow, not enough to characterise the tail of an individualised
-regimen. Section B1 is the other half of the story, where the privacy
-checks read 0, and A5b is what says at what price.
+If it were important to more accurately capture the dosing information,
+a nominal time grid could be specified by the user, rather than computed
+by
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
+as shown in
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+for the `nimoData` example.
 
 ### A6. Did a discrete endpoint stay discrete
 
@@ -300,118 +267,133 @@ and passes, which is the true answer rather than a silently absent row.
 Blending is a weighted mean, so a weighted mean of several patients’
 zeros and ones is a number between them, and a 0/1 endpoint comes back
 continuous unless the generated values are put back on the scale the
-source used. Ask what kind of values each endpoint takes before reading
-anything else about it:
+source used. The subject and residual noise terms then carry it off the
+level set entirely. Ask what kind of values each endpoint takes before
+reading anything else about it:
 
 ``` r
 
-pmx_endpoint_types(case1_pkpd, case1_roles)
+pmx_endpoint_types(mad, mad_roles)
 ```
 
 | endpoint | type | levels | decided_by | reason |
 |:---|:---|:---|:---|:---|
+| PD - Binary | binary | 0, 1 | inferred | every observed value is 0 or 1 |
 | PD - Continuous | continuous | – | inferred | not every observed value is a whole number |
+| PD - Count | integer | – | inferred | 20 whole-number levels, from 0 to 19 |
+| PD - Ordinal | ordinal | 1, 2, 3 | inferred | 3 whole-number levels: 1, 2, 3 |
 | PK Concentration | continuous | – | inferred | not every observed value is a whole number |
 
-Both endpoints here are continuous. The check does work on a study with
-an ordinal, binary or count endpoint:
-[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
-runs it on [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html), which
-carries all three.
+Three of `mad`’s five endpoints are discrete, and `LIDV` is one numeric
+column carrying all five, so restoring the *column’s* class restores
+nothing about any of them.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+decides per endpoint and snaps the generated values back: binary and
+ordinal onto the source’s levels, count to whole numbers. A6 reads the
+finished table rather than trusting that:
 
-The type is *inferred* from the source — whether every observed value is
-a whole number, and how many distinct ones there are — and
-`pmx_roles(endpoint_types = )` overrides it where that inference reads
-the study wrongly. Putting a binary endpoint back on its levels means
-generated values are source values, since a 0/1 endpoint has no third
-value to emit. What protects a patient on a discrete endpoint is section
-B, never the distinctness of any one number.
+``` r
+
+discrete <- c("PD - Binary", "PD - Count", "PD - Ordinal")
+values_taken <- function(data, endpoint) {
+  values <- data$LIDV[data$NAME == endpoint & data$EVID == 0]
+  sprintf("%d distinct, %.2f to %.2f", length(unique(values)),
+          min(values), max(values))
+}
+knitr::kable(data.frame(
+  endpoint = discrete,
+  source = vapply(discrete, values_taken, character(1), data = mad),
+  synthetic = vapply(discrete, values_taken, character(1), data = mad_synth),
+  row.names = NULL
+))
+```
+
+| endpoint     | source                     | synthetic                  |
+|:-------------|:---------------------------|:---------------------------|
+| PD - Binary  | 2 distinct, 0.00 to 1.00   | 2 distinct, 0.00 to 1.00   |
+| PD - Count   | 20 distinct, 0.00 to 19.00 | 16 distinct, 0.00 to 15.00 |
+| PD - Ordinal | 3 distinct, 1.00 to 3.00   | 3 distinct, 1.00 to 3.00   |
+
+**A6 asks whether every generated value is one the source could have
+held, not whether every source value came back.** The count endpoint
+loses its four highest levels — 20 distinct values become 16, topping
+out at 15 rather than 19 — and passes, because 16 whole numbers inside
+the source’s range are all values this endpoint takes. A single
+generated 2.4 would fail the check. The lost tail is a D1 question about
+the distribution.
+
+The observation type is inferred from the source — whether every
+observed value is a whole number, and how many distinct ones there are —
+and `pmx_roles(endpoint_types = )` overrides it where that inference
+reads the study wrongly.
 
 ## B. Is any individual patient identifiable based on the synthetic data
 
 ### B1a, B1b. Does any avatar carry one real patient’s schedule
 
-B1a counts avatars whose set of attended visits is one that fewer than
-`min_pattern_share` real patients held; B1b does the same for dose
-schedules. `min_pattern_share` is 2 by default, so a visit set has to
-belong to at least two real patients before an avatar may carry it, and
-the same floor is used by B4a, B4b and B5b. Both counts must be **0**,
-and either above 0 is a `FAIL`: it means one real patient’s structure
-was reproduced verbatim. Both are read from the run’s own record,
-`attr(synthetic, "pmx_settings")`, rather than measured from the
-finished table.
-
 Who was observed when, and who was dosed when, is the axis most specific
 to longitudinal data, and the one a general-purpose synthetic-data tool
-will not have addressed.
-[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
-is how the source looks before anything is generated:
+will not have addressed. Two patterns per avatar are checked:
+
+- **B1a**, the set of visits it attends.
+- **B1b**, the times it is dosed at.
+
+Either is a `FAIL` above **0**. An avatar may carry a pattern only if at
+least `min_pattern_share` real patients shared it — 2 by default, set in
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
+and the same floor B4a, B4b and B5 use. One avatar carrying a pattern
+only one real patient had could be identifying.
+
+The run measures both as it builds and records the answer, so the card
+reads them from the run rather than from the finished table:
 
 ``` r
 
-skeleton_uniqueness(case1_pkpd, case1_roles)
+guarantees <- function(synthetic, label) {
+  settings <- attr(synthetic, "pmx_settings")
+  data.frame(
+    dataset = label,
+    identifying_visit_sets = settings$identifying_visit_sets,
+    identifying_dose_schedules = settings$identifying_dose_schedules
+  )
+}
+knitr::kable(rbind(
+  guarantees(mad_synth, "mad"),
+  guarantees(pheno_synth, "pheno_sd")
+))
 ```
 
-**Schedule-uniqueness screen.** Scored on the recorded times AS GIVEN,
-before any coarsening.
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-coarsens first by default, so run this again with `coarsen_time = TRUE`
-to see what the grid removes.
+| dataset  | identifying_visit_sets | identifying_dose_schedules |
+|:---------|-----------------------:|---------------------------:|
+| mad      |                      0 |                          0 |
+| pheno_sd |                      0 |                          0 |
 
-180 of 180 patients (100%) have an observation schedule nobody else has:
-180 from a one-off observation time, 0 from which visits they attended.
-Declaring `nominal_time` addresses the first group; nothing addresses
-the second.
+**Passing is not the same as being fine**, which is what `pheno_sd` is
+here to show. Its infants are dosed individually, so 55 of 59 have a
+dose schedule nobody else shares. A dose cannot be moved without
+inventing a regimen the protocol never allowed, so the only way to 0 was
+to stop each avatar’s dosing early, at a depth several infants passed
+through — 10 doses per patient down to 5.6. **Read B1a and B1b next to
+A5b**, which is where that price is reported.
 
-Those 180 are not necessarily far apart. The typical one differs from
-its nearest neighbour by 42 of about 33 visit slots (range 18 to 42),
-where a slot is one endpoint measured at one time. A difference of one
-or two is a missed sample, not a different schedule – which is why the
-count alone is a poor guide.
+Where `strata` are declared the two are decided arm by arm, since an
+avatar is never moved out of the arm it was anchored in, and the result
+cell names the arm that failed, with an example shown below.
 
-This is a property of the SOURCE, and nothing in generation can lower
-it. What generation controls is whether an avatar ends up with one of
-these schedules – that is
-[`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md)’s
-“avatars keeping their anchor’s own visit set”, which should be near 0%
-however high the count above is.
+    B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
 
-| Patients whose … | n | % of cohort | Meaning |
-|:---|---:|---:|:---|
-| Observation schedule nobody else has | 180 | 100 | the headline: an avatar anchored here has one real patient’s schedule |
-| … a one-off observation time | 180 | 100 | sampled when nobody else was. A time grid can absorb this: declare `nominal_time` |
-| … the set of visits attended | 0 | 0 | every time is shared. A missed visit, a discontinuation, or follow-up that has not reached the later visits. No grid touches this |
-| Observation count nobody else has | 0 | 0 | survives any grid; the residual [`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md) looks at |
-| Dosing nobody else has | 6 | 3 | dose amounts and gaps. Weight-based dosing makes this near-universal |
+#### Asking before you generate
 
-**How crowded is each schedule** (1 = nobody else has it):
-
-| Patients sharing that schedule | Patients | % of cohort |
-|-------------------------------:|---------:|------------:|
-|                              1 |      180 |         100 |
-
-**Which endpoint is doing it.** A schedule is only as shared as
-
-its least shared part.
-
-| endpoint         | patients | distinct visit sets | patients alone on theirs |
-|:-----------------|---------:|--------------------:|-------------------------:|
-| PD - Continuous  |      180 |                 180 |                      180 |
-| PK Concentration |      150 |                 150 |                      150 |
-
-*One row per patient is in the returned data frame;
-[`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
-draws the same cohort. Source-derived; not releasable unless separately
-public or privately budgeted.*
-
-Every one of the 180 patients has an observation schedule nobody else
-has, before any coarsening. On the visit grid
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-actually builds:
+Both checks can be further explored. `unmaskable_strata(source, roles)`
+answers the related question in advance, naming the arms whose patients
+no method could mask; an arm with `safe_anchors = 0` fails on every
+seed.
+[`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
+is the cohort-wide version, read on the coarsened visit grid.
 
 ``` r
 
-skeleton_uniqueness(case1_pkpd, case1_roles, coarsen_time = TRUE)
+skeleton_uniqueness(mad, mad_roles, coarsen_time = TRUE)
 ```
 
 **Schedule-uniqueness screen.** Scored AFTER coarsening, on the shared
@@ -441,8 +423,8 @@ however high the count above is.
 
 | Patients sharing that schedule | Patients | % of cohort |
 |-------------------------------:|---------:|------------:|
-|                             30 |       30 |          17 |
-|                            150 |      150 |          83 |
+|                             10 |       10 |          17 |
+|                             50 |       50 |          83 |
 
 **Which endpoint is doing it.** A schedule is only as shared as
 
@@ -450,225 +432,123 @@ its least shared part.
 
 | endpoint         | patients | distinct visit sets | patients alone on theirs |
 |:-----------------|---------:|--------------------:|-------------------------:|
-| PD - Continuous  |      180 |                   1 |                        0 |
-| PK Concentration |      150 |                   1 |                        0 |
+| PD - Binary      |       60 |                   1 |                        0 |
+| PD - Continuous  |       60 |                   1 |                        0 |
+| PD - Count       |       60 |                   1 |                        0 |
+| PD - Ordinal     |       60 |                   1 |                        0 |
+| PK Concentration |       50 |                   1 |                        0 |
 
 *One row per patient is in the returned data frame;
 [`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
 draws the same cohort. Source-derived; not releasable unless separately
 public or privately budgeted.*
 
-Zero. The declared `nominal_time` supplies the protocol’s grid, so
-patients land on it exactly.
-
-The counts that decide B1a and B1b are about the output, not the source:
-
-``` r
-
-guarantees <- function(synthetic, label) {
-  settings <- attr(synthetic, "pmx_settings")
-  data.frame(
-    dataset = label,
-    identifying_visit_sets = settings$identifying_visit_sets,
-    identifying_dose_schedules = settings$identifying_dose_schedules
-  )
-}
-knitr::kable(rbind(
-  guarantees(case1_synth, "case1_pkpd"),
-  guarantees(pheno_synth, "pheno_sd")
-))
-```
-
-| dataset    | identifying_visit_sets | identifying_dose_schedules |
-|:-----------|-----------------------:|---------------------------:|
-| case1_pkpd |                      0 |                          0 |
-| pheno_sd   |                      0 |                          0 |
-
-Both are 0, `pheno_sd` included, and `pheno_sd` is still the case worth
-studying: passing is not the same as being fine. Neonatal phenobarbital
-is dosed to the individual infant on the day a clinician decided, so 55
-of its 59 infants have a dose schedule nobody else has:
-
-``` r
-
-pheno_unique <- skeleton_uniqueness(pheno_sd, pheno_roles)
-sum(pheno_unique$n_share_dosing == 1)
-#> [1] 55
-```
-
-Dose events are copied from the anchor verbatim, because moving a dose
-invents a regimen the protocol never permitted. Two levers are left.
-Build avatars on the few patients whose dosing *is* shared — here there
-are six — or stop an avatar’s dosing early, at a depth that is somebody
-else’s whole schedule or that several patients passed through and nobody
-stopped at. Truncation is what does the work on this study: it fires on
-92% of the avatars and takes 10 doses per patient down to 5.6. B1b is 0
-because the tail of each course was given up, not because the course was
-masked.
-
-**Read B1a and B1b next to A5b.** A check that must be 0 says nothing
-about what reaching 0 cost, and A5b is where that cost shows up. Where
-dosing is individualised no setting recovers the tail; it is a property
-of the study, and the honest response is to report the price rather than
-to quote the 0 on its own.
-
-#### Failures by arm
-
-`pheno_sd` declares no arms, so its dosing problem is the whole
-cohort’s. Where `strata` are declared, both checks are decided arm by
-arm, because an avatar is anchored on one real patient and is never
-moved out of the arm it was allocated to. An arm holding nobody who can
-be masked therefore fails whatever the rest of the study looks like, and
-the result cell names it:
-
-    B1b   Avatars with a dose schedule nobody else shares   6 in ARM8 (6)   FAIL
-
-`unmaskable_strata(source, roles)` answers the same question before
-generating, one row per arm, splitting the patients no avatar can be
-built on into `unmaskable_dosing`, which nothing can substitute for, and
-`unmaskable_visits`, which a wider pool usually can. An arm with
-`safe_anchors = 0` fails on every seed.
-
-#### Near-miss distance
-
-Exact-set equality is a harsh test. A patient one missing sample away
-from a neighbour is counted exactly like a patient with an ad-hoc
-schedule, and the remedies are different.
-
-``` r
-
-summary(pheno_unique$nearest_set_diff)
-#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>   0.000   2.000   3.000   2.831   4.000   6.000
-```
-
-`nearest_set_diff` is how many observation slots separate a patient from
-their nearest neighbour. A median of a few slots on a sparse study is a
-different situation from a median of twenty, and the headline count
-cannot tell them apart.
-
-#### Which endpoint is responsible
-
-A schedule is only as shared as its least-shared part:
-
-``` r
-
-attr(skeleton_uniqueness(case1_pkpd, case1_roles, coarsen_time = TRUE),
-     "by_endpoint")
-#>           endpoint patients distinct visit sets patients alone on theirs
-#> 1  PD - Continuous      180                   1                        0
-#> 2 PK Concentration      150                   1                        0
-```
-
-Neither endpoint is responsible here, because neither is exposed. Where
-the count is nonzero, this table says whether dense PK sampling or a
-sparse biomarker is driving it.
-
-[`plot_pmx_schedule()`](https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.md)
-draws the same thing, and a count that looks alarming and one that is
-ordinary look different on the page. The `pheno_sd` figures above are
-that picture: 54 of 59 rows shaded is a study where being alone is the
-norm, not a study with a few stragglers.
+Every row of the above tables are zero. The dataset `mad` declares a
+`nominal_time`, so subjects snap onto the protocol’s own grid and two
+schedules cover the cohort — one for the 50 subjects who contribute PK,
+one for the ten placebo subjects who do not. Where a row is not 0, the
+screen’s own tables say which endpoint drives it, and `nearest_set_diff`
+in the returned data frame says how far each patient is from their
+nearest neighbour, since one missing sample counts the same as an ad-hoc
+schedule in the headline count.
 
 ### B2. Does any synthetic patient stand out from its own stratum
 
-B2 screens each synthetic patient on four axes — follow-up length, dose
-count, dose magnitude and peak `DV` — and reports how many are unusual
-on any of them. Unusual is a modified z score above 3.5, the
-Iglewicz–Hoaglin cutoff: the patient’s distance from their stratum’s
-median, divided by that stratum’s median absolute deviation (MAD) and
-scaled by 0.6745 so the score reads on the same footing as an ordinary
-z. A patient at 3.5 sits three and a half typical deviations out. It
-runs on the synthetic table alone and does not read the source, so its
-answer can travel with the released data. It is `review` rather than a
-threshold: the right count is not necessarily 0, and each flagged
-patient has to be looked at.
+B2 is about **singling out** a synthetic patient based on a record so
+conspicuous in the released table that it is the one that might help
+identify an outlying patient. Nothing else in section B asks it — B1 and
+B4 ask whether a real pattern was reproduced exactly, B3 asks an
+aggregate question — and B2 is also one of only two rows that read the
+synthetic table alone, so whoever receives the data can run it without
+the source.
+
+Each patient is screened on four axes: follow-up length, dose count,
+dose magnitude and peak `DV`. A patient is flagged on an axis when
+**both** hold:
+
+1.  It is a robust outlier — a modified z above 3.5, the
+    Iglewicz–Hoaglin cutoff, measuring its distance from its stratum’s
+    median in units of that stratum’s median absolute deviation.
+2.  It is **materially alone**: at least `min_relative_gap` of the
+    stratum’s median away from the nearest other patient. The default is
+    1, a separation larger than the group’s whole median value. It is
+    set against ordinary between-subject variability rather than against
+    any one cohort — a 30–50% coefficient of variation is unremarkable
+    on a PK parameter, so anything smaller is inside the study’s own
+    noise and could not be picked out of it.
 
 ``` r
 
-case1_flags <- flag_identifiable_subjects(case1_synth, case1_roles)
-sum(case1_flags$flagged)
-#> [1] 1
-sort(table(as.character(case1_flags$outlier_axes[case1_flags$flagged])),
-     decreasing = TRUE)
-#> follow-up time 
-#>              1
+sum(flag_identifiable_subjects(mad_synth, mad_roles)$flagged)
+#> [1] 0
+sum(flag_identifiable_subjects(mad_synth, mad_roles,
+                               min_relative_gap = 0)$flagged)
+#> [1] 6
 ```
 
-One flagged, on follow-up time. What makes that the right answer is the
-comparison group. `case1_pkpd` is a six-arm dose-ranging study from 3 mg
-to 300 mg, so dose magnitude is spread by *protocol*:
+**What to look for.** A synthetic patient followed three times as long
+as anybody else, a patient given twice their arm’s dose, a patient with
+Cmax well above everyone else’s in that cohort.  
+The row is a list of records to read so 0 is a `pass`. Anything above 0
+is `review` and never a `FAIL`, because the right count is not
+necessarily 0 — a study can hold a patient who is genuinely unusual, and
+an anchor-based generator will hand that patient’s shape to an avatar.
+
+**What a hit looks like.** No synthetic dataset in
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+reports anybody, so the example has to come from a source table.
+[`nlmixr2data::wbcSim`](https://nlmixr2.github.io/nlmixr2data/reference/wbcSim.html)
+is a cohort whose follow-up ends by 672 hours, with three exceptions:
 
 ``` r
 
-table(case1_flags$max_dose)
-#> 
-#>   3  10  30 100 300 
-#>  30  30  30  30  30
+data("wbcSim", package = "nlmixr2data")
+wbc_roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                       evid = "EVID", cmt = "CMT")
+wbc_flags <- flag_identifiable_subjects(wbcSim, wbc_roles)
+as.data.frame(wbc_flags)[wbc_flags$flagged, ]
+#>   subject_id follow_up_time n_doses max_dose max_dv
+#> 1         33           4580       6      137    4.1
+#> 2         44           1730       2      141    5.8
+#>                      outlier_axes flagged
+#> 1 follow-up time, number of doses    TRUE
+#> 2                  follow-up time    TRUE
 ```
 
-Those are the six arms, not six kinds of outlier. Scored against the
-whole cohort, the top arm sits about 6.4 modified-z units from the
-median dose, so all thirty of its patients are flagged for receiving the
-dose they were assigned. Taking the strata away shows it:
+Two patients, followed to 1730 and 4580 hours. The third, at 1130, is
+not reported: its nearest neighbour is at 672, and 458 hours is just
+under the cohort’s median follow-up of 480. That is the line the default
+draws, and where you want it drawn is a study-level decision —
+`min_relative_gap = 0.5` adds the merely striking, and 0 gives you the
+modified z alone.
 
-``` r
-
-case1_roles_flat <- pmx_roles(
-  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME", covariates = "WEIGHTB"
-)
-sum(flag_identifiable_subjects(case1_synth, case1_roles_flat)$flagged)
-#> [1] 60
-```
-
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-therefore scores each axis within the declared `strata`. Within an arm
-every dose is identical, so nobody stands out on it and what survives is
-the patient who is genuinely unusual, while a patient given twice their
-own arm’s dose is still flagged. “Does this patient stand out?” is
-meaningless without saying *from whom*, and a screen that ignores
-treatment assignment reports the protocol back to you as a privacy
-finding. Strata holding fewer than five patients are scored against the
-cohort instead, since a scale estimated from four patients describes
-those four.
-
-`pheno_sd` has no strata to declare, so it is scored cohort-wide:
-
-``` r
-
-pheno_flags <- flag_identifiable_subjects(pheno_synth, pheno_roles)
-sum(pheno_flags$flagged)
-#> [1] 25
-```
-
-The screen’s own statistics need checking too. The MAD is exactly zero
-whenever more than half a cohort shares one value, which on trial data
-is the ordinary case: more than half the patients complete the protocol
-and share one exact follow-up time. A zero scale makes every departure
-from the median infinitely extreme, and on a 21-patient study that
-flagged 10 of 21 avatars on follow-up time alone.
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-falls back to the mean absolute deviation there, which is zero only when
-every value is identical. Test a screen like this on a cohort where half
-the values are the same.
-
+That the synthetic cohorts report nobody is the screen working rather
+than idling. An avatar is a blend of several donors, so producing a
+subject that extreme takes a defect, and this is the row that would say
+so.
 [`remediate_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/remediate_identifiable_subjects.md)
-acts on what survives that reading, by dropping or truncating the
-subjects it is given.
+drops or truncates whatever it reports.
 
-### B3. Is any avatar too close to a real patient in value space
+### B3. Is the synthetic cohort as a whole too close to the real one
 
-B3 is adversarial accuracy, and it asks whether a synthetic patient’s
-numbers sit too close to a real patient’s, taking covariates and
-trajectory together. It is `review` whatever it lands on, for reasons
-below.
+B3 is adversarial accuracy, and it is a **cohort-level** statistic. It
+asks whether the synthetic set as a whole sits closer to the real set
+than real patients sit to each other, taking covariates and trajectory
+together, and it is `review` whatever it lands on.
 
-Adversarial accuracy asks, of every subject on both sides, whether its
-nearest neighbour lies in its own dataset or in the other one, and
-reports the fraction that were correctly placed. 0.5 means a synthetic
-subject is no more like a real subject than two real subjects are like
-each other; toward 0 means memorisation.
+It asks, of every subject on both sides, whether its nearest neighbour
+lies in its own dataset or in the other one, and reports the fraction
+that were correctly placed. 0.5 means a synthetic subject is on average
+no more like a real subject than two real subjects are like each other;
+toward 0 means memorisation.
+
+**One avatar sitting on top of one real patient will not move it.** The
+statistic is an average over the whole cohort, so one memorised subject
+shifts it by about `1/n` while the noise it is read against falls only
+as `1/sqrt(n)` — the two never meet at pharmacometric cohort sizes. B3
+detects a *systematic* leak, one that affects a large share of the
+cohort. The per-record questions are B1, B2 and B4, and B3 does not
+stand in for them.
 
 The null interval is the same statistic computed on two random halves of
 the **source**, `replicates` times, keeping the central 95% of those
@@ -688,142 +568,81 @@ proximity <- function(source, synthetic, roles, label) {
   )
 }
 knitr::kable(rbind(
-  proximity(case1_pkpd, case1_synth, case1_roles, "case1_pkpd"),
+  proximity(mad, mad_synth, mad_roles, "mad"),
   proximity(pheno_sd, pheno_synth, pheno_roles, "pheno_sd")
 ))
 ```
 
-| dataset    | adversarial_accuracy | null_lower | null_upper | per_side |
-|:-----------|---------------------:|-----------:|-----------:|---------:|
-| case1_pkpd |                0.600 |      0.426 |      0.559 |       90 |
-| pheno_sd   |                0.466 |      0.353 |      0.596 |       29 |
+| dataset  | adversarial_accuracy | null_lower | null_upper | per_side |
+|:---------|---------------------:|-----------:|-----------:|---------:|
+| mad      |                0.583 |      0.350 |      0.605 |       30 |
+| pheno_sd |                0.466 |      0.353 |      0.596 |       29 |
 
-**Read the null interval before the point estimate.** It is wide at
-pharmacometric cohort sizes, and a value inside it means *nothing was
-detected*, never *nothing is there*. What it reliably catches is a
-blatant leak: hand this function a verbatim copy of the source and it
-drives to zero and objects.
+A value inside the interval means *nothing was detected*, never *nothing
+is there*. What it reliably catches is a blatant leak: replace the
+synthetic table with a copy of the source when calling this function and
+it reports 0, well below the interval, and objects.
 
-**Read the direction before reacting to a miss.** B3 is `review`
-whatever it lands on, because falling outside the interval means two
-opposite things. Below it is memorisation, synthetic subjects sitting
-closer to real ones than real ones sit to each other, and is the failure
-this statistic exists to find. Above it means the two sets have
-separated, which costs utility and discloses nothing. At a few dozen
-patients either can also be the seed.
+**Read the direction before reacting to a miss.** Falling below the
+interval indicates synthetic subjects sitting closer to real ones than
+real ones sit to each other, and is the failure this statistic exists to
+find.
 
 ### B4a, B4b. Is any generated vector a copy of a real one
 
-Two vectors per subject must not be reproduced: B4a, the observation
-times, and B4b, the `DV` values recorded at them. Both must be **0** and
-either above 0 is a `FAIL`. They fail independently, because a generator
-can invent a schedule and carry a real patient’s measurements onto it,
-or place real measurements on a new grid, and each is a copy of half the
-patient.
+The observation times (B4a), and the dosing times (B4b) should not be
+exactly reproduced from a patient. Both must be **0** and either above 0
+is a `FAIL`. On a study with one protocol grid and good adherence, B4a
+and B4b are close to silent.
 
-What counts as a copy is a vector too few real patients share, the same
-rule `min_pattern_share` applies to visit sets. Reproducing a vector a
-whole arm shares identifies nobody: on a fixed protocol grid every
-patient is sampled at the same times, so a check asking “does any
-synthetic time vector equal some real one” fails every well-designed
-study while catching nothing. It has to ask whether the vector belonged
-to *one* patient.
+### B5. Did a rare category reach the output
 
-``` r
+B5 asks whether a level too few *source* patients held reached the
+output, and it is `review`.
 
-case1_card[case1_card$check %in% c("B4a", "B4b"), ]
-```
-
-| check | question | reads | result | verdict | explore |
-|:---|:---|:---|:---|:---|:---|
-| B4a | Generated time vectors copying an exposed real one | both | 0 | pass | skeleton_uniqueness(source, roles, coarsen_time = TRUE) |
-| B4b | Generated DV vectors copying an exposed real one | both | 0 | pass | compare_pmx_proximity(source, synthetic, roles) |
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes – `DV` against time, and each covariate – with whatever you
-normally use.*
-
-Both zero. Values are sorted before comparison, so a reordering of the
-same numbers still counts as a copy, since the reordering is not what
-protects the patient. On a study with one protocol grid B4a is close to
-silent by construction, so B4b is the check doing the work. The same
-comparison is worth running on whole covariate rows, which nothing does
-for you.
-
-### B5a, B5b. Did a rare category reach the output
-
-B5b asks whether a level too few *source* patients held reached the
-output, and reads both tables. B5a asks the weaker question the released
-table can answer alone: does any categorical level sit on exactly one
-synthetic patient? Both are `review`, and the mechanism is worth stating
-first, because it inverts the intuition that blending protects
-everything.
-
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-treats the two kinds of covariate differently, and only one of them is
-blended:
-
-- **Numeric** covariates become a weighted mean of the donors’ values
-  plus noise. The result is a new number nobody had.
-- **Categorical** covariates are
-  [`sample()`](https://rdrr.io/r/base/sample.html)d from the donors’
-  values. There is nothing to average: a synthetic patient’s category is
-  always some real patient’s actual category, copied.
-- **`strata`** (arm, dose group) are copied from the anchor exactly,
-  because they are protocol facts.
-
-So the question is when a copied category reaches the output.
-[`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md),
-under step 8, runs a 40-patient fixture in which one categorical level
-is held by a varying number of otherwise-ordinary patients. **A level
-held by one patient never reaches the output; a level held by two
-does.** By ten holders the output tracks the source frequency closely.
-That is geometry rather than protection — the sole holder of a level
-sits alone on its own one-hot axis, is nobody’s nearest neighbour, and
-is therefore almost never chosen as a donor — so nothing enforces it and
-nothing reports it.
-
-The dangerous shape is a rare level on a *typical* patient. A patient
-who is unusual on their covariates is nobody’s nearest neighbour and is
-self-protecting. A patient who is ordinary in every way except one rare
-category, an ultra-rare mutation status say, sits in the middle of the
-profile space, is selected as a donor constantly, and their category is
-copied out.
-
-The disclosure is also not “this value is unique in the dataset”. It is
-that the value may be rare **in the world**. If five people alive carry
-a mutation, a synthetic dataset containing it discloses that someone
-with that mutation was in this study, which for a named trial with
-public inclusion criteria can be nearly identifying on its own. No
-cohort size helps.
-
-#### B5b. The source-side census
+Numeric covariates are blended into a number nobody had. Categorical
+ones cannot be — there is no average of `Female` and `Male` — so a
+synthetic patient’s category is
+[`sample()`](https://rdrr.io/r/base/sample.html)d from its donors and is
+always some real patient’s actual category, copied, and `strata` are
+copied from the anchor exactly as protocol facts. A rare category
+therefore reaches the output whenever one of its holders is chosen as a
+donor. The patient at risk is the one who is ordinary in every way
+*except* that category: they sit in the middle of the profile space and
+are chosen constantly, where a patient unusual on everything is nobody’s
+nearest neighbour and is self-protecting.
+[`vignette("avatar-algorithm")`](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md)
+measures it under step 8 — a level held by one patient almost never
+reaches the output and a level held by two does — but that is geometry
+rather than protection, so nothing enforces it and this row is what
+reports it.
 
 [`compare_pmx_rare_levels()`](https://iamstein.github.io/synpmx/reference/compare_pmx_rare_levels.md)
-censuses every categorical axis the roles declare, `strata` and each
-non-numeric covariate. The level set it reports is the **union** of both
-sides rather than the synthetic side alone, because a level dropped on
-the way out is a coverage failure that a one-sided census cannot see.
+censuses every categorical axis the roles declare, reporting the union
+of both sides, because a level the source had and the output lost is a
+coverage failure a one-sided census cannot see:
 
 ``` r
 
-compare_pmx_rare_levels(case1_pkpd, case1_synth, case1_roles)
+compare_pmx_rare_levels(mad, mad_synth, mad_roles)
 ```
 
 | column | level   | source_patients | synthetic_patients | exposed | reached |
 |:-------|:--------|----------------:|-------------------:|:--------|:--------|
-| DOSE   | 0       |              30 |                 30 | FALSE   | TRUE    |
-| DOSE   | 10      |              30 |                 30 | FALSE   | TRUE    |
-| DOSE   | 100     |              30 |                 30 | FALSE   | TRUE    |
-| DOSE   | 3       |              30 |                 30 | FALSE   | TRUE    |
-| DOSE   | 30      |              30 |                 30 | FALSE   | TRUE    |
-| DOSE   | 300     |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | 10 mg   |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | 100 mg  |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | 3 mg    |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | 30 mg   |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | 300 mg  |              30 |                 30 | FALSE   | TRUE    |
-| TRTACT | Placebo |              30 |                 30 | FALSE   | TRUE    |
+| DOSE   | 0       |              10 |                 10 | FALSE   | TRUE    |
+| DOSE   | 100     |              10 |                 10 | FALSE   | TRUE    |
+| DOSE   | 1600    |              10 |                 10 | FALSE   | TRUE    |
+| DOSE   | 200     |              10 |                 10 | FALSE   | TRUE    |
+| DOSE   | 400     |              10 |                 10 | FALSE   | TRUE    |
+| DOSE   | 800     |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | 100 mg  |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | 1600 mg |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | 200 mg  |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | 400 mg  |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | 800 mg  |              10 |                 10 | FALSE   | TRUE    |
+| TRTACT | Placebo |              10 |                 10 | FALSE   | TRUE    |
+| SEX    | Female  |              30 |                 40 | FALSE   | TRUE    |
+| SEX    | Male    |              30 |                 20 | FALSE   | TRUE    |
 
 0 level(s) held by fewer than 2 source patients; 0 of them reached the
 output. {.table}
@@ -831,137 +650,37 @@ output. {.table}
 A level is **exposed** when fewer than `min_pattern_share` real patients
 held it, the same floor that protects visit sets. The row to act on is
 an exposed level that `reached` the output, because that level is one
-real patient’s attribute, copied. On `case1_pkpd` nothing is exposed:
-every arm is held by 30 patients. A study with a two-patient stratum
-would show it here and nowhere else. A `0` in the synthetic column is
-the other failure, a level the source had and the output lost.
+real patient’s attribute, copied — and the card carries the list of
+them, since which levels they were is what decides what to do. On `mad`
+nothing is exposed: the two arm columns, `TRTACT` and the numeric `DOSE`
+that repeats it, hold ten subjects per level and `SEX` holds thirty
+each. A study with a two-patient stratum would show it here and nowhere
+else. `pheno_sd` declares no categorical axis at all, so its B5 says the
+question could not be asked, which is different from a study that was
+asked and came back clean.
 
 The remedies are upstream of generation: drop the covariate from
-`covariates`, or collapse its rare levels before generating. The
-synthetic column moves because anchors are sampled with replacement.
+`covariates`, or collapse its rare levels before generating.
 
-#### B5a. What can be checked without the source
+Two limits. **The risk is rarity in the world, not in this dataset.** If
+five people alive carry a mutation, a synthetic dataset containing it
+discloses that someone with that mutation was in this study, which for a
+named trial with public inclusion criteria can be nearly identifying on
+its own, and no cohort size helps. And the census reads one column at a
+time, so a combination — arm x sex x age band x mutation — is a
+quasi-identifier it does not enumerate. “What is still missing” at the
+end says what closing that would take.
 
-The census above reads real patient data and is restricted output. One
-weaker question can be asked of the released table alone: does any
-categorical level sit on exactly one synthetic patient? That patient is
-singled out within the release, whatever the source looked like.
+### These checks do not meet formal differential privacy criteria
 
-``` r
-
-case1_card[case1_card$check == "B5a", ]
-```
-
-| check | question | reads | result | verdict | explore |
-|:---|:---|:---|:---|:---|:---|
-| B5a | Patients holding the least-held categorical level | synthetic | TRTACT = 10 mg: 30 | pass | table(synthetic\$TRTACT) |
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes – `DV` against time, and each covariate – with whatever you
-normally use.*
-
-The result names the column and the level alongside the count, because
-“1” on its own gives a reader no way to find the patient it is talking
-about. Here the answer is an arm size, thirty, and the pass is any
-answer above one. `pheno_sd` declares no categorical covariate and no
-`strata`, so both B5 rows read `no categorical covariate or stratum`:
-the question could not be asked, which is a different statement from a
-study that was asked and came back clean.
-
-B5a is the weak form, and both its failure modes are real. A level held
-by two source patients can be copied onto ten avatars and pass while the
-disclosure is real, since what matters is how many *real* patients held
-it. A level held by thirty source patients can land on one avatar by
-chance and fail harmlessly. The synthetic-side count is what you can
-compute on a table that has left the trusted environment; the
-source-side count is what the risk is made of.
-
-Both rows census one column at a time. A combination of columns — arm x
-sex x age band x mutation — is a quasi-identifier neither of them
-enumerates, and “What is still missing” at the end says what closing
-that would take.
-
-### What section B does not check
-
-Two things belong to section B’s question and are not scorecard rows.
-Neither has a result cell, because there is nothing for a function to
-compute.
-
-#### Differentially private modes
-
-What a mode protects without being told to is the clearest difference
-between the two generator families in this package. AVATAR’s protections
-are **enumerated** — visit sets, dose schedules, extremes, proximity —
-so a risk nobody named is a risk nobody covered, and combinations are
-exactly such a risk. An (epsilon, delta) differential privacy (DP)
-guarantee is **unenumerated**: it bounds the influence of any one
-individual on *any* function of the output, so it holds for combinations
-nobody thought to check.
-
-The DP path never copies a category. `pmx_covariate(levels = )` releases
-a noisy count vector over the levels, normalises it to probabilities,
-and generation draws from that distribution; a level held by two
-patients of forty is swamped by noise at any sensible epsilon. Three
-caveats:
-
-1.  **The level set must be public.** A domain derived from the data
-    leaks the domain, which is why
-    [`pmx_covariate()`](https://iamstein.github.io/synpmx/reference/pmx_covariate.md)
-    requires `levels` and a citation.
-2.  **Delta matters more than usual.** (epsilon, delta)-DP permits the
-    guarantee to fail with probability delta, and for a category held by
-    one or two people that is the failure that matters. Keep delta well
-    below 1/n.
-3.  **DP bounds the mechanism, not the world.** If inclusion criteria
-    are public and only a handful of people could qualify, membership
-    may be inferable regardless.
-
-The [privacy
-article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
-works through the trade-off.
-
-#### Deterministic proxies
-
-A column that is a function of a covariate discloses that covariate
-exactly. The generator handles the one case it can detect, and the rest
-is a reading of your own columns.
-
-The worked case is dosing. Under milligram-per-kilogram dosing, an `AMT`
-copied from the anchor reveals the anchor’s weight to the gram, and
-blending the weight column is irrelevant because the dose gives it back.
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-detects proportional dosing, recomputes the amount from the avatar’s own
-blended covariate, and reports which path it took:
-
-``` r
-
-attr(case1_synth, "pmx_settings")$dose_basis_note
-#> [1] "the 5 distinct dose amounts are not a fixed multiple of any declared covariate: WEIGHTB (ratios do not cluster)"
-attr(pheno_synth, "pmx_settings")$dose_basis_note
-#> [1] "the 54 distinct dose amounts are not a fixed multiple of any declared covariate: WT (ratios do not cluster); APGR (65 ratio levels for 54 distinct amounts -- too many to be a protocol)"
-```
-
-Neither study is dosed proportionally to a declared covariate, so
-inference declines rather than imposing a rule the study did not use.
-When it does fire, `dose_basis` names the covariate.
-
-Detection covers only the dose. Body surface area from height and
-weight, body mass index, creatinine clearance, any derived exposure
-column carried through with `keep` — each is a covariate written down
-twice, and masking one copy does nothing. Look for them by hand.
+It should be emphasized that these checks prevent some of the obvious
+forms of disclosure, but tehy do not meet the same criteria as
+differential privacy.
 
 ## C. Has the synthetic study design significantly changed from the source
 
-Failing these endangers nobody. It produces data nobody can develop
-against, which is the entire purpose of the package.
-
-Dose counts, intervals and amounts must be ones the protocol permitted,
-which is why
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-never resamples dose times and only ever truncates a real schedule at
-one of its own dose times. A generator that jitters dose times produces
-regimens no protocol allows, and it looks fine in every distributional
-check.
+Failing these produces synthetic data that may not adequately describe
+the study.
 
 ### C1. Did every arm keep its size
 
@@ -973,50 +692,21 @@ is the per-stratum reading behind that count:
 
 ``` r
 
-case1_sizes <- compare_pmx_strata_sizes(case1_pkpd, case1_synth, case1_roles)
+mad_sizes <- compare_pmx_strata_sizes(mad, mad_synth, mad_roles)
 knitr::kable(
-  as.data.frame(case1_sizes)[case1_sizes$column == "TRTACT x DOSE", -1],
+  as.data.frame(mad_sizes)[mad_sizes$column == "TRTACT x DOSE", -1],
   row.names = FALSE, digits = 1
 )
 ```
 
-| level         | source_patients | synthetic_patients | expected | balanced |
-|:--------------|----------------:|-------------------:|---------:|:---------|
-| 10 mg \| 10   |              30 |                 30 |       30 | TRUE     |
-| 100 mg \| 100 |              30 |                 30 |       30 | TRUE     |
-| 3 mg \| 3     |              30 |                 30 |       30 | TRUE     |
-| 30 mg \| 30   |              30 |                 30 |       30 | TRUE     |
-| 300 mg \| 300 |              30 |                 30 |       30 | TRUE     |
-| Placebo \| 0  |              30 |                 30 |       30 | TRUE     |
-
-The function reports each declared `strata` column on its own as well as
-the joint cells shown here, and the joint cell is the one the generator
-sizes. `expected` is the source share of the cohort carried to the
-synthetic cohort size, which matters whenever `n_subjects` differs from
-the source: every stratum then changes size by design, and the raw
-counts alone would say everything moved.
-
-The sizes match here, which they did not until this check was written.
-Anchors are sampled with replacement, so left alone the arm sizes are
-whatever the draw gives: this design of exactly 30 per arm came back
-between 21 and 39 per arm depending only on the seed, with cohort size
-and arm membership both exact and only the *balance* wrong.
-`preserve_strata_balance` (default `TRUE`) gives each declared stratum
-its source share:
-
-``` r
-
-unbalanced <- suppressWarnings(
-  synpmx_avatar(case1_pkpd, case1_roles, seed = 808,
-                preserve_strata_balance = FALSE)
-)
-#> synpmx_avatar(): dropped 9 undeclared column(s): TIMEUNIT, EVENTU, CENS, eff0, PROFDAY, PROFTIME, CYCLE, PART, IPRED.
-#>   Declare a column in `keep` to carry it through verbatim.
-table(unbalanced$TRTACT[!duplicated(unbalanced$ID)])
-#> 
-#>   10 mg  100 mg    3 mg   30 mg  300 mg Placebo 
-#>      30      33      34      26      32      25
-```
+| level           | source_patients | synthetic_patients | expected | balanced |
+|:----------------|----------------:|-------------------:|---------:|:---------|
+| 100 mg \| 100   |              10 |                 10 |       10 | TRUE     |
+| 1600 mg \| 1600 |              10 |                 10 |       10 | TRUE     |
+| 200 mg \| 200   |              10 |                 10 |       10 | TRUE     |
+| 400 mg \| 400   |              10 |                 10 |       10 | TRUE     |
+| 800 mg \| 800   |              10 |                 10 |       10 | TRUE     |
+| Placebo \| 0    |              10 |                 10 |       10 | TRUE     |
 
 One deliberate exception: a stratum holding fewer than three source
 patients is left unbalanced on purpose, because reproducing its size
@@ -1071,29 +761,27 @@ A3 compares endpoint sets across the whole cohort, so an arm that came
 back without an endpoint the rest of the study still holds passes it. C3
 asks the same question arm by arm, and every arm matching is a pass.
 [`compare_pmx_strata_endpoints()`](https://iamstein.github.io/synpmx/reference/compare_pmx_strata_endpoints.md)
-is the reading behind the count, one row per arm and endpoint:
+is the reading behind the count, one row per arm and endpoint. Six arms
+and five endpoints make thirty rows, so this is the PK concentration
+alone:
 
 ``` r
 
-compare_pmx_strata_endpoints(case1_pkpd, case1_synth, case1_roles)
+mad_by_arm <- as.data.frame(
+  compare_pmx_strata_endpoints(mad, mad_synth, mad_roles)
+)
+knitr::kable(mad_by_arm[mad_by_arm$endpoint == "PK Concentration", ],
+             row.names = FALSE)
 ```
 
 | level   | endpoint         | source_patients | synthetic_patients |
 |:--------|:-----------------|----------------:|-------------------:|
-| 10 mg   | PD - Continuous  |              30 |                 30 |
-| 10 mg   | PK Concentration |              30 |                 30 |
-| 100 mg  | PD - Continuous  |              30 |                 30 |
-| 100 mg  | PK Concentration |              30 |                 30 |
-| 3 mg    | PD - Continuous  |              30 |                 30 |
-| 3 mg    | PK Concentration |              30 |                 30 |
-| 30 mg   | PD - Continuous  |              30 |                 30 |
-| 30 mg   | PK Concentration |              30 |                 30 |
-| 300 mg  | PD - Continuous  |              30 |                 30 |
-| 300 mg  | PK Concentration |              30 |                 30 |
-| Placebo | PD - Continuous  |              30 |                 30 |
+| 100 mg  | PK Concentration |              10 |                 10 |
+| 1600 mg | PK Concentration |              10 |                 10 |
+| 200 mg  | PK Concentration |              10 |                 10 |
+| 400 mg  | PK Concentration |              10 |                 10 |
+| 800 mg  | PK Concentration |              10 |                 10 |
 | Placebo | PK Concentration |               0 |                  0 |
-
-Patients contributing each endpoint, by TRTACT {.table}
 
 The cells are patients contributing the endpoint rather than
 measurements. A measurement count moves whenever a sampling schedule was
@@ -1108,6 +796,10 @@ rather than `FAIL` when it appears, because an endpoint held by one
 patient in an arm leaves with that patient when the generator declines
 to build on them.
 
+This is the check that five endpoints buy. A3 above reads `5 of 5` on
+the cohort, and would still read `5 of 5` if one arm had lost one of
+them entirely.
+
 ## D. How much have the covariate and observation distributions changed
 
 ### D1. Do the values land in the same range
@@ -1117,69 +809,121 @@ furthest between the two tables, in either direction. It is `review` on
 every study, because spread shrinking is what the algorithm does rather
 than something it got wrong, and spread growing has no threshold either.
 
+**Look at the distributions before the number.**
+[`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
+draws every endpoint and covariate the roles declare, source against
+synthetic on shared axes, which is the reading a standard deviation
+cannot give you: one mode and two modes with the same mean and spread
+produce identical rows.
+
 ``` r
 
-case1_dist <- compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles,
-                                        output = "tables")
-knitr::kable(case1_dist$endpoints, digits = 3,
-             caption = "Endpoints, source against synthetic")
+compare_pmx_distributions(mad, mad_synth, mad_roles)
+```
+
+![](scorecard-synthetic-data-checks_files/figure-html/d-figure-1.png)
+
+A panel holding eight or fewer distinct values is drawn as proportion
+bars rather than as a curve, which is why `PD - Binary` and
+`PD - Ordinal` come out as bars: a smoothed density over `{0, 1}` would
+be a shape this study does not have.
+
+The same call with `output = "tables"` returns the numbers behind those
+panels, and D1 is one cell of them:
+
+``` r
+
+mad_dist <- compare_pmx_distributions(mad, mad_synth, mad_roles,
+                                      output = "tables")
+knitr::kable(mad_dist$endpoints, digits = 2,
+             caption = "The five endpoints, source against synthetic")
 ```
 
 | variable | dataset | n | n_subjects | mean | sd | min | q25 | median | q75 | max |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PD - Continuous | source | 1620 | 180 | 134.896 | 237.732 | -620.950 | -21.589 | 123.210 | 283.123 | 936.110 |
-| PD - Continuous | synthetic | 1620 | 180 | 132.001 | 152.667 | -360.769 | 33.492 | 119.040 | 216.812 | 741.644 |
-| PK Concentration | source | 3600 | 150 | 0.360 | 0.737 | 0.050 | 0.050 | 0.063 | 0.263 | 6.996 |
-| PK Concentration | synthetic | 3600 | 150 | 0.299 | 0.582 | 0.019 | 0.049 | 0.069 | 0.218 | 5.224 |
+| PD - Binary | source | 600 | 60 | 0.30 | 0.46 | 0.00 | 0.00 | 0.00 | 1.00 | 1.00 |
+| PD - Binary | synthetic | 600 | 60 | 0.23 | 0.42 | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 |
+| PD - Continuous | source | 600 | 60 | 21.07 | 12.51 | -3.47 | 13.17 | 19.50 | 28.42 | 68.30 |
+| PD - Continuous | synthetic | 600 | 60 | 20.42 | 11.11 | -4.59 | 13.20 | 20.80 | 27.78 | 51.66 |
+| PD - Count | source | 600 | 60 | 5.32 | 3.75 | 0.00 | 2.00 | 5.00 | 8.00 | 19.00 |
+| PD - Count | synthetic | 600 | 60 | 5.00 | 3.27 | 0.00 | 2.00 | 5.00 | 7.00 | 15.00 |
+| PD - Ordinal | source | 600 | 60 | 2.05 | 0.86 | 1.00 | 1.00 | 2.00 | 3.00 | 3.00 |
+| PD - Ordinal | synthetic | 600 | 60 | 2.02 | 0.81 | 1.00 | 1.00 | 2.00 | 3.00 | 3.00 |
+| PK Concentration | source | 1300 | 50 | 3.99 | 7.79 | 0.05 | 0.51 | 1.44 | 3.96 | 103.00 |
+| PK Concentration | synthetic | 1300 | 50 | 3.70 | 6.13 | 0.05 | 0.52 | 1.44 | 3.92 | 60.13 |
 
-Endpoints, source against synthetic {.table style="width:100%;"}
+The five endpoints, source against synthetic {.table}
 
 ``` r
 
-knitr::kable(case1_dist$covariates_numeric, digits = 2,
+knitr::kable(mad_dist$covariates_numeric, digits = 2,
              caption = "Baseline weight, source against synthetic")
 ```
 
-| variable | dataset   |   n |   mean |    sd |   min |    q25 | median |    q75 |    max |
-|:---------|:----------|----:|-------:|------:|------:|-------:|-------:|-------:|-------:|
-| WEIGHTB  | source    | 180 | 115.91 | 20.53 | 80.02 |  98.02 | 117.04 | 133.36 | 149.55 |
-| WEIGHTB  | synthetic | 180 | 117.57 | 14.13 | 88.27 | 105.56 | 118.26 | 129.32 | 143.94 |
+| variable | dataset   |   n |  mean |    sd |   min |   q25 | median |   q75 |    max |
+|:---------|:----------|----:|------:|------:|------:|------:|-------:|------:|-------:|
+| WEIGHTB  | source    |  60 | 79.35 | 14.49 | 52.80 | 69.20 |  78.90 | 89.85 | 109.00 |
+| WEIGHTB  | synthetic |  60 | 78.98 |  8.76 | 58.75 | 72.88 |  78.79 | 85.31 |  94.44 |
 
 Baseline weight, source against synthetic {.table}
 
+``` r
+
+knitr::kable(mad_dist$covariates_categorical, digits = 2,
+             caption = "Sex, source against synthetic")
+```
+
+| variable | dataset   | level  |   n | proportion |
+|:---------|:----------|:-------|----:|-----------:|
+| SEX      | source    | Female |  30 |       0.50 |
+| SEX      | source    | Male   |  30 |       0.50 |
+| SEX      | synthetic | Female |  40 |       0.67 |
+| SEX      | synthetic | Male   |  20 |       0.33 |
+
+Sex, source against synthetic {.table}
+
 **Between-subject variability shrinks, necessarily.** An avatar is an
 average of several donors, and averaging reduces variance. Baseline
-weight above has a source standard deviation of about 20.5 kg and a
-synthetic one of about 14.1. D1 reports whichever endpoint or covariate
-moved furthest, `sd x0.64` on the PD endpoint here, and is always
-`review`, since neither direction has a threshold that would be right on
-a second study. The quantities that explain how much are reported with
-the run:
+weight has a source standard deviation of about 14.5 kg and a synthetic
+one of about 8.8. D1 reports whichever endpoint or covariate moved
+furthest, `sd x0.6` on that weight here, and is always `review`, since
+neither direction has a threshold that would be right on a second study.
+
+**A categorical covariate moves for a different reason.** `SEX` is not
+blended — there is no average of `Female` and `Male` — it is drawn from
+the donors, so its proportions follow the anchor draw rather than
+shrinking toward a mean. An even 30/30 split comes back 40/20, visible
+as the last panel of the figure and the last table above. Nothing in D1
+scores it; declaring the column as `strata` instead is what holds a
+split exactly, at the cost of treating it as a protocol fact.
+
+The quantities that explain how much the numeric side shrank are
+reported with the run:
 
 ``` r
 
-unlist(attr(case1_synth, "pmx_settings")[
+unlist(attr(mad_synth, "pmx_settings")[
   c("k", "mean_effective_donors", "max_donor_weight", "cap_binding_fraction")
 ])
 #>                     k mean_effective_donors      max_donor_weight 
-#>             5.0000000             2.8870877             0.5000000 
+#>             5.0000000             2.9100145             0.5000000 
 #>  cap_binding_fraction 
-#>             0.7055556
+#>             0.7166667
 ```
 
 `mean_effective_donors` is how many donors an avatar is genuinely
-averaged over once the weights are accounted for, under 3 here out of
+averaged over once the weights are accounted for, about 2.9 here out of
 `k = 5`, and `cap_binding_fraction` is how often the single-donor weight
 cap bound. Fewer effective donors means more fidelity and less masking;
 that trade is the whole design.
 
-**Plot the data as well.** Everything above is summary statistics, and a
-summary statistic cannot see a shape: a single mode and two modes with
-the same mean and spread give identical rows. Overlay source and
-synthetic on the same axes, `DV` against time and each covariate’s
-distribution, before deciding the output is usable. No function here
-draws it, because every group has plotting code it already trusts for
-its own study.
+**Plot `DV` against time as well.** The figure above draws each
+variable’s distribution, which is not the same as its time course: two
+cohorts can hold the same concentrations and reach them on different
+days. No function here overlays source and synthetic profiles, because
+every group has plotting code it already trusts for its own study —
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+shows one such overlay for each of eight datasets.
 
 **Do the covariate–response relationships survive?** The question a
 modeller actually cares about, and the least covered by anything above:
@@ -1209,7 +953,7 @@ reports this per component:
 
 ``` r
 
-compare_pmx(case1_pkpd, case1_synth, case1_roles)$release_status
+compare_pmx(mad, mad_synth, mad_roles)$release_status
 #>              component             release_status
 #> 1              summary  restricted_not_releasable
 #> 2         event_counts  restricted_not_releasable
@@ -1246,7 +990,7 @@ observation keeps the number of doses that preceded it and that
 **B5: rare combinations, and rarity in the world.** The source-side
 census exists as
 [`compare_pmx_rare_levels()`](https://iamstein.github.io/synpmx/reference/compare_pmx_rare_levels.md)
-and B5b. Joint combinations do not, since with `d` covariates there are
+and B5. Joint combinations do not, since with `d` covariates there are
 `2^d` of them and the census is per column; closing that takes a
 decision about which combinations are worth enumerating. One mitigation
 is accidentally present: each covariate is sampled independently, so sex

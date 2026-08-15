@@ -81,7 +81,6 @@ CMT, and DVID are never averaged or independently generated.</p>
 <span>  subject_noise_sd <span class="op">=</span> <span class="fl">0.15</span>,</span>
 <span>  residual_noise_sd <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  residual_phi <span class="op">=</span> <span class="fl">0.6</span>,</span>
-<span>  time_jitter <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  screen <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  coarsen_time <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  min_pattern_share <span class="op">=</span> <span class="fl">2L</span>,</span>
@@ -152,15 +151,6 @@ neighborhood distances.</p></dd>
 -1 and 1.</p></dd>
 
 
-<dt id="arg-time-jitter">time_jitter<a class="anchor" aria-label="anchor" href="#arg-time-jitter"></a></dt>
-<dd><p>Standard deviation for coherent tied-time jitter. Zero,
-the default, leaves the event template's times unchanged. This is a realism
-control, <strong>not</strong> a privacy control: every jittered time is clamped inside
-its own Voronoi cell, so no value of <code>time_jitter</code> moves a visit more than
-half a gap from where the source subject's visit was, and the source
-schedule stays recoverable. Use <code>coarsen_time</code> for that.</p></dd>
-
-
 <dt id="arg-screen">screen<a class="anchor" aria-label="anchor" href="#arg-screen"></a></dt>
 <dd><p>When <code>TRUE</code> (default), a source subject whose follow-up length
 or dose count is more than twice the cohort's 90th percentile is not used as
@@ -178,13 +168,16 @@ on every subject. For a fuller, tunable screen of the generated output, see
 <dd><p>When <code>TRUE</code> (default), source times are collapsed onto a
 shared visit grid before generation, and per-visit deviations are pooled
 across the cohort and resampled independently onto each avatar. The grid is
-the <code>nominal_time</code> role where one is declared, and K-means centres of the
-pooled times otherwise. This is the mechanism that stops an avatar from
-carrying one real subject's exact visit schedule: the event skeleton is
+the <code>nominal_time</code> role where one is declared. Otherwise it is derived by
+merging the pooled times into visit cells, closest pair first, taking a
+merge only while no cell holds one subject twice and no boundary is wider
+than the cohort's typical visit spacing. This is the mechanism that stops an
+avatar from carrying one real subject's exact visit schedule: the event
+skeleton is
 copied verbatim from a single anchor, and under actual recorded times almost
 every subject is alone in its event-signature class, so the copy is
 identifying. Snapping is many-to-one and <em>destroys</em> the deviation rather
-than perturbing it, which is what distinguishes this from <code>time_jitter</code>. A
+than perturbing it, so the source value is not recoverable from the output. A
 source already on nominal time has no deviation to remove or restore, so its
 output is unchanged. Run <code><a href="skeleton_uniqueness.html">skeleton_uniqueness()</a></code> on the source to see how
 much this has to do, and what it leaves behind. The cost is timing

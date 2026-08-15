@@ -11,7 +11,7 @@ features:
 ## Usage
 
 ``` r
-flag_identifiable_subjects(data, roles, threshold = 3.5)
+flag_identifiable_subjects(data, roles, threshold = 3.5, min_relative_gap = 1)
 ```
 
 ## Arguments
@@ -29,6 +29,16 @@ flag_identifiable_subjects(data, roles, threshold = 3.5)
 
   Absolute modified-z cutoff above which a subject is an outlier on an
   axis. Default 3.5, the Iglewicz–Hoaglin value.
+
+- min_relative_gap:
+
+  How far a subject must sit from the nearest other subject in its
+  comparison group before that outlier counts, as a fraction of the
+  group's median on that axis. Default 1, chosen against ordinary
+  between-subject variability: a subject 40 minutes from a 216-hour
+  follow-up is not a finding, and one followed to 1730 hours where
+  everybody else has finished by 672 is. Lower it to widen the net – 0.5
+  adds the merely striking, 0 leaves the z alone.
 
 ## Value
 
@@ -48,8 +58,42 @@ of the axes on which it is unusual, empty if none), and `flagged`.
 
 - **DV value** – an extreme peak measurement.
 
-A subject is flagged when it is an outlier on any axis. This matters
-because
+A subject is flagged on an axis when **both** hold: it is a robust
+outlier there, and its gap to the nearest other subject in the
+comparison group is at least `min_relative_gap` of that group's median.
+The second condition is what makes the answer readable. A modified z
+says a subject is unusual for its cohort; it cannot say the difference
+is big enough to single anybody out, and on protocol-driven data that is
+the question that decides. Every subject in
+[`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html) completed the
+study, so follow-up times sit within two hours of each other and the
+median absolute deviation of that is six minutes: a subject forty
+minutes from its arm's median scores 4.7 and is identifiable to nobody.
+Requiring the gap as well takes that study from 6 flagged of 60 to 0,
+`pheno_sd` from 25 of 59 to 0 and `mavoglurant` from 41 of 120 to 0,
+while leaving a subject given twice its arm's dose, or followed three
+times as long as anyone else, flagged. The gap is measured to the
+nearest other subject rather than to the median, because two subjects
+sharing an extreme value single out neither – the same reasoning as
+`min_pattern_share = 2` on visit sets.
+
+The default of 1 is set against ordinary between-subject variability
+rather than against any cohort: a 30-50% coefficient of variation is
+unremarkable on a pharmacokinetic parameter, so a subject separated by
+less than that is inside the noise of the study and could not be picked
+out of it. At 1 the separation must exceed the group's whole median
+value, which is the glaring case and nothing smaller –
+[`nlmixr2data::wbcSim`](https://nlmixr2.github.io/nlmixr2data/reference/wbcSim.html)
+reports the two patients followed to 1730 and 4580 hours in a cohort
+that otherwise ends by 672, and not the one at 1130.
+
+On that setting no synthetic dataset in
+[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+reports anybody, which is the screen working rather than idling: an
+avatar is a blend of several donors, so producing a subject that extreme
+takes a defect, and this is the row that would say so.
+
+This matters because
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 copies each avatar's event skeleton from a single anchor, so a
 structurally unique source subject yields a structurally unique – and
@@ -64,16 +108,13 @@ Scores are computed **within each declared stratum**
 ([`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
 `strata`), because "does this patient stand out?" needs a comparison
 group and the whole cohort is the wrong one as soon as a study assigns
-anything. On a six-arm dose-ranging study the top arm sits far from the
-cohort median dose purely by protocol: scored cohort-wide,
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) flags
-59 of 180 avatars, 31 of them for receiving the dose their arm was
-assigned. Scored within arm it flags 1, and a patient given twice their
-arm's dose is still flagged. Strata holding fewer than five subjects are
+anything. The clearest case is a patient given a *higher* arm's dose:
+cohort-wide that dose is thirty other patients' dose, so nothing is
+reported, and it is only unusual next to the arm the patient was
+actually allocated to. Strata holding fewer than five subjects are
 scored against the whole cohort instead, since a scale estimated from
 four patients describes the four rather than the one being screened.
-With no `strata` declared, every subject is scored against the cohort,
-as before.
+With no `strata` declared, every subject is scored against the cohort.
 
 ## See also
 
@@ -92,13 +133,15 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 flag_identifiable_subjects(synthetic, roles)
-#> PMX outlier / identifiability check: 1 of 30 subjects flagged
-#> Flag = a robust outlier in follow-up time, dose count, dose magnitude, or DV value.
+#> PMX outlier / identifiability check: 0 of 30 subjects flagged
+#> Flag = a robust outlier in follow-up time, dose count, dose magnitude, or DV value,
+#> that is also at least 100% of the group median away from the nearest
+#> other subject.
 #> 
 #> Twelve most unusual:
 #>  subject_id follow_up_time n_doses max_dose max_dv outlier_axes flagged
-#>          32             20       2       92    133     DV value    TRUE
 #>          31             20       2       87     77                FALSE
+#>          32             20       2       92    133                FALSE
 #>          33             20       2      103   91.6                FALSE
 #>          34             20       2      107    101                FALSE
 #>          35             20       2     93.6     73                FALSE

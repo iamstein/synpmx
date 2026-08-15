@@ -259,10 +259,6 @@ scorecard <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 Nothing fails, and C1 passes: all six treatment arms keep their source
 size. An avatar never leaves the arm it was anchored in, because
 `TRTACT` and `DOSE` are declared as `strata` and are copied from the
@@ -342,10 +338,6 @@ compare_pmx_distributions(mad, mad_synth, mad_roles)
 scorecard <- synpmx_scorecard(mad, mad_synth, mad_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
 row count: row counts stayed plausible in the defect that motivated the
@@ -463,10 +455,6 @@ scorecard <- synpmx_scorecard(theo_md, theo_synth, theo_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
 schedules to zero without a declared `nominal_time`, and the three visit
@@ -506,10 +494,6 @@ scorecard <- synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
 declared as the `dose_covariate` and each avatar’s `amt` is rebuilt from
 its own blended weight rather than copied from its anchor’s. The ratio
@@ -547,10 +531,6 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 scorecard <- synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.
@@ -632,10 +612,6 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 scorecard <- synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
 
 **Every check passes, and the dataset is still not shippable.** A5b is
 the row to read: doses per patient falls from 10 to 1.6. Ten weekly
@@ -820,12 +796,24 @@ nimo_fixed <- suppressWarnings(
   synpmx_avatar(nimo_nominal, nimo_roles_nominal, seed = 606)
 )
 scorecard <- synpmx_scorecard(nimo_nominal, nimo_fixed, nimo_roles_nominal)
-synpmx_scorecard_datatable(scorecard)
+synpmx_scorecard_datatable(scorecard[scorecard$check %in% c("A5a", "A5b"), ])
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
+A5a and A5b are the two rows this construction was for, so only they are
+shown; `scorecard` still holds every row. The same figure as before,
+drawn on the new cohort:
+
+``` r
+
+plot_pmx_schedule(nimo_fixed, nimo_roles_nominal,
+                  main = "nimoData, synthetic with a declared NTIME")
+```
+
+![](public-data-examples_files/figure-html/nimo-fixed-schedule-1.png)
+
+Every avatar carries the full course of ten infusions, each with its
+cluster of samples behind it — the figure the source gives, rather than
+the two ticks and 2100 h of unsupported follow-up above.
 
 **The dosing comes back in full.** A5b goes from `10 -> 1.6` to
 `10 -> 10` and C2 from 7 of 12 to 1 of 1, because on the nominal grid
@@ -833,9 +821,9 @@ the twelve dose schedules become one schedule that all twelve subjects
 share — so there is nothing left to truncate, and no avatar’s course has
 to stop early. Unique observation schedules fall from 12 to 5, the
 twelve visit sets collapse to eight, real sets become reusable, and the
-invented-arrangement share falls from 100% to 25%. B2 falls from 3
-flagged patients to 2. Two visit sets are discarded either way, which is
-why the discard count should never be read on its own.
+invented-arrangement share falls from 100% to 25%. Two visit sets are
+discarded either way, which is why the discard count should never be
+read on its own.
 
 **Both cards pass, and only one of them is usable.** That is the
 argument for reading A5b rather than stopping at the B rows: the privacy
@@ -852,8 +840,7 @@ reached by a construction rather than by the generator.
 
 What the package does not yet do is *notice* the first case: no check
 asks whether an avatar’s observations still have dosing supporting them,
-so that card passes eighteen of eighteen while describing a study nobody
-ran.
+so that card passes every row while describing a study nobody ran.
 
 ### Which path to try
 
@@ -917,20 +904,15 @@ scorecard <- synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
-
-Nothing fails, and B2 is the row that looks alarming: 40 of the 120
-synthetic patients are flagged as unusual.
-[`flag_identifiable_subjects()`](https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.md)
-scores each subject against its own stratum, and no `strata` are
-declared here, so the whole cohort is scored as one group. Recorded
-follow-up length is bimodal in this study, because `TIME` restarts
-within `OCC` and a subject therefore reads as either about 24 hours or
-about 36 to 48. Against a single pooled tolerance, subjects at both ends
-are flagged. The row is reporting the shape of the study rather than a
-property of the synthetic data, which is why it is `review`.
+Nothing fails, and B2 is the row this study used to break. Recorded
+follow-up length is bimodal here, because `TIME` restarts within `OCC`
+and a subject therefore reads as either about 24 hours or about 36 to
+48. Scored on a robust z against one pooled tolerance — no `strata` are
+declared, so the cohort is the group — subjects at both ends came back
+flagged, 41 of 120 of them. B2 now requires a patient to be separated
+from the nearest other patient as well, and two clusters of sixty single
+nobody out, so it reads 0. The study’s shape is still bimodal; it was
+never a property of the synthetic data.
 
 ### The largest residual in the vignette
 
@@ -1002,10 +984,6 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 scorecard <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
-
-*D1 reports numbers, not shapes. Plot source and synthetic on the same
-axes -- DV against time, and each covariate -- with whatever you
-normally use.*
 
 **Nothing fails, and the two rows that moved say what reaching that
 cost.** Doses per patient falls from 10 to 5.6 in A5b, and 35 of the 56

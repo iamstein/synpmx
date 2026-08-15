@@ -39,8 +39,8 @@ AVATAR-*inspired* adaptation for longitudinal event tables, not
 published AVATAR software.
 
 This vignette stays at the level of what each mode does and when to use
-it. The full AVATAR algorithm — every step, the mathematics, the edge
-cases, and a worked example — is in the [AVATAR Algorithm
+it. The full AVATAR algorithm, every step with its mathematics and edge
+cases, is in the [AVATAR Algorithm
 article](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html).
 
 ## The example: theophylline
@@ -666,7 +666,7 @@ producing the model code.
   trust-boundary decision rule, and how epsilon trades against utility.
 - [The AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
-  — the default generator step by step, with the worked example.
+  — the default generator step by step, and the six masking mechanisms.
 - [Model
   elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)
   and [data

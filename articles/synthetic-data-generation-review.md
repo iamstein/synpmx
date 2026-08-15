@@ -16,9 +16,7 @@ synthetic data once it exists, which is a separate field with its own
 vocabulary, and which is easy to reinvent badly if you have not read it.
 Current as of August 2026.
 
-## Algorithms for Generating Synthetic Data
-
-### Mechanistic simulation
+## Mechanistic simulation
 
 Trial simulation has long been the standard approach within
 pharmacometrics, using tools like `rxode2` or `mrgsolve`. A structural
@@ -52,7 +50,7 @@ publishing simulations from it is a release of that information, not an
 alternative to one. This distinction is why `synpmx` separates a mode
 that reads no data at all from modes that read data under a budget.
 
-#### Copulas: realistic covariates to simulate from
+## Copulas: realistic covariates to simulate from
 
 A structural model needs covariates to simulate on — age, body weight,
 renal function, liver function, laboratory values, disease
@@ -77,7 +75,7 @@ travels well: it can be shared without the underlying data, which is
 what makes the combination a genuinely strong option for a fully
 synthetic study.
 
-### Deep generative models
+## Deep generative models
 
 Recent advances in machine learning have introduced deep generative
 models for synthetic PK/PD data generation. Methods explored include
@@ -111,7 +109,7 @@ observations.
   usually a simulated dataset or a simplified longitudinal concentration
   profile rather than an operational trial dataset.
 
-### Sequential conditional models: synthpop and tabular tools
+## Sequential conditional models: synthpop and tabular tools
 
 Outside pharmacometrics, the most widely used synthetic-data approach is
 neither mechanistic nor deep. The `synthpop` R package (Nowok, Raab and
@@ -153,7 +151,7 @@ successfully — which is exactly what Woillard and colleagues do, on 253
 patients with a single measurement each. What you cannot do that way is
 keep the longitudinal endpoint, which for pharmacometrics is the data.
 
-#### Schema-only synthesis: FakeDataR
+### Schema-only synthesis: FakeDataR
 
 Take the conditioning step out of column-by-column synthesis and the
 result is a different kind of tool: a table with the right shape and no
@@ -195,7 +193,7 @@ reproducible bug report. It is not enough to develop a dataset assembly
 script, a diagnostic plot, or model-run plumbing, because those fail on
 the event grammar and a placeholder has none.
 
-### Record-based blending
+## Record-based blending
 
 Another class of algorithms generates synthetic records directly from
 existing ones, by blending or sampling among neighboring individuals
@@ -226,7 +224,7 @@ pharmacogenetics comparison above.
 - The output is assembled from real trajectories, so it inherits the
   source data’s handling obligations wherever it goes
 
-### Differential privacy is a guarantee, not a family
+## Differential privacy is a guarantee, not a family
 
 Differential privacy (DP) is frequently listed alongside the approaches
 above, which is a category error worth undoing. DP is not a way of
@@ -256,7 +254,7 @@ article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html),
 with the formal argument and the cohort-size feasibility analysis
 alongside it.
 
-### Where synpmx fits
+## Where synpmx fits
 
 `synpmx` generates **event-based pharmacometric datasets** — dosing and
 measurement tables with the schema, event grammar, and rough behavior of
@@ -272,10 +270,9 @@ because the assembly script, the diagnostic plot, and the model-run
 plumbing all have to survive that patient, and a clean simulation never
 contains them.
 
-#### It is in the record-based family, and inherits its problems
+### It is in the record-based family, and inherits its problems
 
-The honest placement is the one that costs the most to defend: the
-default method,
+The default method,
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
 is record-based blending, and every limitation listed in that section
 applies to it. What distinguishes the package is not escaping those
@@ -302,7 +299,7 @@ and the questions to ask of any generated dataset — from any method —
 are in [the checks
 article](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html).
 
-#### The four modes across the families
+### The four modes across the families
 
 The package offers four generation modes, and they do not all sit in the
 same family. Choosing among them is a privacy decision, not a technical
@@ -314,11 +311,6 @@ preference.
 | [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md) | Mechanistic simulation from a public model | epsilon = 0 — no data is read |
 | [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md) | Mechanistic, with magnitude corrected under a budget | (epsilon, delta) DP |
 | [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md) | Statistical, rebuilt from DP summaries | (epsilon, delta) DP |
-
-#### What is genuinely different
-
-The families answer different questions, and the third column is where
-this package lives.
 
 | Family | Primary goal | Typical methods |
 |----|----|----|
@@ -332,29 +324,12 @@ data sharing. What neither is built to do is keep the event table intact
 — the dosing history, the irregular visit, the multiple endpoints on one
 grid, the deviation — because for their purposes those are nuisance
 rather than signal. For software engineering and methodological
-development they are the entire point.
+development they are relevant.
 
-`synpmx` is not intended to replace any of these. It fills the gap
-between mechanistic simulation and statistical synthetic data
-generation, and it is explicit about what that costs: blending shrinks
-variance, a dose amount is rebuilt from the avatar’s own covariate only
-where the study is weight- or body-surface-area-based *and* that was
-declared with `dose_covariate` or inferred — otherwise the anchor’s
-amount is copied and still encodes the anchor’s weight — and no output
-of the default mode is anonymous data. It is built for developing
-software against realistic data, not for estimating parameters from it.
-
-## Where to go next
-
-- [Checking synthetic
-  data](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html)
-  — the companion review: what the published methods for checking
-  synthetic data ask, and which of them this package does not attempt.
-- [The synpmx AVATAR
-  algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
-  — the default generator step by step.
-- [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
-  — the trust-boundary decision rule, and choosing epsilon.
+`synpmx` fills the gap between mechanistic simulation and statistical
+synthetic data generation.  
+It is built for developing software against realistic data, not for
+estimating parameters from it.
 
 ## References
 

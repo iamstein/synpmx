@@ -84,7 +84,7 @@ table, for the rows that did not pass, rather than as a sixth column.
 
 Printing and knitting differ on purpose.
 [`print()`](https://rdrr.io/r/base/print.html) is a console layout: the
-verdict table, then the calls to run, then the B5b levels. Knitting a
+verdict table, then the calls to run, then the B5 levels. Knitting a
 chunk that returns this object emits
 [`knitr::kable()`](https://rdrr.io/pkg/knitr/man/kable.html) tables
 instead, so a `.Rmd` or `.qmd` gets the whole card including the
@@ -99,10 +99,10 @@ threshold would be honest, and it has to be read. Nor is
 
 The same checks come back whatever the study declares. Where a study
 gives a check nothing to ask – no discrete endpoint for A6, no `strata`
-for C1 and C3, no categorical axis for B5a and B5b – the `result` says
-so and the verdict is `"pass"`, rather than the row going missing. Two
-cards can then be compared row for row, and an absent row cannot be
-mistaken for one that passed.
+for C1 and C3, no categorical axis for B5 – the `result` says so and the
+verdict is `"pass"`, rather than the row going missing. Two cards can
+then be compared row for row, and an absent row cannot be mistaken for
+one that passed.
 
 ## Plot the data as well
 
@@ -117,10 +117,12 @@ own study, and a generic one would be a worse version of that.
 `"FAIL"` is reserved for the rows where the answer is always a defect:
 the output is not a legal dataset (A1), it is not the study that went in
 (A3, A6), or it reproduces one real patient's structure verbatim (B1a,
-B1b, B4a, B4b). Everything else is `"review"`, including every row whose
-answer can move for a legitimate reason – a subject dropped for want of
-donors, a cohort statistic at a small sample size, a source a validator
-objects to.
+B1b, B4a, B4b). No other row can `"FAIL"`: the rest answer `"pass"` when
+there is nothing to read and `"review"` when there is something whose
+meaning depends on the study – a subject dropped for want of donors, a
+cohort statistic at a small sample size, a source a validator objects
+to. Four rows are `"review"` whatever they land on, because no threshold
+on them would be honest: A5a, A5b, B3 and D1.
 
 The check that matters most is absent here because no function can
 produce it: whether the pipeline that will consume the real study runs
@@ -159,12 +161,11 @@ synpmx_scorecard(data, synthetic, roles)
 #>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
 #>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
 #>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    1 of 30                             review
+#>   B2    Synthetic patients unusual within their stratum    synthetic    0 of 30                             pass
 #>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]             review
 #>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
 #>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5a   Patients holding the least-held categorical level  synthetic    no categorical covariate or stratum pass
-#>   B5b   Rare source levels copied into the output          both         no categorical covariate or stratum pass
+#>   B5    Rare source levels copied into the output          both         no categorical covariate or stratum pass
 #>   C1    Strata keeping their source size                   both         no strata declared                  pass
 #>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
 #>   C3    Arms keeping their source endpoints                both         no strata declared                  pass
@@ -173,14 +174,10 @@ synpmx_scorecard(data, synthetic, roles)
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   A5a   compare_pmx_distributions(source, synthetic, roles)
 #>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")
-#>   B2    flag_identifiable_subjects(synthetic, roles)
 #>   B3    compare_pmx_proximity(source, synthetic, roles)
 #>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")
 #> 
-#> D1 reports numbers, not shapes. Plot source and synthetic on the same axes
-#> -- `DV` against time, and each covariate -- with whatever you normally use.
-#> 
-#> no failures, 5 to review.
+#> no failures, 4 to review.
 #> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
 #> Rows reading `source` or `both` are restricted output.
 ```

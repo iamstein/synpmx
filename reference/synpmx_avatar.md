@@ -21,7 +21,6 @@ synpmx_avatar(
   subject_noise_sd = 0.15,
   residual_noise_sd = 0.05,
   residual_phi = 0.6,
-  time_jitter = 0,
   screen = TRUE,
   coarsen_time = TRUE,
   min_pattern_share = 2L,
@@ -89,16 +88,6 @@ synpmx_avatar(
 
   AR(1) correlation in observation order, strictly between -1 and 1.
 
-- time_jitter:
-
-  Standard deviation for coherent tied-time jitter. Zero, the default,
-  leaves the event template's times unchanged. This is a realism
-  control, **not** a privacy control: every jittered time is clamped
-  inside its own Voronoi cell, so no value of `time_jitter` moves a
-  visit more than half a gap from where the source subject's visit was,
-  and the source schedule stays recoverable. Use `coarsen_time` for
-  that.
-
 - screen:
 
   When `TRUE` (default), a source subject whose follow-up length or dose
@@ -120,16 +109,18 @@ synpmx_avatar(
   When `TRUE` (default), source times are collapsed onto a shared visit
   grid before generation, and per-visit deviations are pooled across the
   cohort and resampled independently onto each avatar. The grid is the
-  `nominal_time` role where one is declared, and K-means centres of the
-  pooled times otherwise. This is the mechanism that stops an avatar
-  from carrying one real subject's exact visit schedule: the event
-  skeleton is copied verbatim from a single anchor, and under actual
-  recorded times almost every subject is alone in its event-signature
-  class, so the copy is identifying. Snapping is many-to-one and
-  *destroys* the deviation rather than perturbing it, which is what
-  distinguishes this from `time_jitter`. A source already on nominal
-  time has no deviation to remove or restore, so its output is
-  unchanged. Run
+  `nominal_time` role where one is declared. Otherwise it is derived by
+  merging the pooled times into visit cells, closest pair first, taking
+  a merge only while no cell holds one subject twice and no boundary is
+  wider than the cohort's typical visit spacing. This is the mechanism
+  that stops an avatar from carrying one real subject's exact visit
+  schedule: the event skeleton is copied verbatim from a single anchor,
+  and under actual recorded times almost every subject is alone in its
+  event-signature class, so the copy is identifying. Snapping is
+  many-to-one and *destroys* the deviation rather than perturbing it, so
+  the source value is not recoverable from the output. A source already
+  on nominal time has no deviation to remove or restore, so its output
+  is unchanged. Run
   [`skeleton_uniqueness()`](https://iamstein.github.io/synpmx/reference/skeleton_uniqueness.md)
   on the source to see how much this has to do, and what it leaves
   behind. The cost is timing fidelity: an avatar's deviation from
