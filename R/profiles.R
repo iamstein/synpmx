@@ -1,3 +1,4 @@
+# Documented in `avatar-algorithm.Rmd`, Step 5. Change one, change the other.
 .event_signature <- function(subject_data, roles) {
   event <- !.is_zero(subject_data[[roles$evid]])
   observed <- .observation_rows(subject_data, roles)
@@ -63,6 +64,7 @@
 # RATE < 0 (modeled rate or duration) is still an infusion. The tokens form a
 # *set*, so three oral doses and five oral doses share a route -- dose count is
 # a schedule difference, handled by the signature, not a route difference.
+# Documented in `avatar-algorithm.Rmd`, Step 5. Change one, change the other.
 .route_key <- function(subject_data, roles) {
   dosed <- .dose_rows(subject_data, roles)
   if (!any(dosed)) return("none")
@@ -80,6 +82,7 @@
   paste(sort(unique(do.call(paste, c(pieces, sep = ":")))), collapse = ";")
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 3. Change one, change the other.
 .choose_transform <- function(values) {
   values <- values[is.finite(values)]
   if (!length(values)) {
@@ -113,6 +116,7 @@
   }
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 4. Change one, change the other.
 .common_grid <- function(times, max_points = 15L) {
   times <- sort(unique(times[is.finite(times)]))
   if (length(times) <= max_points) return(times)
@@ -137,6 +141,7 @@
   stats::approx(time, value, xout = grid, ties = mean, rule = 1)$y
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 4. Change one, change the other.
 .build_profiles <- function(data, roles, pca_variance) {
   subjects <- .unique_in_order(data[[roles$id]])
   subject_rows <- lapply(subjects, function(subject) {
@@ -260,6 +265,7 @@
   )
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 8. Change one, change the other.
 .neighbor_distances <- function(coordinates, anchor, candidates) {
   if (!length(candidates)) return(numeric())
   difference <- sweep(coordinates[candidates, , drop = FALSE], 2L,
@@ -283,6 +289,7 @@
 # relaxes to exactly 1/K: uniform weights, the flattest blend available. This is
 # what a small source falls back to -- with two donors and a 0.30 cap the answer
 # is 0.5/0.5, not an error.
+# Documented in `avatar-algorithm.Rmd`, Step 9, M5. Change one, change the other.
 .cap_weights <- function(weights, max_weight) {
   n <- length(weights)
   if (!n) return(weights)
@@ -307,6 +314,7 @@
   weights / sum(weights)
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 9, M5. Change one, change the other.
 .randomized_weights <- function(distances, max_weight = 0.50) {
   n <- length(distances)
   if (!n) return(numeric())

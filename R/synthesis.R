@@ -64,6 +64,7 @@
 # because it moves the centre to a grid point shared by the whole equivalence
 # class first; only then is the offset harmless. Order matters, and
 # `.coarsen_source_time()` is what establishes it.
+# Documented in `avatar-algorithm.Rmd`, Step 2, M1. Change one, change the other.
 .offset_unique_times <- function(skeleton, roles, offsets) {
   time <- skeleton[[roles$time]]
   unique_time <- sort(unique(time))
@@ -122,6 +123,7 @@
 # unmerged. Deciding each boundary on its own pins only the cells around that
 # tight pair, so a dense early phase and a sparse late one can be gridded at the
 # resolution each actually has.
+# Documented in `avatar-algorithm.Rmd`, Step 2, M1. Change one, change the other.
 .derive_time_grid <- function(times, subject_index) {
   keep <- is.finite(times)
   times <- times[keep]
@@ -203,6 +205,7 @@
 # receives is a fresh combination. Resampling them is
 # what keeps `TIME` distinct from `NTIME` in the output, so workflow code that
 # reconciles the two still has something to reconcile.
+# Documented in `avatar-algorithm.Rmd`, Step 2, M1. Change one, change the other.
 .coarsen_source_time <- function(source, roles) {
   time <- suppressWarnings(as.numeric(source[[roles$time]]))
   finite <- is.finite(time)
@@ -388,6 +391,7 @@
   )
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 12, M6. Change one, change the other.
 .detect_dose_basis <- function(source, roles, tolerance = 0.02,
                                max_levels = 10L) {
   if (is.null(roles$amt)) {
@@ -510,6 +514,7 @@
 # Recompute the dose from the avatar's own blended covariate, holding the level
 # the anchor was dosed at. Any declared RATE scales with the amount so the
 # infusion duration the protocol specified is preserved.
+# Documented in `avatar-algorithm.Rmd`, Step 12, M6. Change one, change the other.
 .apply_dose_basis <- function(skeleton, roles, basis, level) {
   if (is.null(basis) || is.null(level)) return(skeleton)
   covariate <- suppressWarnings(as.numeric(
@@ -613,6 +618,7 @@
 # The pool an avatar may draw from, per stratum. Patterns are kept only when
 # enough subjects share them; a stratum with nothing shared widely enough
 # contributes no pool and its anchors keep their own pattern.
+# Documented in `avatar-algorithm.Rmd`, Step 7, M3. Change one, change the other.
 .attendance_pool <- function(source, roles, profiles, min_pattern_share) {
   if (min_pattern_share <= 1L) return(NULL)
   subject_rows <- profiles$subject_rows
@@ -836,6 +842,7 @@
 # that "missed one visit, early" and "missed one visit, late" are the same kind
 # of event, so each is a group of one and both are discarded. As a shape they are
 # one group of two.
+# Documented in `avatar-algorithm.Rmd`, Step 7, M3. Change one, change the other.
 .attendance_shape <- function(key, cells, droppable = NULL) {
   if (!is.null(droppable)) cells <- cells[droppable]
   held <- strsplit(key, ";", fixed = TRUE)[[1L]]
@@ -926,6 +933,7 @@
 # nobody stopped at is free. Routine clinical care lives on both -- on
 # `pheno_sd` no complete schedule repeats, but infants open twelve-hourly
 # together and diverge later, which keeps a mean of 5.5 of the 10 doses.
+# Documented in `avatar-algorithm.Rmd`, Step 7, M4. Change one, change the other.
 .dose_truncation_plan <- function(source, roles, min_pattern_share) {
   subjects <- as.character(.unique_in_order(source[[roles$id]]))
   empty <- list(depth = rep(NA_integer_, length(subjects)),
@@ -981,6 +989,7 @@
 # Drop the dose rows after `cutoff`, so the avatar stops dosing where the plan
 # says rather than where its anchor did. Observation rows are untouched: what
 # happens after dosing stops is the attendance mechanism's business.
+# Documented in `avatar-algorithm.Rmd`, Step 7, M4. Change one, change the other.
 .apply_dose_truncation <- function(skeleton, roles, cutoff) {
   if (is.na(cutoff)) return(skeleton)
   time <- suppressWarnings(as.numeric(skeleton[[roles$time]]))
@@ -1122,6 +1131,7 @@
 # absences exactly, which is worse on every axis than an ending a visit deeper.
 # Dropout is the commonest kind of missingness, so this was the normal outcome
 # rather than an edge case: 86% of avatars on a real 21-patient study.
+# Documented in `avatar-algorithm.Rmd`, Step 7, M3. Change one, change the other.
 .place_attendance <- function(cells, shape, rare, tries = 24L,
                               droppable = NULL,
                               max_depth = length(cells)) {
@@ -1262,6 +1272,7 @@
   .first_present(data[[column]][rows])
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 10. Change one, change the other.
 .synthesize_covariates <- function(skeleton, data, roles, donor_indices,
                                    weights, profiles, subject_noise_sd) {
   for (covariate in roles$covariates) {
@@ -1430,6 +1441,7 @@
 # of identical boundary substitutions. Without this every censored donor drags
 # the blend toward the limit, and the synthetic data inherits a floor the real
 # study does not have.
+# Documented in `avatar-algorithm.Rmd`, Step 11. Change one, change the other.
 .impute_censored <- function(data, roles) {
   if (is.null(roles$cens)) return(data)
   observed <- .observation_rows(data, roles, require_present = TRUE)
@@ -1496,6 +1508,7 @@
 # weights. A row no donor covers falls to the caller's dataset-median fallback,
 # which says so out loud -- the correct answer when a study simply never
 # measured anybody at that time, and one the caller can act on.
+# Documented in `avatar-algorithm.Rmd`, Step 11. Change one, change the other.
 .interpolate_trajectory <- function(trajectory, target_time) {
   time <- trajectory$time
   value <- trajectory$value
@@ -1522,6 +1535,7 @@
 # for that second reason: a median over one subject is that subject. The floor
 # is `min_pattern_share`'s default of 2 and for the same reason -- "at least two
 # real patients stand behind this" is the weakest claim worth making.
+# Documented in `avatar-algorithm.Rmd`, Step 11. Change one, change the other.
 .cohort_median_trajectory <- function(data, roles, endpoint_name, transform,
                                       source_observed, source_endpoint,
                                       floor = 2L) {
@@ -1579,6 +1593,7 @@
   scale
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 11. Change one, change the other.
 .synthesize_trajectories <- function(skeleton, data, roles, donor_indices,
                                      weights, profiles, subject_noise_sd,
                                      residual_noise_sd, residual_phi,
@@ -1675,6 +1690,7 @@
   all(expected_observed == actual_observed)
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 13. Change one, change the other.
 .derive_standard_mdv <- function(skeleton, roles) {
   observed <- .is_zero(skeleton[[roles$evid]]) &
     !is.na(skeleton[[roles$dv]])
@@ -1853,6 +1869,7 @@
   list(candidates = if (length(pools)) pools[[1L]] else integer())
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 6. Change one, change the other.
 .strata_targets <- function(strata_key, allowed, n_subjects,
                             floor = .strata_balance_floor) {
   source_sizes <- table(strata_key)
@@ -1880,6 +1897,7 @@
   target[target > 0L]
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 6, M2. Change one, change the other.
 .structural_outlier_anchors <- function(source, roles, mult = 2) {
   subjects <- .unique_in_order(source[[roles$id]])
   key <- factor(as.character(source[[roles$id]]),
@@ -1904,6 +1922,7 @@
   which(high(follow_up) | high(n_doses))
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 8. Change one, change the other.
 .select_donors <- function(anchor, profiles, k, warnings,
                            max_donor_weight = 0.50) {
   target <- as.integer(k)
@@ -2468,6 +2487,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
     # arm matters more than the re-identification risk of reproducing it.
     # `on_donor_shortfall` picks; every branch is loud, because each silently
     # changes either what the cohort covers or how identifying it is.
+    # Documented in `avatar-algorithm.Rmd`, Step 6, M2. Change one, change the other.
     route_size <- table(profiles$routes)
     short_arms <- names(route_size)[route_size < as.integer(k) + 1L]
     route_excluded <- which(profiles$routes %in% short_arms)

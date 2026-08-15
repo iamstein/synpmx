@@ -293,6 +293,7 @@
   result
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 13. Change one, change the other.
 .new_ids <- function(source_ids, n) {
   template <- source_ids
   if (is.factor(template)) {

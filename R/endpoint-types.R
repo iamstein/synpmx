@@ -53,6 +53,7 @@
   all(abs(values - round(values)) <= 1e-8)
 }
 
+# Documented in `avatar-algorithm.Rmd`, Step 3. Change one, change the other.
 .infer_endpoint_type <- function(values) {
   values <- values[is.finite(values)]
   if (length(values) < .endpoint_type_min_observations) {
@@ -177,6 +178,7 @@
 # Nearest level, or nearest whole number. `findInterval()` on the midpoints
 # keeps this linear in the number of values and independent of the number of
 # levels; a value exactly on a midpoint goes to the higher level.
+# Documented in `avatar-algorithm.Rmd`, Step 11. Change one, change the other.
 .snap_endpoint_values <- function(values, spec) {
   if (is.null(spec) || identical(spec$type, "continuous")) return(values)
   finite <- which(is.finite(values))

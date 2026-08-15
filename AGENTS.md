@@ -22,7 +22,7 @@ synthetic pharmacometric datasets.
   is the maintainer's to update, so raise anything that looks wrong in the
   conversation rather than editing it.
 
-Two cross-document contracts, each a defect when broken:
+Three cross-document contracts, each a defect when broken:
 
 - `vignettes/scorecard-synthetic-data-checks.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
@@ -33,6 +33,13 @@ Two cross-document contracts, each a defect when broken:
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
   the numbers need it. Additional datasets get the same five steps.
+- `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
+  numbered step describes an operation the function performs, and each masking
+  mechanism M1 to M6 has a section stating what it does and what it costs.
+  Changing the behaviour of a mechanism without changing its section in the
+  same commit is a defect. The functions carry a pointer comment naming the
+  section they belong to, because the prose describes mechanisms rather than
+  naming internal functions, so that comment is the only link a grep will find.
 
 ## `README.md`
 
