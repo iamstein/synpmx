@@ -1,8 +1,9 @@
 ## Features added beyond AVATAR paper
 - BLOQ handling
-- Better event handling (possibly?)
-- Removal of outliers
-- Removal of unique dosing fingerprint
+- Weight-based dosing
+- Proper event handling
+- Removal of extreme outliers
+- Removal of dose and observation timing fingerprint
 
 ## Nice to haves
 - Keeps correlation structure to some degree
