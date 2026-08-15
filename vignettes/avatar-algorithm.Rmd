@@ -79,7 +79,7 @@ The `synpmx_avatar` function runs the following steps.
     boundary.
 12. **Recompute the dose** from the avatar's own blended covariate, where dosing
     is proportional to a covariate (e.g. weight based dosing).
-13. **Construct the full PMX dataset**, with new synthetic subject IDs and every
+13. **Construct the full synthetic dataset**, with new synthetic subject IDs and every
     column back in the shape the source had, and validate it.
 
 ## The Masking Mechanisms
@@ -1096,7 +1096,7 @@ prescribed. Declared, every avatar's course of mg/kg is one the protocol
 actually gave, dose row for dose row, and patients who escalated by different
 factors come through intact.
 
-## Step 13: Construct the Full PMX Dataset
+## Step 13: Construct the Full Synthetic Dataset
 
 The synthetic subjects are bound into one dataset, and every column is returned
 to the form the source held it in. The point is that the result drops into code
@@ -1131,152 +1131,22 @@ Finally, `validate_pmx(..., strict = TRUE)` is run on the assembled result. A
 generation call cannot silently return an output that fails the package's own
 structural requirements.
 
-## Reproducibility
+## Evaluating a Synthetic Dataset with the Scorecard
 
-All random operations occur inside a local seed scope. `seed` must be an integer
-between zero and `.Machine$integer.max`. The caller's random-number generator
-kind and `.Random.seed` are restored on exit, whether or not `.Random.seed`
-existed before the call. Consequently, identical inputs and arguments produce an
-identical complete result without consuming the surrounding analysis RNG stream.
+`synpmx_scorecard()` is the function that assess a synthetic dataset.  It is explained in 
+`vignette("scorecard-synthetic-data-checks")`, and demonstrated in both `vignette("demo")` 
+ and `vignette("public-data-examples")`.  
 
-`attr(synthetic, "pmx_settings")` records every argument, the explicit roles, and
-what each mechanism did and cost. `pmx_masking_report()` prints it, and that is
-the intended way to read it. It does not record the anchor ID, donor IDs,
-distances, or realized weights for each synthetic subject.
+## Conclusions
 
-## Checking a Run
+Is summary, this documented described an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets which can contain 
 
-Nothing above is self-certifying. Every mechanism costs something, in discarded
-visit sets, excluded anchors, or timing fidelity, and what it buys **depends
-entirely on the study**: the same defaults take one cohort to zero identifying
-schedules and leave another at all of them, because one study recorded a shared
-visit structure and the other did not. There is no headline claim to make, so
-every run reports its own numbers instead.
+* Multiple PK and PD observations
+* Binary, ordinal, or continuous observations
+* BLOQ data
 
-`synpmx_scorecard()` is where those numbers are read. Every mechanism on this
-page has a row there, along with the structural checks that a synthetic dataset
-is legal PMX data at all.
-`vignette("scorecard-synthetic-data-checks")` explains what each row asks and
-what counts as passing, and `vignette("public-data-examples")` runs the whole
-sequence across eight public datasets, including one where the guarantee cannot
-hold and what is done about it.
+In addition, the algorithm provides additional mechanisms for masking the event skeleton (dose and observation times), and a mechanism for handling weight-based dosing.  However, it does not meet formal differential privacy criteria.
 
-## Edge Cases and Documented Fallbacks
-
-The implementation favors an explicit warning and structurally valid output over
-a silent incompatible blend.
-
-```{r edge-cases-table, echo=FALSE}
-edge_cases <- data.frame(
-  Situation = c(
-    "Fewer than k donors with the anchor's dosing history",
-    "Route arm smaller than the k-donor floor",
-    "Every route arm below the floor",
-    "Cap below 1/K for K donors",
-    "Source smaller than the k-donor floor",
-    "All selected distances essentially zero",
-    "One donor time only",
-    "No donor value at a target",
-    "No variable profile feature",
-    "Identical donors with all noise disabled",
-    "Nonstandard MDV convention"
-  ),
-  Behavior = c(
-    "Borrow the nearest donors from other dose/schedule groups on the same route",
-    "Follow on_donor_shortfall: drop (default), noise, or error; alert loudly",
-    "Generate anyway and raise a loud alert; treat output as identifying",
-    "Relax the cap to 1/K, i.e. uniform weights, rather than erroring",
-    "Blend all available donors and raise a loud alert",
-    "Use epsilon-stabilized randomized weights",
-    "Repeat that donor's mean at every target time",
-    "Use transformed endpoint median and record a warning",
-    "Use a shared zero coordinate; distance cannot separate subjects",
-    "A source-shaped trajectory may be mathematically unavoidable; warn",
-    "Copy anchor MDV values rather than re-derive them"
-  ),
-  stringsAsFactors = FALSE
-)
-knitr::kable(edge_cases, align = c("l", "l"))
-```
-
-Other boundaries are deliberate. `synpmx_avatar()` supports only
-`event_method = "template"` and `dv_method = "avatar_blend"`. It does not fit a
-structural model, reconstruct covariate-parameter relationships, simulate
-occasions, enforce a dosing grammar beyond the sampled template, or provide a
-censoring model. Fitting an explicit structural model is the job of
-`synpmx_calibrated()`, which `vignette("synpmx-4-methods")` compares against this
-one.
-
-## Relationship to AVATAR
-
-The method is **AVATAR-inspired**, not an implementation of published AVATAR
-software. "AVATAR" is a method name rather than an initialism, from the
-patient-centric *avatarization* literature in which each synthetic record is
-built from the local neighborhood of real records. The original patient-centric
-AVATAR method was reported by Guillaudeux and colleagues [1]. Destere and
-colleagues describe a modified AVATAR benchmark for longitudinal population
-pharmacokinetic (PopPK) data that first widened the data by subject and then used
-PCA, K-nearest neighbors, inverse Euclidean distance, exponential stochastic
-weights, and rank attenuation before reverse transformation [2]. The shared
-family resemblance is the use of standardized subject features, PCA, local
-neighbors, inverse-distance influence, exponential randomization, and rank
-attenuation.
-
-`synpmx` adapts those ideas to a PMX event table in several material ways:
-
-- it preserves a sampled longitudinal event template rather than generating all
-  fields from a wide vector;
-- route of administration is an absolute barrier, while dose and schedule
-  differences only make a donor less preferred;
-- endpoints are transformed and interpolated separately, and a discrete endpoint
-  is returned to its own levels;
-- the same donors support covariates and endpoints;
-- every multi-donor weight, not only the dominant one, is capped at
-  `max_donor_weight` (default 0.50);
-- subject and AR(1) perturbations are added on the endpoint working scale; and
-- there is no inverse-PCA reconstruction of a full synthetic patient vector.
-
-Destere et al. also demonstrate why method labels are not validation: their
-benchmark found materially different PK parameter and residual-error biases
-across synthesis algorithms [2]. That paper is a 2026 medRxiv preprint and was
-not peer reviewed at the version supplied with this package repository. Its
-privacy analyses do not transfer to `synpmx`; this package has undergone no
-corresponding attack-based privacy validation.
-
-## Algorithm Summary
-
-What `synpmx_avatar()` executes, in order. These are implementation operations,
-finer-grained than the thirteen steps above and following the same order.
-
-1. Validate the source data, the roles, and the generator arguments.
-2. Coarsen the recorded times onto a shared visit grid and pool the deviations.
-3. Read the censoring boundary and impute censored source values.
-4. Compute first-event-relative time and the per-endpoint transformation and
-   value type.
-5. Assemble baseline covariates and interpolated endpoint trajectories into one
-   profile per source subject.
-6. Median-impute profile features, remove unusable ones, standardize, and retain
-   enough PCA components to meet `pca_variance`.
-7. Read each subject's route of administration and dosing history.
-8. Resolve anchors whose route arm cannot reach the donor floor per
-   `on_donor_shortfall`, apply the structural screen, and sample the remaining
-   anchors with replacement, within stratum where strata are declared.
-9. For each anchor, copy its whole event skeleton, then redraw its visit set and
-   truncate its dose schedule where either is unique.
-10. Find `k` donors on the anchor's route, taking those sharing its dosing
-    history nearest-first and then the nearest remaining subjects on that route,
-    and randomize their inverse-distance weights, water-filling every weight to
-    `max_donor_weight`.
-11. Generate subject-constant covariates from those donors.
-12. For each endpoint, interpolate donor trajectories to the anchor times, blend,
-    add a subject shift and AR(1) perturbations, back-transform, snap a discrete
-    endpoint to its levels, and reapply the censoring boundary.
-13. Recompute dose amounts from the blended covariate where dosing is
-    covariate-proportional.
-14. Re-derive standard MDV when applicable, give every synthetic subject a new
-    ID, preserve tie order, return every column to the form the source held it
-    in, and validate the assembled dataset.
-15. Attach `pmx_settings` and emit any collected fallback warnings.
 
 ## References
 
