@@ -41,9 +41,39 @@ test_that("a clean run passes the guarantees and marks its judgement calls", {
   expect_identical(sc_verdict(card, "A4"), "pass")
   expect_identical(sc_verdict(card, "B1a"), "pass")
   expect_identical(sc_verdict(card, "B4a"), "pass")
-  # And the rows where no threshold would be honest must not claim one.
-  expect_identical(sc_verdict(card, "A5a"), "review")
-  expect_identical(sc_verdict(card, "A5b"), "review")
+  # A study that came through with its event counts intact has nothing for a
+  # reader to decide, so A5a and A5b pass rather than asking to be read.
+  expect_identical(sc_verdict(card, "A5a"), "pass")
+  expect_identical(sc_verdict(card, "A5b"), "pass")
+})
+
+test_that("A5a and A5b pass within 5% and review beyond it, never FAIL", {
+  source <- pmx_simulated_fixture(40)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+
+  # Every subject holds the same number of observations here, so removing all
+  # of one subject's moves the cohort mean by a known fraction of itself: one
+  # subject in 40 is 2.5%, inside the tolerance, and three is 7.5%, outside it.
+  # Avatars are given new identifiers, so the subjects to thin are the
+  # synthetic table's own.
+  subjects <- unique(synthetic$ID)
+  thin <- function(ids) {
+    synthetic[!(synthetic$EVID == 0 & synthetic$ID %in% ids), , drop = FALSE]
+  }
+
+  inside <- synpmx_scorecard(source, thin(subjects[1L]), roles)
+  expect_identical(sc_verdict(inside, "A5a"), "pass")
+
+  outside <- synpmx_scorecard(source, thin(subjects[1:3]), roles)
+  expect_identical(sc_verdict(outside, "A5a"), "review")
+
+  # However far it moves. An avatar whose dose course was cut back to reach the
+  # B1b guarantee is the generator doing its job, and what is left is the
+  # reader's judgement, so neither row can reach `FAIL`.
+  far <- synpmx_scorecard(source, thin(subjects[1:20]), roles)
+  expect_identical(sc_verdict(far, "A5a"), "review")
+  expect_false(any(sc_verdict(far, "A5a") == "FAIL"))
 })
 
 test_that("B2 passes on an empty list and reviews a non-empty one", {

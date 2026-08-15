@@ -6,10 +6,16 @@
 # dataset does not require rereading the document or rewriting sixty lines of
 # reporting code per study.
 #
-# Three rows deliberately have no pass mark. Doses per patient is the clearest:
-# on a study with individualised dosing it can halve while every guarantee above
-# it still reads 0, and any threshold picked for it would be wrong on some
-# dataset. `"review"` is the honest verdict there, not a soft `"pass"`.
+# Two rows deliberately have no pass mark, B3 and D1: each is a statistic whose
+# movement means different things in different directions, so any threshold
+# picked for it would be wrong on some dataset. `"review"` is the honest verdict
+# there, not a soft `"pass"`.
+#
+# A5a and A5b do have one, but only in the direction that says nothing happened:
+# a per-patient count within 5% of the source's is a pass, and anything further
+# is `review` rather than `FAIL`. On a study with individualised dosing A5b can
+# halve while every guarantee above it still reads 0, and whether half a course
+# is enough is a judgement about the intended use, not a defect.
 #
 # Every row names the call that explains it, because a number without the tool
 # that produced it is a dead end: "4 of 9" is not something a reader can act on
@@ -81,7 +87,31 @@
 .scorecard_rows_per_patient <- function(data, roles, which) {
   rows <- if (which == "dose") .dose_rows(data, roles) else
     .observation_rows(data, roles)
-  round(sum(rows) / .scorecard_subjects(data, roles), 1)
+  sum(rows) / .scorecard_subjects(data, roles)
+}
+
+# A5a and A5b. Within `tolerance` of the source count is a pass: the cohort
+# carries the same amount of information per patient, whatever moved around
+# inside it, and there is nothing for a reader to decide. Outside it the row is
+# `review` rather than `FAIL`, because a shortened dose course can be the
+# correct answer -- see the A5b section of
+# `vignette("scorecard-synthetic-data-checks")`. The comparison is made on the
+# unrounded counts and the display is rounded, so a row that reads as equal to
+# one decimal can still be a review, which is the honest way round.
+.scorecard_per_patient_row <- function(check, question, source, synthetic,
+                                       roles, which, explore,
+                                       tolerance = 0.05) {
+  source_value <- .scorecard_rows_per_patient(source, roles, which)
+  synthetic_value <- .scorecard_rows_per_patient(synthetic, roles, which)
+  within <- if (!is.finite(source_value) || !is.finite(synthetic_value)) FALSE
+    else if (source_value == 0) synthetic_value == 0
+    else abs(synthetic_value - source_value) <= tolerance * source_value
+  .scorecard_row(
+    check, question, "both",
+    paste(round(source_value, 1), "->", round(synthetic_value, 1)),
+    explore,
+    if (within) TRUE else NA
+  )
 }
 
 # Each subject's sorted observation times, or values, as one string. Two
@@ -231,9 +261,10 @@
 #' B4b). No other row can `"FAIL"`: the rest answer `"pass"` when there is
 #' nothing to read and `"review"` when there is something whose meaning depends
 #' on the study -- a subject dropped for want of donors, a cohort statistic at a
-#' small sample size, a source a validator objects to. Four rows are `"review"`
-#' whatever they land on, because no threshold on them would be honest: A5a,
-#' A5b, B3 and D1.
+#' small sample size, a source a validator objects to. Two rows are `"review"`
+#' whatever they land on, because no threshold on them would be honest: B3 and
+#' D1. A5a and A5b pass when the per-patient count is within 5% of the source's
+#' and are `"review"` beyond it, never `"FAIL"`.
 #'
 #' The check that matters most is absent here because no function can produce
 #' it: whether the pipeline that will consume the real study runs unchanged
@@ -349,16 +380,12 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       'pmx_masking_report(synthetic, source, roles, section = "anchors")',
       if (source_subjects == synthetic_subjects) TRUE else NA
     ),
-    .scorecard_row(
-      "A5a", "Observations per patient", "both",
-      paste(.scorecard_rows_per_patient(source, roles, "obs"), "->",
-            .scorecard_rows_per_patient(synthetic, roles, "obs")),
+    .scorecard_per_patient_row(
+      "A5a", "Observations per patient", source, synthetic, roles, "obs",
       "compare_pmx_distributions(source, synthetic, roles)"
     ),
-    .scorecard_row(
-      "A5b", "Doses per patient", "both",
-      paste(.scorecard_rows_per_patient(source, roles, "dose"), "->",
-            .scorecard_rows_per_patient(synthetic, roles, "dose")),
+    .scorecard_per_patient_row(
+      "A5b", "Doses per patient", source, synthetic, roles, "dose",
       'pmx_masking_report(synthetic, source, roles, section = "dose_schedules")'
     )
   ), a6_rows, list(
