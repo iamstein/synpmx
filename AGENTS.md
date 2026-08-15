@@ -105,6 +105,7 @@ the fast loop. Two things the tooling will not tell you:
 - Treat `data/` and `output/` as generated unless told otherwise.
 - Preserve unrelated changes and avoid adding dependencies unnecessarily.
 
+
 ## Keeping documentation true
 
 - Code and regression tests are the source of truth for behavior. Existing prose

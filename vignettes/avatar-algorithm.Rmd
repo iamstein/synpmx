@@ -74,8 +74,8 @@ The `synpmx_avatar` function runs the following steps.
 8. **Choose the donors**, nearest first within the anchor's route.
 9. **Randomize and cap the donor weights**, so no one real patient is more than
    half of any avatar.
-10. **Synthesize the baseline covariates** from those donors.
-11. **Synthesize each endpoint trajectory**, then correct the generated value:
+10. **Synthesis the baseline covariates by blending** from those donors.
+11. **Synthesis the endpoint trajectories by blending**, then correct the generated value:
     snap a discrete endpoint back onto its levels, and reapply the censoring
     boundary.
 12. **Recompute the dose** from the avatar's own blended covariate, where dosing
@@ -192,7 +192,7 @@ strict = TRUE)`. Among other checks, validation requires:
 ### M1. Coarsening the Times, and Putting the Scatter Back
 
 At the default `coarsen_time = TRUE`, source times are collapsed onto a shared
-visit grid (`nominal_time` when provided, otherwise a grid is automaticlaly computed). 
+visit grid (`nominal_time` when provided, otherwise a grid is computed automatically). 
 This **snapping**, replaces each recorded time with its
 visit's grid time. The deviation removed is not discarded. It goes into one pool
 shared by the whole cohort.  **Restoring** occurs after each avatar is built, when
@@ -688,9 +688,10 @@ $$
 The floor is scaled to the cohort's own distances rather than fixed, so it stays
 negligible against a real distance whatever units the profile happens to be in.
 
-The first normalization is $w_r=q_r/\sum_s q_s$. If the raw weights are
-nonfinite or have a nonpositive total, the implementation replaces them with
-equal raw values before normalizing.
+The raw weights are then normalized to sum to 1, $w_r=q_r/\sum_s q_s$, which is
+what makes each one a share of the avatar. If they are nonfinite or have a
+nonpositive total, the implementation replaces them with equal raw values before
+normalizing.
 
 ### Capping Every Donor
 
@@ -726,25 +727,43 @@ again, which is the standard construction called **water-filling**. Pinned donor
 are never topped up, so each pass pins at least one more and it terminates. The
 tight example settles at $(0.30, 0.30, 0.24, 0.096, 0.064)$.
 
-## Step 10: Synthesize the Baseline Covariates
+## Step 10: Synthesis the Baseline Covariates by Blending
+
+The covariates are blended, using the donors chosen in Step 8 and the
+weights calculated in Step 9. A synthetic patient's weight is a weighted mean of its
+donors' weights.  Computing the mean requires:
+
+1. Choosing the scale to average on
+2. Choosing how much to perturb the estimate
+3. Choosing what to do with covariates that cannot be averaged (binary or categorical)
 
 For a numeric covariate, let $c_r$ be donor $r$'s first nonmissing value. When
 all available values are positive and
 
 $$
-\frac{\max_r c_r}{\operatorname{median}_r(c_r)}>3,
+\frac{\max_r (c_r)}{\operatorname{median}_r(c_r)}>3,
 $$
 
 the blend is formed on the log scale; otherwise it is formed on the original
-scale. With working-scale values $h(c_r)$, the donor center is
+scale. The working scale $h$ is $h(c)=\log c$ on the log scale and
+$h(c)=c$ on the original one.  The donor mean ($\mu_c$) is then:
 
 $$
 \mu_c=\sum_r w_r^* h(c_r).
 $$
 
-Let $s_c$ be the ordinary sample standard deviation of the available
-working-scale donor values. If it is unavailable or zero, the fallback is
-$\max(0.05|\mu_c|,0.01)$. The generated working-scale covariate is
+The star marks a second normalization. In Step 9 the weights were normalized
+across all the chosen donors, so $w_r$ already sums to 1. But if one donor has no
+value for this covariate, the donors that do have one carry weights summing to
+less than 1, and their mean would be pulled toward zero. So the missing donor is
+dropped and the rest are rescaled to sum to 1 among themselves. Where every donor
+has a value, $w_r^*=w_r$.
+
+Averaging several patients gives a value nearer the middle of the cohort than
+any of them was, so scatter is added back in proportion to how spread out the
+donors themselves were. Let $s_c$ be the ordinary sample standard deviation of
+the available working-scale donor values, with fallback $\max(0.05|\mu_c|,0.01)$
+when it is unavailable or zero. The generated working-scale covariate is
 
 $$
 c^*=\mu_c+\eta_c,
@@ -752,107 +771,45 @@ c^*=\mu_c+\eta_c,
 \eta_c\sim\mathrm{N}(0,(\sigma_{\mathrm{subj}}s_c)^2),
 $$
 
-where `subject_noise_sd` is $\sigma_{\mathrm{subj}}$ (default 0.15). A log-scale
-result is exponentiated, and any all-positive covariate is floored above zero.
-The final value is repeated on every row of that synthetic subject.
+where `subject_noise_sd` is $\sigma_{\mathrm{subj}}$ (default 0.15). The result
+is then inverse transformed by $h^{-1}$, so a log-scale blend is
+exponentiated, and any all-positive covariates are floored above zero.
+This final value is repeated on every row of that synthetic subject.
 
 For factor, character, and logical covariates, one available donor category is
-sampled using the locally normalized weights. Categories are not averaged.
+sampled using the locally normalized weights. Categories are not averaged, so a
+synthetic patient's category is some real patient's actual category, copied.
 
-### A Rare Category Is Copied Rather Than Blended
+### Covariates and Endpoint Are Blended Independently
 
-A numeric covariate comes out of this step as a weighted mean plus noise, a new
-number nobody had. A **categorical** covariate has nothing to average, so a
-synthetic patient's category is always **some real patient's actual category,
-copied**. Declared `strata` are copied from the anchor exactly, by design, since
-they are protocol facts.
-
-So the question is when a copied category reaches the output, and the answer
-turns on how many real patients hold the level. Measured on a fixture where one
-categorical level is held by a varying number of otherwise-ordinary patients and
-everything else is held fixed: **a level held by one patient never reaches the
-output; a level held by two does.** The mechanism is geometric rather than
-protective. Each categorical level enters the profile as its own feature, so the
-sole holder of a level sits alone on that axis, is nobody's nearest neighbour,
-and is therefore almost never selected as a donor. Give the level a second holder and the two
-become each other's nearest neighbour, the level propagates between them, and it
-leaves. By ten holders the output tracks the source frequency closely.
-
-The operative variable is the **number of holders**, not outlier status. Making
-the two holders numeric outliers as well changes nothing on the categorical axis.
-"Being an outlier is self-protecting" holds for numeric covariates, which are
-blended, and does not hold for categories.
-
-Two things follow, and the second is the one that matters.
-
-**This is not a mechanism to rely on.** It is a side effect of nearest-neighbour
-donor selection. Nothing enforces it, nothing reports it, and it degrades
-smoothly: two holders is already a leak.
-
-**The dangerous shape is a rare level on a *typical* patient.** A patient who is
-unusual on their covariates is nobody's nearest neighbour and is self-protecting.
-A patient who is ordinary in every way except one rare category, an ultra-rare
-mutation status say, sits in the middle of the profile space, is selected as a
-donor constantly, and their category is copied out. What to do about that is a
-checking question rather than an algorithm one, and it is in
-`vignette("scorecard-synthetic-data-checks")` under B5.
-
-### A Covariate and an Endpoint Are Blended Independently
-
-Covariates (this step) and endpoint trajectories (the next) are generated in
-separate passes, each with its own donor weighting and its own perturbation. That
-is fine when they are unrelated, but some datasets carry a **baseline covariate
-that is the same quantity as a longitudinal endpoint**: a `B0` baseline B-cell
-count beside a B-cell kinetic endpoint, a baseline biomarker beside its own time
-course. AVATAR does not know they are linked, so a synthetic subject's baseline
-covariate need not equal the baseline of its own generated trajectory. The two
+Covariates and endpoint trajectories are generated in
+separate passes.  In most cases that is fine, but some datasets carry a baseline covariate
+that is the same quantity as a longitudinal endpoint.  For example: `B0` baseline B-cell
+count beside a B-cell kinetic endpoint. AVATAR does not know they are linked, so a synthetic subject's baseline covariate need not equal the baseline of its own generated trajectory. The two
 are individually plausible but not mutually consistent.
 
 This is a known limitation. It is usually harmless for workflow-development use,
 where each column need only be realistic on its own. If your analysis relies on a
 covariate agreeing with an endpoint's baseline, reconcile them after generation,
-or do not declare the redundant covariate and read the baseline from the
-trajectory instead.
+or do not declare the redundant covariate and derive the baseline covariate value from the
+synthetic data trajectory instead.
 
-## Step 11: Synthesize Each Endpoint Trajectory
+## Step 11: Synthesize the Endpoint Trajectories by Blending
 
-Only positions that were eligible, nonmissing observations in the anchor template
-receive synthesized values. Thus the anchor supplies the number and placement of
-observations, including its missing-DV pattern, as redrawn by M3.
-
-For endpoint $e$, donor trajectories are transformed with $g_e$ and interpolated
-to the anchor observation times. These are the anchor's own times, not the
-fifteen-point grid of Step 4, so the avatar keeps its anchor's sampling
-resolution however rich that is.
-
-Suppose target time $t$ lies outside donor $r$'s window. Rather than
-extrapolating indefinitely, the method maps the target's relative position in the
-whole anchor observation window to the donor window:
-
-$$
-q(t)=\frac{t-a_{\mathrm{target}}}
-           {b_{\mathrm{target}}-a_{\mathrm{target}}},
-\qquad
-u_r(t)=a_r+q(t)(b_r-a_r),
-$$
-
-where $[a_{\mathrm{target}},b_{\mathrm{target}}]$ and $[a_r,b_r]$ are the target
-and donor ranges. The donor trajectory is evaluated at $u_r(t)$. This
-normalized-window fallback preserves progress through a trajectory, but it is not
-a mechanistic warping model. A donor with only one unique time supplies its mean
-at every requested target time.
-
-Let $z_{rj}$ be donor $r$'s transformed value at target position $j$. The
-deterministic blend is
+The anchor supplies the time of the observations, including its missing-DV pattern, as redrawn by M3. For endpoint $e$, donor trajectories are transformed with $g_e$ (from Step 3) and interpolated
+to the anchor observation times.  Let $z_{rj}$ be donor $r$'s transformed value at target position $j$, where it has one. The blend is
 
 $$
 \bar z_j=\sum_r w_{rj}^{*}z_{rj}.
 $$
 
-If every donor is unavailable at a target, the transformed dataset median for
-that endpoint is used and a warning is stored.
+The weights carry a $j$ because the renormalization of Step 10 is done separately
+at every target position: which donors have an observation covering that time
+changes along the trajectory, so the blend runs over whichever of them do and
+their weights are rescaled to sum to 1 among themselves.
 
-The endpoint noise scale $s_e$ is 1 on the offset-log scale. On the identity
+Where no donor covers a time at all, the row falls back to the cohort's median
+trajectory. The endpoint noise scale $s_e$ is 1 on the offset-log scale. On the identity
 scale it is the source endpoint standard deviation, with fallback
 $\max(0.1|\operatorname{median}(Y_e)|,0.01)$ when necessary. A single
 subject-level shift is shared across all positions of the endpoint:
@@ -884,116 +841,87 @@ $$
 
 Endpoints are processed separately, so PK and PD values cannot be blended with
 one another. They nevertheless use the same donor subjects and initial subject
-weights, preserving a limited form of cross-endpoint subject coherence. This is a
-synthesis device, not a fitted multivariate residual model.
+weights, preserving a limited form of cross-endpoint subject coherence. 
 
 ### Snapping a Discrete Endpoint Back onto Its Levels
 
-$Y^*_{ej}$ above is a new number, which is what a continuous endpoint wants and
-what a discrete one cannot have. So for an endpoint the value type of Step 3 made
+$Y^*_{ej}$ above is a new number, which is what should happen for a continuous endpoint,
+but not for a categorical endpoint. So for an endpoint the value type of Step 3 made
 `binary` or `ordinal`, the generated value is replaced by the **nearest observed
 level**, deciding ties at the midpoints between adjacent levels. For an `integer`
 endpoint it is rounded, and floored at zero where the source held no negative
 value. A `continuous` endpoint is left alone.
 
-The snap happens after the noise rather than before, so the subject shift and the
-AR(1) sequence still decide *which* level a given observation lands on. What they
-cannot do is invent a level between two the source recorded.
-
-The count of generated values that could not be placed on a legal level is
-recorded as `endpoint_type_violations`, and should be zero.
-
 ### Below-the-Limit-of-Quantification (BLOQ) Data and a Monolix-Style CENS Column
 
-Declare `cens` and, if the source uses one, `limit` in `pmx_roles()`, and AVATAR
-reconstructs censoring rather than copying it. The mechanism has three parts, and
-the last of them happens here, alongside the snap above: both are corrections
-applied to the generated value before it is written.
+If `cens` is declared in `pmx_roles()`, AVATAR
+reconstructs censoring. The mechanism has three parts, and
+the last of them happens here, alongside the snap above.
 
-**The boundary is read from the source.** AVATAR makes no formal privacy claim,
-so it may recover the assay limit from the data itself: under the Monolix
+**The boundary is read from the source.** Under the Monolix
 convention a censored row reports the boundary in `DV`, with `LIMIT` carrying the
 other end of an interval when there is one. Left, right, and interval censoring
-are each recognised. A differentially private engine may *not* do this, because
-there the limit must be a declared public input: a boundary inferred from
-confidential records is itself a release. That asymmetry is the reason the two
-engines derive boundaries differently. If a study used more than one assay limit,
-the most conservative boundary is taken rather than inventing a per-row rule the
-source cannot support.
+are each recognised. If a study used more than one assay limit,
+the most conservative boundary is taken rather than inventing a per-row rule.
 
-**Censored donor values are imputed before blending.** Every censored source row
-reports the same substituted number, so blending those values directly would put
-a floor under the synthetic data that the real study does not have. Each censored
-row is instead replaced by a draw inside its censoring region, uniform below the
-limit for a left-censored row and uniform within the interval for an
-interval-censored one, before the trajectory is transformed and blended. A
-uniform draw rather than a fixed LLOQ/2 avoids replacing one artificial spike
-with another.
+**Censored source values are replaced before blending.** This happens to the
+source, before profiles are built, so these values are *donor inputs* rather than
+output. Every censored row in the source reports the same number, the limit
+itself, so a donor's censored stretch is a flat line at the limit. Averaging
+those gives an avatar a latent value sitting exactly on the boundary, and whether
+it comes out censored is then decided by noise: roughly half the avatars are
+emitted just above the limit, a value the assay could not have reported, and the
+synthetic censoring rate is far below the study's.
+
+Each censored row is instead replaced by a draw inside its censoring region,
+before the trajectory is transformed and blended. For a left-censored row that is
+uniform between zero and the limit, and for an interval-censored row uniform
+between the two ends. 
 
 **`DV`, `CENS`, and `LIMIT` are reconstructed together.** The back-transformed
 blend is treated as a *latent* value: what the subject would have measured with
-no assay limit. The boundary is then applied to that latent, and all three
-columns are written from the result, so they cannot disagree. A generated value
-below the limit produces `CENS = 1` with `DV` exactly at the limit, reproducing
-the spike of identical values that characterises real censored data.
-
-Two honest limitations. The censored *fraction* is reproduced approximately
-rather than exactly, because blending shrinks variance toward the middle while
-the imputation draws uniformly across the censoring region, so the synthetic rate
-typically runs somewhat above the source's. And if a `cens` role is declared but
-no boundary can be read from it, rows flagged with `DV` missing for instance,
-AVATAR warns and carries the flag through untouched rather than guessing.
+no assay limit. The boundary is then applied to that latent mearurement, and all three
+columns are written from the result. A generated value
+below the limit produces `CENS = 1` with `DV` exactly at the limit.
 
 ## Step 12: Recompute the Dose from the Blended Covariate
 
 ### M6. Recomputing the Dose
 
-Under dosing proportional to a baseline covariate, the multiplier is a protocol
-property the stratum shares and the covariate is individual, and already blended.
+When dosing is proportional to a baseline covariate (e.g. weight), the multiplier is a protocol
+property the stratum shares and the covariate is individual.
 Keeping the multiplier and recomputing the amount from the avatar's own covariate
-stops the dose being a verbatim real value, which under mg/kg dosing discloses
-the anchor's weight exactly, and repairs a coherence defect: previously every
-avatar violated the mg/kg rule its own data claims to follow.
+stops the dose being a verbatim real value.
 
-**Declared or inferred, and the difference matters.** Naming the covariate in
+**Declared or inferred.** Naming the covariate in
 `pmx_roles(dose_covariate = )` states the relationship outright; leaving it
 `NULL` makes the run infer one. Inference is deliberately conservative: it
 requires the dose-to-covariate ratio to collapse onto a handful of levels within
 2%, because rewriting amounts on a study that is *not* proportional would be
-worse than leaving them alone. Two ordinary things defeat that test, dispensing
-in vials and patients escalating by factors that are not identical across the
-cohort, so a genuinely weight-based study can come through with its amounts
-untouched. Declaring the covariate skips inference and holds **each dose row's
-own ratio** rather than snapping to shared levels, so intra-patient escalation
-survives exactly. `pmx_masking_report()` says which path ran and, when inference
-declined, what it tried.
+worse than leaving them alone.
 
-On a study that dispenses in vials and escalates within patient, which is the
-shape inference cannot recover, the difference is the whole mechanism. Left to
-infer, the amounts are copied, and each avatar ends up carrying its anchor's
-milligrams over its *own* blended weight, a dose per kilogram nobody was
-prescribed. Declared, every avatar's course of mg/kg is one the protocol
-actually gave, dose row for dose row, and patients who escalated by different
-factors come through intact.
+Two ordinary things defeat that test. The first is **dispensing in whole units**.
+A protocol may say 2 mg/kg, but if the drug comes in 25 mg vials the amount
+actually given is rounded to a multiple of 25, and since every patient weighs
+something different that rounding is a different fraction of each patient's dose.
+A cohort with weights ranging from 54 to 80 kg dosed that way records ratios from 1.84 to 2.21 mg/kg,
+a spread of about 19%, so the ratios never collapse to within 2% and inference
+correctly declines. The second is **patients escalating by factors that are not
+identical**, which spreads the ratios the same way. Either leaves a genuinely
+weight-based study with its amounts untouched. Declaring the covariate skips inference and holds each dose row's
+own ratio, rather than snapping to shared levels, so intra-patient escalation
+survives exactly. 
 
 ## Step 13: Construct the Full Synthetic Dataset
 
-The synthetic subjects are bound into one dataset, and every column is returned
-to the form the source held it in. The point is that the result drops into code
-written against the source without anything having to be adjusted: a column that
-was an integer is still an integer, a factor still has its levels in their
-original order, and a tibble comes back a tibble.
-
-After the subjects are row-bound, the original column order is restored, and each
+The synthetic subjects are bound into one dataset, the original column order is restored, and each
 result column is converted toward its source class:
 
-- factors recover source levels and ordering; new factor IDs add new levels;
-- integer columns are rounded and converted to integer;
-- double, logical, character, Date, and POSIXct columns are restored; and
-- a non-`data.frame` source class, such as a tibble class vector, is reapplied.
+- factors recover source levels and ordering
+- integer columns are rounded and converted to integer
+- double, logical, character, Date, and POSIXct columns are restored
 
-New numeric IDs start above the source maximum. New character and factor IDs use
-labels such as `syn_001`, with a prefix added repeatedly if needed to avoid
+New IDs use labels such as `syn_001`, with a prefix added repeatedly if needed to avoid
 collision.
 
 If MDV is declared and the entire source obeys the standard relationship
@@ -1003,17 +931,19 @@ $$
 $$
 
 MDV is re-derived from that rule in the synthetic data and restored to its
-original class. For any nonstandard source-wide MDV convention, anchor values are
-left as copied. This step neither invents nor removes observation positions,
-which ones an avatar has having been settled by M3 in Step 7.
+original class. 
 
-Finally, `validate_pmx(..., strict = TRUE)` is run on the assembled result. A
-generation call cannot silently return an output that fails the package's own
-structural requirements.
+## Reproducibility
+
+Every random draw happens inside a local seed scope, so identical inputs and
+arguments return an identical dataset. The caller's random-number state is
+restored on exit, whether or not one existed before the call, so generating a
+dataset does not consume the random stream of the analysis around it. `seed` must
+be an integer between zero and `.Machine$integer.max`.
 
 ## Evaluating a Synthetic Dataset with the Scorecard
 
-`synpmx_scorecard()` is the function that assesses a synthetic dataset.  It is explained in 
+`synpmx_scorecard()` is the function that is used to assess a synthetic dataset.  It is explained in 
 `vignette("scorecard-synthetic-data-checks")`, and demonstrated in:
 
 * `vignette("demo")` - AVATAR demonstration on a single dataset
@@ -1021,9 +951,9 @@ structural requirements.
 
 ## Conclusions
 
-In summary, this document describes an extension of the AVATAR algorithm from [1, 2] to work with more realistic PKPD datasets, which can contain: multiple PK and PD observation types, binary, ordinal, or continuous observations, and BLOQ data.  The algorithm also provides additional mechanisms for masking the event skeleton (dose and observation times), and handles weight-based dosing. 
+This document describes an extension of the AVATAR algorithm from [1, 2].  This algorithm was designed to work with realistic PKPD datasets, which can contain multiple PK and PD observations variables, multiple PD observation types (binary, ordinal, or continuous observations), and BLOQ data.  The algorithm also provides additional mechanisms for masking the event skeleton (dose and observation times), and handles weight-based dosing. 
 
-However, this algorithm offers no formal privacy guarantees, nor does it guarantee preservation of the true relationship between observation variables and covariates.  The algorithm is desgined to produce synthetic datasets that carries many of the properties of the source data, for use in developing and debugging analysis code.
+This algorithm offers no formal privacy guarantees, nor does it guarantee preservation of the true relationship between dose, exposure, observation variables and covariates.  The algorithm is desgined to produce synthetic datasets that carries many of the properties of the source data, for use in developing and debugging analysis code.
 
 
 ## References

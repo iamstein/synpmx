@@ -2025,9 +2025,12 @@
 #' @param coarsen_time When `TRUE` (default), source times are collapsed onto a
 #'   shared visit grid before generation, and per-visit deviations are pooled
 #'   across the cohort and resampled independently onto each avatar. The grid is
-#'   the `nominal_time` role where one is declared, and K-means centres of the
-#'   pooled times otherwise. This is the mechanism that stops an avatar from
-#'   carrying one real subject's exact visit schedule: the event skeleton is
+#'   the `nominal_time` role where one is declared. Otherwise it is derived by
+#'   merging the pooled times into visit cells, closest pair first, taking a
+#'   merge only while no cell holds one subject twice and no boundary is wider
+#'   than the cohort's typical visit spacing. This is the mechanism that stops an
+#'   avatar from carrying one real subject's exact visit schedule: the event
+#'   skeleton is
 #'   copied verbatim from a single anchor, and under actual recorded times almost
 #'   every subject is alone in its event-signature class, so the copy is
 #'   identifying. Snapping is many-to-one and *destroys* the deviation rather

@@ -2,15 +2,13 @@
 
 - go through avatar algorith again (on sec 10)
 
-- Spot check the code. 
+- Spot check the code (ask co-author and colleague if they'd like to help here)
     - consider /ultrareview
     - validating scorecard
     - validating avatar algorithm
     
 - In parallel - Meet with an internal colleague (mid august)
 - Make poster (due Sept 28 for online submission)
-
-- go through the scorecard vignette again
 
 ## Other things to do (off critical path)
 - Go through the literature reviews

@@ -112,8 +112,8 @@ documents.
 10. A survey ends with a ranked entry path (O9), and repeated things hold the
     same shape in the same order (O17).
 11. The tics above are *searched for*, not read for: crucial, key, worth,
-    honestly, delve, leverage, robust, seamless, "not just", "it is worth
-    noting", "here is why", "the point is".
+    honestly, honest, delve, leverage, robust, seamless, "not just", "it is worth
+    noting", "here is why", "the point is", matters, "the difference matters".
 
 ---
 

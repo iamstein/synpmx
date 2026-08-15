@@ -135,6 +135,11 @@ test_that("the census counts a blank level like any other", {
 # level, so a sole holder sits alone on that axis, is nobody's nearest
 # neighbour, and is almost never a donor. A second holder makes the two each
 # other's nearest neighbour and the level travels between them.
+#
+# The sole holder is only safe while the donor pool is larger than `k`. At a pool
+# of exactly `k` every candidate is forced into the donor set, sole holder
+# included, and the level does escape -- but that is the shortfall regime
+# `on_donor_shortfall` already alerts on.
 propagation_fixture <- function(n_holders, n = 40L) {
   set.seed(1)
   do.call(rbind, lapply(seq_len(n), function(i) {
