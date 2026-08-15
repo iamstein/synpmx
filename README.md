@@ -32,7 +32,7 @@ specified. The original method was developed in
 Guillaudeux and colleagues [2], and Destere and colleagues benchmark a modified
 AVATAR for population PK datasets [1]. However, they did not test their method using
 pharmacometrics dataset from actual clinical trials.  We have developed the synthetic data method
-here using actual clinical data and thus it handles realistic aspects of trials such as BLOQ data, body-weight dosing, multiple regimens, and it also has masking methods added so that patients cannot be identiied by a unique dosing schedule or set of observation times.  The key function is `synpmx_avatar`, which builds artificial profiles from real patient profiles,
+here using actual clinical data and thus it handles realistic aspects of trials such as BLOQ data, weight-based dosing, multiple regimens, and it also has masking methods added so that patients cannot be identified by a unique dosing schedule or set of observation times.  The key function is `synpmx_avatar`, which builds artificial profiles from real patient profiles,
 It masks identifiable characteristics, but does not offer formal privacy guarantees.  
 
 For teaching purposes, the package also provides code for other data masking methods, using trial simulation from prior knowledge, and differential privacy methods.  These methods give more formal
@@ -73,66 +73,38 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 AVATAR is called by `synpmx_avatar()`. It needs two things: the data, and a declaration of what its columns mean. A model is not needed.  Every column that is not described is dropped. Only `id`, `time`, `dv`, and `evid` are required; everything else is optional.
 
-The block below stands in for your study — replace the first dozen lines with
-your own data frame and edit the column descriptions to match your dataset. The example below
-shows every column AVATAR can be told about, but if your study does not have such a column, it can be dropped (e.g. if there is no BLOQ data, you can drop the `CENS` and `LIMIT` columns)
+The example below runs on `xgxr::case1_pkpd`, the same dataset as the
+[demo](https://iamstein.github.io/synpmx/articles/demo.html): 180 subjects, six
+arms from placebo to 300 mg, a PK and a PD endpoint. Swap in your own data frame
+and edit the column descriptions to match it.
 
 ``` r
 library(synpmx)
 
-study <- pmx_simulated_fixture(24)                  # 24 subjects, 2 endpoints
-study$YTYPE <- ifelse(study$DVID == "cp", 1L, 2L)   # endpoint key, numeric
-study$NAME  <- as.character(study$DVID)             # same endpoint, as text
-study$DVID  <- NULL
-study$TRTN  <- ifelse(study$ID %% 2L == 1L, 1L, 2L) # assigned arm, numeric
-study$TRT   <- ifelse(study$TRTN == 1L, "100 mg QD", "200 mg QD")
-study$AMT[study$EVID != 0] <- 100 * study$TRTN[study$EVID != 0]
-study$STUDYID <- "EXAMPLE-001"
-bloq <- study$EVID == 0 & study$NAME == "cp" & study$DV < 1.2
-study$DV[bloq]   <- 1.2                             # DV reports the limit
-study$CENS[bloq] <- 1L                              # 1 = left-censored (BLOQ)
-study$LIMIT <- ifelse(bloq, 0, NA_real_)            # the other boundary
+study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
+study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
 
 roles <- pmx_roles(
-  id                 = "ID",                    # subject identifier
-  time               = "TIME",                  # actual elapsed time, numeric
-  dv                 = "DV",                    # dependent variable
-  evid               = "EVID",                  # event identifier
-  amt                = "AMT",                   # dose amount
-  rate               = "RATE",                  # infusion rate
-  cmt                = "CMT",                   # compartment
-  dvid               = c("YTYPE", "NAME"),      # endpoint key; several columns may label the same endpoint,
-                                                # If CMT is your only endpoint key,
-                                                # name it in both:
-                                                # cmt = "CMT", dvid = "CMT"
-  mdv                = "MDV",                   # missing-DV indicator
-  nominal_time       = "NTIME",                 # protocol visit time
-  tad                = "TAD",                   # time after dose; recomputed
-  occasion           = "OCC",                   # dosing occasion
-  cens               = "CENS",                  # 1 = BLOQ, -1 = above, 0 = not
-  limit              = "LIMIT",                 # the other interval boundary
-  covariates         = c("WT", "AGE", "SEX"),   # measured; blended across donors
-  dose_covariate     = "WT",                    # if dose is body-weight based and it should be declared
-  strata             = c("TRT"),                # assigned arm / dose group / cohort
-  keep               = c("STUDYID", "TRTN")     # columns to be carried through verbatim
-  # addl, ii          -- accepted and carried, but not expanded; expand
-  #                      ADDL doses into explicit rows before synthesis
+  id           = "ID",                 # subject identifier
+  time         = "TIME",               # actual elapsed time, numeric
+  dv           = "LIDV",               # dependent variable
+  evid         = "EVID",               # event identifier
+  amt          = "AMT",                # dose amount
+  cmt          = "CMT",                # compartment
+  dvid         = "NAME",               # endpoint key: which endpoint the row reports
+  nominal_time = "NOMTIME",            # protocol visit time
+  cens         = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
+  covariates   = "WEIGHTB",            # measured; blended across donors
+  strata       = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort
+  keep         = "STUDY"               # carried through verbatim
 )
 ```
 
-**Covariates, Strata, and Keep** are easy roles to confuse:
-
-- `covariates` are *measured* characteristics. They are **blended** across the
-  donors, so a synthetic subject's weight is a new number nobody had.
-- `strata` are *assigned* strata — arm, dose group, cohort. They are
-  copied from the anchor, and the stratum is what groups the dose rule and the
-  pool of visit patterns an avatar may be given.  In cases where you have two
-  columns that declare a single strata and you want to keep both (e.g. a 
-  string (`TRT`) and numeric (`TRTN`) column, then placae one of them in `keep`.)
-- `keep` is the escape hatch for anything else you want carried through
-  untouched: a study identifier, a randomization sequence, a units column, a
-  redundant label. A kept value is one real subject's real value, so keep
-  only what the source data's own access controls already permit.
+This study has no column for the other roles, so they are left out: `rate`,
+`mdv`, `occasion`, `tad`, `limit` (the other boundary when `cens` is set),
+`dose_covariate` (the covariate a weight-based dose is computed from), and
+`addl`/`ii` (carried but not expanded — expand ADDL doses into explicit rows
+before synthesis). `?pmx_roles` describes each one.
 
 ``` r
 synthetic <- synpmx_avatar(
