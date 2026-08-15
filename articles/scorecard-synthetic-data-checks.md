@@ -36,8 +36,8 @@ structure was reproduced verbatim. No other row can fail. The rest
 answer `pass` when there is nothing to read and `review` when there is
 something whose meaning depends on the study: a subject dropped for want
 of donors, an arm that changed size, a statistic wandering at a small
-sample size. Four rows are `review` however they land, because no
-threshold on them would be honest — A5a, A5b, B3 and D1.
+sample size. Two rows are `review` however they land, because no
+threshold on them would be honest — B3 and D1.
 
 ### The two datasets used here
 
@@ -187,13 +187,17 @@ legitimately come back empty.
 ### A5a, A5b. Did the number of observations and doses survive
 
 A5a and A5b are rows per patient, split by event type: observations in
-one, dose events in the other. Both are `review` on every study, because
-the number is permitted to move.
+one, dose events in the other. Each passes when the synthetic count
+lands within 5% of the source’s — that much movement leaves each patient
+carrying the same amount of information, and there is nothing to decide.
+Further than that is `review` and never `FAIL`, because the number is
+permitted to move: a shortened dose course can be the correct answer, as
+the rest of this section shows.
 
 On `mad` neither moves — 61.7 observations and 5 doses per patient on
-both sides, a fixed protocol grid coming through intact. `pheno_sd` is
-where they move, and the card is a `data.frame`, so a section of it is
-an ordinary row subset:
+both sides, a fixed protocol grid coming through intact, so both pass.
+`pheno_sd` is where they move, and the card is a `data.frame`, so a
+section of it is an ordinary row subset:
 
 ``` r
 
@@ -201,8 +205,9 @@ pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard_datatable(pheno_card[pheno_card$check %in% c("A5a", "A5b"), ])
 ```
 
-Observations are near-intact at 2.6 against 2.5 per patient, while
-dosing falls from 10 to 5.6. This occurs from
+Observations are near-intact at 2.6 against 2.5 per patient — inside the
+5%, so A5a passes — while dosing falls from 10 to 5.6 and A5b asks to be
+read. This occurs from
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 trying to infer a nominal time grid.
 

@@ -167,9 +167,10 @@ A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
 B4b). No other row can <code>"FAIL"</code>: the rest answer <code>"pass"</code> when there is
 nothing to read and <code>"review"</code> when there is something whose meaning depends
 on the study – a subject dropped for want of donors, a cohort statistic at a
-small sample size, a source a validator objects to. Four rows are <code>"review"</code>
-whatever they land on, because no threshold on them would be honest: A5a,
-A5b, B3 and D1.</p>
+small sample size, a source a validator objects to. Two rows are <code>"review"</code>
+whatever they land on, because no threshold on them would be honest: B3 and
+D1. A5a and A5b pass when the per-patient count is within 5% of the source's
+and are <code>"review"</code> beyond it, never <code>"FAIL"</code>.</p>
 <p>The check that matters most is absent here because no function can produce
 it: whether the pipeline that will consume the real study runs unchanged
 against this output.</p>
@@ -199,8 +200,8 @@ report, <code><a href="compare_pmx.html">compare_pmx()</a></code>, <code><a href
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A2    Source is legal under the declared roles           source       TRUE                                pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A3    Every endpoint survived                            both         2 of 2                              pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A4    Cohort size survived                               both         30 -&gt; 30                            pass</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5a   Observations per patient                           both         14 -&gt; 14                            review</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5b   Doses per patient                                  both         2 -&gt; 2                              review</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5a   Observations per patient                           both         14 -&gt; 14                            pass</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   A5b   Doses per patient                                  both         2 -&gt; 2                              pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass</span>
@@ -215,12 +216,10 @@ report, <code><a href="compare_pmx.html">compare_pmx()</a></code>, <code><a href
 <span class="r-out co"><span class="r-pr">#&gt;</span>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> To explore, with `source`, `synthetic` and `roles` named as you have them:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5a   compare_pmx_distributions(source, synthetic, roles)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   A5b   pmx_masking_report(synthetic, source, roles, section = "dose_schedules")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   B3    compare_pmx_proximity(source, synthetic, roles)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> no failures, 4 to review.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> no failures, 2 to review.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Rows reading `source` or `both` are restricted output.</span>
 </code></pre></div>

@@ -613,13 +613,14 @@ scorecard <- synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-**Every check passes, and the dataset is still not shippable.** A5b is
-the row to read: doses per patient falls from 10 to 1.6. Ten weekly
-infusions go in and between one and two come out, because the only
-openings any two subjects share are the first dose and occasionally the
-second. C2 agrees from the other side — 7 of the 12 source regimens are
-represented, none of them at full length. This is the case where a card
-of passes is worth less than one `review` row.
+**Nothing fails, and the dataset is still not shippable.** A5b is the
+row to read: doses per patient falls from 10 to 1.6, nowhere near the 5%
+that would pass it. Ten weekly infusions go in and between one and two
+come out, because the only openings any two subjects share are the first
+dose and occasionally the second. C2 agrees from the other side — 7 of
+the 12 source regimens are represented, none of them at full length.
+This is the case where fourteen passes are worth less than one `review`
+row.
 
 ### The inferred grid achieves nothing here
 
@@ -825,16 +826,17 @@ invented-arrangement share falls from 100% to 25%. Two visit sets are
 discarded either way, which is why the discard count should never be
 read on its own.
 
-**Both cards pass, and only one of them is usable.** That is the
-argument for reading A5b rather than stopping at the B rows: the privacy
-guarantee is identical on both sides and the science is not. The samples
-get their exposure back with the doses: 61 of 326 observations sit after
-the last dose, against 59 of 321 in the source, where before it was 317
-of 331. Median time after dose comes back to 72 h against the source’s
-96 h, where the recorded-time run gave 935 h — and it is the pre-dose
-slot above that buys most of that. Rounding the trough onto its next
-infusion instead leaves the median at 0 and doubles the share of
-time-zero samples, which is the A1 gap in
+**Neither card fails, and only one of them is usable.** A5b is what
+separates them: `review` on the recorded times, `pass` on the
+constructed grid, while the privacy guarantee is identical on both
+sides. Stopping at the B rows would have made the two cards look the
+same. The samples get their exposure back with the doses: 61 of 326
+observations sit after the last dose, against 59 of 321 in the source,
+where before it was 317 of 331. Median time after dose comes back to 72
+h against the source’s 96 h, where the recorded-time run gave 935 h —
+and it is the pre-dose slot above that buys most of that. Rounding the
+trough onto its next infusion instead leaves the median at 0 and doubles
+the share of time-zero samples, which is the A1 gap in
 [`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
 reached by a construction rather than by the generator.
 
