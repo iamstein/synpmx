@@ -32,71 +32,40 @@ AVATAR makes no formal privacy claim. It also does not preserve the dose-exposur
 relationship.  Use the synthetic datasets to develop and debug analysis code. Do not use
 it to estimate parameters.
 
-Because modeling datasets are oft
+Because modeling datasets are generally longitudinal, one set of identifying features are
+the unique dose or observation times each patient will have.  The default setting of 
+`synpmx_avatar` ensure that the set of observation and dose times of the synthetic patient
+does not match any one real patient data.   
 
-Two properties hold **by construction** at the default settings, and a run
-verifies both on its own output rather than inferring them from the mechanisms
-that produced it:
+## Overview of Algorithm
 
-> **No synthetic patient carries a set of observation times, or a set of dose
-> times, that only one real patient has.**
+Each synthetic patient is called an avatar.  Each avatar is built from one real 
+**anchor** subject's dosing event structure, then filled with measurements blended from several similar real subjects, called **donors**. The generator works on any number of endpoints, so one study can
+carry multiple PK profiles alongside multiple pharmacodynamic (PD) measures.
 
-The two halves are enforced differently, because they can be. Which visits an
-avatar *has observations at* is redrawn from sets that at least
-`min_pattern_share` real patients share, so a pattern held by one person is
-never handed on. Dose events are **not** redrawn. Resampling them would emit
-regimens the protocol never permitted, which is a worse error than the one it
-would fix, so instead a patient whose dose schedule nobody shares is simply not
-built upon. In both cases it is the *avatar* that moves to a different anchor,
-never the patient that is removed: every source patient keeps contributing as a
-donor, so their measurements still shape the output.
+Every patient's data can be thought of as containing two pieces of information which are treated differently
 
-`synpmx_avatar()` records the result as `identifying_visit_sets` and
-`identifying_dose_schedules` on `attr(x, "pmx_settings")`, and
-`pmx_masking_report()` prints them. Both must be zero.
+* **event skeleton** is *when* the dose events and the DV observations
+happen. 
+* **values** are the DV numbers filling those observation slots, plus
+the baseline covariates. 
 
-**Where it cannot hold, the run says so rather than pretending.** The guarantee
-needs somewhere safe to move an avatar to, and a study can fail to provide one.
-`nimoData`, whose dosing is individualised, gives every patient a dose schedule
-nobody else shares, so there is no patient to build on instead and every avatar
-inherits one. That run alerts, and reports the count. Setting
-`min_pattern_share = 1` turns the guarantee off deliberately.
+The event skeleton is copied from one anchor patient with some
+masking of the times, and the values are blended across several donors. 
+The `synpmx_avatar` function runs the following steps.
 
-Two limits. This is about a schedule being *reproduced*, not about it being
-similar. An avatar whose visits sit near a real patient's is not covered. And it
-covers the *timing* structure only: dose **amounts** are handled separately by
-M6, and the values themselves by the blending in M5.
-
-## The Process at a Glance
-
-Each avatar is built from one real **anchor** subject's dosing event structure,
-then filled with measurements blended from several similar real subjects, called
-**donors**. The generator works on **any number of endpoints**, so one study can
-carry multiple PK profiles alongside multiple pharmacodynamic (PD) measures,
-declared through the `dvid` role.
-
-Underneath everything is one idea. Every patient's rows hold two different
-things. The **event skeleton** is *when* the dose events and the DV observations
-happen. The **values** are the DV numbers filling those observation slots, plus
-the baseline covariates. The skeleton is copied from one real patient with some
-masking, and the values are blended from several. The anchor supplies the event
-skeleton; the donors supply the values.
-
-The pipeline runs thirteen **steps**, in the order the implementation executes
-them:
-
-1. **Declare the columns.** Roles say which column is the id, the time, the
-   dose, the measurement. Only named columns survive.
+1. **Declare the columns.** The `roles` variable say which column is the id, time,
+   dose, measurement, etc. Only named columns survive.
 2. **Coarsen and align the times.** Snap every recorded time onto a shared visit
-   grid, and align each subject to its own first dose.
+   grid (often based on nominal time), and align each subject to its own first dose.
 3. **Choose an endpoint transformation and value type.** Decide what "average"
    means for each endpoint, and whether it is continuous or discrete.
 4. **Build one numeric profile per source subject**, and reduce it to a handful
    of principal-component coordinates that measure similarity between patients.
-5. **Construct event signatures and route keys**, which decide who may donate to
-   whom.
-6. **Restrict the anchor pool and sample anchors**, keeping each stratum's share
-   of the cohort.
+5. **Decide who may donate data to whom**, by reading each subject's route of
+   administration and dosing history.
+6. **Restrict the anchor pool and sample anchors**, keeping each cohort (arm) the
+   same size (except for very small cohorts)
 7. **Copy the anchor's rows** and redraw the parts of its schedule that identify
    it: every TIME, EVID, AMT, RATE and CMT is copied, then the visit set and the
    stopping point are replaced.
@@ -677,20 +646,23 @@ The term **rank-safe** means the attempted PCA rank cannot exceed either the
 feature rank or $n-1$. It does not imply that sparse or nearly duplicated
 profiles contain useful separation.
 
-## Step 5: Construct Event Signatures and Route Keys
+## Step 5: Decide Who May Donate to Whom
 
 Similarity in PCA space is not sufficient on its own. A subject receiving a
 single oral dose should not donate a trajectory to an infusion or repeat-dose
-template. But the two ways a donor can be unsuitable are not the same kind of
-problem, and the generator treats them differently.
+template. So before any donor is chosen, each source subject is read for the two
+things that decide whether it may donate to a given anchor, and Step 8 uses them
+to pick each avatar's actual donors. The two are not the same kind of
+restriction, and the generator treats them differently.
 
 **Route of administration is an absolute barrier.** A bolus, an infusion, and an
 oral dose produce categorically different concentration shapes. Blending across
 them does not yield a noisier version of the truth; it yields a trajectory no
 protocol could have produced. Donors are therefore *never* drawn from outside
 the anchor's route, at any stage, for any shortfall, including when that leaves
-the anchor with no legal donor at all. Each subject's route key is read from its
-dosing rows only, as the set of
+the anchor with no legal donor at all.
+
+Each subject's route is read from its dosing rows only, as the set of
 
 $$
 \bigl(\mathrm{EVID},\ \mathrm{CMT},\ \mathbb{1}[\mathrm{RATE}\neq 0]\bigr)
@@ -701,8 +673,9 @@ is delivered over time both bind, while dose *count* does not: three oral doses
 and five oral doses share a route. NONMEM's `RATE < 0`, a modeled rate or
 duration, counts as an infusion.
 
-**Everything else is a preference.** Each subject also receives an event
-signature containing:
+**Everything else is a preference.** Each subject also receives a **dosing
+pattern**, a summary of the course it was given and what was measured on it,
+holding:
 
 - the ordered EVID values on event rows;
 - optional CMT and DVID values on those rows;
@@ -711,11 +684,20 @@ signature containing:
 - successive start-time gaps rounded to two significant digits; and
 - the set of endpoints on eligible observation rows.
 
-Notice what is not in the signature: the observation-time schedule. Event values
+Two subjects with the same dosing pattern were, as far as the data records, put
+through the same course. Step 8 prefers such a donor, and where too few exist it
+takes the nearest subject on the same route whatever its pattern.
+
+Notice what is not in the pattern: the observation-time schedule. Event values
 still come from the anchor template, while unequal observation times are handled
-by interpolation. Dose magnitude *is* in the signature, so same-dose subjects are
-preferred, but unlike route it is not a barrier and the fallback in Step 8 will
-cross it.
+by interpolation. Dose magnitude *is* in it, so same-dose subjects are preferred,
+but unlike route it is not a barrier.
+
+**Assigned strata do not enter this at all.** A treatment arm groups visit
+patterns, dose-basis detection and anchor sampling, and it never restricts who
+may donate: donors are borrowed across arms freely, because route is the only
+thing that makes a blend physiologically impossible. An avatar therefore stays in
+its anchor's arm while its measurements may come from patients in another.
 
 ## Step 6: Restrict the Anchor Pool and Sample Anchors
 
@@ -938,12 +920,13 @@ the two-stage ordering below rather than as a score.
 ### The Selection Algorithm
 
 Write $\mathcal{R}_a=\{r\neq a: \mathrm{route}_r=\mathrm{route}_a\}$ for the
-route-compatible pool and $\mathcal{S}_a=\{r\in\mathcal{R}_a:
-\mathrm{sig}_r=\mathrm{sig}_a\}$ for the exact-signature subset. To choose $k$
-donors for anchor $a$:
+subjects sharing the anchor's route and $\mathcal{S}_a=\{r\in\mathcal{R}_a:
+\mathrm{pat}_r=\mathrm{pat}_a\}$ for those of them sharing its dosing pattern
+too, both from Step 5. To choose $k$ donors for anchor $a$:
 
-1. **Exact stage.** Sort $\mathcal{S}_a$ by increasing $d_{ar}$, breaking ties by
-   subject index, and take the first $k$. If $|\mathcal{S}_a|\ge k$, stop.
+1. **Same-pattern stage.** Sort $\mathcal{S}_a$ by increasing $d_{ar}$, breaking
+   ties by subject index, and take the first $k$. If $|\mathcal{S}_a|\ge k$,
+   stop.
 2. **Fallback stage.** Sort $\mathcal{R}_a\setminus\mathcal{S}_a$ the same way
    and take enough of it to bring the total to $k$, whatever the dose or
    schedule. Record a warning that donors were borrowed across dose groups.
@@ -954,9 +937,9 @@ Ties break by subject index, so selection is deterministic under a fixed seed.
 Fallback donors' measurements are mapped onto the anchor's own observation times
 by interpolation, so the avatar keeps its anchor's regimen while its values are
 averaged across at least $k$ real patients. This borrowing matters most for
-datasets with individualized dosing, where an exact dose magnitude can make
-nearly every subject its own signature group and the fallback stage does
-essentially all the work.
+datasets with individualized dosing, where an exact dose magnitude can leave
+nearly every subject holding a dosing pattern of its own and the fallback stage
+does essentially all the work.
 
 ### What the Fallback Stage Costs
 
@@ -1583,7 +1566,7 @@ a silent incompatible blend.
 ```{r edge-cases-table, echo=FALSE}
 edge_cases <- data.frame(
   Situation = c(
-    "Fewer than k same-signature donors",
+    "Fewer than k donors with the anchor's dosing pattern",
     "Route arm smaller than the k-donor floor",
     "Every route arm below the floor",
     "Cap below 1/K for K donors",
@@ -1671,15 +1654,16 @@ finer-grained than the thirteen steps above and following the same order.
    profile per source subject.
 6. Median-impute profile features, remove unusable ones, standardize, and retain
    enough PCA components to meet `pca_variance`.
-7. Construct event signatures and route keys.
+7. Read each subject's route of administration and dosing pattern.
 8. Resolve anchors whose route arm cannot reach the donor floor per
    `on_donor_shortfall`, apply the structural screen, and sample the remaining
    anchors with replacement, within stratum where strata are declared.
 9. For each anchor, copy its whole event template, then redraw its visit set and
    truncate its dose schedule where either is unique.
-10. Find `k` donors on the anchor's route, exact-signature nearest-first and then
-    the nearest remaining route-compatible subjects, and randomize their
-    inverse-distance weights, water-filling every weight to `max_donor_weight`.
+10. Find `k` donors on the anchor's route, taking those sharing its dosing
+    pattern nearest-first and then the nearest remaining subjects on that route,
+    and randomize their inverse-distance weights, water-filling every weight to
+    `max_donor_weight`.
 11. Generate subject-constant covariates from those donors.
 12. For each endpoint, interpolate donor trajectories to the anchor times, blend,
     add a subject shift and AR(1) perturbations, back-transform, snap a discrete
