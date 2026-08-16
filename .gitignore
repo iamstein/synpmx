@@ -75,9 +75,10 @@ references/private/
 !/scripts_private/.gitignore
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
-!/scripts_private/INTERNAL_STUDY.qmd
-!/scripts_private/INTERNAL_STUDY.qmd
-!/scripts_private/INTERNAL_STUDY.qmd
+# Study templates, by pattern rather than one line each, so renaming one (or
+# adding one) does not silently drop it from git. Only .qmd source matches:
+# datasets are .csv and generated output lands in output_*/, both still ignored.
+!/scripts_private/try_avatar_*.qmd
 # Landing page and the publish loop over the templates above. The rendered
 # pages and the published_urls.csv the loop writes are source-derived or
 # environment state and stay ignored by the rule at the top of this block.
