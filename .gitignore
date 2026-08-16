@@ -78,6 +78,7 @@ references/private/
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
+!/scripts_private/INTERNAL_STUDY.qmd
 # Landing page and the publish loop over the templates above. The rendered
 # pages and the published_urls.csv the loop writes are source-derived or
 # environment state and stay ignored by the rule at the top of this block.
