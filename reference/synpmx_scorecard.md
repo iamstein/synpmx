@@ -121,10 +121,11 @@ B1b, B4a, B4b). No other row can `"FAIL"`: the rest answer `"pass"` when
 there is nothing to read and `"review"` when there is something whose
 meaning depends on the study – a subject dropped for want of donors, a
 cohort statistic at a small sample size, a source a validator objects
-to. Two rows are `"review"` whatever they land on, because no threshold
-on them would be honest: B3 and D1. A5a and A5b pass when the
-per-patient count is within 5% of the source's and are `"review"` beyond
-it, never `"FAIL"`.
+to. D1 is `"review"` whatever it lands on, because no threshold on it
+would be honest. A5a and A5b pass when the per-patient count is within
+5% of the source's. B3 passes unless the statistic falls *below* its
+null interval, which is the direction that means memorisation; above it
+is a utility reading, not a privacy one. None of the three can `"FAIL"`.
 
 The check that matters most is absent here because no function can
 produce it: whether the pipeline that will consume the real study runs
@@ -164,7 +165,7 @@ synpmx_scorecard(data, synthetic, roles)
 #>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
 #>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
 #>   B2    Synthetic patients unusual within their stratum    synthetic    0 of 30                             pass
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 in [0.248, 0.692]             review
+#>   B3    Adversarial accuracy inside its null interval      both         0.767 above [0.248, 0.692]          pass
 #>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
 #>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
 #>   B5    Rare source levels copied into the output          both         no categorical covariate or stratum pass
@@ -174,10 +175,9 @@ synpmx_scorecard(data, synthetic, roles)
 #>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
-#>   B3    compare_pmx_proximity(source, synthetic, roles)
 #>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")
 #> 
-#> no failures, 2 to review.
+#> no failures, 1 to review.
 #> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
 #> Rows reading `source` or `both` are restricted output.
 ```

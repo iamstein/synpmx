@@ -36,8 +36,8 @@ structure was reproduced verbatim. No other row can fail. The rest
 answer `pass` when there is nothing to read and `review` when there is
 something whose meaning depends on the study: a subject dropped for want
 of donors, an arm that changed size, a statistic wandering at a small
-sample size. Two rows are `review` however they land, because no
-threshold on them would be honest — B3 and D1.
+sample size. One row, D1, is `review` however it lands, because no
+threshold on it would be honest.
 
 ### The two datasets used here
 
@@ -205,9 +205,9 @@ pheno_card <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
 synpmx_scorecard_datatable(pheno_card[pheno_card$check %in% c("A5a", "A5b"), ])
 ```
 
-Observations are near-intact at 2.6 against 2.5 per patient — inside the
-5%, so A5a passes — while dosing falls from 10 to 5.6 and A5b asks to be
-read. This occurs from
+Observations are near-intact at 2.63 against 2.51 per patient — inside
+the 5%, so A5a passes — while dosing falls from 9.98 to 5.63 and A5b
+asks to be read. This occurs from
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 trying to infer a nominal time grid.
 
@@ -539,7 +539,16 @@ drops or truncates whatever it reports.
 B3 is adversarial accuracy, and it is a **cohort-level** statistic. It
 asks whether the synthetic set as a whole sits closer to the real set
 than real patients sit to each other, taking covariates and trajectory
-together, and it is `review` whatever it lands on.
+together.
+
+The verdict is one-sided, because the two ways out of the interval are
+two different findings. **Below** it is memorisation, which is the
+question this section asks, and that is the only reading marked
+`review`. **Above** it the two sets have separated — a classifier could
+tell them apart, which costs utility and discloses nothing, so it
+passes. Inside is “nothing detected”. The result says `in`, `above` or
+`below` in every case, so the direction is readable whatever the verdict
+says.
 
 It asks, of every subject on both sides, whether its nearest neighbour
 lies in its own dataset or in the other one, and reports the fraction

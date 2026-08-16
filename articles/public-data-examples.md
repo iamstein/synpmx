@@ -558,7 +558,7 @@ without `section` prints all of it. {.table}
 Forty-two of the 45 subjects have a single infusion at time 0. The other
 three were re-dosed on a schedule nobody else shares, so no avatar can
 be built on them without pointing at them, and every synthetic subject
-carries the one shared regimen. Doses per patient falls from 1.2 to 1.0
+carries the one shared regimen. Doses per patient falls from 1.16 to 1
 in the A5b row. The three patients are not removed and still act as
 donors, but that part of the study design is not in the output, and C2
 is `review` rather than `pass` for exactly this reason.
@@ -614,13 +614,13 @@ synpmx_scorecard_datatable(scorecard)
 ```
 
 **Nothing fails, and the dataset is still not shippable.** A5b is the
-row to read: doses per patient falls from 10 to 1.6, nowhere near the 5%
-that would pass it. Ten weekly infusions go in and between one and two
-come out, because the only openings any two subjects share are the first
-dose and occasionally the second. C2 agrees from the other side — 7 of
-the 12 source regimens are represented, none of them at full length.
-This is the case where fourteen passes are worth less than one `review`
-row.
+row to read: doses per patient falls from 10 to 1.58, nowhere near the
+5% that would pass it. Ten weekly infusions go in and between one and
+two come out, because the only openings any two subjects share are the
+first dose and occasionally the second. C2 agrees from the other side —
+7 of the 12 source regimens are represented, none of them at full
+length. This is the case where fifteen passes are worth less than one
+`review` row.
 
 ### The inferred grid achieves nothing here
 
@@ -816,7 +816,7 @@ Every avatar carries the full course of ten infusions, each with its
 cluster of samples behind it — the figure the source gives, rather than
 the two ticks and 2100 h of unsupported follow-up above.
 
-**The dosing comes back in full.** A5b goes from `10 -> 1.6` to
+**The dosing comes back in full.** A5b goes from `10 -> 1.58` to
 `10 -> 10` and C2 from 7 of 12 to 1 of 1, because on the nominal grid
 the twelve dose schedules become one schedule that all twelve subjects
 share — so there is nothing left to truncate, and no avatar’s course has
@@ -988,9 +988,10 @@ synpmx_scorecard_datatable(scorecard)
 ```
 
 **Nothing fails, and the two rows that moved say what reaching that
-cost.** Doses per patient falls from 10 to 5.6 in A5b, and 35 of the 56
-source dose regimens are represented in C2. B1b passing here is not each
-infant’s full course being masked; it is each course being cut short.
+cost.** Doses per patient falls from 9.98 to 5.63 in A5b, and 35 of the
+56 source dose regimens are represented in C2. B1b passing here is not
+each infant’s full course being masked; it is each course being cut
+short.
 
 ### Dosing that can only be masked by shortening it
 
