@@ -32,10 +32,10 @@ test_that("a clean run passes the guarantees and marks its judgement calls", {
   # Every row has to name something runnable. A blank `explore` is a row that
   # hands a reader a number and then abandons them.
   expect_true(all(nzchar(card$explore)))
-  # B3 is deliberately not asserted here: on a 40-patient fixture the null
-  # interval is wide and the statistic can land outside it in the *utility*
-  # direction, which is a reading about this fixture rather than a defect in
-  # the scorecard.
+  # B3's live value is deliberately not asserted here: on a 40-patient fixture
+  # the null interval is wide and the statistic lands outside it in the
+  # *utility* direction, which is a reading about this fixture rather than a
+  # defect in the scorecard. The test below drives all three directions.
   # The four structural guarantees must be exact, not "review".
   expect_identical(sc_verdict(card, "A1"), "pass")
   expect_identical(sc_verdict(card, "A4"), "pass")
@@ -74,6 +74,49 @@ test_that("A5a and A5b pass within 5% and review beyond it, never FAIL", {
   far <- synpmx_scorecard(source, thin(subjects[1:20]), roles)
   expect_identical(sc_verdict(far, "A5a"), "review")
   expect_false(any(sc_verdict(far, "A5a") == "FAIL"))
+})
+
+test_that("B3 reviews only below its null interval, and says which side", {
+  source <- pmx_simulated_fixture(40)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+  proximity <- compare_pmx_proximity(source, synthetic, roles)
+
+  # The statistic is forced rather than provoked: a synthetic cohort that
+  # actually memorises would have to be built to land below a null this wide,
+  # and what is under test is the reading of the number, not the generator.
+  at <- function(value) {
+    forced <- proximity
+    forced$adversarial_accuracy <- value
+    as.data.frame(
+      synpmx_scorecard(source, synthetic, roles, proximity = forced)
+    )
+  }
+  b3 <- function(card) card$result[card$check == "B3"]
+
+  inside <- at(mean(c(proximity$null_lower, proximity$null_upper)))
+  expect_identical(sc_verdict(inside, "B3"), "pass")
+  expect_match(b3(inside), " in \\[")
+
+  # Memorisation: the one direction that answers what section B asks.
+  below <- at(proximity$null_lower - 0.05)
+  expect_identical(sc_verdict(below, "B3"), "review")
+  expect_match(b3(below), " below \\[")
+
+  # Separation costs utility and discloses nothing, so it passes -- and the
+  # result still says which way it went, which is why the side is printed.
+  above <- at(proximity$null_upper + 0.05)
+  expect_identical(sc_verdict(above, "B3"), "pass")
+  expect_match(b3(above), " above \\[")
+
+  # A cohort too small to compare carries the reason, not "NA in [NA, NA]".
+  expect_identical(
+    .scorecard_proximity_result(
+      data.frame(adversarial_accuracy = NA_real_,
+                 verdict = "too few subjects to compare")
+    ),
+    "too few subjects to compare"
+  )
 })
 
 test_that("B2 passes on an empty list and reviews a non-empty one", {

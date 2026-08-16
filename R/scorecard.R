@@ -6,10 +6,13 @@
 # dataset does not require rereading the document or rewriting sixty lines of
 # reporting code per study.
 #
-# Two rows deliberately have no pass mark, B3 and D1: each is a statistic whose
-# movement means different things in different directions, so any threshold
-# picked for it would be wrong on some dataset. `"review"` is the honest verdict
-# there, not a soft `"pass"`.
+# One row deliberately has no pass mark, D1: it is a statistic whose movement
+# means different things in different directions, so any threshold picked for it
+# would be wrong on some dataset. `"review"` is the honest verdict there, not a
+# soft `"pass"`.
+#
+# B3 is one-sided for the opposite reason -- its two directions are two
+# different findings, and only the low one is a privacy finding. See the row.
 #
 # A5a and A5b do have one, but only in the direction that says nothing happened:
 # a per-patient count within 5% of the source's is a pass, and anything further
@@ -90,14 +93,36 @@
   sum(rows) / .scorecard_subjects(data, roles)
 }
 
+# B3. Where the statistic sits relative to its null interval, in words, so the
+# direction survives the verdict being one-sided. Too few subjects to compare
+# leaves the accuracy `NA`, and the row then carries the reason rather than
+# printing `NA in [NA, NA]`.
+.scorecard_proximity_result <- function(proximity) {
+  if (is.na(proximity$adversarial_accuracy)) return(proximity$verdict)
+  where <- if (proximity$adversarial_accuracy < proximity$null_lower) "below"
+    else if (proximity$adversarial_accuracy > proximity$null_upper) "above"
+    else "in"
+  sprintf("%.3f %s [%.3f, %.3f]", proximity$adversarial_accuracy, where,
+          proximity$null_lower, proximity$null_upper)
+}
+
+# Below the null interval is the only reading that answers the question section
+# B asks, so it is the only one that is not a pass. Never `FAIL`: the interval
+# is wide at these cohort sizes and the statistic moves with the seed.
+.scorecard_proximity_ok <- function(proximity) {
+  if (is.na(proximity$adversarial_accuracy)) return(NA)
+  if (proximity$adversarial_accuracy < proximity$null_lower) NA else TRUE
+}
+
 # A5a and A5b. Within `tolerance` of the source count is a pass: the cohort
 # carries the same amount of information per patient, whatever moved around
 # inside it, and there is nothing for a reader to decide. Outside it the row is
 # `review` rather than `FAIL`, because a shortened dose course can be the
 # correct answer -- see the A5b section of
-# `vignette("scorecard-synthetic-data-checks")`. The comparison is made on the
-# unrounded counts and the display is rounded, so a row that reads as equal to
-# one decimal can still be a review, which is the honest way round.
+# `vignette("scorecard-synthetic-data-checks")`. The display carries three
+# significant digits because the verdict is read off a 5% band: `mavoglurant`
+# goes 1.65 -> 1.57 doses per patient, 5.05% and a `review`, and at one decimal
+# both sides printed 1.6 and the row looked like it was objecting to nothing.
 .scorecard_per_patient_row <- function(check, question, source, synthetic,
                                        roles, which, explore,
                                        tolerance = 0.05) {
@@ -108,7 +133,7 @@
     else abs(synthetic_value - source_value) <= tolerance * source_value
   .scorecard_row(
     check, question, "both",
-    paste(round(source_value, 1), "->", round(synthetic_value, 1)),
+    paste(signif(source_value, 3), "->", signif(synthetic_value, 3)),
     explore,
     if (within) TRUE else NA
   )
@@ -261,10 +286,12 @@
 #' B4b). No other row can `"FAIL"`: the rest answer `"pass"` when there is
 #' nothing to read and `"review"` when there is something whose meaning depends
 #' on the study -- a subject dropped for want of donors, a cohort statistic at a
-#' small sample size, a source a validator objects to. Two rows are `"review"`
-#' whatever they land on, because no threshold on them would be honest: B3 and
-#' D1. A5a and A5b pass when the per-patient count is within 5% of the source's
-#' and are `"review"` beyond it, never `"FAIL"`.
+#' small sample size, a source a validator objects to. D1 is `"review"` whatever
+#' it lands on, because no threshold on it would be honest. A5a and A5b pass
+#' when the per-patient count is within 5% of the source's. B3 passes unless the
+#' statistic falls *below* its null interval, which is the direction that means
+#' memorisation; above it is a utility reading, not a privacy one. None of the
+#' three can `"FAIL"`.
 #'
 #' The check that matters most is absent here because no function can produce
 #' it: whether the pipeline that will consume the real study runs unchanged
@@ -422,17 +449,19 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "flag_identifiable_subjects(synthetic, roles)",
       verdict = if (sum(flagged$flagged) == 0L) "pass" else "review"
     ),
-    # Always review. Outside the interval means something, but not one thing:
-    # below it is memorisation, above it is the two sets having separated, which
-    # costs utility and discloses nothing. Either can also be a small-sample
-    # artefact at pharmacometric cohort sizes, where the null interval is wide
-    # and the statistic moves with the seed. The number and its interval are
-    # printed so the direction can be read; no verdict is put on them.
+    # One-sided, because the two directions are not the same finding. Below the
+    # interval is memorisation, which is the privacy question this section
+    # asks, so it is `review`. Above it the two sets have separated: a utility
+    # problem that discloses nothing, and a privacy verdict on it would be
+    # asking the reader to judge the wrong thing. Inside is "nothing detected"
+    # at a cohort size where the null is wide, so there is nothing to decide
+    # either. The result says `in`, `above` or `below` so the direction is
+    # readable whatever the verdict.
     .scorecard_row(
       "B3", "Adversarial accuracy inside its null interval", "both",
-      sprintf("%.3f in [%.3f, %.3f]", proximity$adversarial_accuracy,
-              proximity$null_lower, proximity$null_upper),
-      "compare_pmx_proximity(source, synthetic, roles)"
+      .scorecard_proximity_result(proximity),
+      "compare_pmx_proximity(source, synthetic, roles)",
+      .scorecard_proximity_ok(proximity)
     ),
     .scorecard_row(
       "B4a", "Generated time vectors copying an exposed real one", "both",

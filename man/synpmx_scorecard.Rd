@@ -98,10 +98,12 @@ A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
 B4b). No other row can \code{"FAIL"}: the rest answer \code{"pass"} when there is
 nothing to read and \code{"review"} when there is something whose meaning depends
 on the study -- a subject dropped for want of donors, a cohort statistic at a
-small sample size, a source a validator objects to. Two rows are \code{"review"}
-whatever they land on, because no threshold on them would be honest: B3 and
-D1. A5a and A5b pass when the per-patient count is within 5\% of the source's
-and are \code{"review"} beyond it, never \code{"FAIL"}.
+small sample size, a source a validator objects to. D1 is \code{"review"} whatever
+it lands on, because no threshold on it would be honest. A5a and A5b pass
+when the per-patient count is within 5\% of the source's. B3 passes unless the
+statistic falls \emph{below} its null interval, which is the direction that means
+memorisation; above it is a utility reading, not a privacy one. None of the
+three can \code{"FAIL"}.
 
 The check that matters most is absent here because no function can produce
 it: whether the pipeline that will consume the real study runs unchanged
