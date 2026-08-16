@@ -75,15 +75,14 @@ references/private/
 !/scripts_private/.gitignore
 !/scripts_private/README.md
 !/scripts_private/try_dp_calibrated.R
-!/scripts_private/try_avatar.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
 !/scripts_private/INTERNAL_STUDY.qmd
-# Quarto site over the templates above: config and landing page only. The
-# rendered site and its execution cache (_site/, _freeze/, .quarto/) are
-# source-derived and stay ignored by the rule at the top of this block.
-!/scripts_private/_quarto.yml
+# Landing page and the publish loop over the templates above. The rendered
+# pages and the published_urls.csv the loop writes are source-derived or
+# environment state and stay ignored by the rule at the top of this block.
 !/scripts_private/index.qmd
+!/scripts_private/publish_all.R
 
 # The study templates write their synthetic CSV to a relative `OUT_DIR`, which
 # lands beside the .qmd when Quarto renders it (already covered above) but at
