@@ -51,8 +51,8 @@ not require a model to be specified.
 The main function is
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
 which needs the data, and a declaration of what its columns mean. Every
-column that is not described is dropped. Only `id`, `time`, `dv`, and
-`evid` are required, everything else is optional.
+column that is not described is dropped. Only the roles of `id`, `time`,
+`dv`, and `evid` are required, everything else is optional.
 
 ``` r
 
@@ -63,18 +63,27 @@ study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay
 
 # ?pmx_roles` describes the options here
 roles <- pmx_roles(
-  id           = "ID",                 # subject identifier - REQUIRED
-  time         = "TIME",               # actual elapsed time, numeric - REQUIRED
-  dv           = "LIDV",               # dependent variable - REQUIRED
-  evid         = "EVID",               # event identifier - REQUIRED
-  amt          = "AMT",                # dose amount
-  cmt          = "CMT",                # compartment
-  dvid         = "NAME",               # endpoint key: which endpoint the row reports
-  nominal_time = "NOMTIME",            # protocol visit time
-  cens         = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
-  covariates   = "WEIGHTB",            # measured; blended across donors
-  strata       = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort
-  keep         = "STUDY"               # carried through verbatim
+  id             = "ID",                 # subject identifier - REQUIRED
+  time           = "TIME",               # actual elapsed time, numeric - REQUIRED
+  dv             = "LIDV",               # dependent variable - REQUIRED
+  evid           = "EVID",               # event identifier - REQUIRED
+  amt            = "AMT",                # dose amount
+  cmt            = "CMT",                # compartment
+  dvid           = "NAME",               # endpoint key: which endpoint the row reports
+  mdv            = NULL,                 # missing-dependent-variable flag
+  rate           = NULL,                 # infusion rate
+  nominal_time   = "NOMTIME",            # protocol visit time
+  tad            = NULL,                 # time after dose; this is not used by AVATAR, it is recomputed
+  occasion       = NULL,                 # set if TIME resets by occasion
+  cens           = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
+  limit          = NULL,                 # other end of the censoring interval
+  addl           = NULL,                 # additional doses
+  ii             = NULL,                 # interdose interval
+  covariates     = "WEIGHTB",            # patient baseline covariates; blended across donors
+  strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort (default is to balance synthetic data by strata)
+  dose_covariate = NULL,                 # covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)
+  endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
+  keep           = "STUDY",              # columns carried through verbatim
 )
 
 synthetic <- synpmx_avatar(

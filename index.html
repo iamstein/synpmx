@@ -92,7 +92,7 @@
 <div class="section level2">
 <h2 id="generating-synthetic-data">Generating Synthetic Data<a class="anchor" aria-label="anchor" href="#generating-synthetic-data"></a>
 </h2>
-<p>The main function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>, which needs the data, and a declaration of what its columns mean. Every column that is not described is dropped. Only <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required, everything else is optional.</p>
+<p>The main function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>, which needs the data, and a declaration of what its columns mean. Every column that is not described is dropped. Only the roles of <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required, everything else is optional.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
@@ -101,18 +101,27 @@
 <span></span>
 <span><span class="co"># ?pmx_roles` describes the options here</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id           <span class="op">=</span> <span class="st">"ID"</span>,                 <span class="co"># subject identifier - REQUIRED</span></span>
-<span>  time         <span class="op">=</span> <span class="st">"TIME"</span>,               <span class="co"># actual elapsed time, numeric - REQUIRED</span></span>
-<span>  dv           <span class="op">=</span> <span class="st">"LIDV"</span>,               <span class="co"># dependent variable - REQUIRED</span></span>
-<span>  evid         <span class="op">=</span> <span class="st">"EVID"</span>,               <span class="co"># event identifier - REQUIRED</span></span>
-<span>  amt          <span class="op">=</span> <span class="st">"AMT"</span>,                <span class="co"># dose amount</span></span>
-<span>  cmt          <span class="op">=</span> <span class="st">"CMT"</span>,                <span class="co"># compartment</span></span>
-<span>  dvid         <span class="op">=</span> <span class="st">"NAME"</span>,               <span class="co"># endpoint key: which endpoint the row reports</span></span>
-<span>  nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,            <span class="co"># protocol visit time</span></span>
-<span>  cens         <span class="op">=</span> <span class="st">"CENS"</span>,               <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
-<span>  covariates   <span class="op">=</span> <span class="st">"WEIGHTB"</span>,            <span class="co"># measured; blended across donors</span></span>
-<span>  strata       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,  <span class="co"># assigned arm / dose group / cohort</span></span>
-<span>  keep         <span class="op">=</span> <span class="st">"STUDY"</span>               <span class="co"># carried through verbatim</span></span>
+<span>  id             <span class="op">=</span> <span class="st">"ID"</span>,                 <span class="co"># subject identifier - REQUIRED</span></span>
+<span>  time           <span class="op">=</span> <span class="st">"TIME"</span>,               <span class="co"># actual elapsed time, numeric - REQUIRED</span></span>
+<span>  dv             <span class="op">=</span> <span class="st">"LIDV"</span>,               <span class="co"># dependent variable - REQUIRED</span></span>
+<span>  evid           <span class="op">=</span> <span class="st">"EVID"</span>,               <span class="co"># event identifier - REQUIRED</span></span>
+<span>  amt            <span class="op">=</span> <span class="st">"AMT"</span>,                <span class="co"># dose amount</span></span>
+<span>  cmt            <span class="op">=</span> <span class="st">"CMT"</span>,                <span class="co"># compartment</span></span>
+<span>  dvid           <span class="op">=</span> <span class="st">"NAME"</span>,               <span class="co"># endpoint key: which endpoint the row reports</span></span>
+<span>  mdv            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># missing-dependent-variable flag</span></span>
+<span>  rate           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># infusion rate</span></span>
+<span>  nominal_time   <span class="op">=</span> <span class="st">"NOMTIME"</span>,            <span class="co"># protocol visit time</span></span>
+<span>  tad            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># time after dose; this is not used by AVATAR, it is recomputed</span></span>
+<span>  occasion       <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># set if TIME resets by occasion</span></span>
+<span>  cens           <span class="op">=</span> <span class="st">"CENS"</span>,               <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
+<span>  limit          <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># other end of the censoring interval</span></span>
+<span>  addl           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># additional doses</span></span>
+<span>  ii             <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># interdose interval</span></span>
+<span>  covariates     <span class="op">=</span> <span class="st">"WEIGHTB"</span>,            <span class="co"># patient baseline covariates; blended across donors</span></span>
+<span>  strata         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,  <span class="co"># assigned arm / dose group / cohort (default is to balance synthetic data by strata)</span></span>
+<span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)</span></span>
+<span>  endpoint_types <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL</span></span>
+<span>  keep           <span class="op">=</span> <span class="st">"STUDY"</span>,              <span class="co"># columns carried through verbatim</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
