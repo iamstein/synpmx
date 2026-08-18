@@ -60,7 +60,7 @@ roles <- pmx_roles(
   covariates     = "WEIGHTB",            # patient baseline covariates; blended across donors
   strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort (default is to balance synthetic data by strata)
   dose_covariate = NULL,                 # covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)
-  endpoint_types = NULL,                 # value kind (continuous, binary, ordinal) per endpoint; inferred when NULL
+  endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
   keep           = "STUDY",              # columns carried through verbatim
 )
 
@@ -114,7 +114,6 @@ additionally require the official [OpenDP R package](https://docs.opendp.org/en/
 ``` r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
-
 
 ## Key Documentation
 
