@@ -42,27 +42,68 @@ without exposing them to patient data.
 ## The main deliverable: AVATAR method
 
 The main deliverable of this package is an implementation of the AVATAR
-method \[1, 2\], which offers some data masking but no formal privacy
-guarantee. AVATAR works by blending together patient profiles, and
-requires no model to be specified. The original method was developed in
-Guillaudeux and colleagues \[2\], and Destere and colleagues benchmark a
-modified AVATAR for population PK datasets \[1\]. However, they did not
-test their method using pharmacometrics dataset from actual clinical
-trials. We have developed the synthetic data method here using actual
-clinical data and thus it handles realistic aspects of trials such as
-BLOQ data, weight-based dosing, multiple regimens, and it also has
-masking methods added so that patients cannot be identified by a unique
-dosing schedule or set of observation times. The key function is
-`synpmx_avatar`, which builds artificial profiles from real patient
-profiles, It masks identifiable characteristics, but does not offer
-formal privacy guarantees.
+method \[1, 2\], which offers data masking but no formal privacy
+guarantee. AVATAR works by blending together patient profiles, and does
+not require a model to be specified.
 
-For teaching purposes, the package also provides code for other data
-masking methods, using trial simulation from prior knowledge, and
-differential privacy methods. These methods give more formal privacy
-protection and they are included here to illustrate the tradeoffs
-between ways of generating synthetic data. These methods are not
-actively maintained.
+## Generating Synthetic Data
+
+The main function is
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
+which needs the data, and a declaration of what its columns mean. Every
+column that is not described is dropped. Only `id`, `time`, `dv`, and
+`evid` are required, everything else is optional.
+
+``` r
+
+library(synpmx)
+
+study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
+study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
+
+# ?pmx_roles` describes the options here
+roles <- pmx_roles(
+  id           = "ID",                 # subject identifier - REQUIRED
+  time         = "TIME",               # actual elapsed time, numeric - REQUIRED
+  dv           = "LIDV",               # dependent variable - REQUIRED
+  evid         = "EVID",               # event identifier - REQUIRED
+  amt          = "AMT",                # dose amount
+  cmt          = "CMT",                # compartment
+  dvid         = "NAME",               # endpoint key: which endpoint the row reports
+  nominal_time = "NOMTIME",            # protocol visit time
+  cens         = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
+  covariates   = "WEIGHTB",            # measured; blended across donors
+  strata       = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort
+  keep         = "STUDY"               # carried through verbatim
+)
+
+synthetic <- synpmx_avatar(
+  study,             #study data
+  roles,             #column desrciption
+  n_subjects = NULL, # cohort size; NULL matches the source
+  seed       = 2026)
+```
+
+## Maintenance status
+
+**AVATAR blending is the primary, maintained code.** It has no
+dependencies beyond base R, and is what to reach for when the output
+stays within the source data’s own access controls and obligations.
+However, AVATAR does not offer any formal, mathematical guarantees
+around privacy.
+
+The three other modes for generating synthetic data (**prior**,
+**calibration**, **empirical**) are secondary; but, they are present in
+this repository because they cover scenarios where data crosses a trust
+boundary and formal privacy conditions must be met. Treat them as a
+principled demonstration of the privacy/utility tradeoff, not as a
+production ready. That status is enforced in that
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+and
+[`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
+refuse to run until
+[`synpmx_enable_dp_engines()`](https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.md)
+has been called once in the session.
 
 ## Installation
 
@@ -98,83 +139,6 @@ package](https://docs.opendp.org/en/stable/api/r/):
 
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
-
-## Generating Synthetic Data with AVATAR algorithm
-
-AVATAR is called by
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md).
-It needs two things: the data, and a declaration of what its columns
-mean. A model is not needed. Every column that is not described is
-dropped. Only `id`, `time`, `dv`, and `evid` are required; everything
-else is optional.
-
-The example below runs on
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html), the
-same dataset as the
-[demo](https://iamstein.github.io/synpmx/articles/demo.html): 180
-subjects, six arms from placebo to 300 mg, a PK and a PD endpoint. Swap
-in your own data frame and edit the column descriptions to match it.
-
-``` r
-
-library(synpmx)
-
-study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
-study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
-
-roles <- pmx_roles(
-  id           = "ID",                 # subject identifier
-  time         = "TIME",               # actual elapsed time, numeric
-  dv           = "LIDV",               # dependent variable
-  evid         = "EVID",               # event identifier
-  amt          = "AMT",                # dose amount
-  cmt          = "CMT",                # compartment
-  dvid         = "NAME",               # endpoint key: which endpoint the row reports
-  nominal_time = "NOMTIME",            # protocol visit time
-  cens         = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
-  covariates   = "WEIGHTB",            # measured; blended across donors
-  strata       = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort
-  keep         = "STUDY"               # carried through verbatim
-)
-```
-
-This study has no column for the other roles, so they are left out:
-`rate`, `mdv`, `occasion`, `tad`, `limit` (the other boundary when
-`cens` is set), `dose_covariate` (the covariate a weight-based dose is
-computed from), and `addl`/`ii` (carried but not expanded — expand ADDL
-doses into explicit rows before synthesis).
-[`?pmx_roles`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
-describes each one.
-
-``` r
-
-synthetic <- synpmx_avatar(
-  study,             #study data
-  roles,             #column desrciption
-  n_subjects = NULL, # cohort size; NULL matches the source
-  seed       = 2026)
-```
-
-## Maintenance status
-
-**AVATAR blending is the primary, maintained code.** It has no
-dependencies beyond base R, and is what to reach for when the output
-stays within the source data’s own access controls and obligations.
-However, AVATAR does not offer any formal, mathematical guarantees
-around privacy.
-
-The three other modes for generating synthetic data (**prior**,
-**calibration**, **empirical**) are secondary; but, they are present in
-this repository because they cover scenarios where data crosses a trust
-boundary and formal privacy conditions must be met. Treat them as a
-principled demonstration of the privacy/utility tradeoff, not as a
-production ready. That status is enforced in that
-[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
-and
-[`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
-refuse to run until
-[`synpmx_enable_dp_engines()`](https://iamstein.github.io/synpmx/reference/synpmx_enable_dp_engines.md)
-has been called once in the session.
 
 ## Key Documentation
 
