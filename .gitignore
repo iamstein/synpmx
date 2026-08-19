@@ -65,26 +65,10 @@ references/private/
 /doc/
 /Meta/
 
-# Private company-data work. Real modeling datasets and any source-derived
-# output must never be committed. Ignore everything under scripts_private/ EXCEPT
-# the template code and docs and possible example scripts.
-# A parent-directory ignore would hide the whole
-# tree from git and defeat the re-includes below, so ignore by content instead.
-/scripts_private/**
-!/scripts_private/
-!/scripts_private/.gitignore
-!/scripts_private/README.md
-!/scripts_private/try_dp_calibrated.R
-
-!/scripts_private/INTERNAL_STUDY.qmd
-!/scripts_private/INTERNAL_STUDY.qmd
-!/scripts_private/INTERNAL_STUDY.qmd
-!/scripts_private/INTERNAL_STUDY.qmd
-# Landing page and the publish loop over the templates above. The rendered
-# pages and the published_urls.csv the loop writes are source-derived or
-# environment state and stay ignored by the rule at the top of this block.
-!/scripts_private/index.qmd
-!/scripts_private/publish_all.R
+# Private company-data work. Real modeling datasets, the study templates that
+# read them, and anything derived from them are kept OUTSIDE this repository.
+# Nothing under scripts_private/ is ever committed.
+/scripts_private/
 
 # The study templates write their synthetic CSV to a relative `OUT_DIR`, which
 # lands beside the .qmd when Quarto renders it (already covered above) but at
