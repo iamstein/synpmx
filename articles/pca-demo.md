@@ -307,7 +307,8 @@ ones.
 ``` r
 
 components <- pca_components(trial_summary)
-ggplot(subset(components, component %in% c("PC1", "PC2", "PC3")),
+ggplot(subset(components, component %in% c("PC1", "PC2", "PC3") &
+                 !is.na(time)),
        aes(time, loading, colour = component)) +
   geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
   geom_line() + geom_point(size = 1) +

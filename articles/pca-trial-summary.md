@@ -122,33 +122,19 @@ fewer than `min_column_patients` were dropped rather than modelled.
 
 ``` r
 
-basis <- trial_summary$basis
-grid <- data.frame(
-  feature = basis$columns,
-  kind = unname(basis$kinds),
-  endpoint = vapply(basis$members, function(m) {
-    if (is.null(m$endpoint)) NA_character_ else m$endpoint
-  }, character(1)),
-  time = vapply(basis$members, function(m) {
-    if (is.null(m$time)) NA_real_ else as.numeric(m$time)
-  }, numeric(1)),
-  patients = vapply(basis$members, function(m) {
-    if (is.null(m$patients)) NA_real_ else as.numeric(m$patients)
-  }, numeric(1)),
-  center = round(unname(basis$centers), 4),
-  scale = round(unname(basis$scales), 4)
-)
-show(grid, "The feature grid, with each column's mean and standard deviation",
-     paged = TRUE)
+show(as.data.frame(pca_features(trial_summary)),
+     "Every feature, with its mean and standard deviation", paged = TRUE)
 ```
 
-`center` and `scale` are on the modelling scale, which is the log scale
-for a positive endpoint. The transform is in the next section.
+`center` and `scale` are on the modelling scale, which the `transform`
+column names: the log scale for a positive endpoint, the original scale
+otherwise.
 
 ## The endpoint transforms and assay limits
 
 ``` r
 
+basis <- trial_summary$basis
 data.frame(
   endpoint = names(basis$transforms),
   transform = vapply(basis$transforms, function(t) t$method, character(1)),
@@ -189,7 +175,8 @@ library(xgxr)
 xgx_theme_set()
 
 components <- pca_components(trial_summary)
-ggplot(subset(components, component %in% c("PC1", "PC2", "PC3")),
+ggplot(subset(components, component %in% c("PC1", "PC2", "PC3") &
+                 !is.na(time)),
        aes(time, loading, colour = component)) +
   geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
   geom_line() + geom_point(size = 1) +
@@ -213,13 +200,13 @@ component says where each one is concentrated:
 
 ``` r
 
-endpoint_of <- vapply(basis$members, function(m) {
-  if (is.null(m$endpoint)) "" else m$endpoint
-}, character(1))
-block <- ifelse(basis$kinds == "endpoint_cell", endpoint_of, "covariate")
-mass <- t(apply(basis$rotation[, seq_len(min(4, basis$k)), drop = FALSE], 2,
-                function(column) round(tapply(column^2, block, sum), 3)))
-mass
+mass <- tapply(
+  components$loading^2,
+  list(components$component,
+       ifelse(is.na(components$endpoint), "covariate", components$endpoint)),
+  sum
+)
+round(mass[paste0("PC", seq_len(min(4, nrow(mass)))), , drop = FALSE], 3)
 #>     covariate PD - Continuous PK Concentration
 #> PC1     0.000           0.074            0.926
 #> PC2     0.001           0.155            0.843
@@ -227,36 +214,29 @@ mass
 #> PC4     0.063           0.826            0.111
 ```
 
+Each row sums to one. On this study the first two components are almost
+entirely the PK profile, and the covariate only enters further down —
+alongside the PD endpoint, which is the joint structure that a separate
+decomposition per endpoint would have thrown away.
+
 ## The score model
 
-Each arm has its own mean score vector, and its own residual covariance.
-A new subject’s scores are that arm’s mean plus a fresh draw from that
-covariance.
+A new subject’s scores are their arm’s mean plus a fresh draw whose
+spread is that arm’s residual standard deviation.
 
 ``` r
 
-means <- do.call(rbind, lapply(names(trial_summary$scores$means), function(arm) {
-  data.frame(arm = gsub("\r", " / ", arm, fixed = TRUE),
-             component = paste0("PC", seq_along(trial_summary$scores$means[[arm]])),
-             mean = round(trial_summary$scores$means[[arm]], 3))
-}))
-show(means, "Mean score vector, per arm and component", paged = TRUE)
+scores <- as.data.frame(pca_scores(trial_summary))
+scores$mean <- round(scores$mean, 3)
+scores$sd <- round(scores$sd, 3)
+show(scores, "Mean score and residual spread, per arm and component",
+     paged = TRUE)
 ```
 
-The covariances are one matrix per arm. Their diagonals are the
-between-subject spread each arm is generated with, and they differ: an
-arm sitting on the assay limit is genuinely tighter than the top arm.
-
-``` r
-
-spread <- do.call(rbind, lapply(names(trial_summary$scores$covariances), function(arm) {
-  covariance <- trial_summary$scores$covariances[[arm]]
-  data.frame(arm = gsub("\r", " / ", arm, fixed = TRUE),
-             component = paste0("PC", seq_len(nrow(covariance))),
-             sd = round(sqrt(diag(covariance)), 3))
-}))
-show(spread, "Residual standard deviation, per arm and component", paged = TRUE)
-```
+The `sd` column is the whole of the between-subject variability the
+synthetic data will have. It differs by arm on purpose: an arm sitting
+on the assay limit is genuinely tighter than one well above it, and
+giving every arm the pooled spread would smear the low arms upward.
 
 ## The dosing model
 

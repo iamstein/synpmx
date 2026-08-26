@@ -214,6 +214,10 @@ and the components over time.
 
 - [`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
   : What the PCA fit read out of the source data
+- [`pca_features()`](https://iamstein.github.io/synpmx/reference/pca_features.md)
+  : Every feature the components are built on
+- [`pca_scores()`](https://iamstein.github.io/synpmx/reference/pca_scores.md)
+  : The score model each arm is generated from
 - [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
   : The planned dose schedule each arm was generated from
 - [`pca_dose_rates()`](https://iamstein.github.io/synpmx/reference/pca_dose_rates.md)
