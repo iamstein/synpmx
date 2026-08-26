@@ -24,12 +24,12 @@ synthetic pharmacometric datasets.
 
 Three cross-document contracts, each a defect when broken:
 
-- `vignettes/scorecard-synthetic-data-checks.Rmd` documents the checks that
+- `vignettes/avatar-scorecard.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
   under the same identifier, and that section states the pass criterion the
   function scores it against. A row appearing in one and not the other, or a pass criterion changing
   in one without the other, is a defect. 
-- Every worked dataset in `vignettes/public-data-examples.Rmd` has the same
+- Every worked dataset in `vignettes/avatar-public-data-examples.Rmd` has the same
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
   the numbers need it. Additional datasets get the same five steps.
@@ -58,7 +58,7 @@ as `REV-###` for mechanism, privacy-accounting and API defects or `SIM-###` for
 simulation defects and their gates. 
 
 Checks the package does not yet run are
-named in the gap list inside `scorecard-synthetic-data-checks.Rmd`.
+named in the gap list inside `avatar-scorecard.Rmd`.
 
 For every defect do all three of the registry entry, a regression check, and the
 fix, adding a focused fixture where that is the smallest reliable reproduction.

@@ -242,7 +242,7 @@ remove, and eighteen of those blocks would say what the scorecard and
 **Start here: this is what a study report usually looks like.** 180 patients
 across six treatment arms, with a declared `NOMTIME`, two endpoints keyed by a
 character `NAME` column, a baseline weight, and a `CENS` column — the industry
-shape, and the one the package is easiest on. `vignette("demo")` runs this
+shape, and the one the package is easiest on. `vignette("avatar-demo")` runs this
 dataset end to end.
 
 Almost everything passes, and the reason is the declared nominal time: the
@@ -314,7 +314,7 @@ signed, so a left-censored PD row reports a value above uncensored ones and the
 flag cannot mean what it means for PK. Running `validate_pmx()` on the data you
 are about to generate from is how a mis-declared role is caught before it
 becomes a generation bug, and this is the dataset where it fires. Leaving `cens`
-undeclared, as the run above does, is one right answer; `vignette("demo")` takes
+undeclared, as the run above does, is one right answer; `vignette("avatar-demo")` takes
 the other and sets `CENS` to 0 on the PD rows before declaring it.
 
 ## mad: five endpoints, including ordinal, count and binary
@@ -755,7 +755,7 @@ comes back to 72 h against the source's 96 h, where the recorded-time run gave
 935 h — and it is the pre-dose slot above that buys most of that. Rounding the
 trough onto its next infusion instead leaves the median at 0 and doubles the
 share of time-zero samples, which is the A1 gap in
-`vignette("scorecard-synthetic-data-checks")` reached by a construction rather
+`vignette("avatar-scorecard")` reached by a construction rather
 than by the generator.
 
 What the package does not yet do is *notice* the first case: no check asks

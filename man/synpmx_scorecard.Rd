@@ -25,7 +25,7 @@ A \code{synpmx_scorecard} data frame with columns \code{check}, \code{question},
 \code{"restricted_not_releasable"}.
 }
 \description{
-Runs the checks from \code{vignette("scorecard-synthetic-data-checks")} that can
+Runs the checks from \code{vignette("avatar-scorecard")} that can
 be run automatically, and returns them as one table with the answer, whether
 that answer passes, and the call that explains it. The vignette is the
 reference for what each check asks and why its pass criterion is what it is.
@@ -122,5 +122,5 @@ synpmx_scorecard(data, synthetic, roles)
 \seealso{
 \code{\link[=synpmx_scorecard_datatable]{synpmx_scorecard_datatable()}} to colour the verdicts in an HTML
 report, \code{\link[=compare_pmx]{compare_pmx()}}, \code{\link[=pmx_masking_report]{pmx_masking_report()}}, \code{\link[=pmx_endpoint_types]{pmx_endpoint_types()}},
-\code{vignette("scorecard-synthetic-data-checks")}.
+\code{vignette("avatar-scorecard")}.
 }

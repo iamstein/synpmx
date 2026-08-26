@@ -9,12 +9,18 @@ template:
 # an evaluation of the algorithm rather than a tutorial, and that in turn ->
 # public-data-examples on 2026-08-13, for a name short enough to say. On
 # 2026-08-11 literature-review was split in two; its old URL lands on the
-# generation half, which is where the article used to begin.
+# generation half, which is where the article used to begin. On 2026-08-26 the
+# four AVATAR documents took an `avatar-` prefix, so that a second generator
+# and its own documents can sit beside them without either set having to be
+# read as the default.
 redirects:
   - ["articles/avatar-mathematics.html", "articles/avatar-algorithm.html"]
-  - ["articles/synpmx-demo.html", "articles/public-data-examples.html"]
-  - ["articles/avatar-evaluation-public-data.html", "articles/public-data-examples.html"]
+  - ["articles/synpmx-demo.html", "articles/avatar-public-data-examples.html"]
+  - ["articles/avatar-evaluation-public-data.html", "articles/avatar-public-data-examples.html"]
   - ["articles/literature-review.html", "articles/synthetic-data-generation-review.html"]
+  - ["articles/demo.html", "articles/avatar-demo.html"]
+  - ["articles/public-data-examples.html", "articles/avatar-public-data-examples.html"]
+  - ["articles/scorecard-synthetic-data-checks.html", "articles/avatar-scorecard.html"]
 
 navbar:
   structure:
@@ -24,27 +30,31 @@ navbar:
     articles:
       text: Articles
       menu:
-      - text: "Guides"
+      - text: "PCA generator"
+      - text: "Demo: the PCA generator"
+        href: articles/pca-demo.html
+      - text: The synpmx PCA Algorithm
+        href: articles/pca-algorithm.html
+      - text: -------
+      - text: "AVATAR generator"
       - text: "Demo: one dataset, end to end"
-        href: articles/demo.html
+        href: articles/avatar-demo.html
       - text: The synpmx AVATAR Algorithm
         href: articles/avatar-algorithm.html
       - text: Evaluating AVATAR on public data
-        href: articles/public-data-examples.html
+        href: articles/avatar-public-data-examples.html
       - text: "Scorecard: Checks of the synthetic data"
-        href: articles/scorecard-synthetic-data-checks.html
-      - text: The four synpmx data generation algorithms
-        href: articles/synpmx-4-methods.html
+        href: articles/avatar-scorecard.html
+      - text: "Example: are relationships preserved?"
+        href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
       - text: "Background"
+      - text: The four synpmx data generation algorithms
+        href: articles/synpmx-4-methods.html
       - text: "Literature: generating synthetic data"
         href: articles/synthetic-data-generation-review.html
       - text: "Literature: checking synthetic data"
         href: articles/synthetic-data-checking-review.html
-      - text: -------
-      - text: "AVATAR method exploration"
-      - text: "Example: are relationships preserved?"
-        href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
       - text: "Differential privacy background"
       - text: Privacy
@@ -56,18 +66,31 @@ navbar:
       - text: Feasibility by cohort size
         href: articles/feasibility.html
 
-
 reference:
 - title: Generating data
   desc: >
-    The four generation modes. `synpmx_avatar()` is the default AVATAR path;
-    the others require a public structural model.
+    The generation modes. `synpmx_avatar()` is the default AVATAR path and
+    `synpmx_pca()` fits a basis instead of blending; the remaining three
+    require a public structural model.
   contents:
   - synpmx_avatar
+  - synpmx_pca
+  - synpmx_pca_summarize
+  - synpmx_pca_generate
   - synpmx_prior
   - synpmx_calibrated
   - synpmx_empirical
   - synpmx_generate
+
+- title: Reading a PCA fit
+  desc: >
+    What `synpmx_pca()` read out of the source data, and what its components
+    look like over time.
+  contents:
+  - pmx_pca_report
+  - pmx_pca_dosing
+  - pmx_pca_visits
+  - pmx_pca_components
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

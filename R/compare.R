@@ -720,7 +720,7 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
 #'   `reached`. Zero rows when the roles declare no categorical axis.
 #' @seealso [synpmx_scorecard()], which reports this as row B5,
 #'   [compare_pmx_distributions()],
-#'   `vignette("scorecard-synthetic-data-checks")`.
+#'   `vignette("avatar-scorecard")`.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(20)
@@ -1340,7 +1340,7 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 #' patients followed to 1730 and 4580 hours in a cohort that otherwise ends by
 #' 672, and not the one at 1130.
 #'
-#' On that setting no synthetic dataset in `vignette("public-data-examples")`
+#' On that setting no synthetic dataset in `vignette("avatar-public-data-examples")`
 #' reports anybody, which is the screen working rather than idling: an avatar is
 #' a blend of several donors, so producing a subject that extreme takes a defect,
 #' and this is the row that would say so.

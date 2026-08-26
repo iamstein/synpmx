@@ -126,7 +126,7 @@ test_that("covariates and endpoints are filled from one donor draw", {
   expect_equal(lengths(regmatches(body_text, gregexpr("\\.select_donors", body_text))), 1L)
 })
 
-# B5 in vignette("scorecard-synthetic-data-checks"): rare categories. These pin the
+# B5 in vignette("avatar-scorecard"): rare categories. These pin the
 # MECHANISM rather than a rate, because the mechanism is the thing any future
 # protection has to change, and because the rate is a property of the fixture.
 rare_category_source <- function(rare_ids, outlying = FALSE) {

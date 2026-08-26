@@ -211,7 +211,7 @@ grid can change a count and what survives coarsening is visits that are
 missing, for whatever reason; dose amount is neither's, so weight-based dosing leaves a cohort unique
 on signature regardless — declaring `dose_covariate` in `pmx_roles()` is what
 stops the amount itself being one real patient's, by rebuilding it from each
-avatar's own blended covariate. `vignette("public-data-examples")` runs the
+avatar's own blended covariate. `vignette("avatar-public-data-examples")` runs the
 before and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns, which
@@ -583,7 +583,7 @@ model code.
 
 ## Where to go next
 
-- `vignette("public-data-examples")` — `synpmx_avatar()` run across
+- `vignette("avatar-public-data-examples")` — `synpmx_avatar()` run across
   eight public datasets, with the structural checks and the masking accounting
   for each.
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) — what differential privacy guarantees, what it

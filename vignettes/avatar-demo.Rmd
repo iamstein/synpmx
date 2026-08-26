@@ -28,7 +28,7 @@ distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
 
 Generate a synthetic dataset, look at it, and read the checks of the data, sumamrized in a scorecard. 
 
-`vignette("scorecard-synthetic-data-checks")` is the reference for better understanding the synthetic data checks.  
+`vignette("avatar-scorecard")` is the reference for better understanding the synthetic data checks.  
 
 The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to 300 mg, with a pharmacokinetic (PK) concentration endpoint and a continuous pharmacodynamic (PD) endpoint.
 
@@ -137,7 +137,7 @@ that moved furthest.
 
 ## The scorecard
 
-The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("scorecard-synthetic-data-checks")`.
+The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("avatar-scorecard")`.
 
 ```{r scorecard, eval=run}
 scorecard <- synpmx_scorecard(raw, synthetic, roles)
@@ -154,6 +154,6 @@ one is where the answer is.
 
 ## Where to go next
 
-- `vignette("scorecard-synthetic-data-checks")` — every check, what it asks, and what
+- `vignette("avatar-scorecard")` — every check, what it asks, and what
   passing means.
-- `vignette("public-data-examples")` - AVATAR algorithm applied to 8 public datasets.
+- `vignette("avatar-public-data-examples")` - AVATAR algorithm applied to 8 public datasets.

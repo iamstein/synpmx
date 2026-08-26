@@ -1,6 +1,6 @@
 # The scorecard ---------------------------------------------------------------
 #
-# `vignette("scorecard-synthetic-data-checks")` states every check and the
+# `vignette("avatar-scorecard")` states every check and the
 # answer that counts as passing for it. This runs the ones that can be run and
 # collects the answers into one table, so that deciding whether to ship a
 # dataset does not require rereading the document or rewriting sixty lines of
@@ -119,7 +119,7 @@
 # inside it, and there is nothing for a reader to decide. Outside it the row is
 # `review` rather than `FAIL`, because a shortened dose course can be the
 # correct answer -- see the A5b section of
-# `vignette("scorecard-synthetic-data-checks")`. The display carries three
+# `vignette("avatar-scorecard")`. The display carries three
 # significant digits because the verdict is read off a 5% band: `mavoglurant`
 # goes 1.65 -> 1.57 doses per patient, 5.05% and a `review`, and at one decimal
 # both sides printed 1.6 and the row looked like it was objecting to nothing.
@@ -213,7 +213,7 @@
 
 #' The scorecard for one synthetic dataset
 #'
-#' Runs the checks from `vignette("scorecard-synthetic-data-checks")` that can
+#' Runs the checks from `vignette("avatar-scorecard")` that can
 #' be run automatically, and returns them as one table with the answer, whether
 #' that answer passes, and the call that explains it. The vignette is the
 #' reference for what each check asks and why its pass criterion is what it is.
@@ -311,7 +311,7 @@
 #'   `"restricted_not_releasable"`.
 #' @seealso [synpmx_scorecard_datatable()] to colour the verdicts in an HTML
 #'   report, [compare_pmx()], [pmx_masking_report()], [pmx_endpoint_types()],
-#'   `vignette("scorecard-synthetic-data-checks")`.
+#'   `vignette("avatar-scorecard")`.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(30)
@@ -682,7 +682,7 @@ print.synpmx_scorecard <- function(x, ...) {
   format <- paste0("  ", paste(sprintf("%%-%ds", width[-length(width)]),
                                collapse = " "), " %s\n")
   line <- function(values) cat(do.call(sprintf, c(list(format), as.list(values))))
-  cat("Scorecard: see vignette(\"scorecard-synthetic-data-checks\")",
+  cat("Scorecard: see vignette(\"avatar-scorecard\")",
       "for what each asks\n\n")
   line(columns)
   for (i in seq_len(nrow(plain))) {

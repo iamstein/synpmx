@@ -28,8 +28,8 @@ to pharmacometrics modeling datasets.  The original method [1] was extended to p
 pharmacokinetic (PK) datasets in [2], and here further extensions are provided
 so that it works well with more realistic datasets.  Use of the algorithm is demonstrated in:
 
-* `vignette("demo")` - AVATAR demonstration on a single dataset
-* `vignette("public-data-examples")` - AVATAR demonstration on a series of public datasets
+* `vignette("avatar-demo")` - AVATAR demonstration on a single dataset
+* `vignette("avatar-public-data-examples")` - AVATAR demonstration on a series of public datasets
 
 AVATAR makes no formal privacy claim. It also does not necessarily fully preserve the dose-exposure-response relationship.  Use the synthetic datasets to develop and debug analysis code. Do not use it to estimate parameters.
 
@@ -429,7 +429,7 @@ for blending.
 When an arm holds nobody who can be masked, individualised dosing in one
 cohort of a trial for instance, its avatars keep the anchor they have, the run
 raises an alert naming that arm, and rows B1a and B1b of
-`vignette("scorecard-synthetic-data-checks")` fail against it.
+`vignette("avatar-scorecard")` fail against it.
 `unmaskable_strata()` can assess whether any such strata exist.
 
 ### Sampling Anchors, and Keeping Each Stratum's Share
@@ -944,10 +944,10 @@ be an integer between zero and `.Machine$integer.max`.
 ## Evaluating a Synthetic Dataset with the Scorecard
 
 `synpmx_scorecard()` is the function that is used to assess a synthetic dataset.  It is explained in 
-`vignette("scorecard-synthetic-data-checks")`, and demonstrated in:
+`vignette("avatar-scorecard")`, and demonstrated in:
 
-* `vignette("demo")` - AVATAR demonstration on a single dataset
-* `vignette("public-data-examples")` - AVATAR demonstration on a series of public datasets
+* `vignette("avatar-demo")` - AVATAR demonstration on a single dataset
+* `vignette("avatar-public-data-examples")` - AVATAR demonstration on a series of public datasets
 
 ## Conclusions
 

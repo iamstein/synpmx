@@ -25,7 +25,7 @@ actually is, what differential privacy does and does not promise, how to choose
 between methods and if a private mode is chosen, how to choose an epsilon.
 
 The companion vignettes are `vignette("synpmx-4-methods")` (the four generation
-modes) and `vignette("public-data-examples")` (AVATAR measured on
+modes) and `vignette("avatar-public-data-examples")` (AVATAR measured on
 public data).
 
 ## The three method families
