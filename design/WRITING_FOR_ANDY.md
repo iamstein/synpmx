@@ -32,6 +32,11 @@ numbers are how he refers to them in conversation and O1 is cited from
 - 2026-08-15 — at his instruction, rule 14 and checklist items 7 and 9 split
   dataset-specific numbers from algorithmic ones, from the `avatar-algorithm.Rmd`
   revision. Nothing else changed.
+- 2026-08-26 — at his instruction, file names only. The contract table takes the
+  `avatar-` prefix, `synpmx-4-methods.Rmd` loses its count, and the two PCA
+  documents get rows beside their AVATAR counterparts. Two names in the Part 3
+  standing caveat and in rule O17 renamed with them. No rule, observation or
+  judgement changed.
 
 ---
 
@@ -48,11 +53,13 @@ be.
 | Document | Reader | Kind | Length |
 |---|---|---|---|
 | `README.md` | Deciding whether to try it | how-to | thin |
-| `demo.Rmd` | First run | tutorial | thin |
-| `scorecard-synthetic-data-checks.Rmd` | Judging one run | how-to | as long as the checks need |
-| `public-data-examples.Rmd` | Finding a dataset like theirs | reference | one fixed shape per dataset |
-| `avatar-algorithm.Rmd` | Auditing the mechanism | reference | exhaustive |
-| `synpmx-4-methods.Rmd` | Choosing a method | explanation | thin |
+| `avatar-demo.Rmd` | First run, AVATAR | tutorial | thin |
+| `pca-demo.Rmd` | First run, PCA | tutorial | thin |
+| `avatar-scorecard.Rmd` | Judging one run | how-to | as long as the checks need |
+| `avatar-public-data-examples.Rmd` | Finding a dataset like theirs | reference | one fixed shape per dataset |
+| `avatar-algorithm.Rmd` | Auditing the mechanism, AVATAR | reference | exhaustive |
+| `pca-algorithm.Rmd` | Auditing the mechanism, PCA | reference | exhaustive |
+| `synpmx-methods.Rmd` | Choosing a method | explanation | thin |
 | `articles/*-review.Rmd` | Learning the field | tutorial | as long as it needs |
 | `design/` | Claude, and him later | reference | exhaustive |
 
@@ -340,7 +347,7 @@ Three sources, in decreasing order of reliability.
    the README-ownership rule. Each of those is a scar from earlier friction.
 
 **Standing caveat.** As of 2026-08-14 he has read and hand-edited `README.md`
-and the front of `scorecard-synthetic-data-checks.Rmd`, and has **not** read the
+and the front of `avatar-scorecard.Rmd`, and has **not** read the
 two literature-review articles or `avatar-algorithm.Rmd`, both queued in
 `design/_TODO_owner.md`. Anything citing those is evidence about *what he asked
 for*, not that the result worked. Mark what turns out to be wrong.
@@ -497,7 +504,7 @@ its rows even where the roles gave a check nothing to ask, because "two cards
 that hold different rows cannot be compared, and the absence reads as a check
 that passed when it means the question was never asked". `c5c8348` is the same
 instinct at document scale — the two `xgxr` study-shaped datasets moved from last
-to first in `public-data-examples.Rmd`, so the six sparser sets after them are
+to first in `avatar-public-data-examples.Rmd`, so the six sparser sets after them are
 read against something familiar.
 
 **What to do.** Anything appearing more than once — a card, a dataset section, a
