@@ -1,4 +1,4 @@
-# The four generation modes as a public surface.
+# The generation modes as a public surface.
 #
 # The engines themselves are covered by test-avatar.R, test-structural-v3.R,
 # test-generation.R, and test-private-fitting.R. What is tested here is the

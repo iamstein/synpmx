@@ -123,7 +123,7 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 | [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
 | [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
-| [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? |
+| [The synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) | What are the modes, and which one do I want? |
 
 ## References
 

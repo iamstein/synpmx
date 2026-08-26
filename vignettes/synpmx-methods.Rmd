@@ -1,5 +1,5 @@
 ---
-title: "The four synpmx data generation algorithms"
+title: "The synpmx data generation algorithms"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,7 +7,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{The four synpmx data generation algorithms}
+  %\VignetteIndexEntry{The synpmx data generation algorithms}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -50,10 +50,16 @@ suitable for estimation, model selection, inference, dose selection, or clinical
 decisions. The method aims for structural usefulness, not scientific
 equivalence.
 
-Given that synthetic data is oven used as a way to protect privacy, this package offers four synthetic data generation functions that offer different privacy guarantees.   This vignette introduces all four and
+Given that synthetic data is oven used as a way to protect privacy, this package offers several synthetic data generation functions that offer different privacy guarantees.   This vignette introduces four of them and
 applies each one to the same public dataset.
 
-The four modes, from most faithful to most protective:
+A fifth, `synpmx_pca()`, arrived after this vignette was written and is not
+compared here. It fits a principal-component basis and generates from the fitted
+model, so no real patient's values reach the output. It needs a nominal-time
+column, which `theo_md` does not carry. See `vignette("pca-algorithm")` and
+`vignette("pca-demo")`.
+
+The four compared below, from most faithful to most protective:
 
 1. **AVATAR blending** [1, 2] — build each synthetic subject out of real
    subjects.
@@ -80,7 +86,7 @@ full AVATAR algorithm, every step with its mathematics and edge cases, is in the
 `theo_md` (from `nlmixr2data`) is a small public dataset — 12 subjects, seven
 daily 320 mg oral doses, one concentration endpoint. Twelve subjects is a
 deliberately hard case: it is typical of early-phase work and it is where the
-differences between the four modes are most visible.
+differences between these modes are most visible.
 
 ```{r data, eval=has_nlmixr2data}
 data("theo_md", package = "nlmixr2data")

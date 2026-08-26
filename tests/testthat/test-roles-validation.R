@@ -48,16 +48,22 @@ test_that("validation supports reset occasion clocks and coherent properties", {
   expect_false(validate_pmx(source, roles, private_endpoints())$valid)
 })
 
-test_that("the four generation modes are exported side by side", {
+test_that("the generation modes are exported side by side", {
   # One function per mode, each returning a synthetic dataset. The fit and
   # generate primitives behind the two confidential modes stay internal; the
-  # only supported way to spend budget is through these four.
+  # only supported way to spend budget is through the four listed here.
+  # `synpmx_pca()` is the exception by design: it makes no DP claim, so its two
+  # stages are public and can be run separately.
   exports <- getNamespaceExports("synpmx")
   expect_true(all(c(
     "synpmx_avatar",       # real templates, blended trajectories; no DP claim
+    "synpmx_pca",          # fitted basis, drawn scores; no DP claim
     "synpmx_prior",        # public model and protocol only; reads no data
     "synpmx_calibrated",   # public model, magnitude privately corrected
     "synpmx_empirical"     # dense noised population summaries
+  ) %in% exports))
+  expect_true(all(c(
+    "synpmx_pca_summarize", "synpmx_pca_generate"
   ) %in% exports))
   expect_true(all(c(
     "synpmx_generate", "privacy_report", "validate_private_model"

@@ -21,6 +21,7 @@ redirects:
   - ["articles/demo.html", "articles/avatar-demo.html"]
   - ["articles/public-data-examples.html", "articles/avatar-public-data-examples.html"]
   - ["articles/scorecard-synthetic-data-checks.html", "articles/avatar-scorecard.html"]
+  - ["articles/synpmx-4-methods.html", "articles/synpmx-methods.html"]
 
 navbar:
   structure:
@@ -49,8 +50,8 @@ navbar:
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
       - text: -------
       - text: "Background"
-      - text: The four synpmx data generation algorithms
-        href: articles/synpmx-4-methods.html
+      - text: The synpmx data generation algorithms
+        href: articles/synpmx-methods.html
       - text: "Literature: generating synthetic data"
         href: articles/synthetic-data-generation-review.html
       - text: "Literature: checking synthetic data"

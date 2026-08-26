@@ -1,4 +1,4 @@
-# The four generation modes ---------------------------------------------------
+# The generation modes --------------------------------------------------------
 #
 # Every mode answers the same question -- "give me a synthetic dataset" -- and
 # every one of these functions returns a data frame. They differ only in what
