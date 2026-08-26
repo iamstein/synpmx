@@ -135,15 +135,15 @@ otherwise.
 ``` r
 
 basis <- trial_summary$basis
-data.frame(
+digits3(data.frame(
   endpoint = names(basis$transforms),
   transform = vapply(basis$transforms, function(t) t$method, character(1)),
-  offset = signif(vapply(basis$transforms, function(t) t$offset, numeric(1)), 4),
+  offset = signif(vapply(basis$transforms, function(t) t$offset, numeric(1)), 3),
   lloq = vapply(trial_summary$schema$censoring, function(c) {
     if (is.null(c$left)) NA_real_ else c$left
   }, numeric(1)),
   row.names = NULL
-)
+))
 #>           endpoint  transform offset lloq
 #> 1  PD - Continuous   identity  0.000   NA
 #> 2 PK Concentration log_offset  0.025 0.05
@@ -162,10 +162,8 @@ and crossing zero separates early visits from late ones.
 
 ``` r
 
-variance <- attr(pca_components(trial_summary), "variance_explained")
-variance$variance_explained <- round(variance$variance_explained, 4)
-variance$cumulative <- round(variance$cumulative, 4)
-show(variance, "Variance explained, per component")
+show(attr(pca_components(trial_summary), "variance_explained"),
+     "Variance explained, per component")
 ```
 
 ``` r
@@ -189,9 +187,7 @@ ggplot(subset(components, component %in% c("PC1", "PC2", "PC3") &
 
 ``` r
 
-loadings <- components
-loadings$loading <- round(loadings$loading, 4)
-show(loadings, "Every loading, by component and cell", paged = TRUE)
+show(components, "Every loading, by component and feature", paged = TRUE)
 ```
 
 One matrix carries the covariates and every endpoint together, so a
@@ -206,12 +202,12 @@ mass <- tapply(
        ifelse(is.na(components$endpoint), "covariate", components$endpoint)),
   sum
 )
-round(mass[paste0("PC", seq_len(min(4, nrow(mass)))), , drop = FALSE], 3)
+signif(mass[paste0("PC", seq_len(min(4, nrow(mass)))), , drop = FALSE], 3)
 #>     covariate PD - Continuous PK Concentration
-#> PC1     0.000           0.074            0.926
-#> PC2     0.001           0.155            0.843
-#> PC3     0.411           0.508            0.081
-#> PC4     0.063           0.826            0.111
+#> PC1  0.000237           0.074           0.9260
+#> PC2  0.001080           0.155           0.8430
+#> PC3  0.411000           0.508           0.0813
+#> PC4  0.063400           0.826           0.1110
 ```
 
 Each row sums to one. On this study the first two components are almost
@@ -226,11 +222,8 @@ spread is that arm’s residual standard deviation.
 
 ``` r
 
-scores <- as.data.frame(pca_scores(trial_summary))
-scores$mean <- round(scores$mean, 3)
-scores$sd <- round(scores$sd, 3)
-show(scores, "Mean score and residual spread, per arm and component",
-     paged = TRUE)
+show(pca_scores(trial_summary),
+     "Mean score and residual spread, per arm and component", paged = TRUE)
 ```
 
 The `sd` column is the whole of the between-subject variability the
@@ -285,10 +278,8 @@ ggplot(pca_visits(trial_summary), aes(time, probability, colour = arm)) +
 
 ``` r
 
-visits <- pca_visits(trial_summary)
-visits$probability <- round(visits$probability, 3)
-show(visits, "Probability of an observation, per arm, endpoint and time",
-     paged = TRUE)
+show(pca_visits(trial_summary),
+     "Probability of an observation, per arm, endpoint and time", paged = TRUE)
 ```
 
 ## The schema
@@ -334,11 +325,11 @@ carried verbatim onto every generated patient in it.
 
 ``` r
 
-do.call(rbind, lapply(names(schema$arm_values), function(arm) {
+digits3(do.call(rbind, lapply(names(schema$arm_values), function(arm) {
   values <- schema$arm_values[[arm]]
   data.frame(arm = gsub("\r", " / ", arm, fixed = TRUE),
              as.data.frame(values, stringsAsFactors = FALSE))
-}))
+})))
 #>            arm  TRTACT DOSE STUDY
 #> 1  Placebo / 0 Placebo    0     1
 #> 2     3 mg / 3    3 mg    3     1
