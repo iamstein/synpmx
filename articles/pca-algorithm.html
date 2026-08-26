@@ -45,7 +45,7 @@
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -128,9 +128,10 @@ row on the declared nominal grid, align each subject to their own first
 dose, and read each endpoint’s trajectory onto that grid, beside the
 baseline covariates.</li>
 <li>
-<strong>Fill, standardize and decompose.</strong> Median-fill the
-cells a subject has no observation in, standardize every column, and
-take the principal components.</li>
+<strong>Fill, standardize and decompose.</strong> Replace censored
+values with a draw inside the censoring region, median-fill the cells a
+subject has no observation in, standardize every column, and take the
+principal components.</li>
 <li>
 <strong>Model the scores against the arm.</strong> Each arm gets its
 own mean score vector and its own residual covariance.</li>
@@ -144,7 +145,8 @@ dose schedule the arm holds in common, and the probability of a visit at
 each nominal time.</li>
 <li>
 <strong>Place the drawn values</strong> on that skeleton, snapping a
-discrete endpoint back onto its levels.</li>
+discrete endpoint back onto its levels and putting the assay limit back
+where the source had one.</li>
 <li>
 <strong>Construct the full synthetic dataset</strong> with new
 subject IDs and every column back in the shape the source had, and
@@ -382,8 +384,8 @@ arm</td>
 <tr class="odd">
 <td>Schema</td>
 <td>Column order, column types as empty prototypes, the discrete
-endpoints’ level sets, the log-or-identity choice per endpoint, and one
-value per arm for the strata and kept columns</td>
+endpoints’ level sets, the log-or-identity choice and assay limit per
+endpoint, and one value per arm for the strata and kept columns</td>
 </tr>
 <tr class="even">
 <td>Arms</td>
@@ -415,6 +417,31 @@ described under Step 11 of
 <code><a href="../articles/avatar-algorithm.html">vignette("avatar-algorithm")</a></code>.</p>
 <p>Categorical covariates come out of the draw as one number per level,
 and the level with the largest is the one written.</p>
+<div class="section level3">
+<h3 id="the-assay-limit">The assay limit<a class="anchor" aria-label="anchor" href="#the-assay-limit"></a>
+</h3>
+<p>The drawn value is the <strong>latent</strong> one: what the subject
+would have measured with no assay limit. Where the source declared
+censoring, the reported value, <code>CENS</code> and <code>LIMIT</code>
+are then reconstructed from it together, so a value below the lower
+limit of quantification (LLOQ) is reported <em>on</em> the boundary and
+flagged, as the source reports it.</p>
+<p>This runs in both directions and both are needed.</p>
+<p>Censored source values are replaced by a draw inside the censoring
+region <strong>before</strong> the basis is fitted, back in Step 3. A
+grid cell where most subjects sit exactly at the limit has almost no
+variance, so a basis fitted on the reported values would learn the assay
+rather than the patients, and the generated data would inherit a floor
+slightly above the real one. This is the only random step in
+summarizing, which is why <code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> takes a
+seed of its own.</p>
+<p>Reapplying the boundary at emit is what makes a low-dose arm come
+back flat. Without it every value below the limit is emitted as itself,
+and an arm that the study recorded as a straight line at the LLOQ comes
+back as a spread of small numbers — visibly wrong on a log-scale
+concentration plot, and wrong in a way that would carry into any BLQ
+handling the dataset is used to develop.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-8-construct-and-validate">Step 8: Construct and Validate<a class="anchor" aria-label="anchor" href="#step-8-construct-and-validate"></a>

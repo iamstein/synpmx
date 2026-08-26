@@ -45,7 +45,7 @@
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -96,8 +96,8 @@ families of method that protect patients in fundamentally different
 ways. This vignette explains what each one actually is, what
 differential privacy does and does not promise, how to choose between
 methods and if a private mode is chosen, how to choose an epsilon.</p>
-<p>The companion vignettes are <code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code>
-(the four generation modes) and
+<p>The companion vignettes are <code><a href="../articles/synpmx-methods.html">vignette("synpmx-methods")</a></code>
+(the generation modes) and
 <code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> (AVATAR measured on
 public data).</p>
 </div>
@@ -377,7 +377,7 @@ get.</strong> Each step down this list trades an assertion you would
 have had to defend for a fact taken from real patients, and the privacy
 claim weakens by exactly that much.</p>
 <p>For all three run end to end on <code>theo_md</code>, with code and
-output, see <code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code>.</p>
+output, see <code><a href="../articles/synpmx-methods.html">vignette("synpmx-methods")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-decision-rule">The decision rule<a class="anchor" aria-label="anchor" href="#the-decision-rule"></a>
@@ -606,11 +606,12 @@ privacy argument</a> — the formal argument, for a reviewer.</li>
 by cohort size</a> — the complete measured frontier, and why small
 cohorts are hard for any formal method.</li>
 <li>
-<code><a href="../articles/synpmx-4-methods.html">vignette("synpmx-4-methods")</a></code> — the four generation
-modes and why AVATAR is the default. Note that it splits public-model
-simulation and the two DP engines into three separate <em>modes</em>,
-where this vignette groups the DP engines into one <em>family</em>; four
-modes, three families, same functions.</li>
+<code><a href="../articles/synpmx-methods.html">vignette("synpmx-methods")</a></code> — the generation modes and
+why AVATAR is the default. Note that it splits public-model simulation
+and the two DP engines into three separate <em>modes</em>, where this
+vignette groups the DP engines into one <em>family</em>: same functions,
+counted differently. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> makes no formal privacy
+claim and sits beside AVATAR rather than in either grouping.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The
 AVATAR Algorithm</a> — the default generator in detail.</li>

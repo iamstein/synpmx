@@ -38,7 +38,7 @@ single patient."></head><body>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -110,10 +110,12 @@ single patient.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          score means                         Mean score vector, per arm       1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     score covariance             Residual covariance between components       1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint transforms                      Log or identity, per endpoint       2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         assay limits                   Censoring boundary, per endpoint       0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         dosing model             Dose times and amounts each arm shares       4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          visit model Probability of a visit, per arm, endpoint and time      14</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        arm constants         Strata and kept columns, one value per arm       0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  min_patients</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>

@@ -299,11 +299,13 @@ and the questions to ask of any generated dataset — from any method —
 are in [the checks
 article](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
 
-### The four modes across the families
+### The modes across the families
 
-The package offers four generation modes, and they do not all sit in the
-same family. Choosing among them is a privacy decision, not a technical
-preference.
+The package’s generation modes do not all sit in the same family.
+Choosing among them is a privacy decision, not a technical preference.
+The four carrying a privacy position are tabulated here;
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+makes no formal claim and belongs beside AVATAR.
 
 | Mode | Family | Formal guarantee |
 |----|----|----|

@@ -12,6 +12,7 @@ patient row survives it.
 synpmx_pca_summarize(
   data,
   roles,
+  seed = NULL,
   dose_term = c("factor", "log"),
   pca_variance = 0.9,
   n_components = NULL,
@@ -31,6 +32,14 @@ synpmx_pca_summarize(
   Explicit column roles from
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md),
   including `nominal_time`.
+
+- seed:
+
+  Seed for the one random step in summarizing: censored values are
+  replaced by a draw inside the censoring region before the basis is
+  fitted, so that a column where most subjects sit at the assay limit
+  describes the patients rather than the assay. The boundary is
+  reapplied at generation.
 
 - dose_term:
 
@@ -132,10 +141,12 @@ pmx_pca_report(model)
 #>          score means                         Mean score vector, per arm       1
 #>     score covariance             Residual covariance between components       1
 #>  endpoint transforms                      Log or identity, per endpoint       2
+#>         assay limits                   Censoring boundary, per endpoint       0
 #>         dosing model             Dose times and amounts each arm shares       4
 #>          visit model Probability of a visit, per arm, endpoint and time      14
 #>        arm constants         Strata and kept columns, one value per arm       0
 #>  min_patients
+#>            60
 #>            60
 #>            60
 #>            60

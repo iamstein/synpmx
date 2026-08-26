@@ -46,10 +46,12 @@ pmx_pca_report(synpmx_pca(data, pmx_generated_roles(), seed = 1))
 #>          score means                         Mean score vector, per arm       1
 #>     score covariance             Residual covariance between components       1
 #>  endpoint transforms                      Log or identity, per endpoint       2
+#>         assay limits                   Censoring boundary, per endpoint       0
 #>         dosing model             Dose times and amounts each arm shares       4
 #>          visit model Probability of a visit, per arm, endpoint and time      14
 #>        arm constants         Strata and kept columns, one value per arm       0
 #>  min_patients
+#>            60
 #>            60
 #>            60
 #>            60

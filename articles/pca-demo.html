@@ -45,7 +45,7 @@
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -156,7 +156,7 @@ data.</p>
 <span><span class="co">#&gt;   fitted on    180 patients, 6 arm(s): Placebo / 0 (30), 3 mg / 3 (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100 (30), 300 mg / 300 (30) </span></span>
 <span><span class="co">#&gt;   endpoints    PD - Continuous (9 visits modelled), PK Concentration (24 visits modelled) </span></span>
 <span><span class="co">#&gt;   covariates   WEIGHTB </span></span>
-<span><span class="co">#&gt;   components   10 (92% of variance) </span></span>
+<span><span class="co">#&gt;   components   16 (90% of variance) </span></span>
 <span><span class="co">#&gt;   dose term    factor </span></span>
 <span><span class="co">#&gt;   dosing       85 dose(s) per arm | shared by 100%-100% of each arm </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -188,16 +188,17 @@ rather than generating from one or two people.
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_pca_report.html">pmx_pca_report</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
 <span><span class="co">#&gt; What the PCA fit read out of the source data</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   subjects: 180  components retained: 10 </span></span>
+<span><span class="co">#&gt;   subjects: 180  components retained: 16 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;             quantity                                               what numbers</span></span>
 <span><span class="co">#&gt;           visit grid               Nominal times modelled, per endpoint      33</span></span>
 <span><span class="co">#&gt;      feature centers               Mean of each grid cell and covariate      34</span></span>
 <span><span class="co">#&gt;       feature scales                     Standard deviation of the same      34</span></span>
-<span><span class="co">#&gt;             loadings                 Component loadings on each feature     340</span></span>
-<span><span class="co">#&gt;          score means                         Mean score vector, per arm      60</span></span>
-<span><span class="co">#&gt;     score covariance             Residual covariance between components     100</span></span>
+<span><span class="co">#&gt;             loadings                 Component loadings on each feature     544</span></span>
+<span><span class="co">#&gt;          score means                         Mean score vector, per arm      96</span></span>
+<span><span class="co">#&gt;     score covariance             Residual covariance between components     256</span></span>
 <span><span class="co">#&gt;  endpoint transforms                      Log or identity, per endpoint       2</span></span>
+<span><span class="co">#&gt;         assay limits                   Censoring boundary, per endpoint       1</span></span>
 <span><span class="co">#&gt;         dosing model             Dose times and amounts each arm shares    1020</span></span>
 <span><span class="co">#&gt;          visit model Probability of a visit, per arm, endpoint and time     198</span></span>
 <span><span class="co">#&gt;        arm constants         Strata and kept columns, one value per arm      18</span></span>
@@ -208,6 +209,7 @@ rather than generating from one or two people.
 <span><span class="co">#&gt;           180</span></span>
 <span><span class="co">#&gt;            30</span></span>
 <span><span class="co">#&gt;            30</span></span>
+<span><span class="co">#&gt;           180</span></span>
 <span><span class="co">#&gt;           180</span></span>
 <span><span class="co">#&gt;            30</span></span>
 <span><span class="co">#&gt;            30</span></span>
@@ -310,6 +312,13 @@ calls in one, for when there is no reason to stop and look.</p>
 <p>The synthetic profiles are smoother than the source ones. The model
 holds a handful of components, and everything outside them, including
 measurement noise visit to visit, is not reproduced.</p>
+<p>The low-dose arms sit flat on the assay limit in both panels. That is
+the censoring being put back: the drawn value is the latent one, and
+where the source declared a lower limit of quantification the reported
+value, <code>CENS</code> and <code>LIMIT</code> are rebuilt from it
+together. The basis itself is fitted on values drawn inside the
+censoring region rather than on the stack of identical limits, so it
+describes the patients rather than the assay.</p>
 </div>
 <div class="section level2">
 <h2 id="reading-the-components">Reading the components<a class="anchor" aria-label="anchor" href="#reading-the-components"></a>
@@ -333,16 +342,22 @@ late ones.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_pca_components.html">pmx_pca_components</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>, <span class="st">"variance_explained"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    component variance_explained cumulative</span></span>
-<span><span class="co">#&gt; 1        PC1         0.61865419  0.6186542</span></span>
-<span><span class="co">#&gt; 2        PC2         0.08471173  0.7033659</span></span>
-<span><span class="co">#&gt; 3        PC3         0.03473132  0.7380972</span></span>
-<span><span class="co">#&gt; 4        PC4         0.03036573  0.7684630</span></span>
-<span><span class="co">#&gt; 5        PC5         0.02930256  0.7977655</span></span>
-<span><span class="co">#&gt; 6        PC6         0.02697312  0.8247386</span></span>
-<span><span class="co">#&gt; 7        PC7         0.02531420  0.8500528</span></span>
-<span><span class="co">#&gt; 8        PC8         0.02417837  0.8742312</span></span>
-<span><span class="co">#&gt; 9        PC9         0.02236295  0.8965942</span></span>
-<span><span class="co">#&gt; 10      PC10         0.02026734  0.9168615</span></span></code></pre></div>
+<span><span class="co">#&gt; 1        PC1         0.50953784  0.5095378</span></span>
+<span><span class="co">#&gt; 2        PC2         0.06276067  0.5722985</span></span>
+<span><span class="co">#&gt; 3        PC3         0.03853618  0.6108347</span></span>
+<span><span class="co">#&gt; 4        PC4         0.03471444  0.6455491</span></span>
+<span><span class="co">#&gt; 5        PC5         0.03029726  0.6758464</span></span>
+<span><span class="co">#&gt; 6        PC6         0.02788634  0.7037327</span></span>
+<span><span class="co">#&gt; 7        PC7         0.02738581  0.7311185</span></span>
+<span><span class="co">#&gt; 8        PC8         0.02552563  0.7566442</span></span>
+<span><span class="co">#&gt; 9        PC9         0.02416383  0.7808080</span></span>
+<span><span class="co">#&gt; 10      PC10         0.02273215  0.8035402</span></span>
+<span><span class="co">#&gt; 11      PC11         0.02039767  0.8239378</span></span>
+<span><span class="co">#&gt; 12      PC12         0.01777112  0.8417089</span></span>
+<span><span class="co">#&gt; 13      PC13         0.01687197  0.8585809</span></span>
+<span><span class="co">#&gt; 14      PC14         0.01509856  0.8736795</span></span>
+<span><span class="co">#&gt; 15      PC15         0.01428485  0.8879643</span></span>
+<span><span class="co">#&gt; 16      PC16         0.01274791  0.9007122</span></span></code></pre></div>
 <p>Describe what the curve shows rather than naming a mechanism for it.
 A component that separates early from late looks like a difference in
 decline rate, and calling it a half-life would be a claim the fit cannot
@@ -367,7 +382,7 @@ described further in <code><a href="../articles/avatar-scorecard.html">vignette(
 <code class="sourceCode R"><span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","0 of 180","0.528 in [0.419, 0.564]","0","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.9 on PD - Continuous (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","unavailable","unavailable","pass","pass","pass","pass","pass","pass","unavailable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Fifteen of the eighteen rows mean the same thing here as they
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","0 of 180","0.506 in [0.419, 0.589]","0","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x1 on WEIGHTB (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","unavailable","unavailable","pass","pass","pass","pass","pass","pass","unavailable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Fifteen of the eighteen rows mean the same thing here as they
 do for <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</strong> They read the source and
 synthetic tables and compute the same way whatever produced the data,
 which is what the scorecard was for.</p>

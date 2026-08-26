@@ -38,8 +38,8 @@
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
 
-- [The four synpmx data generation
-  algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):
+- [The synpmx data generation
+  algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.md):
 
 - [Privacy](https://iamstein.github.io/synpmx/articles/synpmx-privacy.md):
 

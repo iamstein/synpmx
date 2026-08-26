@@ -36,7 +36,7 @@ returned object holds nothing but summaries: no patient row survives it."></head
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -74,6 +74,7 @@ returned object holds nothing but summaries: no patient row survives it.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">synpmx_pca_summarize</span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
 <span>  <span class="va">roles</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dose_term <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"factor"</span>, <span class="st">"log"</span><span class="op">)</span>,</span>
 <span>  pca_variance <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  n_components <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -93,6 +94,13 @@ returned object holds nothing but summaries: no patient row survives it.</p>
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
 <dd><p>Explicit column roles from <code><a href="pmx_roles.html">pmx_roles()</a></code>, including
 <code>nominal_time</code>.</p></dd>
+
+
+<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
+<dd><p>Seed for the one random step in summarizing: censored values are
+replaced by a draw inside the censoring region before the basis is fitted,
+so that a column where most subjects sit at the assay limit describes the
+patients rather than the assay. The boundary is reapplied at generation.</p></dd>
 
 
 <dt id="arg-dose-term">dose_term<a class="anchor" aria-label="anchor" href="#arg-dose-term"></a></dt>
@@ -186,10 +194,12 @@ recorded times.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          score means                         Mean score vector, per arm       1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     score covariance             Residual covariance between components       1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint transforms                      Log or identity, per endpoint       2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         assay limits                   Censoring boundary, per endpoint       0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         dosing model             Dose times and amounts each arm shares       4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          visit model Probability of a visit, per arm, endpoint and time      14</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        arm constants         Strata and kept columns, one value per arm       0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  min_patients</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>

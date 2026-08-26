@@ -42,7 +42,8 @@ inventories all of it.
     declared nominal grid, align each subject to their own first dose,
     and read each endpoint’s trajectory onto that grid, beside the
     baseline covariates.
-3.  **Fill, standardize and decompose.** Median-fill the cells a subject
+3.  **Fill, standardize and decompose.** Replace censored values with a
+    draw inside the censoring region, median-fill the cells a subject
     has no observation in, standardize every column, and take the
     principal components.
 4.  **Model the scores against the arm.** Each arm gets its own mean
@@ -53,7 +54,8 @@ inventories all of it.
     the arm holds in common, and the probability of a visit at each
     nominal time.
 7.  **Place the drawn values** on that skeleton, snapping a discrete
-    endpoint back onto its levels.
+    endpoint back onto its levels and putting the assay limit back where
+    the source had one.
 8.  **Construct the full synthetic dataset** with new subject IDs and
     every column back in the shape the source had, and validate it.
 
@@ -271,7 +273,7 @@ The object holds, and this is all of it:
 | Scores | One mean score vector per arm, and one residual covariance per arm |
 | Dosing model | Per arm, the shared schedule of times and amounts |
 | Visit model | Per arm, endpoint and time, the probability of an observation |
-| Schema | Column order, column types as empty prototypes, the discrete endpoints’ level sets, the log-or-identity choice per endpoint, and one value per arm for the strata and kept columns |
+| Schema | Column order, column types as empty prototypes, the discrete endpoints’ level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns |
 | Arms | The number of patients in each |
 
 [`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md)
@@ -300,6 +302,33 @@ described under Step 11 of
 
 Categorical covariates come out of the draw as one number per level, and
 the level with the largest is the one written.
+
+### The assay limit
+
+The drawn value is the **latent** one: what the subject would have
+measured with no assay limit. Where the source declared censoring, the
+reported value, `CENS` and `LIMIT` are then reconstructed from it
+together, so a value below the lower limit of quantification (LLOQ) is
+reported *on* the boundary and flagged, as the source reports it.
+
+This runs in both directions and both are needed.
+
+Censored source values are replaced by a draw inside the censoring
+region **before** the basis is fitted, back in Step 3. A grid cell where
+most subjects sit exactly at the limit has almost no variance, so a
+basis fitted on the reported values would learn the assay rather than
+the patients, and the generated data would inherit a floor slightly
+above the real one. This is the only random step in summarizing, which
+is why
+[`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
+takes a seed of its own.
+
+Reapplying the boundary at emit is what makes a low-dose arm come back
+flat. Without it every value below the limit is emitted as itself, and
+an arm that the study recorded as a straight line at the LLOQ comes back
+as a spread of small numbers — visibly wrong on a log-scale
+concentration plot, and wrong in a way that would carry into any BLQ
+handling the dataset is used to develop.
 
 ## Step 8: Construct and Validate
 

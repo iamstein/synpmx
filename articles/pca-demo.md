@@ -83,7 +83,7 @@ model
 #>   fitted on    180 patients, 6 arm(s): Placebo / 0 (30), 3 mg / 3 (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100 (30), 300 mg / 300 (30) 
 #>   endpoints    PD - Continuous (9 visits modelled), PK Concentration (24 visits modelled) 
 #>   covariates   WEIGHTB 
-#>   components   10 (92% of variance) 
+#>   components   16 (90% of variance) 
 #>   dose term    factor 
 #>   dosing       85 dose(s) per arm | shared by 100%-100% of each arm 
 #> 
@@ -120,16 +120,17 @@ people. `min_arm_patients` is where that floor is set.
 pmx_pca_report(model)
 #> What the PCA fit read out of the source data
 #> 
-#>   subjects: 180  components retained: 10 
+#>   subjects: 180  components retained: 16 
 #> 
 #>             quantity                                               what numbers
 #>           visit grid               Nominal times modelled, per endpoint      33
 #>      feature centers               Mean of each grid cell and covariate      34
 #>       feature scales                     Standard deviation of the same      34
-#>             loadings                 Component loadings on each feature     340
-#>          score means                         Mean score vector, per arm      60
-#>     score covariance             Residual covariance between components     100
+#>             loadings                 Component loadings on each feature     544
+#>          score means                         Mean score vector, per arm      96
+#>     score covariance             Residual covariance between components     256
 #>  endpoint transforms                      Log or identity, per endpoint       2
+#>         assay limits                   Censoring boundary, per endpoint       1
 #>         dosing model             Dose times and amounts each arm shares    1020
 #>          visit model Probability of a visit, per arm, endpoint and time     198
 #>        arm constants         Strata and kept columns, one value per arm      18
@@ -140,6 +141,7 @@ pmx_pca_report(model)
 #>           180
 #>            30
 #>            30
+#>           180
 #>           180
 #>            30
 #>            30
@@ -266,6 +268,14 @@ The synthetic profiles are smoother than the source ones. The model
 holds a handful of components, and everything outside them, including
 measurement noise visit to visit, is not reproduced.
 
+The low-dose arms sit flat on the assay limit in both panels. That is
+the censoring being put back: the drawn value is the latent one, and
+where the source declared a lower limit of quantification the reported
+value, `CENS` and `LIMIT` are rebuilt from it together. The basis itself
+is fitted on values drawn inside the censoring region rather than on the
+stack of identical limits, so it describes the patients rather than the
+assay.
+
 ## Reading the components
 
 A principal component is a direction in the space of whole trajectories,
@@ -293,16 +303,22 @@ ggplot(subset(components, component %in% c("PC1", "PC2", "PC3")),
 
 attr(pmx_pca_components(model), "variance_explained")
 #>    component variance_explained cumulative
-#> 1        PC1         0.61865419  0.6186542
-#> 2        PC2         0.08471173  0.7033659
-#> 3        PC3         0.03473132  0.7380972
-#> 4        PC4         0.03036573  0.7684630
-#> 5        PC5         0.02930256  0.7977655
-#> 6        PC6         0.02697312  0.8247386
-#> 7        PC7         0.02531420  0.8500528
-#> 8        PC8         0.02417837  0.8742312
-#> 9        PC9         0.02236295  0.8965942
-#> 10      PC10         0.02026734  0.9168615
+#> 1        PC1         0.50953784  0.5095378
+#> 2        PC2         0.06276067  0.5722985
+#> 3        PC3         0.03853618  0.6108347
+#> 4        PC4         0.03471444  0.6455491
+#> 5        PC5         0.03029726  0.6758464
+#> 6        PC6         0.02788634  0.7037327
+#> 7        PC7         0.02738581  0.7311185
+#> 8        PC8         0.02552563  0.7566442
+#> 9        PC9         0.02416383  0.7808080
+#> 10      PC10         0.02273215  0.8035402
+#> 11      PC11         0.02039767  0.8239378
+#> 12      PC12         0.01777112  0.8417089
+#> 13      PC13         0.01687197  0.8585809
+#> 14      PC14         0.01509856  0.8736795
+#> 15      PC15         0.01428485  0.8879643
+#> 16      PC16         0.01274791  0.9007122
 ```
 
 Describe what the curve shows rather than naming a mechanism for it. A
