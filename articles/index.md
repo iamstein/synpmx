@@ -32,6 +32,9 @@
 - [Demo: Using
   synpmx_pca](https://iamstein.github.io/synpmx/articles/pca-demo.md):
 
+- [What a trial summary
+  contains](https://iamstein.github.io/synpmx/articles/pca-trial-summary.md):
+
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 

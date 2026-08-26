@@ -1,4 +1,4 @@
-# Summarize a PMX dataset into a principal-component model
+# Summarize a trial into the quantities a synthetic copy is built from
 
 The only stage that reads patient data. Reduces each subject's
 trajectories and baseline covariates to principal-component scores,
@@ -76,16 +76,16 @@ synpmx_pca_summarize(
 
 ## Value
 
-A `pmx_pca_model`.
+A `pmx_trial_summary`.
 
 ## Details
 
 Run this, look at what it produced with
-[`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md),
-[`pmx_pca_dosing()`](https://iamstein.github.io/synpmx/reference/pmx_pca_dosing.md),
-[`pmx_pca_visits()`](https://iamstein.github.io/synpmx/reference/pmx_pca_visits.md)
+[`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md),
+[`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md),
+[`pca_visits()`](https://iamstein.github.io/synpmx/reference/pca_visits.md)
 and
-[`pmx_pca_components()`](https://iamstein.github.io/synpmx/reference/pmx_pca_components.md),
+[`pca_components()`](https://iamstein.github.io/synpmx/reference/pca_components.md),
 then pass it to
 [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md).
 Generation reads the model and nothing else, so what those four
@@ -102,7 +102,7 @@ No formal privacy claim is made.
 
 [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md),
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md),
-[`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md).
+[`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md).
 
 ## Examples
 
@@ -112,49 +112,50 @@ roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 )
-model <- synpmx_pca_summarize(data, roles)
-model
-#> A synpmx PCA model
+trial_summary <- synpmx_pca_summarize(data, roles)
+trial_summary
+#> A trial summary, from synpmx_pca_summarize()
 #> 
 #>   fitted on    60 patients, 1 arm(s): all (60) 
 #>   endpoints    cp (8 visits modelled), pd (6 visits modelled) 
 #>   covariates   none 
 #>   components   1 (100% of variance) 
 #>   dose term    factor 
-#>   dosing       2 dose(s) per arm | shared by 2%-2% of each arm 
+#>   dosing       2 planned cycle(s) per arm | no reductions, interruptions or early stops 
 #> 
-#> Generation reads this object and nothing else. To look inside it:
-#>   pmx_pca_report(model)      what it read out of the source data
-#>   pmx_pca_dosing(model)      the dose schedule each arm shares
-#>   pmx_pca_visits(model)      the probability of a visit, per arm
-#>   pmx_pca_components(model)  the loadings, over time
-pmx_pca_report(model)
+#> synpmx_pca_generate() reads this object and nothing else. To look inside it:
+#>   pca_report()      what it read out of the source data
+#>   pca_dosing()      the planned dose schedule, per arm
+#>   pca_dose_rates()  reduction, interruption and discontinuation
+#>   pca_visits()      the probability of a visit, per arm
+#>   pca_components()  the loadings, over time
+pca_report(trial_summary)
 #> What the PCA fit read out of the source data
 #> 
 #>   subjects: 60  components retained: 1 
 #> 
-#>             quantity                                               what numbers
-#>           visit grid               Nominal times modelled, per endpoint      14
-#>      feature centers               Mean of each grid cell and covariate      14
-#>       feature scales                     Standard deviation of the same      14
-#>             loadings                 Component loadings on each feature      14
-#>          score means                         Mean score vector, per arm       1
-#>     score covariance             Residual covariance between components       1
-#>  endpoint transforms                      Log or identity, per endpoint       2
-#>         assay limits                   Censoring boundary, per endpoint       0
-#>         dosing model             Dose times and amounts each arm shares       4
-#>          visit model Probability of a visit, per arm, endpoint and time      14
-#>        arm constants         Strata and kept columns, one value per arm       0
-#>  min_patients
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
-#>            60
+#>             quantity                                                      what
+#>           visit grid                      Nominal times modelled, per endpoint
+#>      feature centers                      Mean of each grid cell and covariate
+#>       feature scales                            Standard deviation of the same
+#>             loadings                        Component loadings on each feature
+#>          score means                                Mean score vector, per arm
+#>     score covariance                    Residual covariance between components
+#>  endpoint transforms                             Log or identity, per endpoint
+#>         assay limits                          Censoring boundary, per endpoint
+#>         dosing model Planned cycles, the dose ladder, and three rates, per arm
+#>          visit model        Probability of a visit, per arm, endpoint and time
+#>        arm constants                Strata and kept columns, one value per arm
+#>  numbers min_patients
+#>       14           60
+#>       14           60
+#>       14           60
+#>       14           60
+#>        1           60
+#>        1           60
+#>        2           60
+#>        0           60
+#>        8           60
+#>       14           60
+#>        0           60
 ```

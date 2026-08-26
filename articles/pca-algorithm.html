@@ -35,6 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-trial-summary.html">What a trial summary contains</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
@@ -99,19 +100,15 @@ parameters.</p>
 <div class="section level2">
 <h2 id="what-the-principal-components-are-used-for">What the principal components are used for<a class="anchor" aria-label="anchor" href="#what-the-principal-components-are-used-for"></a>
 </h2>
-<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> also runs a principal component analysis
-(PCA), and uses it for something else. There the components are a
-<strong>distance metric</strong>: the coordinates decide which real
-patients are near which, those neighbours donate, and the numbers
-written out are weighted averages of real patients’ measurements. The
-output is assembled from real values.</p>
-<p>Here the components are a <strong>basis</strong>. Each subject’s
+<p>The components are a <strong>basis</strong>. Each subject’s
 trajectories become a short vector of scores, the scores become the
 response of a fitted linear model, and new subjects come from drawing
-that model’s residual. No donor index exists in the algorithm, and no
-number a patient measured reaches the output. What leaves the source
-data is a mean, a scale, a set of loadings, one mean score vector per
-arm, and a residual covariance. <code><a href="../reference/pmx_pca_report.html">pmx_pca_report()</a></code>
+that model’s residual.</p>
+<p>That is what makes the output fully synthetic. Nothing selects a real
+patient, nothing weights one, and no number a patient measured reaches
+the generated table. What leaves the source data is a mean, a scale, a
+set of loadings, one mean score vector per arm, a residual covariance,
+and a dosing and visit model per arm. <code><a href="../reference/pca_report.html">pca_report()</a></code>
 inventories all of it.</p>
 </div>
 <div class="section level2">
@@ -140,9 +137,10 @@ own mean score vector and its own residual covariance.</li>
 arm’s mean, and invert the standardization to get a feature vector
 back.</li>
 <li>
-<strong>Fit a dosing model and a visit model per arm</strong>: the
-dose schedule the arm holds in common, and the probability of a visit at
-each nominal time.</li>
+<strong>Fit a dosing model and a visit model per arm</strong>: a
+planned dose schedule with rates for reduction, interruption and
+discontinuation, and the probability of a visit at each nominal
+time.</li>
 <li>
 <strong>Place the drawn values</strong> on that skeleton, snapping a
 discrete endpoint back onto its levels and putting the assay limit back
@@ -161,11 +159,11 @@ enforced rather than intended.</p>
 </h2>
 <p>The package never guesses PMX roles from column names. Declare them
 with <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, as in
-<code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code>.</p>
-<p><code>strata</code> carries more weight here than it does in
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>. It names the arms, and the arms are the
-groups Step 4 fits against, so a column added to <code>strata</code>
-adds a group whose mean and covariance are estimated separately.</p>
+<code><a href="../articles/pca-demo.html">vignette("pca-demo")</a></code>.</p>
+<p><code>strata</code> is load-bearing. It names the arms, and the arms
+are the groups Step 4 fits against, so a column added to
+<code>strata</code> adds a group whose mean and covariance are estimated
+separately.</p>
 <p><strong>An arm of fewer than three patients is refused.</strong> Its
 mean score vector would be those patients and its covariance would be
 noise around them. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> stops and names the short
@@ -181,15 +179,13 @@ calling.</p>
 <h3 id="nominal_time-is-required">
 <code>nominal_time</code> is required<a class="anchor" aria-label="anchor" href="#nominal_time-is-required"></a>
 </h3>
-<p><code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> derives a visit grid when none is
-declared, and that derivation is a masking mechanism: it decides where
-the visits are so that no patient’s own time vector identifies them.
-Here the grid is the model’s axis. Every feature is a cell on it, and
-dose rows and observation rows are placed on it together. A grid
-inferred from elapsed time puts a sample on the wrong side of a dose as
-soon as the doses were recorded as actuals rather than as planned times,
-and choosing where a trough sample belongs is a statement about the
-protocol rather than something an algorithm can derive.</p>
+<p>The grid is the model’s axis. Every feature is a cell on it, and dose
+rows and observation rows are placed on it together, which is what keeps
+the two in step. A grid inferred from elapsed time puts a sample on the
+wrong side of a dose as soon as the doses were recorded as actuals
+rather than as planned times, and choosing where a trough sample belongs
+is a statement about the protocol rather than something an algorithm can
+derive.</p>
 <p>So <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> requires <code>nominal_time</code> and
 refuses without it. A study that does not carry one needs the protocol’s
 planned times added as a column first. Rows where it is missing are
@@ -197,15 +193,12 @@ named in the error rather than filled.</p>
 <p>Each subject is then aligned to their own first dose, so that time
 zero means the same thing for everybody.</p>
 <p>For each endpoint, the grid is <strong>every nominal time in the
-study</strong>. There is no cap on its width.
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> reduces each endpoint to fifteen points
-because a distance metric gains nothing from more, and a basis has no
-such ceiling: the number of components is bounded by the subject count
-however many columns there are.</p>
-<p>Endpoint values are log-transformed where the endpoint is positive,
-by the same rule <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> uses. Covariates join the
-same matrix, continuous ones as themselves and categorical ones as one
-indicator column per level.</p>
+study</strong>. There is no cap on its width: the number of components
+is bounded by the subject count however many columns there are, so extra
+columns cost nothing but arithmetic.</p>
+<p>Endpoint values are log-transformed where the endpoint is positive.
+Covariates join the same matrix, continuous ones as themselves and
+categorical ones as one indicator column per level.</p>
 <p><strong>Covariates and trajectories share one matrix on
 purpose.</strong> A single draw in Step 5 therefore carries the
 relationship between a covariate and the profile, which a generator
@@ -291,38 +284,92 @@ arm rather than facts about a patient.</p>
 <div class="section level3">
 <h3 id="the-dosing-model">The dosing model<a class="anchor" aria-label="anchor" href="#the-dosing-model"></a>
 </h3>
-<p><code><a href="../reference/pmx_pca_dosing.html">pmx_pca_dosing()</a></code> reports it: one row per arm and dose,
-with the time, the amount, and how much of the arm stands behind it.</p>
-<p>The schedule is the <strong>modal</strong> set of times and amounts
-among the arm’s patients — the one the arm holds in common — never an
-individual’s. Two columns say how safe that is. <code>share</code> is
-the fraction of the arm holding it, so a schedule chosen by a bare
-plurality is visible as one rather than passing as consensus.
-<code>distinct</code> is how many different schedules the arm actually
-contained.</p>
-<p>Every dosing event counts, including those carrying no drug. A
-placebo arm records its administrations with an amount of zero, and
-reading only the rows that carry drug would leave that arm with no
-dosing events at all.</p>
-<p><strong>A study recording actual dose times rather than planned ones
-will show <code>distinct</code> close to its arm size and
-<code>share</code> close to <code>1/n</code>.</strong> The output then
-holds one schedule per arm where the source held one per patient. The
-timing is right and the variety is gone. That is the mechanism working,
-and it is the number to look at before trusting a generated dataset for
-anything schedule dependent.</p>
+<p>Each arm carries a <strong>planned schedule</strong> and three
+<strong>rates</strong> that say how its patients departed from it.
+<code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> reports the first and
+<code><a href="../reference/pca_dose_rates.html">pca_dose_rates()</a></code> the second.</p>
+<p>The planned schedule is one row per cycle: the nominal dose time, and
+the amount the arm was planned to receive there. The amount is read per
+cycle from the patients still on their starting dose, so a
+protocol-prescribed escalation is part of the plan, while accumulated
+reductions do not drag the plan down with them.</p>
+<p>The three rates are discrete-time hazards, pooled over the arm:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Rate</th>
+<th>What it is</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>discontinuation</code></td>
+<td>P(this cycle is the last, given still on treatment)</td>
+</tr>
+<tr class="even">
+<td><code>interruption</code></td>
+<td>P(this cycle is skipped, given still on treatment)</td>
+</tr>
+<tr class="odd">
+<td><code>reduction</code></td>
+<td>P(drop one level, given still on and a lower level exists)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dose ladder is built from within-patient
+decreases.</strong> A study dosed by body weight gives every patient a
+different amount, so the pooled spread of amounts scatters continuously
+and any threshold on it would invent a ladder out of ordinary
+between-patient variation. A reduction is something else: the same
+patient receiving less than they did at the previous cycle. The ladder
+is the set of fractions, of a patient’s <strong>own</strong> starting
+dose, that several patients dropped to.</p>
+</div>
+<div class="section level3">
+<h3 id="why-there-is-no-detector">Why there is no detector<a class="anchor" aria-label="anchor" href="#why-there-is-no-detector"></a>
+</h3>
+<p>A study where nobody reduces, skips or stops early has all three
+rates at zero and a single level, and the model then reproduces the
+planned schedule exactly for every patient. Nothing decides which kind
+of study this is, because the rates already say it. On a fixed-schedule
+study the generated dose rows, the doses per patient and the scorecard’s
+A5b row are identical to what the modal schedule produced.</p>
+<p>Where the rates are not zero — oncology being the usual case —
+generated patients differ from one another in the same way and to the
+same degree the source patients did. Relative dose intensity, time on
+treatment and the fraction of patients ever reduced are often what such
+a dataset exists to analyse, and a generator handing everyone the modal
+schedule has removed all three.</p>
+</div>
+<div class="section level3">
+<h3 id="what-this-does-and-does-not-protect">What this does and does not protect<a class="anchor" aria-label="anchor" href="#what-this-does-and-does-not-protect"></a>
+</h3>
+<p>No patient’s own sequence of reductions is copied. What leaves the
+source is three probabilities and a ladder per arm, and the planned grid
+stops at the last cycle <code>min_arm_patients</code> patients reached,
+so a treatment duration only one patient had cannot be generated — the
+same reasoning as <code>SIM-047</code> on the observation side.</p>
+<p>What it does not give is a guarantee of non-coincidence. Simulating a
+schedule per patient means a generated sequence <strong>can</strong>
+land on a real patient’s by chance, exactly as the visit draw can.
+Scorecard row B1b asks that question and cannot answer it here, for the
+reason given under “Reading the Scorecard on This Output”. Read
+<code>distinct</code> in <code><a href="../reference/pca_dose_rates.html">pca_dose_rates()</a></code> against the arm
+size instead: a study whose schedules are nearly all unique is one where
+a coincidence is least likely to be meaningful, and a study with few
+distinct schedules is one where it is not a disclosure at all.</p>
 </div>
 <div class="section level3">
 <h3 id="the-visit-model">The visit model<a class="anchor" aria-label="anchor" href="#the-visit-model"></a>
 </h3>
-<p><code><a href="../reference/pmx_pca_visits.html">pmx_pca_visits()</a></code> reports it: one row per arm, endpoint
-and modelled nominal time, giving the probability that a generated
-subject in that arm has an observation there. It is the fraction of the
-arm’s patients who did.</p>
-<p>Attendance is drawn independently per visit from that probability. No
-real patient’s visit set is reused, which is what the B1a row of
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> asks about for
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</p>
+<p><code><a href="../reference/pca_visits.html">pca_visits()</a></code> reports it: one row per arm, endpoint and
+modelled nominal time, giving the probability that a generated subject
+in that arm has an observation there. It is the fraction of the arm’s
+patients who did.</p>
+<p>Attendance is drawn independently per visit from that probability, so
+no real patient’s set of attended visits is reused.</p>
 </div>
 <div class="section level3">
 <h3 id="why-the-timing-survives">Why the timing survives<a class="anchor" aria-label="anchor" href="#why-the-timing-survives"></a>
@@ -335,12 +382,10 @@ doses per patient, the time of the last dose, the end of follow-up, the
 baseline sample before the first dose, and the distribution of time
 after dose.</p>
 <p>What does not come through is the variety of schedules, as above.</p>
-<p>Neither B1a nor B1b nor C2 can be scored on this output. Those rows
-read the AVATAR run record, and report <code>unavailable</code> here.
-The guarantee is structural instead: no individual schedule and no
-individual visit set exists in the model to be copied. B4a and B4b
+<p>B1a, B1b and C2 cannot be scored on this output, for the reason set
+out under “Reading the Scorecard on This Output” below. B4a and B4b
 compare the finished tables directly and are the rows that carry the
-claim.</p>
+copy claim.</p>
 </div>
 </div>
 <div class="section level2">
@@ -375,7 +420,7 @@ arm</td>
 </tr>
 <tr class="odd">
 <td>Dosing model</td>
-<td>Per arm, the shared schedule of times and amounts</td>
+<td>Per arm, the planned cycles, the dose ladder, and three rates</td>
 </tr>
 <tr class="even">
 <td>Visit model</td>
@@ -393,9 +438,11 @@ endpoint, and one value per arm for the strata and kept columns</td>
 </tr>
 </tbody>
 </table>
-<p><code><a href="../reference/pmx_pca_report.html">pmx_pca_report()</a></code> prints the inventory with the count of
+<p><code><a href="../reference/pca_report.html">pca_report()</a></code> prints the inventory with the count of
 numbers in each group and, for each, the smallest number of patients
-standing behind any one of them.</p>
+standing behind any one of them.
+<code><a href="../articles/pca-trial-summary.html">vignette("pca-trial-summary")</a></code> walks through every group in
+turn, on a worked study.</p>
 <p>Two entries deserve naming because they are not averages. <strong>The
 level set of a discrete endpoint</strong> is read from real values: a
 0/1 endpoint has no third value to emit, so a generated value is a
@@ -412,9 +459,8 @@ that a synthetic ID cannot collide with a real one.</p>
 </h2>
 <p>Each attended visit takes its drawn value for that endpoint, inverted
 out of the log transform where one was applied, and snapped back onto
-the source’s levels where the endpoint is discrete — the same correction
-described under Step 11 of
-<code><a href="../articles/avatar-algorithm.html">vignette("avatar-algorithm")</a></code>.</p>
+the source’s levels where the endpoint is discrete, so that a 0/1
+endpoint cannot come back as a number between its levels.</p>
 <p>Categorical covariates come out of the draw as one number per level,
 and the level with the largest is the one written.</p>
 <div class="section level3">
@@ -428,13 +474,30 @@ limit of quantification (LLOQ) is reported <em>on</em> the boundary and
 flagged, as the source reports it.</p>
 <p>This runs in both directions and both are needed.</p>
 <p>Censored source values are replaced by a draw inside the censoring
-region <strong>before</strong> the basis is fitted, back in Step 3. A
-grid cell where most subjects sit exactly at the limit has almost no
-variance, so a basis fitted on the reported values would learn the assay
-rather than the patients, and the generated data would inherit a floor
-slightly above the real one. This is the only random step in
-summarizing, which is why <code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> takes a
-seed of its own.</p>
+region <strong>before</strong> the basis is fitted, back in Step 3. The
+<strong>log transform’s offset is read from the reported values rather
+than from those draws</strong>, and that distinction is load-bearing
+rather than a detail. The offset is half the smallest positive value and
+exists to keep <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log()</a></code> finite near zero;
+<code>.impute_censored()</code> draws uniformly on the raw scale, so a
+value censored at a limit of 0.05 can land three orders of magnitude
+below it and take the offset with it. Every censored observation then
+occupies several log units of what is purely uniform noise, the per-arm
+residual covariance is fitted on that inflated spread, and
+exponentiating a wide Gaussian has a heavy upper tail — so an arm that
+is entirely below quantification comes back with detectable
+concentrations that rise with time.</p>
+<p><strong>Not imputing at all is worse, and was measured.</strong> With
+every censored value sitting exactly at the limit, the arm’s mean score
+is the boundary itself and a symmetric residual puts half the draws
+above it: on a six-arm study the lowest arm returned 42% below the limit
+against a source 88%. The draw is what moves the arm’s centre to where
+the latent values are. A grid cell where most subjects sit exactly at
+the limit has almost no variance, so a basis fitted on the reported
+values would learn the assay rather than the patients, and the generated
+data would inherit a floor slightly above the real one. This is the only
+random step in summarizing, which is why
+<code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> takes a seed of its own.</p>
 <p>Reapplying the boundary at emit is what makes a low-dose arm come
 back flat. Without it every value below the limit is emitted as itself,
 and an arm that the study recorded as a straight line at the LLOQ comes
@@ -457,10 +520,12 @@ and <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code> ove
 dataset rather than a generator, and most of it holds here. Fifteen of
 its eighteen rows read the source and synthetic tables, compute the same
 way for any generator, and mean the same thing.</p>
-<p>Three do not, and they are the three that read the run’s own record
-rather than the tables: <strong>B1a</strong>, <strong>B1b</strong> and
-<strong>C2</strong>. They report <code>unavailable</code> on this
-output.</p>
+<p>Three do not: <strong>B1a</strong>, <strong>B1b</strong> and
+<strong>C2</strong>. They read a run record that
+<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> expects to find on the generated table
+as a <code>pmx_settings</code> attribute, rather than reading the two
+tables, and this table carries no such record. All three report
+<code>unavailable</code>.</p>
 <p>For B1a and B1b the guarantee is structural rather than unrecorded.
 No individual’s visit set and no individual’s dose schedule exists in
 the model to be copied, because the model holds a per-visit probability
@@ -472,7 +537,7 @@ misleading exactly where the loss is largest. C2 asks how many of the
 study’s distinct dose-time schedules survived, and this algorithm
 generates one schedule per arm. On a study whose recorded dose times are
 actuals, that is a large loss and the card says nothing about it.
-<code><a href="../reference/pmx_pca_dosing.html">pmx_pca_dosing()</a></code> reports the same quantity as
+<code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> reports the same quantity as
 <code>distinct</code> and <code>share</code>, per arm, and is what to
 read in its place.</p>
 </div>
@@ -502,9 +567,10 @@ mechanism for it is a claim the fit does not support.</li>
 default <code>dose_term</code>. <code>"log"</code> extrapolates;
 <code>"factor"</code> does not.</li>
 <li>
-<strong>The variety of dose schedules.</strong> Every patient in an
-arm receives the schedule that arm holds in common. The timing survives;
-the spread of schedules around it does not.</li>
+<strong>Amounts that vary continuously between patients.</strong>
+Body-weight or body-surface-area dosing gives every patient their own
+milligrams; the planned amount here is the arm’s modal one, so that
+variation is lost even though reductions relative to it are kept.</li>
 <li>
 <strong>Within-subject dose escalation.</strong> A subject’s total
 dose is one number and an arm’s schedule is one schedule, so a study
@@ -516,7 +582,7 @@ the escalation.</li>
 <h2 id="what-leaves-the-source-data">What Leaves the Source Data<a class="anchor" aria-label="anchor" href="#what-leaves-the-source-data"></a>
 </h2>
 <p>The inventory is above, under “The Model Is the Only Thing Generation
-Reads”, and <code><a href="../reference/pmx_pca_report.html">pmx_pca_report()</a></code> prints it for a given run. The
+Reads”, and <code><a href="../reference/pca_report.html">pca_report()</a></code> prints it for a given run. The
 column to read is the smallest number of patients standing behind a
 quantity. A grid cell mean is backed by most of the cohort and a per-arm
 quantity by one arm, while a rare covariate level can be backed by a

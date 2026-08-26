@@ -35,6 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-trial-summary.html">What a trial summary contains</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
@@ -90,25 +91,20 @@ Stein</h4>
 
     
     
-<p>Generate a synthetic dataset from a fitted model rather than from
-real patients’ values, look at it, and read the checks of the data.</p>
+<p>Generate a synthetic dataset from a fitted trial_summary rather than
+from real patients’ values, look at it, and read the checks of the
+data.</p>
 <p><code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> reduces the study to summaries
 and <code><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate()</a></code> builds a dataset from those
 summaries alone. No number a patient measured reaches the output. What
 it carries out of the source is a mean, a scale, a set of
-principal-component loadings, one mean score vector per arm, and a
-residual covariance. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> blends real values
-from neighbouring patients and is the subject of
-<code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code>, which runs the same study through
-that algorithm.</p>
+principal-component loadings, one mean score vector per arm, a residual
+covariance, and a dosing and visit trial_summary per arm.</p>
 <p>It makes no formal privacy claim, and it is not for estimation. The
-full specification is in <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> and the
-checks in <code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code>.</p>
+full specification is in <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code>.</p>
 <p>The dataset is <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code>: 180 patients, six arms
 from placebo to 300 mg, with a pharmacokinetic (PK) concentration
-endpoint and a continuous pharmacodynamic (PD) endpoint. It is the
-dataset <code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code> uses, so the two runs can
-be read against each other.</p>
+endpoint and a continuous pharmacodynamic (PD) endpoint.</p>
 <div class="section level2">
 <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a>
 </h2>
@@ -135,8 +131,8 @@ synthetic dataset.</p>
 <span>  evid         <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt          <span class="op">=</span> <span class="st">"CMT"</span>,</span>
 <span>  dvid         <span class="op">=</span> <span class="st">"NAME"</span>,        <span class="co"># which endpoint each observation row is</span></span>
-<span>  nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,     <span class="co"># required: the grid the model is built on</span></span>
-<span>  strata       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, <span class="co"># treatment arms, and the score model's groups</span></span>
+<span>  nominal_time <span class="op">=</span> <span class="st">"NOMTIME"</span>,     <span class="co"># required: the grid the trial_summary is built on</span></span>
+<span>  strata       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>, <span class="co"># treatment arms, and the score trial_summary's groups</span></span>
 <span>  covariates   <span class="op">=</span> <span class="st">"WEIGHTB"</span>,     <span class="co"># drawn jointly with the trajectories</span></span>
 <span>  keep         <span class="op">=</span> <span class="st">"STUDY"</span>        <span class="co"># carried through verbatim</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -149,112 +145,88 @@ first can be looked at before the second runs.
 <code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> is the only step that reads patient
 data.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="va">model</span></span>
-<span><span class="co">#&gt; A synpmx PCA model</span></span>
+<code class="sourceCode R"><span><span class="va">trial_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span><span class="va">trial_summary</span></span>
+<span><span class="co">#&gt; A trial summary, from synpmx_pca_summarize()</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   fitted on    180 patients, 6 arm(s): Placebo / 0 (30), 3 mg / 3 (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100 (30), 300 mg / 300 (30) </span></span>
 <span><span class="co">#&gt;   endpoints    PD - Continuous (9 visits modelled), PK Concentration (24 visits modelled) </span></span>
 <span><span class="co">#&gt;   covariates   WEIGHTB </span></span>
-<span><span class="co">#&gt;   components   16 (90% of variance) </span></span>
+<span><span class="co">#&gt;   components   11 (91% of variance) </span></span>
 <span><span class="co">#&gt;   dose term    factor </span></span>
-<span><span class="co">#&gt;   dosing       85 dose(s) per arm | shared by 100%-100% of each arm </span></span>
+<span><span class="co">#&gt;   dosing       85 planned cycle(s) per arm | no reductions, interruptions or early stops </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Generation reads this object and nothing else. To look inside it:</span></span>
-<span><span class="co">#&gt;   pmx_pca_report(model)      what it read out of the source data</span></span>
-<span><span class="co">#&gt;   pmx_pca_dosing(model)      the dose schedule each arm shares</span></span>
-<span><span class="co">#&gt;   pmx_pca_visits(model)      the probability of a visit, per arm</span></span>
-<span><span class="co">#&gt;   pmx_pca_components(model)  the loadings, over time</span></span></code></pre></div>
+<span><span class="co">#&gt; synpmx_pca_generate() reads this object and nothing else. To look inside it:</span></span>
+<span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
+<span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
+<span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
+<span><span class="co">#&gt;   pca_visits()      the probability of a visit, per arm</span></span>
+<span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span></code></pre></div>
 <p><strong><code>nominal_time</code> is required.</strong> The grid it
 names is the axis every feature sits on, and dose rows and observation
 rows are placed on it together, so the timing comes through at its
 source values: doses per patient, the last dose, the end of follow-up,
-the baseline sample before the first dose. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-will derive a grid when none is declared; <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code>
-refuses, because choosing where a visit belongs is a statement about the
-protocol rather than something to infer from recorded times.</p>
-<p><code>strata</code> does more work here than it does in
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>. It names the arms, and the arms are the
-groups the score model is fitted against: each one gets its own mean
-score vector and its own residual covariance. An arm of fewer than three
-patients has no spread of its own to model, so the function refuses
-rather than generating from one or two people.
+the baseline sample before the first dose. A study that does not carry a
+nominal-time column needs the protocol’s planned times added as one
+first: choosing where a visit belongs is a statement about the protocol
+rather than something to infer from recorded times.</p>
+<p><code>strata</code> is load-bearing. It names the arms, and the arms
+are the groups the score trial_summary is fitted against: each one gets
+its own mean score vector and its own residual covariance. An arm of
+fewer than three patients has no spread of its own to trial_summary, so
+the function refuses rather than generating from one or two people.
 <code>min_arm_patients</code> is where that floor is set.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-summary-read-out-of-the-source">What the summary read out of the source<a class="anchor" aria-label="anchor" href="#what-the-summary-read-out-of-the-source"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_pca_report.html">pmx_pca_report</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
-<span><span class="co">#&gt; What the PCA fit read out of the source data</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   subjects: 180  components retained: 16 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;             quantity                                               what numbers</span></span>
-<span><span class="co">#&gt;           visit grid               Nominal times modelled, per endpoint      33</span></span>
-<span><span class="co">#&gt;      feature centers               Mean of each grid cell and covariate      34</span></span>
-<span><span class="co">#&gt;       feature scales                     Standard deviation of the same      34</span></span>
-<span><span class="co">#&gt;             loadings                 Component loadings on each feature     544</span></span>
-<span><span class="co">#&gt;          score means                         Mean score vector, per arm      96</span></span>
-<span><span class="co">#&gt;     score covariance             Residual covariance between components     256</span></span>
-<span><span class="co">#&gt;  endpoint transforms                      Log or identity, per endpoint       2</span></span>
-<span><span class="co">#&gt;         assay limits                   Censoring boundary, per endpoint       1</span></span>
-<span><span class="co">#&gt;         dosing model             Dose times and amounts each arm shares    1020</span></span>
-<span><span class="co">#&gt;          visit model Probability of a visit, per arm, endpoint and time     198</span></span>
-<span><span class="co">#&gt;        arm constants         Strata and kept columns, one value per arm      18</span></span>
-<span><span class="co">#&gt;  min_patients</span></span>
-<span><span class="co">#&gt;           150</span></span>
-<span><span class="co">#&gt;           150</span></span>
-<span><span class="co">#&gt;           150</span></span>
-<span><span class="co">#&gt;           180</span></span>
-<span><span class="co">#&gt;            30</span></span>
-<span><span class="co">#&gt;            30</span></span>
-<span><span class="co">#&gt;           180</span></span>
-<span><span class="co">#&gt;           180</span></span>
-<span><span class="co">#&gt;            30</span></span>
-<span><span class="co">#&gt;            30</span></span>
-<span><span class="co">#&gt;            30</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_report.html">pca_report</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>     <span class="st">"What the summary read out of the source data"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>What the summary read out of the source data<\/caption>","data":[["visit grid","feature centers","feature scales","loadings","score means","score covariance","endpoint transforms","assay limits","dosing model","visit model","arm constants"],["Nominal times modelled, per endpoint","Mean of each grid cell and covariate","Standard deviation of the same","Component loadings on each feature","Mean score vector, per arm","Residual covariance between components","Log or identity, per endpoint","Censoring boundary, per endpoint","Planned cycles, the dose ladder, and three rates, per arm","Probability of a visit, per arm, endpoint and time","Strata and kept columns, one value per arm"],[33,34,34,374,66,121,2,1,1044,198,18],[150,150,150,180,30,30,180,180,30,30,30]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>quantity<\/th>\n      <th>what<\/th>\n      <th>numbers<\/th>\n      <th>min_patients<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"quantity","targets":0},{"name":"what","targets":1},{"name":"numbers","targets":2},{"name":"min_patients","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/pca_report.html">pca_report</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span></span></code></pre></div>
 <p><code>min_patients</code> is the column to read. A grid cell or a
 covariate mean is backed by most of the cohort; a per-arm quantity is
-backed by one arm. Nothing in this table is a patient record, but a
-quantity standing on few patients is where disclosure risk sits, not in
-the loadings.</p>
+backed by one arm.</p>
 </div>
 <div class="section level2">
-<h2 id="the-dosing-model">The dosing model<a class="anchor" aria-label="anchor" href="#the-dosing-model"></a>
+<h2 id="the-dosing-trial_summary">The dosing trial_summary<a class="anchor" aria-label="anchor" href="#the-dosing-trial_summary"></a>
 </h2>
-<p>Dosing is not copied from anybody. Each arm contributes the schedule
-its patients hold in common, and that schedule is what every generated
-subject in the arm receives.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_pca_dosing.html">pmx_pca_dosing</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>doses <span class="op">=</span> <span class="va">dose</span><span class="op">)</span> <span class="op">~</span> <span class="va">arm</span> <span class="op">+</span> <span class="va">amt</span> <span class="op">+</span> <span class="va">share</span> <span class="op">+</span> <span class="va">distinct</span>, <span class="va">dosing</span>, <span class="va">length</span><span class="op">)</span></span>
-<span><span class="co">#&gt;            arm amt share distinct doses</span></span>
-<span><span class="co">#&gt; 1  Placebo / 0   0     1        1    85</span></span>
-<span><span class="co">#&gt; 2     3 mg / 3   3     1        1    85</span></span>
-<span><span class="co">#&gt; 3   10 mg / 10  10     1        1    85</span></span>
-<span><span class="co">#&gt; 4   30 mg / 30  30     1        1    85</span></span>
-<span><span class="co">#&gt; 5 100 mg / 100 100     1        1    85</span></span>
-<span><span class="co">#&gt; 6 300 mg / 300 300     1        1    85</span></span></code></pre></div>
-<p><code>share</code> is the fraction of the arm holding that schedule
-and <code>distinct</code> is how many schedules the arm actually
-contained. Both at their best here: one schedule per arm, held by
-everyone. A study recording actual dose times rather than planned ones
-would show <code>distinct</code> close to the arm size and
-<code>share</code> close to <code>1/n</code>, and the generated data
-would hold one schedule where the source held thirty. The timing would
-still be right; the variety would be gone.</p>
-</div>
-<div class="section level2">
-<h2 id="the-visit-model">The visit model<a class="anchor" aria-label="anchor" href="#the-visit-model"></a>
-</h2>
+<p>Dosing is not copied from anybody. Each arm contributes a planned
+schedule and three rates saying how its patients departed from it.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_dosing.html">pca_dosing</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="fl">6</span><span class="op">)</span>, <span class="st">"The planned schedule, first cycles"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule, first cycles<\/caption>","data":[["Placebo / 0","Placebo / 0","Placebo / 0","Placebo / 0","Placebo / 0","Placebo / 0"],[1,2,3,4,5,6],[0,24,48,72,96,120],[0,0,0,0,0,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>planned_amt<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2,3]},{"name":"arm","targets":0},{"name":"cycle","targets":1},{"name":"time","targets":2},{"name":"planned_amt","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/pca_dose_rates.html">pca_dose_rates</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="st">"How patients departed from the plan"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>How patients departed from the plan<\/caption>","data":[["Placebo / 0","3 mg / 3","10 mg / 10","30 mg / 30","100 mg / 100","300 mg / 300"],[85,85,85,85,85,85],["1","1","1","1","1","1"],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[30,30,30,30,30,30],[85,85,85,85,85,85],[1,1,1,1,1,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>planned_cycles<\/th>\n      <th>levels<\/th>\n      <th>discontinuation<\/th>\n      <th>interruption<\/th>\n      <th>reduction<\/th>\n      <th>patients<\/th>\n      <th>source_doses<\/th>\n      <th>distinct<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,3,4,5,6,7,8]},{"name":"arm","targets":0},{"name":"planned_cycles","targets":1},{"name":"levels","targets":2},{"name":"discontinuation","targets":3},{"name":"interruption","targets":4},{"name":"reduction","targets":5},{"name":"patients","targets":6},{"name":"source_doses","targets":7},{"name":"distinct","targets":8}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_dosing.html">pca_dosing</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="fl">6</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/pca_dose_rates.html">pca_dose_rates</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span></span></code></pre></div>
+<p>All three rates are zero here and each arm has a single dose level,
+so every generated patient receives the planned schedule exactly, and
+the generated dataset holds the same 85 doses per patient the source
+did.</p>
+<p>That is the point of expressing it this way rather than copying a
+schedule. On an oncology study the same three rates are not zero:
+patients are reduced to a fraction of their starting dose, skip cycles,
+and come off treatment at different times, and generated patients then
+differ from one another in the same way the source patients did.
+Relative dose intensity and time on treatment are often what such a
+dataset exists to analyse. <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> sets
+out how the rates are estimated and what they do and do not protect.</p>
+</div>
+<div class="section level2">
+<h2 id="the-visit-trial_summary">The visit trial_summary<a class="anchor" aria-label="anchor" href="#the-visit-trial_summary"></a>
+</h2>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://opensource.nibr.com/xgx/" class="external-link">xgxr</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_theme_set.html" class="external-link">xgx_theme_set</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">comparison_colours</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"#1B6CA8"</span>, synthetic <span class="op">=</span> <span class="st">"#D95F02"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_pca_visits.html">pmx_pca_visits</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">probability</span>, colour <span class="op">=</span> <span class="va">arm</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_visits.html">pca_visits</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">probability</span>, colour <span class="op">=</span> <span class="va">arm</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">endpoint</span>, scales <span class="op">=</span> <span class="st">"free_x"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Nominal time (hours)"</span>, y <span class="op">=</span> <span class="st">"P(observation)"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
@@ -267,17 +239,17 @@ patient’s set of attended visits is reused.</p>
 <h2 id="generate-synthetic-data">Generate Synthetic Data<a class="anchor" aria-label="anchor" href="#generate-synthetic-data"></a>
 </h2>
 <p>Everything above is what the synthetic data will be built from.
-<code><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate()</a></code> reads the model and a subject count,
-and no patient row is in scope while it runs.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">model</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span></code></pre></div>
+<code><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate()</a></code> reads the trial_summary and a subject
+count, and no patient row is in scope while it runs.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">trial_summary</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span></code></pre></div>
 <p><code>synpmx_pca(raw, roles, seed = SEED)</code> is the same two
 calls in one, for when there is no reason to stop and look.</p>
 </div>
 <div class="section level2">
 <h2 id="plot-synthetic-data-and-original-data">Plot synthetic data and original data<a class="anchor" aria-label="anchor" href="#plot-synthetic-data-and-original-data"></a>
 </h2>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">both</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">raw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span><span class="op">]</span>, DATA <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">synthetic</span>, DATA <span class="op">=</span> <span class="st">"synthetic"</span><span class="op">)</span></span>
@@ -286,7 +258,7 @@ calls in one, for when there is no reason to stop and look.</p>
 <span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span>,</span>
 <span>                     levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"3 mg"</span>, <span class="st">"10 mg"</span>, <span class="st">"30 mg"</span>,</span>
 <span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">24</span>, <span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
@@ -298,7 +270,43 @@ calls in one, for when there is no reason to stop and look.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Day 1 Conc. Profile"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-demo_files/figure-html/overlay-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<p><code>case1_pkpd</code> samples richly twice: on day 1 above, and
+again around the last dose at 2016 h. The second profile is the one that
+says whether the generator held together over the whole study rather
+than only at its start.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">last_dose</span> <span class="op">&lt;-</span> <span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span></span>
+<span>                   <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&gt;=</span> <span class="fl">2016</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">2040</span>, <span class="op">]</span></span>
+<span><span class="va">last_dose</span><span class="op">$</span><span class="va">TAD</span> <span class="op">&lt;-</span> <span class="va">last_dose</span><span class="op">$</span><span class="va">TIME</span> <span class="op">-</span> <span class="fl">2016</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">last_dose</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TAD</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span><span class="va">DATA</span><span class="op">~</span><span class="va">TRTACT</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_y_log10.html" class="external-link">xgx_scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_scale_x_time_units.html" class="external-link">xgx_scale_x_time_units</a></span><span class="op">(</span><span class="st">"hours"</span>, breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">24</span>, by <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">comparison_colours</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time after dose (hours)"</span>, y <span class="op">=</span> <span class="st">"PK concentration"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Last Dose (2016 h) Conc. Profile"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="pca-demo_files/figure-html/overlay-pk-last-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p>The censored fraction in this window tracks the source arm by arm,
+and so do the medians in the two arms that have enough above-limit data
+to have one.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">blq</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span></span>
+<span>    <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&gt;=</span> <span class="fl">2016</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">2040</span></span>
+<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>pct_blq <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">CENS</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>                   <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">TRTACT</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">out</span><span class="op">$</span><span class="va">median</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>m <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">TRTACT</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                          <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">m</span></span>
+<span>  <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="va">out</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pct_blq_"</span>, <span class="st">"median_"</span><span class="op">)</span>, <span class="va">label</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">blq_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="fu">blq</span><span class="op">(</span><span class="va">raw</span>, <span class="st">"source"</span><span class="op">)</span>, <span class="fu">blq</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"synthetic"</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"arm"</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">has_dt</span><span class="op">)</span> <span class="fu">show</span><span class="op">(</span><span class="va">blq_table</span>, <span class="st">"Censoring in the last-dose window"</span><span class="op">)</span> <span class="kw">else</span> <span class="va">blq_table</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>Censoring in the last-dose window<\/caption>","data":[["10 mg","100 mg","3 mg","30 mg","300 mg"],[58,4,92,36,3],[0.05,0.411,0.05,0.09,0.981],[61,4,87,22,3],[0.05,0.381,0.05,0.101,0.991]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>pct_blq_source<\/th>\n      <th>median_source<\/th>\n      <th>pct_blq_synthetic<\/th>\n      <th>median_synthetic<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2,3,4]},{"name":"arm","targets":0},{"name":"pct_blq_source","targets":1},{"name":"median_source","targets":2},{"name":"pct_blq_synthetic","targets":3},{"name":"median_synthetic","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span>, <span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span></span>
@@ -309,9 +317,9 @@ calls in one, for when there is no reason to stop and look.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PD Response"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-demo_files/figure-html/overlay-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>The synthetic profiles are smoother than the source ones. The model
-holds a handful of components, and everything outside them, including
-measurement noise visit to visit, is not reproduced.</p>
+<p>The synthetic profiles are smoother than the source ones. The
+trial_summary holds a handful of components, and everything outside
+them, including measurement noise visit to visit, is not reproduced.</p>
 <p>The low-dose arms sit flat on the assay limit in both panels. That is
 the censoring being put back: the drawn value is the latent one, and
 where the source declared a lower limit of quantification the reported
@@ -329,8 +337,8 @@ it. Plotted against time rather than tabulated, the components become
 curves: a component that is flat and positive across a profile is
 overall magnitude, and one that crosses zero separates early visits from
 late ones.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">components</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_pca_components.html">pmx_pca_components</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">components</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pca_components.html">pca_components</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">components</span>, <span class="va">component</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"PC3"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">loading</span>, colour <span class="op">=</span> <span class="va">component</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linewidth <span class="op">=</span> <span class="fl">0.3</span>, colour <span class="op">=</span> <span class="st">"grey60"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -339,25 +347,14 @@ late ones.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Nominal time (hours)"</span>, y <span class="op">=</span> <span class="st">"Loading"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-demo_files/figure-html/components-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_pca_components.html">pmx_pca_components</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>, <span class="st">"variance_explained"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    component variance_explained cumulative</span></span>
-<span><span class="co">#&gt; 1        PC1         0.50953784  0.5095378</span></span>
-<span><span class="co">#&gt; 2        PC2         0.06276067  0.5722985</span></span>
-<span><span class="co">#&gt; 3        PC3         0.03853618  0.6108347</span></span>
-<span><span class="co">#&gt; 4        PC4         0.03471444  0.6455491</span></span>
-<span><span class="co">#&gt; 5        PC5         0.03029726  0.6758464</span></span>
-<span><span class="co">#&gt; 6        PC6         0.02788634  0.7037327</span></span>
-<span><span class="co">#&gt; 7        PC7         0.02738581  0.7311185</span></span>
-<span><span class="co">#&gt; 8        PC8         0.02552563  0.7566442</span></span>
-<span><span class="co">#&gt; 9        PC9         0.02416383  0.7808080</span></span>
-<span><span class="co">#&gt; 10      PC10         0.02273215  0.8035402</span></span>
-<span><span class="co">#&gt; 11      PC11         0.02039767  0.8239378</span></span>
-<span><span class="co">#&gt; 12      PC12         0.01777112  0.8417089</span></span>
-<span><span class="co">#&gt; 13      PC13         0.01687197  0.8585809</span></span>
-<span><span class="co">#&gt; 14      PC14         0.01509856  0.8736795</span></span>
-<span><span class="co">#&gt; 15      PC15         0.01428485  0.8879643</span></span>
-<span><span class="co">#&gt; 16      PC16         0.01274791  0.9007122</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">variance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_components.html">pca_components</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="st">"variance_explained"</span><span class="op">)</span></span>
+<span><span class="va">variance</span><span class="op">$</span><span class="va">variance_explained</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">variance</span><span class="op">$</span><span class="va">variance_explained</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">variance</span><span class="op">$</span><span class="va">cumulative</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">variance</span><span class="op">$</span><span class="va">cumulative</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu">show</span><span class="op">(</span><span class="va">variance</span>, <span class="st">"Variance explained, per component"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>Variance explained, per component<\/caption>","data":[["PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10","PC11"],[0.6,0.07099999999999999,0.035,0.033,0.029,0.027,0.026,0.024,0.023,0.021,0.018],[0.6,0.671,0.706,0.738,0.768,0.795,0.821,0.845,0.868,0.889,0.907]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>component<\/th>\n      <th>variance_explained<\/th>\n      <th>cumulative<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"component","targets":0},{"name":"variance_explained","targets":1},{"name":"cumulative","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_components.html">pca_components</a></span><span class="op">(</span><span class="va">trial_summary</span><span class="op">)</span>, <span class="st">"variance_explained"</span><span class="op">)</span></span></code></pre></div>
 <p>Describe what the curve shows rather than naming a mechanism for it.
 A component that separates early from late looks like a difference in
 decline rate, and calling it a half-life would be a claim the fit cannot
@@ -369,36 +366,33 @@ states what the alternative would cost.</p>
 <div class="section level2">
 <h2 id="distributions-of-synthetic-and-original-data">Distributions of Synthetic and Original Data<a class="anchor" aria-label="anchor" href="#distributions-of-synthetic-and-original-data"></a>
 </h2>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-demo_files/figure-html/distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
 <h2 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
 </h2>
-<p>The scorecard computes checks of the synthetic dataset. It is
-described further in <code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code>.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> computes checks of the synthetic
+dataset. Each row names a question, and the <code>explore</code> column
+names the call that answers it in full.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","0 of 180","0.506 in [0.419, 0.589]","0","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x1 on WEIGHTB (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","unavailable","unavailable","pass","pass","pass","pass","pass","pass","unavailable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Fifteen of the eighteen rows mean the same thing here as they
-do for <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</strong> They read the source and
-synthetic tables and compute the same way whatever produced the data,
-which is what the scorecard was for.</p>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","0 of 180","0.483 in [0.428, 0.557]","0","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.92 on PK Concentration (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","unavailable","unavailable","pass","pass","pass","pass","pass","pass","unavailable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"unavailable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Fifteen of the eighteen rows read the source and synthetic
+tables directly</strong> and answer for any generated dataset.</p>
 <p><strong>Three read <code>unavailable</code>, and that is not the same
-as unanswered.</strong> B1a, B1b and C2 read the AVATAR run record
-rather than the tables, and this table does not carry one. For B1a and
-B1b the guarantee is structural instead: no individual’s visit set and
-no individual’s dose schedule exists in the model to be copied. B4a and
-B4b ask the copy question directly, on the finished tables, and both
-read zero.</p>
+as unanswered.</strong> B1a, B1b and C2 expect a run record on the
+generated table, as a <code>pmx_settings</code> attribute, and this
+table carries none. B4a and B4b ask the copy question directly on the
+finished tables, and both read zero.</p>
 <p><strong>C2 is the one to be careful about.</strong> It asks how many
 distinct dose-time schedules survived, and this is the row where the
 loss is largest — one schedule per arm, against one per patient in a
-study recording actual dose times. Read <code><a href="../reference/pmx_pca_dosing.html">pmx_pca_dosing()</a></code> in
-its place, where <code>distinct</code> and <code>share</code> say the
-same thing per arm.</p>
+study recording actual dose times. Read <code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> in its
+place, where <code>distinct</code> and <code>share</code> say the same
+thing per arm.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
@@ -408,11 +402,11 @@ same thing per arm.</p>
 <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> — every step of this
 algorithm, and what each one reads out of the source.</li>
 <li>
-<code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code> — the same study through
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>, which blends real values instead.</li>
+<code><a href="../articles/pca-trial-summary.html">vignette("pca-trial-summary")</a></code> — every quantity the
+summary holds, in detail.</li>
 <li>
-<code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> — every check, what it
-asks, and what passing means.</li>
+<code><a href="../articles/synpmx-methods.html">vignette("synpmx-methods")</a></code> — the other generation
+modes, and which one to use when.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

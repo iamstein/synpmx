@@ -15,9 +15,9 @@ structural model.
   : Summarize a PMX dataset and generate a synthetic one from the
   summary
 - [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
-  : Summarize a PMX dataset into a principal-component model
+  : Summarize a trial into the quantities a synthetic copy is built from
 - [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md)
-  : Generate a synthetic PMX dataset from a principal-component model
+  : Generate a synthetic PMX dataset from a trial summary
 - [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md)
   : Generate a dataset from public inputs only
 - [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
@@ -27,20 +27,22 @@ structural model.
 - [`synpmx_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_generate.md)
   : Draw another dataset from a release already paid for
 
-## Reading a PCA fit
+## Reading a trial summary
 
 What
-[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
-read out of the source data, and what its components look like over
-time.
+[`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
+read out of the source data: its inventory, the dosing and visit models,
+and the components over time.
 
-- [`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md)
+- [`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
   : What the PCA fit read out of the source data
-- [`pmx_pca_dosing()`](https://iamstein.github.io/synpmx/reference/pmx_pca_dosing.md)
-  : The dosing model each arm was generated from
-- [`pmx_pca_visits()`](https://iamstein.github.io/synpmx/reference/pmx_pca_visits.md)
+- [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
+  : The planned dose schedule each arm was generated from
+- [`pca_dose_rates()`](https://iamstein.github.io/synpmx/reference/pca_dose_rates.md)
+  : The dose-modification rates each arm was generated from
+- [`pca_visits()`](https://iamstein.github.io/synpmx/reference/pca_visits.md)
   : The visit model each arm was generated from
-- [`pmx_pca_components()`](https://iamstein.github.io/synpmx/reference/pmx_pca_components.md)
+- [`pca_components()`](https://iamstein.github.io/synpmx/reference/pca_components.md)
   : Component loadings over time, and the variance each component
   explains
 

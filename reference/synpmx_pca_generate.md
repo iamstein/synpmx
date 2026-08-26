@@ -1,22 +1,22 @@
-# Generate a synthetic PMX dataset from a principal-component model
+# Generate a synthetic PMX dataset from a trial summary
 
 Draws new subjects from a
 [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
-model. This stage reads no patient data: its arguments are the model and
-a subject count, so everything the synthetic dataset is built from is
-visible in the model itself.
+trial summary. This stage reads no patient data: its arguments are the
+model and a subject count, so everything the synthetic dataset is built
+from is visible in the model itself.
 
 ## Usage
 
 ``` r
-synpmx_pca_generate(model, n_subjects = NULL, seed = NULL)
+synpmx_pca_generate(trial_summary, n_subjects = NULL, seed = NULL)
 ```
 
 ## Arguments
 
-- model:
+- trial_summary:
 
-  A `pmx_pca_model` from
+  A `pmx_trial_summary` from
   [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md),
   or a dataset generated from one.
 
@@ -31,7 +31,8 @@ synpmx_pca_generate(model, n_subjects = NULL, seed = NULL)
 
 ## Value
 
-A data frame in the source's shape, carrying the model as an attribute.
+A data frame in the source's shape, carrying the trial summary as an
+attribute.
 
 ## Details
 
@@ -54,8 +55,8 @@ roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 )
-model <- synpmx_pca_summarize(data, roles)
-synthetic <- synpmx_pca_generate(model, seed = 1)
+trial_summary <- synpmx_pca_summarize(data, roles)
+synthetic <- synpmx_pca_generate(trial_summary, seed = 1)
 nrow(synthetic) > 0
 #> [1] TRUE
 ```

@@ -20,6 +20,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-trial-summary.html">What a trial summary contains</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
@@ -83,14 +84,14 @@
           <code><a href="synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code>
 
         </dt>
-        <dd>Summarize a PMX dataset into a principal-component model</dd>
+        <dd>Summarize a trial into the quantities a synthetic copy is built from</dd>
 
         <dt>
 
           <code><a href="synpmx_pca_generate.html">synpmx_pca_generate()</a></code>
 
         </dt>
-        <dd>Generate a synthetic PMX dataset from a principal-component model</dd>
+        <dd>Generate a synthetic PMX dataset from a trial summary</dd>
 
         <dt>
 
@@ -120,9 +121,9 @@
         </dt>
         <dd>Draw another dataset from a release already paid for</dd>
       </dl></div><div class="section level2">
-      <h2 id="reading-a-pca-fit">Reading a PCA fit<a class="anchor" aria-label="anchor" href="#reading-a-pca-fit"></a></h2>
+      <h2 id="reading-a-trial-summary">Reading a trial summary<a class="anchor" aria-label="anchor" href="#reading-a-trial-summary"></a></h2>
 
-      <div class="section-desc"><p>What <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> read out of the source data, and what its components look like over time.</p></div>
+      <div class="section-desc"><p>What <code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> read out of the source data: its inventory, the dosing and visit models, and the components over time.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -131,28 +132,35 @@
 
       <dl><dt>
 
-          <code><a href="pmx_pca_report.html">pmx_pca_report()</a></code>
+          <code><a href="pca_report.html">pca_report()</a></code>
 
         </dt>
         <dd>What the PCA fit read out of the source data</dd>
 
         <dt>
 
-          <code><a href="pmx_pca_dosing.html">pmx_pca_dosing()</a></code>
+          <code><a href="pca_dosing.html">pca_dosing()</a></code>
 
         </dt>
-        <dd>The dosing model each arm was generated from</dd>
+        <dd>The planned dose schedule each arm was generated from</dd>
 
         <dt>
 
-          <code><a href="pmx_pca_visits.html">pmx_pca_visits()</a></code>
+          <code><a href="pca_dose_rates.html">pca_dose_rates()</a></code>
+
+        </dt>
+        <dd>The dose-modification rates each arm was generated from</dd>
+
+        <dt>
+
+          <code><a href="pca_visits.html">pca_visits()</a></code>
 
         </dt>
         <dd>The visit model each arm was generated from</dd>
 
         <dt>
 
-          <code><a href="pmx_pca_components.html">pmx_pca_components()</a></code>
+          <code><a href="pca_components.html">pca_components()</a></code>
 
         </dt>
         <dd>Component loadings over time, and the variance each component explains</dd>

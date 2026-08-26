@@ -5,8 +5,8 @@ A single call for
 followed by
 [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md).
 Use the two separately to look at what the summary contains before
-generating from it; the model is on the result either way, as the
-`pmx_pca_model` attribute.
+generating from it; it is on the result either way, as the
+`pmx_trial_summary` attribute.
 
 ## Usage
 
@@ -41,7 +41,8 @@ synpmx_pca(data, roles, n_subjects = NULL, seed = NULL, ...)
 
 ## Value
 
-A data frame in the source's shape, carrying the model as an attribute.
+A data frame in the source's shape, carrying the trial summary as an
+attribute.
 
 ## Details
 
@@ -51,7 +52,7 @@ blends values from real neighbouring patients, this writes out no number
 a patient measured. What it carries out of the source is a mean, a
 scale, a set of principal-component loadings, one mean score vector per
 arm, a residual covariance, and a dosing and visit model per arm.
-[`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md)
+[`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
 inventories all of it.
 
 `nominal_time` is required. No formal privacy claim is made.
@@ -61,7 +62,7 @@ inventories all of it.
 [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md),
 [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md),
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
-[`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md).
+[`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md).
 
 ## Examples
 

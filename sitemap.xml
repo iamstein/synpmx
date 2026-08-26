@@ -13,6 +13,7 @@
 <url><loc>https://iamstein.github.io/synpmx/articles/model-elicitation.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/pca-algorithm.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/pca-demo.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/articles/pca-trial-summary.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/privacy-argument.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/privacy-background.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/articles/synpmx-methods.html</loc></url>
@@ -38,6 +39,11 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/dp_backend_status.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/index.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pca_components.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pca_dose_rates.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pca_dosing.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pca_report.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pca_visits.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/plot_pmx_schedule.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_bounds.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_budget_allocation.html</loc></url>
@@ -50,10 +56,6 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_generated_roles.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_masking_report.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/reference/pmx_pca_components.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/reference/pmx_pca_dosing.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/reference/pmx_pca_report.html</loc></url>
-<url><loc>https://iamstein.github.io/synpmx/reference/pmx_pca_visits.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_preflight.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_prior.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_priors.html</loc></url>
