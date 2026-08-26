@@ -374,8 +374,18 @@
     })
   }
 
+  # The assay limit, per endpoint: one or two numbers read from the source, and
+  # the only way the generator can put a value back on the boundary. Without it
+  # every value below the limit is emitted as itself and an arm that is entirely
+  # below quantification comes back as a spread of small numbers rather than the
+  # flat line the study recorded.
+  censoring <- stats::setNames(lapply(fit$endpoints, function(ep) {
+    .source_censoring(source, roles, ep)
+  }), fit$endpoints)
+
   identifiers <- source[[roles$id]]
   list(
+    censoring = censoring,
     columns = names(source),
     prototypes = lapply(stats::setNames(names(source), names(source)),
                         function(column) source[[column]][0L]),
@@ -469,6 +479,10 @@
 #' @param data Source PMX event data.
 #' @param roles Explicit column roles from [pmx_roles()], including
 #'   `nominal_time`.
+#' @param seed Seed for the one random step in summarizing: censored values are
+#'   replaced by a draw inside the censoring region before the basis is fitted,
+#'   so that a column where most subjects sit at the assay limit describes the
+#'   patients rather than the assay. The boundary is reapplied at generation.
 #' @param dose_term How dose enters the score model. `"factor"` gives each arm
 #'   its own mean score vector and its own residual covariance. `"log"`
 #'   regresses the scores on `log1p()` of the total dose, which spends one
@@ -500,7 +514,7 @@
 #' model <- synpmx_pca_summarize(data, roles)
 #' model
 #' pmx_pca_report(model)
-synpmx_pca_summarize <- function(data, roles,
+synpmx_pca_summarize <- function(data, roles, seed = NULL,
                                  dose_term = c("factor", "log"),
                                  pca_variance = 0.9, n_components = NULL,
                                  min_column_patients = NULL,
@@ -522,6 +536,26 @@ synpmx_pca_summarize <- function(data, roles,
   )
 
   source <- .pca_require_nominal_time(source, roles)
+
+  # The censoring boundary is read from the source before anything replaces the
+  # reported values, because after imputation there is no boundary left to find.
+  censoring_source <- source
+
+  # Fit on latent values rather than on a stack of identical boundary
+  # substitutions. A column where most subjects sit exactly at the limit has
+  # almost no variance, so the basis would learn the assay rather than the
+  # patients, and the generated data would inherit a floor slightly above the
+  # real one. `.impute_censored()` draws inside the censoring region; the
+  # boundary is put back at emit. Same reasoning as `synpmx_avatar()`, Step 11.
+  #
+  # This is the one random step in summarizing, which is why this function takes
+  # a seed of its own.
+  source <- if (is.null(seed)) {
+    .impute_censored(source, roles)
+  } else {
+    .with_local_seed(seed, .impute_censored(source, roles))
+  }
+
   features <- .pca_features(source, roles, min_column_patients)
   dose <- .pca_subject_dose(source, roles, features$subjects)
   strata_key <- as.character(.subject_strata(source, roles))
@@ -542,7 +576,7 @@ synpmx_pca_summarize <- function(data, roles,
     arms = list(arms = arm_models$arms, sizes = arm_models$sizes),
     dosing = arm_models$dosing,
     visits = arm_models$visits,
-    schema = .pca_schema(source, roles, fit, subject_group),
+    schema = .pca_schema(censoring_source, roles, fit, subject_group),
     roles = roles,
     settings = list(dose_term = dose_term, pca_variance = pca_variance,
                     n_components = n_components,
@@ -637,7 +671,7 @@ synpmx_pca_generate <- function(model, n_subjects = NULL, seed = NULL) {
 #' nrow(synthetic) > 0
 synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   synpmx_pca_generate(
-    synpmx_pca_summarize(data, roles, ...),
+    synpmx_pca_summarize(data, roles, seed = seed, ...),
     n_subjects = n_subjects, seed = seed
   )
 }
@@ -738,6 +772,7 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   }
   if (!is.null(roles$mdv)) out[[roles$mdv]] <- as.integer(frame$EVID != 0L)
   if (!is.null(roles$cens)) out[[roles$cens]] <- 0L
+  if (!is.null(roles$limit)) out[[roles$limit]] <- NA_real_
   if (!is.null(roles$rate)) out[[roles$rate]] <- 0
   if (!is.null(roles$occasion)) {
     out[[roles$occasion]] <- unlist(lapply(
@@ -780,6 +815,22 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
       out[[covariate]] <- .restore_column(picked[frame$.subject], prototype)
     }
   }
+  # The drawn value is the latent one: what the subject would have measured with
+  # no assay limit. DV, CENS and LIMIT are reconstructed from it together, after
+  # any discrete endpoint has been snapped, so the three always agree.
+  #
+  # Documented in `pca-algorithm.Rmd`, Step 7.
+  if (!is.null(roles$cens)) {
+    for (endpoint_name in fit$endpoints) {
+      censoring <- schema$censoring[[endpoint_name]]
+      if (is.null(censoring)) next
+      rows <- which(frame$EVID == 0L & frame$DVID == endpoint_name)
+      if (!length(rows)) next
+      out <- .censor_latent(out, rows, out[[roles$dv]][rows], roles,
+                            public = censoring)
+    }
+  }
+
   out <- out[, intersect(schema$columns, names(out)), drop = FALSE]
   out <- out[order(out[[roles$id]], out[[roles$time]],
                    out[[roles$evid]] == 0L), , drop = FALSE]
@@ -960,6 +1011,8 @@ pmx_pca_report <- function(x) {
     sum(vapply(model$visits, function(v) length(v$probability), integer(1)))
   arm_numbers <- if (is.null(model)) NA_integer_ else
     length(model$arms$arms) * length(model$schema$carried)
+  censoring_numbers <- if (is.null(model)) NA_integer_ else
+    sum(vapply(model$schema$censoring, function(c) length(unlist(c)), integer(1)))
   cells <- which(fit$kinds == "endpoint_cell")
   cell_patients <- if (length(cells)) {
     min(vapply(fit$members[cells], function(m) as.numeric(m$patients),
@@ -969,8 +1022,8 @@ pmx_pca_report <- function(x) {
   rows <- data.frame(
     quantity = c("visit grid", "feature centers", "feature scales",
                  "loadings", "score means", "score covariance",
-                 "endpoint transforms", "dosing model", "visit model",
-                 "arm constants"),
+                 "endpoint transforms", "assay limits", "dosing model",
+                 "visit model", "arm constants"),
     what = c(
       "Nominal times modelled, per endpoint",
       "Mean of each grid cell and covariate",
@@ -980,19 +1033,20 @@ pmx_pca_report <- function(x) {
         "Mean score vector, per arm",
       "Residual covariance between components",
       "Log or identity, per endpoint",
+      "Censoring boundary, per endpoint",
       "Dose times and amounts each arm shares",
       "Probability of a visit, per arm, endpoint and time",
       "Strata and kept columns, one value per arm"
     ),
     numbers = c(
       length(cells), p, p, p * fit$k, .pca_model_numbers(fit),
-      fit$k * fit$k, length(fit$transforms),
+      fit$k * fit$k, length(fit$transforms), censoring_numbers,
       dosing_numbers, visit_numbers, arm_numbers
     ),
     min_patients = c(
       cell_patients, cell_patients, cell_patients,
       fit$n_source, fit$min_group, fit$min_group, fit$n_source,
-      fit$min_group, fit$min_group, fit$min_group
+      fit$n_source, fit$min_group, fit$min_group, fit$min_group
     ),
     stringsAsFactors = FALSE
   )

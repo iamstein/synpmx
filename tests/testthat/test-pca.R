@@ -330,3 +330,54 @@ test_that("settings passed through synpmx_pca reach the summary", {
   expect_equal(model$basis$k, 2L)
   expect_equal(model$settings$dose_term, "log")
 })
+
+# Values below the assay limit are reported on the boundary with CENS = 1, as
+# the source reports them. Without this an arm entirely below quantification
+# comes back as a spread of small numbers rather than the flat line recorded.
+test_that("censoring is reapplied to generated values", {
+  fixture <- pca_fixture(60)
+  data <- fixture$data
+  roles <- fixture$roles
+  observed <- data$EVID == 0 & !is.na(data$DV) & data$DVID == "cp"
+  lloq <- stats::quantile(data$DV[observed], 0.4, names = FALSE)
+  below <- observed & data$DV < lloq
+  data$DV[below] <- lloq
+  data$CENS[below] <- 1L
+
+  synthetic <- synpmx_pca(data, roles, seed = 41)
+  generated <- synthetic$EVID == 0 & !is.na(synthetic$DV) &
+    synthetic$DVID == "cp"
+
+  # Something was censored, and everything censored sits on the boundary.
+  expect_gt(sum(synthetic$CENS[generated] == 1L), 0L)
+  on_limit <- synthetic$DV[generated & synthetic$CENS == 1L]
+  expect_true(all(abs(on_limit - lloq) < 1e-8))
+  # Nothing is emitted below the limit at all.
+  expect_gte(min(synthetic$DV[generated]), lloq - 1e-8)
+  # The censored fraction tracks the source rather than collapsing or vanishing.
+  expect_equal(mean(synthetic$CENS[generated] == 1L),
+               mean(data$CENS[observed] == 1L), tolerance = 0.15)
+})
+
+test_that("the assay limit is in the model and in the report", {
+  fixture <- pca_fixture(60)
+  data <- fixture$data
+  observed <- data$EVID == 0 & !is.na(data$DV) & data$DVID == "cp"
+  lloq <- stats::quantile(data$DV[observed], 0.4, names = FALSE)
+  data$DV[observed & data$DV < lloq] <- lloq
+  data$CENS[observed & data$DV <= lloq] <- 1L
+
+  model <- synpmx_pca_summarize(data, fixture$roles, seed = 1)
+  expect_equal(model$schema$censoring$cp$left, lloq)
+  expect_true("assay limits" %in% pmx_pca_report(model)$quantity)
+})
+
+# Summarizing is stochastic only through the censoring imputation, so it takes a
+# seed of its own and honours it.
+test_that("summarize is reproducible under its seed", {
+  fixture <- pca_fixture(60)
+  a <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 5)
+  b <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 5)
+  expect_equal(a$basis$rotation, b$basis$rotation)
+  expect_equal(a$scores, b$scores)
+})

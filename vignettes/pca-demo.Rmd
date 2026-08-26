@@ -207,6 +207,13 @@ The synthetic profiles are smoother than the source ones. The model holds a
 handful of components, and everything outside them, including measurement noise
 visit to visit, is not reproduced.
 
+The low-dose arms sit flat on the assay limit in both panels. That is the
+censoring being put back: the drawn value is the latent one, and where the
+source declared a lower limit of quantification the reported value, `CENS` and
+`LIMIT` are rebuilt from it together. The basis itself is fitted on values drawn
+inside the censoring region rather than on the stack of identical limits, so it
+describes the patients rather than the assay.
+
 ## Reading the components
 
 A principal component is a direction in the space of whole trajectories, and its

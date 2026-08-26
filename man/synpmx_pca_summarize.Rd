@@ -7,6 +7,7 @@
 synpmx_pca_summarize(
   data,
   roles,
+  seed = NULL,
   dose_term = c("factor", "log"),
   pca_variance = 0.9,
   n_components = NULL,
@@ -19,6 +20,11 @@ synpmx_pca_summarize(
 
 \item{roles}{Explicit column roles from \code{\link[=pmx_roles]{pmx_roles()}}, including
 \code{nominal_time}.}
+
+\item{seed}{Seed for the one random step in summarizing: censored values are
+replaced by a draw inside the censoring region before the basis is fitted,
+so that a column where most subjects sit at the assay limit describes the
+patients rather than the assay. The boundary is reapplied at generation.}
 
 \item{dose_term}{How dose enters the score model. \code{"factor"} gives each arm
 its own mean score vector and its own residual covariance. \code{"log"}
