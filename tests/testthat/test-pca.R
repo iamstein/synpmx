@@ -57,10 +57,12 @@ test_that("a grid cell held by too few patients is dropped", {
   drop <- data$NTIME == late & data$EVID == 0 & !(data$ID %in% subjects[1:2])
   sparse <- data[!drop, , drop = FALSE]
 
-  strict <- attr(synpmx_pca(sparse, fixture$roles, seed = 5,
-                            min_column_patients = 3L), "pmx_pca_fit")
-  loose <- attr(synpmx_pca(sparse, fixture$roles, seed = 5,
-                           min_column_patients = 2L), "pmx_pca_fit")
+  basis_of <- function(minimum) {
+    attr(synpmx_pca(sparse, fixture$roles, seed = 5,
+                    min_column_patients = minimum), "pmx_trial_summary")$basis
+  }
+  strict <- basis_of(3L)
+  loose <- basis_of(2L)
   held <- function(fit) {
     vapply(fit$members[fit$kinds == "endpoint_cell"],
            function(cell) as.numeric(cell$patients), numeric(1))
@@ -77,7 +79,7 @@ test_that("the grid is the whole nominal grid, not the AVATAR profile width", {
   fixture <- pca_fixture(80)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 11,
                           min_column_patients = 3L)
-  fit <- attr(synthetic, "pmx_pca_fit")
+  fit <- attr(synthetic, "pmx_trial_summary")$basis
   cells <- fit$members[fit$kinds == "endpoint_cell"]
   for (endpoint in unique(vapply(cells, function(c) c$endpoint, character(1)))) {
     modelled <- sum(vapply(cells, function(c) identical(c$endpoint, endpoint),
@@ -90,14 +92,14 @@ test_that("the grid is the whole nominal grid, not the AVATAR profile width", {
 test_that("components are capped at a fifth of the cohort", {
   fixture <- pca_fixture(30)
   fit <- attr(synpmx_pca(fixture$data, fixture$roles, seed = 2),
-              "pmx_pca_fit")
+              "pmx_trial_summary")$basis
   expect_lte(fit$k, 6L)
 })
 
 test_that("the report inventories every released quantity", {
   fixture <- pca_fixture(60)
-  report <- pmx_pca_report(synpmx_pca(fixture$data, fixture$roles, seed = 1))
-  expect_s3_class(report, "pmx_pca_report")
+  report <- pca_report(synpmx_pca(fixture$data, fixture$roles, seed = 1))
+  expect_s3_class(report, "pca_report")
   expect_true(all(c("quantity", "what", "numbers", "min_patients") %in%
                     names(report)))
   expect_true(all(report$min_patients[!is.na(report$min_patients)] >= 1))
@@ -106,8 +108,8 @@ test_that("the report inventories every released quantity", {
 test_that("components report one loading per retained cell and component", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1)
-  fit <- attr(synthetic, "pmx_pca_fit")
-  components <- pmx_pca_components(synthetic)
+  fit <- attr(synthetic, "pmx_trial_summary")$basis
+  components <- pca_components(synthetic)
   expect_equal(nrow(components),
                sum(fit$kinds == "endpoint_cell") * fit$k)
   expect_equal(nrow(attr(components, "variance_explained")), fit$k)
@@ -148,7 +150,7 @@ test_that("an arm below the minimum is refused rather than generated from", {
   )$valid)
 })
 
-# The nominal grid is the model's axis, so it is declared rather than inferred.
+# The nominal grid is the trial_summary's axis, so it is declared rather than inferred.
 test_that("a missing nominal_time is refused rather than derived", {
   fixture <- pca_fixture(60)
   roles <- pmx_roles(
@@ -199,27 +201,27 @@ test_that("dose and observation timing survive generation", {
 
 # The owner's requirement, 2026-08-26: generation is a function of the summaries
 # and nothing else. This is the check that says so rather than the comment.
-test_that("generation uses the model alone and never the source rows", {
+test_that("generation uses the trial_summary alone and never the source rows", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 21)
-  model <- attr(synthetic, "pmx_pca_model")
-  expect_s3_class(model, "pmx_pca_model")
+  trial_summary <- attr(synthetic, "pmx_trial_summary")
+  expect_s3_class(trial_summary, "pmx_trial_summary")
 
-  # The generator takes the model and a count. There is no argument through
+  # The generator takes the trial_summary and a count. There is no argument through
   # which a patient row could reach it.
   expect_identical(names(formals(synpmx:::.pca_generate)),
-                   c("model", "n_subjects"))
+                   c("trial_summary", "n_subjects"))
 
-  # Regenerating from the model alone reproduces the table exactly.
-  again <- .with_local_seed(21, synpmx:::.pca_generate(model, 60L))
+  # Regenerating from the trial_summary alone reproduces the table exactly.
+  again <- .with_local_seed(21, synpmx:::.pca_generate(trial_summary, 60L))
   expect_equal(as.data.frame(synthetic), as.data.frame(again),
                ignore_attr = TRUE)
 })
 
-test_that("the model holds no per-patient rows", {
+test_that("the trial_summary holds no per-patient rows", {
   fixture <- pca_fixture(60)
-  model <- attr(synpmx_pca(fixture$data, fixture$roles, seed = 1),
-                "pmx_pca_model")
+  trial_summary <- attr(synpmx_pca(fixture$data, fixture$roles, seed = 1),
+                "pmx_trial_summary")
   n_source <- length(unique(fixture$data$ID))
   lengths_in <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
@@ -229,32 +231,38 @@ test_that("the model holds no per-patient rows", {
     length(x)
   }
   # Every stored vector is a summary: nothing is one value per source patient.
-  expect_false(any(lengths_in(model$dosing) == n_source))
-  expect_equal(nrow(model$schema$prototypes[[1L]]), NULL)
-  expect_true(all(vapply(model$schema$prototypes, length, integer(1)) == 0L))
+  expect_false(any(lengths_in(trial_summary$dosing) == n_source))
+  expect_equal(nrow(trial_summary$schema$prototypes[[1L]]), NULL)
+  expect_true(all(vapply(trial_summary$schema$prototypes, length, integer(1)) == 0L))
 })
 
-test_that("the dosing model is the arm's shared schedule, and says so", {
+test_that("the dosing trial_summary is the arm's planned schedule, and says so", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1)
-  dosing <- pmx_pca_dosing(synthetic)
-  expect_true(all(c("arm", "dose", "time", "amt", "share", "patients",
-                    "distinct") %in% names(dosing)))
-  expect_true(all(dosing$share > 0 & dosing$share <= 1))
+  dosing <- pca_dosing(synthetic)
+  rates <- pca_dose_rates(synthetic)
+  expect_true(all(c("arm", "cycle", "time", "planned_amt") %in% names(dosing)))
+  expect_true(all(c("arm", "planned_cycles", "levels", "discontinuation",
+                    "interruption", "reduction", "patients", "source_doses",
+                    "distinct") %in% names(rates)))
+  for (column in c("discontinuation", "interruption", "reduction")) {
+    expect_true(all(rates[[column]] >= 0 & rates[[column]] <= 1),
+                info = column)
+  }
 
-  # The generated dose times are exactly the model's, arm by arm.
+  # The generated dose times come from the planned grid and nowhere else.
   roles <- fixture$roles
   doses <- synthetic[synthetic[[roles$evid]] != 0, , drop = FALSE]
-  expect_setequal(unique(doses[[roles$time]]), unique(dosing$time))
+  expect_true(all(doses[[roles$time]] %in% dosing$time))
 })
 
-test_that("the visit model covers every modelled cell in every arm", {
+test_that("the visit trial_summary covers every modelled cell in every arm", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1)
-  model <- attr(synthetic, "pmx_pca_model")
-  visits <- pmx_pca_visits(synthetic)
-  cells <- sum(model$basis$kinds == "endpoint_cell")
-  expect_equal(nrow(visits), cells * length(model$arms$arms))
+  trial_summary <- attr(synthetic, "pmx_trial_summary")
+  visits <- pca_visits(synthetic)
+  cells <- sum(trial_summary$basis$kinds == "endpoint_cell")
+  expect_equal(nrow(visits), cells * length(trial_summary$arms$arms))
   expect_true(all(visits$probability >= 0 & visits$probability <= 1))
 })
 
@@ -277,7 +285,7 @@ test_that("a zero-amount arm keeps its dosing events", {
 
   expect_gt(sum(synthetic$EVID != 0 & synthetic$ARM == "placebo"), 0)
   expect_equal(sum(synthetic$EVID != 0), sum(data$EVID != 0))
-  dosing <- pmx_pca_dosing(synthetic)
+  dosing <- pca_dosing(synthetic)
   expect_setequal(unique(dosing$arm), c("placebo", "active"))
   expect_true(all(dosing$amt[dosing$arm == "placebo"] == 0))
 })
@@ -286,37 +294,37 @@ test_that("a zero-amount arm keeps its dosing events", {
 test_that("summarize and generate compose to the same table as synpmx_pca", {
   fixture <- pca_fixture(60)
   one_call <- synpmx_pca(fixture$data, fixture$roles, seed = 31)
-  model <- synpmx_pca_summarize(fixture$data, fixture$roles)
-  two_calls <- synpmx_pca_generate(model, seed = 31)
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles)
+  two_calls <- synpmx_pca_generate(trial_summary, seed = 31)
   expect_equal(as.data.frame(one_call), as.data.frame(two_calls),
                ignore_attr = TRUE)
 })
 
-test_that("generate takes only a model and a count", {
+test_that("generate takes only a trial_summary and a count", {
   expect_identical(names(formals(synpmx_pca_generate)),
-                   c("model", "n_subjects", "seed"))
+                   c("trial_summary", "n_subjects", "seed"))
   fixture <- pca_fixture(60)
-  model <- synpmx_pca_summarize(fixture$data, fixture$roles)
-  expect_s3_class(model, "pmx_pca_model")
-  expect_equal(model$n_source, 60L)
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles)
+  expect_s3_class(trial_summary, "pmx_trial_summary")
+  expect_equal(trial_summary$n_source, 60L)
 
   # It defaults to the size it was fitted on, and honours a different one.
   expect_equal(
-    length(unique(synpmx_pca_generate(model, seed = 1)[[fixture$roles$id]])),
+    length(unique(synpmx_pca_generate(trial_summary, seed = 1)[[fixture$roles$id]])),
     60L
   )
   expect_equal(
     length(unique(
-      synpmx_pca_generate(model, n_subjects = 25L, seed = 1)[[fixture$roles$id]]
+      synpmx_pca_generate(trial_summary, n_subjects = 25L, seed = 1)[[fixture$roles$id]]
     )),
     25L
   )
 })
 
-test_that("the model prints what it holds", {
+test_that("the trial_summary prints what it holds", {
   fixture <- pca_fixture(60)
-  model <- synpmx_pca_summarize(fixture$data, fixture$roles)
-  printed <- paste(utils::capture.output(print(model)), collapse = "\n")
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles)
+  printed <- paste(utils::capture.output(print(trial_summary)), collapse = "\n")
   expect_match(printed, "60 patients")
   expect_match(printed, "components")
   expect_match(printed, "dosing")
@@ -326,9 +334,9 @@ test_that("settings passed through synpmx_pca reach the summary", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1,
                           n_components = 2L, dose_term = "log")
-  model <- attr(synthetic, "pmx_pca_model")
-  expect_equal(model$basis$k, 2L)
-  expect_equal(model$settings$dose_term, "log")
+  trial_summary <- attr(synthetic, "pmx_trial_summary")
+  expect_equal(trial_summary$basis$k, 2L)
+  expect_equal(trial_summary$settings$dose_term, "log")
 })
 
 # Values below the assay limit are reported on the boundary with CENS = 1, as
@@ -359,7 +367,7 @@ test_that("censoring is reapplied to generated values", {
                mean(data$CENS[observed] == 1L), tolerance = 0.15)
 })
 
-test_that("the assay limit is in the model and in the report", {
+test_that("the assay limit is in the trial_summary and in the report", {
   fixture <- pca_fixture(60)
   data <- fixture$data
   observed <- data$EVID == 0 & !is.na(data$DV) & data$DVID == "cp"
@@ -367,9 +375,9 @@ test_that("the assay limit is in the model and in the report", {
   data$DV[observed & data$DV < lloq] <- lloq
   data$CENS[observed & data$DV <= lloq] <- 1L
 
-  model <- synpmx_pca_summarize(data, fixture$roles, seed = 1)
-  expect_equal(model$schema$censoring$cp$left, lloq)
-  expect_true("assay limits" %in% pmx_pca_report(model)$quantity)
+  trial_summary <- synpmx_pca_summarize(data, fixture$roles, seed = 1)
+  expect_equal(trial_summary$schema$censoring$cp$left, lloq)
+  expect_true("assay limits" %in% pca_report(trial_summary)$quantity)
 })
 
 # Summarizing is stochastic only through the censoring imputation, so it takes a
@@ -380,4 +388,152 @@ test_that("summarize is reproducible under its seed", {
   b <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 5)
   expect_equal(a$basis$rotation, b$basis$rotation)
   expect_equal(a$scores, b$scores)
+})
+
+# The log transform's offset comes from the reported values, not the imputed
+# ones. `.impute_censored()` draws uniformly on the raw scale, so a value
+# censored at 0.05 can land at 5e-05 and drag the offset three orders of
+# magnitude down. The log range then runs far below anything observed, the
+# Gaussian score residual is fitted on that inflated spread, and exponentiating
+# it puts detectable concentrations into an arm that is entirely below the limit.
+test_that("censored imputation cannot widen the log transform", {
+  fixture <- pca_fixture(60)
+  data <- fixture$data
+  roles <- fixture$roles
+  observed <- data$EVID == 0 & !is.na(data$DV) & data$DVID == "cp"
+
+  # A late window nobody is above the limit in, and a high limit so most of the
+  # endpoint is censored.
+  lloq <- stats::quantile(data$DV[observed], 0.6, names = FALSE)
+  late <- observed & data$NTIME >= stats::median(data$NTIME[observed])
+  data$DV[observed & data$DV < lloq] <- lloq
+  data$CENS[observed & data$DV <= lloq] <- 1L
+  data$DV[late] <- lloq
+  data$CENS[late] <- 1L
+
+  trial_summary <- synpmx_pca_summarize(data, roles, seed = 3)
+  # The offset is half the smallest positive REPORTED value, so it is on the
+  # scale of the limit rather than on the scale of a uniform draw below it.
+  expect_gte(trial_summary$basis$transforms$cp$offset, lloq / 4)
+
+  synthetic <- synpmx_pca_generate(trial_summary, seed = 3)
+  generated_late <- synthetic$EVID == 0 & !is.na(synthetic$DV) &
+    synthetic$DVID == "cp" &
+    synthetic$NTIME >= stats::median(data$NTIME[observed])
+  # A window the whole cohort was below the limit in comes back below it.
+  expect_gt(mean(synthetic$CENS[generated_late] == 1L), 0.8)
+})
+
+# An oncology-shaped source: a planned q21d schedule that almost nobody
+# completes, with reductions to 75% and 50% of the starting dose, skipped
+# cycles, and discontinuation. The variability in the schedule is what such a
+# dataset is usually for, so it has to survive generation.
+oncology_fixture <- function(n = 80, reduction = 0.10, interruption = 0.12,
+                             discontinuation = 0.09, seed = 11) {
+  set.seed(seed)
+  cycles <- (0:11) * 21 * 24
+  subject <- function(id, arm) {
+    start <- if (arm == "A") 100 else 200
+    level <- 1L
+    rows <- list()
+    for (i in seq_along(cycles)) {
+      if (level < 3L && stats::runif(1) < reduction) level <- level + 1L
+      if (i == 1L || stats::runif(1) >= interruption) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          TIME = cycles[i], NTIME = cycles[i],
+          AMT = start * c(1, 0.75, 0.5)[level], EVID = 1,
+          DV = NA_real_, DVID = NA_character_
+        )
+      }
+      if (i > 1L && stats::runif(1) < discontinuation) break
+    }
+    doses <- do.call(rbind, rows)
+    seen <- cycles[cycles <= max(doses$TIME)]
+    observations <- data.frame(
+      TIME = seen + 24, NTIME = seen + 24, AMT = 0, EVID = 0,
+      DV = exp(stats::rnorm(length(seen), log(start / 50), 0.4)), DVID = "cp"
+    )
+    out <- rbind(doses, observations)
+    out$ID <- id
+    out$ARM <- arm
+    out[order(out$TIME, out$EVID == 0), , drop = FALSE]
+  }
+  do.call(rbind, lapply(seq_len(n), function(i) {
+    subject(i, if (i <= n / 2) "A" else "B")
+  }))
+}
+
+oncology_roles <- function() {
+  pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+            amt = "AMT", evid = "EVID", dvid = "DVID", strata = "ARM")
+}
+
+test_that("dose reductions and interruptions are recovered as rates", {
+  data <- oncology_fixture()
+  trial_summary <- synpmx_pca_summarize(data, oncology_roles(), seed = 1)
+  rates <- pca_dose_rates(trial_summary)
+
+  # The ladder is the one the fixture used, and nothing else: reductions are
+  # within-patient decreases, so ordinary between-patient amount differences
+  # cannot invent a level.
+  for (arm in rates$arm) {
+    levels <- as.numeric(strsplit(rates$levels[rates$arm == arm], ", ")[[1L]])
+    expect_equal(levels, c(1, 0.75, 0.5), tolerance = 0.02, info = arm)
+  }
+  expect_true(all(abs(rates$reduction - 0.10) < 0.06))
+  expect_true(all(abs(rates$interruption - 0.12) < 0.06))
+  expect_true(all(abs(rates$discontinuation - 0.09) < 0.06))
+})
+
+test_that("schedule variability survives generation", {
+  data <- oncology_fixture()
+  roles <- oncology_roles()
+  synthetic <- synpmx_pca(data, roles, seed = 1)
+  expect_true(validate_pmx(synthetic, roles)$valid)
+
+  key <- function(d) {
+    doses <- d[d$EVID == 1, , drop = FALSE]
+    length(unique(vapply(split(doses, doses$ID), function(p) {
+      paste(sprintf("%.6g", p$TIME), sprintf("%.6g", p$AMT), collapse = "|")
+    }, character(1))))
+  }
+  # The whole point: not one schedule per arm.
+  expect_gt(key(synthetic), 20L)
+
+  per_patient <- function(d) {
+    doses <- d[d$EVID == 1, , drop = FALSE]
+    counts <- vapply(split(doses, doses$ID), nrow, integer(1))
+    reduced <- vapply(split(doses, doses$ID),
+                      function(p) length(unique(p$AMT)) > 1L, logical(1))
+    c(doses = mean(counts), spread = stats::sd(counts),
+      reduced = mean(reduced))
+  }
+  source_shape <- per_patient(data)
+  synthetic_shape <- per_patient(synthetic)
+  expect_equal(synthetic_shape[["doses"]], source_shape[["doses"]],
+               tolerance = 0.2)
+  expect_equal(synthetic_shape[["spread"]], source_shape[["spread"]],
+               tolerance = 0.3)
+  expect_gt(synthetic_shape[["reduced"]], 0.25)
+
+  # Nothing is generated past the last cycle the arm shares.
+  planned <- pca_dosing(synthetic)
+  expect_true(all(synthetic$TIME[synthetic$EVID == 1] %in% planned$time))
+})
+
+# The degenerate case, and it is the common one: a study with a fixed schedule
+# must come through unchanged rather than acquiring dropout it never had.
+test_that("a fixed schedule stays fixed", {
+  fixture <- pca_fixture(60)
+  synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1)
+  rates <- pca_dose_rates(synthetic)
+
+  expect_true(all(rates$discontinuation == 0))
+  expect_true(all(rates$interruption == 0))
+  expect_true(all(rates$reduction == 0))
+  expect_true(all(rates$levels == "1"))
+
+  source_doses <- mean(table(fixture$data$ID[fixture$data$EVID != 0]))
+  synthetic_doses <- mean(table(synthetic$ID[synthetic$EVID != 0]))
+  expect_equal(synthetic_doses, source_doses)
 })

@@ -19,21 +19,21 @@ synpmx_pca(data, roles, n_subjects = NULL, seed = NULL, ...)
 \item{...}{Passed to \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}}.}
 }
 \value{
-A data frame in the source's shape, carrying the model as an
+A data frame in the source's shape, carrying the trial summary as an
 attribute.
 }
 \description{
 A single call for \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} followed by
 \code{\link[=synpmx_pca_generate]{synpmx_pca_generate()}}. Use the two separately to look at what the summary
-contains before generating from it; the model is on the result either way, as
-the \code{pmx_pca_model} attribute.
+contains before generating from it; it is on the result either way, as the
+\code{pmx_trial_summary} attribute.
 }
 \details{
 Where \code{\link[=synpmx_avatar]{synpmx_avatar()}} blends values from real neighbouring patients, this
 writes out no number a patient measured. What it carries out of the source is
 a mean, a scale, a set of principal-component loadings, one mean score vector
 per arm, a residual covariance, and a dosing and visit model per arm.
-\code{\link[=pmx_pca_report]{pmx_pca_report()}} inventories all of it.
+\code{\link[=pca_report]{pca_report()}} inventories all of it.
 
 \code{nominal_time} is required. No formal privacy claim is made.
 }
@@ -48,5 +48,5 @@ nrow(synthetic) > 0
 }
 \seealso{
 \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}}, \code{\link[=synpmx_pca_generate]{synpmx_pca_generate()}},
-\code{\link[=synpmx_avatar]{synpmx_avatar()}}, \code{\link[=pmx_pca_report]{pmx_pca_report()}}.
+\code{\link[=synpmx_avatar]{synpmx_avatar()}}, \code{\link[=pca_report]{pca_report()}}.
 }

@@ -20,27 +20,33 @@ has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 run <- has_xgxr
 plots <- has_xgxr && has_ggplot2
 distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
+# The readouts are wide tables, so they are shown as sortable DT widgets where
+# DT is installed and printed plainly where it is not.
+has_dt <- requireNamespace("DT", quietly = TRUE)
+tables <- run && has_dt
+show <- function(x, caption = NULL) {
+  DT::datatable(
+    x, rownames = FALSE, caption = caption,
+    options = list(dom = "t", paging = FALSE, scrollX = TRUE, ordering = TRUE)
+  )
+}
 ```
 
-Generate a synthetic dataset from a fitted model rather than from real patients'
+Generate a synthetic dataset from a fitted trial_summary rather than from real patients'
 values, look at it, and read the checks of the data.
 
 `synpmx_pca_summarize()` reduces the study to summaries and
 `synpmx_pca_generate()` builds a dataset from those summaries alone. No number a
-patient measured reaches the output. What it carries out of
-the source is a mean, a scale, a set of principal-component loadings, one mean
-score vector per arm, and a residual covariance. `synpmx_avatar()` blends real
-values from neighbouring patients and is the subject of `vignette("avatar-demo")`,
-which runs the same study through that algorithm.
+patient measured reaches the output. What it carries out of the source is a
+mean, a scale, a set of principal-component loadings, one mean score vector per
+arm, a residual covariance, and a dosing and visit trial_summary per arm.
 
 It makes no formal privacy claim, and it is not for estimation. The full
-specification is in `vignette("pca-algorithm")` and the checks in
-`vignette("avatar-scorecard")`.
+specification is in `vignette("pca-algorithm")`.
 
 The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to 300
 mg, with a pharmacokinetic (PK) concentration endpoint and a continuous
-pharmacodynamic (PD) endpoint. It is the dataset `vignette("avatar-demo")` uses,
-so the two runs can be read against each other.
+pharmacodynamic (PD) endpoint.
 
 ## Configuration
 
@@ -70,8 +76,8 @@ roles <- pmx_roles(
   evid         = "EVID",
   cmt          = "CMT",
   dvid         = "NAME",        # which endpoint each observation row is
-  nominal_time = "NOMTIME",     # required: the grid the model is built on
-  strata       = c("TRTACT", "DOSE"), # treatment arms, and the score model's groups
+  nominal_time = "NOMTIME",     # required: the grid the trial_summary is built on
+  strata       = c("TRTACT", "DOSE"), # treatment arms, and the score trial_summary's groups
   covariates   = "WEIGHTB",     # drawn jointly with the trajectories
   keep         = "STUDY"        # carried through verbatim
 )
@@ -84,55 +90,67 @@ looked at before the second runs. `synpmx_pca_summarize()` is the only step that
 reads patient data.
 
 ```{r summarize, eval=run, message = FALSE}
-model <- synpmx_pca_summarize(raw, roles)
-model
+trial_summary <- synpmx_pca_summarize(raw, roles)
+trial_summary
 ```
 
 **`nominal_time` is required.** The grid it names is the axis every feature sits
 on, and dose rows and observation rows are placed on it together, so the timing
 comes through at its source values: doses per patient, the last dose, the end of
-follow-up, the baseline sample before the first dose. `synpmx_avatar()` will
-derive a grid when none is declared; `synpmx_pca()` refuses, because choosing
-where a visit belongs is a statement about the protocol rather than something to
-infer from recorded times.
+follow-up, the baseline sample before the first dose. A study that does not
+carry a nominal-time column needs the protocol's planned times added as one
+first: choosing where a visit belongs is a statement about the protocol rather
+than something to infer from recorded times.
 
-`strata` does more work here than it does in `synpmx_avatar()`. It names the
-arms, and the arms are the groups the score model is fitted against: each one
+`strata` is load-bearing. It names the
+arms, and the arms are the groups the score trial_summary is fitted against: each one
 gets its own mean score vector and its own residual covariance. An arm of fewer
-than three patients has no spread of its own to model, so the function refuses
+than three patients has no spread of its own to trial_summary, so the function refuses
 rather than generating from one or two people. `min_arm_patients` is where that
 floor is set.
 
 ## What the summary read out of the source
 
-```{r report, eval=run}
-pmx_pca_report(model)
+```{r report, eval=tables}
+show(as.data.frame(pca_report(trial_summary)),
+     "What the summary read out of the source data")
+```
+
+```{r report-plain, eval=run && !has_dt}
+pca_report(trial_summary)
 ```
 
 `min_patients` is the column to read. A grid cell or a covariate mean is backed
-by most of the cohort; a per-arm quantity is backed by one arm. Nothing in this
-table is a patient record, but a quantity standing on few patients is where
-disclosure risk sits, not in the loadings.
+by most of the cohort; a per-arm quantity is backed by one arm.
 
-## The dosing model
+## The dosing trial_summary
 
-Dosing is not copied from anybody. Each arm contributes the schedule its
-patients hold in common, and that schedule is what every generated subject in
-the arm receives.
+Dosing is not copied from anybody. Each arm contributes a planned schedule and
+three rates saying how its patients departed from it.
 
-```{r dosing, eval=run}
-dosing <- pmx_pca_dosing(model)
-aggregate(cbind(doses = dose) ~ arm + amt + share + distinct, dosing, length)
+```{r dosing, eval=tables}
+show(head(pca_dosing(trial_summary), 6), "The planned schedule, first cycles")
+show(pca_dose_rates(trial_summary), "How patients departed from the plan")
 ```
 
-`share` is the fraction of the arm holding that schedule and `distinct` is how
-many schedules the arm actually contained. Both at their best here: one schedule
-per arm, held by everyone. A study recording actual dose times rather than
-planned ones would show `distinct` close to the arm size and `share` close to
-`1/n`, and the generated data would hold one schedule where the source held
-thirty. The timing would still be right; the variety would be gone.
+```{r dosing-plain, eval=run && !has_dt}
+head(pca_dosing(trial_summary), 6)
+pca_dose_rates(trial_summary)
+```
 
-## The visit model
+All three rates are zero here and each arm has a single dose level, so every
+generated patient receives the planned schedule exactly, and the generated
+dataset holds the same 85 doses per patient the source did.
+
+That is the point of expressing it this way rather than copying a schedule. On
+an oncology study the same three rates are not zero: patients are reduced to a
+fraction of their starting dose, skip cycles, and come off treatment at
+different times, and generated patients then differ from one another in the same
+way the source patients did. Relative dose intensity and time on treatment are
+often what such a dataset exists to analyse. `vignette("pca-algorithm")` sets
+out how the rates are estimated and what they do and do not protect.
+
+## The visit trial_summary
 
 ```{r plot-setup, eval=plots}
 library(ggplot2)
@@ -142,7 +160,7 @@ comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
 ```
 
 ```{r visits, eval=plots, fig.height=4}
-ggplot(pmx_pca_visits(model), aes(time, probability, colour = arm)) +
+ggplot(pca_visits(trial_summary), aes(time, probability, colour = arm)) +
   geom_line() +
   facet_wrap(~endpoint, scales = "free_x") +
   labs(x = "Nominal time (hours)", y = "P(observation)", colour = NULL) +
@@ -155,11 +173,11 @@ of attended visits is reused.
 ## Generate Synthetic Data
 
 Everything above is what the synthetic data will be built from.
-`synpmx_pca_generate()` reads the model and a subject count, and no patient row
+`synpmx_pca_generate()` reads the trial_summary and a subject count, and no patient row
 is in scope while it runs.
 
 ```{r generate, eval=run, message = FALSE}
-synthetic <- synpmx_pca_generate(model, seed = SEED)
+synthetic <- synpmx_pca_generate(trial_summary, seed = SEED)
 ```
 
 `synpmx_pca(raw, roles, seed = SEED)` is the same two calls in one, for when
@@ -191,6 +209,44 @@ ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
   ggtitle("Day 1 Conc. Profile")
 ```
 
+`case1_pkpd` samples richly twice: on day 1 above, and again around the last
+dose at 2016 h. The second profile is the one that says whether the generator
+held together over the whole study rather than only at its start.
+
+```{r overlay-pk-last, eval=plots, fig.height=5}
+last_dose <- obs[obs$NAME == "PK Concentration" &
+                   obs$TIME >= 2016 & obs$TIME <= 2040, ]
+last_dose$TAD <- last_dose$TIME - 2016
+
+ggplot(last_dose, aes(TAD, LIDV, group = ID, colour = DATA)) +
+  geom_line(alpha = 0.4) +
+  facet_grid(DATA~TRTACT) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 24, by = 6)) +
+  scale_colour_manual(values = comparison_colours) +
+  labs(x = "Time after dose (hours)", y = "PK concentration", colour = NULL) +
+  theme(legend.position = "top") +
+  ggtitle("Last Dose (2016 h) Conc. Profile")
+```
+
+The censored fraction in this window tracks the source arm by arm, and so do the
+medians in the two arms that have enough above-limit data to have one.
+
+```{r blq-table, eval=run}
+blq <- function(data, label) {
+  rows <- data$EVID == 0 & data$NAME == "PK Concentration" &
+    !is.na(data$LIDV) & data$TIME >= 2016 & data$TIME <= 2040
+  out <- aggregate(list(pct_blq = data$CENS[rows] == 1),
+                   list(arm = data$TRTACT[rows]), function(x) round(100 * mean(x)))
+  out$median <- aggregate(list(m = data$LIDV[rows]),
+                          list(arm = data$TRTACT[rows]),
+                          function(x) round(stats::median(x), 3))$m
+  stats::setNames(out, c("arm", paste0(c("pct_blq_", "median_"), label)))
+}
+blq_table <- merge(blq(raw, "source"), blq(synthetic, "synthetic"), by = "arm")
+if (has_dt) show(blq_table, "Censoring in the last-dose window") else blq_table
+```
+
 ```{r overlay-pd, eval=plots, fig.height=5}
 ggplot(obs[obs$NAME == "PD - Continuous", ],
        aes(TIME, LIDV, group = ID, colour = DATA)) +
@@ -203,7 +259,7 @@ ggplot(obs[obs$NAME == "PD - Continuous", ],
   ggtitle("PD Response")
 ```
 
-The synthetic profiles are smoother than the source ones. The model holds a
+The synthetic profiles are smoother than the source ones. The trial_summary holds a
 handful of components, and everything outside them, including measurement noise
 visit to visit, is not reproduced.
 
@@ -223,7 +279,7 @@ positive across a profile is overall magnitude, and one that crosses zero
 separates early visits from late ones.
 
 ```{r components, eval=plots, fig.height=4.5}
-components <- pmx_pca_components(model)
+components <- pca_components(trial_summary)
 ggplot(subset(components, component %in% c("PC1", "PC2", "PC3")),
        aes(time, loading, colour = component)) +
   geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
@@ -233,8 +289,15 @@ ggplot(subset(components, component %in% c("PC1", "PC2", "PC3")),
   theme(legend.position = "top")
 ```
 
-```{r variance, eval=run}
-attr(pmx_pca_components(model), "variance_explained")
+```{r variance, eval=tables}
+variance <- attr(pca_components(trial_summary), "variance_explained")
+variance$variance_explained <- round(variance$variance_explained, 3)
+variance$cumulative <- round(variance$cumulative, 3)
+show(variance, "Variance explained, per component")
+```
+
+```{r variance-plain, eval=run && !has_dt}
+attr(pca_components(trial_summary), "variance_explained")
 ```
 
 Describe what the curve shows rather than naming a mechanism for it. A component
@@ -252,35 +315,33 @@ compare_pmx_distributions(raw, synthetic, roles)
 
 ## The scorecard
 
-The scorecard computes checks of the synthetic dataset.  It is described further in `vignette("avatar-scorecard")`.
+`synpmx_scorecard()` computes checks of the synthetic dataset. Each row names a
+question, and the `explore` column names the call that answers it in full.
 
 ```{r scorecard, eval=run}
 scorecard <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-**Fifteen of the eighteen rows mean the same thing here as they do for
-`synpmx_avatar()`.** They read the source and synthetic tables and compute the
-same way whatever produced the data, which is what the scorecard was for.
+**Fifteen of the eighteen rows read the source and synthetic tables directly**
+and answer for any generated dataset.
 
 **Three read `unavailable`, and that is not the same as unanswered.** B1a, B1b
-and C2 read the AVATAR run record rather than the tables, and this table does not
-carry one. For B1a and B1b the guarantee is structural instead: no individual's
-visit set and no individual's dose schedule exists in the model to be copied.
-B4a and B4b ask the copy question directly, on the finished tables, and both
-read zero.
+and C2 expect a run record on the generated table, as a `pmx_settings`
+attribute, and this table carries none. B4a and B4b ask the copy question
+directly on the finished tables, and both read zero.
 
 **C2 is the one to be careful about.** It asks how many distinct dose-time
 schedules survived, and this is the row where the loss is largest — one schedule
 per arm, against one per patient in a study recording actual dose times. Read
-`pmx_pca_dosing()` in its place, where `distinct` and `share` say the same thing
+`pca_dosing()` in its place, where `distinct` and `share` say the same thing
 per arm.
 
 ## Where to go next
 
 - `vignette("pca-algorithm")` — every step of this algorithm, and what each one
   reads out of the source.
-- `vignette("avatar-demo")` — the same study through `synpmx_avatar()`, which
-  blends real values instead.
-- `vignette("avatar-scorecard")` — every check, what it asks, and what passing
-  means.
+- `vignette("pca-trial-summary")` — every quantity the summary holds, in
+  detail.
+- `vignette("synpmx-methods")` — the other generation modes, and which one to
+  use when.

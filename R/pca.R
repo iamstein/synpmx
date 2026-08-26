@@ -16,7 +16,8 @@
 # so that a single draw carries the relationship between them.
 #
 # Documented in `pca-algorithm.Rmd`, Step 2.
-.pca_features <- function(source, roles, min_column_patients) {
+.pca_features <- function(source, roles, min_column_patients,
+                          transform_source = NULL) {
   subjects <- .unique_in_order(source[[roles$id]])
   n <- length(subjects)
   subject_rows <- lapply(subjects, function(subject) {
@@ -27,9 +28,20 @@
   aligned <- .aligned_time(source, roles)
   endpoints <- sort(unique(endpoint[observed]))
 
+  # The log transform's offset is half the smallest positive value, and it exists
+  # to keep log() finite near zero. It must be read from what the assay actually
+  # reported, not from the imputed values: `.impute_censored()` draws uniformly
+  # on the raw scale, so a value censored at an LLOQ of 0.05 can land at 5e-05
+  # and drag the offset three orders of magnitude down with it. The log range
+  # then runs to -9.5 instead of -2.6, and 46% of the observations occupy seven
+  # log units of what is purely uniform noise. Generation adds a Gaussian
+  # residual on that scale, and exponentiating a wide Gaussian has a heavy upper
+  # tail, so a low-dose arm that is entirely below quantification comes back with
+  # detectable concentrations that rise with time.
+  basis_for_transform <- transform_source %||% source
   transforms <- stats::setNames(lapply(endpoints, function(ep) {
     .choose_transform(suppressWarnings(as.numeric(
-      source[[roles$dv]][observed & endpoint == ep]
+      basis_for_transform[[roles$dv]][observed & endpoint == ep]
     )))
   }), endpoints)
 
@@ -259,21 +271,233 @@
   drawn
 }
 
+# The dosing model: a planned schedule per arm, plus three rates that say how
+# patients departed from it.
+#
+# A dose-ranging study gives everyone the same schedule and the interesting
+# quantity is that schedule. An oncology study gives everyone the same *planned*
+# schedule and then almost nobody follows it: doses are reduced for toxicity,
+# cycles are skipped, and patients come off treatment at different times. The
+# relative dose intensity that results is often the thing the dataset exists to
+# analyse, so a generator that hands every patient the modal schedule has
+# removed it.
+#
+# Both cases are the same model here. Each arm carries:
+#
+#   planned       one row per cycle: the nominal time, and the modal amount at
+#                 that time. Within-patient escalation lives here, because the
+#                 planned amount is read per cycle rather than once.
+#   levels        the dose ladder, as ratios of the planned amount, descending
+#                 from 1. Read from ratios several patients share.
+#   discontinuation   P(this cycle is the last | still on treatment)
+#   interruption      P(this cycle is skipped | still on treatment)
+#   reduction         P(drop one level | still on, a lower level exists)
+#
+# A study where nobody reduces, skips or stops early has all three rates at zero
+# and one level, and the model then reproduces the planned schedule exactly for
+# every patient. That is the point: no detector decides which kind of study this
+# is, because the rates already say it.
+#
+# What leaves the source is three probabilities and a ladder, per arm. No
+# patient's own sequence of reductions is copied, and the planned grid stops at
+# the last cycle `min_arm_patients` patients reached, so a schedule length only
+# one patient has cannot be generated -- the same reasoning as `SIM-047` on the
+# observation side.
+#
+# Documented in `pca-algorithm.Rmd`, Step 6.
+.pca_dose_model <- function(times, amounts, member_rows, aligned, amount,
+                            dose_rows, floor) {
+  n <- length(member_rows)
+  per_patient <- lapply(seq_len(n), function(i) {
+    selected <- member_rows[[i]] & dose_rows
+    order_by <- order(aligned[selected])
+    data.frame(time = aligned[selected][order_by],
+               amt = amount[selected][order_by])
+  })
+
+  # The planned grid: nominal dose times enough of the arm reached. Cycles only
+  # one or two patients got to are dropped rather than modelled, so generated
+  # follow-up cannot run past what the arm shares.
+  all_times <- sort(unique(unlist(lapply(per_patient, function(p) p$time))))
+  reached <- vapply(all_times, function(t) {
+    sum(vapply(per_patient, function(p) any(abs(p$time - t) < 1e-8), logical(1)))
+  }, integer(1))
+  planned_times <- all_times[reached >= floor]
+  if (!length(planned_times)) planned_times <- all_times[which.max(reached)]
+
+  # Each patient's amounts over the planned cycles, and their ratio to their
+  # OWN starting dose. Clinical practice reduces to a fraction of what this
+  # patient started on, and reading the ratio that way also survives a study
+  # dosed by body weight, where no two patients share an amount at all.
+  n_cycles <- length(planned_times)
+  amounts_at <- lapply(per_patient, function(p) {
+    vapply(planned_times, function(t) {
+      hit <- which(abs(p$time - t) < 1e-8)
+      if (length(hit)) p$amt[hit[1L]] else NA_real_
+    }, numeric(1))
+  })
+  first_amt <- vapply(per_patient, function(p) {
+    if (!nrow(p)) NA_real_ else p$amt[which.min(p$time)]
+  }, numeric(1))
+  ratios <- lapply(seq_len(n), function(i) {
+    if (!is.finite(first_amt[i]) || first_amt[i] <= 0) {
+      return(rep(NA_real_, n_cycles))
+    }
+    amounts_at[[i]] / first_amt[i]
+  })
+
+  # The planned amount at a cycle is the modal amount among patients who are
+  # still on their starting dose there. Taking the modal amount over everyone
+  # would drift downward as reductions accumulate, and a patient at half dose
+  # would then read as two thirds of a plan that had already fallen. Reading it
+  # per cycle is also what lets a protocol-prescribed escalation stay part of
+  # the plan rather than register as a departure from it.
+  planned_amt <- vapply(seq_len(n_cycles), function(k) {
+    unreduced <- vapply(seq_len(n), function(i) {
+      r <- ratios[[i]][k]
+      is.finite(r) && abs(r - 1) < 0.05
+    }, logical(1))
+    values <- vapply(which(unreduced), function(i) amounts_at[[i]][k], numeric(1))
+    if (!length(values)) {
+      values <- unlist(lapply(amounts_at, function(a) a[k]))
+      values <- values[is.finite(values)]
+    }
+    if (!length(values)) return(0)
+    counts <- table(sprintf("%.10g", values))
+    as.numeric(names(counts)[which.max(counts)])
+  }, numeric(1))
+  planned <- data.frame(cycle = seq_len(n_cycles), time = planned_times,
+                        amt = planned_amt)
+
+  span <- integer(n)
+  skipped <- integer(n)
+  for (i in seq_len(n)) {
+    p <- per_patient[[i]]
+    if (!nrow(p)) { span[i] <- 0L; next }
+    within <- planned$time <= max(p$time) + 1e-8
+    span[i] <- sum(within)
+    skipped[i] <- sum(!is.finite(amounts_at[[i]][within]))
+    ratios[[i]][!within] <- NA_real_
+  }
+
+  # The ladder, and it is built from WITHIN-patient decreases rather than from
+  # the spread of ratios. A study dosed by body weight gives every patient a
+  # slightly different amount, so pooled ratios scatter continuously around 1
+  # and any threshold on them invents a ladder out of ordinary between-patient
+  # variation. A dose reduction is something else: the same patient receiving
+  # less than they did at the previous cycle. Where no patient's amount ever
+  # falls, there are no reductions and the ladder is a single level.
+  drop_tolerance <- 0.05
+  dropped_to <- unlist(lapply(ratios, function(r) {
+    finite <- which(is.finite(r))
+    if (length(finite) < 2L) return(NULL)
+    values <- r[finite]
+    fell <- which(diff(values) < -drop_tolerance * utils::head(values, -1L))
+    if (!length(fell)) return(NULL)
+    values[fell + 1L]
+  }))
+  levels <- 1
+  if (length(dropped_to)) {
+    counts <- table(round(dropped_to, 2))
+    holders <- vapply(names(counts), function(value) {
+      sum(vapply(ratios, function(r) {
+        finite <- which(is.finite(r))
+        if (length(finite) < 2L) return(FALSE)
+        values <- r[finite]
+        fell <- which(diff(values) < -drop_tolerance * utils::head(values, -1L))
+        length(fell) > 0 &&
+          any(abs(round(values[fell + 1L], 2) - as.numeric(value)) < 1e-8)
+      }, logical(1)))
+    }, integer(1))
+    shared <- as.numeric(names(counts))[holders >= floor]
+    shared <- shared[shared > 0 & shared < 1 - drop_tolerance]
+    levels <- sort(unique(c(1, shared)), decreasing = TRUE)
+  }
+
+  level_of <- function(r) {
+    out <- rep(NA_integer_, length(r))
+    finite <- which(is.finite(r))
+    for (j in finite) {
+      out[j] <- which.min(abs(levels - r[j]))
+    }
+    out
+  }
+
+  # Discrete-time hazards, pooled over the arm.
+  at_risk_stop <- 0L; stops <- 0L
+  at_risk_skip <- 0L; skips <- 0L
+  at_risk_drop <- 0L; drops <- 0L
+  for (i in seq_len(n)) {
+    if (!span[i]) next
+    at_risk_stop <- at_risk_stop + span[i]
+    # A patient who reached the last planned cycle was never observed to stop.
+    if (span[i] < n_cycles) stops <- stops + 1L
+    at_risk_skip <- at_risk_skip + span[i]
+    skips <- skips + skipped[i]
+    if (length(levels) > 1L) {
+      values <- ratios[[i]][is.finite(ratios[[i]])]
+      if (length(values) > 1L) {
+        idx <- level_of(values)
+        at_risk_drop <- at_risk_drop +
+          sum(utils::head(idx, -1L) < length(levels))
+        drops <- drops +
+          sum(diff(values) < -drop_tolerance * utils::head(values, -1L))
+      }
+    }
+  }
+  rate <- function(events, at_risk) {
+    if (!at_risk) return(0)
+    min(1, max(0, events / at_risk))
+  }
+
+  list(
+    planned = planned,
+    levels = levels,
+    discontinuation = rate(stops, at_risk_stop),
+    interruption = rate(skips, at_risk_skip),
+    reduction = rate(drops, at_risk_drop),
+    patients = n,
+    distinct = length(unique(vapply(per_patient, function(p) {
+      paste(sprintf("%.6g", p$time), sprintf("%.6g", p$amt), collapse = "|")
+    }, character(1)))),
+    source_doses = mean(vapply(per_patient, nrow, integer(1)))
+  )
+}
+
+# Simulate one patient's schedule from an arm's dosing model. Reduction is
+# decided before the cycle is dosed, discontinuation after it, and an
+# interruption skips the cycle without ending treatment.
+#
+# Documented in `pca-algorithm.Rmd`, Step 6.
+.pca_draw_schedule <- function(dosing) {
+  planned <- dosing$planned
+  levels <- dosing$levels
+  level <- 1L
+  keep <- logical(nrow(planned))
+  amounts <- numeric(nrow(planned))
+  for (i in seq_len(nrow(planned))) {
+    if (level < length(levels) && stats::runif(1) < dosing$reduction) {
+      level <- level + 1L
+    }
+    if (stats::runif(1) >= dosing$interruption) {
+      keep[i] <- TRUE
+      amounts[i] <- planned$amt[i] * levels[level]
+    }
+    if (stats::runif(1) < dosing$discontinuation) break
+  }
+  data.frame(time = planned$time[keep], amt = amounts[keep])
+}
+
 # The dosing model and the visit model, one of each per arm.
 #
 # Both are summaries of the arm rather than facts about a patient. The dosing
-# model is the schedule the arm holds in common -- the modal set of (time,
-# amount) pairs among its patients -- reported with the share of the arm that
-# holds it, so a schedule chosen by a bare plurality is visible as one. The
-# visit model is, per endpoint and per retained nominal time, the fraction of
-# the arm that has an observation there.
-#
-# Nothing here is an individual's schedule or an individual's visit set, which
-# is why neither can leave. The cost is the variety: an arm generates one
-# schedule, however many its patients had.
+# model is built above: a planned schedule and three rates. The visit model is,
+# per endpoint and per retained nominal time, the fraction of the arm that has
+# an observation there, so attendance is drawn per visit rather than a real
+# patient's set of attended visits being reused.
 #
 # Documented in `pca-algorithm.Rmd`, Step 6.
-.pca_arm_models <- function(source, roles, fit, subject_group) {
+.pca_arm_models <- function(source, roles, fit, subject_group, floor) {
   subjects <- .unique_in_order(source[[roles$id]])
   aligned <- .aligned_time(source, roles)
   observed <- .observation_rows(source, roles, require_present = TRUE)
@@ -300,25 +524,8 @@
     })
     sizes[arm] <- length(members)
 
-    schedules <- lapply(member_rows, function(rows) {
-      selected <- rows & dose_rows
-      order_by <- order(aligned[selected])
-      data.frame(time = aligned[selected][order_by],
-                 amt = amount[selected][order_by])
-    })
-    keys <- vapply(schedules, function(schedule) {
-      paste(sprintf("%.6g", schedule$time), sprintf("%.6g", schedule$amt),
-            collapse = "|")
-    }, character(1))
-    counts <- sort(table(keys), decreasing = TRUE)
-    modal <- names(counts)[1L]
-    schedule <- schedules[[which(keys == modal)[1L]]]
-    dosing[[arm]] <- list(
-      schedule = schedule,
-      patients = as.integer(counts[[1L]]),
-      distinct = length(counts),
-      share = as.numeric(counts[[1L]]) / length(members)
-    )
+    dosing[[arm]] <- .pca_dose_model(NULL, NULL, member_rows, aligned, amount,
+                                     dose_rows, floor)
 
     probability <- vapply(cells, function(column) {
       member <- fit$members[[column]]
@@ -456,15 +663,15 @@
   invisible(TRUE)
 }
 
-#' Summarize a PMX dataset into a principal-component model
+#' Summarize a trial into the quantities a synthetic copy is built from
 #'
 #' The only stage that reads patient data. Reduces each subject's trajectories
 #' and baseline covariates to principal-component scores, models those scores
 #' against the arm, and fits a dosing model and a visit model per arm. The
 #' returned object holds nothing but summaries: no patient row survives it.
 #'
-#' Run this, look at what it produced with [pmx_pca_report()],
-#' [pmx_pca_dosing()], [pmx_pca_visits()] and [pmx_pca_components()], then pass
+#' Run this, look at what it produced with [pca_report()],
+#' [pca_dosing()], [pca_visits()] and [pca_components()], then pass
 #' it to [synpmx_pca_generate()]. Generation reads the model and nothing else,
 #' so what those four functions show is the whole of what the synthetic data was
 #' built from.
@@ -502,8 +709,8 @@
 #'   than summarizing them; pool the arm, drop the column from `strata`, or
 #'   exclude those patients before calling.
 #'
-#' @return A `pmx_pca_model`.
-#' @seealso [synpmx_pca_generate()], [synpmx_pca()], [pmx_pca_report()].
+#' @return A `pmx_trial_summary`.
+#' @seealso [synpmx_pca_generate()], [synpmx_pca()], [pca_report()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
@@ -511,9 +718,9 @@
 #'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
 #'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 #' )
-#' model <- synpmx_pca_summarize(data, roles)
-#' model
-#' pmx_pca_report(model)
+#' trial_summary <- synpmx_pca_summarize(data, roles)
+#' trial_summary
+#' pca_report(trial_summary)
 synpmx_pca_summarize <- function(data, roles, seed = NULL,
                                  dose_term = c("factor", "log"),
                                  pca_variance = 0.9, n_components = NULL,
@@ -556,7 +763,8 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
     .with_local_seed(seed, .impute_censored(source, roles))
   }
 
-  features <- .pca_features(source, roles, min_column_patients)
+  features <- .pca_features(source, roles, min_column_patients,
+                            transform_source = censoring_source)
   dose <- .pca_subject_dose(source, roles, features$subjects)
   strata_key <- as.character(.subject_strata(source, roles))
   subject_group <- vapply(features$subjects, function(subject) {
@@ -568,7 +776,8 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
   fit <- .pca_fit(features, dose, subject_group, pca_variance, n_components,
                   dose_term)
   fit$min_column_patients <- min_column_patients
-  arm_models <- .pca_arm_models(source, roles, fit, subject_group)
+  arm_models <- .pca_arm_models(source, roles, fit, subject_group,
+                                min_arm_patients)
 
   structure(list(
     basis = fit,
@@ -583,12 +792,12 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
                     min_column_patients = min_column_patients,
                     min_arm_patients = min_arm_patients),
     n_source = n_source
-  ), class = "pmx_pca_model")
+  ), class = "pmx_trial_summary")
 }
 
-#' Generate a synthetic PMX dataset from a principal-component model
+#' Generate a synthetic PMX dataset from a trial summary
 #'
-#' Draws new subjects from a [synpmx_pca_summarize()] model. This stage reads no
+#' Draws new subjects from a [synpmx_pca_summarize()] trial summary. This stage reads no
 #' patient data: its arguments are the model and a subject count, so everything
 #' the synthetic dataset is built from is visible in the model itself.
 #'
@@ -598,13 +807,13 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
 #' the frequency the arm attended it. No individual's schedule and no
 #' individual's visit set exists in the model to be copied.
 #'
-#' @param model A `pmx_pca_model` from [synpmx_pca_summarize()], or a dataset
-#'   generated from one.
+#' @param trial_summary A `pmx_trial_summary` from
+#'   [synpmx_pca_summarize()], or a dataset generated from one.
 #' @param n_subjects Number of synthetic subjects. Defaults to the number the
 #'   model was fitted on.
 #' @param seed Generation seed.
 #'
-#' @return A data frame in the source's shape, carrying the model as an
+#' @return A data frame in the source's shape, carrying the trial summary as an
 #'   attribute.
 #' @seealso [synpmx_pca_summarize()], [synpmx_pca()].
 #' @export
@@ -614,22 +823,22 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
 #'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
 #'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 #' )
-#' model <- synpmx_pca_summarize(data, roles)
-#' synthetic <- synpmx_pca_generate(model, seed = 1)
+#' trial_summary <- synpmx_pca_summarize(data, roles)
+#' synthetic <- synpmx_pca_generate(trial_summary, seed = 1)
 #' nrow(synthetic) > 0
-synpmx_pca_generate <- function(model, n_subjects = NULL, seed = NULL) {
-  model <- .pca_model(model)
-  n_subjects <- as.integer(n_subjects %||% model$n_source)
+synpmx_pca_generate <- function(trial_summary, n_subjects = NULL,
+                                seed = NULL) {
+  trial_summary <- .pca_trial_summary(trial_summary)
+  n_subjects <- as.integer(n_subjects %||% trial_summary$n_source)
   if (!is.finite(n_subjects) || n_subjects < 1L) {
     stop("`n_subjects` must be one positive integer.", call. = FALSE)
   }
   out <- if (is.null(seed)) {
-    .pca_generate(model, n_subjects)
+    .pca_generate(trial_summary, n_subjects)
   } else {
-    .with_local_seed(seed, .pca_generate(model, n_subjects))
+    .with_local_seed(seed, .pca_generate(trial_summary, n_subjects))
   }
-  attr(out, "pmx_pca_model") <- model
-  attr(out, "pmx_pca_fit") <- model$basis
+  attr(out, "pmx_trial_summary") <- trial_summary
   attr(out, "pmx_source") <- "pca"
   out
 }
@@ -638,14 +847,14 @@ synpmx_pca_generate <- function(model, n_subjects = NULL, seed = NULL) {
 #'
 #' A single call for [synpmx_pca_summarize()] followed by
 #' [synpmx_pca_generate()]. Use the two separately to look at what the summary
-#' contains before generating from it; the model is on the result either way, as
-#' the `pmx_pca_model` attribute.
+#' contains before generating from it; it is on the result either way, as the
+#' `pmx_trial_summary` attribute.
 #'
 #' Where [synpmx_avatar()] blends values from real neighbouring patients, this
 #' writes out no number a patient measured. What it carries out of the source is
 #' a mean, a scale, a set of principal-component loadings, one mean score vector
 #' per arm, a residual covariance, and a dosing and visit model per arm.
-#' [pmx_pca_report()] inventories all of it.
+#' [pca_report()] inventories all of it.
 #'
 #' `nominal_time` is required. No formal privacy claim is made.
 #'
@@ -656,10 +865,10 @@ synpmx_pca_generate <- function(model, n_subjects = NULL, seed = NULL) {
 #' @param seed Generation seed.
 #' @param ... Passed to [synpmx_pca_summarize()].
 #'
-#' @return A data frame in the source's shape, carrying the model as an
+#' @return A data frame in the source's shape, carrying the trial summary as an
 #'   attribute.
 #' @seealso [synpmx_pca_summarize()], [synpmx_pca_generate()],
-#'   [synpmx_avatar()], [pmx_pca_report()].
+#'   [synpmx_avatar()], [pca_report()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
@@ -677,8 +886,8 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
 }
 
 # Arms keep their source share of the cohort, rounded to the requested total.
-.pca_assign_arms <- function(model, n_subjects) {
-  sizes <- model$arms$sizes
+.pca_assign_arms <- function(trial_summary, n_subjects) {
+  sizes <- trial_summary$arms$sizes
   weights <- sizes / sum(sizes)
   counts <- as.integer(round(weights * n_subjects))
   short <- n_subjects - sum(counts)
@@ -689,7 +898,7 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
       counts[j] <- max(0L, counts[j] + sign(short))
     }
   }
-  rep(model$arms$arms, times = counts)[seq_len(n_subjects)]
+  rep(trial_summary$arms$arms, times = counts)[seq_len(n_subjects)]
 }
 
 .pca_new_ids <- function(schema, n) {
@@ -707,14 +916,20 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
 # Generation. Every argument is a summary; no patient row is in scope.
 #
 # Documented in `pca-algorithm.Rmd`, Steps 5 to 8.
-.pca_generate <- function(model, n_subjects) {
-  fit <- model$basis
-  roles <- model$roles
-  schema <- model$schema
+.pca_generate <- function(trial_summary, n_subjects) {
+  fit <- trial_summary$basis
+  roles <- trial_summary$roles
+  schema <- trial_summary$schema
 
-  assignment <- .pca_assign_arms(model, n_subjects)
-  doses <- vapply(assignment, function(arm) {
-    schedule <- model$dosing[[arm]]$schedule
+  assignment <- .pca_assign_arms(trial_summary, n_subjects)
+  # Each subject's schedule is simulated before their scores are drawn, because
+  # the total dose it comes to is what the score model is conditioned on. On a
+  # study with reductions two patients in one arm no longer receive the same
+  # amount, and the exposure that follows should reflect that.
+  schedules <- lapply(assignment, function(arm) {
+    .pca_draw_schedule(trial_summary$dosing[[arm]])
+  })
+  doses <- vapply(schedules, function(schedule) {
     if (nrow(schedule)) sum(schedule$amt) else 0
   }, numeric(1))
   drawn <- .pca_draw(fit, doses, assignment)
@@ -722,8 +937,8 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   pieces <- vector("list", n_subjects)
   for (i in seq_len(n_subjects)) {
     arm <- assignment[[i]]
-    schedule <- model$dosing[[arm]]$schedule
-    visits <- model$visits[[arm]]
+    schedule <- schedules[[i]]
+    visits <- trial_summary$visits[[arm]]
 
     rows <- list()
     if (nrow(schedule)) {
@@ -782,16 +997,13 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   }
   if (!is.null(roles$tad)) out[[roles$tad]] <- .derived_tad(out, roles)
   if (!is.null(roles$assigned_dose)) {
-    out[[roles$assigned_dose]] <- unname(vapply(frame$.arm, function(arm) {
-      schedule <- model$dosing[[arm]]$schedule
-      if (nrow(schedule)) sum(schedule$amt) else 0
-    }, numeric(1)))
+    out[[roles$assigned_dose]] <- doses[frame$.subject]
   }
   for (column in schema$carried) {
     lookup <- stats::setNames(
-      lapply(model$arms$arms,
+      lapply(trial_summary$arms$arms,
              function(arm) schema$arm_values[[arm]][[column]]),
-      model$arms$arms
+      trial_summary$arms$arms
     )
     out[[column]] <- .restore_column(
       unlist(lookup[frame$.arm], use.names = FALSE), schema$prototypes[[column]]
@@ -845,38 +1057,38 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   gsub("\r", " / ", arm, fixed = TRUE)
 }
 
-# Accept a generated dataset, the model, or the basis itself.
-.pca_model <- function(x) {
-  model <- attr(x, "pmx_pca_model") %||% x
-  if (!inherits(model, "pmx_pca_model")) {
-    stop("Expected a dataset from `synpmx_pca()` or a `pmx_pca_model`.",
-         call. = FALSE)
+# Accept a generated dataset or the trial summary itself.
+.pca_trial_summary <- function(x) {
+  out <- attr(x, "pmx_trial_summary") %||% x
+  if (!inherits(out, "pmx_trial_summary")) {
+    stop("Expected a dataset from `synpmx_pca()` or a `pmx_trial_summary` ",
+         "from `synpmx_pca_summarize()`.", call. = FALSE)
   }
-  model
+  out
 }
 
-.pca_basis <- function(x) {
-  attr(x, "pmx_pca_fit") %||%
-    (if (inherits(x, "pmx_pca_model")) x$basis else x)
-}
+.pca_basis <- function(x) .pca_trial_summary(x)$basis
 
-#' The dosing model each arm was generated from
+#' The planned dose schedule each arm was generated from
 #'
-#' One row per arm and dose, giving the time and the amount. This is the
-#' schedule the arm holds in common: the modal set of times and amounts among
-#' its patients, never an individual's. `share` is the fraction of the arm
-#' holding it, so a schedule picked by a bare plurality is visible as one, and
-#' `distinct` is how many schedules that arm actually contained.
+#' One row per arm and cycle, giving the nominal time and the amount the arm was
+#' planned to receive there. The planned amount is read per cycle, so a
+#' protocol-prescribed escalation is part of the plan rather than a departure
+#' from it.
 #'
-#' A study recording its dose times as actuals rather than as planned times
-#' holds close to one schedule per patient. The generated data then holds one
-#' per arm, which is the mechanism working and a real loss of variety.
+#' This is what every generated patient in the arm starts from.
+#' [pca_dose_rates()] gives the three hazards that then move them off it:
+#' reductions, interruptions and discontinuation. On a study with no dose
+#' modifications those rates are zero and this schedule is what every patient
+#' receives.
 #'
-#' @param x A dataset from [synpmx_pca()], or its model.
+#' The grid stops at the last cycle `min_arm_patients` of the arm's patients
+#' reached, so a treatment duration only one patient had cannot be generated.
 #'
-#' @return A data frame with `arm`, `dose`, `time`, `amt`, `share`,
-#'   `patients` and `distinct`.
-#' @seealso [synpmx_pca()], [pmx_pca_visits()], [pmx_pca_report()].
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
+#'
+#' @return A data frame with `arm`, `cycle`, `time` and `planned_amt`.
+#' @seealso [synpmx_pca()], [pca_dose_rates()], [pca_visits()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
@@ -884,17 +1096,68 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
 #'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
 #'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 #' )
-#' pmx_pca_dosing(synpmx_pca(data, roles, seed = 1))
-pmx_pca_dosing <- function(x) {
-  model <- .pca_model(x)
-  out <- do.call(rbind, lapply(model$arms$arms, function(arm) {
-    entry <- model$dosing[[arm]]
-    schedule <- entry$schedule
-    if (!nrow(schedule)) return(NULL)
-    data.frame(arm = .pca_arm_label(arm), dose = seq_len(nrow(schedule)),
-               time = schedule$time, amt = schedule$amt,
-               share = entry$share, patients = entry$patients,
-               distinct = entry$distinct, stringsAsFactors = FALSE)
+#' head(pca_dosing(synpmx_pca(data, roles, seed = 1)))
+pca_dosing <- function(x) {
+  trial_summary <- .pca_trial_summary(x)
+  out <- do.call(rbind, lapply(trial_summary$arms$arms, function(arm) {
+    entry <- trial_summary$dosing[[arm]]
+    planned <- entry$planned
+    if (!nrow(planned)) return(NULL)
+    data.frame(arm = .pca_arm_label(arm), cycle = planned$cycle,
+               time = planned$time, planned_amt = planned$amt,
+               stringsAsFactors = FALSE)
+  }))
+  rownames(out) <- NULL
+  out
+}
+
+#' The dose-modification rates each arm was generated from
+#'
+#' One row per arm, giving the three discrete-time hazards that turn a planned
+#' schedule into the schedule a patient actually received, and the dose ladder
+#' reductions move down.
+#'
+#' A study where nobody reduces, skips or stops early has all three rates at
+#' zero and a single level, and every generated patient then receives the
+#' planned schedule exactly. A study with dose modifications --- oncology being
+#' the usual case --- has non-zero rates, and generated patients differ from one
+#' another in the same way and to the same degree the source patients did.
+#'
+#' `source_doses` and `distinct` describe what the arm actually contained, so a
+#' generated dataset can be checked against them: `source_doses` is the mean
+#' number of dosing events per patient, and `distinct` is how many different
+#' schedules the arm held.
+#'
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
+#'
+#' @return A data frame with `arm`, `planned_cycles`, `levels`,
+#'   `discontinuation`, `interruption`, `reduction`, `patients`,
+#'   `source_doses` and `distinct`.
+#' @seealso [synpmx_pca()], [pca_dosing()], [pca_report()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(60)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+#'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
+#' )
+#' pca_dose_rates(synpmx_pca(data, roles, seed = 1))
+pca_dose_rates <- function(x) {
+  trial_summary <- .pca_trial_summary(x)
+  out <- do.call(rbind, lapply(trial_summary$arms$arms, function(arm) {
+    entry <- trial_summary$dosing[[arm]]
+    data.frame(
+      arm = .pca_arm_label(arm),
+      planned_cycles = nrow(entry$planned),
+      levels = paste(format(entry$levels, trim = TRUE), collapse = ", "),
+      discontinuation = round(entry$discontinuation, 4),
+      interruption = round(entry$interruption, 4),
+      reduction = round(entry$reduction, 4),
+      patients = entry$patients,
+      source_doses = round(entry$source_doses, 1),
+      distinct = entry$distinct,
+      stringsAsFactors = FALSE
+    )
   }))
   rownames(out) <- NULL
   out
@@ -907,12 +1170,12 @@ pmx_pca_dosing <- function(x) {
 #' fraction of the arm's patients who did, so attendance is drawn per visit
 #' rather than a real patient's visit set being reused.
 #'
-#' @param x A dataset from [synpmx_pca()], or its model.
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
 #'
 #' @return A data frame with `arm`, `endpoint`, `time`, `probability` and
 #'   `patients`, the last being how many patients across the study hold that
 #'   cell at all.
-#' @seealso [synpmx_pca()], [pmx_pca_dosing()], [pmx_pca_report()].
+#' @seealso [synpmx_pca()], [pca_dosing()], [pca_report()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
@@ -920,12 +1183,12 @@ pmx_pca_dosing <- function(x) {
 #'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
 #'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 #' )
-#' head(pmx_pca_visits(synpmx_pca(data, roles, seed = 1)))
-pmx_pca_visits <- function(x) {
-  model <- .pca_model(x)
-  fit <- model$basis
-  out <- do.call(rbind, lapply(model$arms$arms, function(arm) {
-    entry <- model$visits[[arm]]
+#' head(pca_visits(synpmx_pca(data, roles, seed = 1)))
+pca_visits <- function(x) {
+  trial_summary <- .pca_trial_summary(x)
+  fit <- trial_summary$basis
+  out <- do.call(rbind, lapply(trial_summary$arms$arms, function(arm) {
+    entry <- trial_summary$visits[[arm]]
     members <- fit$members[entry$cells]
     data.frame(
       arm = .pca_arm_label(arm),
@@ -942,9 +1205,9 @@ pmx_pca_visits <- function(x) {
 }
 
 #' @export
-print.pmx_pca_model <- function(x, ...) {
+print.pmx_trial_summary <- function(x, ...) {
   fit <- x$basis
-  cat("A synpmx PCA model\n\n")
+  cat("A trial summary, from synpmx_pca_summarize()\n\n")
   cat("  fitted on   ", x$n_source, "patients,",
       length(x$arms$arms), "arm(s):",
       paste(sprintf("%s (%d)", .pca_arm_label(x$arms$arms),
@@ -965,20 +1228,27 @@ print.pmx_pca_model <- function(x, ...) {
   cat("  components  ", fit$k, sprintf("(%.0f%% of variance)", 100 * share),
       "\n")
   cat("  dose term   ", x$settings$dose_term, "\n")
-  doses <- vapply(x$dosing, function(d) nrow(d$schedule), integer(1))
-  shares <- vapply(x$dosing, function(d) d$share, numeric(1))
-  cat("  dosing      ", sprintf("%d dose(s) per arm", stats::median(doses)),
-      sprintf("| shared by %.0f%%-%.0f%% of each arm",
-              100 * min(shares), 100 * max(shares)), "\n\n")
-  cat("Generation reads this object and nothing else. To look inside it:\n")
-  cat("  pmx_pca_report(model)      what it read out of the source data\n")
-  cat("  pmx_pca_dosing(model)      the dose schedule each arm shares\n")
-  cat("  pmx_pca_visits(model)      the probability of a visit, per arm\n")
-  cat("  pmx_pca_components(model)  the loadings, over time\n")
+  cycles <- vapply(x$dosing, function(d) nrow(d$planned), integer(1))
+  varies <- vapply(x$dosing, function(d) {
+    d$discontinuation > 0 || d$interruption > 0 || d$reduction > 0
+  }, logical(1))
+  cat("  dosing      ",
+      sprintf("%d planned cycle(s) per arm", stats::median(cycles)),
+      if (any(varies)) {
+        sprintf("| %d of %d arm(s) reduce, skip or stop early",
+                sum(varies), length(varies))
+      } else "| no reductions, interruptions or early stops", "\n\n")
+  cat("synpmx_pca_generate() reads this object and nothing else.",
+      "To look inside it:\n")
+  cat("  pca_report()      what it read out of the source data\n")
+  cat("  pca_dosing()      the planned dose schedule, per arm\n")
+  cat("  pca_dose_rates()  reduction, interruption and discontinuation\n")
+  cat("  pca_visits()      the probability of a visit, per arm\n")
+  cat("  pca_components()  the loadings, over time\n")
   invisible(x)
 }
 
-.pca_model_numbers <- function(fit) {
+.pca_score_numbers <- function(fit) {
   if (identical(fit$dose_term, "log")) {
     nrow(fit$model$coefficients) * fit$k
   } else {
@@ -996,23 +1266,24 @@ print.pmx_pca_model <- function(x, ...) {
 #'
 #' @param x A dataset from [synpmx_pca()], or the fit itself.
 #'
-#' @return A `pmx_pca_report` data frame.
-#' @seealso [synpmx_pca()], [pmx_pca_components()].
+#' @return A `pca_report` data frame.
+#' @seealso [synpmx_pca()], [pca_components()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
-#' pmx_pca_report(synpmx_pca(data, pmx_generated_roles(), seed = 1))
-pmx_pca_report <- function(x) {
-  fit <- .pca_basis(x)
-  model <- tryCatch(.pca_model(x), error = function(e) NULL)
-  dosing_numbers <- if (is.null(model)) NA_integer_ else
-    2L * sum(vapply(model$dosing, function(d) nrow(d$schedule), integer(1)))
-  visit_numbers <- if (is.null(model)) NA_integer_ else
-    sum(vapply(model$visits, function(v) length(v$probability), integer(1)))
-  arm_numbers <- if (is.null(model)) NA_integer_ else
-    length(model$arms$arms) * length(model$schema$carried)
-  censoring_numbers <- if (is.null(model)) NA_integer_ else
-    sum(vapply(model$schema$censoring, function(c) length(unlist(c)), integer(1)))
+#' pca_report(synpmx_pca(data, pmx_generated_roles(), seed = 1))
+pca_report <- function(x) {
+  trial_summary <- .pca_trial_summary(x)
+  fit <- trial_summary$basis
+  dosing_numbers <- sum(vapply(trial_summary$dosing, function(d) {
+    2L * nrow(d$planned) + length(d$levels) + 3L
+  }, integer(1)))
+  visit_numbers <- sum(vapply(trial_summary$visits,
+                              function(v) length(v$probability), integer(1)))
+  arm_numbers <- length(trial_summary$arms$arms) *
+    length(trial_summary$schema$carried)
+  censoring_numbers <- sum(vapply(trial_summary$schema$censoring,
+                                  function(c) length(unlist(c)), integer(1)))
   cells <- which(fit$kinds == "endpoint_cell")
   cell_patients <- if (length(cells)) {
     min(vapply(fit$members[cells], function(m) as.numeric(m$patients),
@@ -1034,12 +1305,12 @@ pmx_pca_report <- function(x) {
       "Residual covariance between components",
       "Log or identity, per endpoint",
       "Censoring boundary, per endpoint",
-      "Dose times and amounts each arm shares",
+      "Planned cycles, the dose ladder, and three rates, per arm",
       "Probability of a visit, per arm, endpoint and time",
       "Strata and kept columns, one value per arm"
     ),
     numbers = c(
-      length(cells), p, p, p * fit$k, .pca_model_numbers(fit),
+      length(cells), p, p, p * fit$k, .pca_score_numbers(fit),
       fit$k * fit$k, length(fit$transforms), censoring_numbers,
       dosing_numbers, visit_numbers, arm_numbers
     ),
@@ -1050,12 +1321,12 @@ pmx_pca_report <- function(x) {
     ),
     stringsAsFactors = FALSE
   )
-  structure(rows, class = c("pmx_pca_report", "data.frame"),
+  structure(rows, class = c("pca_report", "data.frame"),
             components = fit$k, subjects = fit$n_source)
 }
 
 #' @export
-print.pmx_pca_report <- function(x, ...) {
+print.pca_report <- function(x, ...) {
   cat("What the PCA fit read out of the source data\n\n")
   cat("  subjects:", attr(x, "subjects"),
       " components retained:", attr(x, "components"), "\n\n")
@@ -1073,12 +1344,12 @@ print.pmx_pca_report <- function(x, ...) {
 #'
 #' @return A data frame with one row per component and retained grid cell,
 #'   carrying `variance_explained` as an attribute.
-#' @seealso [synpmx_pca()], [pmx_pca_report()].
+#' @seealso [synpmx_pca()], [pca_report()].
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(60)
-#' head(pmx_pca_components(synpmx_pca(data, pmx_generated_roles(), seed = 1)))
-pmx_pca_components <- function(x) {
+#' head(pca_components(synpmx_pca(data, pmx_generated_roles(), seed = 1)))
+pca_components <- function(x) {
   fit <- .pca_basis(x)
   cells <- which(fit$kinds == "endpoint_cell")
   grid <- do.call(rbind, lapply(cells, function(column) {

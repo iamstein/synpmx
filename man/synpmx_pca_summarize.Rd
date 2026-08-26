@@ -2,7 +2,7 @@
 % Please edit documentation in R/pca.R
 \name{synpmx_pca_summarize}
 \alias{synpmx_pca_summarize}
-\title{Summarize a PMX dataset into a principal-component model}
+\title{Summarize a trial into the quantities a synthetic copy is built from}
 \usage{
 synpmx_pca_summarize(
   data,
@@ -50,7 +50,7 @@ than summarizing them; pool the arm, drop the column from \code{strata}, or
 exclude those patients before calling.}
 }
 \value{
-A \code{pmx_pca_model}.
+A \code{pmx_trial_summary}.
 }
 \description{
 The only stage that reads patient data. Reduces each subject's trajectories
@@ -59,8 +59,8 @@ against the arm, and fits a dosing model and a visit model per arm. The
 returned object holds nothing but summaries: no patient row survives it.
 }
 \details{
-Run this, look at what it produced with \code{\link[=pmx_pca_report]{pmx_pca_report()}},
-\code{\link[=pmx_pca_dosing]{pmx_pca_dosing()}}, \code{\link[=pmx_pca_visits]{pmx_pca_visits()}} and \code{\link[=pmx_pca_components]{pmx_pca_components()}}, then pass
+Run this, look at what it produced with \code{\link[=pca_report]{pca_report()}},
+\code{\link[=pca_dosing]{pca_dosing()}}, \code{\link[=pca_visits]{pca_visits()}} and \code{\link[=pca_components]{pca_components()}}, then pass
 it to \code{\link[=synpmx_pca_generate]{synpmx_pca_generate()}}. Generation reads the model and nothing else,
 so what those four functions show is the whole of what the synthetic data was
 built from.
@@ -78,10 +78,10 @@ roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 )
-model <- synpmx_pca_summarize(data, roles)
-model
-pmx_pca_report(model)
+trial_summary <- synpmx_pca_summarize(data, roles)
+trial_summary
+pca_report(trial_summary)
 }
 \seealso{
-\code{\link[=synpmx_pca_generate]{synpmx_pca_generate()}}, \code{\link[=synpmx_pca]{synpmx_pca()}}, \code{\link[=pmx_pca_report]{pmx_pca_report()}}.
+\code{\link[=synpmx_pca_generate]{synpmx_pca_generate()}}, \code{\link[=synpmx_pca]{synpmx_pca()}}, \code{\link[=pca_report]{pca_report()}}.
 }

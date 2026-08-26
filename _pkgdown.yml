@@ -34,6 +34,8 @@ navbar:
       - text: "PCA generator"
       - text: "Demo: the PCA generator"
         href: articles/pca-demo.html
+      - text: What a trial summary contains
+        href: articles/pca-trial-summary.html
       - text: The synpmx PCA Algorithm
         href: articles/pca-algorithm.html
       - text: -------
@@ -83,15 +85,16 @@ reference:
   - synpmx_empirical
   - synpmx_generate
 
-- title: Reading a PCA fit
+- title: Reading a trial summary
   desc: >
-    What `synpmx_pca()` read out of the source data, and what its components
-    look like over time.
+    What `synpmx_pca_summarize()` read out of the source data: its inventory,
+    the dosing and visit models, and the components over time.
   contents:
-  - pmx_pca_report
-  - pmx_pca_dosing
-  - pmx_pca_visits
-  - pmx_pca_components
+  - pca_report
+  - pca_dosing
+  - pca_dose_rates
+  - pca_visits
+  - pca_components
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

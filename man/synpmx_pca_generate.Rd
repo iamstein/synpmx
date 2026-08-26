@@ -2,13 +2,13 @@
 % Please edit documentation in R/pca.R
 \name{synpmx_pca_generate}
 \alias{synpmx_pca_generate}
-\title{Generate a synthetic PMX dataset from a principal-component model}
+\title{Generate a synthetic PMX dataset from a trial summary}
 \usage{
-synpmx_pca_generate(model, n_subjects = NULL, seed = NULL)
+synpmx_pca_generate(trial_summary, n_subjects = NULL, seed = NULL)
 }
 \arguments{
-\item{model}{A \code{pmx_pca_model} from \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}}, or a dataset
-generated from one.}
+\item{trial_summary}{A \code{pmx_trial_summary} from
+\code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}}, or a dataset generated from one.}
 
 \item{n_subjects}{Number of synthetic subjects. Defaults to the number the
 model was fitted on.}
@@ -16,11 +16,11 @@ model was fitted on.}
 \item{seed}{Generation seed.}
 }
 \value{
-A data frame in the source's shape, carrying the model as an
+A data frame in the source's shape, carrying the trial summary as an
 attribute.
 }
 \description{
-Draws new subjects from a \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} model. This stage reads no
+Draws new subjects from a \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} trial summary. This stage reads no
 patient data: its arguments are the model and a subject count, so everything
 the synthetic dataset is built from is visible in the model itself.
 }
@@ -37,8 +37,8 @@ roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 )
-model <- synpmx_pca_summarize(data, roles)
-synthetic <- synpmx_pca_generate(model, seed = 1)
+trial_summary <- synpmx_pca_summarize(data, roles)
+synthetic <- synpmx_pca_generate(trial_summary, seed = 1)
 nrow(synthetic) > 0
 }
 \seealso{
