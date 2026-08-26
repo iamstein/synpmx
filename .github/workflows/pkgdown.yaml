@@ -6,6 +6,20 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  # Cache warming, not a build anyone is waiting for. Two thirds of this
+  # workflow is `setup-r-dependencies` installing the tree before a vignette is
+  # touched -- 17 of the 25 minutes on the 2026-08-19 run -- and that step is
+  # only fast when its cache survives. GitHub evicts a cache 7 days after it was
+  # last READ, so a weekly run races the window and loses whenever it fires a few
+  # hours late; the 2026-08-26 push found no cache at all, exactly 7 days after
+  # the previous run. Monday and Thursday leaves a maximum gap of four days.
+  #
+  # Reading the cache is what resets the clock, so these runs need do nothing
+  # else. They do not deploy -- see the condition on the deploy step -- and a
+  # failure on one is a genuine signal, since nothing in the repository changed
+  # and something upstream must have.
+  schedule:
+    - cron: '0 6 * * 1,4'
 
 name: pkgdown
 
@@ -76,8 +90,11 @@ jobs:
       - name: Prune agent-facing files from the site
         run: Rscript pkgdown/prune-site.R
 
+      # Scheduled runs stop here. They exist to touch the dependency cache, and
+      # redeploying byte-identical content twice a week would put a commit on
+      # `gh-pages` for nothing.
       - name: Deploy to GitHub pages
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'schedule'
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           clean: false
