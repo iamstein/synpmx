@@ -2,13 +2,22 @@
 
 ## Generating data
 
-The four generation modes.
+The generation modes.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-is the default AVATAR path; the others require a public structural
-model.
+is the default AVATAR path and
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+fits a basis instead of blending; the remaining three require a public
+structural model.
 
 - [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   : Synthesize a structurally faithful PMX dataset (AVATAR-style)
+- [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+  : Summarize a PMX dataset and generate a synthetic one from the
+  summary
+- [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
+  : Summarize a PMX dataset into a principal-component model
+- [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md)
+  : Generate a synthetic PMX dataset from a principal-component model
 - [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md)
   : Generate a dataset from public inputs only
 - [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
@@ -17,6 +26,23 @@ model.
   : Generate a dataset from a dense differentially private release
 - [`synpmx_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_generate.md)
   : Draw another dataset from a release already paid for
+
+## Reading a PCA fit
+
+What
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+read out of the source data, and what its components look like over
+time.
+
+- [`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md)
+  : What the PCA fit read out of the source data
+- [`pmx_pca_dosing()`](https://iamstein.github.io/synpmx/reference/pmx_pca_dosing.md)
+  : The dosing model each arm was generated from
+- [`pmx_pca_visits()`](https://iamstein.github.io/synpmx/reference/pmx_pca_visits.md)
+  : The visit model each arm was generated from
+- [`pmx_pca_components()`](https://iamstein.github.io/synpmx/reference/pmx_pca_components.md)
+  : Component loadings over time, and the variance each component
+  explains
 
 ## Declaring the data
 

@@ -33,19 +33,21 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
-    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
@@ -91,11 +93,11 @@ method [1] was extended to population pharmacokinetic (PK) datasets in
 more realistic datasets. Use of the algorithm is demonstrated in:</p>
 <ul>
 <li>
-<code><a href="../articles/demo.html">vignette("demo")</a></code> - AVATAR demonstration on a single
-dataset</li>
+<code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code> - AVATAR demonstration on a
+single dataset</li>
 <li>
-<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> - AVATAR demonstration
-on a series of public datasets</li>
+<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> - AVATAR
+demonstration on a series of public datasets</li>
 </ul>
 <p>AVATAR makes no formal privacy claim. It also does not necessarily
 fully preserve the dose-exposure-response relationship. Use the
@@ -660,8 +662,8 @@ number of subjects to be chosen for blending.</li>
 <p>When an arm holds nobody who can be masked, individualised dosing in
 one cohort of a trial for instance, its avatars keep the anchor they
 have, the run raises an alert naming that arm, and rows B1a and B1b of
-<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code> fail against
-it. <code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> can assess whether any such strata
+<code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> fail against it.
+<code><a href="../reference/unmaskable_strata.html">unmaskable_strata()</a></code> can assess whether any such strata
 exist.</p>
 </div>
 <div class="section level3">
@@ -1358,15 +1360,14 @@ between zero and <code>.Machine$integer.max</code>.</p>
 </h2>
 <p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> is the function that is used to
 assess a synthetic dataset. It is explained in
-<code><a href="../articles/scorecard-synthetic-data-checks.html">vignette("scorecard-synthetic-data-checks")</a></code>, and
-demonstrated in:</p>
+<code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code>, and demonstrated in:</p>
 <ul>
 <li>
-<code><a href="../articles/demo.html">vignette("demo")</a></code> - AVATAR demonstration on a single
-dataset</li>
+<code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code> - AVATAR demonstration on a
+single dataset</li>
 <li>
-<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> - AVATAR demonstration
-on a series of public datasets</li>
+<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> - AVATAR
+demonstration on a series of public datasets</li>
 </ul>
 </div>
 <div class="section level2">

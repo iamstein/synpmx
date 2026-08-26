@@ -88,7 +88,7 @@ reports the two patients followed to 1730 and 4580 hours in a cohort
 that otherwise ends by 672, and not the one at 1130.
 
 On that setting no synthetic dataset in
-[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+[`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
 reports anybody, which is the screen working rather than idling: an
 avatar is a blend of several donors, so producing a subject that extreme
 takes a defect, and this is the row that would say so.

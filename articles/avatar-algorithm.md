@@ -6,9 +6,9 @@ method \[1\] was extended to population pharmacokinetic (PK) datasets in
 \[2\], and here further extensions are provided so that it works well
 with more realistic datasets. Use of the algorithm is demonstrated in:
 
-- [`vignette("demo")`](https://iamstein.github.io/synpmx/articles/demo.md) -
+- [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -
   AVATAR demonstration on a single dataset
-- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md) -
+- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md) -
   AVATAR demonstration on a series of public datasets
 
 AVATAR makes no formal privacy claim. It also does not necessarily fully
@@ -461,7 +461,7 @@ There are two reasons subjects may be excluded from being an anchor.
 When an arm holds nobody who can be masked, individualised dosing in one
 cohort of a trial for instance, its avatars keep the anchor they have,
 the run raises an alert naming that arm, and rows B1a and B1b of
-[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
+[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
 fail against it.
 [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
 can assess whether any such strata exist.
@@ -1033,12 +1033,12 @@ analysis around it. `seed` must be an integer between zero and
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 is the function that is used to assess a synthetic dataset. It is
 explained in
-[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md),
+[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md),
 and demonstrated in:
 
-- [`vignette("demo")`](https://iamstein.github.io/synpmx/articles/demo.md) -
+- [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -
   AVATAR demonstration on a single dataset
-- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md) -
+- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md) -
   AVATAR demonstration on a series of public datasets
 
 ## Conclusions

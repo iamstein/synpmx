@@ -3,20 +3,22 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   avatar-algorithm: avatar-algorithm.html
+  avatar-demo: avatar-demo.html
+  avatar-public-data-examples: avatar-public-data-examples.html
+  avatar-scorecard: avatar-scorecard.html
   articles/data-elicitation: data-elicitation.html
-  demo: demo.html
   articles/example-avatar-PKPD-covariate-treatment-effect: example-avatar-PKPD-covariate-treatment-effect.html
   articles/feasibility: feasibility.html
   articles/model-elicitation: model-elicitation.html
+  pca-algorithm: pca-algorithm.html
+  pca-demo: pca-demo.html
   articles/privacy-argument: privacy-argument.html
   articles/privacy-background: privacy-background.html
-  public-data-examples: public-data-examples.html
-  scorecard-synthetic-data-checks: scorecard-synthetic-data-checks.html
   synpmx-4-methods: synpmx-4-methods.html
   articles/synpmx-privacy: synpmx-privacy.html
   articles/synthetic-data-checking-review: synthetic-data-checking-review.html
   articles/synthetic-data-generation-review: synthetic-data-generation-review.html
-last_built: 2026-08-19T14:28Z
+last_built: 2026-08-26T14:48Z
 urls:
   reference: https://iamstein.github.io/synpmx/reference
   article: https://iamstein.github.io/synpmx/articles

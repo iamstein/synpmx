@@ -1,7 +1,7 @@
 # The scorecard for one synthetic dataset
 
 Runs the checks from
-[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md)
+[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
 that can be run automatically, and returns them as one table with the
 answer, whether that answer passes, and the call that explains it. The
 vignette is the reference for what each check asks and why its pass
@@ -138,7 +138,7 @@ to colour the verdicts in an HTML report,
 [`compare_pmx()`](https://iamstein.github.io/synpmx/reference/compare_pmx.md),
 [`pmx_masking_report()`](https://iamstein.github.io/synpmx/reference/pmx_masking_report.md),
 [`pmx_endpoint_types()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.md),
-[`vignette("scorecard-synthetic-data-checks")`](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md).
+[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md).
 
 ## Examples
 
@@ -152,7 +152,7 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #> synpmx_avatar(): dropped 9 undeclared column(s): NTIME, TAD, OCC, RATE, MDV, CENS, LIMIT, AGE, SEX.
 #>   Declare a column in `keep` to carry it through verbatim.
 synpmx_scorecard(data, synthetic, roles)
-#> Scorecard: see vignette("scorecard-synthetic-data-checks") for what each asks
+#> Scorecard: see vignette("avatar-scorecard") for what each asks
 #> 
 #>   check question                                           reads        result                              verdict
 #>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass

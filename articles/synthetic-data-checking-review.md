@@ -1007,7 +1007,7 @@ review](https://iamstein.github.io/synpmx/articles/synthetic-data-generation-rev
 ## Where to go next
 
 - [Scorecard: Checks of the synthetic
-  data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html)
+  data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html)
   — `synpmx`’s own worked checks, and the gaps between them and the list
   above.
 - [Generating synthetic pharmacometric

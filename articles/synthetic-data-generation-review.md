@@ -294,10 +294,10 @@ limitations but treating them as the specification.
 The mechanisms are specified in the [AVATAR algorithm
 article](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html),
 measured across eight public datasets in the
-[evaluation](https://iamstein.github.io/synpmx/articles/public-data-examples.html),
+[evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html),
 and the questions to ask of any generated dataset — from any method —
 are in [the checks
-article](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html).
+article](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
 
 ### The four modes across the families
 

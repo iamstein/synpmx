@@ -153,10 +153,10 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 | Document | Question it answers |
 |----|----|
-| [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
-| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
+| [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/avatar-demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
+| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
-| [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html) | I have a synthetic dataset. Should I use it? |
+| [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
 | [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? |
 
 ## References

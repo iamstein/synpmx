@@ -18,19 +18,21 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
-    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
@@ -55,7 +57,7 @@
     <div class="section level2">
       <h2 id="generating-data">Generating data<a class="anchor" aria-label="anchor" href="#generating-data"></a></h2>
 
-      <div class="section-desc"><p>The four generation modes. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the default AVATAR path; the others require a public structural model.</p></div>
+      <div class="section-desc"><p>The generation modes. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the default AVATAR path and <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> fits a basis instead of blending; the remaining three require a public structural model.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -68,6 +70,27 @@
 
         </dt>
         <dd>Synthesize a structurally faithful PMX dataset (AVATAR-style)</dd>
+
+        <dt>
+
+          <code><a href="synpmx_pca.html">synpmx_pca()</a></code>
+
+        </dt>
+        <dd>Summarize a PMX dataset and generate a synthetic one from the summary</dd>
+
+        <dt>
+
+          <code><a href="synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code>
+
+        </dt>
+        <dd>Summarize a PMX dataset into a principal-component model</dd>
+
+        <dt>
+
+          <code><a href="synpmx_pca_generate.html">synpmx_pca_generate()</a></code>
+
+        </dt>
+        <dd>Generate a synthetic PMX dataset from a principal-component model</dd>
 
         <dt>
 
@@ -96,6 +119,43 @@
 
         </dt>
         <dd>Draw another dataset from a release already paid for</dd>
+      </dl></div><div class="section level2">
+      <h2 id="reading-a-pca-fit">Reading a PCA fit<a class="anchor" aria-label="anchor" href="#reading-a-pca-fit"></a></h2>
+
+      <div class="section-desc"><p>What <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> read out of the source data, and what its components look like over time.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="pmx_pca_report.html">pmx_pca_report()</a></code>
+
+        </dt>
+        <dd>What the PCA fit read out of the source data</dd>
+
+        <dt>
+
+          <code><a href="pmx_pca_dosing.html">pmx_pca_dosing()</a></code>
+
+        </dt>
+        <dd>The dosing model each arm was generated from</dd>
+
+        <dt>
+
+          <code><a href="pmx_pca_visits.html">pmx_pca_visits()</a></code>
+
+        </dt>
+        <dd>The visit model each arm was generated from</dd>
+
+        <dt>
+
+          <code><a href="pmx_pca_components.html">pmx_pca_components()</a></code>
+
+        </dt>
+        <dd>Component loadings over time, and the variance each component explains</dd>
       </dl></div><div class="section level2">
       <h2 id="declaring-the-data">Declaring the data<a class="anchor" aria-label="anchor" href="#declaring-the-data"></a></h2>
 

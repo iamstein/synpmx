@@ -13,7 +13,7 @@ how to choose an epsilon.
 The companion vignettes are
 [`vignette("synpmx-4-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md)
 (the four generation modes) and
-[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+[`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
 (AVATAR measured on public data).
 
 ## The three method families

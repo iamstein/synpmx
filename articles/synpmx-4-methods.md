@@ -211,7 +211,7 @@ on signature regardless — declaring `dose_covariate` in
 [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
 is what stops the amount itself being one real patient’s, by rebuilding
 it from each avatar’s own blended covariate.
-[`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+[`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
 runs the before and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns,
@@ -656,7 +656,7 @@ producing the model code.
 
 ## Where to go next
 
-- [`vignette("public-data-examples")`](https://iamstein.github.io/synpmx/articles/public-data-examples.md)
+- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
   —
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   run across eight public datasets, with the structural checks and the

@@ -153,10 +153,10 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 | Document | Question it answers |
 |----|----|
-| [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
-| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
+| [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/avatar-demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
+| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
 | [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does the default generator work, step by step? |
-| [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.html) | I have a synthetic dataset. Should I use it? |
+| [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
 | [The four synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.html) | What are the modes, and which one do I want? |
 
 ## References
@@ -180,13 +180,22 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 ## Generating data
 
-The four generation modes.
+The generation modes.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-is the default AVATAR path; the others require a public structural
-model.
+is the default AVATAR path and
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+fits a basis instead of blending; the remaining three require a public
+structural model.
 
 - [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   : Synthesize a structurally faithful PMX dataset (AVATAR-style)
+- [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+  : Summarize a PMX dataset and generate a synthetic one from the
+  summary
+- [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
+  : Summarize a PMX dataset into a principal-component model
+- [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md)
+  : Generate a synthetic PMX dataset from a principal-component model
 - [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md)
   : Generate a dataset from public inputs only
 - [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
@@ -195,6 +204,23 @@ model.
   : Generate a dataset from a dense differentially private release
 - [`synpmx_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_generate.md)
   : Draw another dataset from a release already paid for
+
+## Reading a PCA fit
+
+What
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+read out of the source data, and what its components look like over
+time.
+
+- [`pmx_pca_report()`](https://iamstein.github.io/synpmx/reference/pmx_pca_report.md)
+  : What the PCA fit read out of the source data
+- [`pmx_pca_dosing()`](https://iamstein.github.io/synpmx/reference/pmx_pca_dosing.md)
+  : The dosing model each arm was generated from
+- [`pmx_pca_visits()`](https://iamstein.github.io/synpmx/reference/pmx_pca_visits.md)
+  : The visit model each arm was generated from
+- [`pmx_pca_components()`](https://iamstein.github.io/synpmx/reference/pmx_pca_components.md)
+  : Component loadings over time, and the variance each component
+  explains
 
 ## Declaring the data
 
@@ -358,11 +384,17 @@ Fully public example datasets for testing and demonstration.
 - [The synpmx AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 
+- [Demo: Using
+  synpmx_avatar](https://iamstein.github.io/synpmx/articles/avatar-demo.md):
+
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md):
+
+- [Scorecard: Checks of the synthetic
+  data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md):
+
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
-
-- [Demo: Using
-  synpmx_avatar](https://iamstein.github.io/synpmx/articles/demo.md):
 
 - [Example: are PK/PD, covariate, and treatment relationships
   preserved?](https://iamstein.github.io/synpmx/articles/example-avatar-PKPD-covariate-treatment-effect.md):
@@ -373,17 +405,17 @@ Fully public example datasets for testing and demonstration.
 - [Building the structural model: an elicitation
   guide](https://iamstein.github.io/synpmx/articles/model-elicitation.md):
 
+- [The synpmx PCA
+  Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.md):
+
+- [Demo: Using
+  synpmx_pca](https://iamstein.github.io/synpmx/articles/pca-demo.md):
+
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
-
-- [Evaluating AVATAR on public
-  data](https://iamstein.github.io/synpmx/articles/public-data-examples.md):
-
-- [Scorecard: Checks of the synthetic
-  data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md):
 
 - [The four synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):

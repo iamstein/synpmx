@@ -5,11 +5,17 @@
 - [The synpmx AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.md):
 
+- [Demo: Using
+  synpmx_avatar](https://iamstein.github.io/synpmx/articles/avatar-demo.md):
+
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md):
+
+- [Scorecard: Checks of the synthetic
+  data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md):
+
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
-
-- [Demo: Using
-  synpmx_avatar](https://iamstein.github.io/synpmx/articles/demo.md):
 
 - [Example: are PK/PD, covariate, and treatment relationships
   preserved?](https://iamstein.github.io/synpmx/articles/example-avatar-PKPD-covariate-treatment-effect.md):
@@ -20,17 +26,17 @@
 - [Building the structural model: an elicitation
   guide](https://iamstein.github.io/synpmx/articles/model-elicitation.md):
 
+- [The synpmx PCA
+  Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.md):
+
+- [Demo: Using
+  synpmx_pca](https://iamstein.github.io/synpmx/articles/pca-demo.md):
+
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
-
-- [Evaluating AVATAR on public
-  data](https://iamstein.github.io/synpmx/articles/public-data-examples.md):
-
-- [Scorecard: Checks of the synthetic
-  data](https://iamstein.github.io/synpmx/articles/scorecard-synthetic-data-checks.md):
 
 - [The four synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-4-methods.md):

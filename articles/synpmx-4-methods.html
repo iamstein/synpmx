@@ -33,19 +33,21 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/demo.html">Demo: one dataset, end to end</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
+    <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/scorecard-synthetic-data-checks.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-4-methods.html">The four synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR method exploration</h6></li>
-    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
     <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
@@ -284,8 +286,8 @@ is neither’s, so weight-based dosing leaves a cohort unique on signature
 regardless — declaring <code>dose_covariate</code> in
 <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code> is what stops the amount itself being one real
 patient’s, by rebuilding it from each avatar’s own blended covariate.
-<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> runs the before and after
-over every public dataset.</p>
+<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> runs the before and
+after over every public dataset.</p>
 <p>Two things none of these do. They do not bound what an adversary
 learns, which is what differential privacy provides and why the
 trust-boundary question below decides the mode rather than the mechanism
@@ -832,7 +834,7 @@ and an LLM is a capable assistant for producing the model code.</p>
 </h2>
 <ul>
 <li>
-<code><a href="../articles/public-data-examples.html">vignette("public-data-examples")</a></code> —
+<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> —
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> run across eight public datasets, with the
 structural checks and the masking accounting for each.</li>
 <li>
