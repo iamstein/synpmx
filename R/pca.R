@@ -1334,6 +1334,120 @@ print.pca_report <- function(x, ...) {
   invisible(x)
 }
 
+#' Every feature the components are built on
+#'
+#' One row per column of the matrix `synpmx_pca_summarize()` decomposed: one
+#' per baseline covariate, and one per endpoint per retained nominal time. This
+#' is the grid the whole method sits on, so it is where to look first when a
+#' generated dataset is missing a visit or a covariate.
+#'
+#' `center` and `scale` are the column's mean and standard deviation on the
+#' modelling scale, which is the log scale for a positive endpoint --- see
+#' `transform` in the same row. `patients` is how many subjects hold an
+#' observation in that cell; cells held by fewer than `min_column_patients` were
+#' dropped rather than modelled, so they do not appear here at all.
+#'
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
+#'
+#' @return A data frame with `feature`, `kind`, `endpoint`, `time`, `covariate`,
+#'   `level`, `patients`, `center`, `scale` and `transform`. Marked
+#'   `"restricted_not_releasable"`: the counts and moments are read from real
+#'   data.
+#' @seealso [synpmx_pca_summarize()], [pca_components()], [pca_report()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(60)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+#'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
+#' )
+#' head(pca_features(synpmx_pca_summarize(data, roles)))
+pca_features <- function(x) {
+  fit <- .pca_basis(x)
+  field <- function(name, empty) {
+    vapply(fit$members, function(member) {
+      value <- member[[name]]
+      if (is.null(value)) empty else value[[1L]]
+    }, empty)
+  }
+  endpoints <- field("endpoint", NA_character_)
+  out <- data.frame(
+    feature = fit$columns,
+    kind = unname(fit$kinds),
+    endpoint = endpoints,
+    time = field("time", NA_real_),
+    covariate = field("covariate", NA_character_),
+    level = field("level", NA_character_),
+    patients = field("patients", NA_real_),
+    center = unname(fit$centers),
+    scale = unname(fit$scales),
+    transform = vapply(endpoints, function(endpoint) {
+      if (is.na(endpoint)) NA_character_ else
+        fit$transforms[[endpoint]]$method
+    }, character(1)),
+    stringsAsFactors = FALSE
+  )
+  rownames(out) <- NULL
+  .mark_release(out, "restricted_not_releasable")
+}
+
+#' The score model each arm is generated from
+#'
+#' One row per arm and retained component, giving the mean score that arm is
+#' centred on and the residual standard deviation it is scattered by. A
+#' generated subject's scores are their arm's `mean` plus a draw whose spread is
+#' `sd`, so these two columns are the whole of the between-subject variability
+#' the synthetic data will have.
+#'
+#' The `sd` values differ by arm on purpose. An arm sitting on an assay limit is
+#' genuinely tighter than one well above it, and giving every arm the pooled
+#' spread would smear the low arms upward.
+#'
+#' Both `dose_term` settings report the same shape. Under `"factor"` the mean is
+#' the arm's own; under `"log"` it is the regression evaluated at that arm's
+#' planned total dose, and `sd` is the shared residual.
+#'
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
+#'
+#' @return A data frame with `arm`, `component`, `mean` and `sd`. Marked
+#'   `"restricted_not_releasable"`.
+#' @seealso [synpmx_pca_summarize()], [pca_components()], [pca_report()].
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(60)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+#'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
+#' )
+#' pca_scores(synpmx_pca_summarize(data, roles))
+pca_scores <- function(x) {
+  trial_summary <- .pca_trial_summary(x)
+  fit <- trial_summary$basis
+  scores <- trial_summary$scores
+  arms <- trial_summary$arms$arms
+
+  out <- do.call(rbind, lapply(arms, function(arm) {
+    if (identical(scores$kind, "log")) {
+      planned <- trial_summary$dosing[[arm]]$planned
+      dose <- if (nrow(planned)) sum(planned$amt) else 0
+      design <- cbind(intercept = 1, log_dose = log1p(dose))
+      mean <- as.numeric(design %*% scores$coefficients)
+      spread <- sqrt(diag(scores$covariance))
+    } else {
+      mean <- as.numeric(scores$means[[arm]])
+      spread <- sqrt(diag(scores$covariances[[arm]]))
+    }
+    data.frame(
+      arm = .pca_arm_label(arm),
+      component = paste0("PC", seq_len(fit$k)),
+      mean = mean, sd = as.numeric(spread),
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(out) <- NULL
+  .mark_release(out, "restricted_not_releasable")
+}
+
 #' Component loadings over time, and the variance each component explains
 #'
 #' The loadings are what makes a principal component readable. Plotted against
@@ -1351,16 +1465,12 @@ print.pca_report <- function(x, ...) {
 #' head(pca_components(synpmx_pca(data, pmx_generated_roles(), seed = 1)))
 pca_components <- function(x) {
   fit <- .pca_basis(x)
-  cells <- which(fit$kinds == "endpoint_cell")
-  grid <- do.call(rbind, lapply(cells, function(column) {
-    member <- fit$members[[column]]
-    data.frame(feature = fit$columns[[column]], endpoint = member$endpoint,
-               time = member$time, patients = member$patients,
-               stringsAsFactors = FALSE)
-  }))
+  features <- as.data.frame(pca_features(x))
   out <- do.call(rbind, lapply(seq_len(fit$k), function(j) {
-    cbind(grid, component = paste0("PC", j),
-          loading = fit$rotation[cells, j],
+    cbind(features[, c("feature", "kind", "endpoint", "time", "covariate",
+                       "patients")],
+          component = paste0("PC", j),
+          loading = unname(fit$rotation[, j]),
           stringsAsFactors = FALSE)
   }))
   rownames(out) <- NULL

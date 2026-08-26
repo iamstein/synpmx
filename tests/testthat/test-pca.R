@@ -105,14 +105,46 @@ test_that("the report inventories every released quantity", {
   expect_true(all(report$min_patients[!is.na(report$min_patients)] >= 1))
 })
 
-test_that("components report one loading per retained cell and component", {
+test_that("components report one loading per feature and component", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 1)
   fit <- attr(synthetic, "pmx_trial_summary")$basis
   components <- pca_components(synthetic)
-  expect_equal(nrow(components),
-               sum(fit$kinds == "endpoint_cell") * fit$k)
+  # Every feature, covariates included: a component loading on both a covariate
+  # and an endpoint is what carries their relationship into the output, and a
+  # cell-only table cannot show it.
+  expect_equal(nrow(components), length(fit$columns) * fit$k)
+  expect_true(any(components$kind != "endpoint_cell"))
+  expect_true(all(is.na(components$time[components$kind != "endpoint_cell"])))
   expect_equal(nrow(attr(components, "variance_explained")), fit$k)
+
+  # Each component's squared loadings sum to one, so the mass per block reads
+  # as a share.
+  mass <- tapply(components$loading^2, components$component, sum)
+  expect_true(all(abs(mass - 1) < 1e-8))
+})
+
+test_that("features and scores cover the grid and the score model", {
+  fixture <- pca_fixture(60)
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 1)
+  features <- pca_features(trial_summary)
+  scores <- pca_scores(trial_summary)
+
+  expect_equal(nrow(features), length(trial_summary$basis$columns))
+  expect_true(all(c("feature", "kind", "endpoint", "time", "covariate",
+                    "level", "patients", "center", "scale", "transform") %in%
+                    names(features)))
+  expect_true(all(features$scale > 0))
+
+  expect_equal(nrow(scores),
+               length(trial_summary$arms$arms) * trial_summary$basis$k)
+  expect_true(all(scores$sd > 0))
+
+  # Both dose terms report the same shape, so two runs can be compared.
+  logged <- pca_scores(synpmx_pca_summarize(fixture$data, fixture$roles,
+                                            seed = 1, dose_term = "log"))
+  expect_identical(names(logged), names(scores))
+  expect_equal(nrow(logged), nrow(scores))
 })
 
 test_that("a source too small to fit a basis is refused rather than fitted", {

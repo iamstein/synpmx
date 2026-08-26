@@ -91,6 +91,8 @@ reference:
     the dosing and visit models, and the components over time.
   contents:
   - pca_report
+  - pca_features
+  - pca_scores
   - pca_dosing
   - pca_dose_rates
   - pca_visits
