@@ -632,3 +632,42 @@ test_that("a component's effect moves the features its loadings sit on", {
   expect_error(pca_component_effect(trial_summary, sds = 0), "positive")
   expect_error(pca_component_effect(trial_summary, sds = c(1, 2)), "single")
 })
+
+# `SIM-055`. Attendance is drawn independently per visit with no floor on how
+# many source patients hold the resulting set, so on a sparsely sampled study a
+# generated subject's time vector can coincide with a real patient's that
+# nobody else shares. This pins the finding rather than blessing it: the copies
+# are of the attendance set only, they are short, and no measured value is ever
+# reproduced. `vignette("pca-public-data-examples")` measures the same thing on
+# `warfarin` and `wbcSim`.
+sparse_pca_fixture <- function(n = 60, keep_fraction = 0.25, seed = 11) {
+  fixture <- pca_fixture(n)
+  observations <- fixture$data$EVID == 0
+  set.seed(seed)
+  keep <- rep(TRUE, nrow(fixture$data))
+  keep[observations] <- stats::runif(sum(observations)) < keep_fraction
+  fixture$data <- fixture$data[keep, ]
+  fixture
+}
+
+test_that("a sparse study's attendance sets can coincide, but its values cannot", {
+  fixture <- sparse_pca_fixture()
+  # Short records are the precondition, so assert it rather than assuming it.
+  per_subject <- table(fixture$data$ID[fixture$data$EVID == 0])
+  expect_lt(mean(per_subject), 5)
+
+  copies <- vapply(2:5, function(seed) {
+    card <- as.data.frame(synpmx_scorecard(
+      fixture$data, synpmx_pca(fixture$data, fixture$roles, seed = seed),
+      fixture$roles
+    ))
+    c(time = as.numeric(card$result[card$check == "B4a"]),
+      dv = as.numeric(card$result[card$check == "B4b"]))
+  }, numeric(2))
+
+  # The finding: the time-vector copy is not hypothetical on a sparse study.
+  expect_true(any(copies["time", ] > 0))
+  # The guarantee that does hold: no generated subject reproduces a real
+  # patient's measured values, on any seed. This is the row to watch.
+  expect_true(all(copies["dv", ] == 0))
+})

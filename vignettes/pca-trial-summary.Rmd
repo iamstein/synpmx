@@ -123,13 +123,27 @@ ggplot(inventory, aes(quantity, numbers, fill = min_patients)) +
        fill = "Fewest patients\nbehind one")
 ```
 
-Two things to read off it. The **loadings dominate the count** — one number per
-component per feature, so they outnumber everything else together — and they are
-also the quantity backed by the whole cohort, because every subject contributes
-to every one. The quantities backed by *fewest* patients are the per-arm ones,
-and they are the short bars. Size and exposure run in opposite directions here,
-which is the general shape of this object: what there is most of is what is
-least about any one person.
+**The dosing model is the largest group, and that is a fact about this study
+rather than about the method.** It holds a time and an amount per planned cycle
+per arm, and `case1_pkpd` doses daily for twelve weeks across six arms, so
+roughly 85 cycles each. A single-dose study's row would be six numbers long. The
+loadings are the next largest and are the group that does grow with the method:
+one number per component per feature, so they scale as the basis widens.
+
+**Size and exposure are independent, and the figure is here to show that they
+are.** The loadings are the whole cohort's — every subject contributes to every
+one, so all 180 patients stand behind each — while the dosing and visit models
+beside them are fitted per arm, so 30 do. The longest bar in the figure is
+therefore one of the *most* exposed quantities rather than one of the least.
+Length and fill say different things and have to be read separately: the
+combination to look for is a long bar whose fill sits at the bottom of the
+scale, which is many numbers each backed by few people. Here the dosing model is
+exactly that.
+
+The column is for judging where inside this object the risk is concentrated. It
+is not a release decision: `synpmx_pca()` makes no formal privacy claim, and
+`pca_features()` and `pca_scores()` return their tables marked
+`"restricted_not_releasable"` whatever this figure shows.
 
 Every section below expands one of those rows.
 
@@ -516,3 +530,5 @@ c(rows = nrow(synthetic),
   data plotted against each other.
 - `vignette("pca-algorithm")` — how each quantity above is estimated, and what
   it does and does not preserve.
+- `vignette("pca-public-data-examples")` — the same summary read on eight public
+  studies, side by side.
