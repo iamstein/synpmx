@@ -97,6 +97,7 @@ reference:
   - pca_dose_rates
   - pca_visits
   - pca_components
+  - pca_component_effect
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

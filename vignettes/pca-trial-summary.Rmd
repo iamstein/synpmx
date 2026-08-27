@@ -102,6 +102,35 @@ show(as.data.frame(pca_report(trial_summary)),
 pca_report(trial_summary)
 ```
 
+It is a lot of numbers, and how they are distributed is the part worth seeing
+before any of them. The same table drawn:
+
+```{r report-plot, eval=plots, fig.height=4}
+library(ggplot2)
+library(xgxr)
+xgx_theme_set()
+
+inventory <- as.data.frame(pca_report(trial_summary))
+inventory$quantity <- factor(inventory$quantity,
+                             levels = rev(inventory$quantity))
+ggplot(inventory, aes(quantity, numbers, fill = min_patients)) +
+  geom_col() +
+  geom_text(aes(label = numbers), hjust = -0.25, size = 3) +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  scale_fill_viridis_c(trans = "log10", direction = -1) +
+  labs(x = NULL, y = "Numbers held",
+       fill = "Fewest patients\nbehind one")
+```
+
+Two things to read off it. The **loadings dominate the count** — one number per
+component per feature, so they outnumber everything else together — and they are
+also the quantity backed by the whole cohort, because every subject contributes
+to every one. The quantities backed by *fewest* patients are the per-arm ones,
+and they are the short bars. Size and exposure run in opposite directions here,
+which is the general shape of this object: what there is most of is what is
+least about any one person.
+
 Every section below expands one of those rows.
 
 ## The settings that produced it
@@ -159,53 +188,208 @@ what a generated value below it is reported at, with `CENS` set.
 
 ## The components
 
-`pca_components()` gives one loading per component and retained cell. Plotted
-against time the components become curves: flat and positive is overall
-magnitude, and crossing zero separates early visits from late ones.
+`pca_components()` gives one loading per component and retained feature, and the
+loadings are the largest thing in the object. This section shows all of them,
+three ways: the whole matrix at once, then every component as a curve, then what
+each one does to a profile in the units the study measured.
 
 ```{r variance, eval=tables}
 show(attr(pca_components(trial_summary), "variance_explained"),
      "Variance explained, per component")
 ```
 
-```{r loadings-plot, eval=plots, fig.height=4.5}
-library(ggplot2)
-library(xgxr)
-xgx_theme_set()
-
+```{r components-object, eval=run}
 components <- pca_components(trial_summary)
-ggplot(subset(components, component %in% c("PC1", "PC2", "PC3") &
-                 !is.na(time)),
-       aes(time, loading, colour = component)) +
-  geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
-  geom_line() + geom_point(size = 1) +
-  facet_wrap(~endpoint, scales = "free_x") +
-  labs(x = "Nominal time (hours)", y = "Loading", colour = NULL) +
-  theme(legend.position = "top")
+c(components = trial_summary$basis$k,
+  features = length(trial_summary$basis$columns),
+  loadings = nrow(components))
 ```
+
+### All of them at once
+
+Every loading in the object, as one tile each: components down the side,
+features across, and the features grouped by what they belong to. This is the
+complete basis --- nothing below adds a number this figure does not already
+carry.
+
+```{r loadings-heatmap, eval=plots, fig.height=5.5}
+# One panel per endpoint plus one for the covariates, with the cells of each
+# endpoint in time order. `feature` is the object's own name for a cell and is
+# unique, which is what makes it a safe axis; the label under it is the reading.
+grid <- unique(components[, c("feature", "endpoint", "time")])
+# `space = "free_x"` sizes each panel by its column count, so the covariate
+# panel is one column wide and its strip has room for a short word only.
+grid$group <- ifelse(is.na(grid$endpoint), "Cov.", grid$endpoint)
+grid <- grid[order(grid$group, grid$time, grid$feature), ]
+grid$label <- ifelse(is.na(grid$time), sub("^cov_", "", grid$feature),
+                     format(grid$time, trim = TRUE))
+
+heatmap_data <- merge(components, grid[, c("feature", "group", "label")],
+                      by = "feature")
+heatmap_data$feature <- factor(heatmap_data$feature, levels = grid$feature)
+heatmap_data$component <- factor(
+  heatmap_data$component,
+  levels = rev(paste0("PC", seq_len(trial_summary$basis$k)))
+)
+
+ggplot(heatmap_data, aes(feature, component, fill = loading)) +
+  geom_tile(colour = "white", linewidth = 0.2) +
+  facet_grid(~group, scales = "free_x", space = "free_x") +
+  scale_x_discrete(labels = stats::setNames(grid$label, grid$feature)) +
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B",
+                       midpoint = 0) +
+  labs(x = "Nominal time (hours), or covariate", y = NULL, fill = "Loading") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5,
+                                   size = 7),
+        panel.grid = element_blank())
+```
+
+Read it row by row. **A row of one colour is overall magnitude**: the component
+moves every visit the same way, which is what PC1 does across the PK panel.
+**A row that changes colour along a panel separates early visits from late**,
+which is PC2. **A row with colour in one panel and none in another is specific
+to that endpoint** — PC3 is almost entirely the weight covariate, and PC4
+downwards are almost entirely the PD endpoint.
+
+What the figure does **not** show is the loadings shrinking as the components go
+down. Each component's loadings have the same total mass, because the
+decomposition returns them at unit length, so a later component is not a fainter
+version of an earlier one: it is the same mass placed on fewer features. The PK
+panel pales towards the bottom because that mass has moved to the PD panel, not
+because it has gone. How much variance each component actually explains is the
+table above, and where each one puts its mass is the table below.
+
+The same numbers, sortable:
 
 ```{r loadings-table, eval=tables}
 show(components, "Every loading, by component and feature", paged = TRUE)
 ```
 
+### Every component as a curve
+
+The heatmap shows the whole matrix and hides the shape. One panel per component
+gives the shapes back, and there is one panel for every component rather than
+the first few:
+
+```{r loadings-curves, eval=plots, fig.height=1.35 * ceiling(trial_summary$basis$k / 3) + 1}
+curves <- subset(components, !is.na(time))
+curves$component <- factor(curves$component,
+                           levels = paste0("PC", seq_len(trial_summary$basis$k)))
+ggplot(curves, aes(time, loading, colour = endpoint)) +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "grey60") +
+  geom_line() + geom_point(size = 0.7) +
+  facet_wrap(~component, ncol = 3, scales = "free_x") +
+  labs(x = "Nominal time (hours)", y = "Loading", colour = NULL) +
+  theme(legend.position = "top")
+```
+
+The covariates carry no time and so are absent from this figure; the heatmap
+above and the mass table below are where they appear.
+
+### Where each component sits
+
 One matrix carries the covariates and every endpoint together, so a single draw
 keeps the relationships between them. The loading mass per component says where
 each one is concentrated:
 
-```{r loading-mass, eval=run}
+```{r loading-mass, eval=tables}
 mass <- tapply(
   components$loading^2,
   list(components$component,
        ifelse(is.na(components$endpoint), "covariate", components$endpoint)),
   sum
 )
-signif(mass[paste0("PC", seq_len(min(4, nrow(mass)))), , drop = FALSE], 3)
+mass <- mass[paste0("PC", seq_len(nrow(mass))), , drop = FALSE]
+show(data.frame(component = rownames(mass), as.data.frame(mass),
+                check.names = FALSE),
+     "Share of each component's loading mass, by endpoint and covariate")
+```
+
+```{r loading-mass-plain, eval=run && !has_dt}
+signif(mass, 3)
 ```
 
 Each row sums to one. On this study the first two components are almost entirely
 the PK profile, and the covariate only enters further down --- alongside the PD
 endpoint, which is the joint structure that a separate decomposition per
 endpoint would have thrown away.
+
+### What a component does to a profile
+
+A loading is a number on the standardized modelling scale, so the figures above
+say which visits a component is concentrated on and not what moving along it
+looks like. `pca_component_effect()` answers the second question by running the
+generator's own inversion: from the cohort centre, move one component by a score
+standard deviation, undo the standardization and the log transform, and report
+what comes back in the study's own units.
+
+```{r component-effect, eval=plots, fig.height=1.5 * ceiling(min(6, trial_summary$basis$k) / 3) + 1.2}
+# The first day only. This study samples densely over 0-24 h and again around
+# the last dose at 2016 h, with troughs in between, so a study-time axis crushes
+# both dense windows into vertical spikes and shows the shape of neither.
+effect <- pca_component_effect(trial_summary, sds = 1)
+shown <- subset(effect, !is.na(time) & endpoint == "PK Concentration" &
+                  time <= 24 &
+                  component %in% paste0("PC", seq_len(min(6, trial_summary$basis$k))))
+shown$component <- factor(shown$component, levels = paste0("PC", 1:6))
+shown$step <- factor(shown$score_sd, levels = c(-1, 0, 1),
+                     labels = c("-1 SD", "centre", "+1 SD"))
+
+ggplot(shown, aes(time, value, colour = step, linetype = step)) +
+  geom_line() + geom_point(size = 0.7) +
+  facet_wrap(~component, ncol = 3) +
+  scale_y_log10() +
+  scale_colour_manual(values = c("-1 SD" = "#2166AC", "centre" = "grey40",
+                                 "+1 SD" = "#B2182B")) +
+  scale_linetype_manual(values = c("-1 SD" = "dashed", "centre" = "solid",
+                                   "+1 SD" = "dashed")) +
+  labs(x = "Nominal time (hours)", y = "PK concentration", colour = NULL,
+       linetype = NULL) +
+  theme(legend.position = "top")
+```
+
+The grey curve is the same in every panel: it is the cohort centre, which is
+score zero on every component. The two dashed curves are one score standard
+deviation either side along that panel's component alone.
+
+**PC1 moves the whole profile up and down together** --- the concentration is
+higher or lower at every hour, and the shape does not change. **PC2 pivots it**:
+the two dashed curves cross around 6 h, so one describes a subject higher early
+and lower late and the other the reverse. **PC3 onwards barely move this
+endpoint at all**, and by PC5 the dashed curves have closed onto the centre.
+That is the heatmap's last row read in the study's units: those components are
+not weak, they are elsewhere --- on the PD endpoint and the covariate.
+
+**Describe the curves; do not name a mechanism for them.** A component that
+raises early values and lowers late ones looks like a difference in decline
+rate, and calling it a half-life would be a claim the fit cannot support: no
+clearance was estimated here, and a score standard deviation is a variance
+decomposition rather than a pharmacokinetic parameter.
+
+The covariates move under the same displacement, and that is the joint structure
+the shared matrix buys. Weight against the first four components:
+
+```{r component-effect-covariate, eval=run}
+covariate_effect <- subset(
+  pca_component_effect(trial_summary, sds = 1),
+  kind != "endpoint_cell" &
+    component %in% paste0("PC", seq_len(min(4, trial_summary$basis$k)))
+)
+wide <- stats::reshape(
+  covariate_effect[, c("component", "covariate", "score_sd", "value")],
+  idvar = c("component", "covariate"), timevar = "score_sd",
+  direction = "wide"
+)
+names(wide) <- c("component", "covariate", "minus_1sd", "centre", "plus_1sd")
+digits3(`rownames<-`(wide, NULL))
+```
+
+The weight barely moves along PC1 or PC2 and swings from 102 to 130 kg along
+PC3, which is the heatmap's third row stated in kilograms. A generator that drew
+the covariates separately and merged them onto the profiles afterwards would
+have no such row to show: there would be no component on which a subject's
+weight and their concentrations move together, because the two would have been
+drawn independently.
 
 ## The score model
 
