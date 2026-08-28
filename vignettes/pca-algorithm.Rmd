@@ -250,8 +250,9 @@ the finished tables — finds a generated subject's list of observation times
 matching a singleton real one on two of them, reproducibly across seeds. The
 matches are between short lists on sparsely sampled studies rather than between
 distinctive schedules, and B4b, the value side, is zero everywhere. The numbers
-and the reasoning are in `vignette("pca-public-data-examples")`, along with what
-a floor on the visit draw would cost.
+and the reasoning are in [Evaluating the PCA generator on public
+data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html),
+along with what a floor on the visit draw would cost.
 
 ### The visit model
 

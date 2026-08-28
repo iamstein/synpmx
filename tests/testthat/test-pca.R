@@ -638,7 +638,7 @@ test_that("a component's effect moves the features its loadings sit on", {
 # generated subject's time vector can coincide with a real patient's that
 # nobody else shares. This pins the finding rather than blessing it: the copies
 # are of the attendance set only, they are short, and no measured value is ever
-# reproduced. `vignette("pca-public-data-examples")` measures the same thing on
+# reproduced. The public-data evaluation article measures the same thing on
 # `warfarin` and `wbcSim`.
 sparse_pca_fixture <- function(n = 60, keep_fraction = 0.25, seed = 11) {
   fixture <- pca_fixture(n)

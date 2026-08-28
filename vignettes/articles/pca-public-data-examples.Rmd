@@ -27,9 +27,10 @@ has_distributions <- has_ggplot2 &&
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 ```
 
-This vignette runs `synpmx_pca()` over the same eight public datasets that
-`vignette("avatar-public-data-examples")` runs `synpmx_avatar()` over, so the
-two generators can be read against each other on identical studies.
+This article runs `synpmx_pca()` over the same eight public datasets that
+[Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+runs `synpmx_avatar()` over, so the two generators can be read against each
+other on identical studies.
 
 The eight split three ways, and the split is the finding rather than a
 presentational choice. `synpmx_pca()` builds every feature on a declared nominal
@@ -477,7 +478,8 @@ it is why the synthetic profiles are visibly smoother than the source ones.
 actuals — 165.70, 167.24 and 168.05 for what the protocol called one weekly
 visit. The dataset declares an occasion and a time after dose, so the protocol
 can be written down from what it records. This is the construction worked out in
-`vignette("avatar-public-data-examples")`, reused unchanged.
+the [AVATAR evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html),
+reused unchanged.
 
 ```{r nimo, eval=has_nlmixr2data}
 data("nimoData", package = "nlmixr2data")
@@ -603,7 +605,8 @@ c(observations = sum(pheno_sd$EVID == 0),
 Snapping these onto a day grid would produce a column, and it would be an
 invention rather than a declaration — nobody planned those visits, so there are
 no planned times to recover. `synpmx_avatar()` is the generator for this study;
-its derived grid does real work there, and `vignette("avatar-public-data-examples")`
+its derived grid does real work there, and the [AVATAR
+evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs it.
 
 ## What the seven runs held
@@ -774,5 +777,5 @@ Not preserved, and each is a decision rather than a defect:
 - `vignette("pca-demo")` — one study end to end.
 - `vignette("pca-trial-summary")` — every quantity a summary holds.
 - `vignette("pca-algorithm")` — how each is estimated, and what it costs.
-- `vignette("avatar-public-data-examples")` — the same eight datasets under
-  `synpmx_avatar()`.
+- [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+  — the same eight datasets under `synpmx_avatar()`.

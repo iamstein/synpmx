@@ -530,5 +530,5 @@ c(rows = nrow(synthetic),
   data plotted against each other.
 - `vignette("pca-algorithm")` — how each quantity above is estimated, and what
   it does and does not preserve.
-- `vignette("pca-public-data-examples")` — the same summary read on eight public
-  studies, side by side.
+- [Evaluating the PCA generator on public data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html)
+  — the same summary read on eight public studies, side by side.

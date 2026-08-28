@@ -247,7 +247,7 @@ enough to develop a fitting workflow, not enough to characterise the tail of an
 individualised regimen. Section B1 is the other half of the story, where the
 privacy checks read 0, and A5b is what says at what price.
 
-If it were important to more accurately capture the dosing information, a nominal time grid could be specified by the user, rather than computed by `synpmx_avatar()`, as shown in `vignette("avatar-public-data-examples")` for the `nimoData` example.
+If it were important to more accurately capture the dosing information, a nominal time grid could be specified by the user, rather than computed by `synpmx_avatar()`, as shown in [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) for the `nimoData` example.
 
 ## A6. Did a discrete endpoint stay discrete
 
@@ -415,9 +415,9 @@ because the right count is not necessarily 0 — a study can hold a patient who 
 genuinely unusual, and an anchor-based generator will hand that patient's shape
 to an avatar.
 
-**What a hit looks like.** No synthetic dataset in
-`vignette("avatar-public-data-examples")` reports anybody, so the example has to come
-from a source table. `nlmixr2data::wbcSim` is a cohort whose follow-up ends by
+**What a hit looks like.** No synthetic dataset in the [public-data
+evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+reports anybody, so the example has to come from a source table. `nlmixr2data::wbcSim` is a cohort whose follow-up ends by
 672 hours, with three exceptions:
 
 ```{r b2-wbc, eval=has_nlmixr2data}
@@ -739,8 +739,9 @@ design.
 distribution, which is not the same as its time course: two cohorts can hold the
 same concentrations and reach them on different days. No function here overlays
 source and synthetic profiles, because every group has plotting code it already
-trusts for its own study — `vignette("avatar-public-data-examples")` shows one such
-overlay for each of eight datasets.
+trusts for its own study — the [public-data
+evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+shows one such overlay for each of eight datasets.
 
 **Do the covariate–response relationships survive?** The question a modeller
 actually cares about, and the least covered by anything above: a
@@ -783,7 +784,9 @@ times do not, so a sample drawn before a dose can land at or after it: a trough
 becomes a time-zero sample, and a declared `occasion` column no longer runs in
 step with `time`. Counting the avatars holding an observation labelled occasion
 `k` that lands at or after the `k+1`th dose, `nlmixr2data::nimoData` on the
-constructed nominal grid of `vignette("avatar-public-data-examples")` gives 12 of 12,
+constructed nominal grid of the [public-data
+evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+gives 12 of 12,
 against 0 of 12 in its source. Closing it takes a post-generation invariant over
 the finished table, checking that each observation keeps the number of doses
 that preceded it and that `occasion` is non-decreasing within a subject.
@@ -835,8 +838,8 @@ control streams behave.
   study end to end.
 - `vignette("avatar-algorithm")` — how the default generator works, and the six
   masking mechanisms these checks are measuring.
-- `vignette("avatar-public-data-examples")` — these checks run across eight public
-  datasets, with the masking cost for each.
+- [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) — these checks run across eight
+  public datasets, with the masking cost for each.
 - [Literature: checking synthetic data](https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html) — the published methods for
   checking synthetic data, what each one asks, and which of them this package
   does not attempt.
