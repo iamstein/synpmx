@@ -33,6 +33,13 @@ Three cross-document contracts, each a defect when broken:
   shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
   `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
   the numbers need it. Additional datasets get the same five steps.
+  `vignettes/pca-public-data-examples.Rmd` surveys the same datasets in the same
+  order, with the role declarations copied from the AVATAR survey so that the
+  generator is the only thing that differs. Its steps are those five with the
+  generation step split in two, `synpmx_pca_summarize()` and
+  `synpmx_pca_generate()`, and a dataset the generator refuses keeps its section
+  and says which steps could not run. A dataset added to one survey is added to
+  the other. A third generator's survey follows the same rule.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.

@@ -26,7 +26,8 @@ library(synpmx)
 This article is the full specification of `synpmx_pca()`, which generates a
 synthetic pharmacometric (PMX) dataset from a fitted model rather than from real
 patients' values. Use of the algorithm is demonstrated in
-`vignette("pca-demo")`.
+`vignette("pca-demo")`, and run across eight public datasets in
+`vignette("pca-public-data-examples")`.
 
 `synpmx_pca()` makes no formal privacy claim. It does not estimate a
 pharmacokinetic (PK), pharmacodynamic (PD) or nonlinear mixed-effects model, so

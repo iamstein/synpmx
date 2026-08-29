@@ -57,7 +57,8 @@ A fifth, `synpmx_pca()`, arrived after this vignette was written and is not
 compared here. It fits a principal-component basis and generates from the fitted
 model, so no real patient's values reach the output. It needs a nominal-time
 column, which `theo_md` does not carry. See `vignette("pca-algorithm")` and
-`vignette("pca-demo")`.
+`vignette("pca-demo")`, and `vignette("pca-public-data-examples")` for which of
+the eight public datasets carry one.
 
 The four compared below, from most faithful to most protective:
 

@@ -1,0 +1,665 @@
+---
+title: "Evaluating PCA on public data"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Evaluating PCA on public data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(synpmx)
+has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+# `compare_pmx_distributions()` composes its panels with patchwork and refuses
+# to draw without it, rather than degrading the way the rest of the plotting
+# does. Guarding those chunks keeps a missing suggested package a missing
+# figure instead of a failed build.
+has_distributions <- has_ggplot2 &&
+  requireNamespace("patchwork", quietly = TRUE)
+comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
+```
+
+This vignette runs `synpmx_pca()` on the same eight public datasets that
+`vignette("avatar-public-data-examples")` runs `synpmx_avatar()` on, with the
+role declarations copied from that document unchanged, so that the generator is
+the only thing that differs between the two.
+
+`synpmx_pca()` refuses to run on a dataset it cannot model, and the first
+question this survey answers is how many of the eight it accepts. The answer is
+in "What ran, and what did not" at the end, computed by the runs below rather
+than written here.
+
+**This is not a fidelity ranking of the two generators.** A dataset PCA refuses
+is not a dataset AVATAR handles better; it is a dataset PCA declines to guess
+about. Where both run, the two scorecards are comparable and the figures are
+drawn the same way.
+
+<details>
+<summary>Plotting and run helpers used throughout this vignette</summary>
+
+```{r plot-helpers}
+observed_plot_data <- function(data, roles, dataset,
+                               clock = "study_time") {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  if (!is.null(roles$mdv)) {
+    observed <- observed & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
+  }
+  observed <- observed & !is.na(data[[roles$dv]])
+  observation_rows <- which(observed)
+  occasion <- rep(1L, length(observation_rows))
+  tad <- rep(NA_real_, length(observation_rows))
+  if (!is.null(roles$occasion)) {
+    declared <- suppressWarnings(as.integer(
+      data[[roles$occasion]][observation_rows]
+    ))
+    valid <- !is.na(declared) & declared >= 1L
+    occasion[valid] <- declared[valid]
+  }
+  if (!is.null(roles$tad)) {
+    declared <- suppressWarnings(as.numeric(data[[roles$tad]][observation_rows]))
+    valid <- is.finite(declared)
+    tad[valid] <- pmax(0, declared[valid])
+  }
+  subject_values <- data[[roles$id]]
+  for (id in unique(subject_values[observation_rows])) {
+    subject_rows <- which(!is.na(subject_values) & subject_values == id)
+    events <- !(as.character(data[[roles$evid]][subject_rows]) %in%
+                  c("0", "0.0"))
+    if (!is.null(roles$amt)) {
+      events <- events & as.numeric(data[[roles$amt]][subject_rows]) > 0
+    }
+    positions <- which(subject_values[observation_rows] == id)
+    event_rows <- subject_rows[events]
+    if (length(event_rows) && !is.null(roles$occasion)) {
+      event_occasion <- suppressWarnings(as.integer(
+        data[[roles$occasion]][event_rows]
+      ))
+      for (position in positions) {
+        candidates <- event_rows[event_occasion == occasion[position]]
+        if (length(candidates) && !is.finite(tad[position])) {
+          origin <- min(as.numeric(data[[roles$time]][candidates]))
+          tad[position] <-
+            as.numeric(data[[roles$time]][observation_rows[position]]) - origin
+        }
+      }
+    } else if (length(event_rows)) {
+      dose_times <- sort(unique(as.numeric(data[[roles$time]][event_rows])))
+      occasion[positions] <- pmax(1L, findInterval(
+        as.numeric(data[[roles$time]][observation_rows[positions]]),
+        dose_times
+      ))
+      occasion[positions] <- pmin(occasion[positions], length(dose_times))
+      tad[positions] <-
+        as.numeric(data[[roles$time]][observation_rows[positions]]) -
+        dose_times[occasion[positions]]
+    }
+  }
+  plotted_time <- if (identical(clock, "tad")) tad else
+    as.numeric(data[[roles$time]][observation_rows])
+  data.frame(
+    dataset = factor(dataset, levels = c("Source", "Synthetic")),
+    subject = as.character(data[[roles$id]][observation_rows]),
+    time = plotted_time,
+    dv = as.numeric(data[[roles$dv]][observation_rows]),
+    occasion = occasion,
+    endpoint = if (is.null(roles$dvid)) "DV" else
+      as.character(data[[roles$dvid]][observation_rows]),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Every dataset below gets the same figure: observation rows only, source beside
+# synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time
+# after dose instead of study time, which is the readable view once a study
+# doses more than once.
+overlay_plot <- function(source, synthetic, roles, title,
+                         clock = "study_time",
+                         x_label = "Study time (hours)", y_label = "DV",
+                         log_y = FALSE, alpha = 0.3) {
+  plotted <- rbind(
+    observed_plot_data(source, roles, "Source", clock),
+    observed_plot_data(synthetic, roles, "Synthetic", clock)
+  )
+  # One line per patient on a study-time axis, and one line per occasion on a
+  # dose-relative one, where the profiles are meant to lie on top of each other.
+  plotted$series <- if (identical(clock, "tad")) {
+    interaction(plotted$dataset, plotted$subject, plotted$occasion)
+  } else {
+    interaction(plotted$dataset, plotted$subject)
+  }
+  figure <- ggplot2::ggplot(
+    plotted,
+    ggplot2::aes(time, dv, group = series, colour = dataset)
+  ) +
+    ggplot2::geom_line(alpha = alpha) +
+    ggplot2::geom_point(alpha = alpha, size = 0.7) +
+    # Endpoint down the side, source and synthetic across. `facet_grid()` frees
+    # a scale per ROW, so this orientation is the one that gives each endpoint
+    # its own y while holding source and synthetic on a shared one -- which is
+    # the only arrangement the eye can compare.
+    (if (length(unique(plotted$endpoint)) > 1L) {
+      ggplot2::facet_grid(endpoint ~ dataset, scales = "free_y",
+                          switch = "y")
+    } else {
+      ggplot2::facet_wrap(~dataset)
+    }) +
+    ggplot2::scale_colour_manual(values = comparison_colours) +
+    ggplot2::labs(x = x_label, y = y_label, colour = "Dataset", title = title) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(legend.position = "none",
+                   strip.placement = "outside")
+  if (isTRUE(log_y)) figure + ggplot2::scale_y_log10() else figure
+}
+
+# Facet rows are endpoints now, so a five-endpoint study needs five times the
+# height a one-endpoint study does. Chunks pass this to `fig.height` rather than
+# every figure inheriting the one-endpoint default and arriving unreadable.
+overlay_height <- function(data, roles, per_endpoint = 2.2, minimum = 3.4) {
+  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
+  endpoints <- if (is.null(roles$dvid)) 1L else {
+    length(unique(data[[roles$dvid]][observed]))
+  }
+  max(minimum, per_endpoint * endpoints)
+}
+
+# `synpmx_pca_summarize()` refuses a dataset it cannot model rather than
+# guessing, so every run here is an attempt whose outcome is part of the
+# result. The refusal message is kept and printed; it names the gate and what
+# to do about it, and this vignette does not restate either.
+pca_run <- function(data, roles, seed) {
+  summary <- tryCatch(
+    synpmx_pca_summarize(data, roles, seed = seed),
+    error = function(e) structure(conditionMessage(e), class = "pca_refusal")
+  )
+  if (inherits(summary, "pca_refusal")) {
+    return(list(ok = FALSE, refusal = as.character(summary)))
+  }
+  list(ok = TRUE, summary = summary,
+       synthetic = synpmx_pca_generate(summary, seed = seed))
+}
+
+# Chunk options are evaluated even for chunks that will not run, so a guard has
+# to hold when the data package is missing and the run object was never
+# created.
+ran <- function(name) {
+  environment <- knitr::knit_global()
+  exists(name, envir = environment) &&
+    isTRUE(get(name, envir = environment)$ok)
+}
+
+# Both height helpers take the data and roles lazily, so a chunk option
+# referring to an object the missing data package never created is never
+# forced.
+pca_height <- function(name, data, roles, default = 4) {
+  if (ran(name)) overlay_height(data, roles) else default
+}
+
+dist_height <- function(name, data, roles, default = 4) {
+  if (ran(name)) compare_pmx_distributions_height(data, roles) else default
+}
+
+# What the fit read out of the source, as a table rather than as the printed
+# object, so it sits beside the figures at the same weight. `pca_report()` owns
+# the row labels and the explanation next to each one.
+release_table <- function(run, label) {
+  knitr::kable(
+    as.data.frame(pca_report(run$summary)),
+    row.names = FALSE, align = c("l", "l", "r", "r"),
+    caption = paste0(
+      "What ", label, "'s fit read out of the source data. `min_patients` is ",
+      "the smallest number of patients standing behind any one number in ",
+      "that row."
+    )
+  )
+}
+
+# A refused dataset keeps its section and its steps; the steps that cannot run
+# say so rather than being left out.
+refusal_note <- function(run) {
+  cat("synpmx_pca_summarize() refused this dataset:\n\n  ",
+      run$refusal, "\n\n",
+      "Steps 3 to 6 have no synthetic dataset to run on: no generation, no ",
+      "figure, no distributions, no scorecard.\n", sep = "")
+}
+```
+
+</details>
+
+## The datasets
+
+Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
+`Suggests` of this package. The table is the one in
+`vignette("avatar-public-data-examples")`, unchanged.
+
+<!-- Pandoc sizes these columns in proportion to the dashes in the row below,
+     so the last column's width is set by the dashes under it rather than by
+     its contents. Keep them uneven. -->
+
+| Dataset | Package | Patients | Rows | Endpoints | What it is here to exercise |
+|----------|-----------|-----|-----|-----|--------------------------------------------------------|
+| `case1_pkpd` | xgxr | 180 | 20820 | 2 | Six arms, a declared `NOMTIME`, PK and PD, baseline weight, `CENS`. The shape a study report usually arrives in |
+| `mad` | xgxr | 60 | 4160 | 5 | Multiple ascending dose carrying ordinal, count and binary PD alongside continuous PD and PK |
+| `theo_md` | nlmixr2data | 12 | 348 | 1 | Seven Q24H oral doses with dense profiles on occasions 1 and 7 only. Dosed by weight. |
+| `warfarin` | nlmixr2data | 32 | 515 | 2 | One dose, PK and PD running on different time courses, categorical covariates |
+| `wbcSim` | nlmixr2data | 45 | 280 | 1 | Infusion start/stop pairs and a delayed WBC response. Follow-up time varies. |
+| `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions, recorded at the times they happened |
+| `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period crossover, `TIME` resetting within `OCC`, an occasion-varying assigned dose, infusion rows. |
+| `pheno_sd` | nlmixr2data | 59 | 744 | 1 | Neonatal phenobarbital, individualised dosing, sparse irregular sampling, time-varying weight. |
+
+## What PCA requires that AVATAR does not
+
+`synpmx_avatar()` runs on all eight. `synpmx_pca_summarize()` has three gates,
+and a dataset that fails any one of them is refused rather than modelled.
+
+| Gate | Requirement | Why it exists |
+|---|---|---|
+| Nominal grid | `nominal_time` declared in `pmx_roles()`, present on every dose and observation row | Every feature the method fits is a cell on that grid. AVATAR derives a grid when none is declared, as a masking step; here the grid is the model's axis, and deriving it would be a statement about the protocol that only the caller can make. |
+| Cohort size | 10 subjects | Below it there is no spread for a basis to describe. |
+| Arm size | 3 patients in every arm named by `strata` | An arm of one or two has a mean score vector that is that patient and a covariance that is noise around them. |
+
+The gates are what makes the survey short. `vignette("pca-algorithm")` states
+each one where it is enforced.
+
+## Shared workflow
+
+Every example follows the same six steps. Steps 1, 4, 5 and 6 are the AVATAR
+survey's steps 1, 3, 4 and 5; steps 2 and 3 are its step 2, split, because the
+model this generator fits is a thing to look at before generating from it.
+
+1. declare column meanings with `pmx_roles()`, copied from the AVATAR survey;
+2. summarize with `synpmx_pca_summarize()`, and inventory the fit with
+   `pca_report()`;
+3. generate with `synpmx_pca_generate()`;
+4. plot the real and synthetic data;
+5. plot the observation (DV) and baseline covariate distributions, source
+   against synthetic;
+6. report the score card for the synthetic dataset.
+
+A refused dataset keeps steps 1 and 2 and says at step 2 that steps 3 to 6 have
+nothing to run on.
+
+The scorecard marks each check `pass`, `FAIL`, or `review`. A `review` row is
+one where the pharmacometrician could evaluate whether the output is acceptable
+for use. If the synthetic dataset will not be crossing a trust boundary, items
+marked `review` are acceptable.
+
+## case1_pkpd: a declared nominal grid
+
+**Start here.** 180 patients across six treatment arms, with a declared
+`NOMTIME`, two endpoints keyed by a character `NAME` column, a baseline weight,
+and a `CENS` column. `vignette("pca-demo")` runs this generator end to end.
+
+The nominal grid this dataset declares is the one thing PCA cannot do without,
+so this is the dataset the method is easiest on and the one to read the other
+seven against.
+
+```{r case1, eval=has_xgxr, message=FALSE}
+case1_pkpd <- as.data.frame(
+  get(utils::data(list = "case1_pkpd", package = "xgxr"))
+)
+case1_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
+  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB",
+  keep = "STUDY"
+)
+case1_pca <- pca_run(case1_pkpd, case1_roles, seed = 808)
+```
+
+```{r case1-report, eval=has_xgxr, echo=FALSE}
+if (ran("case1_pca")) release_table(case1_pca, "case1_pkpd") else
+  refusal_note(case1_pca)
+```
+
+```{r case1-plot, echo=FALSE, eval=ran("case1_pca") && has_ggplot2, fig.height=pca_height("case1_pca", case1_pkpd, case1_roles)}
+overlay_plot(case1_pkpd, case1_pca$synthetic, case1_roles,
+             "case1_pkpd: PK concentration and continuous PD, six arms",
+             y_label = "LIDV", alpha = 0.2)
+```
+
+```{r case1-distributions, eval=ran("case1_pca") && has_distributions, fig.height=dist_height("case1_pca", case1_pkpd, case1_roles)}
+compare_pmx_distributions(case1_pkpd, case1_pca$synthetic, case1_roles)
+```
+
+```{r case1-scorecard, eval=ran("case1_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(case1_pkpd, case1_pca$synthetic, case1_roles)
+)
+```
+
+Read the timing rows against the AVATAR card for the same dataset. AVATAR
+coarsens recorded times onto a grid and puts scatter back; this generator places
+every value on the nominal grid itself, so the synthetic times are exactly
+on-protocol and the source times are not. That is a difference in what the two
+methods claim about time, and it shows up on the card rather than in the
+figures.
+
+## mad: five endpoints, three of them discrete
+
+Multiple ascending dose, 60 patients, five endpoints on one time axis: PK, a
+continuous PD, and ordinal, count and binary PD alongside them. `NOMTIME` is
+declared, so the gate that stops the six datasets below does not apply here.
+
+The question this dataset asks of PCA is what a basis fitted on a common scale
+does with endpoints that are not continuous. `pmx_endpoint_types()` classifies
+them and `synpmx_pca_summarize()` records the classification; the scorecard's
+endpoint rows are where a discrete endpoint that came back continuous would
+show.
+
+```{r mad, eval=has_xgxr, message=FALSE}
+mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
+mad_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
+  strata = c("TRTACT", "DOSE"),
+  covariates = c("WEIGHTB", "SEX")
+)
+mad_pca <- pca_run(mad, mad_roles, seed = 909)
+```
+
+```{r mad-report, eval=has_xgxr, echo=FALSE}
+if (ran("mad_pca")) release_table(mad_pca, "mad") else refusal_note(mad_pca)
+```
+
+```{r mad-plot, echo=FALSE, eval=ran("mad_pca") && has_ggplot2, fig.height=pca_height("mad_pca", mad, mad_roles)}
+overlay_plot(mad, mad_pca$synthetic, mad_roles,
+             "mad: five endpoints on one time axis",
+             y_label = "LIDV", alpha = 0.2) +
+  ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
+```
+
+```{r mad-distributions, eval=ran("mad_pca") && has_distributions, fig.height=dist_height("mad_pca", mad, mad_roles)}
+compare_pmx_distributions(mad, mad_pca$synthetic, mad_roles)
+```
+
+```{r mad-scorecard, eval=ran("mad_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(mad, mad_pca$synthetic, mad_roles)
+)
+```
+
+## theo_md: no nominal grid
+
+Twelve patients, seven Q24H oral doses, dense profiles on the first and last
+occasions and a single trough between. Dosed by weight, so no two patients share
+a dose amount.
+
+```{r theo, eval=has_nlmixr2data, message=FALSE}
+data("theo_md", package = "nlmixr2data")
+theo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", covariates = "WT"
+)
+theo_pca <- pca_run(theo_md, theo_roles, seed = 303)
+```
+
+```{r theo-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("theo_pca")) release_table(theo_pca, "theo_md") else
+  refusal_note(theo_pca)
+```
+
+```{r theo-plot, echo=FALSE, eval=ran("theo_pca") && has_ggplot2}
+overlay_plot(theo_md, theo_pca$synthetic, theo_roles,
+             "theo_md: dose-relative concentration profiles",
+             clock = "tad", x_label = "Time after dose (hours)", alpha = 0.25)
+```
+
+```{r theo-distributions, eval=ran("theo_pca") && has_distributions, fig.height=dist_height("theo_pca", theo_md, theo_roles)}
+compare_pmx_distributions(theo_md, theo_pca$synthetic, theo_roles)
+```
+
+```{r theo-scorecard, eval=ran("theo_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(theo_md, theo_pca$synthetic, theo_roles)
+)
+```
+
+The dense-then-sparse sampling this dataset is here to exercise is a protocol
+statement, and the columns do not carry it. A `NOMTIME` column reconstructed
+from the recorded times would be this vignette deciding what the protocol was.
+
+## warfarin: two endpoints on different time courses
+
+Thirty-two patients, one dose, a PK and a PD endpoint running on different time
+courses, and categorical covariates. The dose is 1.5 mg/kg, declared through
+`dose_covariate` rather than left to be inferred.
+
+```{r warfarin, eval=has_nlmixr2data, message=FALSE}
+data("warfarin", package = "nlmixr2data")
+warfarin_roles <- pmx_roles(
+  id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
+  dvid = "dvid", covariates = c("wt", "age", "sex"),
+  dose_covariate = "wt"   # 1.5 mg/kg; say so rather than let it be inferred
+)
+warfarin_pca <- pca_run(warfarin, warfarin_roles, seed = 404)
+```
+
+```{r warfarin-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("warfarin_pca")) release_table(warfarin_pca, "warfarin") else
+  refusal_note(warfarin_pca)
+```
+
+```{r warfarin-plot, echo=FALSE, eval=ran("warfarin_pca") && has_ggplot2, fig.height=pca_height("warfarin_pca", warfarin, warfarin_roles)}
+overlay_plot(warfarin, warfarin_pca$synthetic, warfarin_roles,
+             "warfarin: PK (cp) and PD (pca) endpoints")
+```
+
+```{r warfarin-distributions, eval=ran("warfarin_pca") && has_distributions, fig.height=dist_height("warfarin_pca", warfarin, warfarin_roles)}
+compare_pmx_distributions(warfarin, warfarin_pca$synthetic, warfarin_roles)
+```
+
+```{r warfarin-scorecard, eval=ran("warfarin_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(warfarin, warfarin_pca$synthetic, warfarin_roles)
+)
+```
+
+## wbcSim: infusion pairs and a delayed response
+
+Forty-five patients, infusion start and stop pairs, a white-blood-cell count
+that declines to a nadir and recovers, and a follow-up time that varies by
+patient.
+
+```{r wbc, eval=has_nlmixr2data, message=FALSE}
+data("wbcSim", package = "nlmixr2data")
+wbc_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT"
+)
+wbc_pca <- pca_run(wbcSim, wbc_roles, seed = 505)
+```
+
+```{r wbc-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("wbc_pca")) release_table(wbc_pca, "wbcSim") else refusal_note(wbc_pca)
+```
+
+```{r wbc-plot, echo=FALSE, eval=ran("wbc_pca") && has_ggplot2}
+overlay_plot(wbcSim, wbc_pca$synthetic, wbc_roles,
+             "wbcSim: delayed decline, nadir, and recovery",
+             y_label = "WBC")
+```
+
+```{r wbc-distributions, eval=ran("wbc_pca") && has_distributions, fig.height=dist_height("wbc_pca", wbcSim, wbc_roles)}
+compare_pmx_distributions(wbcSim, wbc_pca$synthetic, wbc_roles)
+```
+
+```{r wbc-scorecard, eval=ran("wbc_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(wbcSim, wbc_pca$synthetic, wbc_roles)
+)
+```
+
+## nimoData: infusions recorded as actuals
+
+Twelve patients, ten roughly weekly infusions recorded at the times they
+happened rather than at the times they were planned. This is the dataset the
+AVATAR survey uses to show what a derived grid costs when there is nothing to
+derive it from.
+
+```{r nimo, eval=has_nlmixr2data, message=FALSE}
+data("nimoData", package = "nlmixr2data")
+nimo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+  covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+)
+nimo_pca <- pca_run(nimoData, nimo_roles, seed = 606)
+```
+
+```{r nimo-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("nimo_pca")) release_table(nimo_pca, "nimoData") else
+  refusal_note(nimo_pca)
+```
+
+```{r nimo-plot, echo=FALSE, eval=ran("nimo_pca") && has_ggplot2}
+overlay_plot(nimoData, nimo_pca$synthetic, nimo_roles,
+             "nimoData: ten infusions over a long follow-up", alpha = 0.2)
+```
+
+```{r nimo-distributions, eval=ran("nimo_pca") && has_distributions, fig.height=dist_height("nimo_pca", nimoData, nimo_roles)}
+compare_pmx_distributions(nimoData, nimo_pca$synthetic, nimo_roles)
+```
+
+```{r nimo-scorecard, eval=ran("nimo_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(nimoData, nimo_pca$synthetic, nimo_roles)
+)
+```
+
+`TAD` and `OCC` are declared here and describe the dosing structure, but neither
+is a nominal grid: they say where a sample sat relative to a dose that happened,
+not where the protocol planned to put it.
+
+## mavoglurant: a crossover with time resetting
+
+One hundred and twenty patients, one- and two-period crossover, `TIME` resetting
+within `OCC`, an occasion-varying assigned dose, and infusion rows. The largest
+cohort in the survey.
+
+```{r mavo, eval=has_nlmixr2data, message=FALSE}
+data("mavoglurant", package = "nlmixr2data")
+mavo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", rate = "RATE", mdv = "MDV", occasion = "OCC",
+  keep = "DOSE", covariates = c("AGE", "SEX", "WT", "HT")
+)
+mavo_pca <- pca_run(mavoglurant, mavo_roles, seed = 707)
+```
+
+```{r mavo-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("mavo_pca")) release_table(mavo_pca, "mavoglurant") else
+  refusal_note(mavo_pca)
+```
+
+```{r mavo-plot, echo=FALSE, eval=ran("mavo_pca") && has_ggplot2}
+overlay_plot(mavoglurant, mavo_pca$synthetic, mavo_roles,
+             "mavoglurant: dose-relative profiles with occasion reset",
+             clock = "tad", x_label = "Time after dose (hours)", alpha = 0.2)
+```
+
+```{r mavo-distributions, eval=ran("mavo_pca") && has_distributions, fig.height=dist_height("mavo_pca", mavoglurant, mavo_roles)}
+compare_pmx_distributions(mavoglurant, mavo_pca$synthetic, mavo_roles)
+```
+
+```{r mavo-scorecard, eval=ran("mavo_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(mavoglurant, mavo_pca$synthetic, mavo_roles)
+)
+```
+
+## pheno_sd: sparse, irregular, individualised
+
+Fifty-nine neonates on phenobarbital, dosed individually, sampled sparsely and
+irregularly, with a weight that changes over the study.
+
+```{r pheno, eval=has_nlmixr2data, message=FALSE}
+data("pheno_sd", package = "nlmixr2data")
+pheno_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  covariates = c("WT", "APGR")
+)
+pheno_pca <- pca_run(pheno_sd, pheno_roles, seed = 1010)
+```
+
+```{r pheno-report, eval=has_nlmixr2data, echo=FALSE}
+if (ran("pheno_pca")) release_table(pheno_pca, "pheno_sd") else
+  refusal_note(pheno_pca)
+```
+
+```{r pheno-plot, echo=FALSE, eval=ran("pheno_pca") && has_ggplot2}
+overlay_plot(pheno_sd, pheno_pca$synthetic, pheno_roles,
+             "pheno_sd: sparse, irregular, individualised",
+             y_label = "Phenobarbital (ug/mL)")
+```
+
+```{r pheno-distributions, eval=ran("pheno_pca") && has_distributions, fig.height=dist_height("pheno_pca", pheno_sd, pheno_roles)}
+compare_pmx_distributions(pheno_sd, pheno_pca$synthetic, pheno_roles)
+```
+
+```{r pheno-scorecard, eval=ran("pheno_pca")}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(pheno_sd, pheno_pca$synthetic, pheno_roles)
+)
+```
+
+Sampling this sparse and this irregular is the case a nominal grid would matter
+most for, because there is little else to align the patients on.
+
+## What ran, and what did not
+
+```{r survey-outcome, echo=FALSE}
+survey_runs <- c(
+  case1_pkpd = "case1_pca", mad = "mad_pca", theo_md = "theo_pca",
+  warfarin = "warfarin_pca", wbcSim = "wbc_pca", nimoData = "nimo_pca",
+  mavoglurant = "mavo_pca", pheno_sd = "pheno_pca"
+)
+outcome <- data.frame(
+  Dataset = names(survey_runs),
+  Outcome = unname(vapply(survey_runs, function(name) {
+    if (!exists(name, envir = knitr::knit_global())) "not attempted"
+    else if (ran(name)) "modelled" else "refused"
+  }, character(1))),
+  Gate = unname(vapply(survey_runs, function(name) {
+    if (!exists(name, envir = knitr::knit_global())) {
+      return("source package not installed")
+    }
+    run <- get(name, envir = knitr::knit_global())
+    if (isTRUE(run$ok)) return("")
+    # The refusal names its gate in the first sentence; the rest is the
+    # remedy, which belongs in the section rather than in a summary row.
+    sub("\\..*$", ".", run$refusal)
+  }, character(1))),
+  stringsAsFactors = FALSE
+)
+knitr::kable(outcome, row.names = FALSE,
+             caption = "Every dataset in the survey, and what synpmx_pca() did with it.")
+```
+
+The datasets this generator refuses are refused for one reason far more often
+than the other two, and it is the reason `vignette("pca-algorithm")`, Step 2
+gives for requiring the grid rather than deriving one.
+
+**What to do with a refused dataset.** Three options, in the order to try them.
+Add the protocol's planned times as a column and declare them as
+`nominal_time`, which is the only one that makes PCA work on the dataset rather
+than around it. Failing that, use `synpmx_avatar()`, which derives a grid as a
+masking step and runs on all eight. The third option, reconstructing a nominal
+grid by rounding the recorded times, is a statement about the protocol, and the
+package refuses to make it on the caller's behalf for the same reason this
+vignette does not make it here.
+
+## Where to go next
+
+- `vignette("pca-algorithm")` for what the generator does, step by step.
+- `vignette("pca-demo")` for one dataset end to end.
+- `vignette("pca-trial-summary")` for what a fitted model contains.
+- `vignette("avatar-public-data-examples")` for the same eight datasets under
+  `synpmx_avatar()`.
+- `vignette("avatar-scorecard")` for what each scorecard row asks.

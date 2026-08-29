@@ -26,10 +26,16 @@ should be written as though it had.
 
 The practical consequence is O17 in `WRITING_FOR_ANDY.md`. Three generators that
 get chosen between are read by comparison, so their documents have to hold the
-same shape. They do not today: AVATAR has an algorithm document, a demo, a
-scorecard document and a public-data survey, PCA has an algorithm document, a
-demo and a trial-summary document, and this one would arrive with two. Either
-the missing slots get filled or the shape gets stated somewhere as deliberate.
+same shape. `vignettes/pca-public-data-examples.Rmd` was added on 2026-08-29 to
+close the gap on PCA's side, so the surveys now cover two of the three
+generators.
+
+This generator arrives with two documents, `model-algorithm.Rmd` and
+`model-demo.Rmd`. Its public-data survey is developed after the maintainer is
+satisfied with the demo, not alongside it: a survey written against a demo that
+is still moving would be rewritten once for every change to it. That is a
+sequencing decision rather than an exemption, and the contract in `AGENTS.md`
+already says the third survey holds the same shape as the first two.
 
 ## Status of the decisions
 
@@ -321,9 +327,10 @@ defect in the commit that adds the code rather than a follow-up.
   another paragraph.
 - `_pkgdown.yml` needs the new functions and documents.
 
-New documents, following the shape the AVATAR and PCA pairs hold:
+New documents, following the shape the AVATAR and PCA sets hold:
 `vignettes/model-algorithm.Rmd` for the mechanism and `vignettes/model-demo.Rmd`
-for the first run. The cross-document contract in `AGENTS.md` grows a fourth
+for the first run, with `vignettes/model-public-data-examples.Rmd` following
+once the demo has settled. The cross-document contract in `AGENTS.md` grows a fourth
 entry: each step in `model-algorithm.Rmd` describes an operation the function
 performs, and the functions carry the pointer comment naming their section.
 
