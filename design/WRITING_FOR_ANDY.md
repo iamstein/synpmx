@@ -121,6 +121,8 @@ documents.
 11. The tics above are *searched for*, not read for: crucial, key, worth,
     honestly, honest, delve, leverage, robust, seamless, "not just", "it is worth
     noting", "here is why", "the point is", matters, "the difference matters".
+12. No sentence is addressed to a reader of the previous draft; corrective and
+    additive phrasing is searched for the same way (rule 17).
 
 ---
 
@@ -309,6 +311,24 @@ of the middle of a clause. Repair the broken sentence and the mistyped word on
 the next pass over that file, silently. Never reinstate what he removed, never
 reflow the paragraph around it (rule 8), and do not read the debris as license
 to rewrite the passage he has just rewritten.
+
+## 17. Do not describe the revision inside the document
+
+Written into a section after he asked for all three axes where it had covered
+one: "Three axes, not one." The corrective half is addressed to a reader who
+saw the previous draft, and no such reader exists. Every reader meets the
+document in its current state, so a revision leaves no trace of what it
+replaced: name the three axes and stop.
+
+The tells are corrective and additive constructions — `not one`, `not just`,
+`rather than only`, `now also`, `expanded to include`, `in addition to the
+originally stated` — and headings built on them. A section added on request is
+the same case: it reads as though it had always been there, with no sentence
+marking it as new or accounting for its arrival.
+
+The account of what changed belongs in the commit message and in the reply to
+him. Rule 16 already makes the repair silent; this makes the addition silent
+too.
 
 ---
 
