@@ -16,6 +16,21 @@ a real population analysis.
 This document is the record of what the algorithm should do and why, written
 before the code exists. Nothing here is implemented.
 
+## Where this sits among the three generators
+
+AVATAR blending, the PCA generator and this one are developed in parallel and
+none of them is retired. The maintainer's stated expectation on 2026-08-29 is
+that this generator is the one he ends up using, which is a direction rather
+than a decision: it does not make AVATAR secondary, and nothing in the package
+should be written as though it had.
+
+The practical consequence is O17 in `WRITING_FOR_ANDY.md`. Three generators that
+get chosen between are read by comparison, so their documents have to hold the
+same shape. They do not today: AVATAR has an algorithm document, a demo, a
+scorecard document and a public-data survey, PCA has an algorithm document, a
+demo and a trial-summary document, and this one would arrive with two. Either
+the missing slots get filled or the shape gets stated somewhere as deliberate.
+
 ## Status of the decisions
 
 Three interface questions were settled on 2026-08-29 and the rest of the
@@ -287,13 +302,19 @@ accounting.
 
 ## Documentation obligations
 
-Adding this generator makes four existing statements false, and each one is a
+Adding this generator makes three existing statements false, and each one is a
 defect in the commit that adds the code rather than a follow-up.
 
-- `DESCRIPTION` says the package "does not fit a pharmacokinetic,
-  pharmacodynamic, or nonlinear mixed-effects model". After this it does.
-- `README.md` describes three secondary modes beside AVATAR. The count and the
-  maintenance-status section change.
+- `README.md` describes three secondary modes beside AVATAR, and calls AVATAR
+  the primary maintained code. The count and the maintenance-status section
+  change. Its voice belongs to the maintainer, so the restructuring is his to
+  confirm rather than a defect fix taken without asking.
+- `DESCRIPTION` was corrected on 2026-08-29, before this generator exists: the
+  clause claiming the package "does not fit a pharmacokinetic,
+  pharmacodynamic, or nonlinear mixed-effects model" is gone, PCA is named, and
+  the out-of-scope statement is now about what the data is for. It still
+  describes two generators, and gains a clause naming this one when the code
+  lands.
 - `vignettes/synpmx-methods.Rmd` introduces four modes and adds `synpmx_pca()`
   as a fifth in a paragraph. A sixth arriving the same way makes the document a
   list of exceptions, so the mode inventory needs restructuring rather than
