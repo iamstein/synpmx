@@ -24,7 +24,6 @@ has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 # figure instead of a failed build.
 has_distributions <- has_ggplot2 &&
   requireNamespace("patchwork", quietly = TRUE)
-comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 ```
 
 This vignette runs `synpmx_pca()` on the same eight public datasets that
@@ -46,129 +45,11 @@ drawn the same way.
 <summary>Plotting and run helpers used throughout this vignette</summary>
 
 ```{r plot-helpers}
-observed_plot_data <- function(data, roles, dataset,
-                               clock = "study_time") {
-  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
-  if (!is.null(roles$mdv)) {
-    observed <- observed & as.character(data[[roles$mdv]]) %in% c("0", "0.0")
-  }
-  observed <- observed & !is.na(data[[roles$dv]])
-  observation_rows <- which(observed)
-  occasion <- rep(1L, length(observation_rows))
-  tad <- rep(NA_real_, length(observation_rows))
-  if (!is.null(roles$occasion)) {
-    declared <- suppressWarnings(as.integer(
-      data[[roles$occasion]][observation_rows]
-    ))
-    valid <- !is.na(declared) & declared >= 1L
-    occasion[valid] <- declared[valid]
-  }
-  if (!is.null(roles$tad)) {
-    declared <- suppressWarnings(as.numeric(data[[roles$tad]][observation_rows]))
-    valid <- is.finite(declared)
-    tad[valid] <- pmax(0, declared[valid])
-  }
-  subject_values <- data[[roles$id]]
-  for (id in unique(subject_values[observation_rows])) {
-    subject_rows <- which(!is.na(subject_values) & subject_values == id)
-    events <- !(as.character(data[[roles$evid]][subject_rows]) %in%
-                  c("0", "0.0"))
-    if (!is.null(roles$amt)) {
-      events <- events & as.numeric(data[[roles$amt]][subject_rows]) > 0
-    }
-    positions <- which(subject_values[observation_rows] == id)
-    event_rows <- subject_rows[events]
-    if (length(event_rows) && !is.null(roles$occasion)) {
-      event_occasion <- suppressWarnings(as.integer(
-        data[[roles$occasion]][event_rows]
-      ))
-      for (position in positions) {
-        candidates <- event_rows[event_occasion == occasion[position]]
-        if (length(candidates) && !is.finite(tad[position])) {
-          origin <- min(as.numeric(data[[roles$time]][candidates]))
-          tad[position] <-
-            as.numeric(data[[roles$time]][observation_rows[position]]) - origin
-        }
-      }
-    } else if (length(event_rows)) {
-      dose_times <- sort(unique(as.numeric(data[[roles$time]][event_rows])))
-      occasion[positions] <- pmax(1L, findInterval(
-        as.numeric(data[[roles$time]][observation_rows[positions]]),
-        dose_times
-      ))
-      occasion[positions] <- pmin(occasion[positions], length(dose_times))
-      tad[positions] <-
-        as.numeric(data[[roles$time]][observation_rows[positions]]) -
-        dose_times[occasion[positions]]
-    }
-  }
-  plotted_time <- if (identical(clock, "tad")) tad else
-    as.numeric(data[[roles$time]][observation_rows])
-  data.frame(
-    dataset = factor(dataset, levels = c("Source", "Synthetic")),
-    subject = as.character(data[[roles$id]][observation_rows]),
-    time = plotted_time,
-    dv = as.numeric(data[[roles$dv]][observation_rows]),
-    occasion = occasion,
-    endpoint = if (is.null(roles$dvid)) "DV" else
-      as.character(data[[roles$dvid]][observation_rows]),
-    stringsAsFactors = FALSE
-  )
-}
-
-# Every dataset below gets the same figure: observation rows only, source beside
-# synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time
-# after dose instead of study time, which is the readable view once a study
-# doses more than once.
-overlay_plot <- function(source, synthetic, roles, title,
-                         clock = "study_time",
-                         x_label = "Study time (hours)", y_label = "DV",
-                         log_y = FALSE, alpha = 0.3) {
-  plotted <- rbind(
-    observed_plot_data(source, roles, "Source", clock),
-    observed_plot_data(synthetic, roles, "Synthetic", clock)
-  )
-  # One line per patient on a study-time axis, and one line per occasion on a
-  # dose-relative one, where the profiles are meant to lie on top of each other.
-  plotted$series <- if (identical(clock, "tad")) {
-    interaction(plotted$dataset, plotted$subject, plotted$occasion)
-  } else {
-    interaction(plotted$dataset, plotted$subject)
-  }
-  figure <- ggplot2::ggplot(
-    plotted,
-    ggplot2::aes(time, dv, group = series, colour = dataset)
-  ) +
-    ggplot2::geom_line(alpha = alpha) +
-    ggplot2::geom_point(alpha = alpha, size = 0.7) +
-    # Endpoint down the side, source and synthetic across. `facet_grid()` frees
-    # a scale per ROW, so this orientation is the one that gives each endpoint
-    # its own y while holding source and synthetic on a shared one -- which is
-    # the only arrangement the eye can compare.
-    (if (length(unique(plotted$endpoint)) > 1L) {
-      ggplot2::facet_grid(endpoint ~ dataset, scales = "free_y",
-                          switch = "y")
-    } else {
-      ggplot2::facet_wrap(~dataset)
-    }) +
-    ggplot2::scale_colour_manual(values = comparison_colours) +
-    ggplot2::labs(x = x_label, y = y_label, colour = "Dataset", title = title) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(legend.position = "none",
-                   strip.placement = "outside")
-  if (isTRUE(log_y)) figure + ggplot2::scale_y_log10() else figure
-}
-
-# Facet rows are endpoints now, so a five-endpoint study needs five times the
-# height a one-endpoint study does. Chunks pass this to `fig.height` rather than
-# every figure inheriting the one-endpoint default and arriving unreadable.
-overlay_height <- function(data, roles, per_endpoint = 2.2, minimum = 3.4) {
-  observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0")
-  endpoints <- if (is.null(roles$dvid)) 1L else {
-    length(unique(data[[roles$dvid]][observed]))
-  }
-  max(minimum, per_endpoint * endpoints)
-}
+# Sourced rather than defined here, so that this survey and the AVATAR one draw
+# the same figure from the same code. `vignettes/survey-helpers.R` carries the
+# comment on each function.
+source(if (file.exists("survey-helpers.R")) "survey-helpers.R" else
+         file.path("vignettes", "survey-helpers.R"))
 
 # `synpmx_pca_summarize()` refuses a dataset it cannot model rather than
 # guessing, so every run here is an attempt whose outcome is part of the
@@ -184,26 +65,6 @@ pca_run <- function(data, roles, seed) {
   }
   list(ok = TRUE, summary = summary,
        synthetic = synpmx_pca_generate(summary, seed = seed))
-}
-
-# Chunk options are evaluated even for chunks that will not run, so a guard has
-# to hold when the data package is missing and the run object was never
-# created.
-ran <- function(name) {
-  environment <- knitr::knit_global()
-  exists(name, envir = environment) &&
-    isTRUE(get(name, envir = environment)$ok)
-}
-
-# Both height helpers take the data and roles lazily, so a chunk option
-# referring to an object the missing data package never created is never
-# forced.
-pca_height <- function(name, data, roles, default = 4) {
-  if (ran(name)) overlay_height(data, roles) else default
-}
-
-dist_height <- function(name, data, roles, default = 4) {
-  if (ran(name)) compare_pmx_distributions_height(data, roles) else default
 }
 
 # What the fit read out of the source, as a table rather than as the printed
@@ -319,13 +180,13 @@ if (ran("case1_pca")) release_table(case1_pca, "case1_pkpd") else
   refusal_note(case1_pca)
 ```
 
-```{r case1-plot, echo=FALSE, eval=ran("case1_pca") && has_ggplot2, fig.height=pca_height("case1_pca", case1_pkpd, case1_roles)}
+```{r case1-plot, echo=FALSE, eval=ran("case1_pca") && has_ggplot2, fig.height=run_overlay_height("case1_pca", case1_pkpd, case1_roles)}
 overlay_plot(case1_pkpd, case1_pca$synthetic, case1_roles,
              "case1_pkpd: PK concentration and continuous PD, six arms",
              y_label = "LIDV", alpha = 0.2)
 ```
 
-```{r case1-distributions, eval=ran("case1_pca") && has_distributions, fig.height=dist_height("case1_pca", case1_pkpd, case1_roles)}
+```{r case1-distributions, eval=ran("case1_pca") && has_distributions, fig.height=run_distribution_height("case1_pca", case1_pkpd, case1_roles)}
 compare_pmx_distributions(case1_pkpd, case1_pca$synthetic, case1_roles)
 ```
 
@@ -369,14 +230,14 @@ mad_pca <- pca_run(mad, mad_roles, seed = 909)
 if (ran("mad_pca")) release_table(mad_pca, "mad") else refusal_note(mad_pca)
 ```
 
-```{r mad-plot, echo=FALSE, eval=ran("mad_pca") && has_ggplot2, fig.height=pca_height("mad_pca", mad, mad_roles)}
+```{r mad-plot, echo=FALSE, eval=ran("mad_pca") && has_ggplot2, fig.height=run_overlay_height("mad_pca", mad, mad_roles)}
 overlay_plot(mad, mad_pca$synthetic, mad_roles,
              "mad: five endpoints on one time axis",
              y_label = "LIDV", alpha = 0.2) +
   ggplot2::theme(strip.text = ggplot2::element_text(size = 7))
 ```
 
-```{r mad-distributions, eval=ran("mad_pca") && has_distributions, fig.height=dist_height("mad_pca", mad, mad_roles)}
+```{r mad-distributions, eval=ran("mad_pca") && has_distributions, fig.height=run_distribution_height("mad_pca", mad, mad_roles)}
 compare_pmx_distributions(mad, mad_pca$synthetic, mad_roles)
 ```
 
@@ -412,7 +273,7 @@ overlay_plot(theo_md, theo_pca$synthetic, theo_roles,
              clock = "tad", x_label = "Time after dose (hours)", alpha = 0.25)
 ```
 
-```{r theo-distributions, eval=ran("theo_pca") && has_distributions, fig.height=dist_height("theo_pca", theo_md, theo_roles)}
+```{r theo-distributions, eval=ran("theo_pca") && has_distributions, fig.height=run_distribution_height("theo_pca", theo_md, theo_roles)}
 compare_pmx_distributions(theo_md, theo_pca$synthetic, theo_roles)
 ```
 
@@ -447,12 +308,12 @@ if (ran("warfarin_pca")) release_table(warfarin_pca, "warfarin") else
   refusal_note(warfarin_pca)
 ```
 
-```{r warfarin-plot, echo=FALSE, eval=ran("warfarin_pca") && has_ggplot2, fig.height=pca_height("warfarin_pca", warfarin, warfarin_roles)}
+```{r warfarin-plot, echo=FALSE, eval=ran("warfarin_pca") && has_ggplot2, fig.height=run_overlay_height("warfarin_pca", warfarin, warfarin_roles)}
 overlay_plot(warfarin, warfarin_pca$synthetic, warfarin_roles,
              "warfarin: PK (cp) and PD (pca) endpoints")
 ```
 
-```{r warfarin-distributions, eval=ran("warfarin_pca") && has_distributions, fig.height=dist_height("warfarin_pca", warfarin, warfarin_roles)}
+```{r warfarin-distributions, eval=ran("warfarin_pca") && has_distributions, fig.height=run_distribution_height("warfarin_pca", warfarin, warfarin_roles)}
 compare_pmx_distributions(warfarin, warfarin_pca$synthetic, warfarin_roles)
 ```
 
@@ -486,7 +347,7 @@ overlay_plot(wbcSim, wbc_pca$synthetic, wbc_roles,
              y_label = "WBC")
 ```
 
-```{r wbc-distributions, eval=ran("wbc_pca") && has_distributions, fig.height=dist_height("wbc_pca", wbcSim, wbc_roles)}
+```{r wbc-distributions, eval=ran("wbc_pca") && has_distributions, fig.height=run_distribution_height("wbc_pca", wbcSim, wbc_roles)}
 compare_pmx_distributions(wbcSim, wbc_pca$synthetic, wbc_roles)
 ```
 
@@ -523,7 +384,7 @@ overlay_plot(nimoData, nimo_pca$synthetic, nimo_roles,
              "nimoData: ten infusions over a long follow-up", alpha = 0.2)
 ```
 
-```{r nimo-distributions, eval=ran("nimo_pca") && has_distributions, fig.height=dist_height("nimo_pca", nimoData, nimo_roles)}
+```{r nimo-distributions, eval=ran("nimo_pca") && has_distributions, fig.height=run_distribution_height("nimo_pca", nimoData, nimo_roles)}
 compare_pmx_distributions(nimoData, nimo_pca$synthetic, nimo_roles)
 ```
 
@@ -564,7 +425,7 @@ overlay_plot(mavoglurant, mavo_pca$synthetic, mavo_roles,
              clock = "tad", x_label = "Time after dose (hours)", alpha = 0.2)
 ```
 
-```{r mavo-distributions, eval=ran("mavo_pca") && has_distributions, fig.height=dist_height("mavo_pca", mavoglurant, mavo_roles)}
+```{r mavo-distributions, eval=ran("mavo_pca") && has_distributions, fig.height=run_distribution_height("mavo_pca", mavoglurant, mavo_roles)}
 compare_pmx_distributions(mavoglurant, mavo_pca$synthetic, mavo_roles)
 ```
 
@@ -599,7 +460,7 @@ overlay_plot(pheno_sd, pheno_pca$synthetic, pheno_roles,
              y_label = "Phenobarbital (ug/mL)")
 ```
 
-```{r pheno-distributions, eval=ran("pheno_pca") && has_distributions, fig.height=dist_height("pheno_pca", pheno_sd, pheno_roles)}
+```{r pheno-distributions, eval=ran("pheno_pca") && has_distributions, fig.height=run_distribution_height("pheno_pca", pheno_sd, pheno_roles)}
 compare_pmx_distributions(pheno_sd, pheno_pca$synthetic, pheno_roles)
 ```
 

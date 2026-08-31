@@ -185,10 +185,15 @@ reductions, interrupted cycles, discontinuation and missed visits are modelled
 here exactly as they are for PCA, and the same is true of arm sizes, the
 covariate distributions, the censoring boundary and the schema.
 
-`.pca_dose_model()` and `.pca_arm_models()` build all of it. The work is to lift
-them out of `pca.R` into a shared file rather than to write them a second time,
-and that lift is the first commit, on its own, with the PCA tests unchanged as
-its check. What the lifted code produces, per arm:
+The lift happened on 2026-08-29: `.pca_dose_model()`, `.pca_draw_schedule()`
+and `.pca_arm_models()` moved out of `R/pca.R` into `R/dose-visit-models.R` as
+`.dose_model()`, `.draw_schedule()` and `.arm_models()`, so this generator calls
+the same code rather than a copy of it. Nothing there reads a fitted basis:
+`.arm_models()` takes the grid attendance is measured on, as a data frame of
+`index`, `name`, `endpoint` and `time`, and `.pca_cells()` is the adapter that
+reads that grid off a PCA fit. This generator writes its own adapter over the
+nominal grid and calls the same function. What the shared code produces, per
+arm:
 
 | Model | What it holds | Drawn at generation as |
 |---|---|---|
@@ -202,7 +207,7 @@ its check. What the lifted code produces, per arm:
 The reduction ladder is read from within-patient decreases rather than from the
 spread of amounts across patients, which is what lets it work on a study dosed
 by body weight, where no two patients share an amount. That reasoning is already
-written down in `.pca_dose_model()` and does not change here.
+written down in `.dose_model()` and does not change here.
 
 **Two time axes.** PCA replaces `roles$time` with the nominal grid for its whole
 pipeline, because every feature it fits is a cell on that grid. This generator
@@ -243,7 +248,7 @@ correlation.
 Per synthetic subject: assign an arm keeping the source arm shares, draw
 covariates from the arm's covariate model, draw random effects from the
 covariance matrix, apply the covariate effects to the typical parameters, draw
-the dose schedule from the arm's dosing model with `.pca_draw_schedule()`, draw
+the dose schedule from the arm's dosing model with `.draw_schedule()`, draw
 the visits attended from the visit model, evaluate `.pk_profile()` at the
 attended times against the drawn schedule, add residual error, apply the
 censoring boundary and emit.

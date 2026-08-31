@@ -39,7 +39,10 @@ Three cross-document contracts, each a defect when broken:
   generation step split in two, `synpmx_pca_summarize()` and
   `synpmx_pca_generate()`, and a dataset the generator refuses keeps its section
   and says which steps could not run. A dataset added to one survey is added to
-  the other. A third generator's survey follows the same rule.
+  the other. A third generator's survey follows the same rule. Both source
+  `vignettes/survey-helpers.R` for the figure and the run guards, so a change to
+  how a survey draws is made once; only generator-specific helpers stay in a
+  vignette.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.
