@@ -343,6 +343,33 @@ performs, and the functions carry the pointer comment naming their section.
 know which generator produced it, so it needs nothing new. Whether it should
 gain a row for goodness of fit is the open question below.
 
+## Build Order
+
+Eight commits, ordered so that everything not needing `nlmixr2` is written and
+under test before any estimation exists. Commit 4 produces a working generator
+with no fitter in it at all, which is what makes the base-R half testable on its
+own and keeps a slow, compiling dependency out of the loop until it has to be
+there.
+
+| # | Commit | Delivers | Checked by |
+|---|---|---|---|
+| 1 | The object and the gates | `pmx_fitted_model`, and a `synpmx_model_estimate()` that validates its inputs and refuses everything the Gates table says it should. No fitting. | Deterministic tests, one per gate, on fixtures. Needs no suggested package. |
+| 2 | Endpoint classification and design detection | Steps 1 and 2: which endpoint is the drug concentration, the route, the richness counts, and the candidate set each implies. Returns the candidate set rather than fitting it. | Fixtures built to land on each branch, including the weak-route case that offers both. |
+| 3 | The apparatus adapter | The nominal-grid `cells` adapter over `.arm_models()`, so a fitted model carries the dosing and visit models. | The PCA survey's own outputs are the reference: the same source through both adapters gives the same dosing model. |
+| 4 | Generation | `synpmx_model_generate()` against a hand-constructed `pmx_fitted_model`, through `.pk_profile()`. A complete generator with no fitter in it. | End to end on fixtures, base R only. Includes the exposure-before-and-after-a-reduction check from Step 6. |
+| 5 | Estimation | `nlmixr2` behind `requireNamespace()`: the candidate fits, the AIC table, the `pk` override, the failure-to-converge paths. | Guarded tests, skipped where `nlmixr2` is absent. |
+| 6 | Covariates and PD | Allometric scaling under `covariate_effects = "auto"`, the three PD shapes, and the random-effect correlation report. | Guarded, as commit 5. |
+| 7 | The documents | `model-algorithm.Rmd` and `model-demo.Rmd`, plus the stored fit under `scripts/` that both knit against. | `./build.sh` and `./build.sh articles`. |
+| 8 | The documentation sweep | The three false statements in the Documentation obligations section, and `_pkgdown.yml`. | Search for the affected names, as `AGENTS.md` requires. |
+
+Commits 1 to 4 need nothing beyond base R, so they run in this repository's
+ordinary loop. Commits 5 and 6 need a machine with `nlmixr2` installed and are
+the first point at which a compiler is in the path.
+
+The public-data survey is not in this list. It follows once the demo from
+commit 7 has settled, for the reason in "Where this sits among the three
+generators".
+
 ## Open questions
 
 1. **Goodness of fit as a scorecard row.** The generator is usable only where
