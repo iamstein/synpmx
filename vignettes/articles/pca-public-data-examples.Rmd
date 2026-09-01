@@ -775,7 +775,7 @@ Not preserved, and each is a decision rather than a defect:
 ## Where to go next
 
 - `vignette("pca-demo")` — one study end to end.
-- `vignette("pca-trial-summary")` — every quantity a summary holds.
+- `vignette("pca-fingerprint")` — every quantity the fingerprint holds.
 - `vignette("pca-algorithm")` — how each is estimated, and what it costs.
 - [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
   — the same eight datasets under `synpmx_avatar()`.

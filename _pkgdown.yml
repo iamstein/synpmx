@@ -22,6 +22,10 @@ redirects:
   - ["articles/public-data-examples.html", "articles/avatar-public-data-examples.html"]
   - ["articles/scorecard-synthetic-data-checks.html", "articles/avatar-scorecard.html"]
   - ["articles/synpmx-4-methods.html", "articles/synpmx-methods.html"]
+  # 2026-09-01: `pca-trial-summary` -> `pca-fingerprint`, when the object it
+  # describes was named for what it is rather than for the function that
+  # returns it, and the PMX model generator gained the matching document.
+  - ["articles/pca-trial-summary.html", "articles/pca-fingerprint.html"]
 
 navbar:
   structure:
@@ -58,6 +62,9 @@ navbar:
         href: articles/pmxmodel-demo.html
       - text: Algorithm
         href: articles/pmxmodel-algorithm.html
+      - text: -------
+      - text: Study fingerprint
+        href: articles/pmxmodel-fingerprint.html
     pca:
       text: 2. PCA
       menu:
@@ -68,8 +75,8 @@ navbar:
       - text: Evaluation on public data
         href: articles/pca-public-data-examples.html
       - text: -------
-      - text: What a trial summary contains
-        href: articles/pca-trial-summary.html
+      - text: Study fingerprint
+        href: articles/pca-fingerprint.html
     avatar:
       text: 3. AVATAR
       menu:

@@ -266,6 +266,16 @@ synpmx_model_estimate(data, roles, pk = "2cmt_oral")
 synpmx_model_estimate(data, roles, pk = c("1cmt_oral", "2cmt_oral"))
 ```
 
+**How long it takes is set by the dose records, not the patients.** Every
+likelihood evaluation superposes one contribution per dose per subject, so the
+cost scales with the number of dose events rather than with cohort size. A
+single-dose study of thirty-two patients fits in about eleven seconds. A
+twelve-week daily regimen carries eighty-five dose records per subject, and a
+hundred and fifty such patients is two orders of magnitude more work: the same
+call on `xgxr::case1_pkpd` had not finished after twenty-five minutes. Nothing
+is wrong when that happens — it is what population fitting costs on that design
+— but it is worth knowing before you start rather than after.
+
 **Where there is a search, selection is on AIC**, and the estimation method is
 `focei` for that reason.
 SAEM's log-likelihood is a Gaussian-quadrature step run after the fit, and at
