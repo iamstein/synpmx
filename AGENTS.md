@@ -36,7 +36,8 @@ Three cross-document contracts, each a defect when broken:
   `vignettes/articles/pca-public-data-examples.Rmd` is the same contract for
   `synpmx_pca()` over the same datasets, with `synpmx_pca_summarize()` and
   `synpmx_pca_generate()` in place of `synpmx_avatar()`. Both are articles, so
-  `R CMD check` never runs them: `./build.sh articles` is what proves them.
+  `R CMD check` never runs them: `./build.sh articles` is what proves them. A
+  third generator's survey is the same contract again, over the same datasets.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.
