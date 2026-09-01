@@ -19,6 +19,7 @@
 #' @return A `pmx_prior`.
 #' @export
 pmx_prior <- function(range, source) {
+  .reject_fitted_model(range, "range", "pmx_prior()")
   if (missing(source) || !is.character(source) || length(source) != 1L ||
       !nzchar(trimws(source))) {
     stop(
@@ -265,6 +266,7 @@ print.pmx_preflight <- function(x, ...) {
     stop("`data` must be a nonempty data frame.", call. = FALSE)
   }
   .assert_roles(data, roles)
+  .reject_fitted_model(model, "model", "synpmx_calibrated()")
   if (!inherits(model, "pmx_structural_model")) {
     stop("`model` must come from `pmx_structural_model()`.", call. = FALSE)
   }

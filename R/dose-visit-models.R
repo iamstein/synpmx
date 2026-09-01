@@ -287,3 +287,26 @@
 .named <- function(x, labels) {
   if (is.null(labels)) x else stats::setNames(x, labels)
 }
+
+# An arm of one or two has no between-subject spread to model: whatever the arm
+# summary is -- a mean score vector, a dose ladder, a per-visit attendance rate
+# -- it is that patient, and its spread is noise around them. Refusing is the
+# only honest answer, and it is loud rather than a silent pooling the caller
+# never asked for. Shared by every generator that summarizes an arm.
+.require_arms <- function(group, minimum, what) {
+  minimum <- as.integer(minimum)
+  if (!is.finite(minimum) || minimum < 1L) {
+    stop("`min_arm_patients` must be one positive integer.", call. = FALSE)
+  }
+  sizes <- table(group)
+  short <- sizes[sizes < minimum]
+  if (length(short)) {
+    stop("`", what, "` needs at least ", minimum,
+         " patients in every arm. Short: ",
+         paste(sprintf("%s (%d)", names(short), as.integer(short)),
+               collapse = ", "),
+         ". Pool the arm, drop the column from `strata`, or exclude those ",
+         "patients before calling.", call. = FALSE)
+  }
+  invisible(TRUE)
+}

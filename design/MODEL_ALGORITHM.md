@@ -296,8 +296,12 @@ there to show the call, not to produce the object the rest of the document uses.
 
 ## Gates
 
-Conditions under which the function refuses, each of which needs a registry row
-and a test before the code exists.
+Conditions under which the function refuses. Each needs a deterministic test
+before the code exists. Only one needs a registry row: `design/ISSUES.md`
+records defects and findings, and a gate built to this specification is
+neither, so seven near-identical rows would be seven rows nobody reads. The
+exception is the last one, which is a privacy defect if it is ever absent and
+is `REV-042`. The cohort floor's own limitation is `SIM-056`.
 
 | Gate | Threshold | Reason |
 |---|---|---|
@@ -384,20 +388,39 @@ The public-data survey is not in this list. It follows once the demo from
 commit 7 has settled, for the reason in "Where this sits among the three
 generators".
 
-## Open questions
+## Questions settled on 2026-09-01
 
-1. **Goodness of fit as a scorecard row.** The generator is usable only where
-   the selected model describes the source, and nothing currently scores
-   that. A visual predictive check belongs in `model_report()`, but a pass or
-   fail row on the scorecard would put it where a user looks before deciding to
-   use a dataset. The scorecard's row set is a cross-document contract, so this
-   is a change to `avatar-scorecard.Rmd` as well.
-2. **Whether the arm structure should come from the fit or the apparatus.**
-   Dose and arm are currently apparatus, which means a dose-dependent PK
-   nonlinearity in the source is generated away rather than reported. Fitting a
-   dose effect on clearance would catch it, at the cost of a candidate set that
-   is no longer just the five linear models.
-3. **Occasion-varying dosing.** `mavoglurant` resets time within occasion and
-   carries an occasion-varying assigned dose. The apparatus handles it; whether
-   the estimation step should pool occasions or fit them separately is
-   undecided.
+The three questions this document left open were put to the maintainer and
+answered. Two of them are answered "no", and the reason in both cases is the
+same one: this generator is meant to be simple, and a candidate set that grows
+to catch a case is how it stops being.
+
+1. **Goodness of fit as a scorecard row.** Still open as a row, but the shape it
+   would take is now settled, and it is not a shape specific to this generator.
+   There is one scorecard function, `synpmx_scorecard()`, which already does not
+   know what produced the dataset it scores. A row that does not apply to a
+   given generator is marked as not applicable and says so in its result, which
+   is what the card already does for the three rows that need a `pmx_settings`
+   attribute and read `"unavailable"` without one. So a goodness-of-fit row
+   would be a row on the one card, reading not applicable for AVATAR and PCA,
+   rather than a per-generator card. The document follows: `avatar-scorecard.Rmd`
+   becomes a generic scorecard document rather than gaining a sibling. Recorded
+   as `REV-043`, with `REV-040` as the function half; it is not work this
+   generator blocks on.
+
+2. **A dose effect on clearance: no.** The candidate set stays the five linear
+   models in `.pk_models`, and dose and arm stay apparatus. A source with
+   dose-dependent PK is generated as though it were linear, and that is a
+   limitation the documents state rather than a case the candidate set grows to
+   cover. Fitting a dose effect would mean a candidate set that is no longer
+   five closed-form models, which is the boundary the `nlmixr2` section draws
+   and the reason generation needs no solver.
+
+3. **Occasion-varying dosing: no.** Occasions are pooled. Estimation reads the
+   recorded dosing history and the recorded times, and an `occasion` role is not
+   read at all: no occasion-varying parameter is fitted and no per-occasion fit
+   is offered. A dataset like `mavoglurant`, whose clock resets within occasion,
+   is a dataset whose recorded times are already dose-relative, and putting it
+   on a single cumulative axis before calling is the caller's work rather than
+   the function's. This is the same fork as `nominal_time`: a statement about
+   the protocol only the caller can make.

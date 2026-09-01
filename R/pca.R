@@ -370,28 +370,6 @@
   source
 }
 
-# An arm of one or two has no between-subject spread to model: its mean score
-# vector is that patient, and its covariance is noise around them. Refusing is
-# the only honest answer, and it is loud rather than a silent pooling the caller
-# never asked for.
-.pca_require_arms <- function(group, minimum) {
-  minimum <- as.integer(minimum)
-  if (!is.finite(minimum) || minimum < 1L) {
-    stop("`min_arm_patients` must be one positive integer.", call. = FALSE)
-  }
-  sizes <- table(group)
-  short <- sizes[sizes < minimum]
-  if (length(short)) {
-    stop("`synpmx_pca()` needs at least ", minimum,
-         " patients in every arm. Short: ",
-         paste(sprintf("%s (%d)", names(short), as.integer(short)),
-               collapse = ", "),
-         ". Pool the arm, drop the column from `strata`, or exclude those ",
-         "patients before calling.", call. = FALSE)
-  }
-  invisible(TRUE)
-}
-
 #' Summarize a trial into the quantities a synthetic copy is built from
 #'
 #' The only stage that reads patient data. Reduces each subject's trajectories
@@ -500,7 +478,7 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
     rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
     strata_key[rows[1L]]
   }, character(1))
-  .pca_require_arms(subject_group, min_arm_patients)
+  .require_arms(subject_group, min_arm_patients, "synpmx_pca()")
 
   fit <- .pca_fit(features, dose, subject_group, pca_variance, n_components,
                   dose_term)

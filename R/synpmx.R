@@ -206,6 +206,7 @@ synpmx_disable_dp_engines <- function() {
 #' head(syn, 3)
 synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
                          dropout = 0, lloq = NULL, covariates = NULL) {
+  .reject_fitted_model(model, "model", "synpmx_prior()")
   if (!inherits(model, "pmx_structural_model")) {
     stop("`model` must come from `pmx_structural_model()`. To generate from a ",
          "calibrated release, use `synpmx_generate()`.", call. = FALSE)
