@@ -34,15 +34,17 @@ test_that("the same seed generates the same table", {
   expect_equal(a, b)
 })
 
-test_that("no generated subject copies a real subject's values or times", {
+test_that("no generated subject copies a real subject's values", {
   fixture <- pca_fixture(60)
   synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = 3)
-  card <- synpmx_scorecard(fixture$data, synthetic, fixture$roles)
-  copies <- as.data.frame(card)
-  for (check in c("B4a", "B4b")) {
-    row <- copies[copies$check == check, , drop = FALSE]
-    expect_identical(row$verdict, "pass", info = check)
-  }
+  copies <- as.data.frame(synpmx_scorecard(fixture$data, synthetic,
+                                           fixture$roles))
+  expect_identical(copies$verdict[copies$check == "B4b"], "pass")
+  # B4a asks whether a visit set was taken from a real patient, which is not a
+  # question about a generator that decides each visit independently from a
+  # per-arm probability. It reads `not applicable` here rather than reporting a
+  # coincidence rate as though it were a disclosure.
+  expect_identical(copies$verdict[copies$check == "B4a"], "not applicable")
 })
 
 # The guard the owner asked for: a late grid cell held by one or two patients
@@ -657,15 +659,20 @@ test_that("a sparse study's attendance sets can coincide, but its values cannot"
   expect_lt(mean(per_subject), 5)
 
   copies <- vapply(2:5, function(seed) {
-    card <- as.data.frame(synpmx_scorecard(
-      fixture$data, synpmx_pca(fixture$data, fixture$roles, seed = seed),
-      fixture$roles
-    ))
-    c(time = as.numeric(card$result[card$check == "B4a"]),
+    synthetic <- synpmx_pca(fixture$data, fixture$roles, seed = seed)
+    card <- as.data.frame(synpmx_scorecard(fixture$data, synthetic,
+                                           fixture$roles))
+    # The attendance coincidence is measured directly. The scorecard no longer
+    # reports it: B4a reads `not applicable` for a generator that draws each
+    # visit, because a coincidence there is a coincidence and the row was
+    # tracking the width of the study's grid rather than any disclosure.
+    c(time = .scorecard_copies(fixture$data, synthetic, fixture$roles,
+                               fixture$roles$time, 2L),
       dv = as.numeric(card$result[card$check == "B4b"]))
   }, numeric(2))
 
-  # The finding: the time-vector copy is not hypothetical on a sparse study.
+  # The finding stands, and is the reason `SIM-055` exists: on a sparse study a
+  # drawn attendance set does land on one a single real patient held.
   expect_true(any(copies["time", ] > 0))
   # The guarantee that does hold: no generated subject reproduces a real
   # patient's measured values, on any seed. This is the row to watch.

@@ -133,7 +133,7 @@
                               n_source, cells = NULL, pd = list(),
                               covariate_effects = list(), covariates = list(),
                               discrete = list(), design = NULL,
-                              correlations = NULL) {
+                              correlations = NULL, censoring = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -188,7 +188,8 @@
     covariates = covariates,
     discrete = discrete,
     design = design,
-    correlations = correlations
+    correlations = correlations,
+    censoring = censoring
   ), class = "pmx_fitted_model")
 }
 
@@ -240,6 +241,7 @@ model_report <- function(fitted_model) {
     parameters = fitted_model$parameters,
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
+    censoring = fitted_model$censoring,
     pd = fitted_model$pd,
     arms = fitted_model$arms,
     dosing = fitted_model$dosing,
@@ -276,6 +278,18 @@ print.pmx_model_report <- function(x, ...) {
         paste(sprintf("%s: %s", names(x$pd),
                       vapply(x$pd, function(s) s$pd, character(1))),
               collapse = ", "), "\n")
+  }
+
+  # The assay limit is reported with the fit rather than left in the schema,
+  # because how much of an endpoint sits below it is how much of the fit is a
+  # statement about the imputation rather than about measurements.
+  if (!is.null(x$censoring) && any(x$censoring$imputed > 0)) {
+    cat("  below the limit  ",
+        paste(sprintf("%s %d of %d (%.0f%%) imputed below %.4g",
+                      x$censoring$endpoint, x$censoring$imputed,
+                      x$censoring$observations, 100 * x$censoring$fraction,
+                      x$censoring$limit)[x$censoring$imputed > 0],
+              collapse = "; "), "\n")
   }
 
   cat("\nSummarized from the source, not estimated\n")

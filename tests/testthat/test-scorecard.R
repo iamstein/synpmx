@@ -462,3 +462,39 @@ test_that("the datatable says so and prints the card when DT is missing", {
   expect_s3_class(result, "synpmx_scorecard")
   expect_true(any(grepl("verdict", printed)))
 })
+
+test_that("B4a is not applicable where attendance is drawn per visit", {
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  synthetic <- synpmx_pca(data, roles, seed = 3)
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  b4a <- card[card$check == "B4a", ]
+  expect_identical(b4a$verdict, "not applicable")
+  expect_match(b4a$result, "drawn per visit")
+  # B4b is the row that answers the disclosure question, and it is untouched.
+  expect_true(card$verdict[card$check == "B4b"] %in% c("pass", "FAIL"))
+})
+
+test_that("B4a is still computed where attendance is copied from donors", {
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "DVID")
+  synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  expect_false(card$verdict[card$check == "B4a"] == "not applicable")
+})
+
+test_that("a table with no source attribute is measured the AVATAR way", {
+  # Through `write.csv()` the attribute is gone, and the row falls back rather
+  # than silently reading `not applicable` on a table nothing is known about.
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  synthetic <- synpmx_pca(data, roles, seed = 3)
+  attr(synthetic, "pmx_source") <- NULL
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  expect_false(card$verdict[card$check == "B4a"] == "not applicable")
+})

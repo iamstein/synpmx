@@ -456,6 +456,43 @@
   data
 }
 
+# What the assay limit cost, per endpoint.
+#
+# Values below the limit are imputed before anything is fitted -- a uniform draw
+# inside the censoring region rather than a fixed LLOQ/2, which would replace one
+# artificial spike with another -- and the boundary is put back at emit. That is
+# the intended behaviour and not a shortcut around the M3 likelihood: the same
+# imputation is what lets the apparatus, the PD shapes and the covariate model
+# read a latent value rather than a stack of identical boundary substitutions.
+#
+# It is an assumption all the same, and its weight is the share of the endpoint
+# that carries it, so that share is measured here and reported with the fit. A
+# study whose concentrations are 46% below the limit is a study whose fitted
+# parameters are substantially a statement about the draw.
+.model_censoring_summary <- function(source, roles, endpoints) {
+  if (is.null(roles$cens)) return(NULL)
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoint <- .endpoint(source, roles)
+  cens <- suppressWarnings(as.numeric(as.character(source[[roles$cens]])))
+  dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  rows <- lapply(endpoints, function(name) {
+    at <- observed & endpoint == name
+    if (!any(at)) return(NULL)
+    censored <- at & is.finite(cens) & cens != 0
+    data.frame(
+      endpoint = name, observations = sum(at), imputed = sum(censored),
+      fraction = sum(censored) / sum(at),
+      limit = if (any(censored)) stats::median(dv[censored]) else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  })
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (!length(rows)) return(NULL)
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 #' Estimate a population model from a trial
 #'
 #' The only stage that reads patient data, and the only one that needs
@@ -640,7 +677,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     cells = cells, pd = pd_fits, covariate_effects = effects,
     covariates = .covariate_model(source, roles, subject_group),
     discrete = .discrete_model(source, roles, cells, subject_group),
-    design = design, correlations = correlations
+    design = design, correlations = correlations,
+    censoring = .model_censoring_summary(censoring_source, roles, fittable)
   )
 }
 

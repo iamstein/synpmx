@@ -54,6 +54,15 @@
 # card holding sixteen rows on one table and nineteen on another cannot be
 # compared, and "not measured" is a different statement from "passed". `result`
 # and `ok` are evaluated only when the record exists.
+# Whether this output's visit sets were drawn rather than copied. Read from the
+# attribute the generator writes, because nothing in the finished table
+# distinguishes a drawn attendance set from a reused one -- both are subsets of
+# the same declared grid. A table with no attribute, this package's own included
+# once it has been through `write.csv()`, is measured the old way.
+.scorecard_draws_attendance <- function(synthetic) {
+  isTRUE(attr(synthetic, "pmx_source") %in% c("pca", "model"))
+}
+
 .scorecard_recorded <- function(check, question, settings, result, explore,
                                 ok) {
   if (is.null(settings)) {
@@ -463,12 +472,44 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
       "compare_pmx_proximity(source, synthetic, roles)",
       .scorecard_proximity_ok(proximity)
     ),
-    .scorecard_row(
-      "B4a", "Generated time vectors copying an exposed real one", "both",
-      time_copies,
-      "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
-      time_copies == 0L
-    ),
+    # B4a does not apply to a generator that draws attendance per visit, and
+    # saying so is more honest than reporting a number that means nothing.
+    #
+    # The row asks whether a generated subject holds a visit set that fewer than
+    # two real patients held. That is a disclosure question only where the set
+    # was taken from somebody: `synpmx_avatar()` reuses a donor's attendance
+    # pattern, so a match there is a match. `synpmx_pca()` and `synpmx_model()`
+    # decide each visit independently from a per-arm probability, onto a grid
+    # the caller declared, so a match is a coincidence with a computable chance
+    # of happening -- and it does happen. Three measurements, all on 2026-09-01:
+    #
+    #   - Of the source's own visit sets, the share held by exactly one patient
+    #     is 93% on `warfarin`, 83% on `wbcSim`, and 100% on `theo_sd` and
+    #     `theo_md`. A threshold that selects nearly the whole source is not
+    #     selecting anything.
+    #   - Over 200 seeds on `warfarin`, `synpmx_model()` reproduces a mean of
+    #     1.26 such sets and fires on 83% of them. The count is the chance rate.
+    #   - Jittering the source's recorded times by a few minutes, which changes
+    #     no synthetic value and no privacy property, takes the row from 2 to 0.
+    #     The verdict tracks whether a study rounded its visit times.
+    #
+    # B4b is the row that answers the disclosure question for these generators,
+    # and it reads 0: no value any patient measured is reproduced.
+    if (.scorecard_draws_attendance(synthetic)) {
+      .scorecard_row(
+        "B4a", "Generated time vectors copying an exposed real one", "both",
+        "not applicable: attendance drawn per visit",
+        "compare_pmx_proximity(source, synthetic, roles)",
+        verdict = "not applicable"
+      )
+    } else {
+      .scorecard_row(
+        "B4a", "Generated time vectors copying an exposed real one", "both",
+        time_copies,
+        "skeleton_uniqueness(source, roles, coarsen_time = TRUE)",
+        time_copies == 0L
+      )
+    },
     # No function finds *which* vector was copied, so the pointer is the one
     # that measures the thing a copy is the extreme case of: whether generated
     # values sit closer to real ones than real ones sit to each other.
@@ -712,7 +753,11 @@ print.synpmx_scorecard <- function(x, ...) {
   }
 
   failed <- sum(plain$verdict == "FAIL")
-  unavailable <- sum(plain$verdict == "unavailable")
+  # "unavailable" and "not applicable" are both unanswered, and for a reader
+  # counting rows that is the thing that matters. They differ in why: one row
+  # could not be answered on this table, the other asks nothing of this
+  # generator.
+  unavailable <- sum(plain$verdict %in% c("unavailable", "not applicable"))
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
       sum(plain$verdict == "review"), " to review",
       # Said in the count line, not only in the rows: three rows quietly not
@@ -753,7 +798,8 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 # at this size, and the card is read, not glanced at. Grey says "nothing was
 # measured here", which is a quieter statement than either.
 .scorecard_verdict_colours <- c(FAIL = "#B00020", review = "#B45309",
-                                unavailable = "#6C757D")
+                                unavailable = "#6C757D",
+                                `not applicable` = "#6C757D")
 
 # The tints behind those two. Pale enough that the bold text on top stays the
 # thing being read -- both clear 7:1 against their own foreground -- and pale
@@ -766,8 +812,8 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #'
 #' Displays a [synpmx_scorecard()] as an interactive table with the verdicts
 #' coloured: `"FAIL"` in bold red on a light red, `"review"` in bold orange on
-#' a light orange, `"unavailable"` in muted grey, and `"pass"` left as ordinary
-#' text. A card is five verdicts among thirty-odd rows of prose, and the rows
+#' a light orange, `"unavailable"` and `"not applicable"` in muted grey, and
+#' `"pass"` left as ordinary text. A card is five verdicts among thirty-odd rows of prose, and the rows
 #' that need reading are the ones that have to be findable without reading all
 #' of it.
 #'

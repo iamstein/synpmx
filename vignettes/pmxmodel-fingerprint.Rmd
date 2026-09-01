@@ -196,6 +196,24 @@ Additive here rather than proportional, because `warfarin` holds concentrations
 recorded as zero and a proportional error on zero is zero. The substitution is
 recorded on the object rather than being silent.
 
+## What the assay limit cost
+
+Values below the limit are imputed before anything is fitted, and the boundary
+is put back when data is generated. That is the intended behaviour — it is what
+lets every part of the fingerprint read a latent value rather than a stack of
+identical boundary substitutions — but it is an assumption, and its weight is
+the share of each endpoint carrying it.
+
+```{r censoring, eval=run}
+fit$censoring
+```
+
+`warfarin` declares no censoring, so nothing here was imputed. On a study where
+it is, this is the line to read before trusting the concentrations:
+`xgxr::case1_pkpd` has 46% of its concentrations below the limit and 95% of the
+lowest dose arm, and there the fitted parameters are substantially a statement
+about the draw.
+
 ## The covariate effects
 
 ```{r covariates, eval=run}
