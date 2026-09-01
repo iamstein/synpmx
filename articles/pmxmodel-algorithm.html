@@ -368,6 +368,17 @@ every structural parameter and a proportional residual error. An
 endpoint holding values at or below zero after censoring is handled gets
 an additive error instead, and the substitution is recorded on the
 fit.</p>
+<p><strong>Censored observations are imputed, not fitted as censored,
+and on a heavily censored study that shows.</strong> A value below the
+assay limit is replaced by a draw from inside the censoring region and
+handed to the fitter as though it were a measurement. The M3 likelihood,
+which would treat it as the censored observation it is, is not wired up.
+On <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code>, where 46% of concentrations are below
+the limit and 95% are in the lowest dose arm, the fit converges and the
+output is a legal dataset but the generated concentrations run about
+half the source’s — while the uncensored PD endpoint on the same study
+matches closely. Read the censored fraction of your own study before
+trusting the concentrations.</p>
 <p>Starting values come from a non-compartmental reading of the source
 rather than from a guess. A population fit started far from the answer
 either converges slowly or reports the starting values back.</p>
