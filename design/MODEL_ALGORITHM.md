@@ -62,7 +62,7 @@ document assumes the answers.
 | Question | Answer |
 |---|---|
 | What happens to endpoints that are not fittable PK | PK is fitted, the simple pharmacodynamic (PD) time-course shapes are fitted, and everything else — dose reductions, interrupted and missed cycles, discontinuation, visit attendance, covariates, censoring — comes from the models the PCA generator already builds |
-| Who picks among candidate models | Automatic on Akaike information criterion (AIC), with a `pk` argument that forces one and skips the search |
+| Who picks among candidate models | Superseded on 2026-09-01: one model is fitted, chosen by the design detection. `pk` forces a model, or names several to search over them on AIC. |
 | Where the `nlmixr2` dependency sits | Estimation only. Generation runs on base R, from a stored fit |
 
 ## The API
@@ -86,13 +86,20 @@ Arguments beyond the roles and the seed:
 
 | Argument | Default | Effect |
 |---|---|---|
-| `pk` | `NULL` | One of the five built-in models. Skips the search. |
+| `pk` | `NULL` | One of the five built-in models, forcing it; or several, which is how a search is asked for. |
 | `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
 | `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. |
-| `covariate_effects` | `"auto"` | `"auto"`, `"none"`, or a named list of parameter/covariate pairs. |
+| `covariate_effects` | `"auto"` | `"auto"` applies allometric scaling where a weight-like covariate is declared; `"none"` fits nothing. |
 | `min_subjects` | `20L` | Refuse below this cohort size. |
 | `min_arm_patients` | `3L` | Refuse below this many patients in any arm, as `synpmx_pca_summarize()` does. |
-| `estimation` | `"saem"` | Passed to `nlmixr2`, with `"focei"` as the documented fallback. |
+| `min_time_bins` | `6L` | Refuse below this many distinct nominal times after a dose. |
+| `estimation` | `"focei"` | Passed to `nlmixr2`. |
+
+**The default path performs exactly one population fit.** That is the design
+point, decided by the maintainer on 2026-09-01 after the profiling below, and
+the arguments above are the ways to spend more time for more accuracy. A search
+costs one fit per candidate; testing allometry against AIC cost another. Neither
+happens unless asked for.
 
 ## Step 1: Classify the Endpoints
 
@@ -402,9 +409,43 @@ Five things, each found by running the algorithm rather than by reading it.
    dose. The before-peak requirement now applies only where there is an
    ascending limb to sample.
 
+   It no longer gates anything. **Owner decision, 2026-09-01: the default
+   candidate set is one-compartment only, with `pk = "2cmt_oral"` or
+   `pk = "2cmt_iv"` available for a caller who wants otherwise.** A distribution
+   phase is a refinement of a shape the one-compartment model already has, and
+   this generator exists to make profiles resemble a study rather than to
+   characterise it. Measured on a thirty-subject oral study: 49 s against 12 s,
+   for a worse AIC on data a one-compartment model describes. The richness count
+   is still computed and `model_report()` says when the sampling would support
+   a two-compartment model, so asking for one is informed.
+
 5. **`integer` endpoints are fittable.** The design said continuous. `warfarin`'s
    prothrombin activity is typed `integer` and is a continuous quantity that was
    rounded, which is what `.snap_endpoint_values()` puts back at emit.
+
+6. **The default is one fit, not a search.** The design assumed a candidate set
+   pruned by the design detection and compared on AIC, plus a second fit to test
+   allometric scaling. Measured on a thirty-subject oral study, that was 65 s
+   for the search and 18 s for the allometry test. **Owner decision,
+   2026-09-01: fit one model, assume allometric scaling with fixed exponents
+   where a weight is available, and stop.** The whole call is now 11 s, and
+   `pk` takes a vector so a caller who wants a comparison can have one without a
+   new argument. Selection on AIC survives for that case.
+
+   The three PD shapes were never part of the cost: they are least squares in
+   base R and take no measurable time. The one compiled fit in a call is the PK
+   one.
+
+7. **The starting values are a proper non-compartmental reading.** The design
+   said "read off the data" and the first implementation took that too loosely:
+   clearance from a trapezoid with no extrapolation, and volume as dose over the
+   peak, which is not a volume of any kind for an oral dose. Now the terminal
+   slope is fitted by log-linear regression, the area is extrapolated to
+   infinity, volume is clearance over the slope, and absorption is solved from
+   the peak position. Raised by the maintainer on 2026-09-01 while looking at
+   why the two-compartment fits were slow. It improved the estimates and took
+   17% off that fit -- not enough to save it, which is what decided the point
+   above, and the measurement is the reason the decision is not a guess.
 
 Two more things the design did not anticipate. The PD shapes are fitted by
 least squares rather than through `nlmixr2`, because they are three-parameter

@@ -53,7 +53,9 @@ test_that("a one-endpoint oral study is classified and its route detected", {
   design <- .model_detect_design(data, roles, obs, classified$pk)
   expect_identical(design$route, "oral")
   expect_true(design$richness$rich)
-  expect_setequal(design$candidates, c("1cmt_oral", "2cmt_oral"))
+  # One compartment is the whole default set even where the sampling would
+  # support a distribution phase; `pk = "2cmt_oral"` is how you ask for one.
+  expect_identical(design$candidates, "1cmt_oral")
 })
 
 test_that("a sample at the moment of the dose makes it intravenous", {
@@ -63,7 +65,7 @@ test_that("a sample at the moment of the dose makes it intravenous", {
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$route, "iv")
-  expect_setequal(design$candidates, c("1cmt_iv", "2cmt_iv"))
+  expect_identical(design$candidates, "1cmt_iv")
 })
 
 test_that("a declared rate makes it an infusion, with no search over routes", {
@@ -77,13 +79,26 @@ test_that("a declared rate makes it an infusion, with no search over routes", {
   expect_match(design$reason, "rate")
 })
 
-test_that("a study sampled only at troughs offers no two-compartment model", {
+test_that("a study sampled only at troughs would not support two compartments", {
   data <- .pk_fixture(times = c(12, 24))
   roles <- .design_roles()
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_false(design$richness$rich)
-  expect_false(any(grepl("^2cmt", design$candidates)))
+})
+
+test_that("no design offers a two-compartment candidate on its own", {
+  # The candidate set is one-compartment whatever the sampling shows. A
+  # distribution phase is a refinement of a shape the one-compartment model
+  # already has, and fitting for it costs five times as long.
+  for (times in list(c(0.25, 0.5, 1, 2, 4, 8, 12, 24), c(12, 24),
+                     c(0, 0.5, 1, 2, 4, 8, 12, 24))) {
+    data <- .pk_fixture(times = times)
+    roles <- .design_roles()
+    obs <- .model_observations(data, roles)
+    design <- .model_detect_design(data, roles, obs, "cp")
+    expect_false(any(grepl("^2cmt", design$candidates)))
+  }
 })
 
 test_that("a study nobody samples early enough offers both routes", {
@@ -98,7 +113,7 @@ test_that("a study nobody samples early enough offers both routes", {
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$route, "both")
-  expect_true(all(c("1cmt_iv", "1cmt_oral") %in% design$candidates))
+  expect_setequal(design$candidates, c("1cmt_iv", "1cmt_oral"))
   expect_match(design$reason, "declines from its first sample")
 })
 

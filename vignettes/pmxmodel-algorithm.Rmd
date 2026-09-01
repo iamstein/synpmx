@@ -181,20 +181,40 @@ model_report(fit)$design$reason
 
 ### Sampling richness
 
-Two counts, one per subject and one across the cohort.
-
-**Per subject**, distinct nominal times after a dose within the richest dose
-interval. At four or more, with two after the median peak, the two-compartment
-candidates are offered. Below that they are not: a distribution phase cannot be
-identified from troughs, and a two-compartment model fitted to troughs will
-report a `q` and a `v2` that mean nothing. A sample *before* the peak is required
-only where there is an ascending limb to sample — an intravenous bolus peaks at
-the dose, and asking for a sample before it would refuse every such study a
-distribution phase.
-
 **Across the cohort**, distinct nominal times after a dose holding an
 observation. Below six, no model is offered and the function errors, pointing at
 `synpmx_avatar()` and `synpmx_pca()`, which need no identifiable structure.
+
+**Per subject**, distinct nominal times after a dose within the richest dose
+interval. Four or more, with two after the median peak, is enough to identify a
+distribution phase. A sample *before* the peak is required only where there is
+an ascending limb to sample — an intravenous bolus peaks at the dose, and asking
+for a sample before it would refuse every such study.
+
+This count decides nothing. It is reported, and `model_report()` says so when
+the sampling would support a two-compartment model, because asking for one is
+your move rather than the search's.
+
+### One compartment, and one fit
+
+The default is one-compartment: `1cmt_iv`, `1cmt_oral` or `1cmt_infusion`. Where
+the route is ambiguous both are fitted and AIC chooses, which is the only case
+the default runs more than one fit.
+
+A distribution phase is a refinement of a shape the one-compartment model
+already has, and this generator exists to make simulated profiles resemble the
+source study rather than to characterise it. The cost is not small. On a
+thirty-subject oral study a two-compartment fit takes 49 seconds against 12 for
+a one-compartment one, and on data a one-compartment model describes it spends
+that time against a flat likelihood and reports the worse AIC anyway.
+
+Better starting values shorten it but do not rescue it — the same fit from
+non-compartmental starts ran 49 seconds against 60 from cruder ones, which is a
+17% saving on a fit that is five times too slow.
+
+**It remains available.** `pk = "2cmt_oral"` or `pk = "2cmt_iv"` forces the
+model and skips the search, and the generator simulates from it exactly as it
+does from any other — the closed-form solution is already there.
 
 ## Step 3: Estimate the candidates
 
@@ -210,12 +230,44 @@ structural parameter and a proportional residual error. An endpoint holding
 values at or below zero after censoring is handled gets an additive error
 instead, and the substitution is recorded on the fit.
 
-Starting values are read off the data rather than guessed — volume from the
-peak, clearance from the area under the curve, absorption from where the peak
-falls. A population fit started far from the answer either converges slowly or
-reports the starting values back.
+Starting values come from a non-compartmental reading of the source rather than
+from a guess. A population fit started far from the answer either converges
+slowly or reports the starting values back.
 
-**Selection is on AIC**, and the estimation method is `focei` for that reason.
+The terminal slope is fitted by log-linear regression over the points after the
+peak, and everything leans on it. Clearance is the dose over the area
+**extrapolated to infinity**, not over the trapezoid alone, which on a study
+sampled to four half-lives understates the area by about a tenth and overstates
+clearance by the same. Volume is clearance over the terminal slope, which is the
+quantity the terminal phase identifies — dose over the peak is not a volume of
+any kind for an oral dose. Absorption is solved from where the peak falls: for a
+one-compartment oral model the peak sits at `log(ka/ke)/(ka - ke)`, one equation
+in one unknown once the slope has given `ke`.
+
+Where a two-compartment model is asked for, the steady-state volume comes from
+the mean residence time, with the absorption mean taken back off for an oral
+dose, and is split between the central and peripheral compartments.
+
+**The default fits one model and stops.** Not a search that happens to have one
+candidate: one model, chosen by the route detection above, with allometric
+scaling folded into it where a weight-like covariate is declared. A whole
+`synpmx_model_estimate()` call on a thirty-subject study takes about eleven
+seconds, and every part of that is the one fit.
+
+`pk` is how you buy accuracy with time. Naming one model forces it; naming
+several searches over them and picks on AIC.
+
+```r
+# One fit, the default.
+synpmx_model_estimate(data, roles)
+# One fit, your choice of model.
+synpmx_model_estimate(data, roles, pk = "2cmt_oral")
+# Two fits, compared on AIC.
+synpmx_model_estimate(data, roles, pk = c("1cmt_oral", "2cmt_oral"))
+```
+
+**Where there is a search, selection is on AIC**, and the estimation method is
+`focei` for that reason.
 SAEM's log-likelihood is a Gaussian-quadrature step run after the fit, and at
 phase 1 cohort sizes it returns a non-finite value: `theo_sd` fits perfectly well
 under SAEM — clearance 2.75, volume 32.3, absorption 1.51, the textbook values —
@@ -235,11 +287,18 @@ model_candidates(fit)
 
 ### Covariates
 
-The default `"auto"` fits allometric scaling on clearance and volume where a
-weight-like covariate is declared, keeps it where it improves AIC, and fits
-nothing else. The exponents are the standard 0.75 and 1 rather than estimated
-ones: this is a shape that makes a synthetic cohort's spread look right, not a
-covariate analysis. Everything beyond that is off.
+The default `"auto"` applies allometric scaling on clearance and volume where a
+weight-like covariate is declared, and fits nothing else. The exponents are the
+standard 0.75 and 1 rather than estimated ones, and the effect is **asserted
+rather than tested**: it is folded into the one fit, not compared against a
+model without it. Testing it would double the cost of the whole call, and
+allometry on a body weight is a shape this generator assumes rather than a
+hypothesis it examines. `covariate_effects = "none"` switches it off.
+
+The covariate is recognised by name — `wt`, `weight`, `bw` and the like — and
+must be numeric and positive. There is no way to recognise a body weight from
+its values alone, and guessing from a distribution would be worse than not
+guessing.
 
 **The cost of this default is explicit.** A covariate that influences the real
 profiles and is not in the model is generated independently of them, so the
@@ -253,10 +312,14 @@ random effects, which is where an unmodelled relationship shows up.
 
 Every remaining continuous endpoint is fitted against a constant, a linear and
 an exponential time course and selected on AIC, with between-subject variability
-on the baseline. These are fitted by least squares rather than through
-`nlmixr2`: they are three-parameter curves on one endpoint, the fit is well
-conditioned, and routing them through a population fitter would put a compiler in
-the path of every PD endpoint for no gain in what the generator then draws.
+on the baseline.
+
+All three are fitted by least squares rather than through `nlmixr2`, so all
+three together cost no measurable time — they are three-parameter curves on one
+endpoint, the fit is well conditioned, and routing them through a population
+fitter would put a compiler in the path of every PD endpoint for no gain in what
+the generator then draws. **The one compiled fit in the whole call is the PK
+one.**
 
 **These shapes have no exposure dependence.** A PD endpoint driven by
 concentration is reproduced as a time course that happens to resemble the average

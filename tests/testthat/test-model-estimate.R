@@ -58,8 +58,10 @@ skip_without_fitter <- function() {
   out
 }
 
-# Fitting is slow -- every candidate compiles -- so the fits the tests share are
-# built once and reused. A test that needs its own fit says so by building one.
+# The default path performs exactly one population fit, which is the design
+# point rather than an accident: a search costs a fit per candidate and testing
+# allometry against AIC costs another. Fits are still slow enough that the ones
+# the tests share are built once and reused.
 .shared <- local({
   cache <- list()
   function(name, expression) {
@@ -68,15 +70,23 @@ skip_without_fitter <- function() {
   }
 })
 
-.searched_fit <- function() {
-  .shared("searched", synpmx_model_estimate(.oral_study(), .estimate_roles(),
-                                            quiet = TRUE,
-                                            covariate_effects = "none"))
+.default_fit <- function() {
+  .shared("default", synpmx_model_estimate(.oral_study(), .estimate_roles(),
+                                           quiet = TRUE,
+                                           covariate_effects = "none"))
 }
 
-test_that("the search recovers the model and parameters it was simulated from", {
+test_that("the default fits one model and no more", {
   skip_without_fitter()
-  fit <- .searched_fit()
+  # One row, because one model was fitted. Not a search that happened to have
+  # one candidate: `pk` is what asks for a search.
+  expect_identical(nrow(model_candidates(.default_fit())), 1L)
+  expect_true(model_candidates(.default_fit())$converged)
+})
+
+test_that("the fit recovers the model and parameters it was simulated from", {
+  skip_without_fitter()
+  fit <- .default_fit()
   expect_s3_class(fit, "pmx_fitted_model")
   expect_identical(fit$structural, "1cmt_oral")
   expect_equal(unname(fit$parameters$fixed[["cl"]]), 4, tolerance = 0.3)
@@ -84,9 +94,9 @@ test_that("the search recovers the model and parameters it was simulated from", 
   expect_identical(fit$endpoints$pk, "cp")
 })
 
-test_that("every candidate the design admitted is in the table, converged or not", {
+test_that("every model fitted is in the table, converged or not", {
   skip_without_fitter()
-  fit <- .searched_fit()
+  fit <- .default_fit()
   table <- model_candidates(fit)
   expect_true(all(c("model", "converged", "aic", "note") %in% names(table)))
   expect_true(nrow(table) >= 1L)
@@ -97,14 +107,39 @@ test_that("every candidate the design admitted is in the table, converged or not
   expect_identical(fit$structural, table$model[which.min(table$aic)])
 })
 
-test_that("`pk` forces a model and skips the search", {
+test_that("`pk` naming several models is how a search is asked for", {
+  skip_without_fitter()
+  fit <- synpmx_model_estimate(.oral_study(), .estimate_roles(),
+                               pk = c("1cmt_oral", "1cmt_iv"), quiet = TRUE,
+                               covariate_effects = "none")
+  expect_identical(nrow(model_candidates(fit)), 2L)
+  expect_match(fit$design$reason, "searched over")
+  expect_identical(fit$structural,
+                   model_candidates(fit)$model[which.min(model_candidates(fit)$aic)])
+})
+
+test_that("`pk` forces one model", {
   skip_without_fitter()
   data <- .oral_study()
-  fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "1cmt_oral",
+  fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "1cmt_iv",
                                quiet = TRUE, covariate_effects = "none")
-  expect_identical(fit$structural, "1cmt_oral")
+  expect_identical(fit$structural, "1cmt_iv")
   expect_identical(nrow(model_candidates(fit)), 1L)
   expect_match(fit$design$reason, "declared")
+})
+
+test_that("a two-compartment model is available by asking for it", {
+  skip_without_fitter()
+  data <- .oral_study()
+  # Not fitted by default -- it costs about five times a one-compartment fit --
+  # but nothing stops a caller who wants one.
+  expect_false("2cmt_oral" %in% .default_fit()$candidates$model)
+  fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "2cmt_oral",
+                               quiet = TRUE, covariate_effects = "none")
+  expect_identical(fit$structural, "2cmt_oral")
+  expect_true(all(c("q", "v2") %in% names(fit$parameters$fixed)))
+  synthetic <- synpmx_model_generate(fit, n_subjects = 10, seed = 2)
+  expect_true(validate_pmx(synthetic, .estimate_roles())$valid)
 })
 
 test_that("`pk` naming a model outside the closed-form set is refused", {
@@ -112,26 +147,35 @@ test_that("`pk` naming a model outside the closed-form set is refused", {
   expect_error(
     synpmx_model_estimate(data, .estimate_roles(), pk = "3cmt_oral",
                           quiet = TRUE),
-    "should be one of"
+    "outside the closed-form set"
   )
 })
 
-test_that("allometric scaling is kept only where it improves AIC", {
+test_that("allometric scaling is asserted, not tested, and costs no extra fit", {
   skip_without_fitter()
   auto <- .shared("auto", synpmx_model_estimate(
-    .oral_study(), .estimate_roles(covariates = "WT"), pk = "1cmt_oral",
-    quiet = TRUE, covariate_effects = "auto"))
-  none <- .searched_fit()
-  expect_length(none$covariate_effects, 0L)
-  # Weight is simulated independent of clearance here, so allometry should not
-  # earn its two parameters. Either answer is legitimate; what must hold is that
-  # the effect is recorded when it is kept and absent when it is not.
-  if (length(auto$covariate_effects)) {
-    expect_identical(auto$covariate_effects$cl$covariate, "WT")
-    expect_equal(auto$covariate_effects$cl$exponent, 0.75)
-  } else {
-    expect_identical(auto$structural, none$structural)
-  }
+    .oral_study(), .estimate_roles(covariates = "WT"), quiet = TRUE,
+    covariate_effects = "auto"))
+  # Applied because a weight-like covariate is declared, with the standard
+  # exponents. Testing it against a model without it would double the cost of
+  # the only fit the default path performs.
+  expect_identical(auto$covariate_effects$cl$covariate, "WT")
+  expect_equal(auto$covariate_effects$cl$exponent, 0.75)
+  expect_equal(auto$covariate_effects$v$exponent, 1)
+  expect_identical(nrow(model_candidates(auto)), 1L)
+  expect_length(.default_fit()$covariate_effects, 0L)
+})
+
+test_that("no weight-like covariate means no scaling, and still one fit", {
+  skip_without_fitter()
+  # `AGE` is declared and positive but is not a weight, and nothing here tries
+  # to recognise a body weight from its values.
+  data <- .oral_study()
+  data$AGE <- 40
+  fit <- synpmx_model_estimate(data, .estimate_roles(covariates = "AGE"),
+                               quiet = TRUE)
+  expect_length(fit$covariate_effects, 0L)
+  expect_identical(nrow(model_candidates(fit)), 1L)
 })
 
 test_that("covariate_effects only takes the two documented values", {
@@ -146,8 +190,8 @@ test_that("covariate_effects only takes the two documented values", {
 test_that("the fitted model carries no per-subject quantity", {
   skip_without_fitter()
   fit <- .shared("auto", synpmx_model_estimate(
-    .oral_study(), .estimate_roles(covariates = "WT"), pk = "1cmt_oral",
-    quiet = TRUE, covariate_effects = "auto"))
+    .oral_study(), .estimate_roles(covariates = "WT"), quiet = TRUE,
+    covariate_effects = "auto"))
   expect_null(fit$parameters$etas)
   expect_false(any(grepl("eta", names(fit$parameters))))
   # The random effects are read to report a correlation and then discarded.
@@ -164,7 +208,7 @@ test_that("estimation reads recorded times, not the nominal grid", {
                                quiet = TRUE, covariate_effects = "none")
   # Doubling the recorded clock halves the apparent elimination rate. Had the
   # fit read `NTIME` the estimate would not move.
-  expect_lt(fit$parameters$fixed[["cl"]], .searched_fit()$parameters$fixed[["cl"]])
+  expect_lt(fit$parameters$fixed[["cl"]], .default_fit()$parameters$fixed[["cl"]])
 })
 
 test_that("a whole study round-trips through estimate and generate", {
@@ -184,7 +228,7 @@ test_that("a whole study round-trips through estimate and generate", {
 
 test_that("the accessors return what the object holds and nothing else", {
   skip_without_fitter()
-  fit <- .searched_fit()
+  fit <- .default_fit()
   expect_setequal(names(model_parameters(fit)),
                   c("fixed", "omega", "residual"))
   expect_s3_class(model_report(fit), "pmx_model_report")

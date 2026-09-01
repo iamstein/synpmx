@@ -299,7 +299,19 @@ print.pmx_model_report <- function(x, ...) {
   if (!is.null(x$endpoints$signals)) {
     print(x$endpoints$signals, row.names = FALSE)
   }
-  if (!is.null(x$design)) cat("  design            ", x$design$reason, "\n")
+  if (!is.null(x$design)) {
+    cat("  design            ", x$design$reason, "\n")
+    # The candidate set is one-compartment. Where the sampling would support a
+    # distribution phase, say so, because asking for it is the caller's move.
+    if (isTRUE(x$design$richness$rich) && !grepl("^2cmt", x$structural)) {
+      cat("  also available    ",
+          sprintf("the sampling would support a two-compartment model (%s): ask for it with `pk = \"2cmt_%s\"`",
+                  sprintf("median %g distinct times after a dose, %g after the peak",
+                          x$design$richness$per_subject,
+                          x$design$richness$after_peak),
+                  if (grepl("oral", x$structural)) "oral" else "iv"), "\n")
+    }
+  }
 
   # The correlations an unmodelled covariate relationship shows up in. A
   # covariate that influences the real profiles and is not in the model is

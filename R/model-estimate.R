@@ -6,11 +6,77 @@
 # simulate would be a model that fits and then generates nothing, so the two
 # lists are one list.
 
+# Non-compartmental analysis, per subject, on recorded times.
+#
+# The terminal slope is the quantity everything else leans on. It is fitted by
+# log-linear regression over the points after the peak -- at least three of
+# them, all positive -- which is the standard reading and the only one that lets
+# the area be extrapolated past the last sample.
+.model_nca_subject <- function(part) {
+  part <- part[order(part$actual_tad), , drop = FALSE]
+  part <- part[is.finite(part$actual_tad) & is.finite(part$dv), , drop = FALSE]
+  empty <- list(cmax = NA_real_, tmax = NA_real_, auc = NA_real_,
+                aumc = NA_real_, lambda_z = NA_real_)
+  if (nrow(part) < 3L) return(empty)
+  time <- part$actual_tad
+  value <- part$dv
+  peak <- which.max(value)
+
+  width <- diff(time)
+  auc <- sum(width * (utils::head(value, -1L) + utils::tail(value, -1L)) / 2)
+  aumc <- sum(width * (utils::head(time * value, -1L) +
+                         utils::tail(time * value, -1L)) / 2)
+
+  # The terminal phase: everything from the peak on, positive, and at least
+  # three points. A slope that comes out non-negative is not a terminal phase
+  # and is discarded rather than used.
+  terminal <- seq(peak, length(value))
+  terminal <- terminal[value[terminal] > 0]
+  lambda_z <- NA_real_
+  if (length(terminal) >= 3L) {
+    slope <- stats::coef(stats::lm(log(value[terminal]) ~ time[terminal]))[2L]
+    if (is.finite(slope) && slope < 0) lambda_z <- -as.numeric(slope)
+  }
+  if (is.finite(lambda_z)) {
+    last_value <- value[length(value)]
+    last_time <- time[length(time)]
+    auc <- auc + last_value / lambda_z
+    aumc <- aumc + last_time * last_value / lambda_z +
+      last_value / lambda_z^2
+  }
+  list(cmax = value[peak], tmax = time[peak], auc = auc, aumc = aumc,
+       lambda_z = lambda_z)
+}
+
+# Absorption from the peak position rather than from a rule of thumb. For a
+# one-compartment oral model the peak sits at log(ka/ke)/(ka - ke), which is one
+# equation in one unknown once the terminal slope has given `ke`. Solving it is
+# worth the ten lines: `4 / tmax` was the previous answer and it is off by
+# whatever the elimination rate happens to be.
+.model_ka_from_tmax <- function(tmax, ke) {
+  if (!is.finite(tmax) || tmax <= 0 || !is.finite(ke) || ke <= 0) return(1)
+  gap <- function(ka) log(ka / ke) / (ka - ke) - tmax
+  lower <- ke * 1.01
+  upper <- ke * 1000
+  if (!is.finite(gap(lower)) || !is.finite(gap(upper)) ||
+      gap(lower) * gap(upper) > 0) {
+    return(max(4 / tmax, ke * 1.5))
+  }
+  as.numeric(stats::uniroot(gap, c(lower, upper))$root)
+}
+
 # Starting values read off the data rather than guessed. A population fit
-# started far from the answer either converges slowly or reports the starting
-# values back, and every one of these is a textbook non-compartmental reading:
-# volume from the peak, clearance from the area under the curve, absorption from
-# where the peak falls.
+# started far from the answer either converges slowly, reports the starting
+# values back, or -- as the two-compartment candidates did before this was
+# written -- grinds against a flat likelihood for a minute where the same fit
+# from good starts takes seconds.
+#
+# Every value here is a textbook non-compartmental reading. Clearance is dose
+# over the area extrapolated to infinity, not over the trapezoid alone, which on
+# a study sampled to four half-lives understates the area by about a tenth and
+# overstates clearance by the same. Volume is clearance over the terminal slope,
+# which is the quantity the terminal phase actually identifies -- dose over the
+# peak, the previous answer, is not a volume of any kind for an oral dose.
 .model_initial_estimates <- function(observations, structural, pk_endpoint) {
   rows <- observations[observations$endpoint == pk_endpoint, , drop = FALSE]
   by_subject <- split(rows, rows$subject)
@@ -19,24 +85,42 @@
   }, numeric(1)), na.rm = TRUE)
   if (!is.finite(dose) || dose <= 0) dose <- 1
 
-  peak <- stats::median(vapply(by_subject, function(part) max(part$dv),
-                               numeric(1)), na.rm = TRUE)
-  auc <- stats::median(vapply(by_subject, function(part) {
-    part <- part[order(part$actual_tad), , drop = FALSE]
-    if (nrow(part) < 2L) return(NA_real_)
-    sum(diff(part$actual_tad) *
-          (utils::head(part$dv, -1L) + utils::tail(part$dv, -1L)) / 2)
-  }, numeric(1)), na.rm = TRUE)
-  tmax <- stats::median(vapply(by_subject, function(part) {
-    part$tad[which.max(part$dv)]
-  }, numeric(1)), na.rm = TRUE)
+  nca <- lapply(by_subject, .model_nca_subject)
+  middle <- function(name) {
+    stats::median(vapply(nca, function(x) x[[name]], numeric(1)), na.rm = TRUE)
+  }
+  auc <- middle("auc")
+  aumc <- middle("aumc")
+  cmax <- middle("cmax")
+  tmax <- middle("tmax")
+  lambda_z <- middle("lambda_z")
 
-  v <- if (is.finite(peak) && peak > 0) dose / peak else 1
-  cl <- if (is.finite(auc) && auc > 0) dose / auc else v / 10
-  ka <- if (is.finite(tmax) && tmax > 0) 4 / tmax else 1
-  out <- c(cl = cl, v = v)
+  cl <- if (is.finite(auc) && auc > 0) dose / auc else 1
+  volume_terminal <- if (is.finite(lambda_z) && lambda_z > 0) cl / lambda_z else
+    if (is.finite(cmax) && cmax > 0) dose / cmax else 10 * cl
+  ka <- .model_ka_from_tmax(tmax, if (is.finite(lambda_z)) lambda_z else
+    cl / volume_terminal)
+
+  out <- c(cl = cl, v = volume_terminal)
   if (grepl("oral", structural)) out <- c(out, ka = ka)
-  if (grepl("^2cmt", structural)) out <- c(out, q = cl, v2 = v * 2)
+  if (grepl("^2cmt", structural)) {
+    # Steady-state volume from the mean residence time, which is what the first
+    # moment of the curve is for. For an oral dose the residence time includes
+    # the time spent absorbing, so the absorption mean is taken back off.
+    mrt <- if (is.finite(aumc) && is.finite(auc) && auc > 0) aumc / auc else NA
+    if (grepl("oral", structural) && is.finite(mrt) && is.finite(ka) && ka > 0) {
+      mrt <- mrt - 1 / ka
+    }
+    vss <- if (is.finite(mrt) && mrt > 0) cl * mrt else volume_terminal / 2
+    # The central compartment is the smaller half and the peripheral the rest,
+    # with intercompartmental clearance started at elimination clearance. These
+    # are starting values for a search, not a decomposition of the curve: what
+    # matters is that they are the right order of magnitude and that the central
+    # volume is below the terminal one, which the previous `v * 2` was not.
+    central <- max(min(vss / 2, volume_terminal * 0.75), 1e-6)
+    out[["v"]] <- central
+    out <- c(out, q = cl, v2 = max(vss - central, central))
+  }
   out
 }
 
@@ -57,16 +141,31 @@
 # and a fixed block of assignments, keyed by which parameters the structural
 # model needs. `linCmt()` reads the parameter names and picks the same solution
 # `.pk_single_dose()` evaluates, which is what keeps the two lists one list.
-.model_nlmixr_function <- function(structural, start, error, error_start) {
+#
+# `weight` folds allometric scaling into the same model rather than fitting a
+# second one to compare against. The exponents are the standard 0.75 and 1 and
+# are not estimated: this is a shape that makes a synthetic cohort's spread look
+# right, not a covariate analysis, and testing it against AIC would double the
+# cost of the only fit this function performs.
+.model_allometric_exponents <- c(cl = 0.75, v = 1, q = 0.75, v2 = 1)
+
+.model_nlmixr_function <- function(structural, start, error, error_start,
+                                   weight = NULL) {
   parameters <- names(start)
   ini <- c(
     sprintf("    t%s <- log(%.10g)", parameters, start),
-    sprintf("    eta.%s ~ %.10g", parameters, ifelse(parameters == "cl", 0.1,
-                                                     0.1)),
+    sprintf("    eta.%s ~ 0.1", parameters),
     sprintf("    %s.err <- %.10g", error, error_start)
   )
-  assignments <- sprintf("    %s <- exp(t%s + eta.%s)", parameters, parameters,
-                         parameters)
+  assignments <- vapply(parameters, function(parameter) {
+    scaling <- if (!is.null(weight) &&
+                   parameter %in% names(.model_allometric_exponents)) {
+      sprintf(" * (%s / %.10g)^%.2f", weight$covariate, weight$reference,
+              .model_allometric_exponents[[parameter]])
+    } else ""
+    sprintf("    %s <- exp(t%s + eta.%s)%s", parameter, parameter, parameter,
+            scaling)
+  }, character(1))
   # `linCmt()` names the central volume `v` and the peripheral one `vp`.
   assignments <- sub("^    v2 <- ", "    vp <- ", assignments)
   predicted <- switch(error,
@@ -122,14 +221,15 @@
 # search that came down to one survivor should not look like a search that had
 # one candidate.
 .model_fit_candidates <- function(data, candidates, observations, pk_endpoint,
-                                  error, estimation, quiet) {
+                                  error, estimation, quiet, weight = NULL) {
   fits <- list()
   rows <- list()
   for (candidate in candidates) {
     start <- .model_initial_estimates(observations, candidate, pk_endpoint)
     error_start <- if (identical(error, "prop")) 0.2 else
       stats::sd(data$DV, na.rm = TRUE) / 5
-    spec <- .model_nlmixr_function(candidate, start, error, error_start)
+    spec <- .model_nlmixr_function(candidate, start, error, error_start,
+                                   weight)
     fit <- try(suppressWarnings(suppressMessages(
       nlmixr2est::nlmixr(spec, data, est = estimation,
                          control = list(print = 0L))
@@ -278,11 +378,16 @@
   chosen
 }
 
-# Allometric scaling on clearance and volume, and nothing else, under
-# `covariate_effects = "auto"`. The exponents are the standard 0.75 and 1 rather
-# than estimated ones, and the effect is kept only where it improves AIC.
+# The covariate the allometric scaling is applied to, or nothing. Weight-like by
+# name, positive, and numeric -- there is no way to recognise a body weight from
+# its values alone, and guessing from a distribution would be worse than asking.
 #
-# The cost of this default is explicit. A covariate that influences the real
+# Applied where it is found rather than tested for improvement. Testing costs a
+# second fit, which is the whole budget of the default path, and allometry on a
+# weight is a shape this generator asserts rather than a hypothesis it examines.
+# `covariate_effects = "none"` switches it off.
+#
+# The cost of the default is explicit. A covariate that influences the real
 # profiles and is not in the model is generated independently of them, so the
 # synthetic data carries no relationship between the two. `synpmx_avatar()`
 # preserves those relationships without modelling them, because a blended
@@ -302,47 +407,16 @@
   NULL
 }
 
-.model_fit_allometry <- function(data, source, roles, structural, start, error,
-                                 error_start, estimation, weight, base_aic) {
-  column <- weight$covariate
-  by_subject <- vapply(split(source[[column]],
+# The per-subject weight, on the estimation dataset.
+.model_attach_weight <- function(data, source, roles, weight) {
+  if (is.null(weight)) return(data)
+  by_subject <- vapply(split(source[[weight$covariate]],
                              as.character(source[[roles$id]])),
                        function(x) suppressWarnings(as.numeric(x[1L])),
                        numeric(1))
-  data[[column]] <- unname(by_subject[data$ID])
-  if (any(!is.finite(data[[column]]))) return(NULL)
-
-  parameters <- names(start)
-  exponent <- c(cl = 0.75, v = 1, q = 0.75, v2 = 1)
-  ini <- c(sprintf("    t%s <- log(%.10g)", parameters, start),
-           sprintf("    eta.%s ~ 0.1", parameters),
-           sprintf("    %s.err <- %.10g", error, error_start))
-  assignments <- vapply(parameters, function(parameter) {
-    scaling <- if (parameter %in% names(exponent)) {
-      sprintf(" * (%s / %.10g)^%.2f", column, weight$reference,
-              exponent[[parameter]])
-    } else ""
-    sprintf("    %s <- exp(t%s + eta.%s)%s", parameter, parameter, parameter,
-            scaling)
-  }, character(1))
-  assignments <- sub("^    v2 <- ", "    vp <- ", assignments)
-  text <- paste(c("function() {", "  ini({", ini, "  })", "  model({",
-                  assignments,
-                  sprintf("    linCmt() ~ %s(%s.err)", error, error),
-                  "  })", "}"), collapse = "\n")
-  spec <- eval(parse(text = text))
-  fit <- try(suppressWarnings(suppressMessages(
-    nlmixr2est::nlmixr(spec, data, est = estimation, control = list(print = 0L))
-  )), silent = TRUE)
-  if (inherits(fit, "try-error")) return(NULL)
-  aic <- suppressWarnings(stats::AIC(fit))
-  if (!is.finite(aic) || aic >= base_aic) return(NULL)
-  list(fit = fit, aic = aic, effects = stats::setNames(
-    lapply(intersect(parameters, names(exponent)), function(parameter) {
-      list(covariate = column, reference = weight$reference,
-           exponent = unname(exponent[[parameter]]))
-    }), intersect(parameters, names(exponent))
-  ))
+  data[[weight$covariate]] <- unname(by_subject[data$ID])
+  if (any(!is.finite(data[[weight$covariate]]))) return(NULL)
+  data
 }
 
 #' Estimate a population model from a trial
@@ -413,7 +487,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # Arguments are checked before the fitter is required, so that a
   # mistyped model name reads as a mistyped model name rather than as a
   # missing suggested package.
-  if (!is.null(pk)) pk <- match.arg(pk, .pk_models)
+  if (!is.null(pk)) {
+    unknown <- setdiff(pk, .pk_models)
+    if (length(unknown)) {
+      stop("`pk` names model(s) outside the closed-form set: ",
+           paste(unknown, collapse = ", "), ". Available: ",
+           paste(.pk_models, collapse = ", "), ".", call. = FALSE)
+    }
+  }
   if (!identical(covariate_effects, "auto") &&
       !identical(covariate_effects, "none")) {
     stop("`covariate_effects` must be \"auto\" or \"none\".", call. = FALSE)
@@ -442,7 +523,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   design <- .model_detect_design(source, roles, observations, classified$pk)
   if (!is.null(pk)) {
     design$candidates <- pk
-    design$reason <- paste0("declared through `pk = \"", pk, "\"`")
+    design$reason <- if (length(pk) == 1L) {
+      paste0("declared through `pk = \"", pk, "\"`")
+    } else {
+      paste0("searched over the ", length(pk), " models named in `pk`")
+    }
   }
 
   subject_group <- .model_subject_arms(source, roles)
@@ -463,36 +548,34 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   estimation_data <- .model_estimation_data(source, roles, classified$pk)
   values <- estimation_data$DV[!is.na(estimation_data$DV)]
   error <- if (any(values <= 0)) "add" else "prop"
+
+  # Allometric scaling is folded into the fit rather than compared against one
+  # without it, so the default path performs exactly one fit.
+  weight <- if (identical(covariate_effects, "auto")) {
+    .model_weight_covariate(source, roles)
+  } else NULL
+  with_weight <- .model_attach_weight(estimation_data, source, roles, weight)
+  if (is.null(with_weight)) weight <- NULL else estimation_data <- with_weight
+
   if (!quiet) {
-    message("Fitting ", length(design$candidates), " candidate(s) for `",
-            classified$pk, "` (", design$route, "):")
+    message("Fitting ", length(design$candidates), " model(s) for `",
+            classified$pk, "` (", design$route, ")",
+            if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
+            ":")
   }
   search <- .model_fit_candidates(estimation_data, design$candidates,
                                   observations, classified$pk, error,
-                                  estimation, quiet)
+                                  estimation, quiet, weight)
   selected <- search$selected
   parameters <- .model_read_fit(search$fits[[selected]], selected, error)
 
-  effects <- list()
-  if (identical(covariate_effects, "auto")) {
-    weight <- .model_weight_covariate(source, roles)
-    if (!is.null(weight)) {
-      base_aic <- search$table$aic[search$table$model == selected]
-      allometric <- .model_fit_allometry(
-        estimation_data, source, roles, selected,
-        .model_initial_estimates(observations, selected, classified$pk), error,
-        if (identical(error, "prop")) 0.2 else stats::sd(values) / 5,
-        estimation, weight, base_aic
-      )
-      if (!is.null(allometric)) {
-        parameters <- .model_read_fit(allometric$fit, selected, error)
-        effects <- allometric$effects
-        search$table$note[search$table$model == selected] <-
-          sprintf("allometric on %s improved AIC to %.1f", weight$covariate,
-                  allometric$aic)
-      }
-    }
-  }
+  effects <- if (is.null(weight)) list() else stats::setNames(
+    lapply(intersect(names(parameters$fixed),
+                     names(.model_allometric_exponents)), function(parameter) {
+      list(covariate = weight$covariate, reference = weight$reference,
+           exponent = unname(.model_allometric_exponents[[parameter]]))
+    }), intersect(names(parameters$fixed), names(.model_allometric_exponents))
+  )
 
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
     .model_fit_pd(observations, endpoint, pd)

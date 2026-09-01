@@ -79,6 +79,11 @@ produced it, fits the candidates that design admits and picks one on AIC.
 fit <- synpmx_model_estimate(warfarin, warfarin_roles, seed = 1)
 ```
 
+That is one population fit: a one-compartment oral model with allometric scaling
+on `wt`, chosen by the route detection rather than by a search. Ask for more
+where you want it — `pk = "2cmt_oral"`, or `pk = c("1cmt_oral", "2cmt_oral")` to
+compare the two on AIC.
+
 ```{r estimate-note, echo=FALSE, results="asis", eval=run}
 cat("The chunk above is shown rather than run. Fitting compiles a model, so this",
     "document reads a stored fit built by `scripts/build-model-fits.R` and",
@@ -122,10 +127,15 @@ profiles, so the synthetic data carries no relationship between them.
 show(model_candidates(fit), "Candidates the design admitted")
 ```
 
-`warfarin`'s patients are sampled at a median of six distinct times, which is
-not enough to identify a distribution phase, so the two-compartment candidates
-were never offered. Where a study is sampled richly enough they are, and AIC
-chooses.
+One row, because the default fits one model and stops. A distribution phase is a
+refinement of a shape the one-compartment model already has and costs about five
+times as long to fit, so it is available rather than routine: `pk = "2cmt_oral"`
+forces it, `pk = c("1cmt_oral", "2cmt_oral")` fits both and picks on AIC, and
+`model_report()` says when the sampling would support one.
+
+The whole call takes about eleven seconds on a study this size, and effectively
+all of it is this one fit — the PD shapes are least squares and cost nothing
+measurable.
 
 ## Generating
 
