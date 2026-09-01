@@ -30,31 +30,57 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
-    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-trial-summary.html">What a trial summary contains</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-background" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Background</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-background">
+<li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">What differential privacy does and does not guarantee</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-background.html">Where d, f, and the error law come from</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-argument.html">The mechanism-level privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Elicitation, for the modes that assert a model</h6></li>
+    <li><a class="dropdown-item" href="../articles/model-elicitation.html">Building the structural model</a></li>
+    <li><a class="dropdown-item" href="../articles/data-elicitation.html">Describing the trial</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pmxmodel" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">1. PMXmodel</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pmxmodel">
+<li><a class="dropdown-item" href="../articles/pmxmodel-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-algorithm.html">Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pca" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. PCA</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pca">
+<li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">3. AVATAR</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--avatar">
+<li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
+  </ul>
+</li>
+<li class="active nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-scorecard">
+<li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
   </ul>
 </li>
       </ul>
@@ -319,9 +345,8 @@ individualised regimen. Section B1 is the other half of the story, where
 the privacy checks read 0, and A5b is what says at what price.</p>
 <p>If it were important to more accurately capture the dosing
 information, a nominal time grid could be specified by the user, rather
-than computed by <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>, as shown in
-<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> for the
-<code>nimoData</code> example.</p>
+than computed by <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>, as shown in <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating
+AVATAR on public data</a> for the <code>nimoData</code> example.</p>
 </div>
 <div class="section level3">
 <h3 id="a6--did-a-discrete-endpoint-stay-discrete">A6. Did a discrete endpoint stay discrete<a class="anchor" aria-label="anchor" href="#a6--did-a-discrete-endpoint-stay-discrete"></a>
@@ -717,11 +742,11 @@ Anything above 0 is <code>review</code> and never a <code>FAIL</code>,
 because the right count is not necessarily 0 — a study can hold a
 patient who is genuinely unusual, and an anchor-based generator will
 hand that patient’s shape to an avatar.</p>
-<p><strong>What a hit looks like.</strong> No synthetic dataset in
-<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> reports anybody, so
-the example has to come from a source table.
-<code><a href="https://nlmixr2.github.io/nlmixr2data/reference/wbcSim.html" class="external-link">nlmixr2data::wbcSim</a></code> is a cohort whose follow-up ends by 672
-hours, with three exceptions:</p>
+<p><strong>What a hit looks like.</strong> No synthetic dataset in the
+<a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">public-data
+evaluation</a> reports anybody, so the example has to come from a source
+table. <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/wbcSim.html" class="external-link">nlmixr2data::wbcSim</a></code> is a cohort whose follow-up ends
+by 672 hours, with three exceptions:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"wbcSim"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">wbc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
@@ -1609,9 +1634,8 @@ figure above draws each variable’s distribution, which is not the same
 as its time course: two cohorts can hold the same concentrations and
 reach them on different days. No function here overlays source and
 synthetic profiles, because every group has plotting code it already
-trusts for its own study —
-<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> shows one such
-overlay for each of eight datasets.</p>
+trusts for its own study — the <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">public-data
+evaluation</a> shows one such overlay for each of eight datasets.</p>
 <p><strong>Do the covariate–response relationships survive?</strong> The
 question a modeller actually cares about, and the least covered by
 anything above: a weight–exposure slope, a dose–response relationship, a
@@ -1662,11 +1686,11 @@ land at or after it: a trough becomes a time-zero sample, and a declared
 <code>time</code>. Counting the avatars holding an observation labelled
 occasion <code>k</code> that lands at or after the <code>k+1</code>th
 dose, <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/nimoData.html" class="external-link">nlmixr2data::nimoData</a></code> on the constructed nominal grid
-of <code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> gives 12 of 12,
-against 0 of 12 in its source. Closing it takes a post-generation
-invariant over the finished table, checking that each observation keeps
-the number of doses that preceded it and that <code>occasion</code> is
-non-decreasing within a subject.</p>
+of the <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">public-data
+evaluation</a> gives 12 of 12, against 0 of 12 in its source. Closing it
+takes a post-generation invariant over the finished table, checking that
+each observation keeps the number of doses that preceded it and that
+<code>occasion</code> is non-decreasing within a subject.</p>
 <p><strong>B5: rare combinations, and rarity in the world.</strong> The
 source-side census exists as <code><a href="../reference/compare_pmx_rare_levels.html">compare_pmx_rare_levels()</a></code> and
 B5. Joint combinations do not, since with <code>d</code> covariates
@@ -1723,8 +1747,9 @@ reading its scorecard, on one study end to end.</li>
 generator works, and the six masking mechanisms these checks are
 measuring.</li>
 <li>
-<code><a href="../articles/avatar-public-data-examples.html">vignette("avatar-public-data-examples")</a></code> — these checks
-run across eight public datasets, with the masking cost for each.</li>
+<a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating
+AVATAR on public data</a> — these checks run across eight public
+datasets, with the masking cost for each.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/synthetic-data-checking-review.html">Literature:
 checking synthetic data</a> — the published methods for checking

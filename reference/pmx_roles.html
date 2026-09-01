@@ -25,29 +25,47 @@ copied out of a real subject. Name a column in keep to carry it through."></head
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
-    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo: the PCA generator</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-trial-summary.html">What a trial summary contains</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
-    <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-background" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Background</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-background"><li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
-    <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
-    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">Privacy</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-background.html">Privacy background</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-argument.html">Formal privacy argument</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/synpmx-privacy.html">What differential privacy does and does not guarantee</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-background.html">Where d, f, and the error law come from</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-argument.html">The mechanism-level privacy argument</a></li>
     <li><a class="dropdown-item" href="../articles/feasibility.html">Feasibility by cohort size</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Elicitation, for the modes that assert a model</h6></li>
+    <li><a class="dropdown-item" href="../articles/model-elicitation.html">Building the structural model</a></li>
+    <li><a class="dropdown-item" href="../articles/data-elicitation.html">Describing the trial</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pmxmodel" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">1. PMXmodel</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pmxmodel"><li><a class="dropdown-item" href="../articles/pmxmodel-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-algorithm.html">Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pca" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. PCA</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pca"><li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">3. AVATAR</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--avatar"><li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-scorecard"><li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>

@@ -162,5 +162,6 @@ call behind each one is where the answer is.
 
 - [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
   — every check, what it asks, and what passing means.
-- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md) -
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) -
   AVATAR algorithm applied to 8 public datasets.

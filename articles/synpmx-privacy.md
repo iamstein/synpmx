@@ -10,10 +10,10 @@ what each one actually is, what differential privacy does and does not
 promise, how to choose between methods and if a private mode is chosen,
 how to choose an epsilon.
 
-The companion vignettes are
+The companions are
 [`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
-(the generation modes) and
-[`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
+(the generation modes) and [Evaluating AVATAR on public
+data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 (AVATAR measured on public data).
 
 ## The three method families

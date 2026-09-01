@@ -16,18 +16,32 @@ structural usefulness, not scientific equivalence.
 
 Given that synthetic data is oven used as a way to protect privacy, this
 package offers several synthetic data generation functions that offer
-different privacy guarantees. This vignette introduces four of them and
-applies each one to the same public dataset.
+different privacy guarantees.
 
-A fifth,
-[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md),
-arrived after this vignette was written and is not compared here. It
-fits a principal-component basis and generates from the fitted model, so
-no real patient’s values reach the output. It needs a nominal-time
-column, which `theo_md` does not carry. See
-[`vignette("pca-algorithm")`](https://iamstein.github.io/synpmx/articles/pca-algorithm.md)
-and
-[`vignette("pca-demo")`](https://iamstein.github.io/synpmx/articles/pca-demo.md).
+They fall into two groups, and the split is what to read this vignette
+by.
+
+**Generators that read the study.** Three of them, each carrying
+something different out of the source.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+blends real neighbouring patients’ values.
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+reduces each subject to principal-component scores and models the
+scores.
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+estimates a linear population pharmacokinetic model and simulates from
+it. None makes a formal privacy claim, and the two model-based ones need
+a declared nominal-time column, which `theo_md` does not carry.
+
+**Generators that assert a model instead.** Three more, which take a
+public structural model and, in two cases, spend a differential-privacy
+budget to correct it against the study.
+
+This vignette compares one from the first group against all three of the
+second, on one dataset. It is a comparison of *approaches* rather than a
+catalogue: the other two data-reading generators have documents of their
+own, listed under “Where to go next”, and comparing them here would need
+a dataset carrying a nominal grid.
 
 The four compared below, from most faithful to most protective:
 
@@ -220,8 +234,9 @@ dose amount is neither’s, so weight-based dosing leaves a cohort unique
 on signature regardless — declaring `dose_covariate` in
 [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
 is what stops the amount itself being one real patient’s, by rebuilding
-it from each avatar’s own blended covariate.
-[`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
+it from each avatar’s own blended covariate. [Evaluating AVATAR on
+public
+data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs the before and after over every public dataset.
 
 Two things none of these do. They do not bound what an adversary learns,
@@ -666,7 +681,8 @@ producing the model code.
 
 ## Where to go next
 
-- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md)
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
   —
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   run across eight public datasets, with the structural checks and the
@@ -677,6 +693,19 @@ producing the model code.
 - [The AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator step by step, and the six masking mechanisms.
+- [The PCA
+  Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.html)
+  and its
+  [demo](https://iamstein.github.io/synpmx/articles/pca-demo.html) — the
+  second data-reading generator, which fits a basis of the subject
+  profiles rather than blending them.
+- [The PMX Model
+  Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html)
+  and its
+  [demo](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html)
+  — the third, which estimates a linear population pharmacokinetic model
+  and simulates from it. It is the only generator whose dose reductions
+  reach the concentrations.
 - [Model
   elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)
   and [data

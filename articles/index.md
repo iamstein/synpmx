@@ -32,8 +32,20 @@
 - [Demo: Using
   synpmx_pca](https://iamstein.github.io/synpmx/articles/pca-demo.md):
 
-- [What a trial summary
-  contains](https://iamstein.github.io/synpmx/articles/pca-trial-summary.md):
+- [The PCA study
+  fingerprint](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md):
+
+- [Evaluating PCA on public
+  data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.md):
+
+- [The synpmx PMX Model
+  Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md):
+
+- [Demo: Using
+  synpmx_model](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.md):
+
+- [The PMX model study
+  fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md):
 
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):

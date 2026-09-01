@@ -252,6 +252,17 @@ unique is one where a coincidence is least likely to be meaningful, and
 a study with few distinct schedules is one where it is not a disclosure
 at all.
 
+**That coincidence has been measured on the visit side, and it is not
+hypothetical.** Over seven public studies, B4a — which asks the same
+question of the finished tables — finds a generated subject’s list of
+observation times matching a singleton real one on two of them,
+reproducibly across seeds. The matches are between short lists on
+sparsely sampled studies rather than between distinctive schedules, and
+B4b, the value side, is zero everywhere. The numbers and the reasoning
+are in [Evaluating the PCA generator on public
+data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html),
+along with what a floor on the visit draw would cost.
+
 ### The visit model
 
 [`pca_visits()`](https://iamstein.github.io/synpmx/reference/pca_visits.md)
@@ -300,7 +311,7 @@ The object holds, and this is all of it:
 [`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
 prints the inventory with the count of numbers in each group and, for
 each, the smallest number of patients standing behind any one of them.
-[`vignette("pca-trial-summary")`](https://iamstein.github.io/synpmx/articles/pca-trial-summary.md)
+[`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
 walks through every group in turn, on a worked study.
 
 Two entries deserve naming because they are not averages. **The level

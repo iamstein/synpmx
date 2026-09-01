@@ -382,7 +382,11 @@ in its place, where `distinct` and `share` say the same thing per arm.
 - [`vignette("pca-algorithm")`](https://iamstein.github.io/synpmx/articles/pca-algorithm.md)
   — every step of this algorithm, and what each one reads out of the
   source.
-- [`vignette("pca-trial-summary")`](https://iamstein.github.io/synpmx/articles/pca-trial-summary.md)
-  — every quantity the summary holds, in detail.
+- [`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
+  — every quantity the fingerprint holds, in detail.
+- [Evaluating the PCA generator on public
+  data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html)
+  — the same generator over eight public studies, and what each one’s
+  nominal grid cost.
 - [`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
   — the other generation modes, and which one to use when.

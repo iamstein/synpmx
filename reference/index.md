@@ -4,10 +4,12 @@
 
 The generation modes.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-is the default AVATAR path and
+blends real subjects,
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
-fits a basis instead of blending; the remaining three require a public
-structural model.
+fits a basis of their profiles, and
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+estimates a population model and simulates from it; the remaining three
+require a public structural model.
 
 - [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   : Synthesize a structurally faithful PMX dataset (AVATAR-style)
@@ -18,6 +20,12 @@ structural model.
   : Summarize a trial into the quantities a synthetic copy is built from
 - [`synpmx_pca_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_generate.md)
   : Generate a synthetic PMX dataset from a trial summary
+- [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+  : Estimate a population model and generate a synthetic dataset from it
+- [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+  : Estimate a population model from a trial
+- [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
+  : Generate a synthetic PMX dataset from a fitted model
 - [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md)
   : Generate a dataset from public inputs only
 - [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
@@ -49,6 +57,23 @@ and the components over time.
 - [`pca_components()`](https://iamstein.github.io/synpmx/reference/pca_components.md)
   : Component loadings over time, and the variance each component
   explains
+- [`pca_component_effect()`](https://iamstein.github.io/synpmx/reference/pca_component_effect.md)
+  : What each component does to a profile, on the scale the data are
+  reported in
+
+## Reading a fitted model
+
+What
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+read out of the source data: the estimated half, the candidates it chose
+between, and the apparatus it summarized.
+
+- [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+  : What a fitted model carries
+- [`model_candidates()`](https://iamstein.github.io/synpmx/reference/model_candidates.md)
+  : The candidate models the selection was made from
+- [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
+  : The estimated parameters
 
 ## Declaring the data
 

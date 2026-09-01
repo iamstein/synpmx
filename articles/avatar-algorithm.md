@@ -8,7 +8,8 @@ with more realistic datasets. Use of the algorithm is demonstrated in:
 
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -
   AVATAR demonstration on a single dataset
-- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md) -
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) -
   AVATAR demonstration on a series of public datasets
 
 AVATAR makes no formal privacy claim. It also does not necessarily fully
@@ -1038,7 +1039,8 @@ and demonstrated in:
 
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -
   AVATAR demonstration on a single dataset
-- [`vignette("avatar-public-data-examples")`](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md) -
+- [Evaluating AVATAR on public
+  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) -
   AVATAR demonstration on a series of public datasets
 
 ## Conclusions

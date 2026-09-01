@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Structurally Faithful Synthetic Pharmacometric Data">
-<meta name="description" content="Generates structurally faithful synthetic pharmacometric event data by AVATAR-style profile blending for trusted environments. A separate calibrated structural and differentially private workflow is available when formal privacy is required. The package uses explicit roles, units, schemas, and seeds, and does not fit a pharmacokinetic, pharmacodynamic, or nonlinear mixed-effects model.">
-<meta property="og:description" content="Generates structurally faithful synthetic pharmacometric event data by AVATAR-style profile blending for trusted environments. A separate calibrated structural and differentially private workflow is available when formal privacy is required. The package uses explicit roles, units, schemas, and seeds, and does not fit a pharmacokinetic, pharmacodynamic, or nonlinear mixed-effects model.">
+<meta name="description" content="Generates structurally faithful synthetic pharmacometric event data from a real study, by AVATAR-style profile blending, by a fitted principal-component model of the subject profiles, or by estimating a linear population pharmacokinetic model and simulating from it. A separate calibrated structural and differentially private workflow is available when formal privacy is required. The package uses explicit roles, units, schemas, and seeds. The generated data is for developing code outside the environment that holds the real study, and not for estimation, model selection, or inference.">
+<meta property="og:description" content="Generates structurally faithful synthetic pharmacometric event data from a real study, by AVATAR-style profile blending, by a fitted principal-component model of the subject profiles, or by estimating a linear population pharmacokinetic model and simulating from it. A separate calibrated structural and differentially private workflow is available when formal privacy is required. The package uses explicit roles, units, schemas, and seeds. The generated data is for developing code outside the environment that holds the real study, and not for estimation, model selection, or inference.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,30 +33,56 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><h6 class="dropdown-header" data-toc-skip>PCA generator</h6></li>
-    <li><a class="dropdown-item" href="articles/pca-demo.html">Demo: the PCA generator</a></li>
-    <li><a class="dropdown-item" href="articles/pca-trial-summary.html">What a trial summary contains</a></li>
-    <li><a class="dropdown-item" href="articles/pca-algorithm.html">The synpmx PCA Algorithm</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>AVATAR generator</h6></li>
-    <li><a class="dropdown-item" href="articles/avatar-demo.html">Demo: one dataset, end to end</a></li>
-    <li><a class="dropdown-item" href="articles/avatar-algorithm.html">The synpmx AVATAR Algorithm</a></li>
-    <li><a class="dropdown-item" href="articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></li>
-    <li><a class="dropdown-item" href="articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></li>
-    <li><a class="dropdown-item" href="articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Background</h6></li>
-    <li><a class="dropdown-item" href="articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-background" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Background</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-background">
+<li><a class="dropdown-item" href="articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
     <li><a class="dropdown-item" href="articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
-    <li><a class="dropdown-item" href="articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Differential privacy background</h6></li>
-    <li><a class="dropdown-item" href="articles/synpmx-privacy.html">Privacy</a></li>
-    <li><a class="dropdown-item" href="articles/privacy-background.html">Privacy background</a></li>
-    <li><a class="dropdown-item" href="articles/privacy-argument.html">Formal privacy argument</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
+    <li><a class="dropdown-item" href="articles/synpmx-privacy.html">What differential privacy does and does not guarantee</a></li>
+    <li><a class="dropdown-item" href="articles/privacy-background.html">Where d, f, and the error law come from</a></li>
+    <li><a class="dropdown-item" href="articles/privacy-argument.html">The mechanism-level privacy argument</a></li>
     <li><a class="dropdown-item" href="articles/feasibility.html">Feasibility by cohort size</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Elicitation, for the modes that assert a model</h6></li>
+    <li><a class="dropdown-item" href="articles/model-elicitation.html">Building the structural model</a></li>
+    <li><a class="dropdown-item" href="articles/data-elicitation.html">Describing the trial</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pmxmodel" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">1. PMXmodel</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pmxmodel">
+<li><a class="dropdown-item" href="articles/pmxmodel-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="articles/pmxmodel-algorithm.html">Algorithm</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pca" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. PCA</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--pca">
+<li><a class="dropdown-item" href="articles/pca-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="articles/pca-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="articles/pca-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/pca-fingerprint.html">Study fingerprint</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">3. AVATAR</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown--avatar">
+<li><a class="dropdown-item" href="articles/avatar-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="articles/avatar-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="articles/avatar-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-scorecard">
+<li><a class="dropdown-item" href="articles/avatar-scorecard.html">Checks of the synthetic data</a></li>
+    <li><a class="dropdown-item" href="articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
   </ul>
 </li>
       </ul>
@@ -88,14 +114,50 @@
 <p>The main use caes of this package is for sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can occur without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
-<h2 id="the-main-deliverable-avatar-method">The main deliverable: AVATAR method<a class="anchor" aria-label="anchor" href="#the-main-deliverable-avatar-method"></a>
+<h2 id="three-ways-to-build-a-dataset-from-a-real-one">Three ways to build a dataset from a real one<a class="anchor" aria-label="anchor" href="#three-ways-to-build-a-dataset-from-a-real-one"></a>
 </h2>
-<p>The main deliverable of this package is an implementation of the AVATAR method [1, 2], which offers data masking but no formal privacy guarantee. AVATAR works by blending together patient profiles, and does not require a model to be specified.</p>
+<p>Three generators read a study and build a synthetic one from it. They are peers rather than a default and its alternatives: each carries something different out of the source, and which one suits a given study is still an open question. None offers a formal privacy guarantee.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr>
+<th>Generator</th>
+<th>What leaves the source</th>
+<th>Good at</th>
+<th>Weak at</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code></td>
+<td>Blended values from real neighbouring patients</td>
+<td>Keeping covariate–response relationships without modelling them; needs no model and no nominal grid</td>
+<td>Every synthetic subject’s event skeleton comes from one real subject</td>
+</tr>
+<tr>
+<td><code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code></td>
+<td>Component loadings, one mean score vector per arm, a residual covariance</td>
+<td>Reproducing profile shapes it was never told to expect</td>
+<td>Dose changes appear in the dosing records but not in the values</td>
+</tr>
+<tr>
+<td><code><a href="reference/synpmx_model.html">synpmx_model()</a></code></td>
+<td>Fixed effects, a covariance matrix, a residual error</td>
+<td>Dose reductions and skipped cycles reach the concentrations</td>
+<td>Needs an identifiable design; no exposure–response</td>
+</tr>
+</tbody>
+</table>
+<p>All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>dv</code> and <code>evid</code> are required; <code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> and <code><a href="reference/synpmx_model.html">synpmx_model()</a></code> also need <code>nominal_time</code>, because they place every value on the protocol’s grid and inferring that grid is a statement about the protocol only you can make.</p>
+<p>Three further modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) do not read the study that way: they take a public structural model and, in two cases, spend a differential-privacy budget to correct it. They cover the case where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
 <div class="section level2">
 <h2 id="generating-synthetic-data">Generating Synthetic Data<a class="anchor" aria-label="anchor" href="#generating-synthetic-data"></a>
 </h2>
-<p>The main function is <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code>, which needs the data, and a declaration of what its columns mean. Every column that is not described is dropped. Only the roles of <code>id</code>, <code>time</code>, <code>dv</code>, and <code>evid</code> are required, everything else is optional.</p>
+<p><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the generator with the fewest requirements — no model, no nominal grid, no dependencies beyond base R — which makes it the easiest place to start. Every column that is not described is dropped.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
@@ -136,8 +198,7 @@
 <div class="section level2">
 <h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
 </h2>
-<p><strong>AVATAR blending is the primary, maintained code.</strong> It has no dependencies beyond base R, and is what to reach for when the output stays within the source data’s own access controls and obligations. However, AVATAR does not offer any formal, mathematical guarantees around privacy.</p>
-<p>The three other modes for generating synthetic data (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) are secondary; but, they are present in this repository because they cover scenarios where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff, not as a production ready. That status is enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
+<p>All three data-reading generators are maintained and none is retired. Which of them to reach for is not settled, and the documents are written to be read by comparison for that reason: each has an algorithm document and a demo over the same ground, and <code><a href="reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> scores any of their outputs the same way. None of them offers a formal, mathematical privacy guarantee.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -179,7 +240,23 @@
 </tr>
 <tr>
 <td><a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The AVATAR Algorithm</a></td>
-<td>How does the default generator work, step by step?</td>
+<td>How does blending work, step by step?</td>
+</tr>
+<tr>
+<td>
+<a href="https://iamstein.github.io/synpmx/articles/pca-algorithm.html">The PCA Algorithm</a> and its <a href="https://iamstein.github.io/synpmx/articles/pca-demo.html">demo</a>
+</td>
+<td>How does the component-basis generator work, and what does a run look like?</td>
+</tr>
+<tr>
+<td><a href="https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html">Evaluating PCA on public data</a></td>
+<td>How well does it work across eight public datasets?</td>
+</tr>
+<tr>
+<td>
+<a href="https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html">The PMX Model Algorithm</a> and its <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html">demo</a>
+</td>
+<td>How does the population-model generator work, and what does a run look like?</td>
 </tr>
 <tr>
 <td><a href="https://iamstein.github.io/synpmx/articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></td>
