@@ -231,6 +231,14 @@ and 100% for both `theo_sd` and `theo_md`. A threshold that selects almost the
 whole source is measuring how wide the study's visit grid is, not what the
 generator did with it.
 
+There is a sharper demonstration. The generator writes its observations onto the
+nominal grid, so a synthetic subject's times are always drawn from those sixteen
+slots. `warfarin`'s recorded times happen to *equal* its nominal grid, which is
+what makes a collision possible at all. Move the source's clock a few minutes
+off that grid — changing nothing about the synthetic data, and nothing about
+privacy — and the row reads 0 instead of 2. B4a is answering a question about
+how this study recorded its visit times.
+
 Nor would redrawing help. Attendance here is drawn independently per visit, so a
 generated set was never taken from the patient it happens to match — rejecting
 collisions would truncate the attendance distribution and drive the row to zero

@@ -1,5 +1,5 @@
 ---
-title: "Evaluating the PCA generator on public data"
+title: "Evaluating PCA on public data"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
