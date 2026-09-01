@@ -130,7 +130,10 @@
 # Generation draws random effects from `parameters$omega` instead.
 .pmx_fitted_model <- function(structural, candidates, parameters, endpoints,
                               arms, dosing, visits, schema, roles, settings,
-                              n_source) {
+                              n_source, cells = NULL, pd = list(),
+                              covariate_effects = list(), covariates = list(),
+                              discrete = list(), design = NULL,
+                              correlations = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -178,7 +181,14 @@
     schema = schema,
     roles = roles,
     settings = settings,
-    n_source = n_source
+    n_source = n_source,
+    cells = cells,
+    pd = pd,
+    covariate_effects = covariate_effects,
+    covariates = covariates,
+    discrete = discrete,
+    design = design,
+    correlations = correlations
   ), class = "pmx_fitted_model")
 }
 
@@ -206,4 +216,135 @@ print.pmx_fitted_model <- function(x, ...) {
     "scientific question."
   ), "  ", "  "), "\n", sep = "")
   invisible(x)
+}
+
+#' What a fitted model carries
+#'
+#' An inventory of everything in a `pmx_fitted_model`, in two halves: what
+#' `nlmixr2` estimated, and the dosing, visit and covariate models that are
+#' summaries of the source rather than estimates. Nothing here is per-subject.
+#'
+#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
+#'
+#' @return A `pmx_model_report` list, printed as sections.
+#' @seealso [model_candidates()], [model_parameters()],
+#'   [synpmx_model_estimate()].
+#' @export
+model_report <- function(fitted_model) {
+  stopifnot(inherits(fitted_model, "pmx_fitted_model"))
+  structure(list(
+    structural = fitted_model$structural,
+    n_source = fitted_model$n_source,
+    endpoints = fitted_model$endpoints,
+    design = fitted_model$design,
+    parameters = fitted_model$parameters,
+    covariate_effects = fitted_model$covariate_effects,
+    correlations = fitted_model$correlations,
+    pd = fitted_model$pd,
+    arms = fitted_model$arms,
+    dosing = fitted_model$dosing,
+    cells = fitted_model$cells,
+    settings = fitted_model$settings
+  ), class = "pmx_model_report")
+}
+
+#' @export
+print.pmx_model_report <- function(x, ...) {
+  cat("What this fitted model carries\n\n")
+  cat("Estimated by nlmixr2\n")
+  cat("  structural model  ", x$structural, "\n")
+  cat("  fixed effects     ",
+      paste(sprintf("%s %.4g", names(x$parameters$fixed),
+                    as.numeric(x$parameters$fixed)), collapse = ", "), "\n")
+  cat("  between-subject   ",
+      paste(sprintf("%s %.3g", rownames(x$parameters$omega),
+                    sqrt(diag(x$parameters$omega))), collapse = ", "),
+      "(as SD on the log scale)\n")
+  cat("  residual error    ", x$parameters$residual$kind,
+      sprintf("%.3g", x$parameters$residual$cv %||% x$parameters$residual$sd),
+      "\n")
+  cat("  covariate effects ",
+      if (length(x$covariate_effects)) {
+        paste(vapply(names(x$covariate_effects), function(parameter) {
+          effect <- x$covariate_effects[[parameter]]
+          sprintf("%s ~ (%s/%.4g)^%.2f", parameter, effect$covariate,
+                  effect$reference, effect$exponent)
+        }, character(1)), collapse = ", ")
+      } else "none", "\n")
+  if (length(x$pd)) {
+    cat("  pd shapes         ",
+        paste(sprintf("%s: %s", names(x$pd),
+                      vapply(x$pd, function(s) s$pd, character(1))),
+              collapse = ", "), "\n")
+  }
+
+  cat("\nSummarized from the source, not estimated\n")
+  cat("  cohort            ", x$n_source, "patients in",
+      length(x$arms$arms), "arm(s)\n")
+  cat("  visit model       ", nrow(x$cells), "grid cells over",
+      length(unique(x$cells$endpoint)), "endpoint(s)\n")
+  varies <- vapply(x$dosing, function(d) {
+    d$discontinuation > 0 || d$interruption > 0 || d$reduction > 0
+  }, logical(1))
+  cat("  dosing model      ",
+      sprintf("%d planned cycle(s) per arm", stats::median(
+        vapply(x$dosing, function(d) nrow(d$planned), integer(1)))),
+      if (any(varies)) sprintf("| %d of %d arm(s) reduce, skip or stop early",
+                               sum(varies), length(varies)) else
+        "| no reductions, skips or early stops", "\n")
+
+  cat("\nHow the concentration endpoint was decided\n")
+  cat("  endpoint          ", x$endpoints$pk, sprintf("(%s)",
+                                                      x$endpoints$decided_by), "\n")
+  if (!is.null(x$endpoints$signals)) {
+    print(x$endpoints$signals, row.names = FALSE)
+  }
+  if (!is.null(x$design)) cat("  design            ", x$design$reason, "\n")
+
+  # The correlations an unmodelled covariate relationship shows up in. A
+  # covariate that influences the real profiles and is not in the model is
+  # generated independently of them, and this is the only place that says so.
+  if (!is.null(x$correlations) && nrow(x$correlations)) {
+    strongest <- x$correlations[order(-abs(x$correlations$correlation)), ,
+                                drop = FALSE]
+    cat("\nCovariate against the individual random effects\n")
+    print(utils::head(strongest, 5L), row.names = FALSE, digits = 2)
+    cat("\n", .wrap_plain(paste(
+      "A covariate that moves with a random effect and is not in the model",
+      "above is generated independently of the profiles, so the synthetic",
+      "data carries no relationship between them. `synpmx_avatar()` keeps",
+      "those relationships without modelling them."
+    ), "  ", "  "), "\n", sep = "")
+  }
+  invisible(x)
+}
+
+#' The candidate models the selection was made from
+#'
+#' Every candidate the design admitted, whether or not it converged, with the
+#' AIC it was compared on. A candidate that failed keeps its reason, so a search
+#' that came down to one survivor does not look like a search that had one
+#' candidate.
+#'
+#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
+#' @return A data frame with columns `model`, `converged`, `aic` and `note`.
+#' @seealso [model_report()], [model_parameters()].
+#' @export
+model_candidates <- function(fitted_model) {
+  stopifnot(inherits(fitted_model, "pmx_fitted_model"))
+  fitted_model$candidates
+}
+
+#' The estimated parameters
+#'
+#' Fixed effects, the between-subject covariance matrix and the residual error.
+#' Not estimates to report: see [synpmx_model_estimate()].
+#'
+#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
+#' @return A list with `fixed`, `omega` and `residual`.
+#' @seealso [model_report()], [model_candidates()].
+#' @export
+model_parameters <- function(fitted_model) {
+  stopifnot(inherits(fitted_model, "pmx_fitted_model"))
+  fitted_model$parameters[c("fixed", "omega", "residual")]
 }

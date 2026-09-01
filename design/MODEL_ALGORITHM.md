@@ -13,8 +13,14 @@ question. This is the same restriction the rest of the package carries, and it
 binds harder here because the output of the fit looks exactly like the output of
 a real population analysis.
 
-This document is the record of what the algorithm should do and why, written
-before the code exists. Nothing here is implemented.
+This document was the record of what the algorithm should do and why, written
+before the code existed. **It is now implemented**, in `R/model.R`,
+`R/model-design.R`, `R/model-estimate.R` and `R/model-generate.R`, and
+documented for readers in `vignettes/pmxmodel-algorithm.Rmd` and
+`vignettes/pmxmodel-demo.Rmd`. Where the two disagree the vignette is right:
+it is generated from the code and the code is under test. What this document
+keeps is the reasoning, the rejected alternatives, and the record of what moved
+between the design and the implementation, which is the section below.
 
 ## Where this sits among the three generators
 
@@ -41,8 +47,8 @@ gate refuses to let the *package* infer a grid. It does not stop a *document*
 from declaring one, and a survey that reads it as though it did is a survey
 about the gate rather than about the generator.
 
-This generator arrives with two documents, `model-algorithm.Rmd` and
-`model-demo.Rmd`. Its public-data survey is developed after the maintainer is
+This generator arrives with two documents, `pmxmodel-algorithm.Rmd` and
+`pmxmodel-demo.Rmd`. Its public-data survey is developed after the maintainer is
 satisfied with the demo, not alongside it: a survey written against a demo that
 is still moving would be rewritten once for every change to it. That is a
 sequencing decision rather than an exemption, and the contract in `AGENTS.md`
@@ -348,8 +354,9 @@ defect in the commit that adds the code rather than a follow-up.
 - `_pkgdown.yml` needs the new functions and documents.
 
 New documents, following the shape the AVATAR and PCA sets hold:
-`vignettes/model-algorithm.Rmd` for the mechanism and `vignettes/model-demo.Rmd`
-for the first run, with `vignettes/articles/model-public-data-examples.Rmd`
+`vignettes/pmxmodel-algorithm.Rmd` for the mechanism and
+`vignettes/pmxmodel-demo.Rmd` for the first run — the maintainer's names, chosen
+on 2026-09-01 — with `vignettes/articles/pmxmodel-public-data-examples.Rmd`
 following once the demo has settled. The survey is an article, as both existing
 surveys became on 2026-09-01, so `R CMD check` never runs it and
 `./build.sh articles` is what proves it. The cross-document contract in
@@ -360,6 +367,55 @@ naming their section.
 `synpmx_scorecard()` scores a synthetic dataset against its source and does not
 know which generator produced it, so it needs nothing new. Whether it should
 gain a row for goodness of fit is the open question below.
+
+## What moved between the design and the code
+
+Five things, each found by running the algorithm rather than by reading it.
+
+1. **The route detector was rewritten.** The design put it on a per-subject vote
+   with a "fewer than half agree" guard. That counts the sampling schedule
+   rather than the drug: on `warfarin`, 22 of 32 patients are first sampled at
+   24 hours, every one of their profiles declines from its first point, and the
+   vote reads 69% intravenous on a study that is oral — above the guard, so it
+   commits to the wrong answer. What actually separates the routes is that an
+   oral dose cannot be in the blood at the moment it is swallowed. So: a peak at
+   time zero after a dose is intravenous, a median profile that rises before it
+   falls is oral, and a profile declining from a first sample drawn later is
+   both at once and both candidates are offered. The rising share is still
+   reported and decides nothing.
+
+2. **`estimation` defaults to `"focei"`, not `"saem"`.** Selection is on AIC and
+   SAEM does not reliably produce one: its log-likelihood is a Gaussian
+   quadrature run after the fit, and at phase 1 cohort sizes it returns a
+   non-finite value. `theo_sd` fits perfectly well under SAEM — clearance 2.75,
+   volume 32.3, absorption 1.51 — and reports `AIC = Inf`.
+
+3. **Signal 4 needs a definition of a dose level, and the design had none.**
+   Reading each distinct amount as its own level makes a study dosed by body
+   weight compare a median of one patient against a median of one patient over a
+   dose ratio near 1, which almost any endpoint passes. Where the distinct
+   amounts outnumber half the cohort the signal is not computable, as on a
+   single-arm study.
+
+4. **The richness rule refused every intravenous study.** "At least one before
+   and two after the median peak" cannot be met by a profile that peaks at the
+   dose. The before-peak requirement now applies only where there is an
+   ascending limb to sample.
+
+5. **`integer` endpoints are fittable.** The design said continuous. `warfarin`'s
+   prothrombin activity is typed `integer` and is a continuous quantity that was
+   rounded, which is what `.snap_endpoint_values()` puts back at emit.
+
+Two more things the design did not anticipate. The PD shapes are fitted by
+least squares rather than through `nlmixr2`, because they are three-parameter
+curves on one endpoint and routing them through a population fitter would put a
+compiler in the path of every PD endpoint. And a concentration is floored at
+zero, because a proportional error near the assay limit produces negatives often
+enough to matter.
+
+`SIM-055` moved from a PCA row to a shared one: `synpmx_model()` uses the same
+visit model and inherits the same missing attendance floor. On `warfarin` it
+reads B4a = 2 FAIL, and the demo shows the failing row rather than hiding it.
 
 ## Build Order
 
@@ -377,12 +433,22 @@ there.
 | 4 | Generation | `synpmx_model_generate()` against a hand-constructed `pmx_fitted_model`, through `.pk_profile()`. A complete generator with no fitter in it. | End to end on fixtures, base R only. Includes the exposure-before-and-after-a-reduction check from Step 6. |
 | 5 | Estimation | `nlmixr2` behind `requireNamespace()`: the candidate fits, the AIC table, the `pk` override, the failure-to-converge paths. | Guarded tests, skipped where `nlmixr2` is absent. |
 | 6 | Covariates and PD | Allometric scaling under `covariate_effects = "auto"`, the three PD shapes, and the random-effect correlation report. | Guarded, as commit 5. |
-| 7 | The documents | `vignettes/model-algorithm.Rmd` and `vignettes/model-demo.Rmd`, plus the stored fit under `scripts/` that both knit against. | `./build.sh`. |
+| 7 | The documents | `vignettes/pmxmodel-algorithm.Rmd` and `vignettes/pmxmodel-demo.Rmd`, plus the stored fit `scripts/build-model-fits.R` writes and both knit against. | `./build.sh`. |
 | 8 | The documentation sweep | The three false statements in the Documentation obligations section, and `_pkgdown.yml`. | Search for the affected names, as `AGENTS.md` requires. |
 
 Commits 1 to 4 need nothing beyond base R, so they run in this repository's
 ordinary loop. Commits 5 and 6 need a machine with `nlmixr2` installed and are
 the first point at which a compiler is in the path.
+
+**The order was changed on 2026-09-01, by the maintainer:** the two documents
+were pulled forward and everything they need was built with them, so commits 2
+to 7 landed together. The base-R half is still tested on its own — the
+generation tests construct a `pmx_fitted_model` by hand and never load
+`nlmixr2` — which is the property the order existed to protect. The estimation
+tests skip where the fitter cannot build a model, which is a stronger guard than
+`requireNamespace()`: on macOS, R's `FLIBS` points at `/opt/gfortran`, and where
+that directory is absent every model compiles, none of them links, and the
+failure reports itself as a missing C compiler.
 
 The public-data survey is not in this list. It follows once the demo from
 commit 7 has settled, for the reason in "Where this sits among the three

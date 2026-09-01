@@ -1,0 +1,249 @@
+---
+title: "Demo: Using synpmx_model"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Demo: Using synpmx_model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(synpmx)
+has_data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+has_dt <- requireNamespace("DT", quietly = TRUE)
+stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
+fit <- if (nzchar(stored)) readRDS(stored) else NULL
+run <- has_data && !is.null(fit)
+plots <- run && has_ggplot2
+show <- function(x, caption = NULL) {
+  if (!has_dt) return(x)
+  DT::datatable(
+    x, rownames = FALSE, caption = caption,
+    options = list(dom = "t", paging = FALSE, scrollX = TRUE, ordering = TRUE)
+  )
+}
+```
+
+Fit a population model to a study, look at what the fit carries, and generate a
+synthetic dataset by simulating from it. No number a patient measured reaches
+the output: what leaves the source is a structural model, a handful of fixed
+effects, a covariance matrix, a residual error, and a dosing and visit model per
+arm.
+
+It makes no formal privacy claim, and **it is not for estimation** — the fitted
+parameters exist to make simulated profiles look like the source study, and the
+object prints that warning with itself. The full specification is in
+`vignette("pmxmodel-algorithm")`.
+
+## The study
+
+`nlmixr2data::warfarin` is thirty-two patients given a single oral dose, with a
+concentration endpoint `cp` and a pharmacodynamic one `pca`.
+
+```{r data, eval=run}
+data("warfarin", package = "nlmixr2data")
+warfarin <- as.data.frame(warfarin)
+str(warfarin)
+```
+
+Its sixteen recorded observation times are the protocol's, shared across
+patients, so declaring `nominal_time` from `time` asserts something true about
+this study rather than constructing a grid. A study whose recorded times are
+per-patient clock readings needs a grid built by hand first; the public-data
+survey for `synpmx_pca()` works several of those.
+
+```{r roles, eval=run}
+sort(unique(warfarin$time[warfarin$evid == 0]))
+
+warfarin$ntime <- warfarin$time
+warfarin_roles <- pmx_roles(
+  id = "id", time = "time", nominal_time = "ntime", dv = "dv", amt = "amt",
+  evid = "evid", dvid = "dvid", covariates = c("wt", "age", "sex")
+)
+```
+
+## Fitting
+
+`synpmx_model_estimate()` is the only stage that reads patient data, and the only
+one that needs `nlmixr2`. It works out which endpoint is the drug, what design
+produced it, fits the candidates that design admits and picks one on AIC.
+
+```{r estimate-shown, eval=FALSE}
+fit <- synpmx_model_estimate(warfarin, warfarin_roles, seed = 1)
+```
+
+```{r estimate-note, echo=FALSE, results="asis", eval=run}
+cat("The chunk above is shown rather than run. Fitting compiles a model, so this",
+    "document reads a stored fit built by `scripts/build-model-fits.R` and",
+    "`R CMD check` never needs a compiler.\n")
+```
+
+```{r fit-print, eval=run}
+fit
+```
+
+Clearance of `r if (run) round(fit$parameters$fixed[["cl"]], 3) else NA` L/h and a
+volume of `r if (run) round(fit$parameters$fixed[["v"]], 1) else NA` L are the
+values this dataset is known for, which is the point: the fit is good enough to
+simulate from. It is still not a result to report, for the reason the object
+prints.
+
+## What the fit carries
+
+Two halves. `model_report()` separates them, because they answer to different
+things — one half is an estimate with all an estimate's caveats, the other is a
+summary of the study's apparatus.
+
+```{r report, eval=run}
+model_report(fit)
+```
+
+The signals table says how the concentration endpoint was decided. Here `cp` is
+the only endpoint with a rise-and-fall shape, and `proportional` reads "not
+computable" because `warfarin` gives every patient the same dose — there are no
+dose levels to compare. That is the classification telling you how much it had to
+go on, and it is worth reading before trusting the answer.
+
+The correlation block is the other thing to read. A covariate that moves with a
+random effect and is not in the model above is generated independently of the
+profiles, so the synthetic data carries no relationship between them.
+`synpmx_avatar()` keeps those relationships without modelling them.
+
+## The candidates
+
+```{r candidates, eval=run}
+show(model_candidates(fit), "Candidates the design admitted")
+```
+
+`warfarin`'s patients are sampled at a median of six distinct times, which is
+not enough to identify a distribution phase, so the two-compartment candidates
+were never offered. Where a study is sampled richly enough they are, and AIC
+chooses.
+
+## Generating
+
+`synpmx_model_generate()` reads no patient data. Its arguments are the fit and a
+subject count, so everything about the source that reaches the output has already
+passed through the fit.
+
+```{r generate, eval=run}
+synthetic <- synpmx_model_generate(fit, n_subjects = 32, seed = 7)
+str(synthetic)
+```
+
+The generated table is in the source's shape: same columns, same classes, same
+compartment numbers, new identifiers.
+
+```{r head, eval=run}
+show(head(synthetic, 10), "The first ten rows")
+```
+
+## Source against synthetic
+
+```{r overlay, eval=plots, fig.height=4}
+library(ggplot2)
+both <- rbind(
+  data.frame(set = "source", time = warfarin$time, dv = warfarin$dv,
+             endpoint = as.character(warfarin$dvid), evid = warfarin$evid),
+  data.frame(set = "synthetic", time = synthetic$time, dv = synthetic$dv,
+             endpoint = as.character(synthetic$dvid), evid = synthetic$evid)
+)
+both <- both[both$evid == 0 & !is.na(both$dv) & !is.na(both$endpoint), ]
+ggplot(both, aes(time, dv, colour = set)) +
+  geom_point(alpha = 0.4, size = 1) +
+  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+  facet_wrap(~endpoint, scales = "free_y") +
+  labs(x = "Time (h)", y = "Observed value", colour = NULL) +
+  theme_minimal()
+```
+
+```{r distributions, eval=run}
+compare <- function(endpoint) {
+  source_values <- warfarin$dv[warfarin$dvid == endpoint & warfarin$evid == 0]
+  synthetic_values <- synthetic$dv[synthetic$dvid == endpoint &
+                                     synthetic$evid == 0]
+  data.frame(
+    endpoint = endpoint,
+    statistic = c("n", "median", "q25", "q75", "max"),
+    source = round(c(length(source_values),
+                     stats::quantile(source_values, c(0.5, 0.25, 0.75)),
+                     max(source_values)), 2),
+    synthetic = round(c(length(synthetic_values),
+                        stats::quantile(synthetic_values, c(0.5, 0.25, 0.75)),
+                        max(synthetic_values)), 2),
+    row.names = NULL
+  )
+}
+show(rbind(compare("cp"), compare("pca")), "Source against synthetic")
+```
+
+The `pca` endpoint runs wider than the source does. It is fitted as a linear time
+course with no exposure term and an additive residual error, so it reproduces the
+average subject's response with a spread around it rather than the source's own
+bounded range. A dataset whose point is the exposure-response relationship is not
+served by this generator; `vignette("pmxmodel-algorithm")` says so under Step 3.
+
+## Scoring it
+
+`synpmx_scorecard()` does not know what produced the dataset it scores, so it
+reads this output the same way it reads an AVATAR or PCA one.
+
+```{r scorecard, eval=run}
+card <- synpmx_scorecard(warfarin, synthetic, warfarin_roles)
+show(as.data.frame(card), "Scorecard")
+```
+
+The three rows that read `unavailable` need `synpmx_avatar()`'s own run record,
+which no other generator writes. `vignette("avatar-scorecard")` documents what
+each row asks and what its pass criterion is.
+
+**B4a fails, and it is the row rather than the generator that is at fault.** It
+asks whether a generated subject's set of observation times is one that fewer
+than two real patients held. Two of the thirty-two are.
+
+That sounds like a disclosure and is not one. `warfarin` has 32 patients holding
+15 distinct visit sets, and **14 of those 15 are held by exactly one patient** —
+so "matches a set only one patient held" is very nearly "matches any real
+patient at all", which every generator that reproduces the study's design will
+do. Over 200 seeds this generator reproduces 1.26 such sets on average and fires
+on 83% of them; the two seen here are what chance predicts, not an excess.
+
+The same holds wherever you look. Across four public studies the share of source
+visit sets held by exactly one patient is 93% for `warfarin`, 83% for `wbcSim`,
+and 100% for both `theo_sd` and `theo_md`. A threshold that selects almost the
+whole source is measuring how wide the study's visit grid is, not what the
+generator did with it.
+
+Nor would redrawing help. Attendance here is drawn independently per visit, so a
+generated set was never taken from the patient it happens to match — rejecting
+collisions would truncate the attendance distribution and drive the row to zero
+by construction, which fixes the number rather than any risk.
+
+**B4b is the row that answers the disclosure question, and it reads 0.** No value
+any patient measured is reproduced. That is the claim this generator makes, and
+it is the one worth checking.
+
+## One call
+
+`synpmx_model()` is the two stages together, for when you do not need to look at
+the fit first. It is on the result either way, as an attribute.
+
+```{r one-call, eval=FALSE}
+synthetic <- synpmx_model(warfarin, warfarin_roles, n_subjects = 32, seed = 7)
+attr(synthetic, "pmx_fitted_model")
+```
+
+## See also
+
+- `vignette("pmxmodel-algorithm")` — what each step does and why.
+- `vignette("pca-demo")` — the same study through the principal-component
+  generator.
+- `vignette("avatar-demo")` — and through blending.
+- `vignette("avatar-scorecard")` — the checks above, in detail.

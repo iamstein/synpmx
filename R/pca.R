@@ -279,62 +279,7 @@
 # synthetic ID cannot collide with a real one.
 #
 # Documented in `pca-algorithm.Rmd`, Step 8.
-.pca_schema <- function(source, roles, fit, subject_group) {
-  observed <- .observation_rows(source, roles, require_present = TRUE)
-  endpoint <- .endpoint(source, roles)
-  dose_rows <- .event_rows(source, roles)
 
-  mode_of <- function(rows, column) {
-    values <- source[[column]][rows]
-    values <- values[!is.na(values)]
-    if (!length(values)) return(NA)
-    counts <- table(as.character(values))
-    values[match(names(counts)[which.max(counts)], as.character(values))]
-  }
-  cmt_dose <- if (is.null(roles$cmt)) NULL else mode_of(dose_rows, roles$cmt)
-  cmt_obs <- stats::setNames(lapply(fit$endpoints, function(ep) {
-    if (is.null(roles$cmt)) NULL else mode_of(observed & endpoint == ep,
-                                              roles$cmt)
-  }), fit$endpoints)
-
-  carried <- intersect(c(roles$strata, roles$keep), names(source))
-  subjects <- .unique_in_order(source[[roles$id]])
-  arm_values <- list()
-  for (arm in unique(subject_group)) {
-    subject <- subjects[subject_group == arm][1L]
-    rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
-    arm_values[[arm]] <- lapply(stats::setNames(carried, carried),
-                                function(column) {
-      value <- .first_present(source[[column]][rows])
-      if (is.factor(value)) as.character(value) else value
-    })
-  }
-
-  # The assay limit, per endpoint: one or two numbers read from the source, and
-  # the only way the generator can put a value back on the boundary. Without it
-  # every value below the limit is emitted as itself and an arm that is entirely
-  # below quantification comes back as a spread of small numbers rather than the
-  # flat line the study recorded.
-  censoring <- stats::setNames(lapply(fit$endpoints, function(ep) {
-    .source_censoring(source, roles, ep)
-  }), fit$endpoints)
-
-  identifiers <- source[[roles$id]]
-  list(
-    censoring = censoring,
-    columns = names(source),
-    prototypes = lapply(stats::setNames(names(source), names(source)),
-                        function(column) source[[column]][0L]),
-    id_class = class(identifiers)[[1L]],
-    id_offset = if (is.numeric(identifiers) && any(!is.na(identifiers))) {
-      max(identifiers, na.rm = TRUE)
-    } else 0,
-    id_levels = if (is.factor(identifiers)) levels(identifiers) else NULL,
-    cmt_dose = cmt_dose, cmt_obs = cmt_obs,
-    carried = carried, arm_values = arm_values,
-    endpoint_specs = .endpoint_value_types(source, roles)
-  )
-}
 
 # The nominal grid is not optional here, and it is not inferred.
 #
@@ -492,7 +437,8 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
     arms = list(arms = arm_models$arms, sizes = arm_models$sizes),
     dosing = arm_models$dosing,
     visits = arm_models$visits,
-    schema = .pca_schema(censoring_source, roles, fit, subject_group),
+    schema = .source_schema(censoring_source, roles, fit$endpoints,
+                           subject_group),
     roles = roles,
     settings = list(dose_term = dose_term, pca_variance = pca_variance,
                     n_components = n_components,
@@ -611,32 +557,7 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
 }
 
 # Arms keep their source share of the cohort, rounded to the requested total.
-.pca_assign_arms <- function(trial_summary, n_subjects) {
-  sizes <- trial_summary$arms$sizes
-  weights <- sizes / sum(sizes)
-  counts <- as.integer(round(weights * n_subjects))
-  short <- n_subjects - sum(counts)
-  if (short != 0L) {
-    order_index <- order(weights, decreasing = short > 0)
-    for (i in seq_len(abs(short))) {
-      j <- order_index[(i - 1L) %% length(counts) + 1L]
-      counts[j] <- max(0L, counts[j] + sign(short))
-    }
-  }
-  rep(trial_summary$arms$arms, times = counts)[seq_len(n_subjects)]
-}
 
-.pca_new_ids <- function(schema, n) {
-  width <- max(3L, nchar(as.character(n)))
-  labels <- sprintf(paste0("syn_%0", width, "d"), seq_len(n))
-  switch(
-    schema$id_class,
-    factor = factor(labels, levels = labels),
-    integer = as.integer(schema$id_offset + seq_len(n)),
-    numeric = as.numeric(schema$id_offset + seq_len(n)),
-    labels
-  )
-}
 
 # Generation. Every argument is a summary; no patient row is in scope.
 #
@@ -646,7 +567,8 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   roles <- trial_summary$roles
   schema <- trial_summary$schema
 
-  assignment <- .pca_assign_arms(trial_summary, n_subjects)
+  assignment <- .assign_arms(trial_summary$arms$arms, trial_summary$arms$sizes,
+                             n_subjects)
   # Each subject's schedule is simulated before their scores are drawn, because
   # the total dose it comes to is what the score model is conditioned on. On a
   # study with reductions two patients in one arm no longer receive the same
@@ -699,7 +621,7 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   rownames(frame) <- NULL
 
   out <- data.frame(row.names = seq_len(nrow(frame)))
-  ids <- .pca_new_ids(schema, n_subjects)
+  ids <- .new_subject_ids(schema, n_subjects)
   out[[roles$id]] <- ids[frame$.subject]
   out[[roles$time]] <- frame$TIME
   out[[roles$nominal_time]] <- frame$TIME

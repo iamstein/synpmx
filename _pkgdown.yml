@@ -31,6 +31,12 @@ navbar:
     articles:
       text: Articles
       menu:
+      - text: "PMX model generator"
+      - text: "Demo: the PMX model generator"
+        href: articles/pmxmodel-demo.html
+      - text: The synpmx PMX Model Algorithm
+        href: articles/pmxmodel-algorithm.html
+      - text: -------
       - text: "PCA generator"
       - text: "Demo: the PCA generator"
         href: articles/pca-demo.html
@@ -74,14 +80,18 @@ navbar:
 reference:
 - title: Generating data
   desc: >
-    The generation modes. `synpmx_avatar()` is the default AVATAR path and
-    `synpmx_pca()` fits a basis instead of blending; the remaining three
+    The generation modes. `synpmx_avatar()` blends real subjects,
+    `synpmx_pca()` fits a basis of their profiles, and `synpmx_model()`
+    estimates a population model and simulates from it; the remaining three
     require a public structural model.
   contents:
   - synpmx_avatar
   - synpmx_pca
   - synpmx_pca_summarize
   - synpmx_pca_generate
+  - synpmx_model
+  - synpmx_model_estimate
+  - synpmx_model_generate
   - synpmx_prior
   - synpmx_calibrated
   - synpmx_empirical
@@ -100,6 +110,15 @@ reference:
   - pca_visits
   - pca_components
   - pca_component_effect
+
+- title: Reading a fitted model
+  desc: >
+    What `synpmx_model_estimate()` read out of the source data: the estimated
+    half, the candidates it chose between, and the apparatus it summarized.
+  contents:
+  - model_report
+  - model_candidates
+  - model_parameters
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

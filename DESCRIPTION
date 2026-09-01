@@ -4,8 +4,10 @@ Version: 0.0.0.9000
 Authors@R:
     person("Andrew", "Stein", , "andy.stein@gmail.com", role = c("aut", "cre"))
 Description: Generates structurally faithful synthetic pharmacometric event
-    data from a real study, by AVATAR-style profile blending or by a fitted
-    principal-component model of the subject profiles. A separate calibrated
+    data from a real study, by AVATAR-style profile blending, by a fitted
+    principal-component model of the subject profiles, or by estimating a
+    linear population pharmacokinetic model and simulating from it. A
+    separate calibrated
     structural and differentially private workflow is available when formal
     privacy is required. The package uses explicit roles, units, schemas, and
     seeds. The generated data is for developing code outside the environment
@@ -27,6 +29,7 @@ Suggests:
     htmltools,
     knitr,
     nlmixr2data,
+    nlmixr2est,
     opendp,
     patchwork,
     rmarkdown,
