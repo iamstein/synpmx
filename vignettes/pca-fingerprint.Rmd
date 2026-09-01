@@ -26,8 +26,10 @@ tables <- run && has_dt
 # Three significant digits on every measured quantity. Times, counts and cycle
 # numbers are exempt: `signif(2015.9, 3)` is 2020, which would move a nominal
 # visit onto a time the study never had.
-exact <- c("time", "cycle", "patients", "numbers", "min_patients",
-           "planned_cycles", "distinct", "source_doses", "offset")
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
 digits3 <- function(x) {
   for (column in names(x)) {
     if (column %in% exact || !is.numeric(x[[column]])) next

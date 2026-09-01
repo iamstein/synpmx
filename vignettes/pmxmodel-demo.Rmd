@@ -17,15 +17,32 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(synpmx)
 has_data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_dt <- requireNamespace("DT", quietly = TRUE)
 stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
 fit <- if (nzchar(stored)) readRDS(stored) else NULL
 run <- has_data && !is.null(fit)
-plots <- run && has_ggplot2
+plots <- run && has_ggplot2 && has_xgxr
+distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
+# Three significant digits on every measured quantity. Times, counts and
+# identifiers are exempt: `signif(2015.9, 3)` is 2020, which would move a
+# nominal visit onto a time the study never had.
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
+digits3 <- function(x) {
+  x <- as.data.frame(x)
+  for (column in names(x)) {
+    if (tolower(column) %in% exact || !is.numeric(x[[column]])) next
+    x[[column]] <- signif(x[[column]], 3)
+  }
+  x
+}
 show <- function(x, caption = NULL) {
-  if (!has_dt) return(x)
+  if (!has_dt) return(digits3(x))
   DT::datatable(
-    x, rownames = FALSE, caption = caption,
+    digits3(x), rownames = FALSE, caption = caption,
     options = list(dom = "t", paging = FALSE, scrollX = TRUE, ordering = TRUE)
   )
 }
@@ -155,50 +172,71 @@ compartment numbers, new identifiers.
 show(head(synthetic, 10), "The first ten rows")
 ```
 
-## Source against synthetic
+## Plot synthetic data and original data
 
-```{r overlay, eval=plots, fig.height=4}
+The same overlay the other two demos draw, so the three can be read against each
+other: source and synthetic on the same axes, one row each.
+
+```{r overlay-setup, eval=plots}
 library(ggplot2)
+library(xgxr)
+xgx_theme_set()
+comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
+
 both <- rbind(
-  data.frame(set = "source", time = warfarin$time, dv = warfarin$dv,
-             endpoint = as.character(warfarin$dvid), evid = warfarin$evid),
-  data.frame(set = "synthetic", time = synthetic$time, dv = synthetic$dv,
-             endpoint = as.character(synthetic$dvid), evid = synthetic$evid)
+  cbind(warfarin[, names(synthetic)], DATA = "source"),
+  cbind(synthetic, DATA = "synthetic")
 )
-both <- both[both$evid == 0 & !is.na(both$dv) & !is.na(both$endpoint), ]
-ggplot(both, aes(time, dv, colour = set)) +
-  geom_point(alpha = 0.4, size = 1) +
-  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
-  facet_wrap(~endpoint, scales = "free_y") +
-  labs(x = "Time (h)", y = "Observed value", colour = NULL) +
-  theme_minimal()
+obs <- both[both$evid == 0 & !is.na(both$dv), ]
 ```
 
-```{r distributions, eval=run}
-compare <- function(endpoint) {
-  source_values <- warfarin$dv[warfarin$dvid == endpoint & warfarin$evid == 0]
-  synthetic_values <- synthetic$dv[synthetic$dvid == endpoint &
-                                     synthetic$evid == 0]
-  data.frame(
-    endpoint = endpoint,
-    statistic = c("n", "median", "q25", "q75", "max"),
-    source = round(c(length(source_values),
-                     stats::quantile(source_values, c(0.5, 0.25, 0.75)),
-                     max(source_values)), 2),
-    synthetic = round(c(length(synthetic_values),
-                        stats::quantile(synthetic_values, c(0.5, 0.25, 0.75)),
-                        max(synthetic_values)), 2),
-    row.names = NULL
-  )
-}
-show(rbind(compare("cp"), compare("pca")), "Source against synthetic")
+```{r overlay-pk, eval=plots, fig.height=5}
+ggplot(obs[obs$dvid == "cp", ],
+       aes(time, dv, group = id, colour = DATA)) +
+  geom_line(alpha = 0.4) +
+  facet_grid(DATA ~ .) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  scale_colour_manual(values = comparison_colours) +
+  labs(x = "Time (hours)", y = "Warfarin concentration", colour = NULL) +
+  theme(legend.position = "top") +
+  ggtitle("Concentration Profile")
 ```
 
-The `pca` endpoint runs wider than the source does. It is fitted as a linear time
-course with no exposure term and an additive residual error, so it reproduces the
-average subject's response with a spread around it rather than the source's own
-bounded range. A dataset whose point is the exposure-response relationship is not
-served by this generator; `vignette("pmxmodel-algorithm")` says so under Step 3.
+The synthetic profiles are smoother than the source's, and that is the
+generator's shape rather than a fault in the run: every one of them is the same
+one-compartment curve evaluated at a different draw of clearance, volume and
+absorption, with residual error on top. A real cohort's profiles wander in ways
+one structural model does not reproduce.
+
+```{r overlay-pd, eval=plots, fig.height=5}
+ggplot(obs[obs$dvid == "pca", ],
+       aes(time, dv, group = id, colour = DATA)) +
+  geom_line(alpha = 0.35) +
+  facet_grid(DATA ~ .) +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  scale_colour_manual(values = comparison_colours) +
+  labs(x = "Time (hours)", y = "Prothrombin complex activity",
+       colour = NULL) +
+  theme(legend.position = "top") +
+  ggtitle("PD Response")
+```
+
+The PD endpoint is a straight line per subject, which is the whole of what the
+shape search offers: a constant, a line, or an exponential, with variability on
+the baseline and no exposure term. The source's response falls and then flattens;
+the synthetic one keeps falling. A dataset whose point is that curvature is not
+served by this generator.
+
+## Distributions of Synthetic and Original Data
+
+One panel per endpoint and per baseline covariate, source against synthetic.
+`compare_pmx_distributions_height()` sizes the figure, since it grows a row of
+panels at a time; `output = "tables"` gives the numbers behind it.
+
+```{r distributions, eval=distributions, fig.height=compare_pmx_distributions_height(warfarin, warfarin_roles)}
+compare_pmx_distributions(warfarin, synthetic, warfarin_roles)
+```
 
 ## Scoring it
 

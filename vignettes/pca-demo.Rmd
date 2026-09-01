@@ -24,9 +24,24 @@ distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
 # DT is installed and printed plainly where it is not.
 has_dt <- requireNamespace("DT", quietly = TRUE)
 tables <- run && has_dt
+# Three significant digits on every measured quantity. Times, counts and
+# identifiers are exempt: `signif(2015.9, 3)` is 2020, which would move a
+# nominal visit onto a time the study never had.
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
+digits3 <- function(x) {
+  x <- as.data.frame(x)
+  for (column in names(x)) {
+    if (tolower(column) %in% exact || !is.numeric(x[[column]])) next
+    x[[column]] <- signif(x[[column]], 3)
+  }
+  x
+}
 show <- function(x, caption = NULL) {
   DT::datatable(
-    x, rownames = FALSE, caption = caption,
+    digits3(x), rownames = FALSE, caption = caption,
     options = list(dom = "t", paging = FALSE, scrollX = TRUE, ordering = TRUE)
   )
 }

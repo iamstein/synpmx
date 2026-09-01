@@ -18,16 +18,20 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(synpmx)
 has_data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_dt <- requireNamespace("DT", quietly = TRUE)
 stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
 fit <- if (nzchar(stored)) readRDS(stored) else NULL
 run <- has_data && !is.null(fit)
-plots <- run && has_ggplot2
+plots <- run && has_ggplot2 && has_xgxr
 tables <- run && has_dt
 
 # Three significant digits on measured quantities. Times and counts are exempt:
 # rounding a nominal visit time would move it onto a time the study never had.
-exact <- c("time", "cycle", "patients", "index", "n", "count")
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
 digits3 <- function(x) {
   for (column in names(x)) {
     if (column %in% exact || !is.numeric(x[[column]])) next
@@ -306,12 +310,16 @@ show(cells[, c("endpoint", "time", "probability")],
 
 ```{r visits-plot, eval=plots, fig.height=3.5}
 library(ggplot2)
+library(xgxr)
+xgx_theme_set()
+
 ggplot(cells, aes(time, probability, colour = endpoint)) +
   geom_line() + geom_point(size = 1.5) +
   ylim(0, 1) +
-  labs(x = "Nominal time (h)", y = "Fraction of the arm observed",
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  labs(x = "Nominal time (hours)", y = "Fraction of the arm observed",
        colour = NULL) +
-  theme_minimal()
+  theme(legend.position = "top")
 ```
 
 A cell is kept only where at least `min_arm_patients` distinct patients hold an
