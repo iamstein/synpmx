@@ -26,9 +26,20 @@ should be written as though it had.
 
 The practical consequence is O17 in `WRITING_FOR_ANDY.md`. Three generators that
 get chosen between are read by comparison, so their documents have to hold the
-same shape. `vignettes/pca-public-data-examples.Rmd` was added on 2026-08-29 to
-close the gap on PCA's side, so the surveys now cover two of the three
-generators.
+same shape. PCA's survey lives at
+`vignettes/articles/pca-public-data-examples.Rmd`, so the surveys now cover two
+of the three generators.
+
+A second survey for PCA was written on this branch on 2026-08-29 and discarded
+on 2026-09-01: one already existed on `claude/synpmx-package-work-cgcrue`, and
+it was the better document. The difference is the whole lesson. The discarded
+one copied the AVATAR survey's role declarations verbatim and let the generator
+refuse whatever it refused, which ran two of eight datasets. The one that
+survives declares or constructs a nominal grid per dataset, saying each time
+what that declaration asserts about the protocol, and runs seven of eight. The
+gate refuses to let the *package* infer a grid. It does not stop a *document*
+from declaring one, and a survey that reads it as though it did is a survey
+about the gate rather than about the generator.
 
 This generator arrives with two documents, `model-algorithm.Rmd` and
 `model-demo.Rmd`. Its public-data survey is developed after the maintainer is

@@ -344,7 +344,5 @@ per arm.
   reads out of the source.
 - `vignette("pca-trial-summary")` — every quantity the summary holds, in
   detail.
-- `vignette("pca-public-data-examples")` — this generator across eight public
-  datasets, and which of them it refuses.
 - `vignette("synpmx-methods")` — the other generation modes, and which one to
   use when.

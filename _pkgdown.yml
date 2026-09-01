@@ -38,8 +38,6 @@ navbar:
         href: articles/pca-trial-summary.html
       - text: The synpmx PCA Algorithm
         href: articles/pca-algorithm.html
-      - text: Evaluating PCA on public data
-        href: articles/pca-public-data-examples.html
       - text: -------
       - text: "AVATAR generator"
       - text: "Demo: one dataset, end to end"

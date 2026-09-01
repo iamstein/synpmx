@@ -332,5 +332,3 @@ c(rows = nrow(synthetic),
   data plotted against each other.
 - `vignette("pca-algorithm")` — how each quantity above is estimated, and what
   it does and does not preserve.
-- `vignette("pca-public-data-examples")` — this generator across eight public
-  datasets, and which of them it refuses.
