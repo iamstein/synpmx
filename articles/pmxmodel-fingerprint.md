@@ -146,7 +146,8 @@ names(fit)
 #>  [7] "visits"            "schema"            "roles"            
 #> [10] "settings"          "n_source"          "cells"            
 #> [13] "pd"                "covariate_effects" "covariates"       
-#> [16] "discrete"          "design"            "correlations"
+#> [16] "discrete"          "design"            "correlations"     
+#> [19] "censoring"
 ```
 
 ## The settings that produced it
@@ -253,6 +254,29 @@ Additive here rather than proportional, because `warfarin` holds
 concentrations recorded as zero and a proportional error on zero is
 zero. The substitution is recorded on the object rather than being
 silent.
+
+## What the assay limit cost
+
+Values below the limit are imputed before anything is fitted, and the
+boundary is put back when data is generated. That is the intended
+behaviour — it is what lets every part of the fingerprint read a latent
+value rather than a stack of identical boundary substitutions — but it
+is an assumption, and its weight is the share of each endpoint carrying
+it.
+
+``` r
+
+fit$censoring
+#> NULL
+```
+
+`warfarin` declares no censoring, so nothing here was imputed. On a
+study where it is, this is the line to read before trusting the
+concentrations:
+[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) has
+46% of its concentrations below the limit and 95% of the lowest dose
+arm, and there the fitted parameters are substantially a statement about
+the draw.
 
 ## The covariate effects
 
@@ -409,12 +433,16 @@ show(cells[, c("endpoint", "time", "probability")],
 ``` r
 
 library(ggplot2)
+library(xgxr)
+xgx_theme_set()
+
 ggplot(cells, aes(time, probability, colour = endpoint)) +
   geom_line() + geom_point(size = 1.5) +
   ylim(0, 1) +
-  labs(x = "Nominal time (h)", y = "Fraction of the arm observed",
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  labs(x = "Nominal time (hours)", y = "Fraction of the arm observed",
        colour = NULL) +
-  theme_minimal()
+  theme(legend.position = "top")
 ```
 
 ![](pmxmodel-fingerprint_files/figure-html/visits-plot-1.png)
@@ -465,7 +493,7 @@ str(synthetic)
 #>  $ wt   : num  52.1 52.1 52.1 52.1 52.1 ...
 #>  $ age  : int  33 33 33 33 33 33 33 33 33 33 ...
 #>  $ sex  : Factor w/ 2 levels "female","male": 2 2 2 2 2 2 2 2 2 2 ...
-#>  - attr(*, "pmx_fitted_model")=List of 18
+#>  - attr(*, "pmx_fitted_model")=List of 19
 #>   ..$ structural       : chr "1cmt_oral"
 #>   ..$ candidates       :'data.frame':    1 obs. of  4 variables:
 #>   .. ..$ model    : chr "1cmt_oral"
@@ -710,6 +738,7 @@ str(synthetic)
 #>   .. ..$ covariate  : chr [1:9] "wt" "wt" "wt" "age" ...
 #>   .. ..$ parameter  : chr [1:9] "cl" "v" "ka" "cl" ...
 #>   .. ..$ correlation: num [1:9] -0.0782 -0.0104 0.0337 0.1601 0.0323 ...
+#>   ..$ censoring        : NULL
 #>   ..- attr(*, "class")= chr "pmx_fitted_model"
 #>  - attr(*, "pmx_source")= chr "model"
 ```

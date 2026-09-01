@@ -769,13 +769,13 @@ knitr::kable(verdicts, row.names = FALSE,
 
 | Dataset     | pass | review | FAIL | unavailable | Failing |
 |:------------|-----:|-------:|-----:|------------:|:--------|
-| case1_pkpd  |   13 |      2 |    0 |           3 |         |
-| mad         |   14 |      1 |    0 |           3 |         |
-| warfarin    |   13 |      1 |    1 |           3 | B4a     |
-| wbcSim      |   11 |      3 |    1 |           3 | B4a     |
-| theo_md     |   14 |      1 |    0 |           3 |         |
-| nimoData    |   13 |      2 |    0 |           3 |         |
-| mavoglurant |   12 |      3 |    0 |           3 |         |
+| case1_pkpd  |   12 |      2 |    0 |           3 |         |
+| mad         |   13 |      1 |    0 |           3 |         |
+| warfarin    |   13 |      1 |    0 |           3 |         |
+| wbcSim      |   11 |      3 |    0 |           3 |         |
+| theo_md     |   13 |      1 |    0 |           3 |         |
+| nimoData    |   12 |      2 |    0 |           3 |         |
+| mavoglurant |   11 |      3 |    0 |           3 |         |
 
 Scorecard verdicts across the seven runs. {.table}
 
@@ -831,13 +831,13 @@ knitr::kable(copies, row.names = FALSE,
 
 | Dataset | Median observations | Time vectors copied (B4a) | DV vectors copied (B4b) |
 |:---|---:|:---|:---|
-| case1_pkpd | 35 | 0 | 0 |
-| mad | 68 | 0 | 0 |
-| warfarin | 13 | 1 | 0 |
-| wbcSim | 4 | 4 | 0 |
-| theo_md | 22 | 0 | 0 |
-| nimoData | 27 | 0 | 0 |
-| mavoglurant | 24 | 0 | 0 |
+| case1_pkpd | 35 | not applicable: attendance drawn per visit | 0 |
+| mad | 68 | not applicable: attendance drawn per visit | 0 |
+| warfarin | 13 | not applicable: attendance drawn per visit | 0 |
+| wbcSim | 4 | not applicable: attendance drawn per visit | 0 |
+| theo_md | 22 | not applicable: attendance drawn per visit | 0 |
+| nimoData | 27 | not applicable: attendance drawn per visit | 0 |
+| mavoglurant | 24 | not applicable: attendance drawn per visit | 0 |
 
 B4a and B4b across the seven runs, beside how long a source patient’s
 record is. {.table}

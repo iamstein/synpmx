@@ -604,10 +604,46 @@ find.
 
 ### B4a, B4b. Is any generated vector a copy of a real one
 
-The observation times (B4a), and the dosing times (B4b) should not be
+The observation times (B4a), and the measured values (B4b) should not be
 exactly reproduced from a patient. Both must be **0** and either above 0
 is a `FAIL`. On a study with one protocol grid and good adherence, B4a
 and B4b are close to silent.
+
+**B4a reads `not applicable` for a generator that draws attendance per
+visit.** It is a disclosure question only where the visit set was taken
+from somebody.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+reuses a donor’s attendance pattern, so a match is a match and the row
+means what it says.
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+and
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+decide each visit independently from a per-arm probability onto a grid
+the caller declared, so a match is a coincidence — and one with a
+computable chance of happening. Three measurements say how little the
+row is worth there:
+
+- Of a study’s own visit sets, the share held by exactly one patient is
+  93% on `warfarin`, 83% on `wbcSim`, and 100% on `theo_sd` and
+  `theo_md`. A threshold that selects nearly the whole source is not
+  selecting anything.
+- Over 200 seeds on `warfarin`,
+  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+  reproduces a mean of 1.26 such sets and fires on 83% of them. What the
+  row reports is the chance rate.
+- Jittering that study’s recorded visit times by a few minutes — which
+  changes no synthetic value and no privacy property — takes the row
+  from 2 to 0. The verdict tracks whether a study happened to round its
+  visit times.
+
+B4b is the row that answers the disclosure question for those
+generators, and it is not weakened: reproducing a value a patient
+measured is a copy however the generator arrived at it.
+
+The row is decided from the `"pmx_source"` attribute the generator
+writes, so a table read back from a CSV loses it and is measured the
+AVATAR way — the same degradation the three `unavailable` rows already
+have.
 
 ### B5. Did a rare category reach the output
 

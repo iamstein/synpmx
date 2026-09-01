@@ -245,17 +245,26 @@ structural parameter and a proportional residual error. An endpoint
 holding values at or below zero after censoring is handled gets an
 additive error instead, and the substitution is recorded on the fit.
 
-**Censored observations are imputed, not fitted as censored, and on a
-heavily censored study that shows.** A value below the assay limit is
-replaced by a draw from inside the censoring region and handed to the
-fitter as though it were a measurement. The M3 likelihood, which would
-treat it as the censored observation it is, is not wired up. On
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html),
-where 46% of concentrations are below the limit and 95% are in the
-lowest dose arm, the fit converges and the output is a legal dataset but
-the generated concentrations run about half the source’s — while the
-uncensored PD endpoint on the same study matches closely. Read the
-censored fraction of your own study before trusting the concentrations.
+**Censored observations are imputed, and the fit is told how many.** A
+value below the assay limit is replaced by a uniform draw inside the
+censoring region — a draw rather than a fixed LLOQ/2, which would swap
+one artificial spike for another — and the boundary is put back when the
+synthetic data is emitted. This is deliberate rather than a shortcut
+past the M3 likelihood: the same imputation is what lets the visit
+model, the PD shapes and the covariate model read a latent value instead
+of a stack of identical boundary substitutions, and it is the same thing
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+does.
+
+It is an assumption all the same, and its weight is the share of the
+endpoint that carries it, so that share is measured and reported with
+the fit. On
+[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html), 46%
+of concentrations sit below the limit — 95% of them in the lowest dose
+arm — and there the fitted parameters are substantially a statement
+about the draw rather than about measurements. Read that line in
+[`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+before trusting the concentrations of a heavily censored study.
 
 Starting values come from a non-compartmental reading of the source
 rather than from a guess. A population fit started far from the answer

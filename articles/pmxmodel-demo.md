@@ -201,7 +201,7 @@ str(synthetic)
 #>  $ wt   : num  52.1 52.1 52.1 52.1 52.1 ...
 #>  $ age  : int  33 33 33 33 33 33 33 33 33 33 ...
 #>  $ sex  : Factor w/ 2 levels "female","male": 2 2 2 2 2 2 2 2 2 2 ...
-#>  - attr(*, "pmx_fitted_model")=List of 18
+#>  - attr(*, "pmx_fitted_model")=List of 19
 #>   ..$ structural       : chr "1cmt_oral"
 #>   ..$ candidates       :'data.frame':    1 obs. of  4 variables:
 #>   .. ..$ model    : chr "1cmt_oral"
@@ -446,6 +446,7 @@ str(synthetic)
 #>   .. ..$ covariate  : chr [1:9] "wt" "wt" "wt" "age" ...
 #>   .. ..$ parameter  : chr [1:9] "cl" "v" "ka" "cl" ...
 #>   .. ..$ correlation: num [1:9] -0.0782 -0.0104 0.0337 0.1601 0.0323 ...
+#>   ..$ censoring        : NULL
 #>   ..- attr(*, "class")= chr "pmx_fitted_model"
 #>  - attr(*, "pmx_source")= chr "model"
 ```
@@ -458,56 +459,87 @@ classes, same compartment numbers, new identifiers.
 show(head(synthetic, 10), "The first ten rows")
 ```
 
-## Source against synthetic
+## Plot synthetic data and original data
+
+The same overlay the other two demos draw, so the three can be read
+against each other: source and synthetic on the same axes, one row each.
 
 ``` r
 
 library(ggplot2)
-both <- rbind(
-  data.frame(set = "source", time = warfarin$time, dv = warfarin$dv,
-             endpoint = as.character(warfarin$dvid), evid = warfarin$evid),
-  data.frame(set = "synthetic", time = synthetic$time, dv = synthetic$dv,
-             endpoint = as.character(synthetic$dvid), evid = synthetic$evid)
-)
-both <- both[both$evid == 0 & !is.na(both$dv) & !is.na(both$endpoint), ]
-ggplot(both, aes(time, dv, colour = set)) +
-  geom_point(alpha = 0.4, size = 1) +
-  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
-  facet_wrap(~endpoint, scales = "free_y") +
-  labs(x = "Time (h)", y = "Observed value", colour = NULL) +
-  theme_minimal()
-```
+library(xgxr)
+xgx_theme_set()
+comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
 
-![](pmxmodel-demo_files/figure-html/overlay-1.png)
+both <- rbind(
+  cbind(warfarin[, names(synthetic)], DATA = "source"),
+  cbind(synthetic, DATA = "synthetic")
+)
+obs <- both[both$evid == 0 & !is.na(both$dv), ]
+```
 
 ``` r
 
-compare <- function(endpoint) {
-  source_values <- warfarin$dv[warfarin$dvid == endpoint & warfarin$evid == 0]
-  synthetic_values <- synthetic$dv[synthetic$dvid == endpoint &
-                                     synthetic$evid == 0]
-  data.frame(
-    endpoint = endpoint,
-    statistic = c("n", "median", "q25", "q75", "max"),
-    source = round(c(length(source_values),
-                     stats::quantile(source_values, c(0.5, 0.25, 0.75)),
-                     max(source_values)), 2),
-    synthetic = round(c(length(synthetic_values),
-                        stats::quantile(synthetic_values, c(0.5, 0.25, 0.75)),
-                        max(synthetic_values)), 2),
-    row.names = NULL
-  )
-}
-show(rbind(compare("cp"), compare("pca")), "Source against synthetic")
+ggplot(obs[obs$dvid == "cp", ],
+       aes(time, dv, group = id, colour = DATA)) +
+  geom_line(alpha = 0.4) +
+  facet_grid(DATA ~ .) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  scale_colour_manual(values = comparison_colours) +
+  labs(x = "Time (hours)", y = "Warfarin concentration", colour = NULL) +
+  theme(legend.position = "top") +
+  ggtitle("Concentration Profile")
+#> Warning in ggplot2::scale_y_log10(..., breaks = breaks, minor_breaks =
+#> minor_breaks, : log-10 transformation introduced infinite
+#> values.
 ```
 
-The `pca` endpoint runs wider than the source does. It is fitted as a
-linear time course with no exposure term and an additive residual error,
-so it reproduces the average subject’s response with a spread around it
-rather than the source’s own bounded range. A dataset whose point is the
-exposure-response relationship is not served by this generator;
-[`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md)
-says so under Step 3.
+![](pmxmodel-demo_files/figure-html/overlay-pk-1.png)
+
+The synthetic profiles are smoother than the source’s, and that is the
+generator’s shape rather than a fault in the run: every one of them is
+the same one-compartment curve evaluated at a different draw of
+clearance, volume and absorption, with residual error on top. A real
+cohort’s profiles wander in ways one structural model does not
+reproduce.
+
+``` r
+
+ggplot(obs[obs$dvid == "pca", ],
+       aes(time, dv, group = id, colour = DATA)) +
+  geom_line(alpha = 0.35) +
+  facet_grid(DATA ~ .) +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  scale_colour_manual(values = comparison_colours) +
+  labs(x = "Time (hours)", y = "Prothrombin complex activity",
+       colour = NULL) +
+  theme(legend.position = "top") +
+  ggtitle("PD Response")
+```
+
+![](pmxmodel-demo_files/figure-html/overlay-pd-1.png)
+
+The PD endpoint is a straight line per subject, which is the whole of
+what the shape search offers: a constant, a line, or an exponential,
+with variability on the baseline and no exposure term. The source’s
+response falls and then flattens; the synthetic one keeps falling. A
+dataset whose point is that curvature is not served by this generator.
+
+## Distributions of Synthetic and Original Data
+
+One panel per endpoint and per baseline covariate, source against
+synthetic.
+[`compare_pmx_distributions_height()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions_height.md)
+sizes the figure, since it grows a row of panels at a time;
+`output = "tables"` gives the numbers behind it.
+
+``` r
+
+compare_pmx_distributions(warfarin, synthetic, warfarin_roles)
+```
+
+![](pmxmodel-demo_files/figure-html/distributions-1.png)
 
 ## Scoring it
 
