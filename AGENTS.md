@@ -29,10 +29,14 @@ Three cross-document contracts, each a defect when broken:
   under the same identifier, and that section states the pass criterion the
   function scores it against. A row appearing in one and not the other, or a pass criterion changing
   in one without the other, is a defect. 
-- Every worked dataset in `vignettes/avatar-public-data-examples.Rmd` has the same
-  shape — roles, `synpmx_avatar()`, one source-versus-synthetic figure,
-  `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only where
-  the numbers need it. Additional datasets get the same five steps.
+- Every worked dataset in `vignettes/articles/avatar-public-data-examples.Rmd`
+  has the same shape — roles, `synpmx_avatar()`, one source-versus-synthetic
+  figure, `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only
+  where the numbers need it. Additional datasets get the same five steps.
+  `vignettes/articles/pca-public-data-examples.Rmd` is the same contract for
+  `synpmx_pca()` over the same datasets, with `synpmx_pca_summarize()` and
+  `synpmx_pca_generate()` in place of `synpmx_avatar()`. Both are articles, so
+  `R CMD check` never runs them: `./build.sh articles` is what proves them.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.

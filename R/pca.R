@@ -1230,3 +1230,85 @@ pca_components <- function(x) {
   )
   out
 }
+
+#' What each component does to a profile, on the scale the data are reported in
+#'
+#' A loading is a number on the standardized modelling scale, so a table of them
+#' says which visits a component is concentrated on and not what moving along it
+#' looks like. This runs the model's own inversion instead: from the cohort
+#' centre, move one component by a given number of score standard deviations,
+#' invert the standardization and the endpoint's log transform, and report the
+#' feature values that come back.
+#'
+#' The result is the component in the units the study measured. A component that
+#' raises the whole concentration profile shows as a curve shifted up at every
+#' time; one that separates early visits from late shows as a curve that crosses
+#' the centre. Read it as a description of the fitted basis, not as pharmacology:
+#' no clearance was estimated and a score standard deviation is a variance
+#' decomposition, so naming a mechanism for a curve is a claim the fit does not
+#' support.
+#'
+#' The reference is the cohort centre --- score zero on every component --- which
+#' is the whole cohort's mean feature vector rather than any arm's. Arms differ
+#' by their mean score vectors, which [pca_scores()] reports.
+#'
+#' @param x A dataset from [synpmx_pca()], or its trial summary.
+#' @param sds How far to move along each component, in score standard
+#'   deviations. Defaults to 1. The spread used is the pooled residual standard
+#'   deviation across arms, which is the scale [pca_scores()] reports per arm.
+#'
+#' @return A data frame with one row per component, feature and displacement:
+#'   `component`, `feature`, `kind`, `endpoint`, `time`, `covariate`, `level`,
+#'   `score_sd` (`-sds`, `0` or `+sds`), and `value` on the reported scale.
+#'   Marked `"restricted_not_releasable"`: the centre is a mean of real data.
+#' @seealso [pca_components()] for the loadings themselves, [pca_features()]
+#'   for the grid, [pca_scores()] for the per-arm score model.
+#' @export
+#' @examples
+#' data <- pmx_simulated_fixture(60)
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+#'   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
+#' )
+#' effect <- pca_component_effect(synpmx_pca_summarize(data, roles))
+#' head(effect)
+pca_component_effect <- function(x, sds = 1) {
+  fit <- .pca_basis(x)
+  if (!is.numeric(sds) || length(sds) != 1L || !is.finite(sds) || sds <= 0) {
+    stop("`sds` must be a single positive number.", call. = FALSE)
+  }
+  features <- as.data.frame(pca_features(x))
+
+  # The residual spread of each score, pooled over arms. Under `"factor"` every
+  # arm carries its own covariance, so the pooled one is what describes a
+  # component rather than a component within one arm.
+  model <- fit$model
+  spread <- sqrt(diag(model$covariance))[seq_len(fit$k)]
+
+  # Inverting the standardization for a feature vector, then the endpoint's log
+  # transform where one was applied. This is the same arithmetic `.pca_draw()`
+  # runs on a drawn subject, with the draw replaced by a fixed displacement.
+  on_reported_scale <- function(standardized) {
+    values <- fit$centers + fit$scales * standardized
+    for (endpoint in names(fit$transforms)) {
+      cells <- !is.na(features$endpoint) & features$endpoint == endpoint
+      if (!any(cells)) next
+      values[cells] <- .inverse_dv(values[cells], fit$transforms[[endpoint]])
+    }
+    unname(values)
+  }
+
+  columns <- c("feature", "kind", "endpoint", "time", "covariate", "level")
+  out <- do.call(rbind, lapply(seq_len(fit$k), function(j) {
+    do.call(rbind, lapply(c(-sds, 0, sds), function(step) {
+      standardized <- step * spread[[j]] * fit$rotation[, j]
+      cbind(features[, columns],
+            component = paste0("PC", j),
+            score_sd = step,
+            value = on_reported_scale(standardized),
+            stringsAsFactors = FALSE)
+    }))
+  }))
+  rownames(out) <- NULL
+  .mark_release(out, "restricted_not_releasable")
+}

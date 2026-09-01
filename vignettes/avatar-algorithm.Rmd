@@ -29,7 +29,7 @@ pharmacokinetic (PK) datasets in [2], and here further extensions are provided
 so that it works well with more realistic datasets.  Use of the algorithm is demonstrated in:
 
 * `vignette("avatar-demo")` - AVATAR demonstration on a single dataset
-* `vignette("avatar-public-data-examples")` - AVATAR demonstration on a series of public datasets
+* [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) - AVATAR demonstration on a series of public datasets
 
 AVATAR makes no formal privacy claim. It also does not necessarily fully preserve the dose-exposure-response relationship.  Use the synthetic datasets to develop and debug analysis code. Do not use it to estimate parameters.
 
@@ -947,7 +947,7 @@ be an integer between zero and `.Machine$integer.max`.
 `vignette("avatar-scorecard")`, and demonstrated in:
 
 * `vignette("avatar-demo")` - AVATAR demonstration on a single dataset
-* `vignette("avatar-public-data-examples")` - AVATAR demonstration on a series of public datasets
+* [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) - AVATAR demonstration on a series of public datasets
 
 ## Conclusions
 

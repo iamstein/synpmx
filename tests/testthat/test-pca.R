@@ -569,3 +569,105 @@ test_that("a fixed schedule stays fixed", {
   synthetic_doses <- mean(table(synthetic$ID[synthetic$EVID != 0]))
   expect_equal(synthetic_doses, source_doses)
 })
+
+# `pca_component_effect()` is the components on the scale the study reported in.
+# It runs the generator's own inversion, so what it says a component does is
+# what a drawn subject actually gets rather than a second implementation.
+test_that("a component's effect is the model's own inversion of its loadings", {
+  fixture <- pca_fixture(60)
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 1)
+  basis <- trial_summary$basis
+  effect <- pca_component_effect(trial_summary, sds = 1)
+
+  expect_setequal(unique(effect$score_sd), c(-1, 0, 1))
+  expect_equal(nrow(effect), 3L * basis$k * length(basis$columns))
+  expect_setequal(unique(effect$component), paste0("PC", seq_len(basis$k)))
+
+  # The centre is score zero on every component, so it cannot depend on which
+  # component is being displaced.
+  centre <- subset(effect, score_sd == 0)
+  by_component <- split(centre$value, centre$component)
+  for (values in by_component[-1L]) expect_equal(values, by_component[[1L]])
+
+  # And the centre is the inverted column mean, not something recomputed here.
+  reference <- by_component[[1L]]
+  expected <- basis$centers
+  for (endpoint in names(basis$transforms)) {
+    cells <- !is.na(effect$endpoint[seq_along(expected)]) &
+      effect$endpoint[seq_along(expected)] == endpoint
+    expected[cells] <- synpmx:::.inverse_dv(expected[cells],
+                                            basis$transforms[[endpoint]])
+  }
+  expect_equal(reference, unname(expected))
+})
+
+test_that("a component's effect moves the features its loadings sit on", {
+  fixture <- pca_fixture(60)
+  trial_summary <- synpmx_pca_summarize(fixture$data, fixture$roles, seed = 1)
+  basis <- trial_summary$basis
+  effect <- pca_component_effect(trial_summary, sds = 2)
+
+  # Both inverse transforms are increasing, so on the reported scale a feature
+  # must move in its loading's direction and cannot move at all where the
+  # loading is zero. That holds whichever transform a cell carries, which is
+  # why it is the property asserted rather than a rank on the modelling scale.
+  first <- subset(effect, component == "PC1")
+  moved <- subset(first, score_sd == 2)$value - subset(first, score_sd == 0)$value
+  loading <- basis$rotation[, 1L]
+  expect_equal(sign(moved), sign(loading), ignore_attr = TRUE)
+
+  # On the modelling scale the step is linear in `sds`, which is what makes the
+  # argument readable as a distance along the component. Checked on the
+  # identity-transform cells, where the reported scale is the modelling scale.
+  one <- pca_component_effect(trial_summary, sds = 1)
+  centre <- subset(one, component == "PC1" & score_sd == 0)$value
+  step_one <- subset(one, component == "PC1" & score_sd == 1)$value
+  identity_cells <- is.na(first$endpoint[first$score_sd == 0])
+  expect_true(any(identity_cells))
+  expect_equal(
+    (subset(first, score_sd == 2)$value - centre)[identity_cells],
+    2 * (step_one - centre)[identity_cells]
+  )
+
+  expect_error(pca_component_effect(trial_summary, sds = 0), "positive")
+  expect_error(pca_component_effect(trial_summary, sds = c(1, 2)), "single")
+})
+
+# `SIM-055`. Attendance is drawn independently per visit with no floor on how
+# many source patients hold the resulting set, so on a sparsely sampled study a
+# generated subject's time vector can coincide with a real patient's that
+# nobody else shares. This pins the finding rather than blessing it: the copies
+# are of the attendance set only, they are short, and no measured value is ever
+# reproduced. The public-data evaluation article measures the same thing on
+# `warfarin` and `wbcSim`.
+sparse_pca_fixture <- function(n = 60, keep_fraction = 0.25, seed = 11) {
+  fixture <- pca_fixture(n)
+  observations <- fixture$data$EVID == 0
+  set.seed(seed)
+  keep <- rep(TRUE, nrow(fixture$data))
+  keep[observations] <- stats::runif(sum(observations)) < keep_fraction
+  fixture$data <- fixture$data[keep, ]
+  fixture
+}
+
+test_that("a sparse study's attendance sets can coincide, but its values cannot", {
+  fixture <- sparse_pca_fixture()
+  # Short records are the precondition, so assert it rather than assuming it.
+  per_subject <- table(fixture$data$ID[fixture$data$EVID == 0])
+  expect_lt(mean(per_subject), 5)
+
+  copies <- vapply(2:5, function(seed) {
+    card <- as.data.frame(synpmx_scorecard(
+      fixture$data, synpmx_pca(fixture$data, fixture$roles, seed = seed),
+      fixture$roles
+    ))
+    c(time = as.numeric(card$result[card$check == "B4a"]),
+      dv = as.numeric(card$result[card$check == "B4b"]))
+  }, numeric(2))
+
+  # The finding: the time-vector copy is not hypothetical on a sparse study.
+  expect_true(any(copies["time", ] > 0))
+  # The guarantee that does hold: no generated subject reproduces a real
+  # patient's measured values, on any seed. This is the row to watch.
+  expect_true(all(copies["dv", ] == 0))
+})

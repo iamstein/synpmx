@@ -156,4 +156,4 @@ one is where the answer is.
 
 - `vignette("avatar-scorecard")` — every check, what it asks, and what
   passing means.
-- `vignette("avatar-public-data-examples")` - AVATAR algorithm applied to 8 public datasets.
+- [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) - AVATAR algorithm applied to 8 public datasets.

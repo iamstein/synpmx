@@ -345,10 +345,13 @@ defect in the commit that adds the code rather than a follow-up.
 
 New documents, following the shape the AVATAR and PCA sets hold:
 `vignettes/model-algorithm.Rmd` for the mechanism and `vignettes/model-demo.Rmd`
-for the first run, with `vignettes/model-public-data-examples.Rmd` following
-once the demo has settled. The cross-document contract in `AGENTS.md` grows a fourth
-entry: each step in `model-algorithm.Rmd` describes an operation the function
-performs, and the functions carry the pointer comment naming their section.
+for the first run, with `vignettes/articles/model-public-data-examples.Rmd`
+following once the demo has settled. The survey is an article, as both existing
+surveys became on 2026-09-01, so `R CMD check` never runs it and
+`./build.sh articles` is what proves it. The cross-document contract in
+`AGENTS.md` grows a fourth entry: each step in `model-algorithm.Rmd` describes
+an operation the function performs, and the functions carry the pointer comment
+naming their section.
 
 `synpmx_scorecard()` scores a synthetic dataset against its source and does not
 know which generator produced it, so it needs nothing new. Whether it should
@@ -370,7 +373,7 @@ there.
 | 4 | Generation | `synpmx_model_generate()` against a hand-constructed `pmx_fitted_model`, through `.pk_profile()`. A complete generator with no fitter in it. | End to end on fixtures, base R only. Includes the exposure-before-and-after-a-reduction check from Step 6. |
 | 5 | Estimation | `nlmixr2` behind `requireNamespace()`: the candidate fits, the AIC table, the `pk` override, the failure-to-converge paths. | Guarded tests, skipped where `nlmixr2` is absent. |
 | 6 | Covariates and PD | Allometric scaling under `covariate_effects = "auto"`, the three PD shapes, and the random-effect correlation report. | Guarded, as commit 5. |
-| 7 | The documents | `model-algorithm.Rmd` and `model-demo.Rmd`, plus the stored fit under `scripts/` that both knit against. | `./build.sh` and `./build.sh articles`. |
+| 7 | The documents | `vignettes/model-algorithm.Rmd` and `vignettes/model-demo.Rmd`, plus the stored fit under `scripts/` that both knit against. | `./build.sh`. |
 | 8 | The documentation sweep | The three false statements in the Documentation obligations section, and `_pkgdown.yml`. | Search for the affected names, as `AGENTS.md` requires. |
 
 Commits 1 to 4 need nothing beyond base R, so they run in this repository's

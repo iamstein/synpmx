@@ -344,5 +344,8 @@ per arm.
   reads out of the source.
 - `vignette("pca-trial-summary")` — every quantity the summary holds, in
   detail.
+- [Evaluating the PCA generator on public data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html)
+  — the same generator over eight public studies, and what each one's nominal
+  grid cost.
 - `vignette("synpmx-methods")` — the other generation modes, and which one to
   use when.

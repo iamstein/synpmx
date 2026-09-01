@@ -1340,7 +1340,8 @@ knit_print.pmx_strata_endpoints <- function(x, ...) {
 #' patients followed to 1730 and 4580 hours in a cohort that otherwise ends by
 #' 672, and not the one at 1130.
 #'
-#' On that setting no synthetic dataset in `vignette("avatar-public-data-examples")`
+#' On that setting no synthetic dataset in the public-data evaluation at
+#' <https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html>
 #' reports anybody, which is the screen working rather than idling: an avatar is
 #' a blend of several donors, so producing a subject that extreme takes a defect,
 #' and this is the row that would say so.
