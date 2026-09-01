@@ -51,6 +51,16 @@
 
   planned <- .model_dose_relative(source, roles, nominal, dosed)
   actual <- .model_dose_relative(source, roles, time, dosed)
+
+  # Study time on the nominal grid, measured from the subject's first dose --
+  # the same axis `.model_cells()` places the visit grid on, computed by the
+  # same function. A time course has to be fitted on the axis it will be
+  # evaluated on, and time after dose is not that axis: on a daily regimen
+  # almost every sample sits at the same time after its own dose, so a PD curve
+  # fitted against it is fitted against one point and then drawn over months.
+  nominal_source <- source
+  nominal_source[[roles$time]] <- nominal
+  aligned <- .aligned_time(nominal_source, roles)
   first_amt <- rep(NA_real_, nrow(source))
   for (rows in split(seq_len(nrow(source)), as.character(source[[roles$id]]))) {
     dose_at <- rows[dosed[rows] & is.finite(time[rows])]
@@ -61,7 +71,8 @@
   data.frame(
     subject = as.character(source[[roles$id]])[observed],
     endpoint = endpoint[observed],
-    time = time[observed], ntime = nominal[observed], dv = dv[observed],
+    time = time[observed], ntime = nominal[observed],
+    aligned = aligned[observed], dv = dv[observed],
     interval = planned$interval[observed], tad = planned$tad[observed],
     actual_tad = actual$tad[observed],
     first_dose_time = planned$first_time[observed],

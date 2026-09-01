@@ -340,9 +340,13 @@
 # is where that is true.
 .model_fit_pd <- function(observations, endpoint, shapes = NULL) {
   rows <- observations[observations$endpoint == endpoint &
-                         is.finite(observations$dv), , drop = FALSE]
+                         is.finite(observations$dv) &
+                         is.finite(observations$aligned), , drop = FALSE]
   if (nrow(rows) < 4L) return(NULL)
-  time <- rows$tad
+  # Study time from the first dose, which is the axis generation evaluates the
+  # shape on. Fitting against time after dose instead makes every sample in a
+  # daily regimen land at nearly the same place.
+  time <- rows$aligned
   value <- rows$dv
 
   candidates <- list()
@@ -384,8 +388,13 @@
   # Between-subject variability on the baseline, read from the spread of each
   # subject's earliest observation. That is what the generator draws on, and it
   # is a variance rather than any subject's own value.
+  # The earliest observation each subject has, whether or not a dose preceded
+  # it. A placebo arm has no dose records at all, so every one of its rows is
+  # outside any dose interval; asking for the earliest by time after dose
+  # returns nothing and takes the whole fit down with it.
   first <- vapply(split(rows, rows$subject), function(part) {
-    part$dv[which.min(part$tad)]
+    if (!any(is.finite(part$aligned))) return(NA_real_)
+    part$dv[which.min(replace(part$aligned, !is.finite(part$aligned), Inf))]
   }, numeric(1))
   first <- first[is.finite(first) & first > 0]
   chosen$baseline_cv <- if (length(first) > 1L) stats::sd(log(first)) else 0

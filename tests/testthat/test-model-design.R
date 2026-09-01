@@ -263,3 +263,62 @@ test_that("the richest dose interval is the one the signals are read in", {
   obs <- .model_observations(data, roles)
   expect_identical(.model_richest_interval(obs), 1L)
 })
+
+test_that("a PD time course is fitted on the axis it will be generated on", {
+  # Two bugs met here, both invisible on a single-dose study. A PD endpoint is
+  # evaluated at the visit grid's times, which are study time from the first
+  # dose, and it used to be fitted against time after dose. On a daily regimen
+  # almost every sample sits at the same time after its own dose, so the curve
+  # was fitted against one point and then drawn over months.
+  times <- c(0, 24, 48, 168, 336, 672)
+  pieces <- lapply(seq_len(24), function(subject) {
+    doses <- data.frame(TIME = seq(0, 672, by = 24), NTIME = seq(0, 672, by = 24),
+                        DV = 0, AMT = 100, EVID = 1L, CMT = 1L, DVID = "pd",
+                        MDV = 1L)
+    obs <- data.frame(TIME = times, NTIME = times,
+                      DV = 100 - 0.08 * times + 0.5 * sin(subject),
+                      AMT = 0, EVID = 0L, CMT = 2L, DVID = "pd", MDV = 0L)
+    rows <- rbind(doses, obs)
+    rows$ID <- subject
+    rows
+  })
+  data <- do.call(rbind, pieces)
+  data$DVID <- factor(data$DVID)
+  roles <- .design_roles()
+  obs <- .model_observations(data, roles)
+
+  # Time after dose spans one dosing interval; study time spans the study.
+  expect_lt(diff(range(obs$tad, na.rm = TRUE)), 24)
+  expect_gt(diff(range(obs$aligned)), 600)
+
+  shape <- .model_fit_pd(obs, "pd")
+  expect_identical(shape$pd, "linear")
+  expect_equal(unname(shape$typical[["slope"]]), -0.08, tolerance = 0.05)
+})
+
+test_that("an arm with no dose records does not take the PD fit down", {
+  # A placebo arm records its administrations with `AMT = 0`, which
+  # `.dose_rows()` drops whenever any positive amount exists in the study, so
+  # every one of its rows sits outside any dose interval. Asking for each
+  # subject's earliest observation by time after dose then returns nothing.
+  times <- c(0, 24, 48, 168)
+  make <- function(subject, amount) {
+    doses <- data.frame(TIME = 0, NTIME = 0, DV = 0, AMT = amount, EVID = 1L,
+                        CMT = 1L, DVID = "pd", MDV = 1L)
+    obs <- data.frame(TIME = times, NTIME = times,
+                      DV = 90 - 0.05 * times * (amount > 0) + 0.3 * sin(subject),
+                      AMT = 0, EVID = 0L, CMT = 2L, DVID = "pd", MDV = 0L)
+    rows <- rbind(doses, obs)
+    rows$ID <- subject
+    rows
+  }
+  data <- do.call(rbind, c(lapply(1:12, make, amount = 100),
+                           lapply(13:24, make, amount = 0)))
+  data$DVID <- factor(data$DVID)
+  roles <- .design_roles()
+  obs <- .model_observations(data, roles)
+  placebo <- obs[obs$subject %in% as.character(13:24), ]
+  expect_true(all(is.na(placebo$tad)))
+  expect_true(all(is.finite(placebo$aligned)))
+  expect_s3_class(.model_fit_pd(obs, "pd")$candidates, "data.frame")
+})
