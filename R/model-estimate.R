@@ -6,13 +6,26 @@
 # simulate would be a model that fits and then generates nothing, so the two
 # lists are one list.
 
-# Non-compartmental analysis, per subject, on recorded times.
+# Non-compartmental analysis, per subject, within one dose interval.
+#
+# One interval, and that restriction is the whole of what makes this correct on
+# a multiple-dose study. Sorting a subject's samples by time after dose pools
+# every cycle they were in: on a twelve-week daily regimen the resulting
+# sequence interleaves a sample drawn 0.1 h into cycle 85 with one drawn 0.2 h
+# into cycle 1, which is not a concentration-time profile and has no area and no
+# terminal slope. Read that way, `case1_pkpd` reports a half-life of 371 hours
+# and the fit is started from a number that describes nothing.
 #
 # The terminal slope is the quantity everything else leans on. It is fitted by
 # log-linear regression over the points after the peak -- at least three of
-# them, all positive -- which is the standard reading and the only one that lets
-# the area be extrapolated past the last sample.
-.model_nca_subject <- function(part) {
+# them, all positive -- which is the standard reading.
+#
+# `extrapolate` says whether anything follows this interval. Where nothing does,
+# the tail is real and the area runs to infinity, so dose over it is clearance.
+# Where another dose follows, the area is taken over the interval as it stands:
+# at steady state dose over the interval area is clearance too, and before
+# steady state it is an overestimate that is still the right order of magnitude.
+.model_nca_subject <- function(part, extrapolate = TRUE) {
   part <- part[order(part$actual_tad), , drop = FALSE]
   part <- part[is.finite(part$actual_tad) & is.finite(part$dv), , drop = FALSE]
   empty <- list(cmax = NA_real_, tmax = NA_real_, auc = NA_real_,
@@ -37,7 +50,7 @@
     slope <- stats::coef(stats::lm(log(value[terminal]) ~ time[terminal]))[2L]
     if (is.finite(slope) && slope < 0) lambda_z <- -as.numeric(slope)
   }
-  if (is.finite(lambda_z)) {
+  if (extrapolate && is.finite(lambda_z)) {
     last_value <- value[length(value)]
     last_time <- time[length(time)]
     auc <- auc + last_value / lambda_z
@@ -85,7 +98,17 @@
   }, numeric(1)), na.rm = TRUE)
   if (!is.finite(dose) || dose <= 0) dose <- 1
 
-  nca <- lapply(by_subject, .model_nca_subject)
+  # Each subject read inside the cohort's richest dose interval, which is the
+  # same interval every other signal is read in.
+  interval <- .model_richest_interval(rows)
+  nca <- lapply(by_subject, function(part) {
+    within <- part[!is.na(part$interval) & part$interval == interval, ,
+                   drop = FALSE]
+    if (nrow(within) < 3L) return(.model_nca_subject(part[0L, ], TRUE))
+    # Nothing follows the subject's last interval, so its tail is real.
+    last <- max(part$interval, na.rm = TRUE)
+    .model_nca_subject(within, extrapolate = identical(interval, last))
+  })
   middle <- function(name) {
     stats::median(vapply(nca, function(x) x[[name]], numeric(1)), na.rm = TRUE)
   }
@@ -399,8 +422,13 @@
     values <- suppressWarnings(as.numeric(source[[covariate]]))
     values <- values[is.finite(values)]
     if (!length(values) || any(values <= 0)) next
-    if (grepl("^(wt|weight|bw|bodyweight|body_weight)$", covariate,
-              ignore.case = TRUE)) {
+    # A baseline weight is rarely called `WT`. `WEIGHTB`, `WTBL` and `BWT` are
+    # all the same column with a suffix or a prefix saying it was measured at
+    # baseline, and refusing them means silently fitting no covariate at all on
+    # a study that declared one. Anything not on this list is not scaled, which
+    # is the safe direction: `HEIGHT` and `AGE` must not match.
+    if (grepl("^(b|base|baseline)?_?(wt|wgt|weight|bw|bodywt|body_?weight)_?(b|bl|base|baseline|0)?$",
+              covariate, ignore.case = TRUE)) {
       return(list(covariate = covariate, reference = stats::median(values)))
     }
   }

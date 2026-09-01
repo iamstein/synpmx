@@ -242,3 +242,57 @@ test_that("the accessors refuse anything that is not a fitted model", {
   expect_error(model_candidates(list()))
   expect_error(model_parameters(list()))
 })
+
+test_that("a baseline weight is recognised however the study spelled it", {
+  # A weight column is rarely called `WT`. Refusing `WEIGHTB` means silently
+  # fitting no covariate at all on a study that declared one, which is how
+  # `xgxr::case1_pkpd` went through with no scaling.
+  recognised <- function(name) {
+    roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", evid = "EVID",
+                       covariates = name)
+    data <- data.frame(ID = 1, TIME = 0, DV = 1, EVID = 0)
+    data[[name]] <- 70
+    !is.null(.model_weight_covariate(data, roles))
+  }
+  for (name in c("WT", "wt", "WEIGHT", "WEIGHTB", "BW", "BWT", "WTBL",
+                 "WEIGHTBL", "WT0", "BWEIGHT")) {
+    expect_true(recognised(name), info = name)
+  }
+  # And the other direction matters more: scaling clearance by a height or a
+  # cell count would be worse than scaling it by nothing.
+  for (name in c("AGE", "HEIGHT", "SEX", "WBC", "EGFR", "CRCL")) {
+    expect_false(recognised(name), info = name)
+  }
+})
+
+test_that("a non-positive weight is not scaled on", {
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", evid = "EVID",
+                     covariates = "WT")
+  data <- data.frame(ID = 1:2, TIME = 0, DV = 1, EVID = 0, WT = c(70, 0))
+  expect_null(.model_weight_covariate(data, roles))
+})
+
+test_that("the non-compartmental reading stays inside one dose interval", {
+  # Pooling cycles is what made this wrong: sorting a multiple-dose subject's
+  # samples by time after dose interleaves cycle 1 with cycle 85, and the area
+  # and terminal slope of that sequence describe nothing. On `case1_pkpd` it
+  # read a half-life of 371 hours.
+  times <- c(0.25, 1, 2, 4, 8, 12)
+  cycle <- function(start, scale) {
+    data.frame(actual_tad = times, tad = times, dv = scale * exp(-0.1 * times),
+               interval = start, endpoint = "cp",
+               subject = "1", time = start * 24 + times,
+               first_dose_amt = 100, ntime = start * 24 + times,
+               first_dose_time = 0)
+  }
+  pooled <- rbind(cycle(1, 10), cycle(20, 30))
+  one_interval <- .model_nca_subject(pooled[pooled$interval == 1, ])
+  interleaved <- .model_nca_subject(pooled)
+  # The pooled reading is not a profile: its peak sits in the wrong cycle.
+  expect_equal(one_interval$cmax, 10 * exp(-0.1 * 0.25), tolerance = 1e-8)
+  expect_gt(interleaved$cmax, one_interval$cmax)
+  # And the estimator reads one interval, so it recovers the real slope.
+  estimates <- .model_initial_estimates(pooled, "1cmt_iv", "cp")
+  expect_equal(unname(estimates[["cl"]] / estimates[["v"]]), 0.1,
+               tolerance = 0.05)
+})
