@@ -10,8 +10,8 @@ what each one actually is, what differential privacy does and does not
 promise, how to choose between methods and if a private mode is chosen,
 how to choose an epsilon.
 
-The companions are
-[`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
+The companions are [The synpmx data generation
+algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
 (the generation modes) and [Evaluating AVATAR on public
 data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 (AVATAR measured on public data).
@@ -246,7 +246,8 @@ fact taken from real patients, and the privacy claim weakens by exactly
 that much.
 
 For all three run end to end on `theo_md`, with code and output, see
-[`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md).
+[The synpmx data generation
+algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
 
 ## The decision rule
 
@@ -457,10 +458,11 @@ prints the realized accounting.
   size](https://iamstein.github.io/synpmx/articles/feasibility.html) —
   the complete measured frontier, and why small cohorts are hard for any
   formal method.
-- [`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
+- [The synpmx data generation
+  algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
   — the generation modes and why AVATAR is the default. Note that it
   splits public-model simulation and the two DP engines into three
-  separate *modes*, where this vignette groups the DP engines into one
+  separate *modes*, where this article groups the DP engines into one
   *family*: same functions, counted differently.
   [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
   makes no formal privacy claim and sits beside AVATAR rather than in

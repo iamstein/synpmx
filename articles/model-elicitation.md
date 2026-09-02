@@ -62,7 +62,8 @@ costs budget; a narrow dishonest one costs the guarantee.
 | More than ~1000, and you want empirical shape rather than a structural model | **Empirical mode.** Version 2 dense grid. Different document |
 | No privacy claim needed at all | **Prior mode.** Simpler, and honest |
 
-[`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
+[The synpmx data generation
+algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
 is the full selection guide, including how many parameters each mode
 learns from the data.
 

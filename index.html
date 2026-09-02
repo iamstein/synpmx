@@ -125,39 +125,39 @@
 <col width="25%">
 </colgroup>
 <thead><tr>
-<th>Generator</th>
-<th>What leaves the source</th>
-<th>Good at</th>
-<th>Weak at</th>
+<th>Function</th>
+<th>Synthetic data based on</th>
+<th></th>
+<th></th>
 </tr></thead>
 <tbody>
 <tr>
-<td><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code></td>
+<td><code>1. synpmx_model()</code></td>
+<td>Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>2. synpmx_pca()</code></td>
+<td>Principle component analysis from vector of all observations and covariates</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>3. synpmx_avatar()</code></td>
 <td>Blended values from real neighbouring patients</td>
-<td>Keeping covariate–response relationships without modelling them; needs no model and no nominal grid</td>
-<td>Every synthetic subject’s event skeleton comes from one real subject</td>
-</tr>
-<tr>
-<td><code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code></td>
-<td>Component loadings, one mean score vector per arm, a residual covariance</td>
-<td>Reproducing profile shapes it was never told to expect</td>
-<td>Dose changes appear in the dosing records but not in the values</td>
-</tr>
-<tr>
-<td><code><a href="reference/synpmx_model.html">synpmx_model()</a></code></td>
-<td>Fixed effects, a covariance matrix, a residual error</td>
-<td>Dose reductions and skipped cycles reach the concentrations</td>
-<td>Needs an identifiable design; no exposure–response</td>
+<td></td>
+<td></td>
 </tr>
 </tbody>
 </table>
-<p>All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>dv</code> and <code>evid</code> are required; <code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> and <code><a href="reference/synpmx_model.html">synpmx_model()</a></code> also need <code>nominal_time</code>, because they place every value on the protocol’s grid and inferring that grid is a statement about the protocol only you can make.</p>
-<p>Three further modes (<strong>prior</strong>, <strong>calibration</strong>, <strong>empirical</strong>) do not read the study that way: they take a public structural model and, in two cases, spend a differential-privacy budget to correct it. They cover the case where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
+<p>All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
+<p>Three additional functions (<code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code>, <code>synpmx_calibration()</code>, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>) take a public structural model and either base the data off purely a public model and design information about the study, or they differential-privacy budget to correct and use data summaries. These methods cover the case where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
 <div class="section level2">
 <h2 id="generating-synthetic-data">Generating Synthetic Data<a class="anchor" aria-label="anchor" href="#generating-synthetic-data"></a>
 </h2>
-<p><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the generator with the fewest requirements — no model, no nominal grid, no dependencies beyond base R — which makes it the easiest place to start. Every column that is not described is dropped.</p>
+<p><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the easiest place to start. Every column that is not described is dropped.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
@@ -213,7 +213,7 @@
 <p>If your environment blocks installing from GitHub, then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file. This package needs nothing but base R.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
-<p>While the AVATAR method needs nothing beyond base R. The DP methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<p>The Data Privacy methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -268,14 +268,6 @@
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section level2">
-<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<ol style="list-style-type: decimal">
-<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data overcome the privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark using a daptomycin population pharmacokinetic model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.</p></li>
-<li><p>Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data generation, no reason to risk re-identification in biomedical data analysis. <em>npj Digital Medicine.</em> 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>
-</ol>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

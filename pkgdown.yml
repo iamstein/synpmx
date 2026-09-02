@@ -19,11 +19,11 @@ articles:
   pmxmodel-fingerprint: pmxmodel-fingerprint.html
   articles/privacy-argument: privacy-argument.html
   articles/privacy-background: privacy-background.html
-  synpmx-methods: synpmx-methods.html
+  articles/synpmx-methods: synpmx-methods.html
   articles/synpmx-privacy: synpmx-privacy.html
   articles/synthetic-data-checking-review: synthetic-data-checking-review.html
   articles/synthetic-data-generation-review: synthetic-data-generation-review.html
-last_built: 2026-09-01T20:30Z
+last_built: 2026-09-02T08:05Z
 urls:
   reference: https://iamstein.github.io/synpmx/reference
   article: https://iamstein.github.io/synpmx/articles

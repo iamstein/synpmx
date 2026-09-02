@@ -388,5 +388,6 @@ in its place, where `distinct` and `share` say the same thing per arm.
   data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html)
   — the same generator over eight public studies, and what each one’s
   nominal grid cost.
-- [`vignette("synpmx-methods")`](https://iamstein.github.io/synpmx/articles/synpmx-methods.md)
+- [The synpmx data generation
+  algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
   — the other generation modes, and which one to use when.
