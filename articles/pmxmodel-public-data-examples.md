@@ -491,7 +491,7 @@ theo_run$fit
 #> 
 #>   fitted on    12 patients, 1 arm(s)
 #>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 2.885, v 31.59, ka 1.331 
+#>   fixed        cl 2.88, v 31.57, ka 1.342 
 #>   random on    cl, v, ka 
 #>   pk endpoint  DV 
 #> 
@@ -727,7 +727,7 @@ knitr::kable(inventory, row.names = FALSE,
 | warfarin | 32 | 1cmt_oral | cl 0.136, v 7.8, ka 0.562 | additive 1.07 |
 | wbcSim | 45 | 1cmt_infusion | cl 0.0124, v 20.4 | proportional 0.347 |
 | mavoglurant | 120 | 1cmt_infusion | cl 0.035, v 0.209 | proportional 0.721 |
-| theo_md | 12 | 1cmt_oral | cl 2.88, v 31.6, ka 1.33 | additive 1.02 |
+| theo_md | 12 | 1cmt_oral | cl 2.88, v 31.6, ka 1.34 | additive 1.02 |
 | nimoData | 12 | 1cmt_infusion | cl 0.189, v 52.7 | additive 1.46 |
 | pheno_sd | 59 | 1cmt_oral | cl 0.708, v 8.26, ka 1.16 | proportional 0.213 |
 

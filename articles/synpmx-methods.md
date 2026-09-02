@@ -165,7 +165,7 @@ model_fit
 #> 
 #>   fitted on    12 patients, 1 arm(s)
 #>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 2.885, v 31.59, ka 1.331 
+#>   fixed        cl 2.88, v 31.57, ka 1.342 
 #>   random on    cl, v, ka 
 #>   pk endpoint  DV 
 #> 
@@ -657,7 +657,7 @@ knitr::kable(
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
 | Source          |            264 |   5.74 | 1.25 |  9.30 |
-| 1\. PMX model   |            258 |   5.98 | 1.24 | 10.04 |
+| 1\. PMX model   |            258 |   6.01 | 1.26 | 10.05 |
 | 2\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
 | 3\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
@@ -688,7 +688,7 @@ ggplot2::ggplot(
 ![](synpmx-methods_files/figure-html/compare-plot-1.png)
 
 The table is the quickest read. The three data-reading modes land on the
-source’s concentrations — medians of 5.98, 5.95 and 5.21 against 5.74,
+source’s concentrations — medians of 6.01, 5.95 and 5.21 against 5.74,
 and tenth and ninetieth percentiles within a few tenths — while the
 three public-model modes do not: 3.16, 4.05 and 4.43. That gap is the
 whole subject of this article.

@@ -179,6 +179,14 @@ candidates that design admits and picks one on AIC.</p>
 so this document reads a stored fit built by
 <code>scripts/build-model-fits.R</code> and <code>R CMD check</code>
 never needs a compiler.</p>
+<p>That call takes about eleven minutes on this study, and says so
+before it starts: every likelihood evaluation sums a contribution per
+dose per subject, and twelve weeks of daily dosing for 150 patients is
+12,750 dose records. Where a study’s doses are on an exact interval they
+are compressed to one record per patient first, which the message also
+reports; <code>case1_pkpd</code> records its dose times as actuals — 0,
+24.22, 48.28 — so there is no exact interval to compress to, and the
+wait is the honest cost of the design.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span></span>
 <span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
@@ -193,11 +201,10 @@ never needs a compiler.</p>
 <span><span class="co">#&gt;   simulated profiles resemble the source study; the candidate set is too</span></span>
 <span><span class="co">#&gt;   small and the covariate model too thin for any of them to answer a</span></span>
 <span><span class="co">#&gt;   scientific question.</span></span></code></pre></div>
-<p>A clearance of 8.17 L/h and a volume of 111 L, fitted in about eleven
-minutes on this study. Whether those are the right numbers for this
-compound is not the question the generator asks: they exist to put the
-simulated profiles where the source’s are, and the object prints that
-warning with itself.</p>
+<p>A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
+right numbers for this compound is not the question the generator asks:
+they exist to put the simulated profiles where the source’s are, and the
+object prints that warning with itself.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-fit-carries">What the fit carries<a class="anchor" aria-label="anchor" href="#what-the-fit-carries"></a>

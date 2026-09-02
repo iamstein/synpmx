@@ -75,6 +75,15 @@ The chunk above is shown rather than run. Fitting compiles a model, so
 this document reads a stored fit built by `scripts/build-model-fits.R`
 and `R CMD check` never needs a compiler.
 
+That call takes about eleven minutes on this study, and says so before
+it starts: every likelihood evaluation sums a contribution per dose per
+subject, and twelve weeks of daily dosing for 150 patients is 12,750
+dose records. Where a study’s doses are on an exact interval they are
+compressed to one record per patient first, which the message also
+reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
+48.28 — so there is no exact interval to compress to, and the wait is
+the honest cost of the design.
+
 ``` r
 
 fit
@@ -92,11 +101,10 @@ fit
 #>   scientific question.
 ```
 
-A clearance of 8.17 L/h and a volume of 111 L, fitted in about eleven
-minutes on this study. Whether those are the right numbers for this
-compound is not the question the generator asks: they exist to put the
-simulated profiles where the source’s are, and the object prints that
-warning with itself.
+A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
+right numbers for this compound is not the question the generator asks:
+they exist to put the simulated profiles where the source’s are, and the
+object prints that warning with itself.
 
 ## What the fit carries
 
