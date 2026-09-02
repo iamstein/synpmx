@@ -636,12 +636,28 @@ who steps down a dose level has a lower exposure from that cycle on, and
 one who skips a cycle has the trough that implies. Drawing a profile and
 then a schedule would reproduce <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code>’s disconnect
 with extra steps.</p>
-<p>A concentration is floored at zero. A proportional error on a value
-near the assay limit produces a negative one often enough to matter — on
-<code>warfarin</code> it puts the minimum at -1.4 against a source
-minimum of 0 — and the value is floored rather than redrawn, because
-redrawing until the value is positive is a truncated distribution nobody
-declared.</p>
+<p><strong>The proportional multiplier is lognormal.</strong> Written as
+<code>1 + N(0, cv)</code> it is non-positive with probability
+<code>pnorm(-1 / cv)</code>, which is 2.3% of draws at a coefficient of
+variation of 0.5 and 7.7% at 0.7, and each of those is a concentration
+clamped to zero. A coefficient of variation that high is a statement
+that the structural model does not describe the data, and it belongs in
+the output as a wide band rather than as a scatter of zeros on the floor
+of a log axis. <code>exp(N(0, sqrt(log(1 + cv^2))))</code> has the same
+coefficient of variation and a median of one, so the spread the fit
+estimated is preserved and no draw reaches zero.</p>
+<p><strong>A value is floored at the smallest one the study reported,
+halved.</strong> The residual is not the only thing that can put a
+synthetic value below anything the assay could return: a one-compartment
+profile evaluated late in a long dose interval underflows on its own. A
+study that declares a censoring column says where its assay stopped and
+that boundary is put back as described above. A study that declares none
+still had an assay, and its smallest reported value is the only evidence
+of where the limit sat, so half that value becomes a floor and anything
+below it is reported at it. An endpoint that reports a zero is given no
+floor: a zero is a value a floor would contradict, and a PD score with a
+true zero is the ordinary case of that. <code><a href="../reference/model_report.html">model_report()</a></code>
+carries the floor per endpoint.</p>
 </div>
 <div class="section level2">
 <h2 id="gates">Gates<a class="anchor" aria-label="anchor" href="#gates"></a>

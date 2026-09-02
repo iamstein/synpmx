@@ -428,9 +428,6 @@ mavo_run$fit
 #>   scientific question.
 ```
 
-    #> Warning in ggplot2::scale_y_log10(): log-10 transformation introduced infinite values.
-    #> log-10 transformation introduced infinite values.
-
 ![](pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png)
 
 ``` r
@@ -755,7 +752,7 @@ knitr::kable(verdicts, row.names = FALSE,
 | mad         |   13 |      1 |    0 |              4 |         |
 | warfarin    |   13 |      1 |    0 |              4 |         |
 | wbcSim      |   10 |      4 |    0 |              4 |         |
-| mavoglurant |   10 |      4 |    0 |              4 |         |
+| mavoglurant |   11 |      3 |    0 |              4 |         |
 | theo_md     |   13 |      1 |    0 |              4 |         |
 | nimoData    |   13 |      1 |    0 |              4 |         |
 | pheno_sd    |    9 |      5 |    0 |              4 |         |

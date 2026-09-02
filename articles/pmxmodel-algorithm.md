@@ -498,11 +498,30 @@ would reproduce
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)’s
 disconnect with extra steps.
 
-A concentration is floored at zero. A proportional error on a value near
-the assay limit produces a negative one often enough to matter — on
-`warfarin` it puts the minimum at -1.4 against a source minimum of 0 —
-and the value is floored rather than redrawn, because redrawing until
-the value is positive is a truncated distribution nobody declared.
+**The proportional multiplier is lognormal.** Written as `1 + N(0, cv)`
+it is non-positive with probability `pnorm(-1 / cv)`, which is 2.3% of
+draws at a coefficient of variation of 0.5 and 7.7% at 0.7, and each of
+those is a concentration clamped to zero. A coefficient of variation
+that high is a statement that the structural model does not describe the
+data, and it belongs in the output as a wide band rather than as a
+scatter of zeros on the floor of a log axis.
+`exp(N(0, sqrt(log(1 + cv^2))))` has the same coefficient of variation
+and a median of one, so the spread the fit estimated is preserved and no
+draw reaches zero.
+
+**A value is floored at the smallest one the study reported, halved.**
+The residual is not the only thing that can put a synthetic value below
+anything the assay could return: a one-compartment profile evaluated
+late in a long dose interval underflows on its own. A study that
+declares a censoring column says where its assay stopped and that
+boundary is put back as described above. A study that declares none
+still had an assay, and its smallest reported value is the only evidence
+of where the limit sat, so half that value becomes a floor and anything
+below it is reported at it. An endpoint that reports a zero is given no
+floor: a zero is a value a floor would contradict, and a PD score with a
+true zero is the ordinary case of that.
+[`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+carries the floor per endpoint.
 
 ## Gates
 
