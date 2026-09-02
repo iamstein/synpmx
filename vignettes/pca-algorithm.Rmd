@@ -298,7 +298,7 @@ The object holds, and this is all of it:
 
 `pca_report()` prints the inventory with the count of numbers in each group
 and, for each, the smallest number of patients standing behind any one of them.
-`vignette("pca-trial-summary")` walks through every group in turn, on a worked
+`vignette("pca-fingerprint")` walks through every group in turn, on a worked
 study.
 
 Two entries deserve naming because they are not averages. **The level set of a
@@ -378,7 +378,7 @@ the same thing.
 Three do not: **B1a**, **B1b** and **C2**. They read a run record that
 `synpmx_scorecard()` expects to find on the generated table as a `pmx_settings`
 attribute, rather than reading the two tables, and this table carries no such
-record. All three report `unavailable`.
+record. All three report `not applicable`.
 
 For B1a and B1b the guarantee is structural rather than unrecorded. No
 individual's visit set and no individual's dose schedule exists in the model to

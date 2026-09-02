@@ -298,7 +298,7 @@ test_that("a table with no run record is scored, not refused", {
 
   recorded <- c("B1a", "B1b", "C2")
   expect_identical(card$verdict[card$check %in% recorded],
-                   rep("unavailable", length(recorded)))
+                   rep("not applicable", length(recorded)))
   expect_identical(card$result[card$check %in% recorded],
                    rep("no run record", length(recorded)))
   # Same rows in the same order, and every other verdict unchanged: a card that
@@ -306,7 +306,7 @@ test_that("a table with no run record is scored, not refused", {
   expect_identical(card$check, full$check)
   expect_identical(card$verdict[!card$check %in% recorded],
                    full$verdict[!full$check %in% recorded])
-  # `unavailable` is not `pass`: the count line has to say so.
+  # `not applicable` is not `pass`: the count line has to say so.
   expect_output(print(card), "3 unanswered")
 })
 
@@ -404,12 +404,12 @@ test_that("the datatable colours every verdict the card can carry", {
   skip_if_not_installed("DT")
   source <- pmx_simulated_fixture(30)
   roles <- sc_roles()
-  # Settings stripped, so the card carries "unavailable" rows as well.
+  # Settings stripped, so the card carries "not applicable" rows as well.
   synthetic <- sc_synthetic(source, roles)
   attr(synthetic, "pmx_settings") <- NULL
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_true(any(card$verdict == "unavailable"))
+  expect_true(any(card$verdict == "not applicable"))
   expect_true(all(setdiff(unique(card$verdict), "pass") %in%
                     names(.scorecard_verdict_colours)))
 
@@ -461,4 +461,40 @@ test_that("the datatable says so and prints the card when DT is missing", {
 
   expect_s3_class(result, "synpmx_scorecard")
   expect_true(any(grepl("verdict", printed)))
+})
+
+test_that("B4a is not applicable where attendance is drawn per visit", {
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  synthetic <- synpmx_pca(data, roles, seed = 3)
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  b4a <- card[card$check == "B4a", ]
+  expect_identical(b4a$verdict, "not applicable")
+  expect_match(b4a$result, "drawn per visit")
+  # B4b is the row that answers the disclosure question, and it is untouched.
+  expect_true(card$verdict[card$check == "B4b"] %in% c("pass", "FAIL"))
+})
+
+test_that("B4a is still computed where attendance is copied from donors", {
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "DVID")
+  synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  expect_false(card$verdict[card$check == "B4a"] == "not applicable")
+})
+
+test_that("a table with no source attribute is measured the AVATAR way", {
+  # Through `write.csv()` the attribute is gone, and the row falls back rather
+  # than silently reading `not applicable` on a table nothing is known about.
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  synthetic <- synpmx_pca(data, roles, seed = 3)
+  attr(synthetic, "pmx_source") <- NULL
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  expect_false(card$verdict[card$check == "B4a"] == "not applicable")
 })

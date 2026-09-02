@@ -22,7 +22,7 @@ synthetic pharmacometric datasets.
   is the maintainer's to update, so raise anything that looks wrong in the
   conversation rather than editing it.
 
-Three cross-document contracts, each a defect when broken:
+Four cross-document contracts, each a defect when broken:
 
 - `vignettes/avatar-scorecard.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
@@ -35,9 +35,21 @@ Three cross-document contracts, each a defect when broken:
   where the numbers need it. Additional datasets get the same five steps.
   `vignettes/articles/pca-public-data-examples.Rmd` is the same contract for
   `synpmx_pca()` over the same datasets, with `synpmx_pca_summarize()` and
-  `synpmx_pca_generate()` in place of `synpmx_avatar()`. Both are articles, so
-  `R CMD check` never runs them: `./build.sh articles` is what proves them. A
-  third generator's survey is the same contract again, over the same datasets.
+  `synpmx_pca_generate()` in place of `synpmx_avatar()`, and
+  `vignettes/articles/pmxmodel-public-data-examples.Rmd` is the same again for
+  `synpmx_model()`, with `synpmx_model_generate()` reading a stored fit —
+  that survey never fits, so a dataset it covers needs its fit built by
+  `scripts/build-model-fits.R` in the same commit. All three are articles, so
+  `R CMD check` never runs them: `./build.sh articles` is what proves them.
+- `vignettes/pmxmodel-algorithm.Rmd` documents what `synpmx_model()` does, and
+  holds the same shape as `pca-algorithm.Rmd`: each numbered step describes an
+  operation the function performs, and the functions carry a pointer comment
+  naming the section they belong to. Its gates table and the gates the code
+  enforces are one list. `vignettes/pmxmodel-demo.Rmd` runs the same algorithm
+  on one study end to end and knits against a stored `pmx_fitted_model` built
+  by `scripts/build-model-fits.R`, so `R CMD check` never compiles a
+  population model. Changing what the fit reports means rebuilding that file
+  in the same commit.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.

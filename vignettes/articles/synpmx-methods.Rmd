@@ -17,9 +17,14 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+# Mode 1 fits a population model, which compiles. The fit is built once by
+# `scripts/build-model-fits.R` and read here, so the site needs no compiler.
+stored <- system.file("extdata", "theo-md-model-fit.rds", package = "synpmx")
+model_fit <- if (nzchar(stored)) readRDS(stored) else NULL
+has_fit <- has_nlmixr2data && !is.null(model_fit)
 
-# Observed rows only, in a common shape, so five datasets with different
-# schemas can be plotted and summarized together.
+# Observed rows only, in a common shape, so six generated datasets with
+# different schemas can be plotted and summarized together.
 observations <- function(data, roles, label) {
   keep <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
     !is.na(data[[roles$dv]])
@@ -50,24 +55,39 @@ suitable for estimation, model selection, inference, dose selection, or clinical
 decisions. The method aims for structural usefulness, not scientific
 equivalence.
 
-Given that synthetic data is oven used as a way to protect privacy, this package offers several synthetic data generation functions that offer different privacy guarantees.   This vignette introduces four of them and
-applies each one to the same public dataset.
+Given that synthetic data is oven used as a way to protect privacy, this package offers several synthetic data generation functions that offer different privacy guarantees.
 
-A fifth, `synpmx_pca()`, arrived after this vignette was written and is not
-compared here. It fits a principal-component basis and generates from the fitted
-model, so no real patient's values reach the output. It needs a nominal-time
-column, which `theo_md` does not carry. See `vignette("pca-algorithm")` and
-`vignette("pca-demo")`.
+They fall into two groups, and the split is what to read this vignette by.
 
-The four compared below, from most faithful to most protective:
+**Generators that read the study.** Three of them, each carrying something
+different out of the source. `synpmx_model()` estimates a population
+pharmacokinetic model and simulates from it. `synpmx_pca()` reduces each
+subject to principal-component scores and models the scores. `synpmx_avatar()`
+blends real neighbouring patients' values. None makes a formal privacy claim,
+and the first two need a declared nominal-time column.
 
-1. **AVATAR blending** [1, 2] — build each synthetic subject out of real
+**Generators that assert a model instead.** Three more, which take a public
+structural model and, in two cases, spend a differential-privacy budget to
+correct it against the study.
+
+All six run below on one dataset, in the order they carry less and less of the
+study out with them:
+
+1. **PMX model** — estimate a population model and simulate from the
+   parameters.
+2. **PCA** — fit a basis of the observed profiles and draw new scores on it.
+3. **AVATAR blending** [1, 2] — build each synthetic subject out of real
    subjects.
-2. **Prior only** — read no data at all; simulate from a public model.
-3. **Calibration** — simulate from a public model whose magnitude is corrected
+4. **Prior only** — read no data at all; simulate from a public model.
+5. **Calibration** — simulate from a public model whose magnitude is corrected
    by a small, differentially private release.
-4. **Empirical** — release a dense set of differentially private summaries and
+6. **Empirical** — release a dense set of differentially private summaries and
    rebuild subjects from them.
+
+The order is not a ranking. Modes 1 to 3 are the ones to use when the output
+stays inside the source data's own controls; modes 5 and 6 are the ones that
+survive crossing a trust boundary, and the panels below show what that costs at
+a cohort this size.
 
 "AVATAR" is a method name rather than an initialism, from the patient-centric
 *avatarization* literature in which each synthetic record is built from the
@@ -90,17 +110,103 @@ differences between these modes are most visible.
 
 ```{r data, eval=has_nlmixr2data}
 data("theo_md", package = "nlmixr2data")
-theo_roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", covariates = "WT"
-)
+theo_md <- as.data.frame(theo_md)
 str(theo_md)
 ```
 
-## Mode 1: AVATAR blending
+Modes 1 and 2 place every value on the protocol's grid and refuse without one,
+so the grid is written down first. The doses are exactly 24 h apart and the
+samples are not, so each sample is placed by the dose interval it falls in plus
+its time after that dose snapped to the planned times. Both lines below are
+statements about the protocol rather than derivations from the data, which is
+why they are in the document instead of inside a function.
 
-Start here, because it is the least work. `synpmx_avatar()` needs nothing but
-the data and a declaration of what the columns mean. For each synthetic subject
+```{r nominal-grid, eval=has_nlmixr2data}
+snap_to <- function(x, grid) {
+  grid[max.col(-abs(outer(x, grid, "-")), ties.method = "first")]
+}
+theo_doses <- seq(0, 144, by = 24)                           # the Q24H schedule
+theo_samples <- c(0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 9, 12, 24) # planned samples
+
+interval <- pmax(1L, findInterval(theo_md$TIME, theo_doses))
+theo_md$NTIME <- ifelse(
+  theo_md$EVID == 0,
+  theo_doses[interval] +
+    snap_to(theo_md$TIME - theo_doses[interval], theo_samples),
+  theo_md$TIME
+)
+c(recorded = length(unique(theo_md$TIME[theo_md$EVID == 0])),
+  nominal = length(unique(theo_md$NTIME[theo_md$EVID == 0])))
+```
+
+One declaration of what the columns mean serves all three data-reading
+generators.
+
+```{r roles, eval=has_nlmixr2data}
+theo_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", covariates = "WT"
+)
+```
+
+## Mode 1: PMX model
+
+The most familiar route to a pharmacometrician: fit a population model to the
+study and simulate new subjects from the parameters. `synpmx_model_estimate()`
+works out which endpoint is the drug and what design produced it, fits the
+candidates that design admits and picks one on AIC; `synpmx_model_generate()`
+then reads the fit alone. No number a patient measured is in scope while the
+second call runs.
+
+Twelve subjects is below the floor this generator sets for itself. It refuses
+under 20, because a covariance matrix fitted to fewer describes those subjects
+rather than a population, and the refusal is lifted here deliberately so that
+the mode can be shown on the same study as the other five.
+
+```{r model-shown, eval=FALSE}
+model_fit <- synpmx_model_estimate(theo_md, theo_roles, seed = 1,
+                                   min_subjects = 12L)   # below the floor
+```
+
+```{r model-note, echo=FALSE, results="asis", eval=has_nlmixr2data}
+cat("The chunk above is shown rather than run: fitting compiles a model, so",
+    "this article reads a stored fit built by `scripts/build-model-fits.R`.\n")
+```
+
+```{r model, eval=has_fit}
+model_fit
+model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
+```
+
+What leaves the study is the printed object and nothing else: a structural
+model, three fixed effects, a covariance matrix, a residual error, and a
+per-arm dosing and visit model. `vignette("pmxmodel-fingerprint")` is the
+itemised list, and the parameters are not estimates to report — the object
+prints that warning with itself.
+
+## Mode 2: PCA
+
+Rather than asserting a curve shape, this generator measures one. Every
+subject's profile becomes a vector on the nominal grid, a principal-component
+basis is fitted to those vectors, and new subjects are drawn as new scores on
+that basis. It reads the study without holding on to any subject's values.
+
+```{r pca, eval=has_nlmixr2data, message=FALSE}
+pca_summary <- synpmx_pca_summarize(theo_md, theo_roles, seed = 22)
+pca_summary
+pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
+```
+
+Twelve subjects buy two components, holding 78% of the variance, as the
+summary above says. That is the visible cost: everything outside those two
+components, measurement noise from visit to visit included, is not reproduced,
+and the generated profiles are smoother than the source ones. `vignette("pca-algorithm")` is the specification and
+`vignette("pca-fingerprint")` itemises what the summary carries.
+
+## Mode 3: AVATAR blending
+
+The least work of the three: `synpmx_avatar()` needs no grid, no model and no
+fit — only the data and a declaration of what the columns mean. For each synthetic subject
 it copies a real subject's event skeleton, then fills the covariates and
 concentrations with a distance-weighted blend of that subject's nearest
 compatible neighbors, plus noise.
@@ -228,7 +334,7 @@ an attacker who already holds a suspected participant's record and only wants to
 confirm membership — the mechanisms reduce the ways that attack succeeds without
 limiting how often it does.
 
-## Mode 2: prior only
+## Mode 4: prior only
 
 The opposite extreme. Declare a public structural model and a public protocol,
 and simulate. No confidential data is read, so there is nothing to protect and
@@ -278,7 +384,7 @@ occasion columns. The clearance of 6 L/h assumed above is about twice the truth
 for theophylline, and the output shows it: concentrations run low. That is the
 honest cost of spending no budget — the data is exactly as good as the prior.
 
-## Mode 3: calibration
+## Mode 5: calibration
 
 The middle path, and the recommended one when a formal guarantee is needed and
 the cohort is small. Both `synpmx_calibrated()` and `synpmx_empirical()` refuse
@@ -345,7 +451,7 @@ that it is often censored at the prior boundary — the package warns when that
 happens, because the generated data then reflects the prior, not the study.
 The [privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html) covers when the release is worth making.
 
-## Mode 4: empirical
+## Mode 6: empirical
 
 The general-purpose private engine. Rather than asserting the curve shape, it
 measures it: it releases noised summaries for the subject count, event and
@@ -387,18 +493,25 @@ worse result at this cohort size. That is not a bug: the same budget is being
 split six ways over dozens of released coordinates. This engine earns its keep
 on large pooled datasets, not on twelve subjects.
 
-## The four side by side
+## The six side by side
 
-```{r compare, eval=has_nlmixr2data}
+Every generated dataset above holds the same study in a different way. Pulled
+into one frame, they can be read against the source and against each other.
+
+```{r compare, eval=has_fit}
 generated_roles <- pmx_generated_roles()
 all_observations <- rbind(
   observations(theo_md, theo_roles, "Source"),
-  observations(avatar, theo_roles, "1. AVATAR"),
-  observations(prior_only, generated_roles, "2. Prior only"),
-  observations(calibrated_data, generated_roles, "3. Calibration"),
+  observations(model_data, theo_roles, "1. PMX model"),
+  observations(pca_data, theo_roles, "2. PCA"),
+  observations(avatar, theo_roles, "3. AVATAR"),
+  observations(prior_only, generated_roles, "4. Prior only"),
+  observations(calibrated_data, generated_roles, "5. Calibration"),
   # The empirical engine restores the source schema, so it uses source roles.
-  observations(empirical_data, theo_roles, "4. Empirical")
+  observations(empirical_data, theo_roles, "6. Empirical")
 )
+all_observations$method <- factor(all_observations$method,
+                                  levels = unique(all_observations$method))
 summaries <- do.call(rbind, lapply(
   split(all_observations$dv, all_observations$method),
   function(dv) {
@@ -416,36 +529,114 @@ knitr::kable(
 )
 ```
 
-```{r compare-plot, eval=has_nlmixr2data && has_ggplot2, fig.height=6}
+The source panel first, then the six generated datasets in order. Each line is
+one subject's concentration profile over the seven daily doses.
+
+```{r compare-plot, eval=has_fit && has_ggplot2, fig.height=7}
 ggplot2::ggplot(
   all_observations,
   ggplot2::aes(time, dv, group = subject)
 ) +
   ggplot2::geom_line(alpha = 0.4, colour = "#1B6CA8") +
   ggplot2::geom_point(alpha = 0.5, size = 0.7, colour = "#1B6CA8") +
-  ggplot2::facet_wrap(~ method, ncol = 2) +
+  ggplot2::facet_wrap(~ method, ncol = 3) +
   ggplot2::labs(
     x = "Study time (hours)", y = "Concentration",
-    title = "One dataset, four generation modes"
+    title = "One study, six generation modes"
   ) +
   ggplot2::theme_minimal()
 ```
 
-AVATAR tracks the source most closely, because it is made of it. The
-prior-only data has the right structure and the wrong level. Calibration moves
-the level toward the truth for a small budget. The empirical release recovers
-more of the real timing and spread, but at this cohort size the noise is
-visible.
+The table is the quickest read. The three data-reading modes land on the
+source's concentrations — medians of 5.98, 5.95 and 5.21 against 5.74, and
+tenth and ninetieth percentiles within a few tenths — while the three
+public-model modes do not: 3.16, 4.05 and 4.43. That gap is the whole subject
+of this article.
+
+Among the first three, mode 1 draws every profile from one structural model at
+a different parameter draw, so its profiles are the smoothest here and a real
+profile's visit-to-visit wobble is absent. Mode 2 takes its shape from the
+observed profiles instead, and smooths within the two components twelve
+subjects buy. Mode 3 tracks the source most closely, because it is made of it.
+
+Modes 4 to 6 are where the level goes. The prior-only data has the right
+structure and a clearance assumed about twice too fast, which is exactly the
+cost of reading nothing: its median concentration is 3.16 against the source's
+5.74. Calibration spends two numbers of budget pulling that level back toward
+the study, and gets to 4.05. The empirical engine, at five times the budget,
+does not do better in any way that matters: its median is 4.43, and its spread
+runs from a tenth percentile of 0.43 to a ninetieth of 11.96, against 1.25 and
+9.30 in the source. It is not a study a pharmacometrician would work with.
+
+The same six against the source, as distributions rather than profiles: the
+concentrations they generated, and the baseline weights they carried.
+
+```{r compare-distributions, eval=has_fit && has_ggplot2, fig.height=4.5}
+# One long frame of every value each mode produced, so concentration and weight
+# can be drawn on the same panel row. A mode that carries no weight column --
+# the public-model modes declare no covariates -- simply has no rows here.
+weights <- function(data, roles, label) {
+  covariate <- if ("WT" %in% names(data)) "WT" else NULL
+  if (is.null(covariate)) return(NULL)
+  first <- !duplicated(data[[roles$id]])
+  data.frame(method = label, variable = "Baseline weight (kg)",
+             value = as.numeric(data[[covariate]][first]),
+             stringsAsFactors = FALSE)
+}
+distributions <- rbind(
+  data.frame(method = all_observations$method,
+             variable = "Concentration", value = all_observations$dv,
+             stringsAsFactors = FALSE),
+  weights(theo_md, theo_roles, "Source"),
+  weights(model_data, theo_roles, "1. PMX model"),
+  weights(pca_data, theo_roles, "2. PCA"),
+  weights(avatar, theo_roles, "3. AVATAR"),
+  weights(prior_only, generated_roles, "4. Prior only"),
+  weights(calibrated_data, generated_roles, "5. Calibration"),
+  weights(empirical_data, theo_roles, "6. Empirical")
+)
+distributions$method <- factor(distributions$method,
+                               levels = levels(all_observations$method))
+
+ggplot2::ggplot(distributions,
+                ggplot2::aes(value, colour = method, linetype = method)) +
+  ggplot2::stat_ecdf(linewidth = 0.6) +
+  ggplot2::facet_wrap(~ variable, scales = "free_x") +
+  ggplot2::scale_colour_manual(
+    values = c("Source" = "#111111", "1. PMX model" = "#1B6CA8",
+               "2. PCA" = "#2E8B57", "3. AVATAR" = "#D95F02",
+               "4. Prior only" = "#7570B3", "5. Calibration" = "#A6761D",
+               "6. Empirical" = "#B00020")
+  ) +
+  ggplot2::scale_linetype_manual(
+    values = c("Source" = "solid", "1. PMX model" = "dashed",
+               "2. PCA" = "dashed", "3. AVATAR" = "dashed",
+               "4. Prior only" = "dotted", "5. Calibration" = "dotted",
+               "6. Empirical" = "dotted")
+  ) +
+  ggplot2::labs(x = NULL, y = "Cumulative fraction", colour = NULL,
+                linetype = NULL,
+                title = "Observed concentrations and baseline weights, by mode") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(legend.position = "top")
+```
+
+Read the concentration panel by how far each curve sits from the black one, and
+the weight panel by whether a mode has a curve there at all: the two
+public-model modes declare no covariates, so they generate no weights, and a
+covariate that is not declared is a column the output does not have.
 
 ## Choosing a mode
 
 ```{r modes-table, echo=FALSE}
 modes <- data.frame(
-  Mode = c("1. AVATAR blending", "2. Prior only", "3. Calibration",
-           "4. Empirical"),
-  Function = c("synpmx_avatar()", "synpmx_prior()",
-               "synpmx_calibrated()", "synpmx_empirical()"),
+  Mode = c("1. PMX model", "2. PCA", "3. AVATAR blending", "4. Prior only",
+           "5. Calibration", "6. Empirical"),
+  Function = c("synpmx_model()", "synpmx_pca()", "synpmx_avatar()",
+               "synpmx_prior()", "synpmx_calibrated()", "synpmx_empirical()"),
   `Output built from` = c(
+    "A population model fitted to the study, simulated forward",
+    "A component basis of the observed profiles, and new scores on it",
     "Real subject templates and blended real trajectories",
     "A public model and protocol only",
     "A public model, magnitude corrected by 2 private releases",
@@ -453,13 +644,17 @@ modes <- data.frame(
   ),
   Guarantee = c(
     "None; governance only",
+    "None; governance only",
+    "None; governance only",
     "epsilon = 0 (no data read)",
     "(epsilon, delta) DP",
     "(epsilon, delta) DP"
   ),
-  `Cohort size` = c("Any, from ~5", "Any (data-independent)",
-                    "~20 and up", "~200 and up"),
+  `Cohort size` = c("~20 and up", "Any, from ~5, per arm", "Any, from ~5",
+                    "Any (data-independent)", "~20 and up", "~200 and up"),
   `Elicitation needed` = c(
+    "None, but a nominal grid is required",
+    "None, but a nominal grid is required",
     "None", "Structural model + protocol",
     "Model, protocol, prior ranges",
     "Endpoints, bounds, limits, budget split"
@@ -473,7 +668,7 @@ Where each mode belongs:
 
 | Environment | Appropriate modes | Why |
 |---|---|---|
-| Inside the validated environment holding the source data; you are the only consumer | **AVATAR**, or any other | Access control and governance already bound the risk. A formal guarantee defends against an adversary who cannot reach the output, so it buys nothing and costs utility. |
+| Inside the validated environment holding the source data; you are the only consumer | **PMX model**, **PCA** or **AVATAR** | Access control and governance already bound the risk. A formal guarantee defends against an adversary who cannot reach the output, so it buys nothing and costs utility. |
 | Shared with a partner, vendor, or contract research organization (CRO) | **Calibration** or **Empirical**, with an approved epsilon | The output leaves your controls. A contract is not a mathematical bound; DP is what survives a determined recipient. |
 | Published, posted to a repository, or shipped inside a package or teaching material | **Prior only**, or **Calibration** with a small approved epsilon | Anyone may inspect it, forever, alongside side information you cannot anticipate. Prior-only data reads no patient record at all and is the safest thing to publish. |
 | Software testing where only schema and event grammar matter | **Prior only** | Fidelity is irrelevant; a data-independent generator removes the question entirely. |
@@ -518,9 +713,9 @@ unique. Blending several donors, adding noise, and removing outlying patients mi
 formally. AVATAR therefore depends on the governance context somewhat more than
 `synadam`'s column resampling does.
 
-## What the model-based modes replace
+## What the public-model modes replace
 
-Modes 2, 3, and 4 do not blend anything. They replace the AVATAR pipeline
+Modes 4, 5, and 6 do not read the study's profiles at all. They replace the AVATAR pipeline
 entirely: there is no anchor subject, no donor neighborhood, and no event
 template. The trial structure comes from a **declared public protocol**
 (`pmx_trial_design()` or `pmx_public_design()`) rather than from a source
@@ -598,10 +793,19 @@ model code.
   utility.
 - [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator step by step, and the six masking mechanisms.
+- [The PCA Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.html)
+  and its [demo](https://iamstein.github.io/synpmx/articles/pca-demo.html) —
+  the second data-reading generator, which fits a basis of the subject
+  profiles rather than blending them.
+- [The PMX Model Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html)
+  and its [demo](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html)
+  — the third, which estimates a linear population pharmacokinetic model and
+  simulates from it. It is the only generator whose dose reductions reach the
+  concentrations.
 - [Model elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)
   and
   [data elicitation](https://iamstein.github.io/synpmx/articles/data-elicitation.html)
-  — how to produce the public model and protocol that modes 2 to 4 need.
+  — how to produce the public model and protocol that modes 4 to 6 need.
 - [Feasibility by cohort size](https://iamstein.github.io/synpmx/articles/feasibility.html)
   — the measured evidence for what each private mode can deliver at your N.
 

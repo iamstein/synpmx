@@ -220,6 +220,25 @@ review untouched. "considerably", "genuinely", "wildly", "close to meaningless",
 "the elegant part" are what gets cut. Prefer the measurement to the
 characterization of the measurement.
 
+## 9a. Three significant digits in a table, and count the exceptions
+
+`f42c98e` rounded the trial-summary tables to three significant digits, and he
+asked for it again on `pmxmodel-demo.Rmd` on 2026-09-01, where
+`model_candidates()` printed an AIC to fifteen. A number carried to fifteen
+digits in a document is noise wearing the costume of precision, and the reader
+has to look past it to find the two digits that carry the meaning.
+
+Round every measured quantity in a rendered table to three significant digits.
+The exceptions are values that are not measurements and where rounding would
+state something false: **times, counts, cycle numbers and identifiers**.
+`signif(2015.9, 3)` is 2020, which moves a nominal visit onto a time the study
+never had. `pca-fingerprint.Rmd` carries the pattern — a `digits3()` helper with
+a named list of exempt columns — and a new document should copy it rather than
+invent a second one.
+
+This is `synpmx_scorecard()`'s habit too: a card reports `15.1 -> 15`, not
+`15.0666666666667 -> 15`.
+
 ## 10. A verdict leads, and the verdict may be a hedge
 
 The four use-case lines in `README.md` each open with a marker and a verdict in

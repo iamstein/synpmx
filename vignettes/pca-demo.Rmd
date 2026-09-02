@@ -24,9 +24,24 @@ distributions <- plots && requireNamespace("patchwork", quietly = TRUE)
 # DT is installed and printed plainly where it is not.
 has_dt <- requireNamespace("DT", quietly = TRUE)
 tables <- run && has_dt
+# Three significant digits on every measured quantity. Times, counts and
+# identifiers are exempt: `signif(2015.9, 3)` is 2020, which would move a
+# nominal visit onto a time the study never had.
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
+digits3 <- function(x) {
+  x <- as.data.frame(x)
+  for (column in names(x)) {
+    if (tolower(column) %in% exact || !is.numeric(x[[column]])) next
+    x[[column]] <- signif(x[[column]], 3)
+  }
+  x
+}
 show <- function(x, caption = NULL) {
   DT::datatable(
-    x, rownames = FALSE, caption = caption,
+    digits3(x), rownames = FALSE, caption = caption,
     options = list(dom = "t", paging = FALSE, scrollX = TRUE, ordering = TRUE)
   )
 }
@@ -327,7 +342,7 @@ synpmx_scorecard_datatable(scorecard)
 **Fifteen of the eighteen rows read the source and synthetic tables directly**
 and answer for any generated dataset.
 
-**Three read `unavailable`, and that is not the same as unanswered.** B1a, B1b
+**Three read `not applicable`, and that is not the same as passed.** B1a, B1b
 and C2 expect a run record on the generated table, as a `pmx_settings`
 attribute, and this table carries none. B4a and B4b ask the copy question
 directly on the finished tables, and both read zero.
@@ -342,10 +357,10 @@ per arm.
 
 - `vignette("pca-algorithm")` — every step of this algorithm, and what each one
   reads out of the source.
-- `vignette("pca-trial-summary")` — every quantity the summary holds, in
+- `vignette("pca-fingerprint")` — every quantity the fingerprint holds, in
   detail.
 - [Evaluating the PCA generator on public data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html)
   — the same generator over eight public studies, and what each one's nominal
   grid cost.
-- `vignette("synpmx-methods")` — the other generation modes, and which one to
-  use when.
+- [The synpmx data generation algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) — the other generation modes,
+  and which one to use when.

@@ -287,3 +287,114 @@
 .named <- function(x, labels) {
   if (is.null(labels)) x else stats::setNames(x, labels)
 }
+
+# An arm of one or two has no between-subject spread to model: whatever the arm
+# summary is -- a mean score vector, a dose ladder, a per-visit attendance rate
+# -- it is that patient, and its spread is noise around them. Refusing is the
+# only honest answer, and it is loud rather than a silent pooling the caller
+# never asked for. Shared by every generator that summarizes an arm.
+.require_arms <- function(group, minimum, what) {
+  minimum <- as.integer(minimum)
+  if (!is.finite(minimum) || minimum < 1L) {
+    stop("`min_arm_patients` must be one positive integer.", call. = FALSE)
+  }
+  sizes <- table(group)
+  short <- sizes[sizes < minimum]
+  if (length(short)) {
+    stop("`", what, "` needs at least ", minimum,
+         " patients in every arm. Short: ",
+         paste(sprintf("%s (%d)", names(short), as.integer(short)),
+               collapse = ", "),
+         ". Pool the arm, drop the column from `strata`, or exclude those ",
+         "patients before calling.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+
+# What the generated table has to look like to be the same study: the columns
+# and their types, the compartment numbers, the assay limit per endpoint, the
+# values carried verbatim per arm, and how subject identifiers were written.
+# Read from the source once, by whichever generator is summarizing it.
+.source_schema <- function(source, roles, endpoints, subject_group) {
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoint <- .endpoint(source, roles)
+  dose_rows <- .event_rows(source, roles)
+
+  mode_of <- function(rows, column) {
+    values <- source[[column]][rows]
+    values <- values[!is.na(values)]
+    if (!length(values)) return(NA)
+    counts <- table(as.character(values))
+    values[match(names(counts)[which.max(counts)], as.character(values))]
+  }
+  cmt_dose <- if (is.null(roles$cmt)) NULL else mode_of(dose_rows, roles$cmt)
+  cmt_obs <- stats::setNames(lapply(endpoints, function(ep) {
+    if (is.null(roles$cmt)) NULL else mode_of(observed & endpoint == ep,
+                                              roles$cmt)
+  }), endpoints)
+
+  carried <- intersect(c(roles$strata, roles$keep), names(source))
+  subjects <- .unique_in_order(source[[roles$id]])
+  arm_values <- list()
+  for (arm in unique(subject_group)) {
+    subject <- subjects[subject_group == arm][1L]
+    rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
+    arm_values[[arm]] <- lapply(stats::setNames(carried, carried),
+                                function(column) {
+      value <- .first_present(source[[column]][rows])
+      if (is.factor(value)) as.character(value) else value
+    })
+  }
+
+  # The assay limit, per endpoint: one or two numbers read from the source, and
+  # the only way the generator can put a value back on the boundary. Without it
+  # every value below the limit is emitted as itself and an arm that is entirely
+  # below quantification comes back as a spread of small numbers rather than the
+  # flat line the study recorded.
+  censoring <- stats::setNames(lapply(endpoints, function(ep) {
+    .source_censoring(source, roles, ep)
+  }), endpoints)
+
+  identifiers <- source[[roles$id]]
+  list(
+    censoring = censoring,
+    columns = names(source),
+    prototypes = lapply(stats::setNames(names(source), names(source)),
+                        function(column) source[[column]][0L]),
+    id_class = class(identifiers)[[1L]],
+    id_offset = if (is.numeric(identifiers) && any(!is.na(identifiers))) {
+      max(identifiers, na.rm = TRUE)
+    } else 0,
+    id_levels = if (is.factor(identifiers)) levels(identifiers) else NULL,
+    cmt_dose = cmt_dose, cmt_obs = cmt_obs,
+    carried = carried, arm_values = arm_values,
+    endpoint_specs = .endpoint_value_types(source, roles)
+  )
+}
+
+.assign_arms <- function(arms, sizes, n_subjects) {
+  weights <- sizes / sum(sizes)
+  counts <- as.integer(round(weights * n_subjects))
+  short <- n_subjects - sum(counts)
+  if (short != 0L) {
+    order_index <- order(weights, decreasing = short > 0)
+    for (i in seq_len(abs(short))) {
+      j <- order_index[(i - 1L) %% length(counts) + 1L]
+      counts[j] <- max(0L, counts[j] + sign(short))
+    }
+  }
+  rep(arms, times = counts)[seq_len(n_subjects)]
+}
+
+.new_subject_ids <- function(schema, n) {
+  width <- max(3L, nchar(as.character(n)))
+  labels <- sprintf(paste0("syn_%0", width, "d"), seq_len(n))
+  switch(
+    schema$id_class,
+    factor = factor(labels, levels = labels),
+    integer = as.integer(schema$id_offset + seq_len(n)),
+    numeric = as.numeric(schema$id_offset + seq_len(n)),
+    labels
+  )
+}

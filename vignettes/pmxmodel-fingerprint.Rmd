@@ -1,0 +1,359 @@
+---
+title: "The PMX model study fingerprint"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{The PMX model study fingerprint}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(synpmx)
+has_data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
+has_dt <- requireNamespace("DT", quietly = TRUE)
+stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
+fit <- if (nzchar(stored)) readRDS(stored) else NULL
+run <- has_data && !is.null(fit)
+plots <- run && has_ggplot2 && has_xgxr
+tables <- run && has_dt
+
+# Three significant digits on measured quantities. Times and counts are exempt:
+# rounding a nominal visit time would move it onto a time the study never had.
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
+digits3 <- function(x) {
+  for (column in names(x)) {
+    if (column %in% exact || !is.numeric(x[[column]])) next
+    x[[column]] <- signif(x[[column]], 3)
+  }
+  x
+}
+show <- function(x, caption = NULL, paged = FALSE) {
+  if (!has_dt) return(digits3(as.data.frame(x)))
+  DT::datatable(
+    digits3(as.data.frame(x)), rownames = FALSE, caption = caption,
+    options = list(dom = if (paged) "tip" else "t", paging = paged,
+                   pageLength = 10, scrollX = TRUE, ordering = TRUE)
+  )
+}
+```
+
+Every generator in this package reduces a study to a **fingerprint** — a set of
+summaries small enough to carry out of the environment that holds the real data,
+and complete enough to build a synthetic study from. The fingerprint is the
+whole of what a synthetic dataset descends from. Nothing else about the source
+reaches it, which is why looking at the fingerprint is how you decide whether
+the output can be trusted, and how you satisfy yourself that no patient left the
+room.
+
+`synpmx_model_estimate()` returns this generator's fingerprint, as a
+`pmx_fitted_model`. `synpmx_model_generate()` reads that object and no patient
+row.
+
+This vignette walks through it group by group. It is a reference: read
+`vignette("pmxmodel-demo")` first for a run end to end, and
+`vignette("pmxmodel-algorithm")` for how each quantity is arrived at and why.
+`vignette("pca-fingerprint")` is the same walk through the PCA generator's
+fingerprint, and the two are worth reading side by side.
+
+## Two halves, and they are not alike
+
+This fingerprint divides more sharply than the PCA one does.
+
+**The estimated half** is a population model: a structural form, a handful of
+fixed effects, a covariance matrix, a residual error. It is perhaps twenty
+numbers describing the shape of every profile in the study, which is a very
+small fingerprint for a very strong claim. It also looks exactly like the output
+of a real population analysis, and it is not one — the candidate set is small
+and the covariate model is allometric scaling or nothing.
+
+**The summarized half** is the study's apparatus: who was in which arm, when
+doses were planned and how patients departed from that plan, which visits were
+attended, what the covariates looked like, where the assay limit sat. None of
+this is estimated. It is exactly the apparatus `synpmx_pca_summarize()` builds,
+from the same code.
+
+The two halves carry different risks. Twenty fitted numbers are a compact
+summary of 32 people; a per-arm dosing model with a cycle grid can be much
+larger and is backed by one arm's patients rather than the whole cohort.
+
+## The study
+
+`nlmixr2data::warfarin` — thirty-two patients, a single oral dose, a
+concentration endpoint and a pharmacodynamic one.
+
+```{r data, eval=run}
+data("warfarin", package = "nlmixr2data")
+warfarin <- as.data.frame(warfarin)
+warfarin$ntime <- warfarin$time
+roles <- pmx_roles(
+  id = "id", time = "time", nominal_time = "ntime", dv = "dv", amt = "amt",
+  evid = "evid", dvid = "dvid", covariates = c("wt", "age", "sex")
+)
+```
+
+```{r estimate-shown, eval=FALSE}
+fit <- synpmx_model_estimate(warfarin, roles, seed = 1)
+```
+
+The chunk above is shown rather than run: fitting compiles a model, so this
+document reads a stored fit and `R CMD check` never needs a compiler.
+
+```{r fit, eval=run}
+fit
+```
+
+## The inventory
+
+`model_report()` is the top-level account, and it separates the two halves
+because they answer to different things.
+
+```{r report, eval=run}
+model_report(fit)
+```
+
+Every section below expands one part of it. The object is a plain list and the
+names used are its own, so a quantity can be reached directly when no accessor
+covers it.
+
+```{r names, eval=run}
+names(fit)
+```
+
+## The settings that produced it
+
+```{r settings, eval=run}
+unlist(fit$settings)
+c(patients = fit$n_source, arms = length(fit$arms$arms))
+```
+
+## How the concentration endpoint was decided
+
+Not a released quantity, but the first thing to read: everything downstream is a
+model *of* this endpoint, and if the wrong one was chosen nothing else matters.
+
+```{r signals, eval=run}
+show(fit$endpoints$signals, "The four signals, per endpoint")
+```
+
+`proportional` reads `NA` here because `warfarin` gives every patient the same
+dose, so there are no dose levels to compare — the classification rests on the
+remaining signals. A column of `NA` under `proportional` is the object telling
+you how little evidence it had, and `endpoint_roles` is how you overrule it.
+
+```{r design, eval=run}
+fit$design$reason
+fit$endpoints$decided_by
+```
+
+## The structural model
+
+```{r structural, eval=run}
+fit$structural
+model_candidates(fit)
+```
+
+One row, because the default fits one model. `pk` is what asks for more.
+
+## The fixed effects
+
+The typical parameters, on the natural scale. These are the numbers that look
+most like a result and are least entitled to be read as one.
+
+```{r fixed, eval=run}
+model_parameters(fit)$fixed
+```
+
+## Between-subject variability
+
+A covariance matrix on the log scale, one row per parameter carrying a random
+effect. Generation draws each synthetic subject's deviations from this matrix.
+
+```{r omega, eval=run}
+model_parameters(fit)$omega
+sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
+```
+
+**No individual estimates.** Empirical Bayes estimates are per-subject
+quantities, and an object carrying them would be a description of each real
+patient. They are not here. This matrix is what stands in for them, and it is a
+statement about the population rather than about anybody in it.
+
+## The residual error
+
+```{r residual, eval=run}
+model_parameters(fit)$residual
+```
+
+Additive here rather than proportional, because `warfarin` holds concentrations
+recorded as zero and a proportional error on zero is zero. The substitution is
+recorded on the object rather than being silent.
+
+## What the assay limit cost
+
+Values below the limit are imputed before anything is fitted, and the boundary
+is put back when data is generated. That is the intended behaviour — it is what
+lets every part of the fingerprint read a latent value rather than a stack of
+identical boundary substitutions — but it is an assumption, and its weight is
+the share of each endpoint carrying it.
+
+```{r censoring, eval=run}
+fit$censoring
+```
+
+`warfarin` declares no censoring, so nothing here was imputed. On a study where
+it is, this is the line to read before trusting the concentrations:
+`xgxr::case1_pkpd` has 46% of its concentrations below the limit and 95% of the
+lowest dose arm, and there the fitted parameters are substantially a statement
+about the draw.
+
+## The covariate effects
+
+```{r covariates, eval=run}
+fit$covariate_effects
+```
+
+Allometric scaling on clearance and volume, with the standard exponents. It is
+asserted rather than tested — `vignette("pmxmodel-algorithm")` says why — and
+`covariate_effects = "none"` removes it.
+
+### What is *not* modelled shows up here
+
+```{r correlations, eval=tables}
+show(fit$correlations[order(-abs(fit$correlations$correlation)), ],
+     "Each covariate against the individual random effects")
+```
+
+This is the most important table in the document, and it is a diagnostic rather
+than a released quantity. A covariate that moves with a random effect and is not
+in the model above is generated **independently** of the profiles, so the
+synthetic data carries no relationship between the two. `synpmx_avatar()`
+preserves those relationships without modelling them, because a blended
+subject's covariates and profile come from the same donors.
+
+The correlations are computed from the individual random effects and only the
+correlations are kept, so no per-subject quantity survives into the object.
+
+## The pharmacodynamic shapes
+
+```{r pd, eval=run}
+lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
+```
+
+```{r pd-candidates, eval=tables}
+show(fit$pd[[1L]]$candidates, "The three shapes, compared on AIC")
+```
+
+A time course with no exposure term. A PD endpoint driven by concentration is
+reproduced as a curve that resembles the average subject's response, which is
+adequate for exercising longitudinal code and is not an exposure-response model.
+
+## The covariate distributions
+
+One distribution per covariate per arm, drawn from independently at generation.
+
+```{r covariate-model, eval=run}
+str(fit$covariates, max.level = 3)
+```
+
+## The arms
+
+```{r arms, eval=run}
+data.frame(arm = fit$arms$arms, patients = as.integer(fit$arms$sizes))
+```
+
+## The dosing model
+
+Per arm: a planned schedule, a dose ladder, and three discrete-time hazards.
+This is the apparatus `synpmx_pca_summarize()` builds, unchanged.
+
+```{r dosing, eval=tables}
+arm <- fit$arms$arms[[1L]]
+show(fit$dosing[[arm]]$planned, "The planned schedule")
+```
+
+```{r rates, eval=run}
+dosing <- fit$dosing[[fit$arms$arms[[1L]]]]
+c(levels = length(dosing$levels), reduction = dosing$reduction,
+  interruption = dosing$interruption, discontinuation = dosing$discontinuation)
+```
+
+`warfarin` is a single dose that everybody received, so the ladder has one level
+and all three rates are zero. The model then reproduces the planned schedule
+exactly, which is the right answer and is what those zeros say. On a study where
+patients reduce, skip cycles or come off treatment, these are the numbers that
+carry it — and because the schedule is drawn *before* the profile is computed
+from it, a synthetic subject who steps down has the lower exposure that implies.
+
+## The visit model
+
+Per endpoint and per retained nominal time, the fraction of the arm holding an
+observation there. Attendance is drawn per visit at generation.
+
+```{r visits, eval=tables}
+cells <- fit$cells
+cells$probability <- as.numeric(fit$visits[[fit$arms$arms[[1L]]]]$probability)
+show(cells[, c("endpoint", "time", "probability")],
+     "Attendance, per grid cell", paged = TRUE)
+```
+
+```{r visits-plot, eval=plots, fig.height=3.5}
+library(ggplot2)
+library(xgxr)
+xgx_theme_set()
+
+ggplot(cells, aes(time, probability, colour = endpoint)) +
+  geom_line() + geom_point(size = 1.5) +
+  ylim(0, 1) +
+  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
+  labs(x = "Nominal time (hours)", y = "Fraction of the arm observed",
+       colour = NULL) +
+  theme(legend.position = "top")
+```
+
+A cell is kept only where at least `min_arm_patients` distinct patients hold an
+observation there. A nominal time one patient attended is that patient, and
+generating from it would put them back.
+
+## The schema
+
+What the generated table has to look like to be the same study: the columns and
+their classes, the compartment numbers, the assay limit per endpoint, and how
+identifiers are written.
+
+```{r schema, eval=run}
+fit$schema$columns
+fit$schema$cmt_dose
+unlist(fit$schema$cmt_obs)
+fit$schema$censoring
+```
+
+## Generating from it
+
+Everything above, and nothing else, is what the next line reads.
+
+```{r generate, eval=run}
+synthetic <- synpmx_model_generate(fit, n_subjects = 32, seed = 7)
+str(synthetic)
+```
+
+## Where to go next
+
+- `vignette("pmxmodel-demo")` — this generator run on a study end to end.
+- `vignette("pmxmodel-algorithm")` — how each quantity above is arrived at.
+- `vignette("pca-fingerprint")` — the same walk for the PCA generator, which
+  carries the same apparatus and a completely different description of the
+  profiles.
+- `vignette("avatar-scorecard")` — the checks that read a generated dataset
+  against its source.

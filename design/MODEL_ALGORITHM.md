@@ -13,8 +13,14 @@ question. This is the same restriction the rest of the package carries, and it
 binds harder here because the output of the fit looks exactly like the output of
 a real population analysis.
 
-This document is the record of what the algorithm should do and why, written
-before the code exists. Nothing here is implemented.
+This document was the record of what the algorithm should do and why, written
+before the code existed. **It is now implemented**, in `R/model.R`,
+`R/model-design.R`, `R/model-estimate.R` and `R/model-generate.R`, and
+documented for readers in `vignettes/pmxmodel-algorithm.Rmd` and
+`vignettes/pmxmodel-demo.Rmd`. Where the two disagree the vignette is right:
+it is generated from the code and the code is under test. What this document
+keeps is the reasoning, the rejected alternatives, and the record of what moved
+between the design and the implementation, which is the section below.
 
 ## Where this sits among the three generators
 
@@ -41,8 +47,8 @@ gate refuses to let the *package* infer a grid. It does not stop a *document*
 from declaring one, and a survey that reads it as though it did is a survey
 about the gate rather than about the generator.
 
-This generator arrives with two documents, `model-algorithm.Rmd` and
-`model-demo.Rmd`. Its public-data survey is developed after the maintainer is
+This generator arrives with two documents, `pmxmodel-algorithm.Rmd` and
+`pmxmodel-demo.Rmd`. Its public-data survey is developed after the maintainer is
 satisfied with the demo, not alongside it: a survey written against a demo that
 is still moving would be rewritten once for every change to it. That is a
 sequencing decision rather than an exemption, and the contract in `AGENTS.md`
@@ -56,7 +62,7 @@ document assumes the answers.
 | Question | Answer |
 |---|---|
 | What happens to endpoints that are not fittable PK | PK is fitted, the simple pharmacodynamic (PD) time-course shapes are fitted, and everything else — dose reductions, interrupted and missed cycles, discontinuation, visit attendance, covariates, censoring — comes from the models the PCA generator already builds |
-| Who picks among candidate models | Automatic on Akaike information criterion (AIC), with a `pk` argument that forces one and skips the search |
+| Who picks among candidate models | Superseded on 2026-09-01: one model is fitted, chosen by the design detection. `pk` forces a model, or names several to search over them on AIC. |
 | Where the `nlmixr2` dependency sits | Estimation only. Generation runs on base R, from a stored fit |
 
 ## The API
@@ -80,13 +86,20 @@ Arguments beyond the roles and the seed:
 
 | Argument | Default | Effect |
 |---|---|---|
-| `pk` | `NULL` | One of the five built-in models. Skips the search. |
+| `pk` | `NULL` | One of the five built-in models, forcing it; or several, which is how a search is asked for. |
 | `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
 | `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. |
-| `covariate_effects` | `"auto"` | `"auto"`, `"none"`, or a named list of parameter/covariate pairs. |
+| `covariate_effects` | `"auto"` | `"auto"` applies allometric scaling where a weight-like covariate is declared; `"none"` fits nothing. |
 | `min_subjects` | `20L` | Refuse below this cohort size. |
 | `min_arm_patients` | `3L` | Refuse below this many patients in any arm, as `synpmx_pca_summarize()` does. |
-| `estimation` | `"saem"` | Passed to `nlmixr2`, with `"focei"` as the documented fallback. |
+| `min_time_bins` | `6L` | Refuse below this many distinct nominal times after a dose. |
+| `estimation` | `"focei"` | Passed to `nlmixr2`. |
+
+**The default path performs exactly one population fit.** That is the design
+point, decided by the maintainer on 2026-09-01 after the profiling below, and
+the arguments above are the ways to spend more time for more accuracy. A search
+costs one fit per candidate; testing allometry against AIC cost another. Neither
+happens unless asked for.
 
 ## Step 1: Classify the Endpoints
 
@@ -296,8 +309,12 @@ there to show the call, not to produce the object the rest of the document uses.
 
 ## Gates
 
-Conditions under which the function refuses, each of which needs a registry row
-and a test before the code exists.
+Conditions under which the function refuses. Each needs a deterministic test
+before the code exists. Only one needs a registry row: `design/ISSUES.md`
+records defects and findings, and a gate built to this specification is
+neither, so seven near-identical rows would be seven rows nobody reads. The
+exception is the last one, which is a privacy defect if it is ever absent and
+is `REV-042`. The cohort floor's own limitation is `SIM-056`.
 
 | Gate | Threshold | Reason |
 |---|---|---|
@@ -337,15 +354,16 @@ defect in the commit that adds the code rather than a follow-up.
   the out-of-scope statement is now about what the data is for. It still
   describes two generators, and gains a clause naming this one when the code
   lands.
-- `vignettes/synpmx-methods.Rmd` introduces four modes and adds `synpmx_pca()`
-  as a fifth in a paragraph. A sixth arriving the same way makes the document a
-  list of exceptions, so the mode inventory needs restructuring rather than
-  another paragraph.
+- `vignettes/articles/synpmx-methods.Rmd` now runs all six modes on `theo_md`,
+  numbered by how much of the study each carries out: model, PCA, AVATAR,
+  prior, calibration, empirical. Done on 2026-09-02; the restructuring this
+  entry asked for is the six-way comparison at the end of that article.
 - `_pkgdown.yml` needs the new functions and documents.
 
 New documents, following the shape the AVATAR and PCA sets hold:
-`vignettes/model-algorithm.Rmd` for the mechanism and `vignettes/model-demo.Rmd`
-for the first run, with `vignettes/articles/model-public-data-examples.Rmd`
+`vignettes/pmxmodel-algorithm.Rmd` for the mechanism and
+`vignettes/pmxmodel-demo.Rmd` for the first run — the maintainer's names, chosen
+on 2026-09-01 — with `vignettes/articles/pmxmodel-public-data-examples.Rmd`
 following once the demo has settled. The survey is an article, as both existing
 surveys became on 2026-09-01, so `R CMD check` never runs it and
 `./build.sh articles` is what proves it. The cross-document contract in
@@ -356,6 +374,89 @@ naming their section.
 `synpmx_scorecard()` scores a synthetic dataset against its source and does not
 know which generator produced it, so it needs nothing new. Whether it should
 gain a row for goodness of fit is the open question below.
+
+## What moved between the design and the code
+
+Five things, each found by running the algorithm rather than by reading it.
+
+1. **The route detector was rewritten.** The design put it on a per-subject vote
+   with a "fewer than half agree" guard. That counts the sampling schedule
+   rather than the drug: on `warfarin`, 22 of 32 patients are first sampled at
+   24 hours, every one of their profiles declines from its first point, and the
+   vote reads 69% intravenous on a study that is oral — above the guard, so it
+   commits to the wrong answer. What actually separates the routes is that an
+   oral dose cannot be in the blood at the moment it is swallowed. So: a peak at
+   time zero after a dose is intravenous, a median profile that rises before it
+   falls is oral, and a profile declining from a first sample drawn later is
+   both at once and both candidates are offered. The rising share is still
+   reported and decides nothing.
+
+2. **`estimation` defaults to `"focei"`, not `"saem"`.** Selection is on AIC and
+   SAEM does not reliably produce one: its log-likelihood is a Gaussian
+   quadrature run after the fit, and at phase 1 cohort sizes it returns a
+   non-finite value. `theo_sd` fits perfectly well under SAEM — clearance 2.75,
+   volume 32.3, absorption 1.51 — and reports `AIC = Inf`.
+
+3. **Signal 4 needs a definition of a dose level, and the design had none.**
+   Reading each distinct amount as its own level makes a study dosed by body
+   weight compare a median of one patient against a median of one patient over a
+   dose ratio near 1, which almost any endpoint passes. Where the distinct
+   amounts outnumber half the cohort the signal is not computable, as on a
+   single-arm study.
+
+4. **The richness rule refused every intravenous study.** "At least one before
+   and two after the median peak" cannot be met by a profile that peaks at the
+   dose. The before-peak requirement now applies only where there is an
+   ascending limb to sample.
+
+   It no longer gates anything. **Owner decision, 2026-09-01: the default
+   candidate set is one-compartment only, with `pk = "2cmt_oral"` or
+   `pk = "2cmt_iv"` available for a caller who wants otherwise.** A distribution
+   phase is a refinement of a shape the one-compartment model already has, and
+   this generator exists to make profiles resemble a study rather than to
+   characterise it. Measured on a thirty-subject oral study: 49 s against 12 s,
+   for a worse AIC on data a one-compartment model describes. The richness count
+   is still computed and `model_report()` says when the sampling would support
+   a two-compartment model, so asking for one is informed.
+
+5. **`integer` endpoints are fittable.** The design said continuous. `warfarin`'s
+   prothrombin activity is typed `integer` and is a continuous quantity that was
+   rounded, which is what `.snap_endpoint_values()` puts back at emit.
+
+6. **The default is one fit, not a search.** The design assumed a candidate set
+   pruned by the design detection and compared on AIC, plus a second fit to test
+   allometric scaling. Measured on a thirty-subject oral study, that was 65 s
+   for the search and 18 s for the allometry test. **Owner decision,
+   2026-09-01: fit one model, assume allometric scaling with fixed exponents
+   where a weight is available, and stop.** The whole call is now 11 s, and
+   `pk` takes a vector so a caller who wants a comparison can have one without a
+   new argument. Selection on AIC survives for that case.
+
+   The three PD shapes were never part of the cost: they are least squares in
+   base R and take no measurable time. The one compiled fit in a call is the PK
+   one.
+
+7. **The starting values are a proper non-compartmental reading.** The design
+   said "read off the data" and the first implementation took that too loosely:
+   clearance from a trapezoid with no extrapolation, and volume as dose over the
+   peak, which is not a volume of any kind for an oral dose. Now the terminal
+   slope is fitted by log-linear regression, the area is extrapolated to
+   infinity, volume is clearance over the slope, and absorption is solved from
+   the peak position. Raised by the maintainer on 2026-09-01 while looking at
+   why the two-compartment fits were slow. It improved the estimates and took
+   17% off that fit -- not enough to save it, which is what decided the point
+   above, and the measurement is the reason the decision is not a guess.
+
+Two more things the design did not anticipate. The PD shapes are fitted by
+least squares rather than through `nlmixr2`, because they are three-parameter
+curves on one endpoint and routing them through a population fitter would put a
+compiler in the path of every PD endpoint. And a concentration is floored at
+zero, because a proportional error near the assay limit produces negatives often
+enough to matter.
+
+`SIM-055` moved from a PCA row to a shared one: `synpmx_model()` uses the same
+visit model and inherits the same missing attendance floor. On `warfarin` it
+reads B4a = 2 FAIL, and the demo shows the failing row rather than hiding it.
 
 ## Build Order
 
@@ -373,31 +474,60 @@ there.
 | 4 | Generation | `synpmx_model_generate()` against a hand-constructed `pmx_fitted_model`, through `.pk_profile()`. A complete generator with no fitter in it. | End to end on fixtures, base R only. Includes the exposure-before-and-after-a-reduction check from Step 6. |
 | 5 | Estimation | `nlmixr2` behind `requireNamespace()`: the candidate fits, the AIC table, the `pk` override, the failure-to-converge paths. | Guarded tests, skipped where `nlmixr2` is absent. |
 | 6 | Covariates and PD | Allometric scaling under `covariate_effects = "auto"`, the three PD shapes, and the random-effect correlation report. | Guarded, as commit 5. |
-| 7 | The documents | `vignettes/model-algorithm.Rmd` and `vignettes/model-demo.Rmd`, plus the stored fit under `scripts/` that both knit against. | `./build.sh`. |
+| 7 | The documents | `vignettes/pmxmodel-algorithm.Rmd` and `vignettes/pmxmodel-demo.Rmd`, plus the stored fit `scripts/build-model-fits.R` writes and both knit against. | `./build.sh`. |
 | 8 | The documentation sweep | The three false statements in the Documentation obligations section, and `_pkgdown.yml`. | Search for the affected names, as `AGENTS.md` requires. |
 
 Commits 1 to 4 need nothing beyond base R, so they run in this repository's
 ordinary loop. Commits 5 and 6 need a machine with `nlmixr2` installed and are
 the first point at which a compiler is in the path.
 
+**The order was changed on 2026-09-01, by the maintainer:** the two documents
+were pulled forward and everything they need was built with them, so commits 2
+to 7 landed together. The base-R half is still tested on its own — the
+generation tests construct a `pmx_fitted_model` by hand and never load
+`nlmixr2` — which is the property the order existed to protect. The estimation
+tests skip where the fitter cannot build a model, which is a stronger guard than
+`requireNamespace()`: on macOS, R's `FLIBS` points at `/opt/gfortran`, and where
+that directory is absent every model compiles, none of them links, and the
+failure reports itself as a missing C compiler.
+
 The public-data survey is not in this list. It follows once the demo from
 commit 7 has settled, for the reason in "Where this sits among the three
 generators".
 
-## Open questions
+## Questions settled on 2026-09-01
 
-1. **Goodness of fit as a scorecard row.** The generator is usable only where
-   the selected model describes the source, and nothing currently scores
-   that. A visual predictive check belongs in `model_report()`, but a pass or
-   fail row on the scorecard would put it where a user looks before deciding to
-   use a dataset. The scorecard's row set is a cross-document contract, so this
-   is a change to `avatar-scorecard.Rmd` as well.
-2. **Whether the arm structure should come from the fit or the apparatus.**
-   Dose and arm are currently apparatus, which means a dose-dependent PK
-   nonlinearity in the source is generated away rather than reported. Fitting a
-   dose effect on clearance would catch it, at the cost of a candidate set that
-   is no longer just the five linear models.
-3. **Occasion-varying dosing.** `mavoglurant` resets time within occasion and
-   carries an occasion-varying assigned dose. The apparatus handles it; whether
-   the estimation step should pool occasions or fit them separately is
-   undecided.
+The three questions this document left open were put to the maintainer and
+answered. Two of them are answered "no", and the reason in both cases is the
+same one: this generator is meant to be simple, and a candidate set that grows
+to catch a case is how it stops being.
+
+1. **Goodness of fit as a scorecard row.** Still open as a row, but the shape it
+   would take is now settled, and it is not a shape specific to this generator.
+   There is one scorecard function, `synpmx_scorecard()`, which already does not
+   know what produced the dataset it scores. A row that does not apply to a
+   given generator is marked as not applicable and says so in its result, which
+   is what the card already does for the three rows that need a `pmx_settings`
+   attribute and read `"unavailable"` without one. So a goodness-of-fit row
+   would be a row on the one card, reading not applicable for AVATAR and PCA,
+   rather than a per-generator card. The document follows: `avatar-scorecard.Rmd`
+   becomes a generic scorecard document rather than gaining a sibling. Recorded
+   as `REV-043`, with `REV-040` as the function half; it is not work this
+   generator blocks on.
+
+2. **A dose effect on clearance: no.** The candidate set stays the five linear
+   models in `.pk_models`, and dose and arm stay apparatus. A source with
+   dose-dependent PK is generated as though it were linear, and that is a
+   limitation the documents state rather than a case the candidate set grows to
+   cover. Fitting a dose effect would mean a candidate set that is no longer
+   five closed-form models, which is the boundary the `nlmixr2` section draws
+   and the reason generation needs no solver.
+
+3. **Occasion-varying dosing: no.** Occasions are pooled. Estimation reads the
+   recorded dosing history and the recorded times, and an `occasion` role is not
+   read at all: no occasion-varying parameter is fitted and no per-occasion fit
+   is offered. A dataset like `mavoglurant`, whose clock resets within occasion,
+   is a dataset whose recorded times are already dose-relative, and putting it
+   on a single cumulative axis before calling is the caller's work rather than
+   the function's. This is the same fork as `nominal_time`: a statement about
+   the protocol only the caller can make.

@@ -11,7 +11,7 @@ synpmx_scorecard(source, synthetic, roles, proximity = NULL)
 
 \item{synthetic}{Generated synthetic PMX data. From \code{\link[=synpmx_avatar]{synpmx_avatar()}} it
 carries a \code{"pmx_settings"} attribute and the whole card can be filled in;
-without one, the three rows that need it read \code{"unavailable"}.}
+without one, the three rows that need it read \code{"not applicable"}.}
 
 \item{roles}{Explicit roles from \code{\link[=pmx_roles]{pmx_roles()}}.}
 
@@ -43,7 +43,7 @@ taken from either table.
 Everything measured from the two tables is measurable on any synthetic
 dataset, whatever produced it, so a table carrying no \code{"pmx_settings"}
 attribute is scored rather than refused: the three \code{"run settings"} rows
-(B1a, B1b, C2) come back with the verdict \code{"unavailable"} and the rest of
+(B1a, B1b, C2) come back with the verdict \code{"not applicable"} and the rest of
 the card is computed as usual. That covers another method's output, and this
 package's own output read back from a file.
 
@@ -70,8 +70,10 @@ or \code{.qmd} gets the whole card including the \code{explore} column. Running 
 interactively in an IDE shows the console form, since nothing is knitting.
 
 A \code{"review"} verdict is not a soft \code{"pass"}. It marks a row where no
-threshold would be honest, and it has to be read. Nor is \code{"unavailable"}:
-it marks a row nothing was measured for.
+threshold would be honest, and it has to be read. Nor is
+\code{"not applicable"}: it marks a row that was not asked of this table, either
+because the run record it reads is absent or because the generator it asks
+about is not the one that made the data.
 }
 
 \section{Every card holds every row}{

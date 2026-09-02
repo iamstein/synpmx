@@ -1,5 +1,5 @@
 ---
-title: "What a trial summary contains"
+title: "The PCA study fingerprint"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -8,7 +8,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{What a trial summary contains}
+  %\VignetteIndexEntry{The PCA study fingerprint}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -26,8 +26,10 @@ tables <- run && has_dt
 # Three significant digits on every measured quantity. Times, counts and cycle
 # numbers are exempt: `signif(2015.9, 3)` is 2020, which would move a nominal
 # visit onto a time the study never had.
-exact <- c("time", "cycle", "patients", "numbers", "min_patients",
-           "planned_cycles", "distinct", "source_doses", "offset")
+exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
+           "n", "observations", "imputed", "patients", "min_patients",
+           "numbers", "planned_cycles", "distinct", "source_doses", "offset",
+           "count")
 digits3 <- function(x) {
   for (column in names(x)) {
     if (column %in% exact || !is.numeric(x[[column]])) next
@@ -49,14 +51,24 @@ show <- function(x, caption = NULL, paged = FALSE) {
 }
 ```
 
-`synpmx_pca_summarize()` returns a **trial summary**: everything a synthetic
-copy of the study will be built from, and nothing else.
-`synpmx_pca_generate()` reads that object and no patient row, so what is listed
-here is the complete account of what the generated dataset descends from.
+Every generator in this package reduces a study to a **fingerprint** — a set of
+summaries small enough to carry out of the environment that holds the real data,
+and complete enough to build a synthetic study from. The fingerprint is the
+whole of what a synthetic dataset descends from. Nothing else about the source
+reaches it, which is why looking at the fingerprint is how you decide whether
+the output can be trusted, and how you satisfy yourself that no patient left the
+room.
 
-This vignette walks through the object group by group. It is a reference: read
+`synpmx_pca_summarize()` returns this generator's fingerprint, as a
+`pmx_trial_summary`. `synpmx_pca_generate()` reads that object and no patient
+row.
+
+This vignette walks through it group by group. It is a reference: read
 `vignette("pca-demo")` first for a run end to end, and
 `vignette("pca-algorithm")` for how each quantity is estimated and why.
+`vignette("pmxmodel-fingerprint")` is the same walk through the PMX model
+generator's fingerprint, and the two are worth reading side by side — they carry
+the same apparatus and a completely different description of the profiles.
 
 The object is a plain list, and the names used below are its own, so a quantity
 can be reached directly when no accessor covers it.

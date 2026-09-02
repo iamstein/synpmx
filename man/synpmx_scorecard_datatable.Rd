@@ -21,8 +21,8 @@ printed it.
 \description{
 Displays a \code{\link[=synpmx_scorecard]{synpmx_scorecard()}} as an interactive table with the verdicts
 coloured: \code{"FAIL"} in bold red on a light red, \code{"review"} in bold orange on
-a light orange, \code{"unavailable"} in muted grey, and \code{"pass"} left as ordinary
-text. A card is five verdicts among thirty-odd rows of prose, and the rows
+a light orange, \code{"not applicable"} in muted grey, and
+\code{"pass"} left as ordinary text. A card is five verdicts among thirty-odd rows of prose, and the rows
 that need reading are the ones that have to be findable without reading all
 of it.
 }

@@ -22,66 +22,101 @@ redirects:
   - ["articles/public-data-examples.html", "articles/avatar-public-data-examples.html"]
   - ["articles/scorecard-synthetic-data-checks.html", "articles/avatar-scorecard.html"]
   - ["articles/synpmx-4-methods.html", "articles/synpmx-methods.html"]
+  # 2026-09-01: `pca-trial-summary` -> `pca-fingerprint`, when the object it
+  # describes was named for what it is rather than for the function that
+  # returns it, and the PMX model generator gained the matching document.
+  - ["articles/pca-trial-summary.html", "articles/pca-fingerprint.html"]
 
 navbar:
   structure:
-    left: [intro, reference, articles]
+    left: [intro, reference, background, pmxmodel, pca, avatar, scorecard]
     right: [search, github]
   components:
-    articles:
-      text: Articles
+    background:
+      text: Background
       menu:
-      - text: "PCA generator"
-      - text: "Demo: the PCA generator"
-        href: articles/pca-demo.html
-      - text: What a trial summary contains
-        href: articles/pca-trial-summary.html
-      - text: The synpmx PCA Algorithm
-        href: articles/pca-algorithm.html
-      - text: Evaluating the PCA generator on public data
-        href: articles/pca-public-data-examples.html
-      - text: -------
-      - text: "AVATAR generator"
-      - text: "Demo: one dataset, end to end"
-        href: articles/avatar-demo.html
-      - text: The synpmx AVATAR Algorithm
-        href: articles/avatar-algorithm.html
-      - text: Evaluating AVATAR on public data
-        href: articles/avatar-public-data-examples.html
-      - text: "Scorecard: Checks of the synthetic data"
-        href: articles/avatar-scorecard.html
-      - text: "Example: are relationships preserved?"
-        href: articles/example-avatar-PKPD-covariate-treatment-effect.html
-      - text: -------
-      - text: "Background"
       - text: The synpmx data generation algorithms
         href: articles/synpmx-methods.html
       - text: "Literature: generating synthetic data"
         href: articles/synthetic-data-generation-review.html
-      - text: "Literature: checking synthetic data"
-        href: articles/synthetic-data-checking-review.html
       - text: -------
-      - text: "Differential privacy background"
-      - text: Privacy
+      - text: "Privacy"
+      - text: What differential privacy does and does not guarantee
         href: articles/synpmx-privacy.html
-      - text: Privacy background
+      - text: "Where d, f, and the error law come from"
         href: articles/privacy-background.html
-      - text: Formal privacy argument
+      - text: The mechanism-level privacy argument
         href: articles/privacy-argument.html
       - text: Feasibility by cohort size
         href: articles/feasibility.html
+      - text: -------
+      - text: "Elicitation, for the modes that assert a model"
+      - text: Building the structural model
+        href: articles/model-elicitation.html
+      - text: Describing the trial
+        href: articles/data-elicitation.html
+    pmxmodel:
+      text: 1. PMXmodel
+      menu:
+      - text: Demo
+        href: articles/pmxmodel-demo.html
+      - text: Algorithm
+        href: articles/pmxmodel-algorithm.html
+      - text: Evaluation on public data
+        href: articles/pmxmodel-public-data-examples.html
+      - text: -------
+      - text: Study fingerprint
+        href: articles/pmxmodel-fingerprint.html
+    pca:
+      text: 2. PCA
+      menu:
+      - text: Demo
+        href: articles/pca-demo.html
+      - text: Algorithm
+        href: articles/pca-algorithm.html
+      - text: Evaluation on public data
+        href: articles/pca-public-data-examples.html
+      - text: -------
+      - text: Study fingerprint
+        href: articles/pca-fingerprint.html
+    avatar:
+      text: 3. AVATAR
+      menu:
+      - text: Demo
+        href: articles/avatar-demo.html
+      - text: Algorithm
+        href: articles/avatar-algorithm.html
+      - text: Evaluation on public data
+        href: articles/avatar-public-data-examples.html
+      - text: -------
+      - text: "Example: are relationships preserved?"
+        href: articles/example-avatar-PKPD-covariate-treatment-effect.html
+    scorecard:
+      text: Scorecard
+      menu:
+      # Still `avatar-scorecard` on disk. The function scores any generator's
+      # output and the document is written that way; renaming the file is
+      # `REV-043` and moves every cross-reference with it.
+      - text: Checks of the synthetic data
+        href: articles/avatar-scorecard.html
+      - text: "Literature: checking synthetic data"
+        href: articles/synthetic-data-checking-review.html
 
 reference:
 - title: Generating data
   desc: >
-    The generation modes. `synpmx_avatar()` is the default AVATAR path and
-    `synpmx_pca()` fits a basis instead of blending; the remaining three
+    The generation modes. `synpmx_avatar()` blends real subjects,
+    `synpmx_pca()` fits a basis of their profiles, and `synpmx_model()`
+    estimates a population model and simulates from it; the remaining three
     require a public structural model.
   contents:
   - synpmx_avatar
   - synpmx_pca
   - synpmx_pca_summarize
   - synpmx_pca_generate
+  - synpmx_model
+  - synpmx_model_estimate
+  - synpmx_model_generate
   - synpmx_prior
   - synpmx_calibrated
   - synpmx_empirical
@@ -100,6 +135,15 @@ reference:
   - pca_visits
   - pca_components
   - pca_component_effect
+
+- title: Reading a fitted model
+  desc: >
+    What `synpmx_model_estimate()` read out of the source data: the estimated
+    half, the candidates it chose between, and the apparatus it summarized.
+  contents:
+  - model_report
+  - model_candidates
+  - model_parameters
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.
