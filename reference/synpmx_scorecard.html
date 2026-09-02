@@ -41,6 +41,7 @@ reference for what each check asks and why its pass criterion is what it is.'></
   <button class="nav-link dropdown-toggle" type="button" id="dropdown--pmxmodel" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">1. PMXmodel</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown--pmxmodel"><li><a class="dropdown-item" href="../articles/pmxmodel-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
   </ul></li>
@@ -104,7 +105,7 @@ reference for what each check asks and why its pass criterion is what it is.</p>
 <dt id="arg-synthetic">synthetic<a class="anchor" aria-label="anchor" href="#arg-synthetic"></a></dt>
 <dd><p>Generated synthetic PMX data. From <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> it
 carries a <code>"pmx_settings"</code> attribute and the whole card can be filled in;
-without one, the three rows that need it read <code>"unavailable"</code>.</p></dd>
+without one, the three rows that need it read <code>"not applicable"</code>.</p></dd>
 
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
@@ -138,7 +139,7 @@ taken from either table.</p>
     <p>Everything measured from the two tables is measurable on any synthetic
 dataset, whatever produced it, so a table carrying no <code>"pmx_settings"</code>
 attribute is scored rather than refused: the three <code>"run settings"</code> rows
-(B1a, B1b, C2) come back with the verdict <code>"unavailable"</code> and the rest of
+(B1a, B1b, C2) come back with the verdict <code>"not applicable"</code> and the rest of
 the card is computed as usual. That covers another method's output, and this
 package's own output read back from a file.</p>
 <p>Those three rows cannot be recomputed from the finished table, and that is a
@@ -161,8 +162,10 @@ that returns this object emits <code><a href="https://rdrr.io/pkg/knitr/man/kabl
 or <code>.qmd</code> gets the whole card including the <code>explore</code> column. Running a chunk
 interactively in an IDE shows the console form, since nothing is knitting.</p>
 <p>A <code>"review"</code> verdict is not a soft <code>"pass"</code>. It marks a row where no
-threshold would be honest, and it has to be read. Nor is <code>"unavailable"</code>:
-it marks a row nothing was measured for.</p>
+threshold would be honest, and it has to be read. Nor is
+<code>"not applicable"</code>: it marks a row that was not asked of this table, either
+because the run record it reads is absent or because the generator it asks
+about is not the one that made the data.</p>
     </div>
     <div class="section level2">
     <h2 id="every-card-holds-every-row">Every card holds every row<a class="anchor" aria-label="anchor" href="#every-card-holds-every-row"></a></h2>

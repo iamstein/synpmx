@@ -52,6 +52,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown--pmxmodel">
 <li><a class="dropdown-item" href="../articles/pmxmodel-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
   </ul>
@@ -133,23 +134,24 @@ offer different privacy guarantees.</p>
 vignette by.</p>
 <p><strong>Generators that read the study.</strong> Three of them, each
 carrying something different out of the source.
+<code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> estimates a population pharmacokinetic model
+and simulates from it. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> reduces each subject to
+principal-component scores and models the scores.
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> blends real neighbouring patients’ values.
-<code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> reduces each subject to principal-component
-scores and models the scores. <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> estimates a
-linear population pharmacokinetic model and simulates from it. None
-makes a formal privacy claim, and the two model-based ones need a
-declared nominal-time column, which <code>theo_md</code> does not
-carry.</p>
+None makes a formal privacy claim, and the first two need a declared
+nominal-time column.</p>
 <p><strong>Generators that assert a model instead.</strong> Three more,
 which take a public structural model and, in two cases, spend a
 differential-privacy budget to correct it against the study.</p>
-<p>This vignette compares one from the first group against all three of
-the second, on one dataset. It is a comparison of <em>approaches</em>
-rather than a catalogue: the other two data-reading generators have
-documents of their own, listed under “Where to go next”, and comparing
-them here would need a dataset carrying a nominal grid.</p>
-<p>The four compared below, from most faithful to most protective:</p>
+<p>All six run below on one dataset, in the order they carry less and
+less of the study out with them:</p>
 <ol style="list-style-type: decimal">
+<li>
+<strong>PMX model</strong> — estimate a population model and
+simulate from the parameters.</li>
+<li>
+<strong>PCA</strong> — fit a basis of the observed profiles and draw
+new scores on it.</li>
 <li>
 <strong>AVATAR blending</strong> [1, 2] — build each synthetic
 subject out of real subjects.</li>
@@ -163,6 +165,10 @@ magnitude is corrected by a small, differentially private release.</li>
 <strong>Empirical</strong> — release a dense set of differentially
 private summaries and rebuild subjects from them.</li>
 </ol>
+<p>The order is not a ranking. Modes 1 to 3 are the ones to use when the
+output stays inside the source data’s own controls; modes 5 and 6 are
+the ones that survive crossing a trust boundary, and the panels below
+show what that costs at a cohort this size.</p>
 <p>“AVATAR” is a method name rather than an initialism, from the
 patient-centric <em>avatarization</em> literature in which each
 synthetic record is built from the local neighborhood of real records.
@@ -186,10 +192,7 @@ is typical of early-phase work and it is where the differences between
 these modes are most visible.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
-<span><span class="va">theo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
-<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
-<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
-<span><span class="op">)</span></span>
+<span><span class="va">theo_md</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    348 obs. of  7 variables:</span></span>
 <span><span class="co">#&gt;  $ ID  : int  1 1 1 1 1 1 1 1 1 1 ...</span></span>
@@ -199,20 +202,141 @@ these modes are most visible.</p>
 <span><span class="co">#&gt;  $ EVID: int  101 0 0 0 0 0 0 0 0 0 ...</span></span>
 <span><span class="co">#&gt;  $ CMT : int  1 2 2 2 2 2 2 2 2 2 ...</span></span>
 <span><span class="co">#&gt;  $ WT  : num  79.6 79.6 79.6 79.6 79.6 79.6 79.6 79.6 79.6 79.6 ...</span></span></code></pre></div>
+<p>Modes 1 and 2 place every value on the protocol’s grid and refuse
+without one, so the grid is written down first. The doses are exactly 24
+h apart and the samples are not, so each sample is placed by the dose
+interval it falls in plus its time after that dose snapped to the
+planned times. Both lines below are statements about the protocol rather
+than derivations from the data, which is why they are in the document
+instead of inside a function.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">snap_to</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">grid</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">grid</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/maxCol.html" class="external-link">max.col</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">grid</span>, <span class="st">"-"</span><span class="op">)</span><span class="op">)</span>, ties.method <span class="op">=</span> <span class="st">"first"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">theo_doses</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">144</span>, by <span class="op">=</span> <span class="fl">24</span><span class="op">)</span>                           <span class="co"># the Q24H schedule</span></span>
+<span><span class="va">theo_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">5</span>, <span class="fl">7</span>, <span class="fl">9</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span> <span class="co"># planned samples</span></span>
+<span></span>
+<span><span class="va">interval</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu"><a href="https://rdrr.io/r/base/findInterval.html" class="external-link">findInterval</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">$</span><span class="va">TIME</span>, <span class="va">theo_doses</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">theo_md</span><span class="op">$</span><span class="va">NTIME</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span></span>
+<span>  <span class="va">theo_md</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span>,</span>
+<span>  <span class="va">theo_doses</span><span class="op">[</span><span class="va">interval</span><span class="op">]</span> <span class="op">+</span></span>
+<span>    <span class="fu">snap_to</span><span class="op">(</span><span class="va">theo_md</span><span class="op">$</span><span class="va">TIME</span> <span class="op">-</span> <span class="va">theo_doses</span><span class="op">[</span><span class="va">interval</span><span class="op">]</span>, <span class="va">theo_samples</span><span class="op">)</span>,</span>
+<span>  <span class="va">theo_md</span><span class="op">$</span><span class="va">TIME</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>recorded <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">theo_md</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  nominal <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">$</span><span class="va">NTIME</span><span class="op">[</span><span class="va">theo_md</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; recorded  nominal </span></span>
+<span><span class="co">#&gt;      156       26</span></span></code></pre></div>
+<p>One declaration of what the columns mean serves all three
+data-reading generators.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">theo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="mode-1-avatar-blending">Mode 1: AVATAR blending<a class="anchor" aria-label="anchor" href="#mode-1-avatar-blending"></a>
+<h2 id="mode-1-pmx-model">Mode 1: PMX model<a class="anchor" aria-label="anchor" href="#mode-1-pmx-model"></a>
 </h2>
-<p>Start here, because it is the least work.
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> needs nothing but the data and a
-declaration of what the columns mean. For each synthetic subject it
-copies a real subject’s event skeleton, then fills the covariates and
-concentrations with a distance-weighted blend of that subject’s nearest
-compatible neighbors, plus noise.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<p>The most familiar route to a pharmacometrician: fit a population
+model to the study and simulate new subjects from the parameters.
+<code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> works out which endpoint is the
+drug and what design produced it, fits the candidates that design admits
+and picks one on AIC; <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> then reads
+the fit alone. No number a patient measured is in scope while the second
+call runs.</p>
+<p>Twelve subjects is below the floor this generator sets for itself. It
+refuses under 20, because a covariance matrix fitted to fewer describes
+those subjects rather than a population, and the refusal is lifted here
+deliberately so that the mode can be shown on the same study as the
+other five.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">model_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                                   min_subjects <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span>   <span class="co"># below the floor</span></span></code></pre></div>
+<p>The chunk above is shown rather than run: fitting compiles a model,
+so this article reads a stored fit built by
+<code>scripts/build-model-fits.R</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">model_fit</span></span>
+<span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   fitted on    12 patients, 1 arm(s)</span></span>
+<span><span class="co">#&gt;   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) </span></span>
+<span><span class="co">#&gt;   fixed        cl 2.885, v 31.59, ka 1.331 </span></span>
+<span><span class="co">#&gt;   random on    cl, v, ka </span></span>
+<span><span class="co">#&gt;   pk endpoint  DV </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   These parameters are not estimates to report. They exist to make</span></span>
+<span><span class="co">#&gt;   simulated profiles resemble the source study; the candidate set is too</span></span>
+<span><span class="co">#&gt;   small and the covariate model too thin for any of them to answer a</span></span>
+<span><span class="co">#&gt;   scientific question.</span></span>
+<span><span class="va">model_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">model_fit</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span></code></pre></div>
+<p>What leaves the study is the printed object and nothing else: a
+structural model, three fixed effects, a covariance matrix, a residual
+error, and a per-arm dosing and visit model.
+<code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> is the itemised list, and
+the parameters are not estimates to report — the object prints that
+warning with itself.</p>
+</div>
+<div class="section level2">
+<h2 id="mode-2-pca">Mode 2: PCA<a class="anchor" aria-label="anchor" href="#mode-2-pca"></a>
+</h2>
+<p>Rather than asserting a curve shape, this generator measures one.
+Every subject’s profile becomes a vector on the nominal grid, a
+principal-component basis is fitted to those vectors, and new subjects
+are drawn as new scores on that basis. It reads the study without
+holding on to any subject’s values.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pca_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span>
+<span><span class="va">pca_summary</span></span>
+<span><span class="co">#&gt; A trial summary, from synpmx_pca_summarize()</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   fitted on    12 patients, 1 arm(s): all (12) </span></span>
+<span><span class="co">#&gt;   endpoints    DV (26 visits modelled) </span></span>
+<span><span class="co">#&gt;   covariates   WT </span></span>
+<span><span class="co">#&gt;   components   2 (78% of variance) </span></span>
+<span><span class="co">#&gt;   dose term    factor </span></span>
+<span><span class="co">#&gt;   dosing       7 planned cycle(s) per arm | no reductions, interruptions or early stops </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; synpmx_pca_generate() reads this object and nothing else. To look inside it:</span></span>
+<span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
+<span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
+<span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
+<span><span class="co">#&gt;   pca_visits()      the probability of a visit, per arm</span></span>
+<span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span>
+<span><span class="va">pca_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">pca_summary</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span></code></pre></div>
+<p>Twelve subjects buy two components, holding 78% of the variance, as
+the summary above says. That is the visible cost: everything outside
+those two components, measurement noise from visit to visit included, is
+not reproduced, and the generated profiles are smoother than the source
+ones. <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> is the specification and
+<code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code> itemises what the summary
+carries.</p>
+</div>
+<div class="section level2">
+<h2 id="mode-3-avatar-blending">Mode 3: AVATAR blending<a class="anchor" aria-label="anchor" href="#mode-3-avatar-blending"></a>
+</h2>
+<p>The least work of the three: <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> needs no
+grid, no model and no fit — only the data and a declaration of what the
+columns mean. For each synthetic subject it copies a real subject’s
+event skeleton, then fills the covariates and concentrations with a
+distance-weighted blend of that subject’s nearest compatible neighbors,
+plus noise.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">avatar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">101</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span></span>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
+<span><span class="co">#&gt; SYNPMX ALERT: unique visit sets</span></span>
+<span><span class="co">#&gt;   3 of 12 patients (25%) share every individual observation time with</span></span>
+<span><span class="co">#&gt;   somebody, but the set of visits they have observations at is theirs alone</span></span>
+<span><span class="co">#&gt;   -- a missed visit, a discontinuation, or follow-up that has not reached</span></span>
+<span><span class="co">#&gt;   the later visits.</span></span>
+<span><span class="co">#&gt;   Why it matters: no time grid can help here, however fine or coarse: a</span></span>
+<span><span class="co">#&gt;     grid decides where the visits are, not which ones a patient turned up</span></span>
+<span><span class="co">#&gt;     for.</span></span>
+<span><span class="co">#&gt;   Fix: `min_pattern_share` already stops these sets being reused (see the</span></span>
+<span><span class="co">#&gt;     run report). Screen the result with `flag_identifiable_subjects()` if</span></span>
+<span><span class="co">#&gt;     it still matters.</span></span>
 <span><span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>Nothing was elicited, nothing was assumed, and the output keeps the
@@ -343,7 +467,7 @@ often it does.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="mode-2-prior-only">Mode 2: prior only<a class="anchor" aria-label="anchor" href="#mode-2-prior-only"></a>
+<h2 id="mode-4-prior-only">Mode 4: prior only<a class="anchor" aria-label="anchor" href="#mode-4-prior-only"></a>
 </h2>
 <p>The opposite extreme. Declare a public structural model and a public
 protocol, and simulate. No confidential data is read, so there is
@@ -361,7 +485,7 @@ arbitrary pharmacometric model.</p>
 <p>Others are working in parallel to develop a data simulation SKILL.md
 file to support development of such synthetic data. This work is
 important, but outside the scope of this package.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
 <span>  pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>,</span>
 <span>  typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">6</span>, v <span class="op">=</span> <span class="fl">35</span>, ka <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>,          <span class="co"># deliberately imperfect</span></span>
@@ -410,14 +534,14 @@ concentrations run low. That is the honest cost of spending no budget —
 the data is exactly as good as the prior.</p>
 </div>
 <div class="section level2">
-<h2 id="mode-3-calibration">Mode 3: calibration<a class="anchor" aria-label="anchor" href="#mode-3-calibration"></a>
+<h2 id="mode-5-calibration">Mode 5: calibration<a class="anchor" aria-label="anchor" href="#mode-5-calibration"></a>
 </h2>
 <p>The middle path, and the recommended one when a formal guarantee is
 needed and the cohort is small. Both <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code>
 and <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until
 <code><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the
 session — a deliberate speed bump.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; DP engines enabled for this session: the differentially private engines are complete and tested, but not under active development, carry known open findings, and have not been independently privacy-audited. See https://iamstein.github.io/synpmx/articles/synpmx-privacy.html for the trust-boundary decision rule and what a production release additionally needs.</span></span></code></pre></div>
 <p>Keep the public model’s <em>shape</em>, and spend a small privacy
@@ -426,7 +550,7 @@ budget correcting only its <em>magnitude</em>.</p>
 model’s own prediction, clipped to a public prior range, and released
 with calibrated noise. Only two numbers leave the data: the correction
 and a noised subject count.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_priors.html">pmx_priors</a></span><span class="op">(</span>pk <span class="op">=</span> <span class="fu"><a href="../reference/pmx_prior.html">pmx_prior</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fl">4</span>, <span class="fl">4</span><span class="op">)</span>, source <span class="op">=</span> <span class="st">"scaling literature"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/pmx_preflight.html">pmx_preflight</a></span><span class="op">(</span><span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, n_subjects <span class="op">=</span> <span class="fl">12</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Pre-flight: d = 2, epsilon = 1, N = 12  -&gt;  f = 0.167</span></span>
@@ -438,7 +562,7 @@ and a noised subject count.</p>
 <p><code><a href="../reference/pmx_preflight.html">pmx_preflight()</a></code> costs nothing and reads no data: it
 answers “is this release worth its budget?” before any budget is
 spent.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calibrated_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_calibrated.html">synpmx_calibrated</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">theo_design</span>, priors <span class="op">=</span> <span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">303</span>,</span>
@@ -447,7 +571,7 @@ spent.</p>
 <p>The correction pulled the assumed clearance toward the data. The
 release that produced this dataset travels with it, so the accounting is
 always at hand:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="st">"synpmx_release"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Calibrated structural model (v3)</span></span>
 <span><span class="co">#&gt;   released subject count: 12</span></span>
@@ -459,15 +583,15 @@ always at hand:</p>
 cost nothing. Draw them with <code><a href="../reference/synpmx_generate.html">synpmx_generate()</a></code> rather than
 by calling <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> again — a second fit would
 spend the budget a second time.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">another</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">calibrated_data</span>, seed <span class="op">=</span> <span class="fl">304</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calibrated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_calibrated.html">synpmx_calibrated</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">confidential</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">theo_design</span>, priors <span class="op">=</span> <span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  backend <span class="op">=</span> <span class="st">"opendp"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/dp_backend_status.html">dp_backend_status</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   backend available version production</span></span>
 <span><span class="co">#&gt; 1  OpenDP      TRUE  0.15.1       TRUE</span></span></code></pre></div>
@@ -478,7 +602,7 @@ prior, not the study. The <a href="https://iamstein.github.io/synpmx/articles/sy
 article</a> covers when the release is worth making.</p>
 </div>
 <div class="section level2">
-<h2 id="mode-4-empirical">Mode 4: empirical<a class="anchor" aria-label="anchor" href="#mode-4-empirical"></a>
+<h2 id="mode-6-empirical">Mode 6: empirical<a class="anchor" aria-label="anchor" href="#mode-6-empirical"></a>
 </h2>
 <p>The general-purpose private engine. Rather than asserting the curve
 shape, it measures it: it releases noised summaries for the subject
@@ -489,7 +613,7 @@ contain, and pays for it by splitting one epsilon across many released
 quantities.</p>
 <p>It also needs the most declaration: every clipping range,
 contribution limit, and budget share is an explicit public input.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">empirical_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
 <span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
 <span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
@@ -525,18 +649,25 @@ released coordinates. This engine earns its keep on large pooled
 datasets, not on twelve subjects.</p>
 </div>
 <div class="section level2">
-<h2 id="the-four-side-by-side">The four side by side<a class="anchor" aria-label="anchor" href="#the-four-side-by-side"></a>
+<h2 id="the-six-side-by-side">The six side by side<a class="anchor" aria-label="anchor" href="#the-six-side-by-side"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<p>Every generated dataset above holds the same study in a different
+way. Pulled into one frame, they can be read against the source and
+against each other.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">generated_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_generated_roles.html">pmx_generated_roles</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">all_observations</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"1. AVATAR"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"2. Prior only"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"3. Calibration"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"2. PCA"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"3. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
 <span>  <span class="co"># The empirical engine restores the source schema, so it uses source roles.</span></span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"4. Empirical"</span><span class="op">)</span></span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span>,</span>
+<span>                                  levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">summaries</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">dv</span>, <span class="va">all_observations</span><span class="op">$</span><span class="va">method</span><span class="op">)</span>,</span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">dv</span><span class="op">)</span> <span class="op">{</span></span>
@@ -563,73 +694,162 @@ datasets, not on twelve subjects.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">1. AVATAR</td>
-<td align="right">264</td>
-<td align="right">5.49</td>
-<td align="right">1.34</td>
-<td align="right">8.72</td>
-</tr>
-<tr class="even">
-<td align="left">2. Prior only</td>
-<td align="right">240</td>
-<td align="right">3.16</td>
-<td align="right">0.28</td>
-<td align="right">6.43</td>
-</tr>
-<tr class="odd">
-<td align="left">3. Calibration</td>
-<td align="right">240</td>
-<td align="right">4.05</td>
-<td align="right">0.36</td>
-<td align="right">7.54</td>
-</tr>
-<tr class="even">
-<td align="left">4. Empirical</td>
-<td align="right">264</td>
-<td align="right">4.43</td>
-<td align="right">0.43</td>
-<td align="right">11.96</td>
-</tr>
-<tr class="odd">
 <td align="left">Source</td>
 <td align="right">264</td>
 <td align="right">5.74</td>
 <td align="right">1.25</td>
 <td align="right">9.30</td>
 </tr>
+<tr class="even">
+<td align="left">1. PMX model</td>
+<td align="right">258</td>
+<td align="right">5.98</td>
+<td align="right">1.24</td>
+<td align="right">10.04</td>
+</tr>
+<tr class="odd">
+<td align="left">2. PCA</td>
+<td align="right">261</td>
+<td align="right">5.95</td>
+<td align="right">1.31</td>
+<td align="right">9.30</td>
+</tr>
+<tr class="even">
+<td align="left">3. AVATAR</td>
+<td align="right">264</td>
+<td align="right">5.21</td>
+<td align="right">1.21</td>
+<td align="right">8.33</td>
+</tr>
+<tr class="odd">
+<td align="left">4. Prior only</td>
+<td align="right">240</td>
+<td align="right">3.16</td>
+<td align="right">0.28</td>
+<td align="right">6.43</td>
+</tr>
+<tr class="even">
+<td align="left">5. Calibration</td>
+<td align="right">240</td>
+<td align="right">4.05</td>
+<td align="right">0.36</td>
+<td align="right">7.54</td>
+</tr>
+<tr class="odd">
+<td align="left">6. Empirical</td>
+<td align="right">264</td>
+<td align="right">4.43</td>
+<td align="right">0.43</td>
+<td align="right">11.96</td>
+</tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<p>The source panel first, then the six generated datasets in order.
+Each line is one subject’s concentration profile over the seven daily
+doses.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
 <span>  <span class="va">all_observations</span>,</span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>, group <span class="op">=</span> <span class="va">subject</span><span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span>, colour <span class="op">=</span> <span class="st">"#1B6CA8"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span>, size <span class="op">=</span> <span class="fl">0.7</span>, colour <span class="op">=</span> <span class="st">"#1B6CA8"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">method</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">method</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
 <span>    x <span class="op">=</span> <span class="st">"Study time (hours)"</span>, y <span class="op">=</span> <span class="st">"Concentration"</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"One dataset, four generation modes"</span></span>
+<span>    title <span class="op">=</span> <span class="st">"One study, six generation modes"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="synpmx-methods_files/figure-html/compare-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>AVATAR tracks the source most closely, because it is made of it. The
-prior-only data has the right structure and the wrong level. Calibration
-moves the level toward the truth for a small budget. The empirical
-release recovers more of the real timing and spread, but at this cohort
-size the noise is visible.</p>
+<p>The table is the quickest read. The three data-reading modes land on
+the source’s concentrations — medians of 5.98, 5.95 and 5.21 against
+5.74, and tenth and ninetieth percentiles within a few tenths — while
+the three public-model modes do not: 3.16, 4.05 and 4.43. That gap is
+the whole subject of this article.</p>
+<p>Among the first three, mode 1 draws every profile from one structural
+model at a different parameter draw, so its profiles are the smoothest
+here and a real profile’s visit-to-visit wobble is absent. Mode 2 takes
+its shape from the observed profiles instead, and smooths within the two
+components twelve subjects buy. Mode 3 tracks the source most closely,
+because it is made of it.</p>
+<p>Modes 4 to 6 are where the level goes. The prior-only data has the
+right structure and a clearance assumed about twice too fast, which is
+exactly the cost of reading nothing: its median concentration is 3.16
+against the source’s 5.74. Calibration spends two numbers of budget
+pulling that level back toward the study, and gets to 4.05. The
+empirical engine, at five times the budget, does not do better in any
+way that matters: its median is 4.43, and its spread runs from a tenth
+percentile of 0.43 to a ninetieth of 11.96, against 1.25 and 9.30 in the
+source. It is not a study a pharmacometrician would work with.</p>
+<p>The same six against the source, as distributions rather than
+profiles: the concentrations they generated, and the baseline weights
+they carried.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># One long frame of every value each mode produced, so concentration and weight</span></span>
+<span><span class="co"># can be drawn on the same panel row. A mode that carries no weight column --</span></span>
+<span><span class="co"># the public-model modes declare no covariates -- simply has no rows here.</span></span>
+<span><span class="va">weights</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">covariate</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="st">"WT"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">)</span> <span class="st">"WT"</span> <span class="kw">else</span> <span class="cn">NULL</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">covariate</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
+<span>  <span class="va">first</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">duplicated</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">label</span>, variable <span class="op">=</span> <span class="st">"Baseline weight (kg)"</span>,</span>
+<span>             value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">covariate</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">first</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>             stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">distributions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">all_observations</span><span class="op">$</span><span class="va">method</span>,</span>
+<span>             variable <span class="op">=</span> <span class="st">"Concentration"</span>, value <span class="op">=</span> <span class="va">all_observations</span><span class="op">$</span><span class="va">dv</span>,</span>
+<span>             stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"2. PCA"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"3. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span>,</span>
+<span>                               levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">distributions</span>,</span>
+<span>                <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">value</span>, colour <span class="op">=</span> <span class="va">method</span>, linetype <span class="op">=</span> <span class="va">method</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/stat_ecdf.html" class="external-link">stat_ecdf</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">variable</span>, scales <span class="op">=</span> <span class="st">"free_x"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span></span>
+<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"#111111"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"#1B6CA8"</span>,</span>
+<span>               <span class="st">"2. PCA"</span> <span class="op">=</span> <span class="st">"#2E8B57"</span>, <span class="st">"3. AVATAR"</span> <span class="op">=</span> <span class="st">"#D95F02"</span>,</span>
+<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"#7570B3"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"#A6761D"</span>,</span>
+<span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"#B00020"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span></span>
+<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"solid"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
+<span>               <span class="st">"2. PCA"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"3. AVATAR"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
+<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"dotted"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"dotted"</span>,</span>
+<span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"dotted"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Cumulative fraction"</span>, colour <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>                linetype <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>                title <span class="op">=</span> <span class="st">"Observed concentrations and baseline weights, by mode"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="synpmx-methods_files/figure-html/compare-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p>Read the concentration panel by how far each curve sits from the
+black one, and the weight panel by whether a mode has a curve there at
+all: the two public-model modes declare no covariates, so they generate
+no weights, and a covariate that is not declared is a column the output
+does not have.</p>
 </div>
 <div class="section level2">
 <h2 id="choosing-a-mode">Choosing a mode<a class="anchor" aria-label="anchor" href="#choosing-a-mode"></a>
 </h2>
-<table style="width:100%;" class="table">
+<table class="table">
 <colgroup>
+<col width="9%">
 <col width="10%">
-<col width="10%">
-<col width="31%">
-<col width="14%">
-<col width="12%">
-<col width="21%">
+<col width="33%">
+<col width="13%">
+<col width="11%">
+<col width="20%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Mode</th>
@@ -641,7 +861,25 @@ size the noise is visible.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">1. AVATAR blending</td>
+<td align="left">1. PMX model</td>
+<td align="left">synpmx_model()</td>
+<td align="left">A population model fitted to the study, simulated
+forward</td>
+<td align="left">None; governance only</td>
+<td align="left">~20 and up</td>
+<td align="left">None, but a nominal grid is required</td>
+</tr>
+<tr class="even">
+<td align="left">2. PCA</td>
+<td align="left">synpmx_pca()</td>
+<td align="left">A component basis of the observed profiles, and new
+scores on it</td>
+<td align="left">None; governance only</td>
+<td align="left">Any, from ~5, per arm</td>
+<td align="left">None, but a nominal grid is required</td>
+</tr>
+<tr class="odd">
+<td align="left">3. AVATAR blending</td>
 <td align="left">synpmx_avatar()</td>
 <td align="left">Real subject templates and blended real
 trajectories</td>
@@ -650,7 +888,7 @@ trajectories</td>
 <td align="left">None</td>
 </tr>
 <tr class="even">
-<td align="left">2. Prior only</td>
+<td align="left">4. Prior only</td>
 <td align="left">synpmx_prior()</td>
 <td align="left">A public model and protocol only</td>
 <td align="left">epsilon = 0 (no data read)</td>
@@ -658,7 +896,7 @@ trajectories</td>
 <td align="left">Structural model + protocol</td>
 </tr>
 <tr class="odd">
-<td align="left">3. Calibration</td>
+<td align="left">5. Calibration</td>
 <td align="left">synpmx_calibrated()</td>
 <td align="left">A public model, magnitude corrected by 2 private
 releases</td>
@@ -667,7 +905,7 @@ releases</td>
 <td align="left">Model, protocol, prior ranges</td>
 </tr>
 <tr class="even">
-<td align="left">4. Empirical</td>
+<td align="left">6. Empirical</td>
 <td align="left">synpmx_empirical()</td>
 <td align="left">Dozens of noised population summaries</td>
 <td align="left">(epsilon, delta) DP</td>
@@ -693,7 +931,9 @@ releases</td>
 <td>Inside the validated environment holding the source data; you are
 the only consumer</td>
 <td>
-<strong>AVATAR</strong>, or any other</td>
+<strong>PMX model</strong>, <strong>PCA</strong> or
+<strong>AVATAR</strong>
+</td>
 <td>Access control and governance already bound the risk. A formal
 guarantee defends against an adversary who cannot reach the output, so
 it buys nothing and costs utility.</td>
@@ -774,14 +1014,14 @@ the governance context somewhat more than <code>synadam</code>’s column
 resampling does.</p>
 </div>
 <div class="section level2">
-<h2 id="what-the-model-based-modes-replace">What the model-based modes replace<a class="anchor" aria-label="anchor" href="#what-the-model-based-modes-replace"></a>
+<h2 id="what-the-public-model-modes-replace">What the public-model modes replace<a class="anchor" aria-label="anchor" href="#what-the-public-model-modes-replace"></a>
 </h2>
-<p>Modes 2, 3, and 4 do not blend anything. They replace the AVATAR
-pipeline entirely: there is no anchor subject, no donor neighborhood,
-and no event template. The trial structure comes from a <strong>declared
-public protocol</strong> (<code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code> or
-<code><a href="../reference/pmx_public_design.html">pmx_public_design()</a></code>) rather than from a source subject’s
-rows.</p>
+<p>Modes 4, 5, and 6 do not read the study’s profiles at all. They
+replace the AVATAR pipeline entirely: there is no anchor subject, no
+donor neighborhood, and no event template. The trial structure comes
+from a <strong>declared public protocol</strong>
+(<code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code> or <code><a href="../reference/pmx_public_design.html">pmx_public_design()</a></code>)
+rather than from a source subject’s rows.</p>
 <p>Both differentially private engines are
 <strong>aggregate-based</strong>: no source subject’s rows, template, or
 trajectory reaches the output. They read the confidential data only
@@ -907,7 +1147,7 @@ reach the concentrations.</li>
 <a href="https://iamstein.github.io/synpmx/articles/model-elicitation.html">Model
 elicitation</a> and <a href="https://iamstein.github.io/synpmx/articles/data-elicitation.html">data
 elicitation</a> — how to produce the public model and protocol that
-modes 2 to 4 need.</li>
+modes 4 to 6 need.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/feasibility.html">Feasibility
 by cohort size</a> — the measured evidence for what each private mode

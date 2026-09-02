@@ -25,7 +25,7 @@ synpmx_scorecard(source, synthetic, roles, proximity = NULL)
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
   it carries a `"pmx_settings"` attribute and the whole card can be
   filled in; without one, the three rows that need it read
-  `"unavailable"`.
+  `"not applicable"`.
 
 - roles:
 
@@ -61,9 +61,9 @@ either table.
 Everything measured from the two tables is measurable on any synthetic
 dataset, whatever produced it, so a table carrying no `"pmx_settings"`
 attribute is scored rather than refused: the three `"run settings"` rows
-(B1a, B1b, C2) come back with the verdict `"unavailable"` and the rest
-of the card is computed as usual. That covers another method's output,
-and this package's own output read back from a file.
+(B1a, B1b, C2) come back with the verdict `"not applicable"` and the
+rest of the card is computed as usual. That covers another method's
+output, and this package's own output read back from a file.
 
 Those three rows cannot be recomputed from the finished table, and that
 is a property of the generator rather than an omission here. Generated
@@ -93,7 +93,9 @@ console form, since nothing is knitting.
 
 A `"review"` verdict is not a soft `"pass"`. It marks a row where no
 threshold would be honest, and it has to be read. Nor is
-`"unavailable"`: it marks a row nothing was measured for.
+`"not applicable"`: it marks a row that was not asked of this table,
+either because the run record it reads is absent or because the
+generator it asks about is not the one that made the data.
 
 ## Every card holds every row
 

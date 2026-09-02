@@ -172,8 +172,9 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 | [The PCA Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.html) and its [demo](https://iamstein.github.io/synpmx/articles/pca-demo.html) | How does the component-basis generator work, and what does a run look like? |
 | [Evaluating PCA on public data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html) | How well does it work across eight public datasets? |
 | [The PMX Model Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html) and its [demo](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html) | How does the population-model generator work, and what does a run look like? |
+| [Evaluating the PMX model generator on public data](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html) | Which studies can it fit at all, and what does it lose on the ones it can? |
 | [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
-| [The synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) | What are the modes, and which one do I want? |
+| [The synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) | What are the six modes, all six on one study, and which one do I want? |
 
 ## License
 

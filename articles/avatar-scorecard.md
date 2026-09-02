@@ -12,7 +12,10 @@ The scorecard contains a table of the following items:
 - The check of the dataset that is performed.
 - That data is read (source data, synthetic data, or both)
 - The resulting calculation from the check
-- A verdict for whether the check passed, failed or needs review
+- A verdict for whether the check passed, failed, needs review, or is
+  `not applicable` — the last for a row this table was not asked, either
+  because the run record it reads is absent or because it asks about a
+  generator that did not make the data
 - An `explore` function to help assess any checks that failed or need
   review.
 
@@ -642,8 +645,9 @@ measured is a copy however the generator arrived at it.
 
 The row is decided from the `"pmx_source"` attribute the generator
 writes, so a table read back from a CSV loses it and is measured the
-AVATAR way — the same degradation the three `unavailable` rows already
-have.
+AVATAR way — the same degradation the three `run settings` rows already
+have, which likewise read `not applicable` once the record they need is
+gone.
 
 ### B5. Did a rare category reach the output
 

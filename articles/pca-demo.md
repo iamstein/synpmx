@@ -365,7 +365,7 @@ synpmx_scorecard_datatable(scorecard)
 **Fifteen of the eighteen rows read the source and synthetic tables
 directly** and answer for any generated dataset.
 
-**Three read `unavailable`, and that is not the same as unanswered.**
+**Three read `not applicable`, and that is not the same as passed.**
 B1a, B1b and C2 expect a run record on the generated table, as a
 `pmx_settings` attribute, and this table carries none. B4a and B4b ask
 the copy question directly on the finished tables, and both read zero.

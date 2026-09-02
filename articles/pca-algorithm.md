@@ -400,7 +400,7 @@ Three do not: **B1a**, **B1b** and **C2**. They read a run record that
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 expects to find on the generated table as a `pmx_settings` attribute,
 rather than reading the two tables, and this table carries no such
-record. All three report `unavailable`.
+record. All three report `not applicable`.
 
 For B1a and B1b the guarantee is structural rather than unrecorded. No
 individual’s visit set and no individual’s dose schedule exists in the

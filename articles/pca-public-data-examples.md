@@ -144,8 +144,8 @@ Every example follows the same five steps:
     against synthetic;
 5.  report the scorecard.
 
-Three scorecard rows read `unavailable` on every card below — **B1a**,
-**B1b** and **C2** — because they read a run record that
+Three scorecard rows read `not applicable` on every card below —
+**B1a**, **B1b** and **C2** — because they read a run record that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 writes and this generator does not. That is a limitation of those three
 rows rather than a property of any dataset here, and it is the same on
@@ -757,7 +757,8 @@ setting to raise if the exposure matters more than the late timepoints.
 verdicts <- do.call(rbind, lapply(runs, function(entry) {
   card <- as.data.frame(entry$card)
   counts <- table(factor(card$verdict,
-                         levels = c("pass", "review", "FAIL", "unavailable")))
+                         levels = c("pass", "review", "FAIL",
+                                    "not applicable")))
   data.frame(Dataset = entry$label, as.list(counts),
              Failing = paste(card$check[card$verdict == "FAIL"],
                              collapse = ", "),
@@ -767,19 +768,19 @@ knitr::kable(verdicts, row.names = FALSE,
              caption = "Scorecard verdicts across the seven runs.")
 ```
 
-| Dataset     | pass | review | FAIL | unavailable | Failing |
-|:------------|-----:|-------:|-----:|------------:|:--------|
-| case1_pkpd  |   12 |      2 |    0 |           3 |         |
-| mad         |   13 |      1 |    0 |           3 |         |
-| warfarin    |   13 |      1 |    0 |           3 |         |
-| wbcSim      |   11 |      3 |    0 |           3 |         |
-| theo_md     |   13 |      1 |    0 |           3 |         |
-| nimoData    |   12 |      2 |    0 |           3 |         |
-| mavoglurant |   11 |      3 |    0 |           3 |         |
+| Dataset     | pass | review | FAIL | not applicable | Failing |
+|:------------|-----:|-------:|-----:|---------------:|:--------|
+| case1_pkpd  |   12 |      2 |    0 |              4 |         |
+| mad         |   13 |      1 |    0 |              4 |         |
+| warfarin    |   13 |      1 |    0 |              4 |         |
+| wbcSim      |   11 |      3 |    0 |              4 |         |
+| theo_md     |   13 |      1 |    0 |              4 |         |
+| nimoData    |   12 |      2 |    0 |              4 |         |
+| mavoglurant |   11 |      3 |    0 |              4 |         |
 
 Scorecard verdicts across the seven runs. {.table}
 
-`unavailable` is 3 on every row and is a gap in those three checks
+`not applicable` is 3 on every row and is a gap in those three checks
 rather than a result: B1a, B1b and C2 read a run record this generator
 does not write. All three questions are answerable from the two tables,
 and until they are computed that way the card is silent exactly where
@@ -890,7 +891,7 @@ Not preserved, and each is a decision rather than a defect:
   on `theo_md`, where twelve subjects buy two components.
 - **The variety of dose schedules.** One schedule per arm, against one
   per patient on a study recording actuals. C2 would report it and reads
-  `unavailable`;
+  `not applicable`;
   [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
   reports the same quantity per arm.
 - **Anything the grid construction merged.** `mavoglurant` is the worked

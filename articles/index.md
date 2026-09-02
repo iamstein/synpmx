@@ -47,6 +47,9 @@
 - [The PMX model study
   fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md):
 
+- [Evaluating the PMX model generator on public
+  data](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.md):
+
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 
