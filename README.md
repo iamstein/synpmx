@@ -30,20 +30,19 @@ rather than a default and its alternatives: each carries something different out
 of the source, and which one suits a given study is still an open question.
 None offers a formal privacy guarantee.
 
-| Generator | What leaves the source | Good at | Weak at |
+| Function | Synthetic data based on |
 |----|----|----|----|
-| `synpmx_avatar()` | Blended values from real neighbouring patients | Keeping covariate–response relationships without modelling them; needs no model and no nominal grid | Every synthetic subject's event skeleton comes from one real subject |
-| `synpmx_pca()` | Component loadings, one mean score vector per arm, a residual covariance | Reproducing profile shapes it was never told to expect | Dose changes appear in the dosing records but not in the values |
-| `synpmx_model()` | Fixed effects, a covariance matrix, a residual error | Dose reductions and skipped cycles reach the concentrations | Needs an identifiable design; no exposure–response |
+| `1. synpmx_model()` | Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits | 
+| `2. synpmx_pca()` | Principle component analysis from vector of all observations and covariates |
+| `3. synpmx_avatar()` | Blended values from real neighbouring patients | 
 
 All three take a declaration of what the columns mean. Only the roles of `id`,
-`time`, `dv` and `evid` are required; `synpmx_pca()` and `synpmx_model()` also
-need `nominal_time`, because they place every value on the protocol's grid and
-inferring that grid is a statement about the protocol only you can make.
+`time`, `nominal_time`, `dv`, `evid` are generally required.
 
-Three further modes (**prior**, **calibration**, **empirical**) do not read the
-study that way: they take a public structural model and, in two cases, spend a
-differential-privacy budget to correct it. They cover the case where data
+Three additional functions (`synpmx_prior()`, `synpmx_calibration()`, `synpmx_empirical()`) 
+take a public structural model and either base the data off purely a public model and design
+information about the study, or they differential-privacy budget to correct and use data summaries. 
+These methods cover the case where data
 crosses a trust boundary and formal privacy conditions must be met. Treat them
 as a principled demonstration of the privacy/utility tradeoff rather than as
 production ready — a status enforced in that `synpmx_calibrated()` and
@@ -52,9 +51,7 @@ called once in the session.
 
 ## Generating Synthetic Data
 
-`synpmx_avatar()` is the generator with the fewest requirements — no model, no
-nominal grid, no dependencies beyond base R — which makes it the easiest place
-to start. Every column that is not described is dropped.
+`synpmx_avatar()` is the easiest place to start. Every column that is not described is dropped.
 
 ``` r
 library(synpmx)
@@ -125,8 +122,7 @@ This package needs nothing but base R.
 install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
 ```
 
-While the AVATAR method needs nothing beyond base R. The DP methods 
-additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
+The Data Privacy methods additionally require the official [OpenDP R package](https://docs.opendp.org/en/stable/api/r/):
 
 ``` r
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
@@ -144,19 +140,6 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 | [The PMX Model Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html) and its [demo](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html) | How does the population-model generator work, and what does a run look like? |
 | [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
 | [The synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) | What are the modes, and which one do I want? |
-
-## References
-
-1. Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome the
-   privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark
-   using a daptomycin population pharmacokinetic model.* medRxiv preprint,
-   posted June 2, 2026. doi:
-   [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
-
-2. Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data
-   generation, no reason to risk re-identification in biomedical data analysis.
-   *npj Digital Medicine.* 2023;6.
-   doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
 
 ## License
 
