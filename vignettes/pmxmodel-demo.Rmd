@@ -335,16 +335,9 @@ card <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(card)
 ```
 
-Nothing fails. **B4b reads 0, and it is the row that answers the disclosure
-question for this generator**: no value any patient measured is reproduced. B4a
-asks the same question of the observation times and reads `not applicable`,
-because this generator draws attendance per visit from a per-arm probability
-rather than reusing anybody's visit set — a match would be a coincidence with a
-computable chance rather than a copy.
-
-**Three rows read `not applicable` for a different reason.** B1a, B1b and C2
-read a run record that `synpmx_avatar()` writes on its output and this generator
-does not, so there is nothing for them to measure. That is a gap in those three
+**Three rows read `not applicable`.** B1a, B1b and C2 read a run record that
+`synpmx_avatar()` writes on its output and this generator does not, so there is
+nothing for them to measure. That is a gap in those three
 checks rather than a property of this dataset.
 
 **Two rows ask to be read.** A5a reports observations per patient falling from
