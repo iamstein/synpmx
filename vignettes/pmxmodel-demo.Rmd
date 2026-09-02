@@ -183,7 +183,6 @@ passed through the fit.
 
 ```{r generate, eval=run}
 synthetic <- synpmx_model_generate(fit, seed = SEED)
-str(synthetic)
 ```
 
 The generated table is in the source's shape: same columns, same classes, same

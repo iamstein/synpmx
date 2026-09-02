@@ -345,7 +345,9 @@ Everything above, and nothing else, is what the next line reads.
 
 ```{r generate, eval=run}
 synthetic <- synpmx_model_generate(fit, n_subjects = 32, seed = 7)
-str(synthetic)
+c(rows = nrow(synthetic),
+  subjects = length(unique(synthetic$id)),
+  valid = validate_pmx(synthetic, roles)$valid)
 ```
 
 ## Where to go next
