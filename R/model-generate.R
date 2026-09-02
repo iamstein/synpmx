@@ -180,10 +180,25 @@
 # the minimum at -1.4 against a source minimum of 0. Floored rather than
 # redrawn, because redrawing until the value is positive is a truncated
 # distribution nobody declared.
+# The proportional multiplier is lognormal rather than `1 + N(0, cv)`.
+#
+# The two agree while the coefficient of variation is small, and part company
+# exactly where a misfitted structural model puts it. `1 + N(0, cv)` is
+# non-positive with probability `pnorm(-1 / cv)`: 2.3% of draws at a CV of 0.5
+# and 7.7% at 0.7, each of them a concentration clamped to zero and, on a log
+# axis, a profile falling off the bottom of the figure. A CV that high is a
+# statement that the structural model does not describe the data, and it should
+# come out as a wide band rather than as a scatter of zeros.
+#
+# `exp(N(0, sqrt(log(1 + cv^2))))` has the same coefficient of variation and a
+# median of one, so the spread the fit estimated is preserved and no draw ever
+# reaches zero.
 .add_residual_error <- function(value, residual, floor = NULL) {
   out <- switch(
     residual$kind,
-    proportional = value * (1 + stats::rnorm(length(value), 0, residual$cv)),
+    proportional = value * exp(stats::rnorm(
+      length(value), 0, sqrt(log(1 + residual$cv^2))
+    )),
     additive = value + stats::rnorm(length(value), 0, residual$sd),
     value
   )
@@ -305,6 +320,12 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
                                     prob = marginal$probability)]]
       }
       if (!is.finite(value)) next
+      # The floor the study's own smallest reported value implies, where it
+      # declared no censoring column of its own. A value below it is one the
+      # assay could not have returned, so it is reported at the floor rather
+      # than at whatever the residual draw produced.
+      floor_value <- fit$quantification_floor[[endpoint_name]]
+      if (!is.null(floor_value)) value <- max(value, floor_value)
       value <- .snap_endpoint_values(value,
                                      schema$endpoint_specs[[endpoint_name]])
       rows[[length(rows) + 1L]] <- data.frame(

@@ -133,7 +133,8 @@
                               n_source, cells = NULL, pd = list(),
                               covariate_effects = list(), covariates = list(),
                               discrete = list(), design = NULL,
-                              correlations = NULL, censoring = NULL) {
+                              correlations = NULL, censoring = NULL,
+                              quantification_floor = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -189,7 +190,8 @@
     discrete = discrete,
     design = design,
     correlations = correlations,
-    censoring = censoring
+    censoring = censoring,
+    quantification_floor = quantification_floor
   ), class = "pmx_fitted_model")
 }
 
@@ -242,6 +244,7 @@ model_report <- function(fitted_model) {
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
+    quantification_floor = fitted_model$quantification_floor,
     pd = fitted_model$pd,
     arms = fitted_model$arms,
     dosing = fitted_model$dosing,
@@ -290,6 +293,16 @@ print.pmx_model_report <- function(x, ...) {
                       x$censoring$observations, 100 * x$censoring$fraction,
                       x$censoring$limit)[x$censoring$imputed > 0],
               collapse = "; "), "\n")
+  }
+
+  # The floor exists only where the study declared no censoring column, so it
+  # sits beside the assay limit rather than under it: the two never describe
+  # the same endpoint.
+  if (length(x$quantification_floor)) {
+    cat("  not emitted below ",
+        paste(sprintf("%s %.4g", names(x$quantification_floor),
+                      unlist(x$quantification_floor)), collapse = "; "),
+        "(half the smallest value reported)\n")
   }
 
   cat("\nSummarized from the source, not estimated\n")

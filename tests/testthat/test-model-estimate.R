@@ -296,3 +296,24 @@ test_that("the non-compartmental reading stays inside one dose interval", {
   expect_equal(unname(estimates[["cl"]] / estimates[["v"]]), 0.1,
                tolerance = 0.05)
 })
+
+# SIM-061. The floor is half the smallest value the study reported, and only
+# for an endpoint whose values are all positive.
+test_that("the quantification floor is half the smallest reported value", {
+  data <- .oral_study()
+  roles <- .estimate_roles()
+  observed <- data$EVID == 0L & !is.na(data$DV)
+  endpoint <- unique(as.character(data$DVID[observed]))[1L]
+  floor_value <- .model_quantification_floor(data, roles, endpoint)
+  expect_equal(floor_value[[endpoint]],
+               min(data$DV[observed & data$DVID == endpoint]) / 2)
+})
+
+test_that("an endpoint reporting a zero is given no floor", {
+  data <- .oral_study()
+  roles <- .estimate_roles()
+  observed <- which(data$EVID == 0L & !is.na(data$DV))
+  endpoint <- as.character(data$DVID[observed[1L]])
+  data$DV[observed[1L]] <- 0
+  expect_length(.model_quantification_floor(data, roles, endpoint), 0L)
+})

@@ -569,6 +569,37 @@
 # that carries it, so that share is measured here and reported with the fit. A
 # study whose concentrations are 46% below the limit is a study whose fitted
 # parameters are substantially a statement about the draw.
+# The floor below which the generator will not emit a value, per endpoint.
+#
+# A study that declares a censoring column says where its assay stopped, and
+# `.censor_latent()` puts that boundary back at emit. A study that declares none
+# still had an assay, and its smallest reported value is the only evidence of
+# where the limit sat. Without a floor the residual draw can put a synthetic
+# concentration orders of magnitude below anything the study could have
+# measured, which on a log axis is the whole of what makes a figure look wrong.
+#
+# Half the smallest reported value, which is where a below-the-limit value is
+# conventionally substituted, and which cannot sit above anything the study
+# actually reported.
+#
+# Only for an endpoint whose reported values are all positive. An endpoint that
+# records a zero is recording something a floor would contradict, and a PD score
+# with a true zero is the ordinary case of that.
+.model_quantification_floor <- function(source, roles, endpoints) {
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoint <- .endpoint(source, roles)
+  dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  floors <- lapply(endpoints, function(name) {
+    values <- dv[observed & endpoint == name]
+    values <- values[is.finite(values)]
+    if (!length(values) || any(values <= 0)) return(NULL)
+    min(values) / 2
+  })
+  names(floors) <- endpoints
+  floors <- floors[!vapply(floors, is.null, logical(1))]
+  if (!length(floors)) NULL else floors
+}
+
 .model_censoring_summary <- function(source, roles, endpoints) {
   if (is.null(roles$cens)) return(NULL)
   observed <- .observation_rows(source, roles, require_present = TRUE)
@@ -781,7 +812,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     covariates = .covariate_model(source, roles, subject_group),
     discrete = .discrete_model(source, roles, cells, subject_group),
     design = design, correlations = correlations,
-    censoring = .model_censoring_summary(censoring_source, roles, fittable)
+    censoring = .model_censoring_summary(censoring_source, roles, fittable),
+    quantification_floor = .model_quantification_floor(censoring_source, roles,
+                                                       fittable)
   )
 }
 

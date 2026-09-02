@@ -271,3 +271,55 @@ test_that("a discrete endpoint holds up where a visit recorded one level", {
   expect_true(length(drawn) > 0L)
   expect_true(all(drawn %in% c(1, 2, 3)))
 })
+
+# SIM-061. The proportional multiplier is lognormal, so a residual estimated
+# from a misfitted structural model widens the band instead of dropping values
+# onto zero.
+test_that("how often a value reaches zero does not depend on the residual CV", {
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  zero_rate <- function(cv) {
+    fit <- .hand_built_fit(data, roles, cv = cv)
+    fit$quantification_floor <- NULL
+    synthetic <- synpmx_model_generate(fit, n_subjects = 60, seed = 4)
+    dv <- synthetic$DV[synthetic$EVID == 0L & !is.na(synthetic$DV)]
+    mean(dv == 0)
+  }
+  # Whatever reaches zero here is the profile underflowing late in a dose
+  # interval, which the floor is what handles. The residual must not add to it:
+  # under `1 + N(0, cv)` the rate would climb by `pnorm(-1 / cv)`, which is
+  # 7.7 points between these two, and each of those was a value clamped to zero.
+  expect_equal(zero_rate(0.7), zero_rate(0.05), tolerance = 0.005)
+})
+
+test_that("the multiplier keeps the coefficient of variation it was given", {
+  residual <- list(kind = "proportional", cv = 0.6)
+  set.seed(11)
+  drawn <- .add_residual_error(rep(100, 2e5), residual)
+  expect_true(all(drawn > 0))
+  expect_equal(stats::sd(drawn) / mean(drawn), 0.6, tolerance = 0.02)
+  expect_equal(stats::median(drawn), 100, tolerance = 0.02)
+})
+
+# SIM-061. The floor: a study that declared no censoring column still had an
+# assay, and nothing is emitted below half the smallest value it reported.
+test_that("nothing is emitted below the quantification floor", {
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  floor_value <- .model_quantification_floor(data, roles, "cp")
+  fit <- .hand_built_fit(data, roles, cv = 0.5)
+  fit$quantification_floor <- floor_value
+
+  synthetic <- synpmx_model_generate(fit, n_subjects = 60, seed = 4)
+  dv <- synthetic$DV[synthetic$EVID == 0L & !is.na(synthetic$DV)]
+  expect_true(all(dv >= floor_value$cp))
+  expect_false(any(dv == 0))
+})
+
+test_that("a fit carrying no floor still generates", {
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  fit <- .hand_built_fit(data, roles)
+  fit$quantification_floor <- NULL
+  expect_no_error(synpmx_model_generate(fit, n_subjects = 12, seed = 2))
+})
