@@ -40,6 +40,10 @@ numbers are how he refers to them in conversation and O1 is cited from
 - 2026-08-28 — at his instruction, rule 17 and checklist item 11 added, on citing
   prior art, from a trial-simulation handoff document in another repository.
   Nothing else changed.
+- 2026-08-29 — rule 18 and checklist item 12 added, on not describing the
+  revision inside the document. Written on a separate branch that also numbered
+  it 17; it was renumbered on 2026-09-01 when the two branches were merged, and
+  the earlier rule kept the number. Nothing else changed.
 
 ---
 
@@ -124,7 +128,9 @@ documents.
 11. Any method, design or metric the document proposes has its prior art
     named, with what the prior work covers and what is left over
     (rule 17).
-12. The tics above are *searched for*, not read for: crucial, key, worth,
+12. No sentence is addressed to a reader of the previous draft; corrective and
+    additive phrasing is searched for the same way (rule 18).
+13. The tics above are *searched for*, not read for: crucial, key, worth,
     honestly, honest, delve, leverage, robust, seamless, "not just", "it is worth
     noting", "here is why", "the point is", matters, "the difference matters".
 
@@ -336,6 +342,24 @@ follow-up is to ask for more prior art. Rule 6 applies to how it is
 written, so lead with the identification rather than working up to it.
 The failure this prevents is a reviewer supplying the citation first,
 which costs more than the search would have.
+
+## 18. Do not describe the revision inside the document
+
+Written into a section after he asked for all three axes where it had covered
+one: "Three axes, not one." The corrective half is addressed to a reader who
+saw the previous draft, and no such reader exists. Every reader meets the
+document in its current state, so a revision leaves no trace of what it
+replaced: name the three axes and stop.
+
+The tells are corrective and additive constructions — `not one`, `not just`,
+`rather than only`, `now also`, `expanded to include`, `in addition to the
+originally stated` — and headings built on them. A section added on request is
+the same case: it reads as though it had always been there, with no sentence
+marking it as new or accounting for its arrival.
+
+The account of what changed belongs in the commit message and in the reply to
+him. Rule 16 already makes the repair silent; this makes the addition silent
+too.
 
 ---
 
