@@ -50,7 +50,7 @@
 # it before the deviations were applied, and that measurement is the better one.
 #
 # So a table with no such record -- another method's output, or this one's read
-# back from a CSV -- gets the row marked `unavailable` rather than dropped. A
+# back from a CSV -- gets the row marked `not applicable` rather than dropped. A
 # card holding sixteen rows on one table and nineteen on another cannot be
 # compared, and "not measured" is a different statement from "passed". `result`
 # and `ok` are evaluated only when the record exists.
@@ -68,7 +68,7 @@
   if (is.null(settings)) {
     return(.scorecard_row(check, question, "run settings",
                           "no run record", explore,
-                          verdict = "unavailable"))
+                          verdict = "not applicable"))
   }
   .scorecard_row(check, question, "run settings", result, explore, ok)
 }
@@ -240,7 +240,7 @@
 #' Everything measured from the two tables is measurable on any synthetic
 #' dataset, whatever produced it, so a table carrying no `"pmx_settings"`
 #' attribute is scored rather than refused: the three `"run settings"` rows
-#' (B1a, B1b, C2) come back with the verdict `"unavailable"` and the rest of
+#' (B1a, B1b, C2) come back with the verdict `"not applicable"` and the rest of
 #' the card is computed as usual. That covers another method's output, and this
 #' package's own output read back from a file.
 #'
@@ -267,8 +267,10 @@
 #' interactively in an IDE shows the console form, since nothing is knitting.
 #'
 #' A `"review"` verdict is not a soft `"pass"`. It marks a row where no
-#' threshold would be honest, and it has to be read. Nor is `"unavailable"`:
-#' it marks a row nothing was measured for.
+#' threshold would be honest, and it has to be read. Nor is
+#' `"not applicable"`: it marks a row that was not asked of this table, either
+#' because the run record it reads is absent or because the generator it asks
+#' about is not the one that made the data.
 #'
 #' # Every card holds every row
 #'
@@ -309,7 +311,7 @@
 #' @param source Source PMX data.
 #' @param synthetic Generated synthetic PMX data. From [synpmx_avatar()] it
 #'   carries a `"pmx_settings"` attribute and the whole card can be filled in;
-#'   without one, the three rows that need it read `"unavailable"`.
+#'   without one, the three rows that need it read `"not applicable"`.
 #' @param roles Explicit roles from [pmx_roles()].
 #' @param proximity An already-computed [compare_pmx_proximity()] result, to
 #'   save recomputing it. Left `NULL` it is computed here, which is the slowest
@@ -753,19 +755,19 @@ print.synpmx_scorecard <- function(x, ...) {
   }
 
   failed <- sum(plain$verdict == "FAIL")
-  # "unavailable" and "not applicable" are both unanswered, and for a reader
-  # counting rows that is the thing that matters. They differ in why: one row
-  # could not be answered on this table, the other asks nothing of this
-  # generator.
-  unavailable <- sum(plain$verdict %in% c("unavailable", "not applicable"))
+  # One verdict for every unanswered row, whatever the reason it was not asked:
+  # a card that said `unavailable` for a missing run record and `not
+  # applicable` for a check this generator does not face invited the reader to
+  # find a distinction where the count is the thing that matters.
+  unanswered <- sum(plain$verdict == "not applicable")
   cat("\n", if (failed) paste0(failed, " FAIL, ") else "no failures, ",
       sum(plain$verdict == "review"), " to review",
       # Said in the count line, not only in the rows: three rows quietly not
       # answered is the kind of thing a reader takes for three rows passed.
-      if (unavailable) paste0(", ", unavailable, " unanswered") else "", ".\n",
+      if (unanswered) paste0(", ", unanswered, " unanswered") else "", ".\n",
       "`run settings` rows come from the run's own record, ",
       "`attr(synthetic, \"pmx_settings\")`",
-      if (unavailable) ", which this table does not carry" else "", ".\n",
+      if (unanswered) ", which this table does not carry" else "", ".\n",
       "Rows reading `source` or `both` are restricted output.\n", sep = "")
   invisible(x)
 }
@@ -798,21 +800,20 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 # at this size, and the card is read, not glanced at. Grey says "nothing was
 # measured here", which is a quieter statement than either.
 .scorecard_verdict_colours <- c(FAIL = "#B00020", review = "#B45309",
-                                unavailable = "#6C757D",
                                 `not applicable` = "#6C757D")
 
 # The tints behind those two. Pale enough that the bold text on top stays the
 # thing being read -- both clear 7:1 against their own foreground -- and pale
 # enough that five tinted cells on a thirty-row card look like marks rather
-# than like a warning banner. `"unavailable"` gets none: it is deliberately the
-# quiet verdict, and a tint would put it back alongside the loud two.
+# than like a warning banner. `"not applicable"` gets none: it is deliberately
+# the quiet verdict, and a tint would put it back alongside the loud two.
 .scorecard_verdict_fills <- c(FAIL = "#FDECEA", review = "#FFF4E5")
 
 #' A scorecard as a coloured HTML table
 #'
 #' Displays a [synpmx_scorecard()] as an interactive table with the verdicts
 #' coloured: `"FAIL"` in bold red on a light red, `"review"` in bold orange on
-#' a light orange, `"unavailable"` and `"not applicable"` in muted grey, and
+#' a light orange, `"not applicable"` in muted grey, and
 #' `"pass"` left as ordinary text. A card is five verdicts among thirty-odd rows of prose, and the rows
 #' that need reading are the ones that have to be findable without reading all
 #' of it.
@@ -875,7 +876,7 @@ synpmx_scorecard_datatable <- function(x, ...) {
     table, "verdict",
     color = DT::styleEqual(verdicts, unname(.scorecard_verdict_colours),
                            default = "inherit"),
-    # `"unavailable"` is not bold. It marks a row nothing was measured for,
+    # `"not applicable"` is not bold. It marks a row nothing was measured for,
     # which is worth seeing but is not a finding to act on, and bolding it
     # would put it alongside the rows that are.
     fontWeight = DT::styleEqual(c("FAIL", "review"), c("bold", "bold"),

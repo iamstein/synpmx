@@ -298,7 +298,7 @@ test_that("a table with no run record is scored, not refused", {
 
   recorded <- c("B1a", "B1b", "C2")
   expect_identical(card$verdict[card$check %in% recorded],
-                   rep("unavailable", length(recorded)))
+                   rep("not applicable", length(recorded)))
   expect_identical(card$result[card$check %in% recorded],
                    rep("no run record", length(recorded)))
   # Same rows in the same order, and every other verdict unchanged: a card that
@@ -306,7 +306,7 @@ test_that("a table with no run record is scored, not refused", {
   expect_identical(card$check, full$check)
   expect_identical(card$verdict[!card$check %in% recorded],
                    full$verdict[!full$check %in% recorded])
-  # `unavailable` is not `pass`: the count line has to say so.
+  # `not applicable` is not `pass`: the count line has to say so.
   expect_output(print(card), "3 unanswered")
 })
 
@@ -404,12 +404,12 @@ test_that("the datatable colours every verdict the card can carry", {
   skip_if_not_installed("DT")
   source <- pmx_simulated_fixture(30)
   roles <- sc_roles()
-  # Settings stripped, so the card carries "unavailable" rows as well.
+  # Settings stripped, so the card carries "not applicable" rows as well.
   synthetic <- sc_synthetic(source, roles)
   attr(synthetic, "pmx_settings") <- NULL
   card <- synpmx_scorecard(source, synthetic, roles)
 
-  expect_true(any(card$verdict == "unavailable"))
+  expect_true(any(card$verdict == "not applicable"))
   expect_true(all(setdiff(unique(card$verdict), "pass") %in%
                     names(.scorecard_verdict_colours)))
 
