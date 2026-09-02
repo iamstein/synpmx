@@ -24,10 +24,16 @@ guesses:
   the first dose and rising with dose. Without one there is nothing to
   put a structural model on.
 
-Five studies clear all three. `theo_md` clears the first and third and
-is shown below the floor on purpose. `nimoData` and `pheno_sd` are
-refused, for different reasons, and the refusals are the most useful
-thing in this article if your own study looks like either.
+Five studies clear all three unaided. The other three run once something
+is declared, and what each has to declare is the useful part: `theo_md`
+needs its subject floor lifted, `nimoData` needs both that and its
+concentration named, and `pheno_sd` needs its concentration named — and
+then fits on a “grid” that is really one clock reading per patient,
+which is the case to read before declaring a grid your study does not
+have.
+
+All eight run below. Every refusal is shown before the declaration that
+lifts it, because the refusal is what you will meet first.
 
 Every fit below reads patient data once, through
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md).
@@ -509,13 +515,12 @@ output copies anybody or changed the study’s shape, and a twelve-subject
 fit does neither. The floor exists because nothing downstream of it can
 tell.
 
-## nimoData: refused twice
+## nimoData: the endpoint has to be named
 
 12 subjects, ten roughly weekly infusions, with dose times recorded as
 actuals. The grid construction is the one the AVATAR and PCA surveys
-work out, reused unchanged — and the study is still refused, first for
-its cohort size and then, with the floor lowered, for a second reason
-worth reading.
+work out, reused unchanged. The study is refused twice before it runs —
+first for its cohort size, and then for a reason worth reading.
 
 ``` r
 
@@ -540,20 +545,73 @@ synpmx_model_estimate(nimoData, nimo_roles, seed = 1, min_subjects = 12L)
 ```
 
 Every subject in `nimoData` receives the same dose, so there are no dose
-levels to compare and nothing in the table says that this endpoint
-scales with dose. The detection fails closed rather than assuming:
-`endpoint_roles = c(pk = "DV")` names the concentration by hand where
-you know it is one, and the refusal is the generator declining to make
-that statement on your behalf.
+levels to compare and nothing in the table says this endpoint scales
+with dose. The detection fails closed rather than assuming, and the
+refusal is the generator declining to make that statement on your
+behalf.
 
-## pheno_sd: no grid and no dose-proportional endpoint
+`DV` here *is* a concentration, and saying so is a statement about the
+assay that only the reader can make. With that declaration and the floor
+lowered, the study fits in about four seconds.
+
+``` r
+
+nimo_fit <- synpmx_model_estimate(nimoData, nimo_roles, seed = 1,
+                                  min_subjects = 12L,
+                                  endpoint_roles = c(pk = "DV"))
+```
+
+``` r
+
+nimo_run <- model_run("nimoData", nimoData, nimo_roles, "nimo-model-fit.rds",
+                      seed = 606)
+nimo_run$fit
+#> A fitted PMX model, from synpmx_model_estimate()
+#> 
+#>   fitted on    12 patients, 1 arm(s)
+#>   structural   1cmt_infusion (chosen from 1 candidate(s) on AIC) 
+#>   fixed        cl 0.1886, v 52.71 
+#>   random on    cl, v 
+#>   pk endpoint  DV 
+#> 
+#>   These parameters are not estimates to report. They exist to make
+#>   simulated profiles resemble the source study; the candidate set is too
+#>   small and the covariate model too thin for any of them to answer a
+#>   scientific question.
+```
+
+    #> Warning in transformation$transform(x): NaNs produced
+    #> Warning in ggplot2::scale_y_log10(): log-10 transformation
+    #> introduced infinite values.
+    #> Warning in transformation$transform(x): NaNs produced
+    #> Warning in ggplot2::scale_y_log10(): log-10 transformation
+    #> introduced infinite values.
+    #> Warning: Removed 1 row containing missing values or values outside the scale range
+    #> (`geom_line()`).
+    #> Warning: Removed 1 row containing missing values or values outside the scale range
+    #> (`geom_point()`).
+
+![](pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png)
+
+``` r
+
+synpmx_scorecard_datatable(nimo_run$card)
+```
+
+Nothing fails, and D1 at 2.1 times the source’s spread is the one row to
+read — the widest of the eight, and what twelve subjects buy: a
+covariance matrix estimated from twelve people, drawn from freely,
+produces profiles more spread out than the twelve it came from. The
+subject floor exists for this, and `nimoData` is the study that shows
+what lifting it costs.
+
+## pheno_sd: it fits, and the output is empty
 
 59 neonates on phenobarbital in routine care, with individualised dosing
-and sparse irregular sampling. There is no protocol grid because there
-was no protocol, which refuses this study for
-[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
-too, and the concentration test fails for the same reason it fails on
-`nimoData`.
+and sparse irregular sampling: 155 observations at 118 distinct times.
+The concentration test fails here for the same reason it fails on
+`nimoData` — the doses are individualised rather than assigned, so
+nothing reads as dose-proportional.
 
 ``` r
 
@@ -562,19 +620,81 @@ pheno_sd <- as.data.frame(pheno_sd)
 pheno_sd$NTIME <- pheno_sd$TIME     # a declaration this study cannot support
 pheno_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
-  evid = "EVID", cmt = "CMT", covariates = "WT"
+  evid = "EVID", mdv = "MDV", covariates = c("WT", "APGR")
 )
 synpmx_model_estimate(pheno_sd, pheno_roles, seed = 1)
 #> Error:
 #> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests. Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.
 ```
 
+Name the endpoint and it fits, in about 25 seconds. **Nothing in the
+generator’s own requirements stops this study — and the output is still
+not usable.** What breaks it is the line above that sets `NTIME` to
+`TIME`.
+
+``` r
+
+pheno_run <- model_run("pheno_sd", pheno_sd, pheno_roles,
+                       "pheno-model-fit.rds", seed = 707)
+pheno_run$fit
+#> A fitted PMX model, from synpmx_model_estimate()
+#> 
+#>   fitted on    59 patients, 1 arm(s)
+#>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
+#>   fixed        cl 0.7077, v 8.259, ka 1.158 
+#>   random on    cl, v, ka 
+#>   pk endpoint  DV 
+#> 
+#>   These parameters are not estimates to report. They exist to make
+#>   simulated profiles resemble the source study; the candidate set is too
+#>   small and the covariate model too thin for any of them to answer a
+#>   scientific question.
+```
+
+``` r
+
+c(observations = sum(pheno_sd$EVID == 0),
+  distinct_times = length(unique(pheno_sd$TIME[pheno_sd$EVID == 0])),
+  patients = length(unique(pheno_sd$ID)),
+  grid_cells = nrow(pheno_run$fit$cells))
+#>   observations distinct_times       patients     grid_cells 
+#>            155            118             59              5
+```
+
+118 distinct recorded times become **5 grid cells**. A cell has to be
+reached by enough patients to be a visit rather than one baby’s
+afternoon, and one clock reading per patient clears that almost nowhere.
+The visit model then has five places to put an observation, so the
+generated study has 0.43 observations per patient against the source’s
+2.63 — the scorecard reads it as A5a, with A4 at 59 -\> 53 patients and
+D1 at 0.12 of the source’s spread.
+
+![](pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png)
+
+``` r
+
+synpmx_scorecard_datatable(pheno_run$card)
+```
+
+Nothing fails, because nothing here is a copy of anybody and the output
+is a legal dataset in the source’s shape — it is simply nearly empty.
+Five rows read `review` and together they say so, which is the scorecard
+working as intended: the rows that judge fidelity have no pass mark
+because no threshold on them would be honest, and a reader who skips
+them sees a card with no failures.
+
+This is the study to read before declaring a nominal grid your protocol
+does not have.
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+refuses the declaration outright; this generator accepts it and hands
+back what it implies.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-is the generator for this study, and the [AVATAR
+is the generator for this study — its derived grid does real work here —
+and the [AVATAR
 evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs it.
 
-## What the six runs held
+## What the eight runs held
 
 ``` r
 
@@ -608,6 +728,8 @@ knitr::kable(inventory, row.names = FALSE,
 | wbcSim | 45 | 1cmt_infusion | cl 0.0124, v 20.4 | proportional 0.347 |
 | mavoglurant | 120 | 1cmt_infusion | cl 0.035, v 0.209 | proportional 0.721 |
 | theo_md | 12 | 1cmt_oral | cl 2.88, v 31.6, ka 1.33 | additive 1.02 |
+| nimoData | 12 | 1cmt_infusion | cl 0.189, v 52.7 | additive 1.46 |
+| pheno_sd | 59 | 1cmt_oral | cl 0.708, v 8.26, ka 1.16 | proportional 0.213 |
 
 What each fit carries out of its study. {.table}
 
@@ -624,7 +746,7 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the six runs.")
+             caption = "Scorecard verdicts across the eight runs.")
 ```
 
 | Dataset     | pass | review | FAIL | not applicable | Failing |
@@ -635,17 +757,19 @@ knitr::kable(verdicts, row.names = FALSE,
 | wbcSim      |   10 |      4 |    0 |              4 |         |
 | mavoglurant |   10 |      4 |    0 |              4 |         |
 | theo_md     |   13 |      1 |    0 |              4 |         |
+| nimoData    |   13 |      1 |    0 |              4 |         |
+| pheno_sd    |    9 |      5 |    0 |              4 |         |
 
-Scorecard verdicts across the six runs. {.table}
+Scorecard verdicts across the eight runs. {.table}
 
-No card fails on any of the six. Four rows on each read `not applicable`
-for the reasons given under `case1_pkpd`, and the rows that ask to be
-read are `A5a`, `A5b` and `D1` — how many observations and occasions
-each patient kept, and how far a spread moved.
+No card fails on any of the eight. Four rows on each read
+`not applicable` for the reasons given under `case1_pkpd`, and the rows
+that ask to be read are `A5a`, `A5b` and `D1` — how many observations
+and occasions each patient kept, and how far a spread moved.
 
 ## What is preserved, and what is not
 
-Preserved on all six: the schema and event grammar, the cohort and arm
+Preserved on all eight: the schema and event grammar, the cohort and arm
 sizes, the nominal grid the study declared, one dose schedule per arm,
 the covariate marginals, and the guarantee B4b measures — no value any
 patient measured is reproduced.
@@ -668,6 +792,13 @@ Not preserved, with the study that shows each:
 - **Any endpoint that is not a concentration.** `wbcSim` is the worked
   case, and the one to read before trusting this generator on a response
   variable.
+- **Anything a thin grid cannot hold.** `pheno_sd` is the worked case:
+  118 recorded times become 5 grid cells and 2.63 observations per
+  patient become 0.43. The generator will accept a declared grid that
+  describes nothing, and the fidelity rows are where that shows.
+- **Spread, at the floor.** `nimoData` and `theo_md` are both twelve
+  subjects, and D1 reads 2.1 and 0.97 — the first is a covariance matrix
+  drawn from more freely than the cohort it came from.
 
 ## Where to go next
 
