@@ -438,6 +438,68 @@
 # happens to resemble the average subject's response. A dataset whose point is
 # the exposure-response relationship is not served by this generator, and this
 # is where that is true.
+# Start values for the exponential PD shape, tried in order.
+#
+# The first set is the one this function always used: the median of the late
+# half as the plateau and of the early half as the baseline. It works on a
+# monotone response and fails on one that falls and then recovers, because the
+# two medians land close together and the rate has nothing to fit. The rest
+# split the time range into thirds, which separates the two ends of a V, and
+# offer three time constants across the range.
+.pd_exponential_starts <- function(time, value) {
+  span <- max(time) - min(time)
+  if (!is.finite(span) || span <= 0) span <- 1
+  midpoint <- stats::median(time)
+  thirds <- stats::quantile(time, c(1 / 3, 2 / 3), names = FALSE, na.rm = TRUE)
+  early <- stats::median(value[time <= thirds[1L]])
+  late <- stats::median(value[time >= thirds[2L]])
+  starts <- list(list(plateau = stats::median(value[time > midpoint]),
+                      baseline = stats::median(value[time <= midpoint]),
+                      rate = 1 / max(midpoint, 1e-6)))
+  for (fraction in c(4, 10, 2)) {
+    starts[[length(starts) + 1L]] <- list(plateau = late, baseline = early,
+                                          rate = log(2) / (span / fraction))
+  }
+  Filter(function(start) all(vapply(start, is.finite, logical(1))), starts)
+}
+
+# The first line of a condition, for a table cell.
+.trimmed_condition <- function(x) {
+  text <- conditionMessage(attr(x, "condition"))
+  sub("\n.*$", "", trimws(text))
+}
+
+# Each subject's own baseline under the chosen shape, and what is left over.
+#
+# `.pd_profile()` is linear in `baseline`: evaluating it at 0 and at 1 gives the
+# intercept and the per-point derivative, so a subject's baseline is
+# `sum((y - intercept) * derivative) / sum(derivative^2)` and no optimizer is
+# needed. A subject whose derivative is zero everywhere carries no information
+# about the baseline and keeps the typical one.
+.pd_subject_baselines <- function(pd, typical, time, value, subject) {
+  shape <- list(pd = pd)
+  at <- function(b) .pd_profile(shape, time, numeric(), numeric(),
+                                replace(typical, "baseline", b))
+  intercept <- at(0)
+  derivative <- at(1) - intercept
+
+  baseline <- rep(NA_real_, length(unique(subject)))
+  names(baseline) <- unique(subject)
+  residual <- numeric(length(value))
+  for (id in names(baseline)) {
+    rows <- which(subject == id)
+    denominator <- sum(derivative[rows]^2)
+    own <- if (denominator > 0) {
+      sum((value[rows] - intercept[rows]) * derivative[rows]) / denominator
+    } else {
+      typical[["baseline"]]
+    }
+    baseline[[id]] <- own
+    residual[rows] <- value[rows] - (intercept[rows] + own * derivative[rows])
+  }
+  list(baseline = unname(baseline), residual = residual)
+}
+
 .model_fit_pd <- function(observations, endpoint, shapes = NULL) {
   rows <- observations[observations$endpoint == endpoint &
                          is.finite(observations$dv) &
@@ -450,6 +512,7 @@
   value <- rows$dv
 
   candidates <- list()
+  failed <- list()
   constant <- stats::lm(value ~ 1)
   candidates$constant <- list(pd = "constant",
                               typical = c(baseline = unname(stats::coef(constant)[1L])),
@@ -462,17 +525,30 @@
                 slope = unname(coefficients[2L])),
     aic = stats::AIC(linear)
   )
-  exponential <- try(stats::nls(
-    value ~ plateau + (baseline - plateau) * exp(-rate * pmax(time, 0)),
-    start = list(plateau = stats::median(value[time > stats::median(time)]),
-                 baseline = stats::median(value[time <= stats::median(time)]),
-                 rate = 1 / max(stats::median(time), 1e-6))
-  ), silent = TRUE)
-  if (!inherits(exponential, "try-error")) {
+  # Several start sets rather than one. The single median-based set fails on any
+  # response that falls and then recovers, which is the shape a turnover
+  # endpoint has, and the failure was silent: the candidate simply vanished from
+  # the table and a flat line won on AIC against two other flat lines.
+  exponential <- NULL
+  note <- ""
+  for (start in .pd_exponential_starts(time, value)) {
+    attempt <- try(stats::nls(
+      value ~ plateau + (baseline - plateau) * exp(-rate * pmax(time, 0)),
+      start = start
+    ), silent = TRUE)
+    if (!inherits(attempt, "try-error")) {
+      exponential <- attempt
+      break
+    }
+    note <- .trimmed_condition(attempt)
+  }
+  if (!is.null(exponential)) {
     candidates$exponential <- list(
       pd = "exponential", typical = stats::coef(exponential),
       aic = stats::AIC(exponential)
     )
+  } else {
+    failed <- list(exponential = note)
   }
   if (!is.null(shapes) && endpoint %in% names(shapes)) {
     chosen <- candidates[[shapes[[endpoint]]]]
@@ -485,26 +561,32 @@
                                            numeric(1)))]]
   }
 
-  # Between-subject variability on the baseline, read from the spread of each
-  # subject's earliest observation. That is what the generator draws on, and it
-  # is a variance rather than any subject's own value.
-  # The earliest observation each subject has, whether or not a dose preceded
-  # it. A placebo arm has no dose records at all, so every one of its rows is
-  # outside any dose interval; asking for the earliest by time after dose
-  # returns nothing and takes the whole fit down with it.
-  first <- vapply(split(rows, rows$subject), function(part) {
-    if (!any(is.finite(part$aligned))) return(NA_real_)
-    part$dv[which.min(replace(part$aligned, !is.finite(part$aligned), Inf))]
-  }, numeric(1))
-  first <- first[is.finite(first) & first > 0]
-  chosen$baseline_cv <- if (length(first) > 1L) stats::sd(log(first)) else 0
-  chosen$residual <- list(kind = "additive",
-                          sd = stats::sd(value - .pd_profile(
-                            list(pd = chosen$pd), time, numeric(), numeric(),
-                            chosen$typical)))
+  # Between-subject variability and residual error, both read around each
+  # subject's own curve rather than around the population one.
+  #
+  # Taking the residual as the spread of every point about the typical curve
+  # puts all of the between-subject variation into it, and generation then emits
+  # that as independent noise per observation. On a study where subjects share a
+  # shape but sit at different levels, almost the whole of the structure comes
+  # back as scatter and no synthetic subject has a profile at all. Splitting the
+  # two is what makes the generated profiles profiles.
+  #
+  # The split is exact because `.pd_profile()` is linear in `baseline` for every
+  # shape, so a subject's own baseline is a least-squares projection and needs
+  # no second optimizer. `generation` varies `baseline` and nothing else, so
+  # this is the same quantity the generator draws.
+  levels <- .pd_subject_baselines(chosen$pd, chosen$typical, time, value,
+                                  rows$subject)
+  positive <- levels$baseline[is.finite(levels$baseline) &
+                                levels$baseline > 0]
+  chosen$baseline_cv <- if (length(positive) > 1L) stats::sd(log(positive)) else 0
+  chosen$residual <- list(kind = "additive", sd = stats::sd(levels$residual))
   chosen$candidates <- data.frame(
-    shape = names(candidates),
-    aic = vapply(candidates, function(c) c$aic, numeric(1)),
+    shape = c(names(candidates), names(failed)),
+    converged = c(rep(TRUE, length(candidates)), rep(FALSE, length(failed))),
+    aic = c(vapply(candidates, function(c) c$aic, numeric(1)),
+            rep(NA_real_, length(failed))),
+    note = c(rep("", length(candidates)), unlist(failed) %||% character()),
     row.names = NULL, stringsAsFactors = FALSE
   )
   chosen

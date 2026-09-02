@@ -323,3 +323,26 @@ test_that("a fit carrying no floor still generates", {
   fit$quantification_floor <- NULL
   expect_no_error(synpmx_model_generate(fit, n_subjects = 12, seed = 2))
 })
+
+# SIM-061. A floor doing this to much of a dataset is hiding a bad fit, so it
+# says what it caught rather than quietly raising the values.
+test_that("a floor catching a large share of the output warns", {
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  fit <- .hand_built_fit(data, roles, cv = 0.5)
+  fit$quantification_floor <- .model_quantification_floor(data, roles, "cp")
+  expect_warning(synthetic <- synpmx_model_generate(fit, n_subjects = 40,
+                                                    seed = 4),
+                 "fell below the smallest value")
+  caught <- attr(synthetic, "pmx_floored")
+  expect_true(caught[["raised"]] > 0 && caught[["raised"]] <= caught[["seen"]])
+})
+
+test_that("a fit with no floor records nothing and warns about nothing", {
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  fit <- .hand_built_fit(data, roles)
+  fit$quantification_floor <- NULL
+  synthetic <- synpmx_model_generate(fit, n_subjects = 12, seed = 2)
+  expect_null(attr(synthetic, "pmx_floored"))
+})

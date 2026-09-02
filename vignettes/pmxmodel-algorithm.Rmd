@@ -340,6 +340,26 @@ Every remaining continuous endpoint is fitted against a constant, a linear and
 an exponential time course and selected on AIC, with between-subject variability
 on the baseline.
 
+**The between-subject spread and the residual are read around each subject's
+own curve, not around the population one.** Taking the residual as the spread of
+every point about the typical curve puts all of the between-subject variation
+into it, and generation then emits that as independent noise per observation. On
+a study where subjects share a shape and sit at different levels, almost the
+whole of the structure comes back as scatter and no synthetic subject has a
+profile at all. `.pd_profile()` is linear in `baseline` for every shape, so a
+subject's own baseline is a least-squares projection needing no second
+optimizer, and it is the same quantity generation draws: the between-subject
+term is the spread of those baselines on the log scale, and the residual is what
+is left around each subject's own curve.
+
+**A shape that fails to fit stays in the table.** The exponential is tried from
+four start sets rather than one, because the single median-based set fails on
+any response that falls and then recovers, which is the shape a turnover
+endpoint has. Where none of the four converges the candidate is reported with
+`converged` false and the solver's message rather than dropped, so a flat line
+winning on AIC against two other flat lines is visible as that rather than as a
+choice among three.
+
 All three are fitted by least squares rather than through `nlmixr2`, so all
 three together cost no measurable time — they are three-parameter curves on one
 endpoint, the fit is well conditioned, and routing them through a population
@@ -443,6 +463,13 @@ anything below it is reported at it. An endpoint that reports a zero is given no
 floor: a zero is a value a floor would contradict, and a PD score with a true
 zero is the ordinary case of that. `model_report()` carries the floor per
 endpoint.
+
+**A floor that catches a large share of the output is a warning, not a
+repair.** Raising a value is still changing it, and a floor doing that to much
+of a dataset is hiding a fitted model that does not describe the low end of the
+data rather than reproducing an assay. What the floor caught is recorded on the
+generated dataset as the `pmx_floored` attribute, and above one observation in
+twenty the generator says so.
 
 ## Gates
 

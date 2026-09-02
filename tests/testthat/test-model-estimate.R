@@ -317,3 +317,35 @@ test_that("an endpoint reporting a zero is given no floor", {
   data$DV[observed[1L]] <- 0
   expect_length(.model_quantification_floor(data, roles, endpoint), 0L)
 })
+
+# SIM-062. The PD residual is what is left around each subject's own curve, so
+# a study where subjects share a shape at different levels does not come back
+# as scatter.
+test_that("the PD residual excludes between-subject level", {
+  set.seed(4)
+  times <- c(0, 12, 24, 48, 72)
+  observations <- do.call(rbind, lapply(seq_len(24), function(i) {
+    level <- 100 * exp(stats::rnorm(1, 0, 0.30))   # a wide spread of levels
+    data.frame(subject = as.character(i), endpoint = "resp", aligned = times,
+               dv = level * exp(-0.02 * times) + stats::rnorm(length(times), 0, 1))
+  }))
+  fit <- .model_fit_pd(observations, "resp")
+  # The level spread belongs to the baseline term, and the residual is the
+  # measurement noise the data was built with rather than the whole spread.
+  expect_gt(fit$baseline_cv, 0.2)
+  expect_lt(fit$residual$sd, 0.25 * stats::sd(observations$dv))
+})
+
+test_that("a PD shape that fails to converge stays in the candidate table", {
+  set.seed(5)
+  times <- c(0, 12, 24, 48, 72)
+  observations <- do.call(rbind, lapply(seq_len(12), function(i) {
+    data.frame(subject = as.character(i), endpoint = "resp", aligned = times,
+               dv = 50 + stats::rnorm(length(times), 0, 0.5))
+  }))
+  fit <- .model_fit_pd(observations, "resp")
+  expect_true(all(c("shape", "converged", "aic", "note") %in%
+                    names(fit$candidates)))
+  expect_setequal(fit$candidates$shape,
+                  c("constant", "linear", "exponential"))
+})

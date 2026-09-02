@@ -252,6 +252,12 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   cells <- fit$cells
 
   assignment <- .assign_arms(fit$arms$arms, fit$arms$sizes, n_subjects)
+  # An environment rather than a counter, because the emit loop below writes to
+  # it from inside two nested `for`s.
+  floored <- new.env(parent = emptyenv())
+  floored$seen <- 0L
+  floored$raised <- 0L
+
   etas <- .draw_random_effects(fit$parameters$omega, n_subjects)
   # Between-subject variability on a PD baseline is its own draw. It is not in
   # the PK covariance matrix, because the PD shapes are fitted separately and a
@@ -325,7 +331,13 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
       # assay could not have returned, so it is reported at the floor rather
       # than at whatever the residual draw produced.
       floor_value <- fit$quantification_floor[[endpoint_name]]
-      if (!is.null(floor_value)) value <- max(value, floor_value)
+      if (!is.null(floor_value)) {
+        floored$seen <- floored$seen + 1L
+        if (value < floor_value) {
+          floored$raised <- floored$raised + 1L
+          value <- floor_value
+        }
+      }
       value <- .snap_endpoint_values(value,
                                      schema$endpoint_specs[[endpoint_name]])
       rows[[length(rows) + 1L]] <- data.frame(
@@ -343,13 +355,14 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     pieces[[i]] <- piece
   }
 
-  .model_emit(pieces, fit, n_subjects, doses, subject_covariates)
+  .model_emit(pieces, fit, n_subjects, doses, subject_covariates, floored)
 }
 
 # The finished table, in the source's shape. Everything here is bookkeeping the
 # schema already decided: which columns exist, what class the identifiers are,
 # which compartment each endpoint sits in, and where the assay limit is.
-.model_emit <- function(pieces, fit, n_subjects, doses, subject_covariates) {
+.model_emit <- function(pieces, fit, n_subjects, doses, subject_covariates,
+                       floored = NULL) {
   roles <- fit$roles
   schema <- fit$schema
   frame <- do.call(rbind, pieces[!vapply(pieces, is.null, logical(1))])
@@ -425,5 +438,23 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   out <- out[order(out[[roles$id]], out[[roles$time]],
                    out[[roles$evid]] == 0L), , drop = FALSE]
   rownames(out) <- NULL
+
+  # The floor keeps a value the assay could not have returned out of the
+  # output. It is not a way of making a bad fit look reasonable, and a floor
+  # that catches a large share of the output is doing exactly that, so the
+  # share is reported rather than left in the figure for someone to notice.
+  if (!is.null(floored) && floored$seen > 0L && floored$raised > 0L) {
+    share <- floored$raised / floored$seen
+    attr(out, "pmx_floored") <- c(raised = floored$raised, seen = floored$seen)
+    if (share > 0.05) {
+      warning(sprintf(
+        paste0("%.0f%% of generated observations (%d of %d) fell below the ",
+               "smallest value the study reported and were raised to half of ",
+               "it. A floor catching this much is a fitted model that does ",
+               "not describe the low end of the data, not an assay limit; ",
+               "read `model_report()` before using this dataset."),
+        100 * share, floored$raised, floored$seen), call. = FALSE)
+    }
+  }
   out
 }
