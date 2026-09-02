@@ -322,3 +322,120 @@ test_that("an arm with no dose records does not take the PD fit down", {
   expect_true(all(is.finite(placebo$aligned)))
   expect_s3_class(.model_fit_pd(obs, "pd")$candidates, "data.frame")
 })
+
+# Compressing a repeated schedule to ADDL/II. Pure data preparation, so these
+# run without a fitter.
+
+# `doses` doses `interval` apart, with `drift` added to each dose time so that
+# a study recording actuals can be built, and one sample per interval at
+# `after` hours past the dose it follows.
+.repeated_study <- function(n = 6, doses = 5, interval = 24, drift = 0,
+                            after = c(1, 23.5), amount = 100) {
+  pieces <- lapply(seq_len(n), function(subject) {
+    set.seed(subject)
+    given <- (seq_len(doses) - 1L) * interval +
+      c(0, stats::runif(doses - 1L, -drift, drift))
+    samples <- as.numeric(outer(after, given, "+"))
+    rbind(
+      data.frame(ID = subject, TIME = given, DV = NA_real_, AMT = amount,
+                 EVID = 1L),
+      data.frame(ID = subject, TIME = samples, DV = 5 + subject / 10,
+                 AMT = 0, EVID = 0L)
+    )
+  })
+  out <- do.call(rbind, pieces)
+  out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
+}
+
+# Time after the dose each sample follows, computed the way a solver reads the
+# table: from the expanded schedule where one is written as ADDL/II.
+.time_after_dose <- function(data) {
+  unlist(lapply(split(data, data$ID), function(part) {
+    doses <- part[part$EVID != 0L, , drop = FALSE]
+    observations <- part[part$EVID == 0L, , drop = FALSE]
+    times <- if (!is.null(part$ADDL) && any(doses$ADDL > 0)) {
+      doses$TIME[[1L]] + doses$II[[1L]] * (0:doses$ADDL[[1L]])
+    } else {
+      doses$TIME
+    }
+    observations$TIME - times[pmax(findInterval(observations$TIME, times), 1L)]
+  }), use.names = FALSE)
+}
+
+test_that("a regular schedule is written as one record plus ADDL and II", {
+  data <- .repeated_study(n = 6, doses = 5)
+  compressed <- .compress_dose_schedule(data)
+
+  expect_equal(sum(compressed$EVID != 0L), 6L)       # one dose row per subject
+  expect_equal(sum(compressed$EVID == 0L), sum(data$EVID == 0L))
+  expect_true(all(compressed$ADDL[compressed$EVID != 0L] == 4L))
+  expect_true(all(compressed$II[compressed$EVID != 0L] == 24))
+  # Nothing drifted, so the samples are where they were.
+  expect_equal(.time_after_dose(compressed), .time_after_dose(data))
+})
+
+test_that("dose times recorded as actuals are left alone by default", {
+  # A study recording actuals has no two intervals the same, and compressing it
+  # means redrawing the clock. The default refuses: `case1_pkpd` compressed
+  # that way saved a third of the run time and moved the fit.
+  data <- .repeated_study(n = 6, doses = 5, drift = 0.4)
+  compressed <- .compress_dose_schedule(data)
+
+  expect_equal(sum(compressed$EVID != 0L), sum(data$EVID != 0L))
+  expect_false("ADDL" %in% names(compressed))
+})
+
+test_that("a tolerance regularises the clock without moving a sample's TAD", {
+  data <- .repeated_study(n = 6, doses = 5, drift = 0.4)
+  compressed <- .compress_dose_schedule(data, tolerance = 0.05)
+
+  expect_equal(sum(compressed$EVID != 0L), 6L)
+  # Each sample keeps the interval between it and the dose it followed, to
+  # within the clamp that stops a late trough crossing the next nominal dose.
+  expect_equal(.time_after_dose(compressed), .time_after_dose(data),
+               tolerance = 1e-6)
+})
+
+test_that("a trough drawn before a late dose stays a trough", {
+  # One subject, whose second dose ran 0.5 h late, sampled 0.2 h after that
+  # dose was due. On the regular grid that sample sits past the nominal dose,
+  # and carrying its offset unchanged would report a near-peak sample as the
+  # interval's trough.
+  data <- rbind(
+    data.frame(ID = 1L, TIME = c(0, 24.5, 48, 72), DV = NA_real_, AMT = 100,
+               EVID = 1L),
+    data.frame(ID = 1L, TIME = 24.2, DV = 3, AMT = 0, EVID = 0L)
+  )
+  data <- data[order(data$TIME, data$EVID == 0L), , drop = FALSE]
+  compressed <- .compress_dose_schedule(data, tolerance = 0.05)
+
+  expect_true(all(compressed$ADDL[compressed$EVID != 0L] == 3L))
+  # Held at the end of its own interval rather than carried past the next dose.
+  expect_lt(compressed$TIME[compressed$EVID == 0L], 24)
+  expect_gt(compressed$TIME[compressed$EVID == 0L], 23.9)
+})
+
+test_that("a schedule carrying information is left alone", {
+  # Three studies whose dosing is the thing a reader would analyse: a dose
+  # reduction, a skipped cycle, and a study with too few doses to compress.
+  reduced <- .repeated_study(n = 4, doses = 5)
+  reduced$AMT[reduced$EVID != 0L & reduced$TIME >= 72] <- 50
+  skipped <- .repeated_study(n = 4, doses = 5)
+  skipped <- skipped[!(skipped$EVID != 0L & skipped$TIME == 48), , drop = FALSE]
+  short <- .repeated_study(n = 4, doses = 2)
+
+  for (data in list(reduced, skipped, short)) {
+    compressed <- .compress_dose_schedule(data)
+    expect_equal(sum(compressed$EVID != 0L), sum(data$EVID != 0L))
+    expect_false("ADDL" %in% names(compressed))
+  }
+})
+
+test_that("the wait is announced before it happens", {
+  data <- .repeated_study(n = 6, doses = 5)
+  compressed <- .compress_dose_schedule(data)
+  expect_match(.dose_record_message(data, compressed),
+               "30 dose records compressed to 6")
+  # Nothing compressed and nothing much to wait for: no message at all.
+  expect_null(.dose_record_message(data, data))
+})

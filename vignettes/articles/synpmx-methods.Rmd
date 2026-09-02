@@ -548,7 +548,7 @@ ggplot2::ggplot(
 ```
 
 The table is the quickest read. The three data-reading modes land on the
-source's concentrations — medians of 5.98, 5.95 and 5.21 against 5.74, and
+source's concentrations — medians of 6.01, 5.95 and 5.21 against 5.74, and
 tenth and ninetieth percentiles within a few tenths — while the three
 public-model modes do not: 3.16, 4.05 and 4.43. That gap is the whole subject
 of this article.

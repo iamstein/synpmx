@@ -239,6 +239,106 @@
   out
 }
 
+# Repeated dosing, written as one record plus `ADDL`/`II`.
+#
+# `nlmixr2` sums a contribution per dose per subject at every likelihood
+# evaluation, so a twelve-week daily regimen costs two orders of magnitude more
+# per subject than a single dose: `case1_pkpd` hands the solver 12,750 dose
+# records for 3,600 observations. `ADDL`/`II` says "and 84 more like it, every
+# 24 hours", which is the representation the solver is fastest on.
+#
+# The catch, and the reason this is not a plain row-collapse. Real studies
+# record actual dose times -- 0, 24.22, 48.28 -- and `ADDL` can only place
+# doses on an exact interval, so the schedule has to be regularised first.
+# Regularising the doses alone would move every sample's time after dose by
+# whatever that dose had drifted, and with an absorption peak an hour after the
+# dose that is the part of the profile the fit is reading. So the observations
+# move with their own dose: each sample keeps the exact interval between it and
+# the dose it followed, and only the absolute clock is redrawn. What is
+# approximated is the spacing of the OLDER doses, whose contribution at that
+# sample has been decaying for at least one interval.
+#
+# A subject is compressed only where the schedule is genuinely regular: the
+# same amount (and infusion rate) throughout, at least three doses, and every
+# interval within `tolerance` of the median. A dose reduction, a skipped cycle
+# or an early stop fails all three tests and is left alone -- which is the
+# behaviour that matters, since those are the studies whose dosing carries the
+# information.
+#
+# `tolerance` is 0 by default, which is to say the schedule has to be exactly
+# regular already and no sample moves at all. Measured on `case1_pkpd`
+# 2026-09-02, whose doses drift by up to 0.4 h: allowing the drift compresses
+# 12,750 dose records to 150 and the fit still takes 485 s against 647 s -- a
+# factor of 1.3, because the solver's cost there is not only the dose count --
+# while landing on a different and much worse optimum (`cl` 28.4 against 8.17,
+# AIC 742,777 against -8,633). The transformation is not what moved it: solving
+# both tables at one set of parameters agrees to 0.6% sample for sample, and
+# `theo_md`, whose doses are exactly 24 h apart, compresses 84 records to 12
+# and returns the same fit to four significant digits. A study whose dosing is
+# already on a grid gets the win for free; one that records actuals is left
+# alone rather than have its fit moved for a third off the run time.
+.compress_dose_schedule <- function(data, tolerance = 0) {
+  pieces <- lapply(split(data, factor(data$ID, levels = unique(data$ID))),
+                   function(part) {
+    doses <- part[part$EVID != 0L, , drop = FALSE]
+    if (nrow(doses) < 3L || length(unique(doses$AMT)) != 1L) return(part)
+    if (!is.null(part$RATE) && length(unique(doses$RATE)) != 1L) return(part)
+    gaps <- diff(doses$TIME)
+    interval <- stats::median(gaps)
+    if (!is.finite(interval) || interval <= 0) return(part)
+    if (max(abs(gaps - interval)) > tolerance * interval) return(part)
+
+    nominal <- doses$TIME[[1L]] + interval * (seq_len(nrow(doses)) - 1L)
+    observations <- part[part$EVID == 0L, , drop = FALSE]
+    # The dose each sample followed, or the first dose for a baseline sample
+    # taken before any dosing: its offset is negative and carried as such.
+    after <- pmax(findInterval(observations$TIME, doses$TIME), 1L)
+    offset <- observations$TIME - doses$TIME[after]
+    # A trough drawn just before a dose that ran late is more than one interval
+    # after the dose it belongs to, and placing it at that offset on the
+    # regular grid would carry it past the next nominal dose -- turning the
+    # lowest sample of an interval into a near-peak one. It is held at the end
+    # of its own interval instead, which is where the protocol put it.
+    offset <- pmin(offset, interval * (1 - 1e-6))
+    observations$TIME <- nominal[after] + offset
+
+    first <- doses[1L, , drop = FALSE]
+    first$ADDL <- nrow(doses) - 1L
+    first$II <- interval
+    observations$ADDL <- 0L
+    observations$II <- 0
+    rows <- rbind(first, observations)
+    rows[order(rows$TIME, rows$EVID == 0L), , drop = FALSE]
+  })
+  out <- do.call(rbind, pieces)
+  # A study where nothing compressed keeps the columns off the data entirely,
+  # so that the fitted dataset is the one this function was handed.
+  if (!"ADDL" %in% names(out)) return(out)
+  out$ADDL[is.na(out$ADDL)] <- 0L
+  out$II[is.na(out$II)] <- 0
+  rownames(out) <- NULL
+  out
+}
+
+# What the compression did, as one line before a fit that may take minutes.
+# `synpmx_model_estimate()` knows the dose-record count before it fits, and a
+# user who is told "12,750 dose records" understands the wait; a user who is
+# told nothing suspects a hang.
+.dose_record_message <- function(before, after) {
+  doses_before <- sum(before$EVID != 0L)
+  doses_after <- sum(after$EVID != 0L)
+  if (doses_after < doses_before) {
+    return(paste0(doses_before, " dose records compressed to ", doses_after,
+                  " with `ADDL`/`II`, keeping each sample's time after dose."))
+  }
+  if (doses_before < 1000L) return(NULL)
+  paste0(doses_before, " dose records, and every likelihood evaluation sums a ",
+         "contribution per dose: expect minutes rather than seconds. The ",
+         "schedule is not exactly regular -- it varies in amount, or in ",
+         "interval, or its dose times are recorded actuals -- so it cannot be ",
+         "written as one record plus `ADDL`/`II`.")
+}
+
 # The search. Every candidate is fitted, the ones that converge are compared on
 # AIC, and the ones that do not stay in the table carrying their reason -- a
 # search that came down to one survivor should not look like a search that had
@@ -619,7 +719,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   arm_models <- .arm_models(planned, roles, cells, subject_group,
                             min_arm_patients)
 
-  estimation_data <- .model_estimation_data(source, roles, classified$pk)
+  recorded_data <- .model_estimation_data(source, roles, classified$pk)
+  estimation_data <- .compress_dose_schedule(recorded_data)
   values <- estimation_data$DV[!is.na(estimation_data$DV)]
   error <- if (any(values <= 0)) "add" else "prop"
 
@@ -632,6 +733,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   if (is.null(with_weight)) weight <- NULL else estimation_data <- with_weight
 
   if (!quiet) {
+    note <- .dose_record_message(recorded_data, estimation_data)
+    if (!is.null(note)) message(note)
     message("Fitting ", length(design$candidates), " model(s) for `",
             classified$pk, "` (", design$route, ")",
             if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
