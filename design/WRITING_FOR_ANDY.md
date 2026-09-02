@@ -37,6 +37,9 @@ numbers are how he refers to them in conversation and O1 is cited from
   documents get rows beside their AVATAR counterparts. Two names in the Part 3
   standing caveat and in rule O17 renamed with them. No rule, observation or
   judgement changed.
+- 2026-08-28 — at his instruction, rule 17 and checklist item 11 added, on citing
+  prior art, from a trial-simulation handoff document in another repository.
+  Nothing else changed.
 
 ---
 
@@ -118,7 +121,10 @@ documents.
    number such as a default or a property of the formula stays (rule 14).
 10. A survey ends with a ranked entry path (O9), and repeated things hold the
     same shape in the same order (O17).
-11. The tics above are *searched for*, not read for: crucial, key, worth,
+11. Any method, design or metric the document proposes has its prior art
+    named, with what the prior work covers and what is left over
+    (rule 17).
+12. The tics above are *searched for*, not read for: crucial, key, worth,
     honestly, honest, delve, leverage, robust, seamless, "not just", "it is worth
     noting", "here is why", "the point is", matters, "the difference matters".
 
@@ -309,6 +315,27 @@ of the middle of a clause. Repair the broken sentence and the mistyped word on
 the next pass over that file, silently. Never reinstate what he removed, never
 reflow the paragraph around it (rule 8), and do not read the debris as license
 to rewrite the passage he has just rewritten.
+
+## 17. Name the prior art for anything the document proposes
+
+His instruction, 2026-08-28, on a handoff specification for a trial
+simulation: *"you should always cite prior art and that instructions
+should be added"* to this file. The specification proposed three trial
+designs and cited no methodological precedent for any of them. Two of
+the three were a published design from 1997.
+
+Before a document proposes a method, a design or a metric, establish
+whether it already has a name and a literature, and say so in the
+document. Give the citation, state which part of the proposal the prior
+work covers, and state what is left over that is new. Where a related
+literature is deliberately not used, say that once with the reason.
+
+This is the actionable form of O3: he treats being shown that he has
+reinvented something as useful rather than as criticism, and his
+follow-up is to ask for more prior art. Rule 6 applies to how it is
+written, so lead with the identification rather than working up to it.
+The failure this prevents is a reviewer supplying the citation first,
+which costs more than the search would have.
 
 ---
 
