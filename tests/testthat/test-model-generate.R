@@ -239,3 +239,35 @@ test_that("the generated dataset carries its fitted model", {
   expect_s3_class(attr(synthetic, "pmx_fitted_model"), "pmx_fitted_model")
   expect_identical(attr(synthetic, "pmx_source"), "model")
 })
+
+test_that("a discrete endpoint holds up where a visit recorded one level", {
+  # `sample(x, 1)` reads a length-one numeric `x` as `seq_len(x)`, so a visit
+  # every patient recorded the same level at asked for a draw from that
+  # level's own value and failed with "incorrect number of probabilities".
+  # `xgxr::mad` is the study that found it; the fixture below is the smallest
+  # reproduction. SIM-059.
+  data <- .cycle_fixture(n = 12)
+  observations <- data[data$EVID == 0L, , drop = FALSE]
+  severity <- observations
+  severity$DVID <- "severity"
+  severity$CMT <- 3L
+  # A three-level scale over the study, but every patient records 3 at the
+  # first visit -- so that one cell's marginal holds a single level whose
+  # value is larger than one, which is a draw from `seq_len(3)` under the old
+  # code.
+  severity$DV <- 1 + (severity$ID %% 3L)
+  severity$DV[severity$NTIME == min(severity$NTIME)] <- 3
+  data <- rbind(data, severity)
+  data$DVID <- factor(data$DVID)
+  data <- data[order(data$ID, data$TIME, data$EVID == 0L), , drop = FALSE]
+  rownames(data) <- NULL
+
+  roles <- .generate_roles()
+  fit <- .hand_built_fit(data, roles)
+  expect_true("severity" %in% fit$endpoints$discrete)
+
+  synthetic <- synpmx_model_generate(fit, n_subjects = 12, seed = 7)
+  drawn <- synthetic$DV[synthetic$DVID == "severity" & synthetic$EVID == 0L]
+  expect_true(length(drawn) > 0L)
+  expect_true(all(drawn %in% c(1, 2, 3)))
+})

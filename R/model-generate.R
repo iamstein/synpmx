@@ -99,8 +99,12 @@
       spec$kind,
       lognormal = exp(stats::rnorm(n, spec$meanlog, spec$sdlog)),
       normal = stats::rnorm(n, spec$mean, spec$sd),
-      categorical = sample(spec$levels, n, replace = TRUE,
-                           prob = spec$probability),
+      # Indexed rather than sampled by value: `sample(x, n)` on a length-one
+      # numeric `x` samples `seq_len(x)` instead of `x`, so a covariate whose
+      # source held one level would draw from that level's own value.
+      categorical = spec$levels[sample.int(length(spec$levels), n,
+                                           replace = TRUE,
+                                           prob = spec$probability)],
       rep(NA, n)
     )
   })
@@ -294,7 +298,11 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
       } else {
         marginal <- fit$discrete[[arm]][[index]]
         if (is.null(marginal)) next
-        sample(marginal$levels, 1L, prob = marginal$probability)
+        # Indexed for the same reason as the covariate draw above: a visit
+        # every patient recorded the same level at holds one level, and
+        # `sample()` would read that level as a count of levels.
+        marginal$levels[[sample.int(length(marginal$levels), 1L,
+                                    prob = marginal$probability)]]
       }
       if (!is.finite(value)) next
       value <- .snap_endpoint_values(value,
