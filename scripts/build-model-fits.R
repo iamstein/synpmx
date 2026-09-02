@@ -84,9 +84,11 @@ saveRDS(case1_fit, "inst/extdata/case1-pkpd-model-fit.rds", version = 2)
 message("wrote inst/extdata/case1-pkpd-model-fit.rds")
 print(model_report(case1_fit))
 
-# The public-data survey. One fit per study it can run on; `nimoData` and
-# `pheno_sd` are refused by the generator and the article shows the refusals
-# rather than storing anything for them.
+# The public-data survey. One fit per study, including the three that need
+# something declared before they will run: `theo_md` and `nimoData` are below
+# the subject floor, and `nimoData` and `pheno_sd` dose every patient the same
+# way, so nothing in either reads as dose-proportional and the concentration is
+# named by hand. The article shows each refusal before the declaration.
 snap_to_grid <- snap_to
 
 mad <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
@@ -122,3 +124,34 @@ mavo_roles <- pmx_roles(
 saveRDS(synpmx_model_estimate(mavoglurant, mavo_roles, seed = 1),
         "inst/extdata/mavoglurant-model-fit.rds", version = 2)
 message("wrote inst/extdata/mavoglurant-model-fit.rds")
+
+nimoData <- as.data.frame(nlmixr2data::nimoData)
+nimo_interval <- 168
+last_occasion <- ave(nimoData$OCC, nimoData$ID, FUN = max)
+nominal_tad <- round(nimoData$TAD / 24) * 24
+pre_dose <- nimoData$EVID == 0 & nominal_tad >= nimo_interval &
+  nimoData$OCC < last_occasion
+nominal_tad[pre_dose] <- nimo_interval - 1
+nimoData$NTIME <- (nimoData$OCC - 1) * nimo_interval +
+  ifelse(nimoData$EVID == 0, nominal_tad, 0)
+nimo_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", rate = "RATE", mdv = "MDV", tad = "TAD", occasion = "OCC",
+  covariates = c("BSA", "AGE", "HGT"), keep = "DOS"
+)
+saveRDS(synpmx_model_estimate(nimoData, nimo_roles, seed = 1,
+                              min_subjects = 12L,
+                              endpoint_roles = c(pk = "DV")),
+        "inst/extdata/nimo-model-fit.rds", version = 2)
+message("wrote inst/extdata/nimo-model-fit.rds")
+
+pheno_sd <- as.data.frame(nlmixr2data::pheno_sd)
+pheno_sd$NTIME <- pheno_sd$TIME
+pheno_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", mdv = "MDV", covariates = c("WT", "APGR")
+)
+saveRDS(synpmx_model_estimate(pheno_sd, pheno_roles, seed = 1,
+                              endpoint_roles = c(pk = "DV")),
+        "inst/extdata/pheno-model-fit.rds", version = 2)
+message("wrote inst/extdata/pheno-model-fit.rds")
