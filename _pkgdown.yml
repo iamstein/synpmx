@@ -62,6 +62,8 @@ navbar:
         href: articles/pmxmodel-demo.html
       - text: Algorithm
         href: articles/pmxmodel-algorithm.html
+      - text: Evaluation on public data
+        href: articles/pmxmodel-public-data-examples.html
       - text: -------
       - text: Study fingerprint
         href: articles/pmxmodel-fingerprint.html

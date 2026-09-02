@@ -354,10 +354,10 @@ defect in the commit that adds the code rather than a follow-up.
   the out-of-scope statement is now about what the data is for. It still
   describes two generators, and gains a clause naming this one when the code
   lands.
-- `vignettes/articles/synpmx-methods.Rmd` introduces four modes and adds `synpmx_pca()`
-  as a fifth in a paragraph. A sixth arriving the same way makes the document a
-  list of exceptions, so the mode inventory needs restructuring rather than
-  another paragraph.
+- `vignettes/articles/synpmx-methods.Rmd` now runs all six modes on `theo_md`,
+  numbered by how much of the study each carries out: model, PCA, AVATAR,
+  prior, calibration, empirical. Done on 2026-09-02; the restructuring this
+  entry asked for is the six-way comparison at the end of that article.
 - `_pkgdown.yml` needs the new functions and documents.
 
 New documents, following the shape the AVATAR and PCA sets hold:
