@@ -90,6 +90,25 @@
 # overstates clearance by the same. Volume is clearance over the terminal slope,
 # which is the quantity the terminal phase actually identifies -- dose over the
 # peak, the previous answer, is not a volume of any kind for an oral dose.
+# Clearance and volume from single samples, for a design that cannot be read
+# non-compartmentally. `given` is how much drug the subject had received by the
+# time the sample was drawn and `first_dose_at` when their first dose went in,
+# both on recorded times.
+.model_crude_estimates <- function(rows) {
+  empty <- list(cl = NA_real_, v = NA_real_)
+  if (!nrow(rows) || is.null(rows$given)) return(empty)
+  usable <- rows[is.finite(rows$dv) & rows$dv > 0 &
+                   is.finite(rows$given) & rows$given > 0, , drop = FALSE]
+  if (!nrow(usable)) return(empty)
+  volume <- stats::median(usable$given / usable$dv)
+  elapsed <- usable$time - usable$first_dose_at
+  at_rate <- is.finite(elapsed) & elapsed > 0
+  clearance <- if (any(at_rate)) {
+    stats::median(usable$given[at_rate] / elapsed[at_rate] / usable$dv[at_rate])
+  } else NA_real_
+  list(cl = clearance, v = volume)
+}
+
 .model_initial_estimates <- function(observations, structural, pk_endpoint) {
   rows <- observations[observations$endpoint == pk_endpoint, , drop = FALSE]
   by_subject <- split(rows, rows$subject)
@@ -118,9 +137,26 @@
   tmax <- middle("tmax")
   lambda_z <- middle("lambda_z")
 
-  cl <- if (is.finite(auc) && auc > 0) dose / auc else 1
+  # A study with fewer than three samples inside any one dose interval has no
+  # non-compartmental reading at all, and what used to stand in for one was a
+  # constant: clearance 1 and volume ten. `pheno_sd` is the study that shows
+  # what that costs -- one concentration per neonate per interval, so `focei`
+  # starts a phenobarbital fit two orders of magnitude from the answer and lands
+  # somewhere that generates a cohort at the assay floor.
+  #
+  # Two textbook identities need one sample each and are read here instead.
+  # Amount given over concentration is a volume of distribution. Dose rate over
+  # average concentration is clearance -- exactly so at steady state, and an
+  # overestimate before it, which is the same caveat the interval area carries
+  # above. Both are medians over the cohort's observations, and both are only
+  # consulted where the non-compartmental quantity is missing.
+  crude <- .model_crude_estimates(rows)
+
+  cl <- if (is.finite(auc) && auc > 0) dose / auc else
+    if (is.finite(crude$cl) && crude$cl > 0) crude$cl else 1
   volume_terminal <- if (is.finite(lambda_z) && lambda_z > 0) cl / lambda_z else
-    if (is.finite(cmax) && cmax > 0) dose / cmax else 10 * cl
+    if (is.finite(cmax) && cmax > 0) dose / cmax else
+      if (is.finite(crude$v) && crude$v > 0) crude$v else 10 * cl
   ka <- .model_ka_from_tmax(tmax, if (is.finite(lambda_z)) lambda_z else
     cl / volume_terminal)
 
@@ -660,22 +696,47 @@
 # concentration orders of magnitude below anything the study could have
 # measured, which on a log axis is the whole of what makes a figure look wrong.
 #
-# Half the smallest reported value, which is where a below-the-limit value is
-# conventionally substituted, and which cannot sit above anything the study
-# actually reported.
+# Half the smallest positive value reported, which is where a below-the-limit
+# value is conventionally substituted, and which cannot sit above anything the
+# study actually reported.
 #
-# Only for an endpoint whose reported values are all positive. An endpoint that
-# records a zero is recording something a floor would contradict, and a PD score
-# with a true zero is the ordinary case of that.
+# Only for an endpoint that lives on a positive scale, because an endpoint
+# recording a zero is recording something a floor would contradict and a PD
+# score with a true zero is the ordinary case of that. What decides that is the
+# *share* of non-positive values rather than whether any exists: a concentration
+# assay reports a reading near its limit as a small negative number now and
+# again, and one such row in three hundred is noise around the limit rather than
+# a statement that this endpoint reaches zero. An endpoint whose scale really
+# includes zero says so in many rows, not one.
+.model_nonpositive_tolerance <- 0.05
+
+.model_assay_floor <- function(values) {
+  values <- values[is.finite(values)]
+  if (!length(values)) return(NULL)
+  if (mean(values <= 0) >= .model_nonpositive_tolerance) return(NULL)
+  positive <- values[values > 0]
+  if (!length(positive)) return(NULL)
+  min(positive) / 2
+}
+
+# The floor exists only where the study declared no limit of its own for that
+# endpoint. Where it declared one, `.censor_latent()` puts the real boundary
+# back at emit and a second floor underneath it would be counted and warned
+# about while changing nothing. A `cens` column is per-endpoint evidence, not
+# per-study: `case1_pkpd` declares one and sets it on the concentration only, so
+# its PD endpoint is a study that declared no limit and does get a floor.
 .model_quantification_floor <- function(source, roles, endpoints) {
   observed <- .observation_rows(source, roles, require_present = TRUE)
   endpoint <- .endpoint(source, roles)
   dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  censored <- if (is.null(roles$cens)) rep(FALSE, nrow(source)) else {
+    flag <- suppressWarnings(as.numeric(as.character(source[[roles$cens]])))
+    is.finite(flag) & flag != 0
+  }
   floors <- lapply(endpoints, function(name) {
-    values <- dv[observed & endpoint == name]
-    values <- values[is.finite(values)]
-    if (!length(values) || any(values <= 0)) return(NULL)
-    min(values) / 2
+    at <- observed & endpoint == name
+    if (any(at & censored)) return(NULL)
+    .model_assay_floor(dv[at])
   })
   names(floors) <- endpoints
   floors <- floors[!vapply(floors, is.null, logical(1))]
@@ -834,8 +895,29 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 
   recorded_data <- .model_estimation_data(source, roles, classified$pk)
   estimation_data <- .compress_dose_schedule(recorded_data)
+  # Proportional error unless the concentration lives on a scale that includes
+  # zero. A handful of non-positive readings does not make that scale: they are
+  # what the assay returns near its limit, and treating them as evidence costs
+  # the whole error model. `nimoData` reports one negative concentration in 321,
+  # and reading that one row as "this endpoint reaches zero" fitted an additive
+  # residual of 1.46 to values whose median is 3 -- which then generated a
+  # cohort scattered from zero upward. Below the limit they are substituted at
+  # the same floor the generator will not emit below, which is the LLOQ/2
+  # convention applied to a value the assay reported as if it were a reading.
   values <- estimation_data$DV[!is.na(estimation_data$DV)]
-  error <- if (any(values <= 0)) "add" else "prop"
+  assay_floor <- .model_assay_floor(values)
+  error <- if (is.null(assay_floor)) "add" else "prop"
+  substituted <- if (is.null(assay_floor)) integer(0) else
+    which(!is.na(estimation_data$DV) & estimation_data$DV <= 0)
+  if (length(substituted)) {
+    estimation_data$DV[substituted] <- assay_floor
+    if (!quiet) {
+      message(length(substituted), " of ", length(values), " `",
+              classified$pk, "` observations are not positive and were fitted ",
+              "at ", signif(assay_floor, 4),
+              ", half the smallest positive value the study reports.")
+    }
+  }
 
   # Allometric scaling is folded into the fit rather than compared against one
   # without it, so the default path performs exactly one fit.

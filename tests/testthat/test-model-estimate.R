@@ -297,8 +297,42 @@ test_that("the non-compartmental reading stays inside one dose interval", {
                tolerance = 0.05)
 })
 
+# SIM-065. A design with fewer than three samples in any one dose interval has
+# no non-compartmental reading, and what stood in for one was a constant.
+test_that("starting values come from the data where NCA cannot be read", {
+  cl <- 0.006
+  v <- 1.3
+  dose_times <- c(0, seq(12, 120, by = 12))
+  amounts <- c(25, rep(3.5, length(dose_times) - 1L))
+  n <- 40
+  sample_at <- seq(6, 130, length.out = n)
+  data <- do.call(rbind, lapply(seq_len(n), function(i) {
+    rbind(
+      data.frame(TIME = dose_times, NTIME = dose_times, DV = NA_real_,
+                 AMT = amounts, EVID = 1L, CMT = 1L, DVID = "cp", MDV = 1L,
+                 ID = i),
+      data.frame(TIME = sample_at[i], NTIME = sample_at[i],
+                 DV = .pk_profile(list(pk = "1cmt_iv"), sample_at[i], amounts,
+                                  dose_times, c(cl = cl, v = v)),
+                 AMT = 0, EVID = 0L, CMT = 2L, DVID = "cp", MDV = 0L, ID = i)
+    )
+  }))
+  data$DVID <- factor(data$DVID)
+  roles <- .estimate_roles()
+  observations <- .model_observations(data, roles)
+  # Nobody has three samples in one interval, so every NCA quantity is missing.
+  expect_true(all(is.na(unlist(.model_nca_subject(
+    observations[observations$subject == "1", ])))))
+
+  estimates <- .model_initial_estimates(observations, "1cmt_iv", "cp")
+  # Within a factor of five of the truth, against the constants that stood here
+  # before -- clearance 1 and volume 10, which are 170x and 8x out.
+  expect_lt(abs(log(estimates[["cl"]] / cl)), log(5))
+  expect_lt(abs(log(estimates[["v"]] / v)), log(5))
+})
+
 # SIM-061. The floor is half the smallest value the study reported, and only
-# for an endpoint whose values are all positive.
+# for an endpoint that lives on a positive scale.
 test_that("the quantification floor is half the smallest reported value", {
   data <- .oral_study()
   roles <- .estimate_roles()
@@ -309,12 +343,54 @@ test_that("the quantification floor is half the smallest reported value", {
                min(data$DV[observed & data$DVID == endpoint]) / 2)
 })
 
-test_that("an endpoint reporting a zero is given no floor", {
+# SIM-064. One non-positive reading is what an assay returns near its limit,
+# not a statement that the endpoint reaches zero.
+test_that("a lone non-positive value leaves the floor in place", {
   data <- .oral_study()
   roles <- .estimate_roles()
   observed <- which(data$EVID == 0L & !is.na(data$DV))
   endpoint <- as.character(data$DVID[observed[1L]])
-  data$DV[observed[1L]] <- 0
+  smallest <- min(data$DV[observed])
+  data$DV[observed[1L]] <- -0.01
+  floor_value <- .model_quantification_floor(data, roles, endpoint)
+  expect_equal(floor_value[[endpoint]], smallest / 2)
+})
+
+# The floor sits beside the declared assay limit rather than under it: where
+# the study says where its assay stopped, `.censor_latent()` puts that boundary
+# back and a second floor beneath it would be counted and warned about while
+# changing nothing.
+test_that("an endpoint the study censors is given no floor", {
+  data <- .oral_study()
+  roles <- .estimate_roles(cens = "CENS")
+  observed <- which(data$EVID == 0L & !is.na(data$DV))
+  endpoint <- as.character(data$DVID[observed[1L]])
+  data$CENS <- 0L
+  data$CENS[observed[data$DV[observed] < stats::quantile(data$DV[observed],
+                                                         0.05)]] <- 1L
+  expect_length(.model_quantification_floor(data, roles, endpoint), 0L)
+  # An endpoint the same study leaves uncensored still gets one.
+  data$CENS <- 0L
+  expect_length(.model_quantification_floor(data, roles, endpoint), 1L)
+})
+
+# SIM-064. The same reading decides the residual model: `nimoData` reports one
+# negative concentration in 321, and treating that as evidence that the
+# endpoint reaches zero fitted an additive residual of 1.46 to values whose
+# median is 3.
+test_that("one non-positive reading does not make the scale include zero", {
+  nimo_shaped <- c(-0.2319, seq(0.2647, 10, length.out = 320))
+  expect_equal(.model_assay_floor(nimo_shaped), 0.2647 / 2)
+  # An endpoint whose scale really includes zero says so in many rows.
+  expect_null(.model_assay_floor(c(rep(0, 20), seq(0.3, 10, length.out = 100))))
+})
+
+test_that("an endpoint that routinely reports zero is given no floor", {
+  data <- .oral_study()
+  roles <- .estimate_roles()
+  observed <- which(data$EVID == 0L & !is.na(data$DV))
+  endpoint <- as.character(data$DVID[observed[1L]])
+  data$DV[observed[seq_len(ceiling(0.2 * length(observed)))]] <- 0
   expect_length(.model_quantification_floor(data, roles, endpoint), 0L)
 })
 

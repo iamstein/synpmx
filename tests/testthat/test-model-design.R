@@ -117,6 +117,38 @@ test_that("a study nobody samples early enough offers both routes", {
   expect_match(design$reason, "declines from its first sample")
 })
 
+# SIM-066. A rise in the median profile that no subject's own profile shows is
+# not an absorption phase.
+test_that("a median profile no subject supports offers both routes", {
+  # `pheno_sd`: one concentration per neonate, so the median at each time is
+  # one patient, and whichever of them ran high is the "peak". Reading that as
+  # absorption fitted an oral model with a `ka` to an intravenous bolus.
+  set.seed(9)
+  n <- 24
+  times <- seq(1, 24, length.out = n)
+  data <- do.call(rbind, lapply(seq_len(n), function(i) {
+    rbind(
+      data.frame(TIME = 0, NTIME = 0, DV = 0, AMT = 100, EVID = 1L, CMT = 1L,
+                 DVID = "cp", MDV = 1L, ID = i),
+      data.frame(TIME = times[i], NTIME = times[i],
+                 DV = 10 * exp(-0.05 * times[i]) * exp(stats::rnorm(1, 0, 0.3)),
+                 AMT = 0, EVID = 0L, CMT = 2L, DVID = "cp", MDV = 0L, ID = i)
+    )
+  }))
+  data$DVID <- factor(data$DVID)
+  roles <- .design_roles()
+  obs <- .model_observations(data, roles)
+  profile <- .model_median_profile(obs, "cp", .model_richest_interval(obs))
+  # The fixture only means anything if the median profile does peak late.
+  expect_gt(profile$peak_time, min(profile$time))
+
+  design <- .model_detect_design(data, roles, obs, "cp")
+  expect_identical(design$rising, 0)
+  expect_identical(design$route, "both")
+  expect_setequal(design$candidates, c("1cmt_iv", "1cmt_oral"))
+  expect_match(design$reason, "no subject's own profile rises")
+})
+
 test_that("a biomarker beside a concentration is not mistaken for it", {
   # The biomarker rises from a baseline and stays up: present before the dose,
   # and no rise-and-fall. The concentration is neither.

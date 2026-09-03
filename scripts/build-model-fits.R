@@ -145,8 +145,17 @@ saveRDS(synpmx_model_estimate(nimoData, nimo_roles, seed = 1,
         "inst/extdata/nimo-model-fit.rds", version = 2)
 message("wrote inst/extdata/nimo-model-fit.rds")
 
+# `pheno_sd` has no protocol grid of its own -- routine neonatal care, one
+# clock reading per baby -- so the grid is constructed the way a reader of the
+# study would: doses on the twelve-hour cycle the ward actually gives them on,
+# and observations binned to the day. Declaring `NTIME <- TIME` instead is the
+# case the article works through, and it produces five grid cells.
 pheno_sd <- as.data.frame(nlmixr2data::pheno_sd)
-pheno_sd$NTIME <- pheno_sd$TIME
+pheno_dose_grid <- seq(0, 168, by = 12)
+pheno_sample_grid <- c(2, seq(24, 408, by = 24))
+pheno_sd$NTIME <- ifelse(pheno_sd$EVID == 0,
+                         snap_to_grid(pheno_sd$TIME, pheno_sample_grid),
+                         snap_to_grid(pheno_sd$TIME, pheno_dose_grid))
 pheno_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", mdv = "MDV", covariates = c("WT", "APGR")
@@ -155,3 +164,13 @@ saveRDS(synpmx_model_estimate(pheno_sd, pheno_roles, seed = 1,
                               endpoint_roles = c(pk = "DV")),
         "inst/extdata/pheno-model-fit.rds", version = 2)
 message("wrote inst/extdata/pheno-model-fit.rds")
+
+# The same study with `nominal_time` declared as the recorded clock, which is
+# the declaration the article warns against and the only way to show what it
+# costs without asserting the numbers in prose.
+pheno_flat <- pheno_sd
+pheno_flat$NTIME <- pheno_flat$TIME
+saveRDS(synpmx_model_estimate(pheno_flat, pheno_roles, seed = 1,
+                              endpoint_roles = c(pk = "DV")),
+        "inst/extdata/pheno-flat-model-fit.rds", version = 2)
+message("wrote inst/extdata/pheno-flat-model-fit.rds")

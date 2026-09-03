@@ -59,9 +59,9 @@ Three requirements, each of which refuses rather than guesses:
 Five studies clear all three unaided. The other three run once something is
 declared, and what each has to declare is the useful part: `theo_md` needs its
 subject floor lifted, `nimoData` needs both that and its concentration named,
-and `pheno_sd` needs its concentration named — and then fits on a "grid" that
-is really one clock reading per patient, which is the case to read before
-declaring a grid your study does not have.
+and `pheno_sd` needs its concentration named and a nominal grid built for it,
+because routine care wrote none down — which is the case to read before
+declaring one your study does not have.
 
 All eight run below. Every refusal is shown before the declaration that lifts
 it, because the refusal is what you will meet first.
@@ -288,7 +288,15 @@ kind of reason: every patient gets the same dose, so there are no dose levels
 to compare and the residual error falls back to additive.
 
 Nothing fails; D1 at 1.2 times the source's spread on `cp` is the only row to
-read.
+read. The concentration panel of the figure is the generator at its best on
+this survey — the shape, the spread and the decline all land.
+
+The `pca` panel below it is the generator at its documented limit. The source's
+prothrombin activity falls to a nadir and comes back: median 100, 32, 18, 22,
+35 over the first 12 hours, then to 36, 60, 100 and beyond 100 hours. The
+synthetic reads 91, 31, 28, 29, 30 — it falls and then flattens. The PD shapes
+are constant, linear and exponential fitted to the pooled observations, and
+none of the three can come back up.
 
 ## wbcSim: an infusion and a delayed response
 
@@ -326,12 +334,16 @@ answers yes to both, so a one-compartment infusion model was fitted to a cell
 count. It converged, and the report says `1cmt_infusion` with a clearance of
 0.012 as though that meant something.
 
-The output shows it. A cell count recovers to its baseline between infusions
-and a concentration decays toward zero, so the generated profiles run far below
-the source's — a median of 0 to 3.8 against the source's 3.8 to 10.4 over the
-same window — and the source's nadir at 216 h and its recovery are absent.
-A4 reads 45 -> 37, because eight subjects drew no observations at all, and A5a
-and A5b fall with it.
+The output shows it, and so does the generator. A cell count recovers to its
+baseline between infusions and a concentration decays toward zero, so the
+generated profiles run below the source's — a median of 0.35 to 4.1 against the
+source's 3.8 to 10.4 over the same window — and the source's nadir at 216 h and
+its recovery are absent. **49% of the generated observations landed below the
+smallest value the study reported** and were raised to half of it, which the
+run says out loud: a floor catching half the output is a model that does not
+describe the low end of the data. It draws as the flat band along the bottom of
+the synthetic panel. A4 reads 45 -> 37, because eight subjects drew no
+observations at all, and A5a and A5b fall with it.
 
 Nothing here `FAIL`s, which is the honest report of what the scorecard checks:
 it asks whether the output is a legal dataset in the study's shape and whether
@@ -374,13 +386,36 @@ overlay_plot(mavo_run$source, mavo_run$synthetic, mavo_roles,
 synpmx_scorecard_datatable(mavo_run$card)
 ```
 
-Three rows to read, and they are one finding. A5b reports occasions per patient
-falling from 1.65 to 1, A5a observations per patient from 20.2 to 11.3, and D1
-the concentration's spread at 0.34 of the source's. `mavoglurant` is one- and
-two-period, and the dosing model carries one planned schedule per arm: the
-second period is not in it, so the patients who had one do not get it back.
+Three rows to read, and two findings. A5b reports occasions per patient falling
+from 1.65 to 1 and A5a observations per patient from 20.2 to 11.3:
+`mavoglurant` is one- and two-period, and the dosing model carries one planned
+schedule per arm, so the patients who had a second period do not get it back.
 A study whose periods matter needs them declared as arms, or a generator that
 keeps each patient's own schedule.
+
+The second finding is in the figure rather than the card. The source's profiles
+are a tight declining band and the synthetic ones scatter across it, with a
+line of values along the assay floor: the fit's proportional residual is 0.72,
+which is what a one-compartment model produces on a drug that plainly has a
+distribution phase.
+
+The route detection reads the `rate` role and offers `1cmt_infusion`, and
+**there is no two-compartment infusion model in the closed-form set** —
+`1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral`. The shape is
+still reachable by asking for the intravenous one and giving up the infusion
+duration, which on this study is worth 4,200 AIC:
+
+```{r mavo-2cmt, eval=FALSE}
+synpmx_model_estimate(mavoglurant, mavo_roles, seed = 1,
+                      pk = c("1cmt_infusion", "2cmt_iv"))
+#> 1cmt_infusion  AIC 29105.6
+#> 2cmt_iv        AIC 24870.7
+```
+
+Worth knowing before reaching for it: the better-fitting model does not produce
+a better dataset by the scorecard's reading. D1 moves from 0.41 of the source's
+spread to 0.34, and A5a and A5b do not move at all, because what they measure
+is the visit and dosing models rather than the structural one.
 
 ## theo_md: twelve subjects, which is below the floor
 
@@ -480,7 +515,7 @@ nimo_run <- model_run("nimoData", nimoData, nimo_roles, "nimo-model-fit.rds",
 nimo_run$fit
 ```
 
-```{r nimo-plot, echo=FALSE, eval=plots}
+```{r nimo-plot, echo=FALSE, eval=plots, warning=FALSE}
 overlay_plot(nimo_run$source, nimo_run$synthetic, nimo_roles,
              "nimoData: ten weekly infusions", log_y = TRUE, alpha = 0.4)
 ```
@@ -489,54 +524,86 @@ overlay_plot(nimo_run$source, nimo_run$synthetic, nimo_roles,
 synpmx_scorecard_datatable(nimo_run$card)
 ```
 
-Nothing fails, and D1 at 2.1 times the source's spread is the one row to read —
-the widest of the eight, and what twelve subjects buy: a covariance matrix
-estimated from twelve people, drawn from freely, produces profiles more spread
-out than the twelve it came from. The subject floor exists for this, and
+Nothing fails, and D1 at four times the source's spread is the one row to
+read — the widest of the eight, and what twelve subjects buy: a covariance
+matrix estimated from twelve people, drawn from freely, produces profiles more
+spread out than the twelve it came from. The subject floor exists for this, and
 `nimoData` is the study that shows what lifting it costs.
 
-## pheno_sd: it fits, and the output is empty
+`nimoData` is also the study that shows the other reading the fit has to make.
+It reports **one negative concentration in 321** — what an assay returns for a
+sample near its limit — and a single row is not evidence that this endpoint
+reaches zero. Treating it as evidence would fit an additive residual to values
+whose median is 3, and the generated troughs would land on zero. It is
+substituted at half the smallest positive value the study reports, the fit says
+so as it happens, and the proportional residual stands.
+
+## pheno_sd: the grid has to be built, not declared
 
 59 neonates on phenobarbital in routine care, with individualised dosing and
-sparse irregular sampling: 155 observations at 118 distinct times. The
-concentration test fails here for the same reason it fails on `nimoData` — the
-doses are individualised rather than assigned, so nothing reads as
-dose-proportional.
+sparse irregular sampling: 155 observations at 118 distinct times, about two
+and a half per baby. The concentration test fails here for the same reason it
+fails on `nimoData` — the doses are individualised rather than assigned, so
+nothing reads as dose-proportional.
 
 ```{r pheno, eval=has_nlmixr2data, error=TRUE}
 data("pheno_sd", package = "nlmixr2data")
 pheno_sd <- as.data.frame(pheno_sd)
-pheno_sd$NTIME <- pheno_sd$TIME     # a declaration this study cannot support
+pheno_flat <- pheno_sd
+pheno_flat$NTIME <- pheno_flat$TIME   # a declaration this study cannot support
 pheno_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", mdv = "MDV", covariates = c("WT", "APGR")
 )
-synpmx_model_estimate(pheno_sd, pheno_roles, seed = 1)
+synpmx_model_estimate(pheno_flat, pheno_roles, seed = 1)
 ```
 
-Name the endpoint and it fits, in about 25 seconds. **Nothing in the
-generator's own requirements stops this study — and the output is still not
-usable.** What breaks it is the line above that sets `NTIME` to `TIME`.
+Name the endpoint and it fits. **Nothing in the generator's own requirements
+stops this study — and with `NTIME` set to `TIME` the output is still nearly
+empty.**
+
+```{r pheno-flat, eval=run, message=FALSE}
+pheno_flat_fit <- stored_fit("pheno-flat-model-fit.rds")
+pheno_flat_synthetic <- synpmx_model_generate(pheno_flat_fit, seed = 707)
+c(distinct_times = length(unique(pheno_sd$TIME[pheno_sd$EVID == 0])),
+  grid_cells = nrow(pheno_flat_fit$cells),
+  source_obs_per_patient = round(sum(pheno_sd$EVID == 0) /
+                                   length(unique(pheno_sd$ID)), 2),
+  synthetic_obs_per_patient = round(
+    sum(pheno_flat_synthetic$EVID == 0) /
+      length(unique(pheno_flat_synthetic$ID)), 2))
+```
+
+118 distinct recorded times become a handful of grid cells. A cell has to be
+reached by enough patients to be a visit rather than one baby's afternoon, and
+one clock reading per patient clears that almost nowhere. The visit model then
+has almost no place to put an observation, so what comes back is a legal
+dataset in the source's shape holding almost nothing — and the run says so on
+the way past, because most of what little was drawn landed under the smallest
+concentration the study reports.
+
+### The grid this study does have
+
+The ward gives phenobarbital on a twelve-hour cycle and reads a concentration
+about once a day. Neither is written in the file and both are things a reader
+of the study can say, which is exactly what `nominal_time` is for: the clock is
+what happened, the grid is what was meant to happen. Snapping the dose times to
+twelve hours and the sample times to the day is that statement, and it is two
+lines.
+
+```{r pheno-grid, eval=has_nlmixr2data}
+pheno_sd$NTIME <- ifelse(
+  pheno_sd$EVID == 0,
+  snap_to(pheno_sd$TIME, c(2, seq(24, 408, by = 24))),   # about one a day
+  snap_to(pheno_sd$TIME, seq(0, 168, by = 12))           # the q12h cycle
+)
+```
 
 ```{r pheno-run, eval=run, message=FALSE}
 pheno_run <- model_run("pheno_sd", pheno_sd, pheno_roles,
                        "pheno-model-fit.rds", seed = 707)
 pheno_run$fit
 ```
-
-```{r pheno-grid, eval=run}
-c(observations = sum(pheno_sd$EVID == 0),
-  distinct_times = length(unique(pheno_sd$TIME[pheno_sd$EVID == 0])),
-  patients = length(unique(pheno_sd$ID)),
-  grid_cells = nrow(pheno_run$fit$cells))
-```
-
-118 distinct recorded times become **5 grid cells**. A cell has to be reached
-by enough patients to be a visit rather than one baby's afternoon, and one
-clock reading per patient clears that almost nowhere. The visit model then has
-five places to put an observation, so the generated study has 0.43 observations
-per patient against the source's 2.63 — the scorecard reads it as A5a, with A4
-at 59 -> 53 patients and D1 at 0.12 of the source's spread.
 
 ```{r pheno-plot, echo=FALSE, eval=plots}
 overlay_plot(pheno_run$source, pheno_run$synthetic, pheno_roles,
@@ -547,18 +614,31 @@ overlay_plot(pheno_run$source, pheno_run$synthetic, pheno_roles,
 synpmx_scorecard_datatable(pheno_run$card)
 ```
 
-Nothing fails, because nothing here is a copy of anybody and the output is a
-legal dataset in the source's shape — it is simply nearly empty. Five rows read
-`review` and together they say so, which is the scorecard working as intended:
-the rows that judge fidelity have no pass mark because no threshold on them
-would be honest, and a reader who skips them sees a card with no failures.
+The fixed effects are the same either way, and that is the point worth
+holding on to: estimation reads the recorded clock and the recorded dosing
+history, so the grid never touches it. What the grid decides is the visit
+model, and the visit model is the whole of what the generated study has. With
+somewhere to put an observation, observations per patient come back.
 
-This is the study to read before declaring a nominal grid your protocol does
-not have. `synpmx_pca()` refuses the declaration outright; this generator
-accepts it and hands back what it implies. `synpmx_avatar()` is the generator
-for this study — its derived grid does real work here — and the
+(For the record on the fit itself: clearance near 0.006 L/h and volume near
+1.3 L for a 1.3 kg baby is where the literature puts neonatal phenobarbital,
+which is worth saying only because a study this sparse — one concentration per
+baby per dose interval — has no interval that can be read
+non-compartmentally, and the starting values are read off the cohort's doses
+and concentrations instead.)
+
+What has not moved is the dosing: every baby in `pheno_sd` is dosed to their
+own weight and response, and the dosing model carries one planned schedule per
+arm with a reduction, interruption and discontinuation rate attached. The
+generated babies all follow the ward's cycle rather than their own.
+
+This is still the study to read before declaring a nominal grid, but the
+lesson is the opposite of a refusal: the generator will accept `NTIME <- TIME`
+and hand back what it implies, and the work of using it on a study like this
+is deciding what the protocol would have said. `synpmx_pca()` refuses the
+declaration outright; `synpmx_avatar()` derives a grid instead, and the
 [AVATAR evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
-runs it.
+runs this study that way.
 
 ## What the eight runs held
 
@@ -622,18 +702,21 @@ Not preserved, with the study that shows each:
   response. `case1_pkpd` is the worked case, in the demo.
 - **Per-patient dose schedules, and multiple periods.** One planned schedule
   per arm. `mavoglurant` is the worked case: occasions per patient fall from
-  1.65 to 1.
+  1.65 to 1. `pheno_sd` is the other half of it — every neonate is dosed to
+  their own weight and response, and the generated babies all follow the ward's
+  cycle.
 - **Arm-specific censoring.** One parameter distribution evaluated at each
   arm's dose cannot reproduce six arm-specific fractions below the limit;
   `case1_pkpd`, again in the demo.
 - **Any endpoint that is not a concentration.** `wbcSim` is the worked case,
   and the one to read before trusting this generator on a response variable.
-- **Anything a thin grid cannot hold.** `pheno_sd` is the worked case: 118
-  recorded times become 5 grid cells and 2.63 observations per patient become
-  0.43. The generator will accept a declared grid that describes nothing, and
-  the fidelity rows are where that shows.
+- **Anything the declared grid does not hold.** The visit model can only place
+  an observation where the grid has a cell enough patients reached, so a grid
+  that describes nothing produces a study that holds nothing. `pheno_sd`
+  declared as `NTIME <- TIME` is the worked case, and the fidelity rows are
+  where it shows.
 - **Spread, at the floor.** `nimoData` and `theo_md` are both twelve subjects,
-  and D1 reads 2.1 and 0.97 — the first is a covariance matrix drawn from more
+  and D1 reads 4 and 1.1 — the first is a covariance matrix drawn from more
   freely than the cohort it came from.
 
 ## Where to go next

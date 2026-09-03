@@ -19,22 +19,31 @@
 # study sampled six times looks like a study sampled two hundred. Estimation
 # reads `time` -- a population fit is about the dose that was actually given --
 # and everything here reads `nominal_time`.
-.model_dose_relative <- function(source, roles, time, dosed) {
+.model_dose_relative <- function(source, roles, time, dosed, amount = NULL) {
   id <- as.character(source[[roles$id]])
   interval <- rep(NA_integer_, nrow(source))
   tad <- rep(NA_real_, nrow(source))
   first_time <- rep(NA_real_, nrow(source))
+  given <- rep(NA_real_, nrow(source))
   for (rows in split(seq_len(nrow(source)), id)) {
     dose_at <- rows[dosed[rows] & is.finite(time[rows])]
     if (!length(dose_at)) next
-    dose_time <- sort(time[dose_at])
+    order_by <- order(time[dose_at])
+    dose_time <- time[dose_at][order_by]
     index <- findInterval(time[rows], dose_time)
     interval[rows] <- ifelse(index >= 1L, index, NA_integer_)
     tad[rows] <- ifelse(index >= 1L, time[rows] - dose_time[pmax(index, 1L)],
                         NA_real_)
     first_time[rows] <- dose_time[1L]
+    # How much drug the subject has been given by this point, which is what a
+    # concentration divides into to give a volume.
+    if (!is.null(amount)) {
+      cumulative <- cumsum(ifelse(is.finite(amount[dose_at][order_by]),
+                                  amount[dose_at][order_by], 0))
+      given[rows] <- ifelse(index >= 1L, cumulative[pmax(index, 1L)], NA_real_)
+    }
   }
-  list(interval = interval, tad = tad, first_time = first_time)
+  list(interval = interval, tad = tad, first_time = first_time, given = given)
 }
 
 .model_observations <- function(source, roles) {
@@ -50,7 +59,7 @@
     suppressWarnings(as.numeric(source[[roles$amt]]))
 
   planned <- .model_dose_relative(source, roles, nominal, dosed)
-  actual <- .model_dose_relative(source, roles, time, dosed)
+  actual <- .model_dose_relative(source, roles, time, dosed, amount)
 
   # Study time on the nominal grid, measured from the subject's first dose --
   # the same axis `.model_cells()` places the visit grid on, computed by the
@@ -75,7 +84,9 @@
     aligned = aligned[observed], dv = dv[observed],
     interval = planned$interval[observed], tad = planned$tad[observed],
     actual_tad = actual$tad[observed],
+    given = actual$given[observed],
     first_dose_time = planned$first_time[observed],
+    first_dose_at = actual$first_time[observed],
     first_dose_amt = first_amt[observed],
     stringsAsFactors = FALSE
   )
@@ -372,11 +383,25 @@
     nrow(part) >= 2L && which.max(part$dv) > 1L
   }, logical(1)))
 
+  # A rise in the median profile that no subject's own profile shows is not an
+  # absorption phase. It is what a median over one patient per time looks like,
+  # and `pheno_sd` is the study that shows it: an intravenous bolus whose first
+  # samples sit at 1.0, 1.4 and 2.0 hours in three different neonates reads as a
+  # peak at 1.4 with 0% of subjects rising, and an oral model with an absorption
+  # rate was then fitted to a bolus. Where the cohort does not support the rise,
+  # both routes survive into the candidate set and AIC settles it, which is what
+  # this function does with every other ambiguity.
   if (profile$peak_time > min(profile$time) + 1e-8) {
-    return(list(route = "oral", rising = rising,
+    if (rising > 0) {
+      return(list(route = "oral", rising = rising,
+                  reason = sprintf(
+                    "the median profile rises to a peak at %.4g before declining, and %.0f%% of subjects do too",
+                    profile$peak_time, 100 * rising)))
+    }
+    return(list(route = "both", rising = rising,
                 reason = sprintf(
-                  "the median profile rises to a peak at %.4g before declining, and %.0f%% of subjects do too",
-                  profile$peak_time, 100 * rising)))
+                  "the median profile peaks at %.4g but no subject's own profile rises, so the peak is the median speaking for one patient per time rather than an absorption phase",
+                  profile$peak_time)))
   }
   if (min(profile$time) <= 1e-8) {
     return(list(route = "iv", rising = rising,

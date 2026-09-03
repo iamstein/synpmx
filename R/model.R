@@ -295,9 +295,9 @@ print.pmx_model_report <- function(x, ...) {
               collapse = "; "), "\n")
   }
 
-  # The floor exists only where the study declared no censoring column, so it
-  # sits beside the assay limit rather than under it: the two never describe
-  # the same endpoint.
+  # The floor exists only where the study declared no limit for that endpoint,
+  # so it sits beside the assay limit rather than under it: the two never
+  # describe the same endpoint.
   if (length(x$quantification_floor)) {
     cat("  not emitted below ",
         paste(sprintf("%s %.4g", names(x$quantification_floor),
