@@ -25,7 +25,7 @@ tools, because of the risk of misalignment or unintended agent behavior. Working
 with synthetic data lets those tools be used without exposing them to patient
 data.
 
-## Three ways to build a dataset from a real one
+## Synthetic data generation methods
 
 Three generators read a study and build a synthetic one from it. They are peers
 rather than a default and its alternatives: each carries something different out
@@ -54,7 +54,7 @@ called once in the session.
 5. `synpmx_calibration()` - use data summaries of a few parameters (for smaller trials), and uses a differential-privacy budget to protect privacy.
 6. `synpmx_empirical()`  - use data summaries of many parameters (for larger trials), and uses a differential-privacy budget to protect privacy.
 
-## Generating Synthetic Data
+## Example (with AVATAR)
 
 `synpmx_avatar()` is the easiest place to start. Every column that is not described is dropped.
 
@@ -98,7 +98,7 @@ synthetic <- synpmx_avatar(
 
 ## Installation
 
-`synpmx` is not on CRAN; install it from GitHub, then load it as usual:
+Install `synpmx` from GitHub, then load it as usual:
 
 ``` r
 # install.packages("remotes")
