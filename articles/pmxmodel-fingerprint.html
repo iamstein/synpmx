@@ -182,7 +182,7 @@ needs a compiler.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   fitted on    32 patients, 1 arm(s)</span></span>
 <span><span class="co">#&gt;   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) </span></span>
-<span><span class="co">#&gt;   fixed        cl 0.1361, v 7.802, ka 0.562 </span></span>
+<span><span class="co">#&gt;   fixed        cl 0.1366, v 8.176, ka 0.6119 </span></span>
 <span><span class="co">#&gt;   random on    cl, v, ka </span></span>
 <span><span class="co">#&gt;   pk endpoint  cp </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -202,11 +202,12 @@ separates the two halves because they answer to different things.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1361, v 7.802, ka 0.562 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.252, v 0.14, ka 0.638 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     additive 1.07 </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1366, v 8.176, ka 0.6119 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
-<span><span class="co">#&gt;   pd shapes          pca: linear </span></span>
+<span><span class="co">#&gt;   pd shapes          pca: exponential </span></span>
+<span><span class="co">#&gt;   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
@@ -222,11 +223,11 @@ separates the two halves because they answer to different things.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        age        ka      -0.260</span></span>
-<span><span class="co">#&gt;        sex         v      -0.225</span></span>
-<span><span class="co">#&gt;        age        cl       0.160</span></span>
-<span><span class="co">#&gt;        sex        ka      -0.095</span></span>
-<span><span class="co">#&gt;         wt        cl      -0.078</span></span>
+<span><span class="co">#&gt;        age        ka       -0.29</span></span>
+<span><span class="co">#&gt;        sex         v       -0.21</span></span>
+<span><span class="co">#&gt;        age        cl        0.19</span></span>
+<span><span class="co">#&gt;         wt        ka        0.12</span></span>
+<span><span class="co">#&gt;         wt        cl       -0.10</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -237,13 +238,13 @@ list and the names used are its own, so a quantity can be reached
 directly when no accessor covers it.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "structural"        "candidates"        "parameters"       </span></span>
-<span><span class="co">#&gt;  [4] "endpoints"         "arms"              "dosing"           </span></span>
-<span><span class="co">#&gt;  [7] "visits"            "schema"            "roles"            </span></span>
-<span><span class="co">#&gt; [10] "settings"          "n_source"          "cells"            </span></span>
-<span><span class="co">#&gt; [13] "pd"                "covariate_effects" "covariates"       </span></span>
-<span><span class="co">#&gt; [16] "discrete"          "design"            "correlations"     </span></span>
-<span><span class="co">#&gt; [19] "censoring"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] "structural"           "candidates"           "parameters"          </span></span>
+<span><span class="co">#&gt;  [4] "endpoints"            "arms"                 "dosing"              </span></span>
+<span><span class="co">#&gt;  [7] "visits"               "schema"               "roles"               </span></span>
+<span><span class="co">#&gt; [10] "settings"             "n_source"             "cells"               </span></span>
+<span><span class="co">#&gt; [13] "pd"                   "covariate_effects"    "covariates"          </span></span>
+<span><span class="co">#&gt; [16] "discrete"             "design"               "correlations"        </span></span>
+<span><span class="co">#&gt; [19] "censoring"            "quantification_floor"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
@@ -253,7 +254,7 @@ directly when no accessor covers it.</p>
 <span><span class="co">#&gt;      min_subjects  min_arm_patients     min_time_bins        estimation </span></span>
 <span><span class="co">#&gt;              "20"               "3"               "6"           "focei" </span></span>
 <span><span class="co">#&gt; covariate_effects             error </span></span>
-<span><span class="co">#&gt;            "auto"             "add"</span></span>
+<span><span class="co">#&gt;            "auto"            "prop"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">n_source</span>, arms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; patients     arms </span></span>
 <span><span class="co">#&gt;       32        1</span></span></code></pre></div>
@@ -287,7 +288,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 887.3187</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.9053</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -300,7 +301,7 @@ one.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">fixed</span></span>
 <span><span class="co">#&gt;        cl         v        ka </span></span>
-<span><span class="co">#&gt; 0.1361443 7.8018967 0.5620203</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.1366193 8.1759807 0.6119199</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="between-subject-variability">Between-subject variability<a class="anchor" aria-label="anchor" href="#between-subject-variability"></a>
@@ -310,13 +311,13 @@ a random effect. Generation draws each synthetic subject’s deviations
 from this matrix.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span></span>
-<span><span class="co">#&gt;            cl          v        ka</span></span>
-<span><span class="co">#&gt; cl 0.06375255 0.00000000 0.0000000</span></span>
-<span><span class="co">#&gt; v  0.00000000 0.01971671 0.0000000</span></span>
-<span><span class="co">#&gt; ka 0.00000000 0.00000000 0.4076615</span></span>
+<span><span class="co">#&gt;           cl          v        ka</span></span>
+<span><span class="co">#&gt; cl 0.0592627 0.00000000 0.0000000</span></span>
+<span><span class="co">#&gt; v  0.0000000 0.00753349 0.0000000</span></span>
+<span><span class="co">#&gt; ka 0.0000000 0.00000000 0.4693682</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span><span class="op">)</span>  <span class="co"># as CV on the log scale</span></span>
-<span><span class="co">#&gt;        cl         v        ka </span></span>
-<span><span class="co">#&gt; 0.2524927 0.1404162 0.6384838</span></span></code></pre></div>
+<span><span class="co">#&gt;         cl          v         ka </span></span>
+<span><span class="co">#&gt; 0.24343931 0.08679568 0.68510449</span></span></code></pre></div>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 are per-subject quantities, and an object carrying them would be a
 description of each real patient. They are not here. This matrix is what
@@ -329,10 +330,10 @@ than about anybody in it.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">residual</span></span>
 <span><span class="co">#&gt; $kind</span></span>
-<span><span class="co">#&gt; [1] "additive"</span></span>
+<span><span class="co">#&gt; [1] "proportional"</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $sd</span></span>
-<span><span class="co">#&gt; [1] 1.070306</span></span></code></pre></div>
+<span><span class="co">#&gt; $cv</span></span>
+<span><span class="co">#&gt; [1] 0.2099295</span></span></code></pre></div>
 <p>Additive here rather than proportional, because <code>warfarin</code>
 holds concentrations recorded as zero and a proportional error on zero
 is zero. The substitution is recorded on the object rather than being
@@ -393,7 +394,7 @@ exponents. It is asserted rather than tested —
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>,</span>
 <span>     <span class="st">"Each covariate against the individual random effects"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["age","sex","age","sex","wt","sex","wt","age","wt"],["ka","v","cl","ka","cl","cl","ka","v","v"],[-0.26,-0.225,0.16,-0.09520000000000001,-0.07820000000000001,-0.0484,0.0337,0.0323,-0.0104]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["age","sex","age","wt","wt","sex","wt","sex","age"],["ka","v","cl","ka","cl","ka","v","cl","v"],[-0.294,-0.212,0.192,0.124,-0.101,-0.0712,0.0483,-0.00616,-0.00135]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
 diagnostic rather than a released quantity. A covariate that moves with
 a random effect and is not in the model above is generated
 <strong>independently</strong> of the profiles, so the synthetic data
@@ -411,12 +412,12 @@ the object.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">shape</span><span class="op">$</span><span class="va">typical</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $pca</span></span>
-<span><span class="co">#&gt;    shape baseline    slope </span></span>
-<span><span class="co">#&gt; "linear" "52.235"  "-0.24"</span></span></code></pre></div>
+<span><span class="co">#&gt;         shape       plateau      baseline          rate </span></span>
+<span><span class="co">#&gt; "exponential"      "27.335"      "96.296"       "0.099"</span></span></code></pre></div>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">candidates</span>, <span class="st">"The three shapes, compared on AIC"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>The three shapes, compared on AIC<\/caption>","data":[["constant","linear"],[2170,2140]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>shape<\/th>\n      <th>aic<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":1},{"name":"shape","targets":0},{"name":"aic","targets":1}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>A time course with no exposure term. A PD endpoint driven by
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>The three shapes, compared on AIC<\/caption>","data":[["constant","linear","exponential"],[true,true,true],[2170,2140,1840],["","",""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>shape<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"shape","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"note","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>A time course with no exposure term. A PD endpoint driven by
 concentration is reproduced as a curve that resembles the average
 subject’s response, which is adequate for exercising longitudinal code
 and is not an exposure-response model.</p>

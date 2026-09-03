@@ -446,7 +446,7 @@ function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 887.3187</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.9053</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
@@ -610,11 +610,12 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1361, v 7.802, ka 0.562 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.252, v 0.14, ka 0.638 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     additive 1.07 </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1366, v 8.176, ka 0.6119 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
-<span><span class="co">#&gt;   pd shapes          pca: linear </span></span>
+<span><span class="co">#&gt;   pd shapes          pca: exponential </span></span>
+<span><span class="co">#&gt;   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
@@ -630,11 +631,11 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        age        ka      -0.260</span></span>
-<span><span class="co">#&gt;        sex         v      -0.225</span></span>
-<span><span class="co">#&gt;        age        cl       0.160</span></span>
-<span><span class="co">#&gt;        sex        ka      -0.095</span></span>
-<span><span class="co">#&gt;         wt        cl      -0.078</span></span>
+<span><span class="co">#&gt;        age        ka       -0.29</span></span>
+<span><span class="co">#&gt;        sex         v       -0.21</span></span>
+<span><span class="co">#&gt;        age        cl        0.19</span></span>
+<span><span class="co">#&gt;         wt        ka        0.12</span></span>
+<span><span class="co">#&gt;         wt        cl       -0.10</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>

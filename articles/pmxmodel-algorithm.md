@@ -338,7 +338,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged      aic note
-#> 1 1cmt_oral      TRUE 887.3187
+#> 1 1cmt_oral      TRUE 895.9053
 ```
 
 ### Covariates
@@ -470,11 +470,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 0.1361, v 7.802, ka 0.562 
-#>   between-subject    cl 0.252, v 0.14, ka 0.638 (as SD on the log scale)
-#>   residual error     additive 1.07 
+#>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
+#>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
+#>   residual error     proportional 0.21 
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#>   pd shapes          pca: linear 
+#>   pd shapes          pca: exponential 
+#>   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s)
@@ -490,11 +491,11 @@ model_report(fit)
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>        age        ka      -0.260
-#>        sex         v      -0.225
-#>        age        cl       0.160
-#>        sex        ka      -0.095
-#>         wt        cl      -0.078
+#>        age        ka       -0.29
+#>        sex         v       -0.21
+#>        age        cl        0.19
+#>         wt        ka        0.12
+#>         wt        cl       -0.10
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries

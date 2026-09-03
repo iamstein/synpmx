@@ -79,7 +79,7 @@ fit
 #> 
 #>   fitted on    32 patients, 1 arm(s)
 #>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 0.1361, v 7.802, ka 0.562 
+#>   fixed        cl 0.1366, v 8.176, ka 0.6119 
 #>   random on    cl, v, ka 
 #>   pk endpoint  cp 
 #> 
@@ -102,11 +102,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 0.1361, v 7.802, ka 0.562 
-#>   between-subject    cl 0.252, v 0.14, ka 0.638 (as SD on the log scale)
-#>   residual error     additive 1.07 
+#>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
+#>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
+#>   residual error     proportional 0.21 
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#>   pd shapes          pca: linear 
+#>   pd shapes          pca: exponential 
+#>   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s)
@@ -122,11 +123,11 @@ model_report(fit)
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>        age        ka      -0.260
-#>        sex         v      -0.225
-#>        age        cl       0.160
-#>        sex        ka      -0.095
-#>         wt        cl      -0.078
+#>        age        ka       -0.29
+#>        sex         v       -0.21
+#>        age        cl        0.19
+#>         wt        ka        0.12
+#>         wt        cl       -0.10
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries
@@ -141,13 +142,13 @@ when no accessor covers it.
 ``` r
 
 names(fit)
-#>  [1] "structural"        "candidates"        "parameters"       
-#>  [4] "endpoints"         "arms"              "dosing"           
-#>  [7] "visits"            "schema"            "roles"            
-#> [10] "settings"          "n_source"          "cells"            
-#> [13] "pd"                "covariate_effects" "covariates"       
-#> [16] "discrete"          "design"            "correlations"     
-#> [19] "censoring"
+#>  [1] "structural"           "candidates"           "parameters"          
+#>  [4] "endpoints"            "arms"                 "dosing"              
+#>  [7] "visits"               "schema"               "roles"               
+#> [10] "settings"             "n_source"             "cells"               
+#> [13] "pd"                   "covariate_effects"    "covariates"          
+#> [16] "discrete"             "design"               "correlations"        
+#> [19] "censoring"            "quantification_floor"
 ```
 
 ## The settings that produced it
@@ -158,7 +159,7 @@ unlist(fit$settings)
 #>      min_subjects  min_arm_patients     min_time_bins        estimation 
 #>              "20"               "3"               "6"           "focei" 
 #> covariate_effects             error 
-#>            "auto"             "add"
+#>            "auto"            "prop"
 c(patients = fit$n_source, arms = length(fit$arms$arms))
 #> patients     arms 
 #>       32        1
@@ -197,7 +198,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged      aic note
-#> 1 1cmt_oral      TRUE 887.3187
+#> 1 1cmt_oral      TRUE 895.9053
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.
@@ -211,7 +212,7 @@ look most like a result and are least entitled to be read as one.
 
 model_parameters(fit)$fixed
 #>        cl         v        ka 
-#> 0.1361443 7.8018967 0.5620203
+#> 0.1366193 8.1759807 0.6119199
 ```
 
 ## Between-subject variability
@@ -223,13 +224,13 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>            cl          v        ka
-#> cl 0.06375255 0.00000000 0.0000000
-#> v  0.00000000 0.01971671 0.0000000
-#> ka 0.00000000 0.00000000 0.4076615
+#>           cl          v        ka
+#> cl 0.0592627 0.00000000 0.0000000
+#> v  0.0000000 0.00753349 0.0000000
+#> ka 0.0000000 0.00000000 0.4693682
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
-#>        cl         v        ka 
-#> 0.2524927 0.1404162 0.6384838
+#>         cl          v         ka 
+#> 0.24343931 0.08679568 0.68510449
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
@@ -244,10 +245,10 @@ it.
 
 model_parameters(fit)$residual
 #> $kind
-#> [1] "additive"
+#> [1] "proportional"
 #> 
-#> $sd
-#> [1] 1.070306
+#> $cv
+#> [1] 0.2099295
 ```
 
 Additive here rather than proportional, because `warfarin` holds
@@ -337,8 +338,8 @@ the object.
 
 lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
 #> $pca
-#>    shape baseline    slope 
-#> "linear" "52.235"  "-0.24"
+#>         shape       plateau      baseline          rate 
+#> "exponential"      "27.335"      "96.296"       "0.099"
 ```
 
 ``` r
