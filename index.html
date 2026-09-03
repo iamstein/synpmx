@@ -102,8 +102,8 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="synpmx">synpmx<a class="anchor" aria-label="anchor" href="#synpmx"></a>
 </h1></div>
-<p>📖 <strong>Website and documentation: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></strong></p>
-<p><code>synpmx</code> builds <strong>synthetic pharmacometric datasets</strong> from actual datasets.</p>
+<p><code>synpmx</code> builds synthetic pharmacometric datasets from actual datasets.</p>
+<p>Documentation is available in the navigation bar at the top of the website: <a href="https://iamstein.github.io/synpmx/" class="uri">https://iamstein.github.io/synpmx/</a></p>
 <div class="section level2">
 <h2 id="will-the-synpmx-package-support-your-use-case">Will the <code>synpmx</code> package support your use case?<a class="anchor" aria-label="anchor" href="#will-the-synpmx-package-support-your-use-case"></a>
 </h2>
@@ -115,23 +115,31 @@
 <p>The main use caes of this package is for sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can occur without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
-<h2 id="three-ways-to-build-a-dataset-from-a-real-one">Three ways to build a dataset from a real one<a class="anchor" aria-label="anchor" href="#three-ways-to-build-a-dataset-from-a-real-one"></a>
+<h2 id="synthetic-data-generation-methods">Synthetic data generation methods<a class="anchor" aria-label="anchor" href="#synthetic-data-generation-methods"></a>
 </h2>
 <p>Three generators read a study and build a synthetic one from it. They are peers rather than a default and its alternatives: each carries something different out of the source, and which one suits a given study is still an open question. None offers a formal privacy guarantee.</p>
 <p>Synthetic data based on:</p>
 <ol style="list-style-type: decimal">
 <li>
-<code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits</li>
+<code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fits model to the data, and bases synthetic data off of Fixed effects, a residual error, and a model for dose changes and missed visits</li>
 <li>
-<code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates</li>
+<code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates, with a model for dose changes and missed visits.</li>
 <li>
-<code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> — Blended values from real neighbouring patients</li>
+<code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> — Blended values from real patients</li>
 </ol>
-<p>All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
-<p>Three additional functions (<code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code>, <code>synpmx_calibration()</code>, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>) take a public structural model and either base the data off purely a public model and design information about the study, or they differential-privacy budget to correct and use data summaries. These methods cover the case where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
+<p>All the above algorithms impute assay LOQ. All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
+<p>There are three additional generation algorithms provided that cover the case where data crosses a trust boundary and more formal privacy protections are needed. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
+<ol start="4" style="list-style-type: decimal">
+<li>
+<code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code> - take a public structural model and prespecified design, not using the real data all.</li>
+<li>
+<code>synpmx_calibration()</code> - use data summaries of a few parameters (for smaller trials), and uses a differential-privacy budget to protect privacy.</li>
+<li>
+<code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> - use data summaries of many parameters (for larger trials), and uses a differential-privacy budget to protect privacy.</li>
+</ol>
 </div>
 <div class="section level2">
-<h2 id="generating-synthetic-data">Generating Synthetic Data<a class="anchor" aria-label="anchor" href="#generating-synthetic-data"></a>
+<h2 id="example-with-avatar">Example (with AVATAR)<a class="anchor" aria-label="anchor" href="#example-with-avatar"></a>
 </h2>
 <p><code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> is the easiest place to start. Every column that is not described is dropped.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -174,7 +182,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p><code>synpmx</code> is not on CRAN; install it from GitHub, then load it as usual:</p>
+<p>Install <code>synpmx</code> from GitHub, then load it as usual:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span>
@@ -187,62 +195,6 @@
 <p>The Data Privacy methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="key-documentation">Key Documentation<a class="anchor" aria-label="anchor" href="#key-documentation"></a>
-</h2>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>Document</th>
-<th>Question it answers</th>
-</tr></thead>
-<tbody>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/avatar-demo.html">Demo: one dataset, end to end</a></td>
-<td>What does a whole run look like, from raw event table to checked synthetic one?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating AVATAR on public data</a></td>
-<td>How well does it work, and what did the masking cost, on eight public datasets?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/avatar-algorithm.html">The AVATAR Algorithm</a></td>
-<td>How does blending work, step by step?</td>
-</tr>
-<tr>
-<td>
-<a href="https://iamstein.github.io/synpmx/articles/pca-algorithm.html">The PCA Algorithm</a> and its <a href="https://iamstein.github.io/synpmx/articles/pca-demo.html">demo</a>
-</td>
-<td>How does the component-basis generator work, and what does a run look like?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html">Evaluating PCA on public data</a></td>
-<td>How well does it work across eight public datasets?</td>
-</tr>
-<tr>
-<td>
-<a href="https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html">The PMX Model Algorithm</a> and its <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html">demo</a>
-</td>
-<td>How does the population-model generator work, and what does a run look like?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">Evaluating the PMX model generator on public data</a></td>
-<td>Which studies can it fit at all, and what does it lose on the ones it can?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/avatar-scorecard.html">Scorecard: Checks of the synthetic data</a></td>
-<td>I have a synthetic dataset. Should I use it?</td>
-</tr>
-<tr>
-<td><a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">The synthetic generation modes</a></td>
-<td>What are the six modes, all six on one study, and which one do I want?</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
