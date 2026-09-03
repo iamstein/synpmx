@@ -32,24 +32,25 @@ None offers a formal privacy guarantee.
 
 Synthetic data based on:
 
-1. `synpmx_model()` — Fixed effects, a covariance matrix, a residual error, and
-   model for dose changes and missed visits
+1. `synpmx_model()` — Fits model to the data, and bases synthetic data off of 
+Fixed effects, a residual error, and a model for dose changes and missed visits
 2. `synpmx_pca()` — Principal component analysis from vector of all observations
-   and covariates
-3. `synpmx_avatar()` — Blended values from real neighbouring patients
+   and covariates, with a model for dose changes and missed visits.
+3. `synpmx_avatar()` — Blended values from real patients
 
-All three take a declaration of what the columns mean. Only the roles of `id`,
-`time`, `nominal_time`, `dv`, `evid` are generally required.
+All the above algorithms impute assay LOQ. All three take a declaration of what the columns mean. 
+Only the roles of `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
 
-Three additional functions (`synpmx_prior()`, `synpmx_calibration()`, `synpmx_empirical()`) 
-take a public structural model and either base the data off purely a public model and design
-information about the study, or they differential-privacy budget to correct and use data summaries. 
-These methods cover the case where data
-crosses a trust boundary and formal privacy conditions must be met. Treat them
+There are three additional generation algorithms provided that cover the case where data crosses a trust boundary
+and more formal privacy protections are needed.  Treat them
 as a principled demonstration of the privacy/utility tradeoff rather than as
 production ready — a status enforced in that `synpmx_calibrated()` and
 `synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has been
 called once in the session.
+
+4. `synpmx_prior()` - take a public structural model and prespecified design, not using the real data all.
+5. `synpmx_calibration()` - use data summaries of a few parameters (for smaller trials), and uses a differential-privacy budget to protect privacy.
+6. `synpmx_empirical()`  - use data summaries of many parameters (for larger trials), and uses a differential-privacy budget to protect privacy.
 
 ## Generating Synthetic Data
 
@@ -124,18 +125,8 @@ install.packages("opendp", repos = "https://opendp.r-universe.dev")
 
 ## Key Documentation
 
-| Document | Question it answers |
-|----|----|
-| [Demo: one dataset, end to end](https://iamstein.github.io/synpmx/articles/avatar-demo.html) | What does a whole run look like, from raw event table to checked synthetic one? |
-| [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) | How well does it work, and what did the masking cost, on eight public datasets? |
-| [The AVATAR Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html) | How does blending work, step by step? |
-| [The PCA Algorithm](https://iamstein.github.io/synpmx/articles/pca-algorithm.html) and its [demo](https://iamstein.github.io/synpmx/articles/pca-demo.html) | How does the component-basis generator work, and what does a run look like? |
-| [Evaluating PCA on public data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html) | How well does it work across eight public datasets? |
-| [The PMX Model Algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html) and its [demo](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.html) | How does the population-model generator work, and what does a run look like? |
-| [Evaluating the PMX model generator on public data](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html) | Which studies can it fit at all, and what does it lose on the ones it can? |
-| [Scorecard: Checks of the synthetic data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html) | I have a synthetic dataset. Should I use it? |
-| [The synthetic generation modes](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) | What are the six modes, all six on one study, and which one do I want? |
-
+Use the navigation bar at the top of the published website for further documentation.
+<https://iamstein.github.io/synpmx/>
 ## License
 
 [MIT](LICENSE.md) © 2026 Andrew Stein.
