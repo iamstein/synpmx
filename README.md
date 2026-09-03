@@ -123,7 +123,7 @@ The Data Privacy methods additionally require the official [OpenDP R package](ht
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
-## Key Documentation
+## Documentation
 
 Use the navigation bar at the top of the published website for further documentation.
 <https://iamstein.github.io/synpmx/>
