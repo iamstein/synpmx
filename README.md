@@ -2,7 +2,7 @@
 
 `synpmx` builds synthetic pharmacometric datasets from actual datasets.
 
-Website and documentation: <https://iamstein.github.io/synpmx/>
+Documentation is available in the navigation bar at the top of the website:  <https://iamstein.github.io/synpmx/>
 
 
 ## Will the `synpmx` package support your use case?
