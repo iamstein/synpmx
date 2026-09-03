@@ -46,11 +46,16 @@ are peers rather than a default and its alternatives: each carries
 something different out of the source, and which one suits a given study
 is still an open question. None offers a formal privacy guarantee.
 
-| Function | Synthetic data based on |  |  |
-|----|----|----|----|
-| `1. synpmx_model()` | Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits |  |  |
-| `2. synpmx_pca()` | Principle component analysis from vector of all observations and covariates |  |  |
-| `3. synpmx_avatar()` | Blended values from real neighbouring patients |  |  |
+Synthetic data based on:
+
+1.  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+    — Fixed effects, a covariance matrix, a residual error, and model
+    for dose changes and missed visits
+2.  [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+    — Principal component analysis from vector of all observations and
+    covariates
+3.  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+    — Blended values from real neighbouring patients
 
 All three take a declaration of what the columns mean. Only the roles of
 `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
@@ -117,16 +122,6 @@ synthetic <- synpmx_avatar(
   n_subjects = NULL, # cohort size; NULL matches the source
   seed       = 2026)
 ```
-
-## Maintenance status
-
-All three data-reading generators are maintained and none is retired.
-Which of them to reach for is not settled, and the documents are written
-to be read by comparison for that reason: each has an algorithm document
-and a demo over the same ground, and
-[`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
-scores any of their outputs the same way. None of them offers a formal,
-mathematical privacy guarantee.
 
 ## Installation
 

@@ -50,6 +50,6 @@ roles <- pmx_roles(
   evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV"
 )
 pca_scores(synpmx_pca_summarize(data, roles))
-#>   arm component        mean       sd
-#> 1 all       PC1 6.29589e-16 3.741645
+#>   arm component         mean       sd
+#> 1 all       PC1 6.443919e-16 3.741645
 ```

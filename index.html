@@ -118,40 +118,15 @@
 <h2 id="three-ways-to-build-a-dataset-from-a-real-one">Three ways to build a dataset from a real one<a class="anchor" aria-label="anchor" href="#three-ways-to-build-a-dataset-from-a-real-one"></a>
 </h2>
 <p>Three generators read a study and build a synthetic one from it. They are peers rather than a default and its alternatives: each carries something different out of the source, and which one suits a given study is still an open question. None offers a formal privacy guarantee.</p>
-<table class="table">
-<colgroup>
-<col width="25%">
-<col width="25%">
-<col width="25%">
-<col width="25%">
-</colgroup>
-<thead><tr>
-<th>Function</th>
-<th>Synthetic data based on</th>
-<th></th>
-<th></th>
-</tr></thead>
-<tbody>
-<tr>
-<td><code>1. synpmx_model()</code></td>
-<td>Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>2. synpmx_pca()</code></td>
-<td>Principle component analysis from vector of all observations and covariates</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>3. synpmx_avatar()</code></td>
-<td>Blended values from real neighbouring patients</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
+<p>Synthetic data based on:</p>
+<ol style="list-style-type: decimal">
+<li>
+<code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fixed effects, a covariance matrix, a residual error, and model for dose changes and missed visits</li>
+<li>
+<code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates</li>
+<li>
+<code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> — Blended values from real neighbouring patients</li>
+</ol>
 <p>All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
 <p>Three additional functions (<code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code>, <code>synpmx_calibration()</code>, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>) take a public structural model and either base the data off purely a public model and design information about the study, or they differential-privacy budget to correct and use data summaries. These methods cover the case where data crosses a trust boundary and formal privacy conditions must be met. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
 </div>
@@ -195,11 +170,6 @@
 <span>  <span class="va">roles</span>,             <span class="co">#column desrciption</span></span>
 <span>  n_subjects <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># cohort size; NULL matches the source</span></span>
 <span>  seed       <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="maintenance-status">Maintenance status<a class="anchor" aria-label="anchor" href="#maintenance-status"></a>
-</h2>
-<p>All three data-reading generators are maintained and none is retired. Which of them to reach for is not settled, and the documents are written to be read by comparison for that reason: each has an algorithm document and a demo over the same ground, and <code><a href="reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> scores any of their outputs the same way. None of them offers a formal, mathematical privacy guarantee.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
