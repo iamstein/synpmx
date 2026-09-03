@@ -1,7 +1,9 @@
 # synpmx
-📖 **Website and documentation: <https://iamstein.github.io/synpmx/>**
 
-`synpmx` builds **synthetic pharmacometric datasets** from actual datasets.
+`synpmx` builds synthetic pharmacometric datasets from actual datasets.
+
+Website and documentation: <https://iamstein.github.io/synpmx/>
+
 
 ## Will the `synpmx` package support your use case?
 
@@ -123,10 +125,6 @@ The Data Privacy methods additionally require the official [OpenDP R package](ht
 install.packages("opendp", repos = "https://opendp.r-universe.dev")
 ```
 
-## Documentation
-
-Use the navigation bar at the top of the published website for further documentation.
-<https://iamstein.github.io/synpmx/>
 ## License
 
 [MIT](LICENSE.md) © 2026 Andrew Stein.
