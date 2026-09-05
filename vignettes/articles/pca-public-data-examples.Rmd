@@ -163,12 +163,16 @@ Every example follows the same five steps:
    synthetic;
 5. report the scorecard.
 
-Three scorecard rows read `not applicable` on every card below — **B1a**,
-**B1b** and **C2** — because they read a run record that `synpmx_avatar()`
-writes and this generator does not. That is a limitation of those three rows rather than a
-property of any dataset here, and it is the same on all seven. **B4a** and
-**B4b** ask the copy question directly on the finished tables and are the rows
-that carry the claim; the section at the end reports what they found.
+Five scorecard rows read `not applicable` on every card below. **B1a**, **B1b**
+and **C2** read a run record that `synpmx_avatar()` writes and this generator
+does not. **B4a** asks whether a generated set of observation times copies a
+real one, and **B2** whether a synthetic patient stands out from its stratum;
+both are disclosure questions where a real patient's record was reused, and
+this generator draws each visit and each profile from a model of the cohort
+instead. That is a limitation of those rows rather than a property of any
+dataset here, and it is the same on all seven. **B4b** asks the copy question
+directly on the finished tables and is the row that carries the claim; the
+section at the end reports what it found.
 
 ## The nominal grid is the requirement
 
@@ -536,9 +540,8 @@ knitr::kable(pca_dosing(nimo_run$summary),
 
 The cost is on the other side and is stated in `vignette("pca-algorithm")`:
 there is **one** schedule where the source had twelve. C2 is the row that would
-say so, and it is one of the three that cannot read this generator's output.
-`pca_dosing()` above is what to read in its place. B2 reads `review` at 3 of 12
-— the distinct visit sets that survived.
+say so, and it is one of the rows that cannot read this generator's output.
+`pca_dosing()` above is what to read in its place.
 
 ## mavoglurant: an occasion-reset clock
 
@@ -675,12 +678,12 @@ knitr::kable(verdicts, row.names = FALSE,
              caption = "Scorecard verdicts across the seven runs.")
 ```
 
-`not applicable` is 3 on every row and is a gap in those three checks rather
-than a result: B1a, B1b and C2 read a run record this generator does not
-write. All
-three questions are answerable from the two tables, and until they are computed
-that way the card is silent exactly where this generator's largest loss is —
-C2, the variety of dose schedules.
+`not applicable` is 5 on every row and is a gap rather than a result. B1a, B1b
+and C2 read a run record this generator does not write; all three questions are
+answerable from the two tables, and until they are computed that way the card is
+silent exactly where this generator's largest loss is — C2, the variety of dose
+schedules. B2 and B4a ask whether a real patient's profile or visit set was
+reused, which this generator does not do at all.
 
 **D1 is `review` on all seven**, and it is the row that describes the method
 rather than any study. It reports the furthest standard-deviation ratio over

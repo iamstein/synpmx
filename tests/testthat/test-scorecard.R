@@ -463,6 +463,26 @@ test_that("the datatable says so and prints the card when DT is missing", {
   expect_true(any(grepl("verdict", printed)))
 })
 
+test_that("B2 is not applicable where the profiles are simulated", {
+  data <- pmx_simulated_fixture(30)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  synthetic <- synpmx_pca(data, roles, seed = 3)
+  card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
+  b2 <- card[card$check == "B2", ]
+  expect_identical(b2$verdict, "not applicable")
+  expect_match(b2$result, "simulated, not built from a patient")
+
+  # Still computed for a generator that hands a real patient's shape to an
+  # avatar, and still reachable by hand for a table of either kind.
+  avatar <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
+  avatar_card <- as.data.frame(synpmx_scorecard(data, avatar, roles))
+  expect_false(avatar_card$verdict[avatar_card$check == "B2"] ==
+                 "not applicable")
+  expect_s3_class(flag_identifiable_subjects(synthetic, roles), "data.frame")
+})
+
 test_that("B4a is not applicable where attendance is drawn per visit", {
   data <- pmx_simulated_fixture(30)
   roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",

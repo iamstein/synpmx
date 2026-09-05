@@ -63,6 +63,14 @@
   isTRUE(attr(synthetic, "pmx_source") %in% c("pca", "model"))
 }
 
+# The same two generators, asked a different question. A patient's whole record
+# here is drawn from a model of the cohort rather than assembled from one real
+# patient's values, so "is this synthetic patient unusual" is a question about
+# the tail of a distribution the generator was given, not about anybody.
+.scorecard_simulates_profiles <- function(synthetic) {
+  isTRUE(attr(synthetic, "pmx_source") %in% c("pca", "model"))
+}
+
 .scorecard_recorded <- function(check, question, settings, result, explore,
                                 ok) {
   if (is.null(settings)) {
@@ -351,7 +359,10 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   floor <- as.integer(settings$min_pattern_share %||% 2L)
   time_copies <- .scorecard_copies(source, synthetic, roles, roles$time, floor)
   dv_copies <- .scorecard_copies(source, synthetic, roles, roles$dv, floor)
-  flagged <- flag_identifiable_subjects(synthetic, roles)
+  # Not computed where B2 does not apply: the screen would run over a cohort
+  # whose outliers are the model's tail rather than a person.
+  flagged <- if (.scorecard_simulates_profiles(synthetic)) NULL else
+    flag_identifiable_subjects(synthetic, roles)
 
   # Always present, including on a study with nothing discrete to check. The row
   # was conditional, and a card whose rows depend on the study cannot be
@@ -454,12 +465,32 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     # and an empty list has nothing in it to read. Above 0 is `review` and never
     # `FAIL` -- the right count is not necessarily 0, since a study can contain
     # a patient who is genuinely unusual and whose avatar therefore is too.
-    .scorecard_row(
-      "B2", "Synthetic patients unusual within their stratum", "synthetic",
-      paste(sum(flagged$flagged), "of", nrow(flagged)),
-      "flag_identifiable_subjects(synthetic, roles)",
-      verdict = if (sum(flagged$flagged) == 0L) "pass" else "review"
-    ),
+    #
+    # Not applicable to a generator that simulates its profiles, on the owner's
+    # decision of 2026-09-05, and for the same shape of reason as B4a. The row
+    # exists because an avatar is built from a real patient's trajectory: an
+    # avatar that stands out stands out the way its anchor did, and singling it
+    # out is singling somebody out. `synpmx_pca()` and `synpmx_model()` draw a
+    # patient's whole record from a model of the cohort, so an outlier there is
+    # the tail of a distribution -- it is a utility reading, not a disclosure
+    # one, and scoring it in section B invites it to be read as a leak.
+    # `flag_identifiable_subjects()` still runs on any table for a caller who
+    # wants that reading.
+    if (.scorecard_simulates_profiles(synthetic)) {
+      .scorecard_row(
+        "B2", "Synthetic patients unusual within their stratum", "synthetic",
+        "not applicable: profiles simulated, not built from a patient",
+        "flag_identifiable_subjects(synthetic, roles)",
+        verdict = "not applicable"
+      )
+    } else {
+      .scorecard_row(
+        "B2", "Synthetic patients unusual within their stratum", "synthetic",
+        paste(sum(flagged$flagged), "of", nrow(flagged)),
+        "flag_identifiable_subjects(synthetic, roles)",
+        verdict = if (sum(flagged$flagged) == 0L) "pass" else "review"
+      )
+    },
     # One-sided, because the two directions are not the same finding. Below the
     # interval is memorisation, which is the privacy question this section
     # asks, so it is `review`. Above it the two sets have separated: a utility
