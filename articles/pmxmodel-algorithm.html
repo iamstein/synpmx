@@ -438,6 +438,11 @@ dozen patients fits in seconds. A daily regimen carrying scores of dose
 records per subject over a cohort several times larger is two orders of
 magnitude more work, and a call that has not returned after half an hour
 is that cost rather than a fault.</p>
+<p><strong>What it did take is reported.</strong> Each candidate’s
+fitting time is a column of the candidate table, the fit prints the
+total with itself, and the run says so as it finishes, because the
+number a caller weighs a rerun against is how long the last one
+took.</p>
 <p><strong>Where there is a search, selection is on AIC</strong>, and
 the estimation method is <code>focei</code> for that reason. SAEM’s
 log-likelihood is a Gaussian-quadrature step run after the fit, and at
@@ -452,8 +457,8 @@ like a search that had one candidate. Where nothing converges the
 function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       model converged      aic note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.9053</span></span></code></pre></div>
+<span><span class="co">#&gt;       model converged      aic seconds note</span></span>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.9053  10.732</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
@@ -589,10 +594,19 @@ back.</p>
 <p>Estimated by <code>nlmixr2</code>: the selected structural model, the
 candidate comparison table, fixed effects, the between-subject
 covariance matrix, the residual error, the covariate effects that
-survived, and the PD shape and parameters per endpoint.</p>
+survived, the PD shape and parameters per endpoint, and how long the
+fitting and the whole call took.</p>
 <p>Not estimated: the per-arm dosing model and its three rates, the
 visit model, arm sizes, the covariate distributions, the censoring
 boundary, the schema and the roles.</p>
+<p><strong>Everything on the object is an input to Step 6, so printing
+it reports all of them</strong> — the dose reduction, skipped cycle and
+early stop rates per arm, the attendance frequency behind a missed
+observation, how each covariate is drawn, which cells are drawn from
+recorded values rather than simulated, the assay limit and what was
+imputed below it, the floor nothing is emitted below, and the columns
+the generated table will carry. <code><a href="../reference/model_report.html">model_report()</a></code> returns the
+same account as a list.</p>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 are per-subject quantities, and a fitted model that carried them would
 be writing out a description of each real patient. They are not stored
@@ -608,14 +622,37 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1366, v 8.176, ka 0.6119 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
+<span><span class="co">#&gt;   time to fit        10.7 s (10.9 s for the whole call) </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt;   pd shapes          pca: exponential </span></span>
-<span><span class="co">#&gt;   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Values at the bottom of the scale</span></span>
+<span><span class="co">#&gt;   No assay limit declared, so nothing is generated below:</span></span>
+<span><span class="co">#&gt;     cp                 0.3</span></span>
+<span><span class="co">#&gt;     pca                4.5</span></span>
+<span><span class="co">#&gt;   Half the smallest value each endpoint reported. A simulated profile late in</span></span>
+<span><span class="co">#&gt;   a dose interval underflows on its own, and this floor is what stops the</span></span>
+<span><span class="co">#&gt;   synthetic data carrying values the study's assay could not have returned.</span></span>
+<span><span class="co">#&gt;   Anything drawn lower is raised to it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
-<span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
-<span><span class="co">#&gt;   visit model        22 grid cells over 2 endpoint(s)</span></span>
-<span><span class="co">#&gt;   dosing model       1 planned cycle(s) per arm | no reductions, skips or early stops </span></span>
+<span><span class="co">#&gt;   cohort             32 patients in 1 arm(s): all (32)</span></span>
+<span><span class="co">#&gt;   dose schedule      median 1 planned cycle(s) per arm, and each arm keeps</span></span>
+<span><span class="co">#&gt;                      its own</span></span>
+<span><span class="co">#&gt;   dose changes       none: no arm reduces a dose, skips a cycle or stops</span></span>
+<span><span class="co">#&gt;                      early, so every generated patient completes its arm's</span></span>
+<span><span class="co">#&gt;                      schedule</span></span>
+<span><span class="co">#&gt;   visit attendance   22 grid cell(s) over 2 endpoint(s). A generated</span></span>
+<span><span class="co">#&gt;                      patient attends each with the frequency its arm</span></span>
+<span><span class="co">#&gt;                      attended it: median 95%, from 9% to 100%. That is the</span></span>
+<span><span class="co">#&gt;                      whole model of a missed observation.</span></span>
+<span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, each</span></span>
+<span><span class="co">#&gt;                      drawn per arm from the source's own distribution and</span></span>
+<span><span class="co">#&gt;                      independently of the profiles</span></span>
+<span><span class="co">#&gt;   discrete endpoints 22 grid cell(s) whose values are drawn from the</span></span>
+<span><span class="co">#&gt;                      frequencies the source recorded there, rather than</span></span>
+<span><span class="co">#&gt;                      simulated</span></span>
+<span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; How the concentration endpoint was decided</span></span>
 <span><span class="co">#&gt;   endpoint           cp (inferred) </span></span>
@@ -704,10 +741,12 @@ can fit badly is fitted, and told about.</p>
 <tr class="odd">
 <td>Cohort size</td>
 <td>20 subjects</td>
-<td>Errors. A covariance matrix fitted to a handful of subjects
-describes those subjects. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code>’s floor is 10 and
-this one is higher because a parameter estimate concentrates on its
-cohort faster than a score does.</td>
+<td>Warns and fits. A covariance matrix fitted to a handful of subjects
+describes those subjects, and nothing downstream will say so: the
+scorecard asks whether the output copies anybody or changed the study’s
+shape, and a small-cohort fit does neither. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code>’s
+floor is 10 and this one is higher because a parameter estimate
+concentrates on its cohort faster than a score does.</td>
 </tr>
 <tr class="even">
 <td>Cohort time coverage</td>

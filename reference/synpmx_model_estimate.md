@@ -61,8 +61,10 @@ synpmx_model_estimate(
 
 - min_subjects:
 
-  Cohort floor. Below it the covariance matrix describes the subjects it
-  was fitted to rather than a population.
+  Cohort size the fit should have. Below it the covariance matrix
+  describes the subjects it was fitted to rather than a population,
+  which warns rather than refuses: the fit runs on whatever the study
+  has.
 
 - min_arm_patients:
 

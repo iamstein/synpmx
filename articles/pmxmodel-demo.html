@@ -187,20 +187,6 @@ are compressed to one record per patient first, which the message also
 reports; <code>case1_pkpd</code> records its dose times as actuals — 0,
 24.22, 48.28 — so there is no exact interval to compress to, and the
 wait is the honest cost of the design.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span></span>
-<span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   fitted on    180 patients, 6 arm(s)</span></span>
-<span><span class="co">#&gt;   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) </span></span>
-<span><span class="co">#&gt;   fixed        cl 8.168, v 111, ka 6.471 </span></span>
-<span><span class="co">#&gt;   random on    cl, v, ka </span></span>
-<span><span class="co">#&gt;   pk endpoint  PK Concentration </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   These parameters are not estimates to report. They exist to make</span></span>
-<span><span class="co">#&gt;   simulated profiles resemble the source study; the candidate set is too</span></span>
-<span><span class="co">#&gt;   small and the covariate model too thin for any of them to answer a</span></span>
-<span><span class="co">#&gt;   scientific question.</span></span></code></pre></div>
 <p>A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
@@ -211,8 +197,10 @@ object prints that warning with itself.</p>
 </h2>
 <p>Two halves. <code><a href="../reference/model_report.html">model_report()</a></code> separates them, because they
 answer to different things — one half is an estimate with all an
-estimate’s caveats, the other is a summary of the study’s apparatus.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+estimate’s caveats, the other is a summary of the study’s apparatus.
+Everything the generator simulates from is in here, which is why
+printing the fitted object shows the same account.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; What this fitted model carries</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -221,14 +209,39 @@ estimate’s caveats, the other is a summary of the study’s apparatus.</p>
 <span><span class="co">#&gt;   fixed effects      cl 8.168, v 111, ka 6.471 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.509, v 0.436, ka 0.707 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.394 </span></span>
+<span><span class="co">#&gt;   time to fit        10 min 31 s (10 min 33 s for the whole call) </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 </span></span>
 <span><span class="co">#&gt;   pd shapes          PD - Continuous: exponential </span></span>
-<span><span class="co">#&gt;   below the limit   PK Concentration 1669 of 3600 (46%) imputed below 0.05 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Values at the bottom of the scale</span></span>
+<span><span class="co">#&gt;   Reported below the assay limit, and imputed before the fit:</span></span>
+<span><span class="co">#&gt;     PK Concentration   1669 of 3600 (46%) below 0.05</span></span>
+<span><span class="co">#&gt;   Each of those was replaced, for the fit only, by a random value drawn</span></span>
+<span><span class="co">#&gt;   between zero and the limit -- so that share of the fit is a statement</span></span>
+<span><span class="co">#&gt;   about the draw rather than about measurements. Generated values below the</span></span>
+<span><span class="co">#&gt;   limit are written back as censored, the way the study recorded them.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
-<span><span class="co">#&gt;   cohort             180 patients in 6 arm(s)</span></span>
-<span><span class="co">#&gt;   visit model        33 grid cells over 2 endpoint(s)</span></span>
-<span><span class="co">#&gt;   dosing model       85 planned cycle(s) per arm | no reductions, skips or early stops </span></span>
+<span><span class="co">#&gt;   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3</span></span>
+<span><span class="co">#&gt;                      (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100</span></span>
+<span><span class="co">#&gt;                      (30), 300 mg / 300 (30)</span></span>
+<span><span class="co">#&gt;   dose schedule      median 85 planned cycle(s) per arm, and each arm keeps</span></span>
+<span><span class="co">#&gt;                      its own</span></span>
+<span><span class="co">#&gt;   dose changes       none: no arm reduces a dose, skips a cycle or stops</span></span>
+<span><span class="co">#&gt;                      early, so every generated patient completes its arm's</span></span>
+<span><span class="co">#&gt;                      schedule</span></span>
+<span><span class="co">#&gt;   visit attendance   33 grid cell(s) over 2 endpoint(s). A generated</span></span>
+<span><span class="co">#&gt;                      patient attends each with the frequency its arm</span></span>
+<span><span class="co">#&gt;                      attended it: median 100%, from 0% to 100%. That is the</span></span>
+<span><span class="co">#&gt;                      whole model of a missed observation.</span></span>
+<span><span class="co">#&gt;   covariates         WEIGHTB lognormal, each drawn per arm from the</span></span>
+<span><span class="co">#&gt;                      source's own distribution and independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
+<span><span class="co">#&gt;   discrete endpoints 174 grid cell(s) whose values are drawn from the</span></span>
+<span><span class="co">#&gt;                      frequencies the source recorded there, rather than</span></span>
+<span><span class="co">#&gt;                      simulated</span></span>
+<span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,</span></span>
+<span><span class="co">#&gt;                      WEIGHTB, TRTACT, DOSE, STUDY</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; How the concentration endpoint was decided</span></span>
 <span><span class="co">#&gt;   endpoint           PK Concentration (inferred) </span></span>
@@ -259,10 +272,10 @@ relationships without modelling them.</p>
 <div class="section level2">
 <h2 id="the-candidates">The candidates<a class="anchor" aria-label="anchor" href="#the-candidates"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="st">"Candidates the design admitted"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[-8630],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"note","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[-8630],[631],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"seconds","targets":3},{"name":"note","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
 phase is a refinement of a shape the one-compartment model already has
 and costs several times as long to fit, so it is available rather than
 routine: <code>pk = "2cmt_oral"</code> forces it,
@@ -276,11 +289,11 @@ support one.</p>
 <p><code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> reads no patient data. Its
 arguments are the fit and a subject count, so everything about the
 source that reaches the output has already passed through the fit.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span></code></pre></div>
 <p>The generated table is in the source’s shape: same columns, same
 classes, same compartment numbers, new identifiers.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="fl">10</span><span class="op">)</span>, <span class="st">"The first ten rows"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
 <script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>The first ten rows<\/caption>","data":[[181,181,181,181,181,181,181,181,181,181],[-0.1,0,23.9,24,48,72,96,120,144,168],[-0.1,0,23.9,24,48,72,96,120,144,168],[-59.9,null,257,null,null,null,null,null,null,null],[0,0,0,0,0,0,0,0,0,0],[0,1,0,1,1,1,1,1,1,1],[3,1,3,1,1,1,1,1,1,1],["PD - Continuous",null,"PD - Continuous",null,null,null,null,null,null,null],[0,0,0,0,0,0,0,0,0,0],[141,141,141,141,141,141,141,141,141,141],["Placebo","Placebo","Placebo","Placebo","Placebo","Placebo","Placebo","Placebo","Placebo","Placebo"],[0,0,0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1,1,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>ID<\/th>\n      <th>TIME<\/th>\n      <th>NOMTIME<\/th>\n      <th>LIDV<\/th>\n      <th>AMT<\/th>\n      <th>EVID<\/th>\n      <th>CMT<\/th>\n      <th>NAME<\/th>\n      <th>CENS<\/th>\n      <th>WEIGHTB<\/th>\n      <th>TRTACT<\/th>\n      <th>DOSE<\/th>\n      <th>STUDY<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,3,4,5,6,8,9,11,12]},{"name":"ID","targets":0},{"name":"TIME","targets":1},{"name":"NOMTIME","targets":2},{"name":"LIDV","targets":3},{"name":"AMT","targets":4},{"name":"EVID","targets":5},{"name":"CMT","targets":6},{"name":"NAME","targets":7},{"name":"CENS","targets":8},{"name":"WEIGHTB","targets":9},{"name":"TRTACT","targets":10},{"name":"DOSE","targets":11},{"name":"STUDY","targets":12}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
@@ -290,7 +303,7 @@ classes, same compartment numbers, new identifiers.</p>
 </h2>
 <p>The same overlays the other two demos draw, so the three can be read
 against each other.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://opensource.nibr.com/xgx/" class="external-link">xgxr</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_theme_set.html" class="external-link">xgx_theme_set</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -304,7 +317,7 @@ against each other.</p>
 <span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">obs</span><span class="op">$</span><span class="va">TRTACT</span>,</span>
 <span>                     levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"3 mg"</span>, <span class="st">"10 mg"</span>, <span class="st">"30 mg"</span>,</span>
 <span>                                <span class="st">"100 mg"</span>, <span class="st">"300 mg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">24</span>, <span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
@@ -316,7 +329,7 @@ against each other.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Day 1 Conc. Profile"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-demo_files/figure-html/overlay-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">last_dose</span> <span class="op">&lt;-</span> <span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span></span>
 <span>                   <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&gt;=</span> <span class="fl">2016</span> <span class="op">&amp;</span> <span class="va">obs</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&lt;=</span> <span class="fl">2040</span>, <span class="op">]</span></span>
 <span><span class="va">last_dose</span><span class="op">$</span><span class="va">TAD</span> <span class="op">&lt;-</span> <span class="va">last_dose</span><span class="op">$</span><span class="va">TIME</span> <span class="op">-</span> <span class="fl">2016</span></span>
@@ -340,7 +353,7 @@ reproduce.</p>
 <p>Almost half the source concentrations are below the assay limit, so
 the honest comparison in the low arms is how much of each arm is
 censored rather than where its curve sits.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">censored</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PK Concentration"</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>pct_blq <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">CENS</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span>,</span>
@@ -360,7 +373,7 @@ at the arm’s dose, cannot reproduce six arm-specific censoring fractions
 — the study’s low arms are not simply its high arms divided down. Where
 the analysis to be developed turns on how much data is below the limit,
 read this table before trusting the output.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">obs</span><span class="op">[</span><span class="va">obs</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span>, <span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">TIME</span>, <span class="va">LIDV</span>, group <span class="op">=</span> <span class="va">ID</span>, colour <span class="op">=</span> <span class="va">DATA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span></span>
@@ -381,7 +394,7 @@ fitted to the study rather than asserted.</p>
 fitted to the pooled observations and each subject gets a draw on its
 baseline, so the arm a subject was assigned to does not reach its
 response.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">late_pd</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span></span>
 <span>    <span class="va">data</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&gt;</span> <span class="fl">1500</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span></span>
@@ -408,7 +421,7 @@ on this study.</p>
 synthetic. <code><a href="../reference/compare_pmx_distributions_height.html">compare_pmx_distributions_height()</a></code> sizes the
 figure, since it grows a row of panels at a time;
 <code>output = "tables"</code> gives the numbers behind it.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-demo_files/figure-html/distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
@@ -418,7 +431,7 @@ figure, since it grows a row of panels at a time;
 <p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> does not know what produced the
 dataset it scores, so it reads this output the same way it reads an
 AVATAR or PCA one.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
@@ -442,7 +455,7 @@ asks and what its pass criterion is.</p>
 <p><code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> is the two stages together, for when you
 do not need to look at the fit first. It is on the result either way, as
 an attribute.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model.html">synpmx_model</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span></span></code></pre></div>
 </div>

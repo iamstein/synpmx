@@ -162,12 +162,63 @@ this article reads a stored fit built by `scripts/build-model-fits.R`.
 
 model_fit
 #> A fitted PMX model, from synpmx_model_estimate()
+#> Everything below is an input to `synpmx_model_generate()`.
 #> 
-#>   fitted on    12 patients, 1 arm(s)
-#>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 2.858, v 34.2, ka 1.454 
-#>   random on    cl, v, ka 
-#>   pk endpoint  DV 
+#>   candidates fitted  1 (1cmt_oral selected on AIC) 
+#> 
+#> What this fitted model carries
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fixed effects      cl 2.858, v 34.2, ka 1.454 
+#>   between-subject    cl 0.19, v 0.115, ka 0.583 (as SD on the log scale)
+#>   residual error     proportional 0.216 
+#>   time to fit        13.3 s (13.6 s for the whole call) 
+#>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
+#> 
+#> Values at the bottom of the scale
+#>   No assay limit declared, so nothing is generated below:
+#>     DV                 0.075
+#>   Half the smallest value each endpoint reported. A simulated profile late in
+#>   a dose interval underflows on its own, and this floor is what stops the
+#>   synthetic data carrying values the study's assay could not have returned.
+#>   Anything drawn lower is raised to it.
+#> 
+#> Summarized from the source, not estimated
+#>   cohort             12 patients in 1 arm(s): all (12)
+#>   dose schedule      median 7 planned cycle(s) per arm, and each arm keeps
+#>                      its own
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
+#>   visit attendance   25 grid cell(s) over 1 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 100%, from 33% to 100%. That is
+#>                      the whole model of a missed observation.
+#>   covariates         WT lognormal, each drawn per arm from the source's own
+#>                      distribution and independently of the profiles
+#>   discrete endpoints 25 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
+#> 
+#> How the concentration endpoint was decided
+#>   endpoint           DV (inferred) 
+#>  endpoint compartment post_dose shape proportional
+#>        DV        TRUE      TRUE  TRUE           NA
+#>   design             the median profile rises to a peak at 2 before declining, and 100% of subjects do too 
+#>   also available     the sampling would support a two-compartment model (median 11 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>         WT        ka      -0.132
+#>         WT         v      -0.090
+#>         WT        cl      -0.051
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
 #> 
 #>   These parameters are not estimates to report. They exist to make
 #>   simulated profiles resemble the source study; the candidate set is too

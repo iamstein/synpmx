@@ -20,7 +20,8 @@ model_candidates(fitted_model)
 
 ## Value
 
-A data frame with columns `model`, `converged`, `aic` and `note`.
+A data frame with columns `model`, `converged`, `aic`, `seconds` – how
+long that candidate took to fit – and `note`.
 
 ## See also
 

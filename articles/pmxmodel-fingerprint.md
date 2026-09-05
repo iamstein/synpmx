@@ -72,28 +72,12 @@ The chunk above is shown rather than run: fitting compiles a model, so
 this document reads a stored fit and `R CMD check` never needs a
 compiler.
 
-``` r
-
-fit
-#> A fitted PMX model, from synpmx_model_estimate()
-#> 
-#>   fitted on    32 patients, 1 arm(s)
-#>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 0.1366, v 8.176, ka 0.6119 
-#>   random on    cl, v, ka 
-#>   pk endpoint  cp 
-#> 
-#>   These parameters are not estimates to report. They exist to make
-#>   simulated profiles resemble the source study; the candidate set is too
-#>   small and the covariate model too thin for any of them to answer a
-#>   scientific question.
-```
-
 ## The inventory
 
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 is the top-level account, and it separates the two halves because they
-answer to different things.
+answer to different things. Printing the fitted object shows the same
+account, because everything on it is an input to the generation step.
 
 ``` r
 
@@ -105,14 +89,37 @@ model_report(fit)
 #>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
 #>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
 #>   residual error     proportional 0.21 
+#>   time to fit        10.7 s (10.9 s for the whole call) 
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #>   pd shapes          pca: exponential 
-#>   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)
+#> 
+#> Values at the bottom of the scale
+#>   No assay limit declared, so nothing is generated below:
+#>     cp                 0.3
+#>     pca                4.5
+#>   Half the smallest value each endpoint reported. A simulated profile late in
+#>   a dose interval underflows on its own, and this floor is what stops the
+#>   synthetic data carrying values the study's assay could not have returned.
+#>   Anything drawn lower is raised to it.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             32 patients in 1 arm(s)
-#>   visit model        22 grid cells over 2 endpoint(s)
-#>   dosing model       1 planned cycle(s) per arm | no reductions, skips or early stops 
+#>   cohort             32 patients in 1 arm(s): all (32)
+#>   dose schedule      median 1 planned cycle(s) per arm, and each arm keeps
+#>                      its own
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
+#>   visit attendance   22 grid cell(s) over 2 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 95%, from 9% to 100%. That is the
+#>                      whole model of a missed observation.
+#>   covariates         wt lognormal, age lognormal, sex categorical, each
+#>                      drawn per arm from the source's own distribution and
+#>                      independently of the profiles
+#>   discrete endpoints 22 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> How the concentration endpoint was decided
 #>   endpoint           cp (inferred) 
@@ -148,7 +155,7 @@ names(fit)
 #> [10] "settings"             "n_source"             "cells"               
 #> [13] "pd"                   "covariate_effects"    "covariates"          
 #> [16] "discrete"             "design"               "correlations"        
-#> [19] "censoring"            "quantification_floor"
+#> [19] "censoring"            "quantification_floor" "timing"
 ```
 
 ## The settings that produced it
@@ -197,8 +204,8 @@ fit$endpoints$decided_by
 fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
-#>       model converged      aic note
-#> 1 1cmt_oral      TRUE 895.9053
+#>       model converged      aic seconds note
+#> 1 1cmt_oral      TRUE 895.9053  10.732
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.

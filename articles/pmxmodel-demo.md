@@ -84,23 +84,6 @@ reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
 48.28 — so there is no exact interval to compress to, and the wait is
 the honest cost of the design.
 
-``` r
-
-fit
-#> A fitted PMX model, from synpmx_model_estimate()
-#> 
-#>   fitted on    180 patients, 6 arm(s)
-#>   structural   1cmt_oral (chosen from 1 candidate(s) on AIC) 
-#>   fixed        cl 8.168, v 111, ka 6.471 
-#>   random on    cl, v, ka 
-#>   pk endpoint  PK Concentration 
-#> 
-#>   These parameters are not estimates to report. They exist to make
-#>   simulated profiles resemble the source study; the candidate set is too
-#>   small and the covariate model too thin for any of them to answer a
-#>   scientific question.
-```
-
 A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
@@ -112,7 +95,8 @@ Two halves.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 separates them, because they answer to different things — one half is an
 estimate with all an estimate’s caveats, the other is a summary of the
-study’s apparatus.
+study’s apparatus. Everything the generator simulates from is in here,
+which is why printing the fitted object shows the same account.
 
 ``` r
 
@@ -124,14 +108,39 @@ model_report(fit)
 #>   fixed effects      cl 8.168, v 111, ka 6.471 
 #>   between-subject    cl 0.509, v 0.436, ka 0.707 (as SD on the log scale)
 #>   residual error     proportional 0.394 
+#>   time to fit        10 min 31 s (10 min 33 s for the whole call) 
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #>   pd shapes          PD - Continuous: exponential 
-#>   below the limit   PK Concentration 1669 of 3600 (46%) imputed below 0.05 
+#> 
+#> Values at the bottom of the scale
+#>   Reported below the assay limit, and imputed before the fit:
+#>     PK Concentration   1669 of 3600 (46%) below 0.05
+#>   Each of those was replaced, for the fit only, by a random value drawn
+#>   between zero and the limit -- so that share of the fit is a statement
+#>   about the draw rather than about measurements. Generated values below the
+#>   limit are written back as censored, the way the study recorded them.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             180 patients in 6 arm(s)
-#>   visit model        33 grid cells over 2 endpoint(s)
-#>   dosing model       85 planned cycle(s) per arm | no reductions, skips or early stops 
+#>   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3
+#>                      (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100
+#>                      (30), 300 mg / 300 (30)
+#>   dose schedule      median 85 planned cycle(s) per arm, and each arm keeps
+#>                      its own
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
+#>   visit attendance   33 grid cell(s) over 2 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 100%, from 0% to 100%. That is the
+#>                      whole model of a missed observation.
+#>   covariates         WEIGHTB lognormal, each drawn per arm from the
+#>                      source's own distribution and independently of the
+#>                      profiles
+#>   discrete endpoints 174 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
+#>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
 #> How the concentration endpoint was decided
 #>   endpoint           PK Concentration (inferred) 

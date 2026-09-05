@@ -298,6 +298,11 @@ over a cohort several times larger is two orders of magnitude more work,
 and a call that has not returned after half an hour is that cost rather
 than a fault.
 
+**What it did take is reported.** Each candidate’s fitting time is a
+column of the candidate table, the fit prints the total with itself, and
+the run says so as it finishes, because the number a caller weighs a
+rerun against is how long the last one took.
+
 **Where there is a search, selection is on AIC**, and the estimation
 method is `focei` for that reason. SAEM’s log-likelihood is a
 Gaussian-quadrature step run after the fit, and at phase 1 cohort sizes
@@ -314,8 +319,8 @@ function errors rather than returning the least bad fit.
 ``` r
 
 model_candidates(fit)
-#>       model converged      aic note
-#> 1 1cmt_oral      TRUE 895.9053
+#>       model converged      aic seconds note
+#> 1 1cmt_oral      TRUE 895.9053  10.732
 ```
 
 ### Covariates
@@ -414,12 +419,23 @@ is that patient, and generating from it would put them back.
 
 Estimated by `nlmixr2`: the selected structural model, the candidate
 comparison table, fixed effects, the between-subject covariance matrix,
-the residual error, the covariate effects that survived, and the PD
-shape and parameters per endpoint.
+the residual error, the covariate effects that survived, the PD shape
+and parameters per endpoint, and how long the fitting and the whole call
+took.
 
 Not estimated: the per-arm dosing model and its three rates, the visit
 model, arm sizes, the covariate distributions, the censoring boundary,
 the schema and the roles.
+
+**Everything on the object is an input to Step 6, so printing it reports
+all of them** — the dose reduction, skipped cycle and early stop rates
+per arm, the attendance frequency behind a missed observation, how each
+covariate is drawn, which cells are drawn from recorded values rather
+than simulated, the assay limit and what was imputed below it, the floor
+nothing is emitted below, and the columns the generated table will
+carry.
+[`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+returns the same account as a list.
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
 quantities, and a fitted model that carried them would be writing out a
@@ -438,14 +454,37 @@ model_report(fit)
 #>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
 #>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
 #>   residual error     proportional 0.21 
+#>   time to fit        10.7 s (10.9 s for the whole call) 
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #>   pd shapes          pca: exponential 
-#>   not emitted below  cp 0.3; pca 4.5 (half the smallest value reported)
+#> 
+#> Values at the bottom of the scale
+#>   No assay limit declared, so nothing is generated below:
+#>     cp                 0.3
+#>     pca                4.5
+#>   Half the smallest value each endpoint reported. A simulated profile late in
+#>   a dose interval underflows on its own, and this floor is what stops the
+#>   synthetic data carrying values the study's assay could not have returned.
+#>   Anything drawn lower is raised to it.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             32 patients in 1 arm(s)
-#>   visit model        22 grid cells over 2 endpoint(s)
-#>   dosing model       1 planned cycle(s) per arm | no reductions, skips or early stops 
+#>   cohort             32 patients in 1 arm(s): all (32)
+#>   dose schedule      median 1 planned cycle(s) per arm, and each arm keeps
+#>                      its own
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
+#>   visit attendance   22 grid cell(s) over 2 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 95%, from 9% to 100%. That is the
+#>                      whole model of a missed observation.
+#>   covariates         wt lognormal, age lognormal, sex categorical, each
+#>                      drawn per arm from the source's own distribution and
+#>                      independently of the profiles
+#>   discrete endpoints 22 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> How the concentration endpoint was decided
 #>   endpoint           cp (inferred) 
@@ -526,7 +565,7 @@ fit badly is fitted, and told about.
 
 | Gate | Threshold | Result |
 |----|----|----|
-| Cohort size | 20 subjects | Errors. A covariance matrix fitted to a handful of subjects describes those subjects. [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)’s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
+| Cohort size | 20 subjects | Warns and fits. A covariance matrix fitted to a handful of subjects describes those subjects, and nothing downstream will say so: the scorecard asks whether the output copies anybody or changed the study’s shape, and a small-cohort fit does neither. [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)’s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
 | Cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller’s call to accept. |
 | No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
