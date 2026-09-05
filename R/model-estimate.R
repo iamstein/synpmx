@@ -809,9 +809,13 @@
 #' @param min_subjects Cohort floor. Below it the covariance matrix describes
 #'   the subjects it was fitted to rather than a population.
 #' @param min_arm_patients Minimum patients in every arm, as
-#'   [synpmx_pca_summarize()] uses.
-#' @param min_time_bins Minimum distinct nominal times after a dose across the
-#'   cohort. Below it no linear model is identifiable.
+#'   [synpmx_pca_summarize()] uses. Patients in a shorter arm are dropped with a
+#'   warning before anything is fitted, so that arm is absent from the fitted
+#'   model and from the data generated from it.
+#' @param min_time_bins Distinct nominal times after a dose the cohort should
+#'   hold. Below it a one-compartment model is not identifiable, which warns
+#'   rather than refuses: the fit runs and its parameters sit close to their
+#'   starting values. No post-dose observation at all is an error.
 #' @param estimation Passed to `nlmixr2`. `"focei"` by default because the
 #'   selection criterion is AIC and `"saem"` does not reliably produce one at
 #'   these cohort sizes.
@@ -856,6 +860,17 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
                  drop = FALSE]
 
+  # Arms too small to summarize leave first, so every gate, count and fit below
+  # sees the cohort that will actually be modelled.
+  subjects <- .unique_in_order(source[[roles$id]])
+  subject_group <- .model_subject_arms(source, roles)
+  keep <- .drop_short_arms(subject_group, min_arm_patients,
+                           "synpmx_model_estimate()")
+  if (!all(keep)) {
+    subject_group <- subject_group[keep]
+    source <- source[source[[roles$id]] %in% subjects[keep], , drop = FALSE]
+  }
+
   n_source <- length(.unique_in_order(source[[roles$id]]))
   .model_require_subjects(n_source, min_subjects)
   .model_require_nominal_time(source, roles)
@@ -877,9 +892,6 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       paste0("searched over the ", length(pk), " models named in `pk`")
     }
   }
-
-  subject_group <- .model_subject_arms(source, roles)
-  .require_arms(subject_group, min_arm_patients, "synpmx_model_estimate()")
 
   # The apparatus, on the nominal grid, exactly as `synpmx_pca_summarize()`
   # builds it. `.model_cells()` is this generator's adapter over the same

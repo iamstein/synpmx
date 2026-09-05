@@ -67,12 +67,11 @@
   invisible(TRUE)
 }
 
-# Below this the fit reports parameters that came from the starting values.
-# Counted on the nominal grid rather than on recorded times, so that "bin" needs
-# no width chosen here: the grid is the protocol's own sampling slots, and a
-# study sampled at six distinct times after dose has six of them however
-# precisely the clock recorded each visit. Recorded times would make this a
-# count of how noisy the clock was.
+# How much of a curve the sampling shows. Counted on the nominal grid rather
+# than on recorded times, so that "bin" needs no width chosen here: the grid is
+# the protocol's own sampling slots, and a study sampled at six distinct times
+# after dose has six of them however precisely the clock recorded each visit.
+# Recorded times would make this a count of how noisy the clock was.
 .model_time_coverage <- function(source, roles) {
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   planned <- source
@@ -83,15 +82,59 @@
   length(unique(tad[observed]))
 }
 
+# What a count of zero actually means. "0 distinct nominal times after a dose"
+# reads as a statement about the sampling schedule, and it almost never is one:
+# a study with no post-dose sample would not have been run. It is a statement
+# about the role columns -- nothing the roles select is an observation, or
+# nothing is a dose -- so the message names which of the two, with the column it
+# read, rather than leaving the caller to guess what was being counted.
+.model_time_coverage_shortfall <- function(source, roles) {
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  dosed <- .dose_rows(source, roles)
+  if (!any(observed)) {
+    return(paste0("none of the ", nrow(source), " rows is an observation. An ",
+                  "observation is `", roles$evid, "` 0",
+                  if (!is.null(roles$mdv)) paste0(" and `", roles$mdv, "` 0"),
+                  " with `", roles$dv, "` recorded."))
+  }
+  if (!any(dosed)) {
+    return(paste0(sum(observed), " observations are present but no row is a ",
+                  "dose. A dose is a non-zero `", roles$evid, "`",
+                  if (!is.null(roles$amt))
+                    paste0(" with a positive `", roles$amt, "`"),
+                  ", so nothing here has a dose to be measured after."))
+  }
+  paste0(sum(observed), " observations and ", sum(dosed), " dose rows are ",
+         "present, but no subject holds an observation after a dose of its ",
+         "own. Check that both carry the same `", roles$id, "`.")
+}
+
+# Sparse sampling is a weak fit rather than a refusal: below `min_time_bins` the
+# fixed effects sit close to their starting values and the generated profiles
+# are a plausible shape rather than this study's. That is worth saying loudly
+# and is the caller's call to make, so it warns. There is no simpler structural
+# model to fall back to -- the default candidate set is already the
+# one-compartment model, and below it there is no concentration-time curve at
+# all. Nothing to fit at all is still an error, because no fit follows.
 .model_require_time_coverage <- function(source, roles, minimum) {
   minimum <- .positive_integer(minimum, "min_time_bins")
   bins <- .model_time_coverage(source, roles)
+  if (bins == 0L) {
+    stop("`synpmx_model_estimate()` found no observation recorded after a ",
+         "dose, so there is no concentration-time curve to fit: ",
+         .model_time_coverage_shortfall(source, roles),
+         " Check the columns named in `pmx_roles()` against the data.",
+         call. = FALSE)
+  }
   if (bins < minimum) {
-    stop("`synpmx_model_estimate()` needs observations at ", minimum,
-         " distinct nominal times after a dose to identify a linear model; ",
-         "this source has ", bins, ". Below that the fit reports the ",
-         "starting values. `synpmx_avatar()` and `synpmx_pca()` need no ",
-         "identifiable structure and will run on this study.", call. = FALSE)
+    warning("`synpmx_model_estimate()` has observations at ", bins,
+            " distinct nominal time(s) after a dose, below `min_time_bins` = ",
+            minimum, ". A one-compartment model is not identifiable from that ",
+            "sampling: expect parameters close to their starting values and ",
+            "simulated profiles that are a plausible shape rather than an ",
+            "estimate of this study's. `synpmx_avatar()` and `synpmx_pca()` ",
+            "carry sparse sampling without fitting a structure to it.",
+            call. = FALSE)
   }
   invisible(TRUE)
 }

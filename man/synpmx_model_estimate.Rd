@@ -42,10 +42,14 @@ improves AIC. \code{"none"} fits nothing.}
 the subjects it was fitted to rather than a population.}
 
 \item{min_arm_patients}{Minimum patients in every arm, as
-\code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} uses.}
+\code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} uses. Patients in a shorter arm are dropped with a
+warning before anything is fitted, so that arm is absent from the fitted
+model and from the data generated from it.}
 
-\item{min_time_bins}{Minimum distinct nominal times after a dose across the
-cohort. Below it no linear model is identifiable.}
+\item{min_time_bins}{Distinct nominal times after a dose the cohort should
+hold. Below it a one-compartment model is not identifiable, which warns
+rather than refuses: the fit runs and its parameters sit close to their
+starting values. No post-dose observation at all is an error.}
 
 \item{estimation}{Passed to \code{nlmixr2}. \code{"focei"} by default because the
 selection criterion is AIC and \code{"saem"} does not reliably produce one at

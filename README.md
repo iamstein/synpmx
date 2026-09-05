@@ -7,7 +7,7 @@ Documentation is available in the navigation bar at the top of the website:  <ht
 
 ## Will the `synpmx` package support your use case?
 
-There are many reasons to generate "synthetic data."  It is important to be be explicit about your use case because the use case determines whether `synpmx` can fully support you.
+There are many reasons to generate "synthetic data" and `synpmx` is designed primarily to support certain use cases.
 
 **✅ Develop code (Intended Use Case)** You need synthetic data that resembles the true data — schema, event grammar, covariates, dosing, sampling, censoring, and drop-out pattern.  You'll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.  
 
@@ -15,9 +15,9 @@ There are many reasons to generate "synthetic data."  It is important to be be e
 
 **⚠️ Send data past a trust boundary (Use Caution).** If the output will reach people who cannot see the real data: a partner, a publication, a public repository, this package should be used with caution. The formal privacy-protecting methods provided with this package are illustrative, but not audited.  Carefully assess what level of privacy protection is needed.
 
-**❌ Answer scientific questions about the the data (No).** Use the real data for estimating parameters, selecting a model, quantifying a covariate effect or choosing a dose. 
+**❌ Answer scientific questions about the data (No).** Use the real data for estimating parameters, selecting a model, quantifying a covariate effect or choosing a dose. 
 
-The main use caes of this package is for sharing realistic-looking study data
+The main use case of this package is for sharing realistic-looking study data
 outside the GxP computing environment but still within
 the organization, so that code development can occur without the real data. In
 some cases the GxP environment does not permit the most advanced agentic coding
@@ -27,32 +27,18 @@ data.
 
 ## Synthetic data generation methods
 
-Three generators read a study and build a synthetic one from it. They are peers
-rather than a default and its alternatives: each carries something different out
-of the source, and which one suits a given study is still an open question.
-None offers a formal privacy guarantee.
+Three synthetic data generators read a dataset and build a synthetic dataset from it. 
 
-Synthetic data based on:
-
-1. `synpmx_model()` — Fits model to the data, and bases synthetic data off of 
-Fixed effects, a residual error, and a model for dose changes and missed visits
+1. `synpmx_model()` — Fits simple PK and PD models to the observation data, and statistical models to the dosing and missed visit data.  Builds synthetic data by simulating from the models.
 2. `synpmx_pca()` — Principal component analysis from vector of all observations
-   and covariates, with a model for dose changes and missed visits.
+   and covariates.  Uses model to simulate any dose changes and missed visits.
 3. `synpmx_avatar()` — Blended values from real patients
 
-All the above algorithms impute assay LOQ. All three take a declaration of what the columns mean. 
-Only the roles of `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
+The above algorithms all impute assay LOQ. All three algorithms take a declaration of what the dataset columns mean. 
+The roles of `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
 
 There are three additional generation algorithms provided that cover the case where data crosses a trust boundary
-and more formal privacy protections are needed.  Treat them
-as a principled demonstration of the privacy/utility tradeoff rather than as
-production ready — a status enforced in that `synpmx_calibrated()` and
-`synpmx_empirical()` refuse to run until `synpmx_enable_dp_engines()` has been
-called once in the session.
-
-4. `synpmx_prior()` - take a public structural model and prespecified design, not using the real data all.
-5. `synpmx_calibration()` - use data summaries of a few parameters (for smaller trials), and uses a differential-privacy budget to protect privacy.
-6. `synpmx_empirical()`  - use data summaries of many parameters (for larger trials), and uses a differential-privacy budget to protect privacy.
+and more formal privacy protections are needed.  They are reviewed in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
 
 ## Example (with AVATAR)
 
@@ -91,7 +77,7 @@ roles <- pmx_roles(
 
 synthetic <- synpmx_avatar(
   study,             #study data
-  roles,             #column desrciption
+  roles,             #column description
   n_subjects = NULL, # cohort size; NULL matches the source
   seed       = 2026)
 ```
@@ -109,7 +95,6 @@ library(synpmx)
 
 If `remotes` is not available in your environment, you can also try:
 `pak::pak("iamstein/synpmx")` or `devtools::install_github("iamstein/synpmx")`.
-either.
 
 If your environment blocks installing from GitHub, then download the source archive from
 `https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz` and install from the file. 

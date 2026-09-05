@@ -45,9 +45,9 @@ and a tenth of the cohort.}
 
 \item{min_arm_patients}{Minimum patients in every arm. An arm below it has
 no spread of its own to model, so its mean score vector and its covariance
-would describe the one or two patients in it. The function refuses rather
-than summarizing them; pool the arm, drop the column from \code{strata}, or
-exclude those patients before calling.}
+would describe the one or two patients in it. Those patients are dropped
+with a warning naming the arms, and the synthetic data has no such arm.
+Pool the arm, drop the column from \code{strata}, or lower this to keep them.}
 }
 \value{
 A \code{pmx_trial_summary}.

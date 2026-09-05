@@ -290,25 +290,28 @@
 
 # An arm of one or two has no between-subject spread to model: whatever the arm
 # summary is -- a mean score vector, a dose ladder, a per-visit attendance rate
-# -- it is that patient, and its spread is noise around them. Refusing is the
-# only honest answer, and it is loud rather than a silent pooling the caller
-# never asked for. Shared by every generator that summarizes an arm.
-.require_arms <- function(group, minimum, what) {
+# -- it is that patient, and its spread is noise around them. So the arm is left
+# out of the summary rather than modelled from one or two people, and the caller
+# is told which patients went and why: the synthetic cohort is missing an arm the
+# source has, which is a fact about the output rather than a detail of the run.
+# Returns one logical per element of `group`. Shared by every generator that
+# summarizes an arm.
+.drop_short_arms <- function(group, minimum, what) {
   minimum <- as.integer(minimum)
   if (!is.finite(minimum) || minimum < 1L) {
     stop("`min_arm_patients` must be one positive integer.", call. = FALSE)
   }
   sizes <- table(group)
   short <- sizes[sizes < minimum]
-  if (length(short)) {
-    stop("`", what, "` needs at least ", minimum,
-         " patients in every arm. Short: ",
-         paste(sprintf("%s (%d)", names(short), as.integer(short)),
-               collapse = ", "),
-         ". Pool the arm, drop the column from `strata`, or exclude those ",
-         "patients before calling.", call. = FALSE)
-  }
-  invisible(TRUE)
+  if (!length(short)) return(rep(TRUE, length(group)))
+  warning("`", what, "` dropped ", sum(as.integer(short)), " patient(s) in ",
+          length(short), " arm(s) below `min_arm_patients` = ", minimum, ": ",
+          paste(sprintf("%s (%d)", names(short), as.integer(short)),
+                collapse = ", "),
+          ". An arm that size has no spread of its own, so it is absent from ",
+          "the synthetic data. Pool the arm, drop the column from `strata`, ",
+          "or lower `min_arm_patients` to keep it.", call. = FALSE)
+  !(group %in% names(short))
 }
 
 

@@ -120,9 +120,9 @@ than something to infer from recorded times.
 `strata` is load-bearing. It names the
 arms, and the arms are the groups the score trial_summary is fitted against: each one
 gets its own mean score vector and its own residual covariance. An arm of fewer
-than three patients has no spread of its own to trial_summary, so the function refuses
-rather than generating from one or two people. `min_arm_patients` is where that
-floor is set.
+than three patients has no spread of its own to trial_summary, so those patients are
+dropped with a warning rather than generated from. `min_arm_patients` is where
+that floor is set.
 
 ## What the summary read out of the source
 

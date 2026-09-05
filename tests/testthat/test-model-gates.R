@@ -48,12 +48,12 @@ test_that("time coverage counts distinct nominal times after a dose", {
   # The fixture doses at 0 and 12 and samples the same offsets in each
   # interval, so the count is the protocol's slots and not the row count.
   expect_identical(.model_time_coverage(data, roles), 7L)
-  expect_true(.model_require_time_coverage(data, roles, 6L))
-  expect_error(.model_require_time_coverage(data, roles, 8L),
-               "8 distinct nominal times")
+  expect_silent(.model_require_time_coverage(data, roles, 6L))
+  expect_warning(.model_require_time_coverage(data, roles, 8L),
+                 "below `min_time_bins` = 8")
 })
 
-test_that("a trough-only study is refused and pointed at the other generators", {
+test_that("a trough-only study is warned about rather than refused", {
   data <- pmx_simulated_fixture(24)
   # Keep only the pre-dose samples: two nominal times after dose survive, which
   # is what a study sampled at troughs alone looks like.
@@ -61,27 +61,57 @@ test_that("a trough-only study is refused and pointed at the other generators", 
   data <- data[keep, , drop = FALSE]
   roles <- .model_roles()
   expect_lt(.model_time_coverage(data, roles), 6L)
-  expect_error(.model_require_time_coverage(data, roles, 6L),
-               "starting values")
-  expect_error(.model_require_time_coverage(data, roles, 6L),
-               "synpmx_avatar\\(\\)")
+  expect_warning(.model_require_time_coverage(data, roles, 6L),
+                 "starting values")
+  expect_warning(.model_require_time_coverage(data, roles, 6L),
+                 "synpmx_avatar\\(\\)")
 })
 
-test_that("the arm floor is the shared one, and names the caller", {
+# Nothing to fit is still an error, and the message says which of the two role
+# columns the count of zero was really about.
+test_that("no post-dose observation is refused, naming what the roles read", {
+  data <- pmx_simulated_fixture(24)
+  roles <- .model_roles()
+
+  no_observations <- data[data$EVID != 0, , drop = FALSE]
+  expect_identical(.model_time_coverage(no_observations, roles), 0L)
+  expect_error(.model_require_time_coverage(no_observations, roles, 6L),
+               "none of the .* rows is an observation")
+
+  no_doses <- data[data$EVID == 0, , drop = FALSE]
+  expect_identical(.model_time_coverage(no_doses, roles), 0L)
+  expect_error(.model_require_time_coverage(no_doses, roles, 6L),
+               "no row is a dose")
+
+  # Doses and observations that never meet in one subject.
+  split_ids <- data
+  split_ids[[roles$id]] <- ifelse(data$EVID == 0, data$ID, data$ID + 1000L)
+  expect_identical(.model_time_coverage(split_ids, roles), 0L)
+  expect_error(.model_require_time_coverage(split_ids, roles, 6L),
+               "no subject holds an observation after a dose")
+})
+
+test_that("a short arm is warned about and dropped, naming the caller", {
   group <- c(rep("a", 10), rep("b", 2))
-  expect_error(.require_arms(group, 3L, "synpmx_model_estimate()"),
-               "`synpmx_model_estimate\\(\\)` needs at least 3 patients")
-  expect_error(.require_arms(group, 3L, "synpmx_pca()"),
-               "`synpmx_pca\\(\\)` needs at least 3 patients")
-  expect_true(.require_arms(group, 2L, "synpmx_model_estimate()"))
+  expect_warning(keep <- .drop_short_arms(group, 3L,
+                                          "synpmx_model_estimate()"),
+                 "`synpmx_model_estimate\\(\\)` dropped 2 patient\\(s\\)")
+  expect_identical(keep, group == "a")
+  expect_warning(.drop_short_arms(group, 3L, "synpmx_pca()"),
+                 "`synpmx_pca\\(\\)` dropped 2 patient\\(s\\) in 1 arm")
+  expect_silent(keep <- .drop_short_arms(group, 2L,
+                                         "synpmx_model_estimate()"))
+  expect_true(all(keep))
 })
 
-test_that("synpmx_pca_summarize() still refuses a short arm after the lift", {
+test_that("synpmx_pca_summarize() drops a short arm rather than refusing", {
   data <- pmx_simulated_fixture(24)
   data$ARM <- ifelse(data$ID <= 22, "a", "b")
   roles <- .model_roles(strata = "ARM")
-  expect_error(synpmx_pca_summarize(data, roles),
-               "`synpmx_pca\\(\\)` needs at least 3 patients")
+  expect_warning(trial_summary <- synpmx_pca_summarize(data, roles),
+                 "`synpmx_pca\\(\\)` dropped 2 patient\\(s\\)")
+  expect_identical(names(trial_summary$arms$sizes), "a")
+  expect_identical(trial_summary$n_source, 22L)
 })
 
 # The privacy gate. `REV-042`: a model estimated from the confidential data

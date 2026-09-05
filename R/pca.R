@@ -357,9 +357,9 @@
 #'   and a tenth of the cohort.
 #' @param min_arm_patients Minimum patients in every arm. An arm below it has
 #'   no spread of its own to model, so its mean score vector and its covariance
-#'   would describe the one or two patients in it. The function refuses rather
-#'   than summarizing them; pool the arm, drop the column from `strata`, or
-#'   exclude those patients before calling.
+#'   would describe the one or two patients in it. Those patients are dropped
+#'   with a warning naming the arms, and the synthetic data has no such arm.
+#'   Pool the arm, drop the column from `strata`, or lower this to keep them.
 #'
 #' @return A `pmx_trial_summary`.
 #' @seealso [synpmx_pca_generate()], [synpmx_pca()], [pca_report()].
@@ -385,6 +385,18 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
   data <- as.data.frame(data)
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
                  drop = FALSE]
+  # Arms too small to summarize leave first, so the cohort floor, the column
+  # floor and the basis all see the patients that will actually be modelled.
+  subjects <- .unique_in_order(source[[roles$id]])
+  strata_key <- as.character(.subject_strata(source, roles))
+  keep <- .drop_short_arms(vapply(subjects, function(subject) {
+    rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
+    strata_key[rows[1L]]
+  }, character(1)), min_arm_patients, "synpmx_pca()")
+  if (!all(keep)) {
+    source <- source[source[[roles$id]] %in% subjects[keep], , drop = FALSE]
+  }
+
   n_source <- length(.unique_in_order(source[[roles$id]]))
   if (n_source < 10L) {
     stop("`synpmx_pca_summarize()` needs at least 10 subjects to fit a basis; ",
@@ -423,7 +435,6 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
     rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
     strata_key[rows[1L]]
   }, character(1))
-  .require_arms(subject_group, min_arm_patients, "synpmx_pca()")
 
   fit <- .pca_fit(features, dose, subject_group, pca_variance, n_components,
                   dose_term)

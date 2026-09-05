@@ -167,7 +167,9 @@ test_that("both dose terms produce a legal table", {
 })
 
 # The owner's rule, 2026-08-26: an arm of one or two patients is not modelled.
-test_that("an arm below the minimum is refused rather than generated from", {
+# Revised 2026-09-05: it is dropped with a warning rather than refused, so a
+# study with one rare arm still generates.
+test_that("an arm below the minimum is dropped rather than generated from", {
   fixture <- pca_fixture(60)
   data <- fixture$data
   data$ARM <- ifelse(data$ID %in% unique(data$ID)[1:2], "rare", "main")
@@ -177,8 +179,10 @@ test_that("an arm below the minimum is refused rather than generated from", {
     cmt = "CMT", dvid = "DVID", mdv = "MDV", cens = "CENS",
     covariates = c("WT", "AGE", "SEX"), strata = "ARM"
   )
-  expect_error(synpmx_pca(data, roles, seed = 1),
-               "at least 3 patients in every arm")
+  expect_warning(synthetic <- synpmx_pca(data, roles, seed = 1),
+                 "dropped 2 patient\\(s\\) in 1 arm")
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  expect_identical(unique(as.character(synthetic$ARM)), "main")
   expect_true(validate_pmx(
     synpmx_pca(data, roles, seed = 1, min_arm_patients = 2L), roles
   )$valid)

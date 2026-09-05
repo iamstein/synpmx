@@ -91,8 +91,8 @@ Arguments beyond the roles and the seed:
 | `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. |
 | `covariate_effects` | `"auto"` | `"auto"` applies allometric scaling where a weight-like covariate is declared; `"none"` fits nothing. |
 | `min_subjects` | `20L` | Refuse below this cohort size. |
-| `min_arm_patients` | `3L` | Refuse below this many patients in any arm, as `synpmx_pca_summarize()` does. |
-| `min_time_bins` | `6L` | Refuse below this many distinct nominal times after a dose. |
+| `min_arm_patients` | `3L` | Warn and drop the patients in any arm below this, as `synpmx_pca_summarize()` does. |
+| `min_time_bins` | `6L` | Warn and fit anyway below this many distinct nominal times after a dose; no post-dose observation at all still refuses. |
 | `estimation` | `"focei"` | Passed to `nlmixr2`. |
 
 **The default path performs exactly one population fit.** That is the design
