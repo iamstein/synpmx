@@ -107,36 +107,27 @@
 <div class="section level2">
 <h2 id="will-the-synpmx-package-support-your-use-case">Will the <code>synpmx</code> package support your use case?<a class="anchor" aria-label="anchor" href="#will-the-synpmx-package-support-your-use-case"></a>
 </h2>
-<p>There are many reasons to generate “synthetic data.” It is important to be be explicit about your use case because the use case determines whether <code>synpmx</code> can fully support you.</p>
+<p>There are many reasons to generate “synthetic data” and <code>synpmx</code> is designed primarily to support certain use cases.</p>
 <p><strong>✅ Develop code (Intended Use Case)</strong> You need synthetic data that resembles the true data — schema, event grammar, covariates, dosing, sampling, censoring, and drop-out pattern. You’ll use this data to develop code for data processing, diagnostics, and model building outside the environment that holds the real study.</p>
 <p><strong>✅ Teaching tool for comparing synthetic data methods (Yes).</strong> Illustrate the difference between synthetic data generation methods.</p>
 <p><strong>⚠️ Send data past a trust boundary (Use Caution).</strong> If the output will reach people who cannot see the real data: a partner, a publication, a public repository, this package should be used with caution. The formal privacy-protecting methods provided with this package are illustrative, but not audited. Carefully assess what level of privacy protection is needed.</p>
-<p><strong>❌ Answer scientific questions about the the data (No).</strong> Use the real data for estimating parameters, selecting a model, quantifying a covariate effect or choosing a dose.</p>
-<p>The main use caes of this package is for sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can occur without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
+<p><strong>❌ Answer scientific questions about the data (No).</strong> Use the real data for estimating parameters, selecting a model, quantifying a covariate effect or choosing a dose.</p>
+<p>The main use case of this package is for sharing realistic-looking study data outside the GxP computing environment but still within the organization, so that code development can occur without the real data. In some cases the GxP environment does not permit the most advanced agentic coding tools, because of the risk of misalignment or unintended agent behavior. Working with synthetic data lets those tools be used without exposing them to patient data.</p>
 </div>
 <div class="section level2">
 <h2 id="synthetic-data-generation-methods">Synthetic data generation methods<a class="anchor" aria-label="anchor" href="#synthetic-data-generation-methods"></a>
 </h2>
-<p>Three generators read a study and build a synthetic one from it. They are peers rather than a default and its alternatives: each carries something different out of the source, and which one suits a given study is still an open question. None offers a formal privacy guarantee.</p>
-<p>Synthetic data based on:</p>
+<p>Three synthetic data generators read a dataset and build a synthetic dataset from it.</p>
 <ol style="list-style-type: decimal">
 <li>
-<code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fits model to the data, and bases synthetic data off of Fixed effects, a residual error, and a model for dose changes and missed visits</li>
+<code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fits simple PK and PD models to the observation data, and statistical models to the dosing and missed visit data. Builds synthetic data by simulating from the models.</li>
 <li>
-<code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates, with a model for dose changes and missed visits.</li>
+<code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates. Uses model to simulate any dose changes and missed visits.</li>
 <li>
 <code><a href="reference/synpmx_avatar.html">synpmx_avatar()</a></code> — Blended values from real patients</li>
 </ol>
-<p>All the above algorithms impute assay LOQ. All three take a declaration of what the columns mean. Only the roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
-<p>There are three additional generation algorithms provided that cover the case where data crosses a trust boundary and more formal privacy protections are needed. Treat them as a principled demonstration of the privacy/utility tradeoff rather than as production ready — a status enforced in that <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> and <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> refuse to run until <code><a href="reference/synpmx_enable_dp_engines.html">synpmx_enable_dp_engines()</a></code> has been called once in the session.</p>
-<ol start="4" style="list-style-type: decimal">
-<li>
-<code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code> - take a public structural model and prespecified design, not using the real data all.</li>
-<li>
-<code>synpmx_calibration()</code> - use data summaries of a few parameters (for smaller trials), and uses a differential-privacy budget to protect privacy.</li>
-<li>
-<code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> - use data summaries of many parameters (for larger trials), and uses a differential-privacy budget to protect privacy.</li>
-</ol>
+<p>The above algorithms all impute assay LOQ. All three algorithms take a declaration of what the dataset columns mean. The roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
+<p>There are three additional generation algorithms provided that cover the case where data crosses a trust boundary and more formal privacy protections are needed. They are reviewed in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a></p>
 </div>
 <div class="section level2">
 <h2 id="example-with-avatar">Example (with AVATAR)<a class="anchor" aria-label="anchor" href="#example-with-avatar"></a>
@@ -175,7 +166,7 @@
 <span></span>
 <span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span></span>
 <span>  <span class="va">study</span>,             <span class="co">#study data</span></span>
-<span>  <span class="va">roles</span>,             <span class="co">#column desrciption</span></span>
+<span>  <span class="va">roles</span>,             <span class="co">#column description</span></span>
 <span>  n_subjects <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># cohort size; NULL matches the source</span></span>
 <span>  seed       <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -188,7 +179,7 @@
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span></code></pre></div>
-<p>If <code>remotes</code> is not available in your environment, you can also try: <code>pak::pak("iamstein/synpmx")</code> or <code>devtools::install_github("iamstein/synpmx")</code>. either.</p>
+<p>If <code>remotes</code> is not available in your environment, you can also try: <code>pak::pak("iamstein/synpmx")</code> or <code>devtools::install_github("iamstein/synpmx")</code>.</p>
 <p>If your environment blocks installing from GitHub, then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file. This package needs nothing but base R.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>

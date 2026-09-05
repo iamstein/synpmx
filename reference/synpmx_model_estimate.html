@@ -151,12 +151,16 @@ the subjects it was fitted to rather than a population.</p></dd>
 
 <dt id="arg-min-arm-patients">min_arm_patients<a class="anchor" aria-label="anchor" href="#arg-min-arm-patients"></a></dt>
 <dd><p>Minimum patients in every arm, as
-<code><a href="synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> uses.</p></dd>
+<code><a href="synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> uses. Patients in a shorter arm are dropped with a
+warning before anything is fitted, so that arm is absent from the fitted
+model and from the data generated from it.</p></dd>
 
 
 <dt id="arg-min-time-bins">min_time_bins<a class="anchor" aria-label="anchor" href="#arg-min-time-bins"></a></dt>
-<dd><p>Minimum distinct nominal times after a dose across the
-cohort. Below it no linear model is identifiable.</p></dd>
+<dd><p>Distinct nominal times after a dose the cohort should
+hold. Below it a one-compartment model is not identifiable, which warns
+rather than refuses: the fit runs and its parameters sit close to their
+starting values. No post-dose observation at all is an error.</p></dd>
 
 
 <dt id="arg-estimation">estimation<a class="anchor" aria-label="anchor" href="#arg-estimation"></a></dt>

@@ -68,12 +68,16 @@ synpmx_model_estimate(
 
   Minimum patients in every arm, as
   [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
-  uses.
+  uses. Patients in a shorter arm are dropped with a warning before
+  anything is fitted, so that arm is absent from the fitted model and
+  from the data generated from it.
 
 - min_time_bins:
 
-  Minimum distinct nominal times after a dose across the cohort. Below
-  it no linear model is identifiable.
+  Distinct nominal times after a dose the cohort should hold. Below it a
+  one-compartment model is not identifiable, which warns rather than
+  refuses: the fit runs and its parameters sit close to their starting
+  values. No post-dose observation at all is an error.
 
 - estimation:
 

@@ -69,13 +69,14 @@ as in
 Step 4 fits against, so a column added to `strata` adds a group whose
 mean and covariance are estimated separately.
 
-**An arm of fewer than three patients is refused.** Its mean score
+**An arm of fewer than three patients is dropped.** Its mean score
 vector would be those patients and its covariance would be noise around
-them.
+them, so
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
-stops and names the short arms rather than generating from one or two
-people. `min_arm_patients` sets the floor. Pool the arm, drop the column
-from `strata`, or exclude those patients before calling.
+warns, names the short arms and leaves them out rather than generating
+from one or two people. The synthetic data then has no such arm.
+`min_arm_patients` sets the floor: pool the arm, drop the column from
+`strata`, or lower the floor to keep them.
 
 ## Step 2: One Feature Vector per Subject
 

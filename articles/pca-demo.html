@@ -201,7 +201,7 @@ rather than something to infer from recorded times.</p>
 are the groups the score trial_summary is fitted against: each one gets
 its own mean score vector and its own residual covariance. An arm of
 fewer than three patients has no spread of its own to trial_summary, so
-the function refuses rather than generating from one or two people.
+those patients are dropped with a warning rather than generated from.
 <code>min_arm_patients</code> is where that floor is set.</p>
 </div>
 <div class="section level2">

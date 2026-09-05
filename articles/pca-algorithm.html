@@ -191,13 +191,13 @@ with <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, as in
 are the groups Step 4 fits against, so a column added to
 <code>strata</code> adds a group whose mean and covariance are estimated
 separately.</p>
-<p><strong>An arm of fewer than three patients is refused.</strong> Its
+<p><strong>An arm of fewer than three patients is dropped.</strong> Its
 mean score vector would be those patients and its covariance would be
-noise around them. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> stops and names the short
-arms rather than generating from one or two people.
-<code>min_arm_patients</code> sets the floor. Pool the arm, drop the
-column from <code>strata</code>, or exclude those patients before
-calling.</p>
+noise around them, so <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> warns, names the short
+arms and leaves them out rather than generating from one or two people.
+The synthetic data then has no such arm. <code>min_arm_patients</code>
+sets the floor: pool the arm, drop the column from <code>strata</code>,
+or lower the floor to keep them.</p>
 </div>
 <div class="section level2">
 <h2 id="step-2-one-feature-vector-per-subject">Step 2: One Feature Vector per Subject<a class="anchor" aria-label="anchor" href="#step-2-one-feature-vector-per-subject"></a>
