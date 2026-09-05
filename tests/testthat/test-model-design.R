@@ -463,6 +463,40 @@ test_that("a schedule carrying information is left alone", {
   }
 })
 
+# A patient dosed and never sampled for the endpoint being fitted. Real: the
+# owner hit it on a private study, where it crashed the compression with
+# "replacement has 1 row, data has 0".
+test_that("a subject with doses and no samples does not break the fit table", {
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV")
+  subject <- function(id, sampled) {
+    doses <- data.frame(ID = id, TIME = c(0, 24, 48, 72), NTIME = c(0, 24, 48, 72),
+                        DV = NA_real_, AMT = 100, EVID = 1L, CMT = 1L,
+                        DVID = "cp", MDV = 1L)
+    if (!sampled) return(doses)
+    samples <- data.frame(ID = id, TIME = c(1, 25, 49), NTIME = c(1, 25, 49),
+                          DV = c(8, 7.5, 7.1), AMT = 0, EVID = 0L, CMT = 2L,
+                          DVID = "cp", MDV = 0L)
+    rbind(doses, samples)
+  }
+  data <- rbind(subject(1L, TRUE), subject(2L, TRUE), subject(3L, FALSE))
+  data <- data[order(data$ID, data$TIME, data$EVID == 0L), , drop = FALSE]
+
+  # Not fitted: a subject with no observation of the endpoint adds no term to
+  # the likelihood. Its dosing and visits still reach the arm models, which
+  # read the source rather than this table.
+  fit_table <- .model_estimation_data(data, roles, "cp")
+  expect_identical(sort(unique(fit_table$ID)), c("1", "2"))
+
+  # And the compression survives one arriving anyway, which is what crashed.
+  dose_only <- data.frame(ID = "3", TIME = c(0, 24, 48, 72), DV = NA_real_,
+                          AMT = 100, EVID = 1L)
+  expect_silent(compressed <- .compress_dose_schedule(dose_only))
+  expect_identical(nrow(compressed), 1L)
+  expect_identical(compressed$ADDL, 3L)
+})
+
 test_that("the wait is announced before it happens", {
   data <- .repeated_study(n = 6, doses = 5)
   compressed <- .compress_dose_schedule(data)

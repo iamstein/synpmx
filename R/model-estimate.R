@@ -270,6 +270,11 @@
     rate[!is.finite(rate)] <- 0
     out$RATE <- ifelse(out$EVID != 0L, rate[keep], 0)
   }
+  # A subject dosed but never sampled for this endpoint adds no term to the
+  # likelihood. Its dosing and its visits are real and still reach the arm
+  # models, which read the source rather than this table, but a dose-only
+  # record here is at best ignored by the solver and at worst an error in it.
+  out <- out[out$ID %in% unique(out$ID[!is.na(out$DV)]), , drop = FALSE]
   out <- out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
   rownames(out) <- NULL
   out
@@ -341,8 +346,11 @@
     first <- doses[1L, , drop = FALSE]
     first$ADDL <- nrow(doses) - 1L
     first$II <- interval
-    observations$ADDL <- 0L
-    observations$II <- 0
+    # `rep()` rather than the scalar, because a subject can arrive here dosed
+    # and never sampled -- and a one-row value assigned to a zero-row frame is
+    # an error rather than an empty column.
+    observations$ADDL <- rep(0L, nrow(observations))
+    observations$II <- rep(0, nrow(observations))
     rows <- rbind(first, observations)
     rows[order(rows$TIME, rows$EVID == 0L), , drop = FALSE]
   })
@@ -906,6 +914,24 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                             min_arm_patients)
 
   recorded_data <- .model_estimation_data(source, roles, classified$pk)
+  # Who that left out. Said plainly, because the fit is then a statement about
+  # fewer people than the study has, and a warning where it takes the fitted
+  # cohort under the floor the run was told to hold.
+  fitted_subjects <- length(unique(recorded_data$ID))
+  if (fitted_subjects < n_source) {
+    note <- paste0(n_source - fitted_subjects, " of ", n_source,
+                   " subjects have no `", classified$pk,
+                   "` observation and are not fitted; their dosing and visits ",
+                   "still reach the arm models.")
+    if (fitted_subjects < min_subjects) {
+      warning(note, " That leaves ", fitted_subjects,
+              " subjects under `min_subjects` = ", min_subjects,
+              ", so the covariance describes those subjects rather than a ",
+              "population.", call. = FALSE)
+    } else if (!quiet) {
+      message(note)
+    }
+  }
   estimation_data <- .compress_dose_schedule(recorded_data)
   # Proportional error unless the concentration lives on a scale that includes
   # zero. A handful of non-positive readings does not make that scale: they are

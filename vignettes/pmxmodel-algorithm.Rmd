@@ -227,6 +227,13 @@ are one list. That is also why no dose effect on clearance is fitted: it would
 mean a candidate set that is no longer five closed-form models, and generation
 would need a solver.
 
+**A subject the endpoint was never measured in is not fitted.** It adds no term
+to the likelihood, and a record carrying doses and no samples is at best ignored
+by the solver. Its dosing and its visits are still real and still reach the
+models of Step 4, which read the study rather than the table handed to the
+fitter. How many subjects that left out is said before the fit, and it warns
+where it takes the fitted cohort under `min_subjects`.
+
 Each candidate carries log-normal between-subject variability on every
 structural parameter and a proportional residual error. An endpoint holding
 values at or below zero after censoring is handled gets an additive error
