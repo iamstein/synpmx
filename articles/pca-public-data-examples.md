@@ -144,14 +144,18 @@ Every example follows the same five steps:
     against synthetic;
 5.  report the scorecard.
 
-Three scorecard rows read `not applicable` on every card below —
-**B1a**, **B1b** and **C2** — because they read a run record that
+Five scorecard rows read `not applicable` on every card below. **B1a**,
+**B1b** and **C2** read a run record that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-writes and this generator does not. That is a limitation of those three
-rows rather than a property of any dataset here, and it is the same on
-all seven. **B4a** and **B4b** ask the copy question directly on the
-finished tables and are the rows that carry the claim; the section at
-the end reports what they found.
+writes and this generator does not. **B4a** asks whether a generated set
+of observation times copies a real one, and **B2** whether a synthetic
+patient stands out from its stratum; both are disclosure questions where
+a real patient’s record was reused, and this generator draws each visit
+and each profile from a model of the cohort instead. That is a
+limitation of those rows rather than a property of any dataset here, and
+it is the same on all seven. **B4b** asks the copy question directly on
+the finished tables and is the row that carries the claim; the section
+at the end reports what it found.
 
 ## The nominal grid is the requirement
 
@@ -600,11 +604,10 @@ The planned schedule, which every generated patient receives. {.table}
 The cost is on the other side and is stated in
 [`vignette("pca-algorithm")`](https://iamstein.github.io/synpmx/articles/pca-algorithm.md):
 there is **one** schedule where the source had twelve. C2 is the row
-that would say so, and it is one of the three that cannot read this
+that would say so, and it is one of the rows that cannot read this
 generator’s output.
 [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
-above is what to read in its place. B2 reads `review` at 3 of 12 — the
-distinct visit sets that survived.
+above is what to read in its place.
 
 ## mavoglurant: an occasion-reset clock
 
@@ -770,21 +773,23 @@ knitr::kable(verdicts, row.names = FALSE,
 
 | Dataset     | pass | review | FAIL | not applicable | Failing |
 |:------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd  |   12 |      2 |    0 |              4 |         |
-| mad         |   13 |      1 |    0 |              4 |         |
-| warfarin    |   13 |      1 |    0 |              4 |         |
-| wbcSim      |   11 |      3 |    0 |              4 |         |
-| theo_md     |   13 |      1 |    0 |              4 |         |
-| nimoData    |   12 |      2 |    0 |              4 |         |
-| mavoglurant |   11 |      3 |    0 |              4 |         |
+| case1_pkpd  |   11 |      2 |    0 |              5 |         |
+| mad         |   12 |      1 |    0 |              5 |         |
+| warfarin    |   12 |      1 |    0 |              5 |         |
+| wbcSim      |   10 |      3 |    0 |              5 |         |
+| theo_md     |   12 |      1 |    0 |              5 |         |
+| nimoData    |   12 |      1 |    0 |              5 |         |
+| mavoglurant |   10 |      3 |    0 |              5 |         |
 
 Scorecard verdicts across the seven runs. {.table}
 
-`not applicable` is 3 on every row and is a gap in those three checks
-rather than a result: B1a, B1b and C2 read a run record this generator
-does not write. All three questions are answerable from the two tables,
-and until they are computed that way the card is silent exactly where
-this generator’s largest loss is — C2, the variety of dose schedules.
+`not applicable` is 5 on every row and is a gap rather than a result.
+B1a, B1b and C2 read a run record this generator does not write; all
+three questions are answerable from the two tables, and until they are
+computed that way the card is silent exactly where this generator’s
+largest loss is — C2, the variety of dose schedules. B2 and B4a ask
+whether a real patient’s profile or visit set was reused, which this
+generator does not do at all.
 
 **D1 is `review` on all seven**, and it is the row that describes the
 method rather than any study. It reports the furthest standard-deviation

@@ -224,16 +224,19 @@ source’s.
 works this study end to end, including what its 46% censoring and its PD
 endpoint cost.
 
-Four rows read `not applicable` on every card in this article, so they
+Five rows read `not applicable` on every card in this article, so they
 are worth reading once here. B1a, B1b and C2 need a run record that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 writes and this generator does not. B4a asks whether a generated set of
 observation times copies a real one, which is a disclosure question only
 where the set was taken from somebody: this generator decides each visit
 independently from a per-arm probability, so a match is a coincidence
-with a computable chance. **B4b is the row that carries the claim here,
-and it is 0 on every dataset below**: no value any patient measured is
-reproduced.
+with a computable chance. B2 asks whether a synthetic patient stands out
+from its stratum, which is a disclosure question for a generator that
+hands a real patient’s trajectory to an avatar and a reading about the
+tail of a distribution here. **B4b is the row that carries the claim
+here, and it is 0 on every dataset below**: no value any patient
+measured is reproduced.
 
 ## mad: five endpoints, only one of them a concentration
 
@@ -1198,18 +1201,18 @@ knitr::kable(verdicts, row.names = FALSE,
 
 | Dataset     | pass | review | FAIL | not applicable | Failing |
 |:------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd  |   12 |      2 |    0 |              4 |         |
-| mad         |   13 |      1 |    0 |              4 |         |
-| warfarin    |   13 |      1 |    0 |              4 |         |
-| wbcSim      |   10 |      4 |    0 |              4 |         |
-| mavoglurant |   11 |      3 |    0 |              4 |         |
-| theo_md     |   13 |      1 |    0 |              4 |         |
-| nimoData    |   13 |      1 |    0 |              4 |         |
-| pheno_sd    |   12 |      2 |    0 |              4 |         |
+| case1_pkpd  |   11 |      2 |    0 |              5 |         |
+| mad         |   12 |      1 |    0 |              5 |         |
+| warfarin    |   12 |      1 |    0 |              5 |         |
+| wbcSim      |    9 |      4 |    0 |              5 |         |
+| mavoglurant |   10 |      3 |    0 |              5 |         |
+| theo_md     |   12 |      1 |    0 |              5 |         |
+| nimoData    |   12 |      1 |    0 |              5 |         |
+| pheno_sd    |   11 |      2 |    0 |              5 |         |
 
 Scorecard verdicts across the eight runs. {.table}
 
-No card fails on any of the eight. Four rows on each read
+No card fails on any of the eight. Five rows on each read
 `not applicable` for the reasons given under `case1_pkpd`, and the rows
 that ask to be read are `A5a`, `A5b` and `D1` — how many observations
 and occasions each patient kept, and how far a spread moved.
