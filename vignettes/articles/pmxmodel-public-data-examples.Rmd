@@ -45,23 +45,25 @@ identical studies.
 
 This generator asks more of a study than the other two, and **what separates
 these datasets is whether the study can identify a population model at all.**
-Three requirements, each of which refuses rather than guesses:
+Two things it will not guess, and one it will do anyway and warn about:
 
 - **A declared nominal grid**, as `synpmx_pca()` needs — the visit model is
-  built on it.
-- **At least twenty subjects.** A covariance matrix fitted to fewer describes
-  those subjects rather than a population, so `min_subjects` refuses below that
-  and says so.
+  built on it. Refused, because inferring the grid is a statement about the
+  protocol only the reader can make.
 - **An endpoint that behaves like a drug concentration**: absent before the
-  first dose and rising with dose. Without one there is nothing to put a
-  structural model on.
+  first dose and rising with dose. Refused, because without one there is
+  nothing to put a structural model on.
+- **A cohort large enough for a covariance matrix**, which `min_subjects` sets
+  at twenty. Below it the fit runs and warns: a matrix estimated from twelve
+  subjects describes those twelve, and whether that is fit for the purpose is a
+  judgement about the purpose rather than about the count.
 
-Five studies clear all three unaided. The other three run once something is
-declared, and what each has to declare is the useful part: `theo_md` needs its
-subject floor lifted, `nimoData` needs both that and its concentration named,
-and `pheno_sd` needs its concentration named and a nominal grid built for it,
+Six studies clear both refusals unaided. The other two run once something is
+declared, and what each has to declare is the useful part: `nimoData` needs its
+concentration named, and `pheno_sd` needs that and a nominal grid built for it,
 because routine care wrote none down — which is the case to read before
-declaring one your study does not have.
+declaring one your study does not have. `theo_md` needs nothing declared and
+warns about its twelve subjects.
 
 All eight run below. Every refusal is shown before the declaration that lifts
 it, because the refusal is what you will meet first.
@@ -421,9 +423,10 @@ is the visit and dosing models rather than the structural one.
 
 12 subjects, seven doses exactly 24 h apart, dense sampling around the first
 and last dose. The grid is constructible and the endpoint is a concentration,
-so the only thing standing between this study and a fit is the cohort size.
+so nothing stands between this study and a fit except the cohort size — and
+that is a warning rather than a refusal.
 
-```{r theo-refusal, eval=has_nlmixr2data, error=TRUE}
+```{r theo-grid, eval=has_nlmixr2data}
 data("theo_md", package = "nlmixr2data")
 theo_md <- as.data.frame(theo_md)
 theo_doses <- seq(0, 144, by = 24)
@@ -439,13 +442,22 @@ theo_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", covariates = "WT"
 )
-synpmx_model_estimate(theo_md, theo_roles, seed = 1)
 ```
 
-The floor is an argument rather than a constant, so it can be lowered where the
-consequence is understood. The fit below was built with `min_subjects = 12L`,
-and what it costs is stated in the row it fills in the closing tables: a
-covariance matrix estimated from twelve subjects describes those twelve.
+`synpmx_model_estimate(theo_md, theo_roles, seed = 1)` fits, and says what it
+is doing on the way past:
+
+> `synpmx_model_estimate()` is fitting a population model to 12 subjects, below
+> `min_subjects` = 20. The fixed effects and the covariance matrix describe
+> those 12 subjects rather than a population, and nothing downstream will tell
+> you so: the scorecard asks whether the output copies anybody or changed the
+> study's shape, and a small-cohort fit does neither.
+
+The floor is an argument rather than a constant, so `min_subjects = 12L` says
+the consequence is understood and silences it. That is what the stored fit
+below was built with, and what it costs is stated in the row it fills in the
+closing tables: a covariance matrix estimated from twelve subjects describes
+those twelve.
 
 ```{r theo, eval=run, message=FALSE}
 theo_run <- model_run("theo_md", theo_md, theo_roles, "theo-md-model-fit.rds",
@@ -472,8 +484,8 @@ exists because nothing downstream of it can tell.
 
 12 subjects, ten roughly weekly infusions, with dose times recorded as actuals.
 The grid construction is the one the AVATAR and PCA surveys work out, reused
-unchanged. The study is refused twice before it runs — first for its cohort
-size, and then for a reason worth reading.
+unchanged. Its twelve subjects draw the same warning `theo_md` did, and then
+it is refused for a reason worth reading.
 
 ```{r nimo, eval=has_nlmixr2data, error=TRUE}
 data("nimoData", package = "nlmixr2data")

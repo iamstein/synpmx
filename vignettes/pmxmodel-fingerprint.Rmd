@@ -110,14 +110,11 @@ fit <- synpmx_model_estimate(warfarin, roles, seed = 1)
 The chunk above is shown rather than run: fitting compiles a model, so this
 document reads a stored fit and `R CMD check` never needs a compiler.
 
-```{r fit, eval=run}
-fit
-```
-
 ## The inventory
 
 `model_report()` is the top-level account, and it separates the two halves
-because they answer to different things.
+because they answer to different things. Printing the fitted object shows the
+same account, because everything on it is an input to the generation step.
 
 ```{r report, eval=run}
 model_report(fit)

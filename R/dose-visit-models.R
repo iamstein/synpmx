@@ -306,7 +306,7 @@
   if (!length(short)) return(rep(TRUE, length(group)))
   warning("`", what, "` dropped ", sum(as.integer(short)), " patient(s) in ",
           length(short), " arm(s) below `min_arm_patients` = ", minimum, ": ",
-          paste(sprintf("%s (%d)", names(short), as.integer(short)),
+          paste(sprintf("%s (%d)", .arm_label(names(short)), as.integer(short)),
                 collapse = ", "),
           ". An arm that size has no spread of its own, so it is absent from ",
           "the synthetic data. Pool the arm, drop the column from `strata`, ",

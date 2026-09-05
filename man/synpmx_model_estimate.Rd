@@ -38,8 +38,9 @@ drug concentration, as \code{c(pk = "cp")}, overriding the inference.}
 volume where a weight-like covariate is declared and keeps it where it
 improves AIC. \code{"none"} fits nothing.}
 
-\item{min_subjects}{Cohort floor. Below it the covariance matrix describes
-the subjects it was fitted to rather than a population.}
+\item{min_subjects}{Cohort size the fit should have. Below it the covariance
+matrix describes the subjects it was fitted to rather than a population,
+which warns rather than refuses: the fit runs on whatever the study has.}
 
 \item{min_arm_patients}{Minimum patients in every arm, as
 \code{\link[=synpmx_pca_summarize]{synpmx_pca_summarize()}} uses. Patients in a shorter arm are dropped with a

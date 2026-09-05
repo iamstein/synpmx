@@ -211,6 +211,21 @@ test_that("estimation reads recorded times, not the nominal grid", {
   expect_lt(fit$parameters$fixed[["cl"]], .default_fit()$parameters$fixed[["cl"]])
 })
 
+# How long it took is reported, because it is the number a caller weighs a
+# rerun against.
+test_that("the fit carries the time it took, per candidate and in total", {
+  skip_without_fitter()
+  fit <- .default_fit()
+  table <- model_candidates(fit)
+  expect_true("seconds" %in% names(table))
+  expect_true(all(table$seconds > 0))
+  expect_gte(fit$timing$total, fit$timing$fit)
+  expect_gte(fit$timing$fit, sum(table$seconds) - 1e-6)
+  expect_output(print(model_report(fit)), "time to fit")
+  # Printing the object prints the report, so the wait is on both.
+  expect_output(print(fit), "time to fit")
+})
+
 test_that("a whole study round-trips through estimate and generate", {
   skip_without_fitter()
   data <- .oral_study()

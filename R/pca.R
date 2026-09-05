@@ -708,13 +708,6 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
   out
 }
 
-# `.subject_strata()` joins the strata columns with a control character, which
-# is right for a key and wrong in a table someone reads. The arm keeps its key
-# internally and is labelled with the columns joined readably.
-.pca_arm_label <- function(arm) {
-  gsub("\r", " / ", arm, fixed = TRUE)
-}
-
 # Accept a generated dataset or the trial summary itself.
 .pca_trial_summary <- function(x) {
   out <- attr(x, "pmx_trial_summary") %||% x
@@ -761,7 +754,7 @@ pca_dosing <- function(x) {
     entry <- trial_summary$dosing[[arm]]
     planned <- entry$planned
     if (!nrow(planned)) return(NULL)
-    data.frame(arm = .pca_arm_label(arm), cycle = planned$cycle,
+    data.frame(arm = .arm_label(arm), cycle = planned$cycle,
                time = planned$time, planned_amt = planned$amt,
                stringsAsFactors = FALSE)
   }))
@@ -805,7 +798,7 @@ pca_dose_rates <- function(x) {
   out <- do.call(rbind, lapply(trial_summary$arms$arms, function(arm) {
     entry <- trial_summary$dosing[[arm]]
     data.frame(
-      arm = .pca_arm_label(arm),
+      arm = .arm_label(arm),
       planned_cycles = nrow(entry$planned),
       levels = paste(format(entry$levels, trim = TRUE), collapse = ", "),
       discontinuation = round(entry$discontinuation, 4),
@@ -849,7 +842,7 @@ pca_visits <- function(x) {
     entry <- trial_summary$visits[[arm]]
     members <- fit$members[entry$cells]
     data.frame(
-      arm = .pca_arm_label(arm),
+      arm = .arm_label(arm),
       endpoint = vapply(members, function(m) m$endpoint, character(1)),
       time = vapply(members, function(m) as.numeric(m$time), numeric(1)),
       probability = entry$probability,
@@ -868,7 +861,7 @@ print.pmx_trial_summary <- function(x, ...) {
   cat("A trial summary, from synpmx_pca_summarize()\n\n")
   cat("  fitted on   ", x$n_source, "patients,",
       length(x$arms$arms), "arm(s):",
-      paste(sprintf("%s (%d)", .pca_arm_label(x$arms$arms),
+      paste(sprintf("%s (%d)", .arm_label(x$arms$arms),
                     as.integer(x$arms$sizes[x$arms$arms])),
             collapse = ", "), "\n")
   cat("  endpoints   ",
@@ -1096,7 +1089,7 @@ pca_scores <- function(x) {
       spread <- sqrt(diag(scores$covariances[[arm]]))
     }
     data.frame(
-      arm = .pca_arm_label(arm),
+      arm = .arm_label(arm),
       component = paste0("PC", seq_len(fit$k)),
       mean = mean, sd = as.numeric(spread),
       stringsAsFactors = FALSE

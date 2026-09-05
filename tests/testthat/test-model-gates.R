@@ -9,18 +9,20 @@
             mdv = "MDV", ...)
 }
 
-test_that("the cohort floor refuses below min_subjects and names the alternatives", {
-  expect_error(.model_require_subjects(19L, 20L), "at least 20 subjects")
-  expect_error(.model_require_subjects(19L, 20L), "synpmx_pca\\(\\)")
-  expect_true(.model_require_subjects(20L, 20L))
+test_that("a cohort under min_subjects warns, fits, and names what it costs", {
+  expect_warning(.model_note_subjects(19L, 20L),
+                 "fitting a population model to 19 subjects")
+  expect_warning(.model_note_subjects(19L, 20L), "the scorecard asks")
+  expect_warning(.model_note_subjects(19L, 20L), "synpmx_pca\\(\\)")
+  expect_silent(.model_note_subjects(20L, 20L))
   # Higher than PCA's floor of 10, deliberately: a cohort PCA will summarize is
-  # not necessarily one this generator will fit.
-  expect_error(.model_require_subjects(12L, 20L))
+  # not necessarily one this generator will fit well.
+  expect_warning(.model_note_subjects(12L, 20L))
 })
 
 test_that("min_subjects itself must be one positive integer", {
-  expect_error(.model_require_subjects(30L, 0L), "min_subjects")
-  expect_error(.model_require_subjects(30L, c(5L, 10L)), "min_subjects")
+  expect_error(.model_note_subjects(30L, 0L), "min_subjects")
+  expect_error(.model_note_subjects(30L, c(5L, 10L)), "min_subjects")
 })
 
 test_that("an undeclared nominal grid is refused, and says why", {

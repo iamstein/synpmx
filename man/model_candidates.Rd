@@ -10,7 +10,8 @@ model_candidates(fitted_model)
 \item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}.}
 }
 \value{
-A data frame with columns \code{model}, \code{converged}, \code{aic} and \code{note}.
+A data frame with columns \code{model}, \code{converged}, \code{aic}, \code{seconds} --
+how long that candidate took to fit -- and \code{note}.
 }
 \description{
 Every candidate the design admitted, whether or not it converged, with the

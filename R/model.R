@@ -25,14 +25,25 @@
 # subject's coordinates in a basis everybody shares, and the fixed effect is a
 # statement about the population that has only these people in it. A threshold
 # rather than an accounting; what would replace it with a number is `SIM-056`.
-.model_require_subjects <- function(n_source, minimum) {
+#
+# It warns rather than refuses. Whether a covariance matrix estimated from
+# eighteen people is fit for the purpose at hand is a judgement about the
+# purpose, which the count cannot make on the caller's behalf -- and the study
+# small enough to trip this is often the one most in need of a synthetic copy.
+# What the warning has to carry is the part nothing downstream will say: a
+# scorecard reads whether the output copies anybody or changed the study's
+# shape, and a small-cohort fit does neither.
+.model_note_subjects <- function(n_source, minimum) {
   minimum <- .positive_integer(minimum, "min_subjects")
   if (n_source < minimum) {
-    stop("`synpmx_model_estimate()` needs at least ", minimum,
-         " subjects to fit a population model; this source has ", n_source,
-         ". A covariance matrix fitted to fewer describes those subjects ",
-         "rather than a population. `synpmx_avatar()` and `synpmx_pca()` need ",
-         "no identifiable structure and have lower floors.", call. = FALSE)
+    warning("`synpmx_model_estimate()` is fitting a population model to ",
+            n_source, " subjects, below `min_subjects` = ", minimum,
+            ". The fixed effects and the covariance matrix describe those ",
+            n_source, " subjects rather than a population, and nothing ",
+            "downstream will tell you so: the scorecard asks whether the ",
+            "output copies anybody or changed the study's shape, and a ",
+            "small-cohort fit does neither. `synpmx_avatar()` and ",
+            "`synpmx_pca()` need no identifiable structure.", call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -123,8 +134,10 @@
     stop("`synpmx_model_estimate()` found no observation recorded after a ",
          "dose, so there is no concentration-time curve to fit: ",
          .model_time_coverage_shortfall(source, roles),
-         " Check the columns named in `pmx_roles()` against the data.",
-         call. = FALSE)
+         " Check the columns named in `pmx_roles()` against the data. A study ",
+         "that genuinely has no dosing records cannot have a population model ",
+         "fitted to it; `synpmx_avatar()` and `synpmx_pca()` need no ",
+         "structure and will run on it.", call. = FALSE)
   }
   if (bins < minimum) {
     warning("`synpmx_model_estimate()` has observations at ", bins,
@@ -137,6 +150,23 @@
             call. = FALSE)
   }
   invisible(TRUE)
+}
+
+# How long something took, written the way a person would say it. Seconds to
+# one decimal below a minute, then minutes and seconds, because "just over four
+# minutes" is what a caller comparing runs actually wants and "254.7 s" is not.
+# `.subject_strata()` joins the strata columns with a control character, which
+# is right for a key and wrong in anything a person reads: a terminal treats it
+# as a carriage return and prints the arm on top of itself, so "Placebo\r0"
+# comes out as "0lacebo". The arm keeps its key internally and is labelled with
+# the columns joined readably. Every generator's output goes through this.
+.arm_label <- function(arm) gsub("\r", " / ", as.character(arm), fixed = TRUE)
+
+.model_duration <- function(seconds) {
+  if (!is.finite(seconds)) return("unknown")
+  if (seconds < 60) return(sprintf("%.1f s", seconds))
+  minutes <- floor(seconds / 60)
+  sprintf("%d min %.0f s", minutes, seconds - 60 * minutes)
 }
 
 # `pmx_structural_model()` demands a `source` string because a structural model
@@ -177,7 +207,7 @@
                               covariate_effects = list(), covariates = list(),
                               discrete = list(), design = NULL,
                               correlations = NULL, censoring = NULL,
-                              quantification_floor = NULL) {
+                              quantification_floor = NULL, timing = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -234,24 +264,23 @@
     design = design,
     correlations = correlations,
     censoring = censoring,
-    quantification_floor = quantification_floor
+    quantification_floor = quantification_floor,
+    timing = timing
   ), class = "pmx_fitted_model")
 }
 
+# Printing the object prints the whole inventory, because everything on it is
+# an input to the simulation and a reader who has to call a second function to
+# see half of them will read half of them. `model_report()` is the same content
+# as a list, for a caller reading a number out rather than looking at it.
 #' @export
 print.pmx_fitted_model <- function(x, ...) {
-  cat("A fitted PMX model, from synpmx_model_estimate()\n\n")
-  cat("  fitted on   ", x$n_source, "patients,",
-      length(x$arms$arms), "arm(s)\n")
-  cat("  structural  ", x$structural,
-      sprintf("(chosen from %d candidate(s) on AIC)", nrow(x$candidates)),
-      "\n")
-  cat("  fixed       ",
-      paste(sprintf("%s %.4g", names(x$parameters$fixed),
-                    as.numeric(x$parameters$fixed)), collapse = ", "), "\n")
-  cat("  random on   ", paste(rownames(x$parameters$omega), collapse = ", "),
-      "\n")
-  cat("  pk endpoint ", x$endpoints$pk %||% "none", "\n")
+  cat("A fitted PMX model, from synpmx_model_estimate()\n")
+  cat("Everything below is an input to `synpmx_model_generate()`.\n\n")
+  cat("  candidates fitted ", nrow(x$candidates),
+      sprintf("(%s selected on AIC)", x$structural), "\n")
+  cat("\n")
+  print(model_report(x))
   # The out-of-scope statement prints with the object rather than living only
   # in the manual, because this object's contents look exactly like the output
   # of a real population analysis and will be read as one otherwise.
@@ -288,10 +317,15 @@ model_report <- function(fitted_model) {
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
     quantification_floor = fitted_model$quantification_floor,
+    timing = fitted_model$timing,
     pd = fitted_model$pd,
     arms = fitted_model$arms,
     dosing = fitted_model$dosing,
+    visits = fitted_model$visits,
     cells = fitted_model$cells,
+    covariates = fitted_model$covariates,
+    discrete = fitted_model$discrete,
+    schema = fitted_model$schema,
     settings = fitted_model$settings
   ), class = "pmx_model_report")
 }
@@ -311,6 +345,13 @@ print.pmx_model_report <- function(x, ...) {
   cat("  residual error    ", x$parameters$residual$kind,
       sprintf("%.3g", x$parameters$residual$cv %||% x$parameters$residual$sd),
       "\n")
+  # What the wait was. A fit is the slow thing this package does, and a caller
+  # deciding whether to change a setting and run it again asks this first.
+  if (!is.null(x$timing)) {
+    cat("  time to fit       ", .model_duration(x$timing$fit),
+        sprintf("(%s for the whole call)", .model_duration(x$timing$total)),
+        "\n")
+  }
   cat("  covariate effects ",
       if (length(x$covariate_effects)) {
         paste(vapply(names(x$covariate_effects), function(parameter) {
@@ -326,42 +367,114 @@ print.pmx_model_report <- function(x, ...) {
               collapse = ", "), "\n")
   }
 
-  # The assay limit is reported with the fit rather than left in the schema,
-  # because how much of an endpoint sits below it is how much of the fit is a
-  # statement about the imputation rather than about measurements.
-  if (!is.null(x$censoring) && any(x$censoring$imputed > 0)) {
-    cat("  below the limit  ",
-        paste(sprintf("%s %d of %d (%.0f%%) imputed below %.4g",
-                      x$censoring$endpoint, x$censoring$imputed,
-                      x$censoring$observations, 100 * x$censoring$fraction,
-                      x$censoring$limit)[x$censoring$imputed > 0],
-              collapse = "; "), "\n")
+  # The assay limit and the emission floor are what confused the first readers
+  # of this report, because both are one terse number about values near zero and
+  # they mean opposite things: one is what the source reported and the fit was
+  # given instead, the other is what the generator refuses to write. Each is
+  # spelled out in a sentence rather than compressed into a label.
+  censored <- if (is.null(x$censoring)) NULL else
+    x$censoring[x$censoring$imputed > 0, , drop = FALSE]
+  if ((!is.null(censored) && nrow(censored)) || length(x$quantification_floor)) {
+    cat("\nValues at the bottom of the scale\n")
   }
-
-  # The floor exists only where the study declared no limit for that endpoint,
-  # so it sits beside the assay limit rather than under it: the two never
-  # describe the same endpoint.
+  if (!is.null(censored) && nrow(censored)) {
+    cat("  Reported below the assay limit, and imputed before the fit:\n")
+    cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g\n",
+                censored$endpoint, censored$imputed, censored$observations,
+                100 * censored$fraction, censored$limit), sep = "")
+    cat("  ", .wrap_plain(paste(
+      "Each of those was replaced, for the fit only, by a random value drawn",
+      "between zero and the limit -- so that share of the fit is a statement",
+      "about the draw rather than about measurements. Generated values below",
+      "the limit are written back as censored, the way the study recorded",
+      "them."
+    ), "", "  "), "\n", sep = "")
+  }
   if (length(x$quantification_floor)) {
-    cat("  not emitted below ",
-        paste(sprintf("%s %.4g", names(x$quantification_floor),
-                      unlist(x$quantification_floor)), collapse = "; "),
-        "(half the smallest value reported)\n")
+    cat("  No assay limit declared, so nothing is generated below:\n")
+    cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
+                unlist(x$quantification_floor)), sep = "")
+    cat("  ", .wrap_plain(paste(
+      "Half the smallest value each endpoint reported. A simulated profile",
+      "late in a dose interval underflows on its own, and this floor is what",
+      "stops the synthetic data carrying values the study's assay could not",
+      "have returned. Anything drawn lower is raised to it."
+    ), "", "  "), "\n", sep = "")
   }
 
   cat("\nSummarized from the source, not estimated\n")
-  cat("  cohort            ", x$n_source, "patients in",
-      length(x$arms$arms), "arm(s)\n")
-  cat("  visit model       ", nrow(x$cells), "grid cells over",
-      length(unique(x$cells$endpoint)), "endpoint(s)\n")
-  varies <- vapply(x$dosing, function(d) {
-    d$discontinuation > 0 || d$interruption > 0 || d$reduction > 0
-  }, logical(1))
-  cat("  dosing model      ",
-      sprintf("%d planned cycle(s) per arm", stats::median(
-        vapply(x$dosing, function(d) nrow(d$planned), integer(1)))),
-      if (any(varies)) sprintf("| %d of %d arm(s) reduce, skip or stop early",
-                               sum(varies), length(varies)) else
-        "| no reductions, skips or early stops", "\n")
+  # One label column for the whole section, wrapped under itself, because these
+  # lines carry sentences rather than single numbers.
+  field <- function(label, ...) {
+    cat(.wrap_plain(paste0(...), sprintf("  %-18s ", label),
+                    strrep(" ", 21L)), "\n", sep = "")
+  }
+  field("cohort", x$n_source, " patients in ", length(x$arms$arms),
+        " arm(s): ",
+        paste(sprintf("%s (%d)", .arm_label(names(x$arms$sizes)),
+                      as.integer(x$arms$sizes)), collapse = ", "))
+  field("dose schedule", sprintf(
+    "median %g planned cycle(s) per arm, and each arm keeps its own",
+    stats::median(vapply(x$dosing, function(d) nrow(d$planned), integer(1)))))
+
+  # The three rates are the whole model of missed doses and reductions, and a
+  # reader looking for "what happens to the dosing" has to be able to find them
+  # by name. Reported per arm, because they are per arm.
+  rates <- data.frame(
+    arm = names(x$dosing),
+    reduce = vapply(x$dosing, function(d) d$reduction, numeric(1)),
+    skip = vapply(x$dosing, function(d) d$interruption, numeric(1)),
+    stop_early = vapply(x$dosing, function(d) d$discontinuation, numeric(1)),
+    levels = vapply(x$dosing, function(d) length(d$levels), integer(1)),
+    stringsAsFactors = FALSE
+  )
+  if (any(rates$reduce > 0 | rates$skip > 0 | rates$stop_early > 0)) {
+    field("dose changes", "per planned cycle, a patient may reduce to the ",
+          "next dose level, skip that cycle, or stop treatment for good, at ",
+          "these rates:")
+    cat(sprintf("      %-18s reduce %.0f%%, skip %.0f%%, stop early %.0f%% (%d dose level(s))\n",
+                .arm_label(rates$arm), 100 * rates$reduce, 100 * rates$skip,
+                100 * rates$stop_early, rates$levels), sep = "")
+  } else {
+    field("dose changes", "none: no arm reduces a dose, skips a cycle or ",
+          "stops early, so every generated patient completes its arm's ",
+          "schedule")
+  }
+
+  # Attendance is the model of a missed observation, and it is one probability
+  # per grid cell. The spread is what a reader needs: a cell nobody misses and
+  # a cell half the arm misses are the same line otherwise.
+  attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
+  field("visit attendance", nrow(x$cells), " grid cell(s) over ",
+        length(unique(x$cells$endpoint)), " endpoint(s). ",
+        if (length(attendance)) sprintf(
+          paste("A generated patient attends each with the frequency its arm",
+                "attended it: median %.0f%%, from %.0f%% to %.0f%%. That is",
+                "the whole model of a missed observation."),
+          100 * stats::median(attendance), 100 * min(attendance),
+          100 * max(attendance)) else "No attendance model.")
+
+  if (length(x$covariates)) {
+    first <- x$covariates[[1L]]
+    field("covariates", if (length(first)) paste0(
+      paste(sprintf("%s %s", names(first),
+                    vapply(first, function(spec) spec$kind, character(1))),
+            collapse = ", "),
+      ", each drawn per arm from the source's own distribution and ",
+      "independently of the profiles") else "none declared")
+  }
+  discrete_cells <- sum(vapply(x$discrete %||% list(), function(arm) {
+    sum(!vapply(arm, is.null, logical(1)))
+  }, integer(1)))
+  if (discrete_cells) {
+    field("discrete endpoints", discrete_cells, " grid cell(s) whose values ",
+          "are drawn from the frequencies the source recorded there, rather ",
+          "than simulated")
+  }
+  if (!is.null(x$schema)) {
+    field("columns emitted", paste(x$schema$columns %||% character(0),
+                                   collapse = ", "))
+  }
 
   cat("\nHow the concentration endpoint was decided\n")
   cat("  endpoint          ", x$endpoints$pk, sprintf("(%s)",
@@ -409,7 +522,8 @@ print.pmx_model_report <- function(x, ...) {
 #' candidate.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
-#' @return A data frame with columns `model`, `converged`, `aic` and `note`.
+#' @return A data frame with columns `model`, `converged`, `aic`, `seconds` --
+#'   how long that candidate took to fit -- and `note`.
 #' @seealso [model_report()], [model_parameters()].
 #' @export
 model_candidates <- function(fitted_model) {

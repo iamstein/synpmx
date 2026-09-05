@@ -288,6 +288,11 @@ carrying scores of dose records per subject over a cohort several times larger i
 two orders of magnitude more work, and a call that has not returned after half an
 hour is that cost rather than a fault.
 
+**What it did take is reported.** Each candidate's fitting time is a column of
+the candidate table, the fit prints the total with itself, and the run says so
+as it finishes, because the number a caller weighs a rerun against is how long
+the last one took.
+
 **Where there is a search, selection is on AIC**, and the estimation method is
 `focei` for that reason. SAEM's log-likelihood is a Gaussian-quadrature step run
 after the fit, and at phase 1 cohort sizes it returns a non-finite value, so a
@@ -392,12 +397,20 @@ generating from it would put them back.
 
 Estimated by `nlmixr2`: the selected structural model, the candidate comparison
 table, fixed effects, the between-subject covariance matrix, the residual error,
-the covariate effects that survived, and the PD shape and parameters per
-endpoint.
+the covariate effects that survived, the PD shape and parameters per endpoint,
+and how long the fitting and the whole call took.
 
 Not estimated: the per-arm dosing model and its three rates, the visit model, arm
 sizes, the covariate distributions, the censoring boundary, the schema and the
 roles.
+
+**Everything on the object is an input to Step 6, so printing it reports all of
+them** — the dose reduction, skipped cycle and early stop rates per arm, the
+attendance frequency behind a missed observation, how each covariate is drawn,
+which cells are drawn from recorded values rather than simulated, the assay
+limit and what was imputed below it, the floor nothing is emitted below, and the
+columns the generated table will carry. `model_report()` returns the same
+account as a list.
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
 quantities, and a fitted model that carried them would be writing out a
@@ -460,7 +473,7 @@ badly is fitted, and told about.
 
 | Gate | Threshold | Result |
 |---|---|---|
-| Cohort size | 20 subjects | Errors. A covariance matrix fitted to a handful of subjects describes those subjects. `synpmx_pca()`'s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
+| Cohort size | 20 subjects | Warns and fits. A covariance matrix fitted to a handful of subjects describes those subjects, and nothing downstream will say so: the scorecard asks whether the output copies anybody or changed the study's shape, and a small-cohort fit does neither. `synpmx_pca()`'s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
 | Cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller's call to accept. |
 | No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |

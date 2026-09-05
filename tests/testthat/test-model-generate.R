@@ -79,6 +79,25 @@
   )
 }
 
+# Everything on the object is an input to generation, so printing it has to
+# report all of them: a reader who has to call a second function to see half the
+# simulation will read half of it.
+test_that("printing a fit reports every input the generator simulates from", {
+  data <- .cycle_fixture(reduce_from = 4L, stop_after = 3L)
+  roles <- .generate_roles()
+  fit <- .hand_built_fit(data, roles)
+  out <- paste(utils::capture.output(print(fit)), collapse = "\n")
+  for (heading in c("structural model", "fixed effects", "between-subject",
+                    "residual error", "cohort", "dose schedule",
+                    "dose changes", "visit attendance", "covariates",
+                    "columns emitted")) {
+    expect_match(out, heading, fixed = TRUE)
+  }
+  # The arm key is joined with a control character internally and never shown
+  # with one.
+  expect_false(grepl("\r", out, fixed = TRUE))
+})
+
 test_that("a hand-built model generates a legal dataset in the source's shape", {
   data <- .cycle_fixture()
   roles <- .generate_roles()

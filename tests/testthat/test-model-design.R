@@ -497,6 +497,13 @@ test_that("a subject with doses and no samples does not break the fit table", {
   expect_identical(compressed$ADDL, 3L)
 })
 
+test_that("a duration is written the way somebody would say it", {
+  expect_identical(.model_duration(7.64), "7.6 s")
+  expect_identical(.model_duration(59.9), "59.9 s")
+  expect_identical(.model_duration(254.7), "4 min 15 s")
+  expect_identical(.model_duration(NA_real_), "unknown")
+})
+
 test_that("the wait is announced before it happens", {
   data <- .repeated_study(n = 6, doses = 5)
   compressed <- .compress_dose_schedule(data)

@@ -124,10 +124,6 @@ patient first, which the message also reports; `case1_pkpd` records its dose
 times as actuals — 0, 24.22, 48.28 — so there is no exact interval to compress
 to, and the wait is the honest cost of the design.
 
-```{r fit-print, eval=run}
-fit
-```
-
 A clearance of `r if (run) signif(fit$parameters$fixed[["cl"]], 3) else NA` L/h
 and a volume of `r if (run) signif(fit$parameters$fixed[["v"]], 3) else NA` L.
 Whether those are the right numbers for this compound is not the question the
@@ -138,7 +134,8 @@ are, and the object prints that warning with itself.
 
 Two halves. `model_report()` separates them, because they answer to different
 things — one half is an estimate with all an estimate's caveats, the other is a
-summary of the study's apparatus.
+summary of the study's apparatus. Everything the generator simulates from is in
+here, which is why printing the fitted object shows the same account.
 
 ```{r report, eval=run}
 model_report(fit)

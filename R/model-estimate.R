@@ -397,15 +397,20 @@
       stats::sd(data$DV, na.rm = TRUE) / 5
     spec <- .model_nlmixr_function(candidate, start, error, error_start,
                                    weight)
+    # Wall clock rather than CPU time: the fitter threads, and what the caller
+    # waited through is the number they are comparing against.
+    started <- proc.time()[["elapsed"]]
     fit <- try(suppressWarnings(suppressMessages(
       nlmixr2est::nlmixr(spec, data, est = estimation,
                          control = list(print = 0L))
     )), silent = TRUE)
+    seconds <- proc.time()[["elapsed"]] - started
     converged <- !inherits(fit, "try-error") &&
       is.finite(suppressWarnings(stats::AIC(fit)))
     rows[[length(rows) + 1L]] <- data.frame(
       model = candidate, converged = converged,
       aic = if (converged) as.numeric(stats::AIC(fit)) else NA_real_,
+      seconds = seconds,
       note = if (converged) "" else
         if (inherits(fit, "try-error")) .model_first_line(fit) else
           "no finite objective function",
@@ -413,9 +418,10 @@
     )
     if (converged) fits[[candidate]] <- fit
     if (!quiet) {
-      message(sprintf("  %-14s %s", candidate,
+      message(sprintf("  %-14s %-20s %s", candidate,
                       if (converged) sprintf("AIC %.1f", stats::AIC(fit))
-                      else "did not converge"))
+                      else "did not converge",
+                      .model_duration(seconds)))
     }
   }
   table <- do.call(rbind, rows)
@@ -814,8 +820,9 @@
 #' @param covariate_effects `"auto"` fits allometric scaling on clearance and
 #'   volume where a weight-like covariate is declared and keeps it where it
 #'   improves AIC. `"none"` fits nothing.
-#' @param min_subjects Cohort floor. Below it the covariance matrix describes
-#'   the subjects it was fitted to rather than a population.
+#' @param min_subjects Cohort size the fit should have. Below it the covariance
+#'   matrix describes the subjects it was fitted to rather than a population,
+#'   which warns rather than refuses: the fit runs on whatever the study has.
 #' @param min_arm_patients Minimum patients in every arm, as
 #'   [synpmx_pca_summarize()] uses. Patients in a shorter arm are dropped with a
 #'   warning before anything is fitted, so that arm is absent from the fitted
@@ -864,6 +871,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
          "Suggests. Install it, or use `synpmx_avatar()` or `synpmx_pca()`, ",
          "which fit no structural model.", call. = FALSE)
   }
+  started <- proc.time()[["elapsed"]]
   data <- as.data.frame(data)
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
                  drop = FALSE]
@@ -880,7 +888,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   }
 
   n_source <- length(.unique_in_order(source[[roles$id]]))
-  .model_require_subjects(n_source, min_subjects)
+  .model_note_subjects(n_source, min_subjects)
   .model_require_nominal_time(source, roles)
   .model_require_time_coverage(source, roles, min_time_bins)
 
@@ -923,7 +931,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                    " subjects have no `", classified$pk,
                    "` observation and are not fitted; their dosing and visits ",
                    "still reach the arm models.")
-    if (fitted_subjects < min_subjects) {
+    # A warning only where it is news: a cohort already under the floor was
+    # warned about before the endpoints were classified.
+    if (fitted_subjects < min_subjects && n_source >= min_subjects) {
       warning(note, " That leaves ", fitted_subjects,
               " subjects under `min_subjects` = ", min_subjects,
               ", so the covariance describes those subjects rather than a ",
@@ -977,6 +987,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   observations, classified$pk, error,
                                   estimation, quiet, weight)
   selected <- search$selected
+  fit_seconds <- sum(search$table$seconds, na.rm = TRUE)
   parameters <- .model_read_fit(search$fits[[selected]], selected, error)
 
   effects <- if (is.null(weight)) list() else stats::setNames(
@@ -996,7 +1007,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                                 parameters$etas)
   parameters$etas <- NULL
 
-  .pmx_fitted_model(
+  fitted <- .pmx_fitted_model(
     structural = selected, candidates = search$table, parameters = parameters,
     endpoints = list(pk = classified$pk, pd = names(pd_fits),
                      discrete = classified$discrete, signals = classified$signals,
@@ -1016,8 +1027,17 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     design = design, correlations = correlations,
     censoring = .model_censoring_summary(censoring_source, roles, fittable),
     quantification_floor = .model_quantification_floor(censoring_source, roles,
-                                                       fittable)
+                                                       fittable),
+    # Reported with the fit because it is the number a caller weighs a rerun
+    # against: `fit` is what the fitter took, `total` what the call took.
+    timing = list(fit = fit_seconds,
+                  total = proc.time()[["elapsed"]] - started)
   )
+  if (!quiet) {
+    message("Fitted in ", .model_duration(fitted$timing$fit), "; ",
+            .model_duration(fitted$timing$total), " in total.")
+  }
+  fitted
 }
 
 .model_subject_arms <- function(source, roles) {
