@@ -20,6 +20,29 @@
   !is.na(data[[roles$evid]]) & !.is_zero(data[[roles$evid]])
 }
 
+# `nominal_time` missing on rows a generator has to read. The count is split by
+# what those rows are, because the two have opposite fixes. An observation with
+# no nominal time can be dropped and the study survives it. The dose records are
+# the study's dosing: drop those and what is left has nothing to measure a
+# concentration against, which fails again one gate later with a message about
+# the sampling schedule -- a true statement about a dataset the caller has just
+# been told to break.
+.missing_nominal_time_message <- function(source, roles, missing, relevant,
+                                          reads) {
+  doses <- sum(missing & .event_rows(source, roles))
+  paste0("`nominal_time` is missing on ", sum(missing), " of ", sum(relevant),
+         " dose and observation rows",
+         if (doses) paste0(", ", doses, " of them dose records"),
+         ". Every row ", reads, " needs a nominal time. ",
+         if (doses) {
+           paste0("Fill them in. Dropping them instead takes the dosing out ",
+                  "of the study, leaving nothing to measure a concentration ",
+                  "against.")
+         } else {
+           "Fill them in or drop those rows before calling."
+         })
+}
+
 .dose_rows <- function(data, roles) {
   out <- .event_rows(data, roles)
   if (!is.null(roles$amt)) {

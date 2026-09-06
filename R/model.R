@@ -70,10 +70,9 @@
     .event_rows(source, roles)
   missing <- relevant & !is.finite(nominal)
   if (any(missing)) {
-    stop("`nominal_time` is missing on ", sum(missing), " of ", sum(relevant),
-         " dose and observation rows. Every row the dosing and visit models ",
-         "read needs a nominal time; fill them in or drop those rows before ",
-         "calling.", call. = FALSE)
+    stop(.missing_nominal_time_message(source, roles, missing, relevant,
+                                      "the dosing and visit models read"),
+         call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -99,14 +98,22 @@
 # about the role columns -- nothing the roles select is an observation, or
 # nothing is a dose -- so the message names which of the two, with the column it
 # read, rather than leaving the caller to guess what was being counted.
+#
+# Each branch writes its own opening clause rather than sharing one. "Found no
+# observation recorded after a dose" is exactly right where the two exist and
+# never meet, and misleading in front of a study that has no dose records at
+# all: it sends the reader to look at the sampling times of samples that are
+# fine. The finding a caller acts on is the first thing the sentence says.
 .model_time_coverage_shortfall <- function(source, roles) {
   observed <- .observation_rows(source, roles, require_present = TRUE)
   dosed <- .dose_rows(source, roles)
   if (!any(observed)) {
-    return(paste0("none of the ", nrow(source), " rows is an observation. An ",
-                  "observation is `", roles$evid, "` 0",
+    return(paste0("found nothing to fit: none of the ", nrow(source),
+                  " rows is an observation. An observation is `", roles$evid,
+                  "` 0",
                   if (!is.null(roles$mdv)) paste0(" and `", roles$mdv, "` 0"),
-                  " with `", roles$dv, "` recorded."))
+                  " with `", roles$dv, "` recorded. Check the columns named ",
+                  "in `pmx_roles()` against the data."))
   }
   if (!any(dosed)) {
     # What the columns actually hold, because "no row is a dose" reads as a
@@ -114,23 +121,32 @@
     # column takes, and how many rows carry an amount anyway. A dataset that
     # marks its doses with the amount alone, or that lost its dose rows to a
     # filter upstream, is the difference between those two numbers.
-    return(paste0(sum(observed), " observations are present but no row is a ",
-                  "dose. A dose is a non-zero `", roles$evid, "`",
+    return(paste0("found no dose records, so there is no concentration-time ",
+                  "curve to fit: ", sum(observed), " observations are present ",
+                  "and no row is a dose. A dose is a non-zero `", roles$evid,
+                  "`",
                   if (!is.null(roles$amt))
                     paste0(" with a positive `", roles$amt, "`"),
-                  ", so nothing here has a dose to be measured after. `",
-                  roles$evid, "` holds ", .value_counts(source[[roles$evid]]),
+                  ". `", roles$evid, "` holds ",
+                  .value_counts(source[[roles$evid]]),
                   if (!is.null(roles$amt)) {
                     amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
                     paste0(", and ", sum(is.finite(amount) & amount > 0),
                            " of ", nrow(source), " rows have a positive `",
                            roles$amt, "`")
                   },
-                  "."))
+                  ". Check the columns named in `pmx_roles()` against the ",
+                  "data, and whether the dose records were filtered out ",
+                  "before the call. A study that genuinely has no dosing ",
+                  "cannot have a population model fitted to it; ",
+                  "`synpmx_avatar()` and `synpmx_pca()` need no structure ",
+                  "and will run on it."))
   }
-  paste0(sum(observed), " observations and ", sum(dosed), " dose rows are ",
-         "present, but no subject holds an observation after a dose of its ",
-         "own. Check that both carry the same `", roles$id, "`.")
+  paste0("found no observation recorded after a dose, so there is no ",
+         "concentration-time curve to fit: ", sum(observed),
+         " observations and ", sum(dosed), " dose rows are present, but no ",
+         "subject holds an observation after a dose of its own. Check that ",
+         "both carry the same `", roles$id, "`.")
 }
 
 # Sparse sampling is a weak fit rather than a refusal: below `min_time_bins` the
@@ -144,13 +160,8 @@
   minimum <- .positive_integer(minimum, "min_time_bins")
   bins <- .model_time_coverage(source, roles)
   if (bins == 0L) {
-    stop("`synpmx_model_estimate()` found no observation recorded after a ",
-         "dose, so there is no concentration-time curve to fit: ",
-         .model_time_coverage_shortfall(source, roles),
-         " Check the columns named in `pmx_roles()` against the data. A study ",
-         "that genuinely has no dosing records cannot have a population model ",
-         "fitted to it; `synpmx_avatar()` and `synpmx_pca()` need no ",
-         "structure and will run on it.", call. = FALSE)
+    stop("`synpmx_model_estimate()` ",
+         .model_time_coverage_shortfall(source, roles), call. = FALSE)
   }
   if (bins < minimum) {
     warning("`synpmx_model_estimate()` has observations at ", bins,
@@ -307,15 +318,6 @@ print.pmx_fitted_model <- function(x, ...) {
       sprintf("(%s selected on AIC)", x$structural), "\n")
   cat("\n")
   print(model_report(x))
-  # The out-of-scope statement prints with the object rather than living only
-  # in the manual, because this object's contents look exactly like the output
-  # of a real population analysis and will be read as one otherwise.
-  cat("\n", .wrap_plain(paste(
-    "These parameters are not estimates to report. They exist to make",
-    "simulated profiles resemble the source study; the candidate set is too",
-    "small and the covariate model too thin for any of them to answer a",
-    "scientific question."
-  ), "  ", "  "), "\n", sep = "")
   invisible(x)
 }
 
@@ -358,7 +360,13 @@ model_report <- function(fitted_model) {
 
 #' @export
 print.pmx_model_report <- function(x, ...) {
-  cat("What this fitted model carries\n\n")
+  # One label column for the whole report, wrapped under itself, because these
+  # lines carry sentences rather than single numbers.
+  field <- function(label, ...) {
+    cat(.wrap_plain(paste0(...), sprintf("  %-18s ", label),
+                    strrep(" ", 21L)), "\n", sep = "")
+  }
+  cat("The PopPK model\n\n")
   cat("Estimated by nlmixr2\n")
   cat("  structural model  ", x$structural, "\n")
   cat("  fixed effects     ",
@@ -386,11 +394,26 @@ print.pmx_model_report <- function(x, ...) {
                   effect$reference, effect$exponent)
         }, character(1)), collapse = ", ")
       } else "none", "\n")
+  # The shape name alone is not the fit: the generator draws every one of these
+  # numbers, so a report that is an inventory of its inputs has to show them.
+  # `constant` and `linear` come from `lm()` and `exponential` from `nls()`,
+  # all on study time from the first dose.
   if (length(x$pd)) {
-    cat("  pd shapes         ",
-        paste(sprintf("%s: %s", names(x$pd),
-                      vapply(x$pd, function(s) s$pd, character(1))),
-              collapse = ", "), "\n")
+    cat("\nEach other continuous endpoint, fitted as a shape in time\n")
+    for (name in names(x$pd)) {
+      shape <- x$pd[[name]]
+      field(name, shape$pd, ": ",
+            paste(sprintf("%s %.4g", names(shape$typical),
+                          as.numeric(shape$typical)), collapse = ", "),
+            "; between-subject ", sprintf("%.3g", shape$baseline_cv %||% 0),
+            " (SD on the log baseline); residual ", shape$residual$kind, " ",
+            sprintf("%.3g", shape$residual$sd),
+            if (!is.null(shape$candidates)) {
+              paste0("; chosen on AIC from ",
+                     paste(shape$candidates$shape[shape$candidates$converged],
+                           collapse = ", "))
+            })
+    }
   }
 
   # The assay limit and the emission floor are what confused the first readers
@@ -404,16 +427,17 @@ print.pmx_model_report <- function(x, ...) {
     cat("\nValues at the bottom of the scale\n")
   }
   if (!is.null(censored) && nrow(censored)) {
-    cat("  Reported below the assay limit, and imputed before the fit:\n")
-    cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g\n",
+    cat("  Reported below the assay limit, and given a value for the fit:\n")
+    cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g (the limit)\n",
                 censored$endpoint, censored$imputed, censored$observations,
                 100 * censored$fraction, censored$limit), sep = "")
     cat("  ", .wrap_plain(paste(
-      "Each of those was replaced, for the fit only, by a random value drawn",
-      "between zero and the limit -- so that share of the fit is a statement",
-      "about the draw rather than about measurements. Generated values below",
-      "the limit are written back as censored, the way the study recorded",
-      "them."
+      "For the fit only, each of those rows was replaced by a random value",
+      "drawn between zero and the limit. The fitter is not told they are",
+      "censored, so that share of the fit rests on the draw rather than on",
+      "measurements. At generation the boundary goes back: a synthetic value",
+      "below the limit is written out censored, the way the study recorded",
+      "it."
     ), "", "  "), "\n", sep = "")
   }
   if (length(x$quantification_floor)) {
@@ -421,27 +445,25 @@ print.pmx_model_report <- function(x, ...) {
     cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
                 unlist(x$quantification_floor)), sep = "")
     cat("  ", .wrap_plain(paste(
-      "Half the smallest value each endpoint reported. A simulated profile",
-      "late in a dose interval underflows on its own, and this floor is what",
-      "stops the synthetic data carrying values the study's assay could not",
-      "have returned. Anything drawn lower is raised to it."
+      "Half the smallest value of each endpoint is reported above and used as",
+      "a floor for the synthetic data. A simulated profile that falls below",
+      "that floor is set to it."
     ), "", "  "), "\n", sep = "")
   }
 
   cat("\nSummarized from the source, not estimated\n")
-  # One label column for the whole section, wrapped under itself, because these
-  # lines carry sentences rather than single numbers.
-  field <- function(label, ...) {
-    cat(.wrap_plain(paste0(...), sprintf("  %-18s ", label),
-                    strrep(" ", 21L)), "\n", sep = "")
-  }
   field("cohort", x$n_source, " patients in ", length(x$arms$arms),
         " arm(s): ",
         paste(sprintf("%s (%d)", .arm_label(names(x$arms$sizes)),
                       as.integer(x$arms$sizes)), collapse = ", "))
+  # "Per arm" is the whole content of this line: the schedule is not pooled
+  # across the study, so an arm dosed weekly and an arm dosed every three weeks
+  # each keep their own, and the median is across those arms.
   field("dose schedule", sprintf(
-    "median %g planned cycle(s) per arm, and each arm keeps its own",
-    stats::median(vapply(x$dosing, function(d) nrow(d$planned), integer(1)))))
+    paste0("one schedule per arm rather than one pooled across the study; ",
+           "%g planned cycle(s) per arm at the median of the %d arm(s)"),
+    stats::median(vapply(x$dosing, function(d) nrow(d$planned), integer(1))),
+    length(x$dosing)))
 
   # The three rates are the whole model of missed doses and reductions, and a
   # reader looking for "what happens to the dosing" has to be able to find them
@@ -507,6 +529,20 @@ print.pmx_model_report <- function(x, ...) {
                                                       x$endpoints$decided_by), "\n")
   if (!is.null(x$endpoints$signals)) {
     print(x$endpoints$signals, row.names = FALSE)
+    # A table of four bare logicals is unreadable without them, and the reader
+    # who needs it most is the one whose endpoint was classified wrongly.
+    cat("\n", .wrap_plain(paste(
+      "compartment: measured where the doses go, or one compartment above a",
+      "dosing compartment nobody observes. post_dose: absent before each",
+      "subject's own first dose. shape: the cohort's median profile rises to",
+      "one peak and comes back down. proportional: the peak at the highest",
+      "dose level scales with the dose against the lowest. `post_dose` and",
+      "`proportional` are the two that decide; `compartment` and `shape`",
+      "break a tie between endpoints that pass both. NA is a signal this",
+      "study cannot compute: `proportional` needs two dose levels several",
+      "patients share, and `shape` needs three sampling times in one dose",
+      "interval."
+    ), "  ", "  "), "\n", sep = "")
   }
   if (!is.null(x$design)) {
     cat("  design            ", x$design$reason, "\n")

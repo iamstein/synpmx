@@ -37,9 +37,9 @@ for prototyping analysis code. The goodness of fit of the selected model is not
 assessed: `model_report()` says what the search had to go on, not whether the
 model describes the source. The candidate set is five linear models and the
 covariate model is allometric scaling or nothing, which is too little to answer
-a scientific question, so the fitted parameters are not estimates to report. The
-fitted object prints that warning with itself, because its output looks exactly
-like the output of a real population analysis.
+a scientific question, so the fitted parameters are not estimates to report,
+even though the printed object looks exactly like the output of a real
+population analysis.
 
 No formal privacy guarantee is offered, although no patient's measured value
 reaches the output.

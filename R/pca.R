@@ -306,10 +306,8 @@
     .event_rows(source, roles)
   missing <- relevant & !is.finite(nominal)
   if (any(missing)) {
-    stop("`nominal_time` is missing on ", sum(missing), " of ", sum(relevant),
-         " dose and observation rows. Every row the model reads needs a ",
-         "nominal time; fill them in or drop those rows before calling.",
-         call. = FALSE)
+    stop(.missing_nominal_time_message(source, roles, missing, relevant,
+                                      "the model reads"), call. = FALSE)
   }
   source[[roles$time]] <- nominal
   source

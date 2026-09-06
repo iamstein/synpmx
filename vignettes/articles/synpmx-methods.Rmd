@@ -181,8 +181,7 @@ model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 What leaves the study is the printed object and nothing else: a structural
 model, three fixed effects, a covariance matrix, a residual error, and a
 per-arm dosing and visit model. `vignette("pmxmodel-fingerprint")` is the
-itemised list, and the parameters are not estimates to report — the object
-prints that warning with itself.
+itemised list, and the parameters are not estimates to report.
 
 ## Mode 2: PCA
 

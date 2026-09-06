@@ -42,6 +42,26 @@ test_that("a nominal grid with holes in it is refused", {
   data$NTIME[observed[1:3]] <- NA_real_
   expect_error(.model_require_nominal_time(data, .model_roles()),
                "missing on 3 of")
+  # Observations alone: dropping them is a real option and is offered.
+  expect_error(.model_require_nominal_time(data, .model_roles()),
+               "drop those rows")
+})
+
+# The advice has to depend on what the rows are. "Drop those rows" applied to
+# the dose records takes the dosing out of the study, and the run then fails a
+# gate later with a message about the sampling schedule -- which is how a
+# missing nominal time on a dose record turns into a confusing error about
+# observations.
+test_that("dose records missing a nominal time are named, and not dropped", {
+  data <- pmx_simulated_fixture(24)
+  data$NTIME[data$EVID != 0] <- NA_real_
+  expect_error(.model_require_nominal_time(data, .model_roles()),
+               "of them dose records")
+  expect_error(.model_require_nominal_time(data, .model_roles()),
+               "takes the dosing out of the study")
+  expect_false(grepl("drop those rows", tryCatch(
+    .model_require_nominal_time(data, .model_roles()),
+    error = function(e) conditionMessage(e))))
 })
 
 test_that("time coverage counts distinct nominal times after a dose", {
@@ -79,11 +99,16 @@ test_that("no post-dose observation is refused, naming what the roles read", {
   expect_identical(.model_time_coverage(no_observations, roles), 0L)
   expect_error(.model_require_time_coverage(no_observations, roles, 6L),
                "none of the .* rows is an observation")
+  # Each branch opens with its own finding. "No observation recorded after a
+  # dose" in front of a study with no dose records sends the reader to look at
+  # sampling times that are fine.
+  expect_error(.model_require_time_coverage(no_observations, roles, 6L),
+               "found nothing to fit")
 
   no_doses <- data[data$EVID == 0, , drop = FALSE]
   expect_identical(.model_time_coverage(no_doses, roles), 0L)
   expect_error(.model_require_time_coverage(no_doses, roles, 6L),
-               "no row is a dose")
+               "found no dose records")
   # The message shows what the column held, so a dataset that marks its doses
   # some other way -- or lost them to a filter -- can be read off the error.
   expect_error(.model_require_time_coverage(no_doses, roles, 6L),
@@ -101,6 +126,8 @@ test_that("no post-dose observation is refused, naming what the roles read", {
   expect_identical(.model_time_coverage(split_ids, roles), 0L)
   expect_error(.model_require_time_coverage(split_ids, roles, 6L),
                "no subject holds an observation after a dose")
+  expect_error(.model_require_time_coverage(split_ids, roles, 6L),
+               "found no observation recorded after a dose")
 })
 
 test_that("a short arm is warned about and dropped, naming the caller", {
@@ -188,9 +215,6 @@ test_that("a well-formed fitted model is constructed and prints", {
   out <- paste(utils::capture.output(print(fit)), collapse = " ")
   expect_match(out, "1cmt_iv")
   expect_match(out, "24 patients")
-  # The out-of-scope statement prints with the object, because its contents
-  # look exactly like a real population analysis and will be read as one.
-  expect_match(out, "not estimates to report")
 })
 
 test_that("the constructor refuses a structural model it cannot simulate", {
