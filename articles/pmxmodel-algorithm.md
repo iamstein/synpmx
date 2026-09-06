@@ -245,17 +245,26 @@ structural parameter and a proportional residual error. An endpoint
 holding values at or below zero after censoring is handled gets an
 additive error instead, and the substitution is recorded on the fit.
 
-**Censored observations are imputed, and the fit is told how many.** A
-value below the assay limit is replaced by a uniform draw inside the
-censoring region, a draw rather than a fixed LLOQ/2, which would swap
-one artificial spike for another, and the boundary is put back when the
-synthetic data is emitted. The same imputation is what lets the visit
-model, the PD shapes and the covariate model read a latent value instead
-of a stack of identical boundary substitutions. It is an assumption all
-the same, and its weight is the share of the endpoint that carries it,
-so that share is reported with the fit. Where much of an endpoint sits
-below the limit, the fitted parameters are substantially a statement
-about the draw rather than about measurements.
+**The concentration is fitted with its censored observations censored.**
+Where the study declares a censoring column, the rows below the assay
+limit reach `nlmixr2` as censored – the limit in `DV`, the flag in
+`CENS`, and the other bound in `LIMIT` where the study reports one – so
+each contributes the probability of falling below the limit rather than
+a value nobody measured. On 30 subjects of `case1_pkpd`, 45% of them
+below the limit, that moves the proportional residual from 0.517 to
+0.290 against imputing the same rows, and the residual is what sets the
+scatter of every generated observation. It costs about a factor of 1.7
+in fitting time there, and less where less of the endpoint is censored.
+
+**Everything else reads an imputed value**, because nothing else has a
+likelihood to put censoring in: the visit model, the covariate model and
+the PD shapes are least-squares fits, and a stack of identical boundary
+substitutions would bend each of them toward the limit. Those rows are
+replaced by a uniform draw inside the censoring region – a draw rather
+than a fixed LLOQ/2, which would swap one artificial spike for another –
+and the boundary is put back when the synthetic data is emitted. The
+share of each endpoint sitting below the limit is reported with the fit
+either way.
 
 Starting values come from a non-compartmental reading of the source
 rather than from a guess, because a population fit started far from the
@@ -349,9 +358,35 @@ shows up.
 
 Every remaining continuous endpoint is fitted against a constant, a
 linear and an exponential time course and selected on AIC, with
-between-subject variability on the baseline. These shapes have no
-concentration term, so a PD endpoint driven by exposure is reproduced as
-a time course that happens to resemble the average subject’s response.
+between-subject variability on the baseline.
+`pd = c(endpoint = "linear")` names the shape and skips the search for
+that endpoint; a named shape that will not fit is an error rather than a
+silent fallback. There is no minimum number of observations: a shape is
+a candidate where it has **one residual degree of freedom**, which is
+what stops a line being fitted exactly through two points and then
+winning the comparison it was never tested by. Below any candidate the
+endpoint is a constant at its mean, which is what an endpoint measured
+once is, and the report says that rather than naming a search that did
+not run.
+
+These shapes have no concentration term, so a PD endpoint driven by
+exposure is reproduced as a time course that happens to resemble the
+average subject’s response.
+
+**One shape for the whole cohort by default, and one per arm on
+request.** The pooled fit predicts a single number for every arm, so a
+synthetic patient’s dose does not reach their response: on `case1_pkpd`
+the source’s mean PD after 1500 h runs 83, 68, 70, 126, 237, 341 across
+placebo and five ascending doses, and the pooled shape answers 149 to
+all six. `pd_by_arm = TRUE` fits the shape within each arm instead,
+which is the same per-arm summary the dosing and visit models already
+are and asserts no dose-response form – an arm is fitted on its own
+observations, on the same three-candidate ladder, or not at all. On that
+study it answers 47, 76, 77, 126, 217, 363. It is not the default
+because it is a different claim about the study: the pooled shape says
+these endpoints are a time course, the per-arm shape says each arm has
+its own. An arm holding too little of an endpoint to fit keeps the
+pooled shape, so no arm is left with nothing to generate.
 
 **The between-subject spread and the residual are read around each
 subject’s own curve, not around the population one.** Taking the
@@ -431,9 +466,9 @@ the schema and the roles.
 all of them** — the dose reduction, skipped cycle and early stop rates
 per arm, the attendance frequency behind a missed observation, how each
 covariate is drawn, which cells are drawn from recorded values rather
-than simulated, the assay limit and what was imputed below it, the floor
-nothing is emitted below, and the columns the generated table will
-carry.
+than simulated, the assay limit and how many observations sit below it,
+the floor nothing is emitted below, and the columns the generated table
+will carry.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 returns the same account as a list.
 
@@ -586,6 +621,7 @@ fit badly is fitted, and told about.
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
+| PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |
 | No PK endpoint identified | — | Errors and names `endpoint_roles`. |
 | No candidate converged | — | Errors rather than returning the least bad fit. |
 | A fitted model as a public input | — | [`pmx_prior()`](https://iamstein.github.io/synpmx/reference/pmx_prior.md), [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md) and [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md) refuse a `pmx_fitted_model`, because its parameters were estimated from the confidential study. |

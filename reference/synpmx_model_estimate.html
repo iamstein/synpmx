@@ -99,6 +99,7 @@ generated subjects are built from. No patient row survives it.</p>
 <span>  <span class="va">roles</span>,</span>
 <span>  pk <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pd <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pd_by_arm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  endpoint_roles <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariate_effects <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  min_subjects <span class="op">=</span> <span class="fl">20L</span>,</span>
@@ -131,6 +132,16 @@ the search. <code>NULL</code> searches the candidates the design admits.</p></dd
 <dt id="arg-pd">pd<a class="anchor" aria-label="anchor" href="#arg-pd"></a></dt>
 <dd><p>Named character vector of PD shapes per endpoint, skipping that
 search. One of <code>"constant"</code>, <code>"linear"</code> or <code>"exponential"</code> each.</p></dd>
+
+
+<dt id="arg-pd-by-arm">pd_by_arm<a class="anchor" aria-label="anchor" href="#arg-pd-by-arm"></a></dt>
+<dd><p>Fit each PD endpoint's shape per arm rather than once over
+the pooled cohort. <code>FALSE</code>, the default, gives every arm the same time
+course, so a synthetic patient's dose does not reach their response.
+<code>TRUE</code> gives each arm its own shape, selected on AIC within that arm and
+asserting no dose-response form; an arm holding too little of an endpoint
+to fit keeps the pooled shape. Costs nothing measurable, since these are
+least-squares fits.</p></dd>
 
 
 <dt id="arg-endpoint-roles">endpoint_roles<a class="anchor" aria-label="anchor" href="#arg-endpoint-roles"></a></dt>

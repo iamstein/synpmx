@@ -368,21 +368,22 @@ silent.</p>
 <div class="section level2">
 <h2 id="what-the-assay-limit-cost">What the assay limit cost<a class="anchor" aria-label="anchor" href="#what-the-assay-limit-cost"></a>
 </h2>
-<p>Values below the limit are imputed before anything is fitted, and the
-boundary is put back when data is generated. That is the intended
-behaviour — it is what lets every part of the fingerprint read a latent
-value rather than a stack of identical boundary substitutions — but it
-is an assumption, and its weight is the share of each endpoint carrying
-it.</p>
+<p>The concentration is fitted with its below-limit rows censored, so
+each contributes the probability of falling below the limit rather than
+a value nobody measured. Every other part of the fingerprint is a
+least-squares fit with no likelihood to put censoring in, and reads a
+uniform draw inside the censoring region instead — an assumption, whose
+weight is the share of each endpoint carrying it. The boundary is put
+back when data is generated.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">censoring</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
-<p><code>warfarin</code> declares no censoring, so nothing here was
-imputed. On a study where it is, this is the line to read before
+<p><code>warfarin</code> declares no censoring, so nothing here is below
+a limit. On a study where it is, this is the line to read before
 trusting the concentrations: <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code> has 46% of
 its concentrations below the limit and 95% of the lowest dose arm, and
-there the fitted parameters are substantially a statement about the
-draw.</p>
+there the concentration curve is drawn mostly from where the assay
+stopped reporting.</p>
 </div>
 <div class="section level2">
 <h2 id="the-covariate-effects">The covariate effects<a class="anchor" aria-label="anchor" href="#the-covariate-effects"></a>

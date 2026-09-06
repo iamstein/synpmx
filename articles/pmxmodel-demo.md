@@ -84,7 +84,7 @@ reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
 48.28 — so there is no exact interval to compress to, and the wait is
 the honest cost of the design.
 
-A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
+A clearance of 14.5 L/h and a volume of 183 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
@@ -105,10 +105,10 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 8.168, v 111, ka 6.471 
-#>   between-subject    cl 0.509, v 0.436, ka 0.707 (as SD on the log scale)
-#>   residual error     proportional 0.394 
-#>   time to fit        10 min 31 s (10 min 33 s for the whole call) 
+#>   fixed effects      cl 14.53, v 182.7, ka 6.489 
+#>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
+#>   residual error     proportional 0.26 
+#>   time to fit        7 min 40 s (7 min 42 s for the whole call) 
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
@@ -118,13 +118,15 @@ model_report(fit)
 #>                      constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
-#>   Reported below the assay limit, and given a value for the fit:
+#>   Reported below the assay limit:
 #>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
-#>   For the fit only, each of those rows was replaced by a random value drawn
-#>   between zero and the limit. The fitter is not told they are censored, so
-#>   that share of the fit rests on the draw rather than on measurements. At
-#>   generation the boundary goes back: a synthetic value below the limit is
-#>   written out censored, the way the study recorded it.
+#>   `PK Concentration` was fitted with those rows censored: each enters the
+#>   likelihood as the probability of falling below the limit, not as a value
+#>   nobody measured. Any other endpoint here reads a uniform draw below the
+#>   limit instead, because its shape is a least-squares fit with no
+#>   likelihood to put censoring in. At generation the boundary goes back, and
+#>   a synthetic value below the limit is written out censored the way the
+#>   study recorded it.
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3
@@ -174,8 +176,9 @@ observed concentration here being positive; a study recording zeros gets
 an additive error instead, because a proportional one has nothing to
 scale there. The PD endpoint gets an exponential shape from the
 least-squares search, with no exposure term. And 46% of the
-concentrations sit below the assay limit and were imputed inside the
-censoring region before fitting — a study this censored asks the fit to
+concentrations sit below the assay limit; those rows were fitted as
+censored rather than given a value, so each contributed the probability
+of falling below the limit. A study this censored still asks the fit to
 describe mostly-censored arms, and the arm-by-arm comparison further
 down is where that shows.
 
@@ -403,9 +406,13 @@ property of this dataset.
 **Two rows ask to be read.** A5a reports observations per patient
 falling from 30.7 to 29, which is the visit model drawing attendance
 rather than copying it. D1 reports the standard deviation of
-`PK Concentration` at 1.3 times the source’s, the furthest of the three
-numeric variables — a spread that widened, consistent with the censored
-arms above.
+`PK Concentration` at 0.68 times the source’s, the furthest of the three
+numeric variables — a spread that narrowed. That follows from fitting
+the censored rows as censored: the residual error is 0.26 where an
+imputed fit takes 0.39, and the residual is what sets the scatter of
+every generated concentration. Half the source’s own spread is where its
+assay stopped reporting, and the fit no longer treats that as measured
+variation.
 
 [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
 documents what each row asks and what its pass criterion is.

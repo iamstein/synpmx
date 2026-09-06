@@ -151,10 +151,10 @@ case1$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 8.168, v 111, ka 6.471 
-#>   between-subject    cl 0.509, v 0.436, ka 0.707 (as SD on the log scale)
-#>   residual error     proportional 0.394 
-#>   time to fit        10 min 31 s (10 min 33 s for the whole call) 
+#>   fixed effects      cl 14.53, v 182.7, ka 6.489 
+#>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
+#>   residual error     proportional 0.26 
+#>   time to fit        7 min 40 s (7 min 42 s for the whole call) 
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
@@ -164,13 +164,15 @@ case1$fit
 #>                      constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
-#>   Reported below the assay limit, and given a value for the fit:
+#>   Reported below the assay limit:
 #>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
-#>   For the fit only, each of those rows was replaced by a random value drawn
-#>   between zero and the limit. The fitter is not told they are censored, so
-#>   that share of the fit rests on the draw rather than on measurements. At
-#>   generation the boundary goes back: a synthetic value below the limit is
-#>   written out censored, the way the study recorded it.
+#>   `PK Concentration` was fitted with those rows censored: each enters the
+#>   likelihood as the probability of falling below the limit, not as a value
+#>   nobody measured. Any other endpoint here reads a uniform draw below the
+#>   limit instead, because its shape is a least-squares fit with no
+#>   likelihood to put censoring in. At generation the boundary goes back, and
+#>   a synthetic value below the limit is written out censored the way the
+#>   study recorded it.
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3
@@ -230,8 +232,10 @@ synpmx_scorecard_datatable(case1$card)
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to
 29, which is the visit model drawing attendance rather than copying it,
-and D1 puts the concentration’s standard deviation at 1.3 times the
-source’s.
+and D1 puts the concentration’s standard deviation at 0.68 times the
+source’s — a spread that narrowed, because the censored rows are fitted
+as censored and the residual error no longer carries the scatter of
+values the assay never measured.
 [`vignette("pmxmodel-demo")`](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.md)
 works this study end to end, including what its 46% censoring and its PD
 endpoint cost.
@@ -1243,7 +1247,7 @@ knitr::kable(inventory, row.names = FALSE,
 
 | Dataset | Patients | Model | Fixed effects | Residual |
 |:---|---:|:---|:---|:---|
-| case1_pkpd | 180 | 1cmt_oral | cl 8.17, v 111, ka 6.47 | proportional 0.394 |
+| case1_pkpd | 180 | 1cmt_oral | cl 14.5, v 183, ka 6.49 | proportional 0.26 |
 | mad | 60 | 1cmt_oral | cl 5.56, v 154, ka 3.93 | proportional 0.719 |
 | warfarin | 32 | 1cmt_oral | cl 0.137, v 8.18, ka 0.612 | proportional 0.21 |
 | wbcSim | 45 | 1cmt_infusion | cl 0.0124, v 20.4 | proportional 0.347 |

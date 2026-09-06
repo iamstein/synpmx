@@ -187,7 +187,7 @@ are compressed to one record per patient first, which the message also
 reports; <code>case1_pkpd</code> records its dose times as actuals — 0,
 24.22, 48.28 — so there is no exact interval to compress to, and the
 wait is the honest cost of the design.</p>
-<p>A clearance of 8.17 L/h and a volume of 111 L. Whether those are the
+<p>A clearance of 14.5 L/h and a volume of 183 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.</p>
@@ -206,10 +206,10 @@ printing the fitted object shows the same account.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 8.168, v 111, ka 6.471 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.509, v 0.436, ka 0.707 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.394 </span></span>
-<span><span class="co">#&gt;   time to fit        10 min 31 s (10 min 33 s for the whole call) </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 14.53, v 182.7, ka 6.489 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.26 </span></span>
+<span><span class="co">#&gt;   time to fit        7 min 40 s (7 min 42 s for the whole call) </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
@@ -219,13 +219,15 @@ printing the fitted object shows the same account.</p>
 <span><span class="co">#&gt;                      constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
-<span><span class="co">#&gt;   Reported below the assay limit, and given a value for the fit:</span></span>
+<span><span class="co">#&gt;   Reported below the assay limit:</span></span>
 <span><span class="co">#&gt;     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)</span></span>
-<span><span class="co">#&gt;   For the fit only, each of those rows was replaced by a random value drawn</span></span>
-<span><span class="co">#&gt;   between zero and the limit. The fitter is not told they are censored, so</span></span>
-<span><span class="co">#&gt;   that share of the fit rests on the draw rather than on measurements. At</span></span>
-<span><span class="co">#&gt;   generation the boundary goes back: a synthetic value below the limit is</span></span>
-<span><span class="co">#&gt;   written out censored, the way the study recorded it.</span></span>
+<span><span class="co">#&gt;   `PK Concentration` was fitted with those rows censored: each enters the</span></span>
+<span><span class="co">#&gt;   likelihood as the probability of falling below the limit, not as a value</span></span>
+<span><span class="co">#&gt;   nobody measured. Any other endpoint here reads a uniform draw below the</span></span>
+<span><span class="co">#&gt;   limit instead, because its shape is a least-squares fit with no</span></span>
+<span><span class="co">#&gt;   likelihood to put censoring in. At generation the boundary goes back, and</span></span>
+<span><span class="co">#&gt;   a synthetic value below the limit is written out censored the way the</span></span>
+<span><span class="co">#&gt;   study recorded it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3</span></span>
@@ -273,8 +275,9 @@ observed concentration here being positive; a study recording zeros gets
 an additive error instead, because a proportional one has nothing to
 scale there. The PD endpoint gets an exponential shape from the
 least-squares search, with no exposure term. And 46% of the
-concentrations sit below the assay limit and were imputed inside the
-censoring region before fitting — a study this censored asks the fit to
+concentrations sit below the assay limit; those rows were fitted as
+censored rather than given a value, so each contributed the probability
+of falling below the limit. A study this censored still asks the fit to
 describe mostly-censored arms, and the arm-by-arm comparison further
 down is where that shows.</p>
 <p>The signals table says how the concentration endpoint was decided:
@@ -292,7 +295,7 @@ relationships without modelling them.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="st">"Candidates the design admitted"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[-8630],[631],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"seconds","targets":3},{"name":"note","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[7310],[460],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"seconds","targets":3},{"name":"note","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
 phase is a refinement of a shape the one-compartment model already has
 and costs several times as long to fit, so it is available rather than
 routine: <code>pk = "2cmt_oral"</code> forces it,
@@ -382,7 +385,7 @@ censored rather than where its curve sits.</p>
 <span>                   by <span class="op">=</span> <span class="st">"arm"</span><span class="op">)</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">blq_table</span>, <span class="st">"Share of concentrations below the assay limit, by arm"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>Share of concentrations below the assay limit, by arm<\/caption>","data":[["10 mg","100 mg","3 mg","30 mg","300 mg"],[70,11,95,50,6],[48,2,96,21,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>pct_blq_source<\/th>\n      <th>pct_blq_synthetic<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"arm","targets":0},{"name":"pct_blq_source","targets":1},{"name":"pct_blq_synthetic","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>The censored share moves in the right direction across the arms and
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>Share of concentrations below the assay limit, by arm<\/caption>","data":[["10 mg","100 mg","3 mg","30 mg","300 mg"],[70,11,95,50,6],[80,12,100,34,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>pct_blq_source<\/th>\n      <th>pct_blq_synthetic<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"arm","targets":0},{"name":"pct_blq_source","targets":1},{"name":"pct_blq_synthetic","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>The censored share moves in the right direction across the arms and
 does not match the source arm for arm: the generator censors more of the
 3 mg arm than the study did and less of the 30 and 100 mg arms. One
 clearance and one volume distribution, shared by every arm and evaluated
@@ -452,7 +455,7 @@ AVATAR or PCA one.</p>
 <code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.656 above [0.425, 0.587]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x1.4 on PK Concentration (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Three rows read <code>not applicable</code>.</strong> B1a,
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.600 in [0.435, 0.612]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.68 on PK Concentration (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Three rows read <code>not applicable</code>.</strong> B1a,
 B1b and C2 read a run record that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> writes on
 its output and this generator does not, so there is nothing for them to
 measure. That is a gap in those three checks rather than a property of
@@ -460,9 +463,13 @@ this dataset.</p>
 <p><strong>Two rows ask to be read.</strong> A5a reports observations
 per patient falling from 30.7 to 29, which is the visit model drawing
 attendance rather than copying it. D1 reports the standard deviation of
-<code>PK Concentration</code> at 1.3 times the source’s, the furthest of
-the three numeric variables — a spread that widened, consistent with the
-censored arms above.</p>
+<code>PK Concentration</code> at 0.68 times the source’s, the furthest
+of the three numeric variables — a spread that narrowed. That follows
+from fitting the censored rows as censored: the residual error is 0.26
+where an imputed fit takes 0.39, and the residual is what sets the
+scatter of every generated concentration. Half the source’s own spread
+is where its assay stopped reporting, and the fit no longer treats that
+as measured variation.</p>
 <p><code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> documents what each row
 asks and what its pass criterion is.</p>
 </div>

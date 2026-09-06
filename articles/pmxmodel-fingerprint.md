@@ -280,12 +280,13 @@ silent.
 
 ## What the assay limit cost
 
-Values below the limit are imputed before anything is fitted, and the
-boundary is put back when data is generated. That is the intended
-behaviour — it is what lets every part of the fingerprint read a latent
-value rather than a stack of identical boundary substitutions — but it
-is an assumption, and its weight is the share of each endpoint carrying
-it.
+The concentration is fitted with its below-limit rows censored, so each
+contributes the probability of falling below the limit rather than a
+value nobody measured. Every other part of the fingerprint is a
+least-squares fit with no likelihood to put censoring in, and reads a
+uniform draw inside the censoring region instead — an assumption, whose
+weight is the share of each endpoint carrying it. The boundary is put
+back when data is generated.
 
 ``` r
 
@@ -293,13 +294,13 @@ fit$censoring
 #> NULL
 ```
 
-`warfarin` declares no censoring, so nothing here was imputed. On a
+`warfarin` declares no censoring, so nothing here is below a limit. On a
 study where it is, this is the line to read before trusting the
 concentrations:
 [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) has
 46% of its concentrations below the limit and 95% of the lowest dose
-arm, and there the fitted parameters are substantially a statement about
-the draw.
+arm, and there the concentration curve is drawn mostly from where the
+assay stopped reporting.
 
 ## The covariate effects
 
