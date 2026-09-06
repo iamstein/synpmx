@@ -84,6 +84,16 @@ test_that("no post-dose observation is refused, naming what the roles read", {
   expect_identical(.model_time_coverage(no_doses, roles), 0L)
   expect_error(.model_require_time_coverage(no_doses, roles, 6L),
                "no row is a dose")
+  # The message shows what the column held, so a dataset that marks its doses
+  # some other way -- or lost them to a filter -- can be read off the error.
+  expect_error(.model_require_time_coverage(no_doses, roles, 6L),
+               "`EVID` holds 0 \\([0-9]+ rows\\)")
+  expect_error(.model_require_time_coverage(no_doses, roles, 6L),
+               "0 of [0-9]+ rows have a positive `AMT`")
+  amt_only <- no_doses
+  amt_only$AMT[seq(1, nrow(amt_only), by = 10)] <- 100
+  expect_error(.model_require_time_coverage(amt_only, roles, 6L),
+               "and [1-9][0-9]* of [0-9]+ rows have a positive `AMT`")
 
   # Doses and observations that never meet in one subject.
   split_ids <- data

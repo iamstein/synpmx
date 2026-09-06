@@ -109,11 +109,24 @@
                   " with `", roles$dv, "` recorded."))
   }
   if (!any(dosed)) {
+    # What the columns actually hold, because "no row is a dose" reads as a
+    # claim about the study and the fix is in the data: every value the event
+    # column takes, and how many rows carry an amount anyway. A dataset that
+    # marks its doses with the amount alone, or that lost its dose rows to a
+    # filter upstream, is the difference between those two numbers.
     return(paste0(sum(observed), " observations are present but no row is a ",
                   "dose. A dose is a non-zero `", roles$evid, "`",
                   if (!is.null(roles$amt))
                     paste0(" with a positive `", roles$amt, "`"),
-                  ", so nothing here has a dose to be measured after."))
+                  ", so nothing here has a dose to be measured after. `",
+                  roles$evid, "` holds ", .value_counts(source[[roles$evid]]),
+                  if (!is.null(roles$amt)) {
+                    amount <- suppressWarnings(as.numeric(source[[roles$amt]]))
+                    paste0(", and ", sum(is.finite(amount) & amount > 0),
+                           " of ", nrow(source), " rows have a positive `",
+                           roles$amt, "`")
+                  },
+                  "."))
   }
   paste0(sum(observed), " observations and ", sum(dosed), " dose rows are ",
          "present, but no subject holds an observation after a dose of its ",
@@ -161,6 +174,19 @@
 # comes out as "0lacebo". The arm keeps its key internally and is labelled with
 # the columns joined readably. Every generator's output goes through this.
 .arm_label <- function(arm) gsub("\r", " / ", as.character(arm), fixed = TRUE)
+
+# The distinct values of one column with how often each occurs, for a message
+# that has to say what a column contained rather than what it should have.
+.value_counts <- function(x, limit = 8L) {
+  counts <- table(as.character(x), useNA = "ifany")
+  labels <- names(counts)
+  labels[is.na(labels)] <- "NA"
+  shown <- seq_len(min(length(counts), limit))
+  paste0(paste(sprintf("%s (%d rows)", labels[shown],
+                       as.integer(counts[shown])), collapse = ", "),
+         if (length(counts) > limit) paste0(", and ", length(counts) - limit,
+                                            " more"))
+}
 
 .model_duration <- function(seconds) {
   if (!is.finite(seconds)) return("unknown")
