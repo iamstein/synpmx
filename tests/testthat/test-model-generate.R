@@ -79,6 +79,34 @@
   )
 }
 
+# The subject's arm has to reach their PD value, or fitting per arm buys
+# nothing. Built by hand: two arms, two shapes, and the arm each subject was
+# assigned decides which one is evaluated.
+test_that("generation evaluates the arm's own PD shape where there is one", {
+  data <- .cycle_fixture()
+  data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "high", "low")
+  roles <- .generate_roles(strata = "ARM")
+  fit <- .hand_built_fit(data, roles)
+
+  flat <- list(pd = "constant", typical = c(baseline = 10), baseline_cv = 0,
+               residual = list(kind = "additive", sd = 0))
+  steep <- list(pd = "constant", typical = c(baseline = 100), baseline_cv = 0,
+                residual = list(kind = "additive", sd = 0))
+  fit$endpoints$pd <- "effect"
+  fit$pd <- list(effect = c(flat, list(arms = list(low = flat, high = steep))))
+  fit$cells <- rbind(fit$cells, transform(fit$cells[1, , drop = FALSE],
+                                          endpoint = "effect"))
+  for (arm in names(fit$visits)) {
+    fit$visits[[arm]]$probability <- c(fit$visits[[arm]]$probability, 1)
+  }
+
+  synthetic <- synpmx_model_generate(fit, n_subjects = 40, seed = 9)
+  effect <- synthetic[synthetic$DVID == "effect", , drop = FALSE]
+  by_arm <- tapply(effect$DV, effect$ARM, mean)
+  expect_equal(unname(by_arm[["low"]]), 10)
+  expect_equal(unname(by_arm[["high"]]), 100)
+})
+
 # Everything on the object is an input to generation, so printing it has to
 # report all of them: a reader who has to call a second function to see half the
 # simulation will read half of it.

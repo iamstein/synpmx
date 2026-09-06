@@ -199,6 +199,22 @@
                                             " more"))
 }
 
+# How the shape was arrived at. A search only happened where more than one
+# shape had a degree of freedom left to be judged on; where one did, saying
+# "chosen on AIC" would describe a comparison that never ran, and where the
+# endpoint is a level the note on the row is the honest account.
+.model_pd_selection <- function(shape) {
+  table <- shape$candidates
+  if (is.null(table)) return(NULL)
+  converged <- table$shape[table$converged]
+  note <- table$note[table$converged & nzchar(table$note)]
+  if (length(converged) > 1L) {
+    return(paste0("; chosen on AIC from ", paste(converged, collapse = ", ")))
+  }
+  if (length(note)) return(paste0("; ", note[[1L]]))
+  paste0("; the only shape these observations admit")
+}
+
 .model_duration <- function(seconds) {
   if (!is.finite(seconds)) return("unknown")
   if (seconds < 60) return(sprintf("%.1f s", seconds))
@@ -402,17 +418,30 @@ print.pmx_model_report <- function(x, ...) {
     cat("\nEach other continuous endpoint, fitted as a shape in time\n")
     for (name in names(x$pd)) {
       shape <- x$pd[[name]]
+      # One line per arm where the shape was fitted per arm, because that is
+      # then six fits rather than one and the arms are the whole point of
+      # asking for it.
+      if (length(shape$arms)) {
+        field(name, "one shape per arm (`pd_by_arm = TRUE`):")
+        for (arm in names(shape$arms)) {
+          own <- shape$arms[[arm]]
+          field("", "  ", .arm_label(arm), ": ", own$pd, ", ",
+                paste(sprintf("%s %.4g", names(own$typical),
+                              as.numeric(own$typical)), collapse = ", "),
+                "; between-subject ", sprintf("%.3g", own$baseline_cv %||% 0),
+                "; residual ", own$residual$kind, " ",
+                sprintf("%.3g", own$residual$sd),
+                .model_pd_selection(own))
+        }
+        next
+      }
       field(name, shape$pd, ": ",
             paste(sprintf("%s %.4g", names(shape$typical),
                           as.numeric(shape$typical)), collapse = ", "),
             "; between-subject ", sprintf("%.3g", shape$baseline_cv %||% 0),
             " (SD on the log baseline); residual ", shape$residual$kind, " ",
             sprintf("%.3g", shape$residual$sd),
-            if (!is.null(shape$candidates)) {
-              paste0("; chosen on AIC from ",
-                     paste(shape$candidates$shape[shape$candidates$converged],
-                           collapse = ", "))
-            })
+            .model_pd_selection(shape))
     }
   }
 
@@ -422,22 +451,23 @@ print.pmx_model_report <- function(x, ...) {
   # given instead, the other is what the generator refuses to write. Each is
   # spelled out in a sentence rather than compressed into a label.
   censored <- if (is.null(x$censoring)) NULL else
-    x$censoring[x$censoring$imputed > 0, , drop = FALSE]
+    x$censoring[x$censoring$censored > 0, , drop = FALSE]
   if ((!is.null(censored) && nrow(censored)) || length(x$quantification_floor)) {
     cat("\nValues at the bottom of the scale\n")
   }
   if (!is.null(censored) && nrow(censored)) {
-    cat("  Reported below the assay limit, and given a value for the fit:\n")
+    cat("  Reported below the assay limit:\n")
     cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g (the limit)\n",
-                censored$endpoint, censored$imputed, censored$observations,
+                censored$endpoint, censored$censored, censored$observations,
                 100 * censored$fraction, censored$limit), sep = "")
-    cat("  ", .wrap_plain(paste(
-      "For the fit only, each of those rows was replaced by a random value",
-      "drawn between zero and the limit. The fitter is not told they are",
-      "censored, so that share of the fit rests on the draw rather than on",
-      "measurements. At generation the boundary goes back: a synthetic value",
-      "below the limit is written out censored, the way the study recorded",
-      "it."
+    cat("  ", .wrap_plain(paste0(
+      "`", x$endpoints$pk, "` was fitted with those rows censored: each ",
+      "enters the likelihood as the probability of falling below the limit, ",
+      "not as a value nobody measured. Any other endpoint here reads a ",
+      "uniform draw below the limit instead, because its shape is a ",
+      "least-squares fit with no likelihood to put censoring in. At ",
+      "generation the boundary goes back, and a synthetic value below the ",
+      "limit is written out censored the way the study recorded it."
     ), "", "  "), "\n", sep = "")
   }
   if (length(x$quantification_floor)) {

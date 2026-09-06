@@ -262,8 +262,11 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   # Between-subject variability on a PD baseline is its own draw. It is not in
   # the PK covariance matrix, because the PD shapes are fitted separately and a
   # baseline is not a parameter of the concentration-time curve.
+  # Drawn standard and scaled at emit rather than drawn at the endpoint's own
+  # spread, because with `pd_by_arm` the spread is the arm's. `rnorm(n, 0, sd)`
+  # is `sd * rnorm(n, 0, 1)` exactly, so the pooled path draws what it did.
   pd_etas <- vapply(fit$pd, function(shape) {
-    stats::rnorm(n_subjects, 0, shape$baseline_cv %||% 0)
+    stats::rnorm(n_subjects, 0, 1)
   }, numeric(n_subjects))
   if (!is.matrix(pd_etas)) {
     pd_etas <- matrix(pd_etas, nrow = n_subjects,
@@ -308,9 +311,13 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
                                      fit$parameters$duration %||% 0)
         .add_residual_error(concentration, fit$parameters$residual, floor = 0)
       } else if (endpoint_name %in% names(fit$pd)) {
+        # The subject's own arm where the shape was fitted per arm, and the
+        # pooled shape otherwise. `synpmx_model_estimate(pd_by_arm = TRUE)` is
+        # what puts `arms` on the shape.
         shape <- fit$pd[[endpoint_name]]
+        if (arm %in% names(shape$arms)) shape <- shape$arms[[arm]]
         baseline <- shape$typical[["baseline"]] *
-          exp(pd_etas[i, endpoint_name])
+          exp(pd_etas[i, endpoint_name] * (shape$baseline_cv %||% 0))
         .add_residual_error(
           .pd_profile(list(pd = shape$pd), time, schedule$amt, schedule$time,
                       params = replace(shape$typical, "baseline", baseline)),

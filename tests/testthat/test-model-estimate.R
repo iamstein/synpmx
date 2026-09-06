@@ -371,6 +371,167 @@ test_that("a lone non-positive value leaves the floor in place", {
   expect_equal(floor_value[[endpoint]], smallest / 2)
 })
 
+# SIM-069. There is no minimum number of observations. An endpoint measured
+# once is a level, and a level is still something to generate -- the alternative
+# is a synthetic study silently missing an endpoint the source has.
+test_that("an endpoint measured once is generated as a level", {
+  one <- data.frame(subject = "1", endpoint = "biomarker", dv = 42,
+                    aligned = 0, stringsAsFactors = FALSE)
+  shape <- .model_fit_pd(one, "biomarker")
+  expect_identical(shape$pd, "constant")
+  expect_equal(shape$typical[["baseline"]], 42)
+  # One observation shows no scatter. `sd()` of one number is NA, and an NA
+  # residual reaches generation as an NA observation.
+  expect_equal(shape$residual$sd, 0)
+  expect_equal(shape$baseline_cv, 0)
+  expect_false(any(shape$candidates$converged &
+                     shape$candidates$shape != "constant"))
+})
+
+# A shape needs something left over to be wrong about. Two points fit a line
+# exactly, and `AIC` of a saturated fit is -Inf, so a line would win every
+# two-point comparison and generate a curve through both with no residual.
+test_that("a saturated shape is not a candidate", {
+  two <- data.frame(subject = c("1", "2"), endpoint = "b", dv = c(5, 9),
+                    aligned = c(0, 24), stringsAsFactors = FALSE)
+  shape <- .model_fit_pd(two, "b")
+  expect_identical(shape$pd, "constant")
+  expect_false("linear" %in% shape$candidates$shape[shape$candidates$converged])
+
+  # A third point at a third time gives the line a degree of freedom, and it
+  # becomes a candidate rather than a certainty.
+  three <- rbind(two, data.frame(subject = "3", endpoint = "b", dv = 7,
+                                 aligned = 48, stringsAsFactors = FALSE))
+  expect_true("linear" %in%
+                .model_fit_pd(three, "b")$candidates$shape[
+                  .model_fit_pd(three, "b")$candidates$converged])
+})
+
+# What is genuinely unfittable is an endpoint with no usable row at all: every
+# value missing, or no time to fit against. The gates above make that hard to
+# reach through `synpmx_model_estimate()` -- `nominal_time` is required on every
+# observation before this runs, and an undosed subject keeps its own clock -- so
+# the contract is pinned here and the call site reports it if anything ever
+# produces one.
+test_that("an endpoint with no usable observation is fitted to nothing", {
+  none <- data.frame(subject = c("1", "2"), endpoint = "b", dv = c(5, 9),
+                     aligned = c(NA_real_, NA_real_), stringsAsFactors = FALSE)
+  expect_null(.model_fit_pd(none, "b"))
+  missing_values <- data.frame(subject = "1", endpoint = "b", dv = NA_real_,
+                               aligned = 0, stringsAsFactors = FALSE)
+  expect_null(.model_fit_pd(missing_values, "b"))
+})
+
+# The arm of every subject, named by subject. `vapply()` names its result from a
+# character input and leaves a numeric one unnamed, so a study whose `ID` is a
+# number gave an unnamed vector and anything asking "which subjects are in this
+# arm" got nothing -- silently, because an empty arm looks like a small one.
+test_that("the subject-to-arm vector is named whatever type the ID is", {
+  data <- .oral_study()
+  data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "high", "low")
+  roles <- .estimate_roles(strata = "ARM")
+
+  numeric_ids <- .model_subject_arms(data, roles)
+  expect_identical(names(numeric_ids),
+                   as.character(.unique_in_order(data$ID)))
+
+  character_data <- data
+  character_data$ID <- paste0("S", data$ID)
+  character_ids <- .model_subject_arms(character_data, roles)
+  expect_identical(names(character_ids),
+                   .unique_in_order(character_data$ID))
+  expect_identical(unname(numeric_ids), unname(character_ids))
+})
+
+# SIM-060 option (a), as an option rather than the default. The pooled shape
+# predicts one number for every arm, so a synthetic patient's dose never reaches
+# their response; per arm it does, and asserts no dose-response form to get
+# there.
+test_that("a PD shape can be fitted per arm, and falls back where it cannot", {
+  data <- .oral_study()
+  # Two arms whose PD endpoint differs by construction: one flat, one rising.
+  data$ARM <- ifelse(as.integer(data$ID) %% 2L == 0L, "high", "low")
+  pd_rows <- data[data$EVID == 0L, , drop = FALSE]
+  pd_rows$DVID <- "effect"
+  pd_rows$DV <- ifelse(pd_rows$ARM == "high", 20 + 0.05 * pd_rows$TIME, 20)
+  data <- rbind(data, pd_rows)
+  data <- data[order(data$ID, data$TIME, data$EVID == 0L), , drop = FALSE]
+  roles <- .estimate_roles(strata = "ARM")
+
+  observations <- .model_observations(data, roles)
+  group <- .model_subject_arms(data, roles)
+  pooled <- .model_fit_pd(observations, "effect", NULL)
+  arms <- .model_fit_pd_arms(observations, "effect", NULL, group, pooled)
+
+  expect_named(arms, .unique_in_order(unname(group)))
+  at <- max(observations$aligned)
+  value <- function(shape) {
+    .pd_profile(list(pd = shape$pd), at, numeric(), numeric(), shape$typical)
+  }
+  # The pooled shape answers one number to both arms; the per-arm shapes do not.
+  expect_gt(value(arms[["high"]]), value(arms[["low"]]) + 1)
+  expect_true(value(pooled) > value(arms[["low"]]) &&
+                value(pooled) < value(arms[["high"]]))
+
+  # An arm with too little of the endpoint to fit keeps the pooled shape rather
+  # than losing the endpoint, so no arm is left with nothing to generate.
+  thin <- observations[observations$endpoint != "effect" |
+                         observations$subject %in%
+                         names(group)[group == "low"][1L], , drop = FALSE]
+  fallback <- .model_fit_pd_arms(thin, "effect", NULL, group, pooled)
+  expect_identical(fallback[["high"]], pooled)
+})
+
+test_that("pd_by_arm is TRUE or FALSE", {
+  expect_error(synpmx_model_estimate(.oral_study(), .estimate_roles(),
+                                     pd_by_arm = "yes"),
+               "`pd_by_arm` must be TRUE or FALSE")
+})
+
+# SIM-068. A censored row goes to the fitter as censored rather than as a value
+# nobody measured. The convention is `nlmixr2`'s and `pmx_roles()`'s at once:
+# `CENS` 1 with `DV` holding the limit, and `LIMIT` closing the interval.
+test_that("censoring reaches the fit table instead of being imputed away", {
+  data <- .oral_study()
+  roles <- .estimate_roles(cens = "CENS")
+  endpoint <- as.character(data$DVID[which(data$EVID == 0L)[1L]])
+  observed <- which(data$EVID == 0L & !is.na(data$DV) & data$DVID == endpoint)
+  limit <- stats::quantile(data$DV[observed], 0.2)
+  data$CENS <- 0L
+  data$CENS[observed[data$DV[observed] < limit]] <- 1L
+  data$DV[data$CENS == 1L] <- limit
+
+  table <- .model_estimation_data(data, roles, endpoint)
+  expect_true("CENS" %in% names(table))
+  expect_identical(sum(table$CENS != 0), sum(data$CENS != 0L))
+  # Never on a dose record, which is not an observation of anything.
+  expect_true(all(table$CENS[table$EVID != 0L] == 0))
+  # And the value handed over is the study's own limit, not a draw below it.
+  expect_true(all(table$DV[table$CENS != 0] == limit))
+
+  # No `cens` role, no column: a study that declares none is handed the table
+  # it was handed before.
+  plain <- .model_estimation_data(data, .estimate_roles(), endpoint)
+  expect_false("CENS" %in% names(plain))
+})
+
+test_that("a declared interval limit rides along with the flag", {
+  data <- .oral_study()
+  roles <- .estimate_roles(cens = "CENS", limit = "LIMIT")
+  endpoint <- as.character(data$DVID[which(data$EVID == 0L)[1L]])
+  observed <- which(data$EVID == 0L & !is.na(data$DV) & data$DVID == endpoint)
+  data$CENS <- 0L
+  data$LIMIT <- NA_real_
+  data$CENS[observed[1:3]] <- 1L
+  data$LIMIT[observed[1:3]] <- 0.01
+
+  table <- .model_estimation_data(data, roles, endpoint)
+  expect_identical(sum(!is.na(table$LIMIT)), 3L)
+  expect_true(all(table$LIMIT[table$CENS != 0] == 0.01))
+  # `LIMIT` is meaningless where nothing is censored, and stays empty there.
+  expect_true(all(is.na(table$LIMIT[table$CENS == 0])))
+})
+
 # The floor sits beside the declared assay limit rather than under it: where
 # the study says where its assay stopped, `.censor_latent()` puts that boundary
 # back and a second floor beneath it would be counted and warned about while

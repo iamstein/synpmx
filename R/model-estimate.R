@@ -270,6 +270,23 @@
     rate[!is.finite(rate)] <- 0
     out$RATE <- ifelse(out$EVID != 0L, rate[keep], 0)
   }
+  # Censoring is handed to the fitter rather than imputed away, on the same
+  # convention `pmx_roles(cens=, limit=)` already carries and `nlmixr2` already
+  # reads: `CENS` 1 is left-censored with `DV` holding the limit, -1 is
+  # right-censored, and `LIMIT` closes the interval where the study reports the
+  # other bound. A censored row then enters the likelihood as the probability
+  # of falling below the limit, which is what it is, instead of as a number
+  # nobody measured.
+  if (!is.null(roles$cens)) {
+    cens <- suppressWarnings(as.numeric(as.character(source[[roles$cens]])))
+    cens[!is.finite(cens)] <- 0
+    out$CENS <- ifelse(out$EVID == 0L, cens[keep], 0)
+    if (!is.null(roles$limit)) {
+      limit <- suppressWarnings(as.numeric(source[[roles$limit]]))
+      out$LIMIT <- ifelse(out$EVID == 0L & out$CENS != 0, limit[keep],
+                          NA_real_)
+    }
+  }
   # A subject dosed but never sampled for this endpoint adds no term to the
   # likelihood. Its dosing and its visits are real and still reach the arm
   # models, which read the source rather than this table, but a dose-only
@@ -550,11 +567,26 @@
   list(baseline = unname(baseline), residual = residual)
 }
 
+# A shape is a candidate where it has something left over to be wrong about.
+#
+# `AIC` on a saturated fit is `-Inf`: two points fit a line exactly, so a line
+# would win every two-point comparison and generate a curve through both with no
+# residual at all. That is an interpolation presented as a selection. One
+# residual degree of freedom is the condition that rules it out, and it is the
+# same condition for all three shapes rather than a count chosen per shape.
+.pd_estimable <- function(model) {
+  if (is.null(model) || inherits(model, "try-error")) return(FALSE)
+  aic <- suppressWarnings(try(stats::AIC(model), silent = TRUE))
+  df <- suppressWarnings(try(stats::df.residual(model), silent = TRUE))
+  !inherits(aic, "try-error") && !inherits(df, "try-error") &&
+    is.finite(aic) && is.finite(df) && df >= 1
+}
+
 .model_fit_pd <- function(observations, endpoint, shapes = NULL) {
   rows <- observations[observations$endpoint == endpoint &
                          is.finite(observations$dv) &
                          is.finite(observations$aligned), , drop = FALSE]
-  if (nrow(rows) < 4L) return(NULL)
+  if (!nrow(rows)) return(NULL)
   # Study time from the first dose, which is the axis generation evaluates the
   # shape on. Fitting against time after dose instead makes every sample in a
   # daily regimen land at nearly the same place.
@@ -562,35 +594,52 @@
   value <- rows$dv
 
   candidates <- list()
+  candidate_notes <- list()
   failed <- list()
   constant <- stats::lm(value ~ 1)
-  candidates$constant <- list(pd = "constant",
-                              typical = c(baseline = unname(stats::coef(constant)[1L])),
-                              aic = stats::AIC(constant))
-  linear <- stats::lm(value ~ time)
-  coefficients <- stats::coef(linear)
-  candidates$linear <- list(
-    pd = "linear",
-    typical = c(baseline = unname(coefficients[1L]),
-                slope = unname(coefficients[2L])),
-    aic = stats::AIC(linear)
-  )
+  if (.pd_estimable(constant)) {
+    candidates$constant <- list(
+      pd = "constant",
+      typical = c(baseline = unname(stats::coef(constant)[1L])),
+      aic = stats::AIC(constant)
+    )
+  }
+  # A slope needs two distinct times to be a slope at all, whatever the number
+  # of observations sitting on them.
+  linear <- if (length(unique(time)) >= 2L) stats::lm(value ~ time) else NULL
+  if (.pd_estimable(linear)) {
+    coefficients <- stats::coef(linear)
+    candidates$linear <- list(
+      pd = "linear",
+      typical = c(baseline = unname(coefficients[1L]),
+                  slope = unname(coefficients[2L])),
+      aic = stats::AIC(linear)
+    )
+  }
   # Several start sets rather than one. The single median-based set fails on any
   # response that falls and then recovers, which is the shape a turnover
   # endpoint has, and the failure was silent: the candidate simply vanished from
   # the table and a flat line won on AIC against two other flat lines.
   exponential <- NULL
   note <- ""
-  for (start in .pd_exponential_starts(time, value)) {
+  starts <- if (length(unique(time)) >= 2L && nrow(rows) >= 4L) {
+    .pd_exponential_starts(time, value)
+  } else {
+    note <- paste0(nrow(rows), " observation(s) at ", length(unique(time)),
+                   " distinct time(s): three parameters and nothing left over")
+    list()
+  }
+  for (start in starts) {
     attempt <- try(stats::nls(
       value ~ plateau + (baseline - plateau) * exp(-rate * pmax(time, 0)),
       start = start
     ), silent = TRUE)
-    if (!inherits(attempt, "try-error")) {
+    if (.pd_estimable(attempt)) {
       exponential <- attempt
       break
     }
-    note <- .trimmed_condition(attempt)
+    note <- if (inherits(attempt, "try-error")) .trimmed_condition(attempt) else
+      "fitted exactly, with nothing left over to select it on"
   }
   if (!is.null(exponential)) {
     candidates$exponential <- list(
@@ -606,9 +655,24 @@
       stop("`pd` names the shape `", shapes[[endpoint]], "` for endpoint `",
            endpoint, "`, which could not be fitted to it.", call. = FALSE)
     }
-  } else {
+  } else if (length(candidates)) {
     chosen <- candidates[[which.min(vapply(candidates, function(c) c$aic,
                                            numeric(1)))]]
+  } else {
+    # One observation, or several at one time: nothing about a time course can
+    # be read, and the endpoint is a level. That is still worth generating --
+    # the alternative is a synthetic study missing an endpoint the source has --
+    # so it is a constant at the mean, with whatever spread the observations
+    # show and none where they show none. Named in the candidate table as the
+    # only thing that could be fitted, so the report says so rather than
+    # implying a search happened.
+    chosen <- list(pd = "constant", typical = c(baseline = mean(value)),
+                   aic = NA_real_)
+    candidates$constant <- chosen
+    candidate_notes$constant <- paste0(
+      nrow(rows), " observation(s) at ", length(unique(time)),
+      " distinct time(s): a level, with no time course to select"
+    )
   }
 
   # Between-subject variability and residual error, both read around each
@@ -630,16 +694,48 @@
   positive <- levels$baseline[is.finite(levels$baseline) &
                                 levels$baseline > 0]
   chosen$baseline_cv <- if (length(positive) > 1L) stats::sd(log(positive)) else 0
-  chosen$residual <- list(kind = "additive", sd = stats::sd(levels$residual))
+  # `sd()` of one number is `NA`, and an `NA` residual reaches generation as an
+  # `NA` observation. One observation shows no scatter, which is a measurement
+  # this study cannot make rather than a claim that the endpoint is noiseless.
+  spread <- if (length(levels$residual) > 1L) stats::sd(levels$residual) else 0
+  chosen$residual <- list(kind = "additive",
+                          sd = if (is.finite(spread)) spread else 0)
   chosen$candidates <- data.frame(
     shape = c(names(candidates), names(failed)),
     converged = c(rep(TRUE, length(candidates)), rep(FALSE, length(failed))),
     aic = c(vapply(candidates, function(c) c$aic, numeric(1)),
             rep(NA_real_, length(failed))),
-    note = c(rep("", length(candidates)), unlist(failed) %||% character()),
+    note = c(vapply(names(candidates), function(name) {
+      candidate_notes[[name]] %||% ""
+    }, character(1)), unlist(failed) %||% character()),
     row.names = NULL, stringsAsFactors = FALSE
   )
   chosen
+}
+
+# One shape per arm, when the caller asks for it (`SIM-060` option (a)).
+#
+# The pooled fit predicts one number for every arm, so a synthetic patient's
+# dose does not reach their response: on `case1_pkpd` the source's mean PD after
+# 1500 h runs 68, 70, 126, 237, 341 across placebo and five ascending doses, and
+# the pooled shape answers 149 to all six. Fitting the shape per arm is the same
+# per-arm summary the dosing and visit models already are, and it asserts no
+# dose-response form -- an arm is fitted on its own observations or not at all.
+#
+# It is not the default, because it is a different claim about the study: the
+# pooled shape says these endpoints are a time course, and the per-arm shape
+# says each arm has its own. An arm can also carry too little of an endpoint to
+# fit, and where it does it keeps the pooled shape rather than losing the
+# endpoint, so no arm is left with nothing to generate.
+.model_fit_pd_arms <- function(observations, endpoint, shapes, subject_group,
+                               pooled) {
+  arms <- .unique_in_order(unname(subject_group))
+  fits <- lapply(arms, function(arm) {
+    subjects <- names(subject_group)[subject_group == arm]
+    rows <- observations[observations$subject %in% subjects, , drop = FALSE]
+    .model_fit_pd(rows, endpoint, shapes) %||% pooled
+  })
+  stats::setNames(fits, arms)
 }
 
 # The covariate the allometric scaling is applied to, or nothing. Weight-like by
@@ -690,17 +786,20 @@
 
 # What the assay limit cost, per endpoint.
 #
-# Values below the limit are imputed before anything is fitted -- a uniform draw
-# inside the censoring region rather than a fixed LLOQ/2, which would replace one
-# artificial spike with another -- and the boundary is put back at emit. That is
-# the intended behaviour and not a shortcut around the M3 likelihood: the same
-# imputation is what lets the apparatus, the PD shapes and the covariate model
-# read a latent value rather than a stack of identical boundary substitutions.
+# The concentration's censored rows go to `nlmixr2` as censored (`SIM-068`):
+# the population fit has a likelihood that can express "below this limit", and
+# using it is both more nearly right and materially different -- measured on 30
+# subjects of `case1_pkpd`, 45% of them below the limit, the residual error
+# falls from 0.517 to 0.290 against a uniform draw inside the censoring region,
+# and residual error is what sets the scatter of everything generated. It costs
+# a factor of 1.7 in fitting time there, and less where less of the endpoint is
+# censored.
 #
-# It is an assumption all the same, and its weight is the share of the endpoint
-# that carries it, so that share is measured here and reported with the fit. A
-# study whose concentrations are 46% below the limit is a study whose fitted
-# parameters are substantially a statement about the draw.
+# Everything else still reads the imputed value, because nothing else has a
+# likelihood: the apparatus, the covariate model and the PD shapes are `lm()`
+# and `nls()`, and a stack of identical boundary substitutions would bend each
+# of them toward the limit. So the share below the limit is still worth
+# reporting, and this measures it.
 # The floor below which the generator will not emit a value, per endpoint.
 #
 # A study that declares a censoring column says where its assay stopped, and
@@ -768,7 +867,7 @@
     if (!any(at)) return(NULL)
     censored <- at & is.finite(cens) & cens != 0
     data.frame(
-      endpoint = name, observations = sum(at), imputed = sum(censored),
+      endpoint = name, observations = sum(at), censored = sum(censored),
       fraction = sum(censored) / sum(at),
       limit = if (any(censored)) stats::median(dv[censored]) else NA_real_,
       stringsAsFactors = FALSE
@@ -815,6 +914,13 @@
 #'   the search. `NULL` searches the candidates the design admits.
 #' @param pd Named character vector of PD shapes per endpoint, skipping that
 #'   search. One of `"constant"`, `"linear"` or `"exponential"` each.
+#' @param pd_by_arm Fit each PD endpoint's shape per arm rather than once over
+#'   the pooled cohort. `FALSE`, the default, gives every arm the same time
+#'   course, so a synthetic patient's dose does not reach their response.
+#'   `TRUE` gives each arm its own shape, selected on AIC within that arm and
+#'   asserting no dose-response form; an arm holding too little of an endpoint
+#'   to fit keeps the pooled shape. Costs nothing measurable, since these are
+#'   least-squares fits.
 #' @param endpoint_roles Named character vector naming which endpoint is the
 #'   drug concentration, as `c(pk = "cp")`, overriding the inference.
 #' @param covariate_effects `"auto"` fits allometric scaling on clearance and
@@ -843,6 +949,7 @@
 #'   [model_candidates()], [model_parameters()].
 #' @export
 synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
+                                  pd_by_arm = FALSE,
                                   endpoint_roles = NULL,
                                   covariate_effects = "auto",
                                   min_subjects = 20L, min_arm_patients = 3L,
@@ -865,6 +972,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   if (!identical(covariate_effects, "auto") &&
       !identical(covariate_effects, "none")) {
     stop("`covariate_effects` must be \"auto\" or \"none\".", call. = FALSE)
+  }
+  if (!is.logical(pd_by_arm) || length(pd_by_arm) != 1L || is.na(pd_by_arm)) {
+    stop("`pd_by_arm` must be TRUE or FALSE.", call. = FALSE)
   }
   if (!requireNamespace("nlmixr2est", quietly = TRUE)) {
     stop("`synpmx_model_estimate()` needs the nlmixr2 package, which is in ",
@@ -921,7 +1031,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   arm_models <- .arm_models(planned, roles, cells, subject_group,
                             min_arm_patients)
 
-  recorded_data <- .model_estimation_data(source, roles, classified$pk)
+  # `censoring_source` rather than `source`: the fitter is given the study's own
+  # values with their censoring flags, while the summaries below keep the
+  # imputed ones. The two frames differ only in the censored `DV` values.
+  recorded_data <- .model_estimation_data(censoring_source, roles,
+                                          classified$pk)
   # Who that left out. Said plainly, because the fit is then a statement about
   # fewer people than the study has, and a warning where it takes the fitted
   # cohort under the floor the run was told to hold.
@@ -999,9 +1113,35 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   )
 
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
-    .model_fit_pd(observations, endpoint, pd)
+    pooled <- .model_fit_pd(observations, endpoint, pd)
+    if (is.null(pooled) || !pd_by_arm) return(pooled)
+    pooled$arms <- .model_fit_pd_arms(observations, endpoint, pd,
+                                      subject_group, pooled)
+    pooled
   }), classified$pd)
   pd_fits <- pd_fits[!vapply(pd_fits, is.null, logical(1))]
+  # An endpoint nothing could be fitted to (`SIM-069`). There is no minimum
+  # number of observations -- one is a level, and a level is generated -- so
+  # this is the endpoint with no usable row at all: no value, or no time to fit
+  # against. The gates make that hard to reach, since `nominal_time` is required
+  # on every observation before this runs, so treat it as the guard it is. What
+  # it guards against is silence: such an endpoint stays in the source, in the
+  # visit grid and in the schema, and generation reaches its cells, finds no
+  # shape and no discrete marginal, and emits nothing, so the synthetic study
+  # would be missing an endpoint the source has with nothing said.
+  unfitted <- setdiff(classified$pd, names(pd_fits))
+  if (length(unfitted)) {
+    counts <- vapply(unfitted, function(endpoint) {
+      sum(observations$endpoint == endpoint & is.finite(observations$dv) &
+            is.finite(observations$aligned))
+    }, integer(1))
+    warning("`synpmx_model_estimate()` fitted no shape to ",
+            paste(sprintf("`%s` (%d usable observation(s))", unfitted, counts),
+                  collapse = ", "),
+            ": every row of the endpoint is missing a value or a time on the ",
+            "nominal grid. Those endpoints are absent from the generated data ",
+            "entirely, rather than generated badly.", call. = FALSE)
+  }
 
   correlations <- .model_covariate_correlations(source, roles, subject_group,
                                                 parameters$etas)
@@ -1040,13 +1180,19 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   fitted
 }
 
+# Named by subject, always. `vapply()` names its result from a character input
+# and leaves a numeric one unnamed, so a study whose `ID` is a number produced
+# an unnamed vector and anything reading "which subjects are in this arm" off
+# the names got nothing -- silently, since every arm then looks empty rather
+# than wrong.
 .model_subject_arms <- function(source, roles) {
   subjects <- .unique_in_order(source[[roles$id]])
   strata_key <- as.character(.subject_strata(source, roles))
-  vapply(subjects, function(subject) {
+  arms <- vapply(subjects, function(subject) {
     rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
     strata_key[rows[1L]]
   }, character(1))
+  stats::setNames(arms, as.character(subjects))
 }
 
 # Where an unmodelled covariate relationship shows up. The random effects are

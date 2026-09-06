@@ -29,7 +29,7 @@ tables <- run && has_dt
 # identifiers are exempt: `signif(2015.9, 3)` is 2020, which would move a
 # nominal visit onto a time the study never had.
 exact <- c("time", "ntime", "nomtime", "nominal_time", "cycle", "id", "index",
-           "n", "observations", "imputed", "patients", "min_patients",
+           "n", "observations", "censored", "patients", "min_patients",
            "numbers", "planned_cycles", "distinct", "source_doses", "offset",
            "count")
 digits3 <- function(x) {
@@ -146,8 +146,9 @@ residual error is proportional, which follows from every observed concentration
 here being positive; a study recording zeros gets an additive error instead,
 because a proportional one has nothing to scale there. The PD endpoint gets an
 exponential shape from the least-squares search, with no exposure term. And 46%
-of the concentrations sit below the assay limit and were imputed inside the
-censoring region before fitting — a study this censored asks the fit to describe
+of the concentrations sit below the assay limit; those rows were fitted as
+censored rather than given a value, so each contributed the probability of
+falling below the limit. A study this censored still asks the fit to describe
 mostly-censored arms, and the arm-by-arm comparison further down is where that
 shows.
 
@@ -339,9 +340,13 @@ checks rather than a property of this dataset.
 
 **Two rows ask to be read.** A5a reports observations per patient falling from
 30.7 to 29, which is the visit model drawing attendance rather than copying it.
-D1 reports the standard deviation of `PK Concentration` at 1.3 times the
-source's, the furthest of the three numeric variables — a spread that widened,
-consistent with the censored arms above.
+D1 reports the standard deviation of `PK Concentration` at 0.68 times the
+source's, the furthest of the three numeric variables — a spread that narrowed.
+That follows from fitting the censored rows as censored: the residual error is
+0.26 where an imputed fit takes 0.39, and the residual is what sets the scatter
+of every generated concentration. Half the source's own spread is where its
+assay stopped reporting, and the fit no longer treats that as measured
+variation.
 
 `vignette("avatar-scorecard")` documents what each row asks and what its pass
 criterion is.

@@ -9,6 +9,7 @@ synpmx_model_estimate(
   roles,
   pk = NULL,
   pd = NULL,
+  pd_by_arm = FALSE,
   endpoint_roles = NULL,
   covariate_effects = "auto",
   min_subjects = 20L,
@@ -30,6 +31,14 @@ the search. \code{NULL} searches the candidates the design admits.}
 
 \item{pd}{Named character vector of PD shapes per endpoint, skipping that
 search. One of \code{"constant"}, \code{"linear"} or \code{"exponential"} each.}
+
+\item{pd_by_arm}{Fit each PD endpoint's shape per arm rather than once over
+the pooled cohort. \code{FALSE}, the default, gives every arm the same time
+course, so a synthetic patient's dose does not reach their response.
+\code{TRUE} gives each arm its own shape, selected on AIC within that arm and
+asserting no dose-response form; an arm holding too little of an endpoint
+to fit keeps the pooled shape. Costs nothing measurable, since these are
+least-squares fits.}
 
 \item{endpoint_roles}{Named character vector naming which endpoint is the
 drug concentration, as \code{c(pk = "cp")}, overriding the inference.}

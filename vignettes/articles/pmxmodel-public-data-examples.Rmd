@@ -191,7 +191,10 @@ synpmx_scorecard_datatable(case1$card)
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to 29,
 which is the visit model drawing attendance rather than copying it, and D1
-puts the concentration's standard deviation at 1.3 times the source's.
+puts the concentration's standard deviation at 0.68 times the source's — a
+spread that narrowed, because the censored rows are fitted as censored and the
+residual error no longer carries the scatter of values the assay never
+measured.
 `vignette("pmxmodel-demo")` works this study end to end, including what its 46%
 censoring and its PD endpoint cost.
 
