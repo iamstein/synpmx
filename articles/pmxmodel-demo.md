@@ -101,7 +101,7 @@ which is why printing the fitted object shows the same account.
 ``` r
 
 model_report(fit)
-#> What this fitted model carries
+#> The PopPK model
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
@@ -110,22 +110,29 @@ model_report(fit)
 #>   residual error     proportional 0.394 
 #>   time to fit        10 min 31 s (10 min 33 s for the whole call) 
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
-#>   pd shapes          PD - Continuous: exponential 
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   PD - Continuous    exponential: plateau 149, baseline 52.24, rate
+#>                      0.04868; between-subject 0.984 (SD on the log
+#>                      baseline); residual additive 225; chosen on AIC from
+#>                      constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
-#>   Reported below the assay limit, and imputed before the fit:
-#>     PK Concentration   1669 of 3600 (46%) below 0.05
-#>   Each of those was replaced, for the fit only, by a random value drawn
-#>   between zero and the limit -- so that share of the fit is a statement
-#>   about the draw rather than about measurements. Generated values below the
-#>   limit are written back as censored, the way the study recorded them.
+#>   Reported below the assay limit, and given a value for the fit:
+#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
+#>   For the fit only, each of those rows was replaced by a random value drawn
+#>   between zero and the limit. The fitter is not told they are censored, so
+#>   that share of the fit rests on the draw rather than on measurements. At
+#>   generation the boundary goes back: a synthetic value below the limit is
+#>   written out censored, the way the study recorded it.
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3
 #>                      (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100
 #>                      (30), 300 mg / 300 (30)
-#>   dose schedule      median 85 planned cycle(s) per arm, and each arm keeps
-#>                      its own
+#>   dose schedule      one schedule per arm rather than one pooled across the
+#>                      study; 85 planned cycle(s) per arm at the median of
+#>                      the 6 arm(s)
 #>   dose changes       none: no arm reduces a dose, skips a cycle or stops
 #>                      early, so every generated patient completes its arm's
 #>                      schedule
@@ -147,6 +154,16 @@ model_report(fit)
 #>          endpoint compartment post_dose shape proportional
 #>   PD - Continuous       FALSE     FALSE    NA        FALSE
 #>  PK Concentration        TRUE      TRUE  TRUE         TRUE
+#> 
+#>   compartment: measured where the doses go, or one compartment above a
+#>   dosing compartment nobody observes. post_dose: absent before each
+#>   subject's own first dose. shape: the cohort's median profile rises to one
+#>   peak and comes back down. proportional: the peak at the highest dose
+#>   level scales with the dose against the lowest. `post_dose` and
+#>   `proportional` are the two that decide; `compartment` and `shape` break a
+#>   tie between endpoints that pass both. NA is a signal this study cannot
+#>   compute: `proportional` needs two dose levels several patients share, and
+#>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 1 before declining, and 99% of subjects do too 
 #>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"`
 ```

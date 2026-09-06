@@ -16,8 +16,8 @@ says what the search had to go on, not whether the model describes the
 source. The candidate set is five linear models and the covariate model
 is allometric scaling or nothing, which is too little to answer a
 scientific question, so the fitted parameters are not estimates to
-report. The fitted object prints that warning with itself, because its
-output looks exactly like the output of a real population analysis.
+report, even though the printed object looks exactly like the output of
+a real population analysis.
 
 No formal privacy guarantee is offered, although no patient’s measured
 value reaches the output.
@@ -447,7 +447,7 @@ correlation.
 ``` r
 
 model_report(fit)
-#> What this fitted model carries
+#> The PopPK model
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
@@ -456,21 +456,26 @@ model_report(fit)
 #>   residual error     proportional 0.21 
 #>   time to fit        10.7 s (10.9 s for the whole call) 
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#>   pd shapes          pca: exponential 
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   pca                exponential: plateau 27.34, baseline 96.3, rate
+#>                      0.09877; between-subject 0.146 (SD on the log
+#>                      baseline); residual additive 12.4; chosen on AIC from
+#>                      constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
 #>   No assay limit declared, so nothing is generated below:
 #>     cp                 0.3
 #>     pca                4.5
-#>   Half the smallest value each endpoint reported. A simulated profile late in
-#>   a dose interval underflows on its own, and this floor is what stops the
-#>   synthetic data carrying values the study's assay could not have returned.
-#>   Anything drawn lower is raised to it.
+#>   Half the smallest value of each endpoint is reported above and used as a
+#>   floor for the synthetic data. A simulated profile that falls below that
+#>   floor is set to it.
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s): all (32)
-#>   dose schedule      median 1 planned cycle(s) per arm, and each arm keeps
-#>                      its own
+#>   dose schedule      one schedule per arm rather than one pooled across the
+#>                      study; 1 planned cycle(s) per arm at the median of the
+#>                      1 arm(s)
 #>   dose changes       none: no arm reduces a dose, skips a cycle or stops
 #>                      early, so every generated patient completes its arm's
 #>                      schedule
@@ -491,6 +496,16 @@ model_report(fit)
 #>  endpoint compartment post_dose shape proportional
 #>        cp          NA      TRUE  TRUE           NA
 #>       pca          NA      TRUE FALSE           NA
+#> 
+#>   compartment: measured where the doses go, or one compartment above a
+#>   dosing compartment nobody observes. post_dose: absent before each
+#>   subject's own first dose. shape: the cohort's median profile rises to one
+#>   peak and comes back down. proportional: the peak at the highest dose
+#>   level scales with the dose against the lowest. `post_dose` and
+#>   `proportional` are the two that decide; `compartment` and `shape` break a
+#>   tie between endpoints that pass both. NA is a signal this study cannot
+#>   compute: `proportional` needs two dose levels several patients share, and
+#>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 9 before declining, and 31% of subjects do too 
 #> 
 #> Covariate against the individual random effects

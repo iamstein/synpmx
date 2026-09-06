@@ -186,7 +186,7 @@ Printing the fitted object shows the same account, because everything on
 it is an input to the generation step.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; What this fitted model carries</span></span>
+<span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
@@ -195,21 +195,26 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
 <span><span class="co">#&gt;   time to fit        10.7 s (10.9 s for the whole call) </span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
-<span><span class="co">#&gt;   pd shapes          pca: exponential </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt;   pca                exponential: plateau 27.34, baseline 96.3, rate</span></span>
+<span><span class="co">#&gt;                      0.09877; between-subject 0.146 (SD on the log</span></span>
+<span><span class="co">#&gt;                      baseline); residual additive 12.4; chosen on AIC from</span></span>
+<span><span class="co">#&gt;                      constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
 <span><span class="co">#&gt;   No assay limit declared, so nothing is generated below:</span></span>
 <span><span class="co">#&gt;     cp                 0.3</span></span>
 <span><span class="co">#&gt;     pca                4.5</span></span>
-<span><span class="co">#&gt;   Half the smallest value each endpoint reported. A simulated profile late in</span></span>
-<span><span class="co">#&gt;   a dose interval underflows on its own, and this floor is what stops the</span></span>
-<span><span class="co">#&gt;   synthetic data carrying values the study's assay could not have returned.</span></span>
-<span><span class="co">#&gt;   Anything drawn lower is raised to it.</span></span>
+<span><span class="co">#&gt;   Half the smallest value of each endpoint is reported above and used as a</span></span>
+<span><span class="co">#&gt;   floor for the synthetic data. A simulated profile that falls below that</span></span>
+<span><span class="co">#&gt;   floor is set to it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s): all (32)</span></span>
-<span><span class="co">#&gt;   dose schedule      median 1 planned cycle(s) per arm, and each arm keeps</span></span>
-<span><span class="co">#&gt;                      its own</span></span>
+<span><span class="co">#&gt;   dose schedule      one schedule per arm rather than one pooled across the</span></span>
+<span><span class="co">#&gt;                      study; 1 planned cycle(s) per arm at the median of the</span></span>
+<span><span class="co">#&gt;                      1 arm(s)</span></span>
 <span><span class="co">#&gt;   dose changes       none: no arm reduces a dose, skips a cycle or stops</span></span>
 <span><span class="co">#&gt;                      early, so every generated patient completes its arm's</span></span>
 <span><span class="co">#&gt;                      schedule</span></span>
@@ -230,6 +235,16 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;  endpoint compartment post_dose shape proportional</span></span>
 <span><span class="co">#&gt;        cp          NA      TRUE  TRUE           NA</span></span>
 <span><span class="co">#&gt;       pca          NA      TRUE FALSE           NA</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   compartment: measured where the doses go, or one compartment above a</span></span>
+<span><span class="co">#&gt;   dosing compartment nobody observes. post_dose: absent before each</span></span>
+<span><span class="co">#&gt;   subject's own first dose. shape: the cohort's median profile rises to one</span></span>
+<span><span class="co">#&gt;   peak and comes back down. proportional: the peak at the highest dose</span></span>
+<span><span class="co">#&gt;   level scales with the dose against the lowest. `post_dose` and</span></span>
+<span><span class="co">#&gt;   `proportional` are the two that decide; `compartment` and `shape` break a</span></span>
+<span><span class="co">#&gt;   tie between endpoints that pass both. NA is a signal this study cannot</span></span>
+<span><span class="co">#&gt;   compute: `proportional` needs two dose levels several patients share, and</span></span>
+<span><span class="co">#&gt;   `shape` needs three sampling times in one dose interval.</span></span>
 <span><span class="co">#&gt;   design             the median profile rises to a peak at 9 before declining, and 31% of subjects do too </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>

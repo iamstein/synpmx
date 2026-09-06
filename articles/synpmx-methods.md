@@ -166,7 +166,7 @@ model_fit
 #> 
 #>   candidates fitted  1 (1cmt_oral selected on AIC) 
 #> 
-#> What this fitted model carries
+#> The PopPK model
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
@@ -179,15 +179,15 @@ model_fit
 #> Values at the bottom of the scale
 #>   No assay limit declared, so nothing is generated below:
 #>     DV                 0.075
-#>   Half the smallest value each endpoint reported. A simulated profile late in
-#>   a dose interval underflows on its own, and this floor is what stops the
-#>   synthetic data carrying values the study's assay could not have returned.
-#>   Anything drawn lower is raised to it.
+#>   Half the smallest value of each endpoint is reported above and used as a
+#>   floor for the synthetic data. A simulated profile that falls below that
+#>   floor is set to it.
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s): all (12)
-#>   dose schedule      median 7 planned cycle(s) per arm, and each arm keeps
-#>                      its own
+#>   dose schedule      one schedule per arm rather than one pooled across the
+#>                      study; 7 planned cycle(s) per arm at the median of the
+#>                      1 arm(s)
 #>   dose changes       none: no arm reduces a dose, skips a cycle or stops
 #>                      early, so every generated patient completes its arm's
 #>                      schedule
@@ -206,6 +206,16 @@ model_fit
 #>   endpoint           DV (inferred) 
 #>  endpoint compartment post_dose shape proportional
 #>        DV        TRUE      TRUE  TRUE           NA
+#> 
+#>   compartment: measured where the doses go, or one compartment above a
+#>   dosing compartment nobody observes. post_dose: absent before each
+#>   subject's own first dose. shape: the cohort's median profile rises to one
+#>   peak and comes back down. proportional: the peak at the highest dose
+#>   level scales with the dose against the lowest. `post_dose` and
+#>   `proportional` are the two that decide; `compartment` and `shape` break a
+#>   tie between endpoints that pass both. NA is a signal this study cannot
+#>   compute: `proportional` needs two dose levels several patients share, and
+#>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 2 before declining, and 100% of subjects do too 
 #>   also available     the sampling would support a two-compartment model (median 11 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
 #> 
@@ -219,11 +229,6 @@ model_fit
 #>   is generated independently of the profiles, so the synthetic data carries
 #>   no relationship between them. `synpmx_avatar()` keeps those relationships
 #>   without modelling them.
-#> 
-#>   These parameters are not estimates to report. They exist to make
-#>   simulated profiles resemble the source study; the candidate set is too
-#>   small and the covariate model too thin for any of them to answer a
-#>   scientific question.
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 
@@ -231,8 +236,7 @@ What leaves the study is the printed object and nothing else: a
 structural model, three fixed effects, a covariance matrix, a residual
 error, and a per-arm dosing and visit model.
 [`vignette("pmxmodel-fingerprint")`](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md)
-is the itemised list, and the parameters are not estimates to report —
-the object prints that warning with itself.
+is the itemised list, and the parameters are not estimates to report.
 
 ## Mode 2: PCA
 

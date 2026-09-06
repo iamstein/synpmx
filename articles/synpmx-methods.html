@@ -263,7 +263,7 @@ so this article reads a stored fit built by
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   candidates fitted  1 (1cmt_oral selected on AIC) </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; What this fitted model carries</span></span>
+<span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
@@ -276,15 +276,15 @@ so this article reads a stored fit built by
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
 <span><span class="co">#&gt;   No assay limit declared, so nothing is generated below:</span></span>
 <span><span class="co">#&gt;     DV                 0.075</span></span>
-<span><span class="co">#&gt;   Half the smallest value each endpoint reported. A simulated profile late in</span></span>
-<span><span class="co">#&gt;   a dose interval underflows on its own, and this floor is what stops the</span></span>
-<span><span class="co">#&gt;   synthetic data carrying values the study's assay could not have returned.</span></span>
-<span><span class="co">#&gt;   Anything drawn lower is raised to it.</span></span>
+<span><span class="co">#&gt;   Half the smallest value of each endpoint is reported above and used as a</span></span>
+<span><span class="co">#&gt;   floor for the synthetic data. A simulated profile that falls below that</span></span>
+<span><span class="co">#&gt;   floor is set to it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             12 patients in 1 arm(s): all (12)</span></span>
-<span><span class="co">#&gt;   dose schedule      median 7 planned cycle(s) per arm, and each arm keeps</span></span>
-<span><span class="co">#&gt;                      its own</span></span>
+<span><span class="co">#&gt;   dose schedule      one schedule per arm rather than one pooled across the</span></span>
+<span><span class="co">#&gt;                      study; 7 planned cycle(s) per arm at the median of the</span></span>
+<span><span class="co">#&gt;                      1 arm(s)</span></span>
 <span><span class="co">#&gt;   dose changes       none: no arm reduces a dose, skips a cycle or stops</span></span>
 <span><span class="co">#&gt;                      early, so every generated patient completes its arm's</span></span>
 <span><span class="co">#&gt;                      schedule</span></span>
@@ -303,6 +303,16 @@ so this article reads a stored fit built by
 <span><span class="co">#&gt;   endpoint           DV (inferred) </span></span>
 <span><span class="co">#&gt;  endpoint compartment post_dose shape proportional</span></span>
 <span><span class="co">#&gt;        DV        TRUE      TRUE  TRUE           NA</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   compartment: measured where the doses go, or one compartment above a</span></span>
+<span><span class="co">#&gt;   dosing compartment nobody observes. post_dose: absent before each</span></span>
+<span><span class="co">#&gt;   subject's own first dose. shape: the cohort's median profile rises to one</span></span>
+<span><span class="co">#&gt;   peak and comes back down. proportional: the peak at the highest dose</span></span>
+<span><span class="co">#&gt;   level scales with the dose against the lowest. `post_dose` and</span></span>
+<span><span class="co">#&gt;   `proportional` are the two that decide; `compartment` and `shape` break a</span></span>
+<span><span class="co">#&gt;   tie between endpoints that pass both. NA is a signal this study cannot</span></span>
+<span><span class="co">#&gt;   compute: `proportional` needs two dose levels several patients share, and</span></span>
+<span><span class="co">#&gt;   `shape` needs three sampling times in one dose interval.</span></span>
 <span><span class="co">#&gt;   design             the median profile rises to a peak at 2 before declining, and 100% of subjects do too </span></span>
 <span><span class="co">#&gt;   also available     the sampling would support a two-compartment model (median 11 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -316,18 +326,12 @@ so this article reads a stored fit built by
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
 <span><span class="co">#&gt;   no relationship between them. `synpmx_avatar()` keeps those relationships</span></span>
 <span><span class="co">#&gt;   without modelling them.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   These parameters are not estimates to report. They exist to make</span></span>
-<span><span class="co">#&gt;   simulated profiles resemble the source study; the candidate set is too</span></span>
-<span><span class="co">#&gt;   small and the covariate model too thin for any of them to answer a</span></span>
-<span><span class="co">#&gt;   scientific question.</span></span>
 <span><span class="va">model_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">model_fit</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span></code></pre></div>
 <p>What leaves the study is the printed object and nothing else: a
 structural model, three fixed effects, a covariance matrix, a residual
 error, and a per-arm dosing and visit model.
 <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> is the itemised list, and
-the parameters are not estimates to report — the object prints that
-warning with itself.</p>
+the parameters are not estimates to report.</p>
 </div>
 <div class="section level2">
 <h2 id="mode-2-pca">Mode 2: PCA<a class="anchor" aria-label="anchor" href="#mode-2-pca"></a>
