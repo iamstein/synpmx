@@ -190,10 +190,12 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1366, v 8.176, ka 0.6119 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        10.7 s (10.9 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        10.6 s (10.8 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 10.6 s</span></span>
+<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
@@ -249,11 +251,11 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        age        ka       -0.29</span></span>
-<span><span class="co">#&gt;        sex         v       -0.21</span></span>
-<span><span class="co">#&gt;        age        cl        0.19</span></span>
-<span><span class="co">#&gt;         wt        ka        0.12</span></span>
-<span><span class="co">#&gt;         wt        cl       -0.10</span></span>
+<span><span class="co">#&gt;        age        cl        0.37</span></span>
+<span><span class="co">#&gt;        sex        cl       -0.23</span></span>
+<span><span class="co">#&gt;         wt        ka        0.21</span></span>
+<span><span class="co">#&gt;         wt        cl       -0.13</span></span>
+<span><span class="co">#&gt;         wt         v       -0.12</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -313,8 +315,8 @@ the object telling you how little evidence it had, and
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">structural</span></span>
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       model converged      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.9053  10.732</span></span></code></pre></div>
+<span><span class="co">#&gt;       model converged     aic seconds note</span></span>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  10.629</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -327,7 +329,7 @@ one.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">fixed</span></span>
 <span><span class="co">#&gt;        cl         v        ka </span></span>
-<span><span class="co">#&gt; 0.1366193 8.1759807 0.6119199</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.1362061 8.1753822 0.6029980</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="between-subject-variability">Between-subject variability<a class="anchor" aria-label="anchor" href="#between-subject-variability"></a>
@@ -337,13 +339,13 @@ a random effect. Generation draws each synthetic subject’s deviations
 from this matrix.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span></span>
-<span><span class="co">#&gt;           cl          v        ka</span></span>
-<span><span class="co">#&gt; cl 0.0592627 0.00000000 0.0000000</span></span>
-<span><span class="co">#&gt; v  0.0000000 0.00753349 0.0000000</span></span>
-<span><span class="co">#&gt; ka 0.0000000 0.00000000 0.4693682</span></span>
+<span><span class="co">#&gt;            cl           v       ka</span></span>
+<span><span class="co">#&gt; cl 0.06071257 0.000000000 0.000000</span></span>
+<span><span class="co">#&gt; v  0.00000000 0.007300333 0.000000</span></span>
+<span><span class="co">#&gt; ka 0.00000000 0.000000000 0.462376</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span><span class="op">)</span>  <span class="co"># as CV on the log scale</span></span>
 <span><span class="co">#&gt;         cl          v         ka </span></span>
-<span><span class="co">#&gt; 0.24343931 0.08679568 0.68510449</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.24639922 0.08544199 0.67998235</span></span></code></pre></div>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 are per-subject quantities, and an object carrying them would be a
 description of each real patient. They are not here. This matrix is what
@@ -359,7 +361,7 @@ than about anybody in it.</p>
 <span><span class="co">#&gt; [1] "proportional"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $cv</span></span>
-<span><span class="co">#&gt; [1] 0.2099295</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.2102603</span></span></code></pre></div>
 <p>Additive here rather than proportional, because <code>warfarin</code>
 holds concentrations recorded as zero and a proportional error on zero
 is zero. The substitution is recorded on the object rather than being
@@ -421,7 +423,7 @@ exponents. It is asserted rather than tested —
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>,</span>
 <span>     <span class="st">"Each covariate against the individual random effects"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["age","sex","age","wt","wt","sex","wt","sex","age"],["ka","v","cl","ka","cl","ka","v","cl","v"],[-0.294,-0.212,0.192,0.124,-0.101,-0.0712,0.0483,-0.00616,-0.00135]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["age","sex","wt","wt","wt","age","sex","sex","age"],["cl","cl","ka","cl","v","ka","v","ka","v"],[0.372,-0.228,0.215,-0.127,-0.121,-0.0975,0.0716,-0.0311,0.0186]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
 diagnostic rather than a released quantity. A covariate that moves with
 a random effect and is not in the model above is generated
 <strong>independently</strong> of the profiles, so the synthetic data

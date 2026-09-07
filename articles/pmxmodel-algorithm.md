@@ -328,8 +328,8 @@ function errors rather than returning the least bad fit.
 ``` r
 
 model_candidates(fit)
-#>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 895.9053  10.732
+#>       model converged     aic seconds note
+#> 1 1cmt_oral      TRUE 895.892  10.629
 ```
 
 ### Covariates
@@ -410,8 +410,12 @@ solver’s message rather than dropped, so a flat line winning on AIC
 against two other flat lines is visible as that.
 
 All three shapes are fitted by least squares rather than through
-`nlmixr2`, so all three together cost no measurable time, and **the one
-compiled fit in the whole call is the PK one.**
+`nlmixr2`, so all three together cost no measurable time, and **the only
+compiled fits in the whole call are the PK candidates.**
+[`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+breaks the wait down by fit: one line per candidate the search compiled,
+and one for the least-squares shapes. A search that spent nine of its
+ten minutes in a second candidate is a run whose answer is to name `pk`.
 
 Binary and ordinal endpoints are not fitted at all. They are drawn from
 the level frequencies their arm holds at each nominal time, which is
@@ -486,10 +490,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
-#>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
+#>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
+#>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.7 s (10.9 s for the whole call) 
+#>   time to fit        10.6 s (10.8 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.6 s
+#>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
@@ -545,11 +551,11 @@ model_report(fit)
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>        age        ka       -0.29
-#>        sex         v       -0.21
-#>        age        cl        0.19
-#>         wt        ka        0.12
-#>         wt        cl       -0.10
+#>        age        cl        0.37
+#>        sex        cl       -0.23
+#>         wt        ka        0.21
+#>         wt        cl       -0.13
+#>         wt         v       -0.12
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries

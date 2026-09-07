@@ -86,10 +86,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 0.1366, v 8.176, ka 0.6119 
-#>   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)
+#>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
+#>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.7 s (10.9 s for the whole call) 
+#>   time to fit        10.6 s (10.8 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.6 s
+#>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
@@ -145,11 +147,11 @@ model_report(fit)
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>        age        ka       -0.29
-#>        sex         v       -0.21
-#>        age        cl        0.19
-#>         wt        ka        0.12
-#>         wt        cl       -0.10
+#>        age        cl        0.37
+#>        sex        cl       -0.23
+#>         wt        ka        0.21
+#>         wt        cl       -0.13
+#>         wt         v       -0.12
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries
@@ -219,8 +221,8 @@ fit$endpoints$decided_by
 fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
-#>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 895.9053  10.732
+#>       model converged     aic seconds note
+#> 1 1cmt_oral      TRUE 895.892  10.629
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.
@@ -234,7 +236,7 @@ look most like a result and are least entitled to be read as one.
 
 model_parameters(fit)$fixed
 #>        cl         v        ka 
-#> 0.1366193 8.1759807 0.6119199
+#> 0.1362061 8.1753822 0.6029980
 ```
 
 ## Between-subject variability
@@ -246,13 +248,13 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>           cl          v        ka
-#> cl 0.0592627 0.00000000 0.0000000
-#> v  0.0000000 0.00753349 0.0000000
-#> ka 0.0000000 0.00000000 0.4693682
+#>            cl           v       ka
+#> cl 0.06071257 0.000000000 0.000000
+#> v  0.00000000 0.007300333 0.000000
+#> ka 0.00000000 0.000000000 0.462376
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
 #>         cl          v         ka 
-#> 0.24343931 0.08679568 0.68510449
+#> 0.24639922 0.08544199 0.67998235
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
@@ -270,7 +272,7 @@ model_parameters(fit)$residual
 #> [1] "proportional"
 #> 
 #> $cv
-#> [1] 0.2099295
+#> [1] 0.2102603
 ```
 
 Additive here rather than proportional, because `warfarin` holds

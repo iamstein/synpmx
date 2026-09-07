@@ -265,7 +265,9 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;   fixed effects      cl 14.53, v 182.7, ka 6.489 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.26 </span></span>
-<span><span class="co">#&gt;   time to fit        7 min 40 s (7 min 42 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        7 min 44 s (7 min 46 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 7 min 44 s</span></span>
+<span><span class="co">#&gt;                      least squares: PD - Continuous 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
@@ -383,7 +385,9 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   fixed effects      cl 5.564, v 153.6, ka 3.929 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.719 </span></span>
-<span><span class="co">#&gt;   time to fit        47.2 s (47.5 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        46.8 s (47.1 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 46.8 s</span></span>
+<span><span class="co">#&gt;                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
@@ -452,8 +456,9 @@ the discrete ones are a question this generator does not answer.</p>
 <script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","5 of 5","60 -&gt; 60","61.7 -&gt; 61.7","5 -&gt; 5","3 of 3","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.683 above [0.367, 0.617]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.93 on PD - Count (furthest of 6)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
 including the three discrete ones, which are drawn from the level
 frequencies their arm holds at each visit rather than modelled. D1 is
-the only row to read, at 0.81 times the source’s spread on the
-concentration.</p>
+the only row to read, at 0.93 times the source’s spread on
+<code>PD - Count</code>, which is the furthest of six numeric variables
+and not the concentration.</p>
 <p>This is also the study that found a defect: a visit where every
 patient recorded the same level of an ordinal endpoint left the draw
 with a single level, and the draw read that level as a count of levels
@@ -483,10 +488,12 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1366, v 8.176, ka 0.6119 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.243, v 0.0868, ka 0.685 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        10.7 s (10.9 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        10.6 s (10.8 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 10.6 s</span></span>
+<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
@@ -542,11 +549,11 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        age        ka       -0.29</span></span>
-<span><span class="co">#&gt;        sex         v       -0.21</span></span>
-<span><span class="co">#&gt;        age        cl        0.19</span></span>
-<span><span class="co">#&gt;         wt        ka        0.12</span></span>
-<span><span class="co">#&gt;         wt        cl       -0.10</span></span>
+<span><span class="co">#&gt;        age        cl        0.37</span></span>
+<span><span class="co">#&gt;        sex        cl       -0.23</span></span>
+<span><span class="co">#&gt;         wt        ka        0.21</span></span>
+<span><span class="co">#&gt;         wt        cl       -0.13</span></span>
+<span><span class="co">#&gt;         wt         v       -0.12</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -610,7 +617,8 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.01245, v 20.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.353, v 0.32 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.347 </span></span>
-<span><span class="co">#&gt;   time to fit        2.5 s (2.6 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        2.5 s (2.6 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_infusion 2.5 s</span></span>
 <span><span class="co">#&gt;   covariate effects  none </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
@@ -724,7 +732,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.03503, v 0.2088 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.421, v 0.337 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.721 </span></span>
-<span><span class="co">#&gt;   time to fit        21.5 s (21.7 s for the whole call) </span></span>
+<span><span class="co">#&gt;   time to fit        21.1 s (21.3 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_infusion 21.1 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
@@ -870,10 +879,11 @@ twelve.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 2.858, v 34.2, ka 1.454 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.19, v 0.115, ka 0.583 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.216 </span></span>
-<span><span class="co">#&gt;   time to fit        13.3 s (13.6 s for the whole call) </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 2.859, v 34.21, ka 1.461 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.217 </span></span>
+<span><span class="co">#&gt;   time to fit        12.3 s (12.5 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 12.3 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
@@ -921,9 +931,9 @@ twelve.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;         WT        ka      -0.132</span></span>
-<span><span class="co">#&gt;         WT         v      -0.090</span></span>
-<span><span class="co">#&gt;         WT        cl      -0.051</span></span>
+<span><span class="co">#&gt;         WT        ka        0.58</span></span>
+<span><span class="co">#&gt;         WT         v       -0.35</span></span>
+<span><span class="co">#&gt;         WT        cl       -0.26</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -993,10 +1003,11 @@ seconds.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_infusion </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1318, v 43.02 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.591, v 0.704 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.469 </span></span>
-<span><span class="co">#&gt;   time to fit        3.2 s (3.2 s for the whole call) </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1305, v 42.65 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.585, v 0.704 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.468 </span></span>
+<span><span class="co">#&gt;   time to fit        3.0 s (3.1 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_infusion 3.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  none </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
@@ -1046,11 +1057,11 @@ seconds.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        BSA         v       0.553</span></span>
-<span><span class="co">#&gt;        BSA        cl       0.494</span></span>
-<span><span class="co">#&gt;        AGE         v      -0.234</span></span>
-<span><span class="co">#&gt;        AGE        cl      -0.160</span></span>
-<span><span class="co">#&gt;        HGT         v       0.078</span></span>
+<span><span class="co">#&gt;        HGT        cl       -0.47</span></span>
+<span><span class="co">#&gt;        HGT         v       -0.41</span></span>
+<span><span class="co">#&gt;        AGE        cl        0.24</span></span>
+<span><span class="co">#&gt;        AGE         v        0.13</span></span>
+<span><span class="co">#&gt;        BSA         v       -0.12</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -1153,10 +1164,11 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_iv </span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.006137, v 1.315 </span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.006131, v 1.314 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.182, v 0.172 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.119 </span></span>
-<span><span class="co">#&gt;   time to fit        32.5 s (32.6 s for the whole call) </span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.118 </span></span>
+<span><span class="co">#&gt;   time to fit        32.8 s (32.9 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_iv 8.5 s, 1cmt_oral 24.3 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the bottom of the scale</span></span>
@@ -1205,10 +1217,10 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Covariate against the individual random effects</span></span>
 <span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;         WT        cl       0.249</span></span>
-<span><span class="co">#&gt;         WT         v       0.221</span></span>
-<span><span class="co">#&gt;       APGR        cl       0.178</span></span>
-<span><span class="co">#&gt;       APGR         v      -0.048</span></span>
+<span><span class="co">#&gt;         WT        cl       0.224</span></span>
+<span><span class="co">#&gt;       APGR        cl      -0.201</span></span>
+<span><span class="co">#&gt;       APGR         v      -0.117</span></span>
+<span><span class="co">#&gt;         WT         v       0.055</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   A covariate that moves with a random effect and is not in the model above</span></span>
 <span><span class="co">#&gt;   is generated independently of the profiles, so the synthetic data carries</span></span>
@@ -1218,7 +1230,7 @@ the sample times to the day is that statement, and it is two lines.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","59 -&gt; 59","2.63 -&gt; 2.53","9.98 -&gt; 7.12","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.638 above [0.370, 0.634]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x1.5 on APGR (furthest of 3)"],["pass","pass","pass","pass","pass","review","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","59 -&gt; 59","2.63 -&gt; 2.53","9.98 -&gt; 7.12","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.621 in [0.370, 0.634]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x1.5 on APGR (furthest of 3)"],["pass","pass","pass","pass","pass","review","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
 worth holding on to: estimation reads the recorded clock and the
 recorded dosing history, so the grid never touches it. What the grid
 decides is the visit model, and the visit model is the whole of what the
@@ -1304,7 +1316,7 @@ evaluation</a> runs this study that way.</p>
 <td align="left">warfarin</td>
 <td align="right">32</td>
 <td align="left">1cmt_oral</td>
-<td align="left">cl 0.137, v 8.18, ka 0.612</td>
+<td align="left">cl 0.136, v 8.18, ka 0.603</td>
 <td align="left">proportional 0.21</td>
 </tr>
 <tr class="even">
@@ -1325,22 +1337,22 @@ evaluation</a> runs this study that way.</p>
 <td align="left">theo_md</td>
 <td align="right">12</td>
 <td align="left">1cmt_oral</td>
-<td align="left">cl 2.86, v 34.2, ka 1.45</td>
-<td align="left">proportional 0.216</td>
+<td align="left">cl 2.86, v 34.2, ka 1.46</td>
+<td align="left">proportional 0.217</td>
 </tr>
 <tr class="odd">
 <td align="left">nimoData</td>
 <td align="right">12</td>
 <td align="left">1cmt_infusion</td>
-<td align="left">cl 0.132, v 43</td>
-<td align="left">proportional 0.469</td>
+<td align="left">cl 0.13, v 42.6</td>
+<td align="left">proportional 0.468</td>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="right">59</td>
 <td align="left">1cmt_iv</td>
-<td align="left">cl 0.00614, v 1.31</td>
-<td align="left">proportional 0.119</td>
+<td align="left">cl 0.00613, v 1.31</td>
+<td align="left">proportional 0.118</td>
 </tr>
 </tbody>
 </table>

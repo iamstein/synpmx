@@ -170,10 +170,11 @@ model_fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 2.858, v 34.2, ka 1.454 
-#>   between-subject    cl 0.19, v 0.115, ka 0.583 (as SD on the log scale)
-#>   residual error     proportional 0.216 
-#>   time to fit        13.3 s (13.6 s for the whole call) 
+#>   fixed effects      cl 2.859, v 34.21, ka 1.461 
+#>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
+#>   residual error     proportional 0.217 
+#>   time to fit        12.3 s (12.5 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 12.3 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -221,9 +222,9 @@ model_fit
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>         WT        ka      -0.132
-#>         WT         v      -0.090
-#>         WT        cl      -0.051
+#>         WT        ka        0.58
+#>         WT         v       -0.35
+#>         WT        cl       -0.26
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries
@@ -712,7 +713,7 @@ knitr::kable(
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
 | Source          |            264 |   5.74 | 1.25 |  9.30 |
-| 1\. PMX model   |            258 |   5.81 | 1.52 | 10.54 |
+| 1\. PMX model   |            258 |   5.80 | 1.52 | 10.54 |
 | 2\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
 | 3\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
