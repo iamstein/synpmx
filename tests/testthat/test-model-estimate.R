@@ -422,6 +422,42 @@ test_that("an endpoint with no usable observation is fitted to nothing", {
   expect_null(.model_fit_pd(missing_values, "b"))
 })
 
+# SIM-071. The fit table is ordered by the study's own subject order, not by how
+# the identifiers sort as text. `ID` reaches the solver as character, so sorting
+# on it puts subject 10 before subject 2 whenever a study numbers its patients,
+# and `focei` answers a different subject order with a different optimum.
+test_that("the fit table follows the study's subject order, not the text one", {
+  data <- .oral_study(n = 12)
+  roles <- .estimate_roles()
+  table <- .model_estimation_data(data, roles, "cp")
+  expect_identical(.unique_in_order(table$ID),
+                   as.character(.unique_in_order(data$ID)))
+  # Which is not what sorting the identifiers as text would give.
+  expect_false(identical(.unique_in_order(table$ID),
+                         sort(unique(as.character(data$ID)))))
+
+  # The same study with its identifiers written as text is the same table.
+  text <- data
+  text$ID <- paste0("S", formatC(as.integer(data$ID), width = 3, flag = "0"))
+  text_table <- .model_estimation_data(text, roles, "cp")
+  expect_identical(text_table[, setdiff(names(text_table), "ID")],
+                   table[, setdiff(names(table), "ID")])
+})
+
+# The wait, broken down. Every candidate is a separate compiled population fit,
+# so a caller deciding whether to name `pk` needs to see which one cost the time.
+test_that("the fit reports how long each fit took", {
+  skip_without_fitter()
+  fit <- .default_fit()
+  expect_true(all(c("fit", "total", "candidates", "pd") %in%
+                    names(fit$timing)))
+  expect_identical(fit$timing$candidates$model, fit$candidates$model)
+  expect_true(all(fit$timing$candidates$seconds >= 0))
+  out <- paste(utils::capture.output(print(model_report(fit))),
+               collapse = " ")
+  expect_match(out, "nlmixr2: ")
+})
+
 # The arm of every subject, named by subject. `vapply()` names its result from a
 # character input and leaves a numeric one unnamed, so a study whose `ID` is a
 # number gave an unnamed vector and anything asking "which subjects are in this

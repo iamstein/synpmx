@@ -292,7 +292,16 @@
   # models, which read the source rather than this table, but a dose-only
   # record here is at best ignored by the solver and at worst an error in it.
   out <- out[out$ID %in% unique(out$ID[!is.na(out$DV)]), , drop = FALSE]
+  # Subjects in the order the study lists them, not in the order their
+  # identifiers sort as text. `ID` is written to the fit table as character
+  # because that is what the solver wants, and sorting on it puts subject 10
+  # before subject 2 whenever the study numbers its patients -- a different
+  # order for the same study, which `focei` answers with a slightly different
+  # optimum. Ordering on first appearance makes the fit the same fit whether
+  # the identifiers are numbers or text (`SIM-071`).
+  out$ID <- factor(out$ID, levels = .unique_in_order(out$ID))
   out <- out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
+  out$ID <- as.character(out$ID)
   rownames(out) <- NULL
   out
 }
@@ -1112,11 +1121,15 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     }), intersect(names(parameters$fixed), names(.model_allometric_exponents))
   )
 
+  pd_seconds <- stats::setNames(numeric(length(classified$pd)), classified$pd)
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
+    started_pd <- proc.time()[["elapsed"]]
     pooled <- .model_fit_pd(observations, endpoint, pd)
-    if (is.null(pooled) || !pd_by_arm) return(pooled)
-    pooled$arms <- .model_fit_pd_arms(observations, endpoint, pd,
-                                      subject_group, pooled)
+    if (!is.null(pooled) && pd_by_arm) {
+      pooled$arms <- .model_fit_pd_arms(observations, endpoint, pd,
+                                        subject_group, pooled)
+    }
+    pd_seconds[[endpoint]] <<- proc.time()[["elapsed"]] - started_pd
     pooled
   }), classified$pd)
   pd_fits <- pd_fits[!vapply(pd_fits, is.null, logical(1))]
@@ -1170,8 +1183,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                                        fittable),
     # Reported with the fit because it is the number a caller weighs a rerun
     # against: `fit` is what the fitter took, `total` what the call took.
+    # Broken down rather than totalled. A fit is the slow thing this package
+    # does, and "ten minutes" is not actionable while "nine of them in the
+    # second candidate" is: the answer to that is `pk = "1cmt_oral"`.
     timing = list(fit = fit_seconds,
-                  total = proc.time()[["elapsed"]] - started)
+                  total = proc.time()[["elapsed"]] - started,
+                  candidates = search$table[, c("model", "converged",
+                                                "seconds")],
+                  pd = pd_seconds)
   )
   if (!quiet) {
     message("Fitted in ", .model_duration(fitted$timing$fit), "; ",

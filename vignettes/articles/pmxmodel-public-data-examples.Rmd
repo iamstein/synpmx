@@ -243,8 +243,9 @@ synpmx_scorecard_datatable(mad_run$card)
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including the
 three discrete ones, which are drawn from the level frequencies their arm holds
-at each visit rather than modelled. D1 is the only row to read, at 0.81 times
-the source's spread on the concentration.
+at each visit rather than modelled. D1 is the only row to read, at 0.93 times
+the source's spread on `PD - Count`, which is the furthest of six numeric
+variables and not the concentration.
 
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a single

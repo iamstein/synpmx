@@ -398,9 +398,25 @@ print.pmx_model_report <- function(x, ...) {
   # What the wait was. A fit is the slow thing this package does, and a caller
   # deciding whether to change a setting and run it again asks this first.
   if (!is.null(x$timing)) {
-    cat("  time to fit       ", .model_duration(x$timing$fit),
-        sprintf("(%s for the whole call)", .model_duration(x$timing$total)),
-        "\n")
+    field("time to fit", .model_duration(x$timing$fit),
+          sprintf(" (%s for the whole call)",
+                  .model_duration(x$timing$total)))
+    # Which fit the wait was. Every candidate is a separate compiled
+    # population fit, so a search that ran four of them waited four times.
+    if (!is.null(x$timing$candidates) && nrow(x$timing$candidates)) {
+      rows <- x$timing$candidates
+      field("", "nlmixr2: ", paste(sprintf(
+        "%s %s%s", rows$model,
+        vapply(rows$seconds, .model_duration, character(1)),
+        ifelse(rows$converged, "", " (did not converge)")
+      ), collapse = ", "))
+    }
+    if (length(x$timing$pd)) {
+      field("", "least squares: ", paste(sprintf(
+        "%s %s", names(x$timing$pd),
+        vapply(unname(x$timing$pd), .model_duration, character(1))
+      ), collapse = ", "))
+    }
   }
   cat("  covariate effects ",
       if (length(x$covariate_effects)) {
