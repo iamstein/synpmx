@@ -151,11 +151,15 @@ case1$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 14.53, v 182.7, ka 6.489 
-#>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
-#>   residual error     proportional 0.26 
-#>   time to fit        7 min 39 s (7 min 40 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 7 min 39 s
+#>   fitted on          60 of 150 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 10.55, v 88.93, ka 4.76 
+#>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
+#>   residual error     proportional 0.486 
+#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 4 min 47 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -215,7 +219,18 @@ case1$fit
 #>   compute: `proportional` needs two dose levels several patients share, and
 #>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 1 before declining, and 99% of subjects do too 
-#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"`
+#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>    WEIGHTB         v       -0.58
+#>    WEIGHTB        ka        0.23
+#>    WEIGHTB        cl       -0.15
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png)
@@ -283,11 +298,12 @@ mad_run$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 50 patients with a concentration
 #>   fixed effects      cl 5.564, v 153.6, ka 3.929 
 #>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        47.0 s (47.3 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 47.0 s
+#>   time to fit        38.8 s (39.1 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 38.8 s
 #>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
 #> 
@@ -349,7 +365,18 @@ mad_run$fit
 #>   compute: `proportional` needs two dose levels several patients share, and
 #>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 2 before declining, and 100% of subjects do too 
-#>   also available     the sampling would support a two-compartment model (median 13 distinct times after a dose, 9 after the peak): ask for it with `pk = "2cmt_oral"`
+#>   also available     the sampling would support a two-compartment model (median 13 distinct times after a dose, 9 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>    WEIGHTB        cl       0.294
+#>    WEIGHTB         v       0.193
+#>    WEIGHTB        ka       0.095
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png)
@@ -393,11 +420,12 @@ model_report(warfarin_run$fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.8 s (10.9 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.8 s
+#>   time to fit        9.2 s (9.4 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 9.2 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -530,11 +558,12 @@ model_report(wbc_run$fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_infusion 
+#>   fitted on          all 45 patients with a concentration
 #>   fixed effects      cl 0.01245, v 20.4 
 #>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
 #>   residual error     proportional 0.347 
-#>   time to fit        2.5 s (2.6 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 2.5 s
+#>   time to fit        2.1 s (2.2 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 2.1 s
 #>   covariate effects  none 
 #> 
 #> Values at the bottom of the scale
@@ -650,11 +679,15 @@ mavo_run$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_infusion 
-#>   fixed effects      cl 0.03503, v 0.2088 
-#>   between-subject    cl 0.421, v 0.337 (as SD on the log scale)
-#>   residual error     proportional 0.721 
-#>   time to fit        21.3 s (21.5 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 21.3 s
+#>   fitted on          60 of 120 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 0.03473, v 0.2098 
+#>   between-subject    cl 0.425, v 0.347 (as SD on the log scale)
+#>   residual error     proportional 0.719 
+#>   time to fit        10.4 s (10.6 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 10.4 s
 #>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -705,11 +738,11 @@ mavo_run$fit
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
-#>        AGE        cl      -0.255
-#>         HT        cl       0.150
-#>        SEX         v       0.093
-#>        SEX        cl      -0.057
-#>        AGE         v       0.056
+#>        SEX         v        0.26
+#>        AGE        cl       -0.22
+#>        SEX        cl        0.15
+#>         HT         v       -0.14
+#>         HT        cl        0.12
 #> 
 #>   A covariate that moves with a random effect and is not in the model above
 #>   is generated independently of the profiles, so the synthetic data carries
@@ -813,11 +846,12 @@ theo_run$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 12 patients with a concentration
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        12.1 s (12.3 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 12.1 s
+#>   time to fit        10.4 s (10.7 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.4 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -951,11 +985,12 @@ nimo_run$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_infusion 
+#>   fitted on          all 12 patients with a concentration
 #>   fixed effects      cl 0.1305, v 42.65 
 #>   between-subject    cl 0.585, v 0.704 (as SD on the log scale)
 #>   residual error     proportional 0.468 
-#>   time to fit        3.1 s (3.1 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 3.1 s
+#>   time to fit        2.2 s (2.2 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 2.2 s
 #>   covariate effects  none 
 #> 
 #> Values at the bottom of the scale
@@ -1133,11 +1168,12 @@ pheno_run$fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_iv 
+#>   fitted on          all 59 patients with a concentration
 #>   fixed effects      cl 0.006131, v 1.314 
 #>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
 #>   residual error     proportional 0.118 
-#>   time to fit        32.8 s (32.9 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 8.5 s, 1cmt_oral 24.3 s
+#>   time to fit        27.2 s (27.2 s for the whole call)
+#>                      nlmixr2: 1cmt_iv 7.5 s, 1cmt_oral 19.7 s
 #>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -1263,11 +1299,11 @@ knitr::kable(inventory, row.names = FALSE,
 
 | Dataset | Patients | Model | Fixed effects | Residual |
 |:---|---:|:---|:---|:---|
-| case1_pkpd | 180 | 1cmt_oral | cl 14.5, v 183, ka 6.49 | proportional 0.26 |
+| case1_pkpd | 180 | 1cmt_oral | cl 10.5, v 88.9, ka 4.76 | proportional 0.486 |
 | mad | 60 | 1cmt_oral | cl 5.56, v 154, ka 3.93 | proportional 0.719 |
 | warfarin | 32 | 1cmt_oral | cl 0.136, v 8.18, ka 0.603 | proportional 0.21 |
 | wbcSim | 45 | 1cmt_infusion | cl 0.0124, v 20.4 | proportional 0.347 |
-| mavoglurant | 120 | 1cmt_infusion | cl 0.035, v 0.209 | proportional 0.721 |
+| mavoglurant | 120 | 1cmt_infusion | cl 0.0347, v 0.21 | proportional 0.719 |
 | theo_md | 12 | 1cmt_oral | cl 2.86, v 34.2, ka 1.46 | proportional 0.217 |
 | nimoData | 12 | 1cmt_infusion | cl 0.13, v 42.6 | proportional 0.468 |
 | pheno_sd | 59 | 1cmt_iv | cl 0.00613, v 1.31 | proportional 0.118 |

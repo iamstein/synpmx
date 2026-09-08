@@ -84,7 +84,7 @@ reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
 48.28 — so there is no exact interval to compress to, and the wait is
 the honest cost of the design.
 
-A clearance of 14.5 L/h and a volume of 183 L. Whether those are the
+A clearance of 10.5 L/h and a volume of 88.9 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
@@ -105,11 +105,15 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
-#>   fixed effects      cl 14.53, v 182.7, ka 6.489 
-#>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
-#>   residual error     proportional 0.26 
-#>   time to fit        7 min 39 s (7 min 40 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 7 min 39 s
+#>   fitted on          60 of 150 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 10.55, v 88.93, ka 4.76 
+#>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
+#>   residual error     proportional 0.486 
+#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 4 min 47 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -169,7 +173,18 @@ model_report(fit)
 #>   compute: `proportional` needs two dose levels several patients share, and
 #>   `shape` needs three sampling times in one dose interval.
 #>   design             the median profile rises to a peak at 1 before declining, and 99% of subjects do too 
-#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"`
+#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>    WEIGHTB         v       -0.58
+#>    WEIGHTB        ka        0.23
+#>    WEIGHTB        cl       -0.15
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
 ```
 
 Three lines in the estimated half are worth reading before anything

@@ -21,6 +21,7 @@ synpmx_model_estimate(
   min_subjects = 20L,
   min_arm_patients = 3L,
   min_time_bins = 6L,
+  max_fit_subjects = 60L,
   estimation = "focei",
   seed = NULL,
   quiet = FALSE
@@ -91,6 +92,18 @@ synpmx_model_estimate(
   one-compartment model is not identifiable, which warns rather than
   refuses: the fit runs and its parameters sit close to their starting
   values. No post-dose observation at all is an error.
+
+- max_fit_subjects:
+
+  Most subjects the population model is fitted to, 60 by default. A
+  study above it has its PK parameters estimated on a subset drawn in
+  proportion to the arms, using `seed`; the dosing, visit and covariate
+  models still read every subject. Fit time is linear in subjects and
+  the parameters a synthetic study needs are settled well before the
+  sixtieth, so this is where a twenty-minute fit becomes a five-minute
+  one.
+  [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+  states the count. Cannot be below `min_subjects`.
 
 - estimation:
 

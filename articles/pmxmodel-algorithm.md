@@ -280,6 +280,14 @@ already there.
 
 ## Step 3: Estimate the PK and PD Parameters
 
+**The population model is fitted to at most `max_fit_subjects`
+patients**, 60 by default, drawn in proportion to the arms with the
+run’s seed. Fit time is linear in subjects and goes into the per-subject
+inner loop — on `onc_sim`, 40 patients fit in four minutes and 200 in
+twenty-five — while the parameters a synthetic study needs are settled
+long before the sixtieth patient. Every other model in Step 4 still
+reads the whole study, and the report states the count.
+
 **The candidates are the structural PK models Step 2 left standing.**
 Each one is fitted as a population nonlinear mixed-effects model through
 `nlmixr2`, which estimates the fixed effects, the between-subject
@@ -392,7 +400,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892  10.757
+#> 1 1cmt_oral      TRUE 895.892   9.245
 ```
 
 ### Covariates
@@ -553,11 +561,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.8 s (10.9 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.8 s
+#>   time to fit        9.2 s (9.4 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 9.2 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -685,6 +694,7 @@ fit badly is fitted, and told about.
 | Gate | Threshold | Result |
 |----|----|----|
 | Cohort size | 20 subjects | Warns and fits. A covariance matrix fitted to a handful of subjects describes those subjects, and nothing downstream will say so: the scorecard asks whether the output copies anybody or changed the study’s shape, and a small-cohort fit does neither. [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)’s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
+| Fit cap | `max_fit_subjects` = 60 | The PK model is fitted to a subset drawn in proportion to the arms; the dosing, visit and covariate models read every subject. Reported in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md). Cannot be set below `min_subjects`. |
 | Cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller’s call to accept. |
 | No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |

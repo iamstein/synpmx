@@ -170,11 +170,12 @@ model_fit
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 12 patients with a concentration
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        12.1 s (12.3 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 12.1 s
+#>   time to fit        10.4 s (10.7 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.4 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale

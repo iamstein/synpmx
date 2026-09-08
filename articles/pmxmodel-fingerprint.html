@@ -190,11 +190,12 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
 <span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
+<span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
 <span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        10.8 s (10.9 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 10.8 s</span></span>
+<span><span class="co">#&gt;   time to fit        9.2 s (9.4 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 9.2 s</span></span>
 <span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -273,17 +274,17 @@ directly when no accessor covers it.</p>
 <span><span class="co">#&gt; [13] "pd"                   "covariate_effects"    "covariates"          </span></span>
 <span><span class="co">#&gt; [16] "discrete"             "design"               "correlations"        </span></span>
 <span><span class="co">#&gt; [19] "censoring"            "quantification_floor" "timing"              </span></span>
-<span><span class="co">#&gt; [22] "movement"</span></span></code></pre></div>
+<span><span class="co">#&gt; [22] "movement"             "fit_subjects"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
 </h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">settings</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      min_subjects  min_arm_patients     min_time_bins        estimation </span></span>
-<span><span class="co">#&gt;              "20"               "3"               "6"           "focei" </span></span>
-<span><span class="co">#&gt; covariate_effects             error </span></span>
-<span><span class="co">#&gt;            "auto"            "prop"</span></span>
+<span><span class="co">#&gt;      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects </span></span>
+<span><span class="co">#&gt;              "20"               "3"               "6"              "60" </span></span>
+<span><span class="co">#&gt;        estimation covariate_effects             error </span></span>
+<span><span class="co">#&gt;           "focei"            "auto"            "prop"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">n_source</span>, arms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; patients     arms </span></span>
 <span><span class="co">#&gt;       32        1</span></span></code></pre></div>
@@ -317,7 +318,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  10.757</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.245</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>

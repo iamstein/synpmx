@@ -86,11 +86,12 @@ model_report(fit)
 #> 
 #> Estimated by nlmixr2
 #>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.8 s (10.9 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.8 s
+#>   time to fit        9.2 s (9.4 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 9.2 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -173,7 +174,7 @@ names(fit)
 #> [13] "pd"                   "covariate_effects"    "covariates"          
 #> [16] "discrete"             "design"               "correlations"        
 #> [19] "censoring"            "quantification_floor" "timing"              
-#> [22] "movement"
+#> [22] "movement"             "fit_subjects"
 ```
 
 ## The settings that produced it
@@ -181,10 +182,10 @@ names(fit)
 ``` r
 
 unlist(fit$settings)
-#>      min_subjects  min_arm_patients     min_time_bins        estimation 
-#>              "20"               "3"               "6"           "focei" 
-#> covariate_effects             error 
-#>            "auto"            "prop"
+#>      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects 
+#>              "20"               "3"               "6"              "60" 
+#>        estimation covariate_effects             error 
+#>           "focei"            "auto"            "prop"
 c(patients = fit$n_source, arms = length(fit$arms$arms))
 #> patients     arms 
 #>       32        1
@@ -223,7 +224,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892  10.757
+#> 1 1cmt_oral      TRUE 895.892   9.245
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.

@@ -105,6 +105,7 @@ generated subjects are built from. No patient row survives it.</p>
 <span>  min_subjects <span class="op">=</span> <span class="fl">20L</span>,</span>
 <span>  min_arm_patients <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  min_time_bins <span class="op">=</span> <span class="fl">6L</span>,</span>
+<span>  max_fit_subjects <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>  estimation <span class="op">=</span> <span class="st">"focei"</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -173,6 +174,16 @@ model and from the data generated from it.</p></dd>
 hold. Below it a one-compartment model is not identifiable, which warns
 rather than refuses: the fit runs and its parameters sit close to their
 starting values. No post-dose observation at all is an error.</p></dd>
+
+
+<dt id="arg-max-fit-subjects">max_fit_subjects<a class="anchor" aria-label="anchor" href="#arg-max-fit-subjects"></a></dt>
+<dd><p>Most subjects the population model is fitted to,
+60 by default. A study above it has its PK parameters estimated on a subset
+drawn in proportion to the arms, using <code>seed</code>; the dosing, visit and
+covariate models still read every subject. Fit time is linear in subjects
+and the parameters a synthetic study needs are settled well before the
+sixtieth, so this is where a twenty-minute fit becomes a five-minute one.
+<code><a href="model_report.html">model_report()</a></code> states the count. Cannot be below <code>min_subjects</code>.</p></dd>
 
 
 <dt id="arg-estimation">estimation<a class="anchor" aria-label="anchor" href="#arg-estimation"></a></dt>
