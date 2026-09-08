@@ -660,15 +660,26 @@ bolus, an infusion and an oral dose produce categorically different
 concentration shapes, so blending across them yields a trajectory no
 protocol could have produced. Donors are never drawn from outside the
 anchor’s route. Each subject’s route is the set of</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">V</mi><mi mathvariant="normal">I</mi><mi mathvariant="normal">D</mi></mrow><mo>,</mo><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">M</mi><mi mathvariant="normal">T</mi></mrow><mo>,</mo><mspace width="0.222em"></mspace><mo stretchy="false" form="prefix">[</mo><mrow><mi mathvariant="normal">R</mi><mi mathvariant="normal">A</mi><mi mathvariant="normal">T</mi><mi mathvariant="normal">E</mi></mrow><mo>≠</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
-\bigl(\mathrm{EVID},\ \mathrm{CMT},\ [\mathrm{RATE}\neq 0]\bigr)
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">D</mi><mi mathvariant="normal">M</mi></mrow><mo>,</mo><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">V</mi><mi mathvariant="normal">I</mi><mi mathvariant="normal">D</mi></mrow><mo>,</mo><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">M</mi><mi mathvariant="normal">T</mi></mrow><mo>,</mo><mspace width="0.222em"></mspace><mo stretchy="false" form="prefix">[</mo><mrow><mi mathvariant="normal">R</mi><mi mathvariant="normal">A</mi><mi mathvariant="normal">T</mi><mi mathvariant="normal">E</mi></mrow><mo>≠</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\bigl(\mathrm{ADM},\ \mathrm{EVID},\ \mathrm{CMT},\ [\mathrm{RATE}\neq 0]\bigr)
 </annotation></semantics></math></p>
-<p>triples on its dosing rows, so the compartment a dose enters and
+<p>tuples on its dosing rows, so the compartment a dose enters and
 whether it is delivered over time both bind, while dose <em>count</em>
 does not. Because it is the whole set, <strong>a patient given more than
 one route is their own route class</strong>: an infusion followed later
 by an oral dose matches neither the oral-only nor the infusion-only
 patients, only others with that same combination.</p>
+<p>The first term is the route the study <em>declared</em>, through
+<code>pmx_roles(adm =, routes =)</code>. The other three are proxies for
+a route a study did not state, and in exactly the studies the
+declaration exists for they are blind to it: a Monolix-style table
+routes by <code>ADM</code> alone, so an intravenous bolus and a
+subcutaneous dose carry the same EVID, the same compartment and the same
+zero rate. Without the declared term those two patients key alike and
+blend into each other, across the one boundary this step exists to hold.
+An administration id that <code>routes</code> does not cover keys on its
+own raw value, so two uncovered ids stay apart rather than collapsing
+together.</p>
 </div>
 <div class="section level2">
 <h2 id="step-6-restrict-the-anchor-pool-and-sample-anchors">Step 6: Restrict the Anchor Pool and Sample Anchors<a class="anchor" aria-label="anchor" href="#step-6-restrict-the-anchor-pool-and-sample-anchors"></a>
