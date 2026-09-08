@@ -371,6 +371,71 @@ test_that("a lone non-positive value leaves the floor in place", {
   expect_equal(floor_value[[endpoint]], smallest / 2)
 })
 
+# SIM-074. A study dosed both ways is one study, and the route is a property of
+# each dose record. Before `adm`/`routes` existed, one nonzero rate anywhere
+# made the whole cohort an infusion study and the subcutaneous patients were
+# fitted with a model that has no absorption in it.
+test_that("a declared administration column routes each dose", {
+  data <- .oral_study(n = 20)
+  data$ADM <- 2L
+  half <- as.integer(data$ID) <= 10L
+  data$ADM[half] <- 1L
+  roles <- .estimate_roles(adm = "ADM",
+                           routes = c("1" = "iv", "2" = "extravascular"))
+
+  expect_setequal(.study_routes(data, roles), c("iv", "extravascular"))
+  design <- .model_detect_design(data, roles, .model_observations(data, roles),
+                                 "cp")
+  expect_identical(design$route, "mixed")
+  expect_identical(design$candidates, "1cmt_mixed")
+  expect_match(design$reason, "declared through `adm` and `routes`")
+
+  # The solver is told which compartment each dose enters: the depot for the
+  # extravascular ones, central for the rest.
+  table <- .model_estimation_data(data, roles, "cp")
+  doses <- table[table$EVID != 0L, , drop = FALSE]
+  routes <- .dose_routes(data, roles)[.dose_rows(data, roles)]
+  expect_identical(doses$CMT[routes == "extravascular"],
+                   rep(1L, sum(routes == "extravascular")))
+  expect_identical(doses$CMT[routes == "iv"], rep(2L, sum(routes == "iv")))
+  expect_true(all(table$CMT[table$EVID == 0L] == 2L))
+
+  # One route declared is not a mixed study, and keeps its own model.
+  single <- data
+  single$ADM <- 2L
+  expect_identical(.model_detect_design(single, roles,
+                                        .model_observations(single, roles),
+                                        "cp")$candidates, "1cmt_oral")
+})
+
+# Bioavailability scales the extravascular doses and not the intravenous ones,
+# which is what it means and why a study dosed one way cannot identify it.
+test_that("the mixed model routes each dose to its own form", {
+  p <- c(cl = 4, v = 40, ka = 0.4, f = 0.7)
+  at <- c(0.5, 2, 8, 24)
+  iv <- .pk_profile(list(pk = "1cmt_mixed"), at, 100, 0, p, routes = "iv")
+  ev <- .pk_profile(list(pk = "1cmt_mixed"), at, 100, 0, p,
+                    routes = "extravascular")
+  # The extravascular form is the oral one, bioavailability and all.
+  expect_equal(ev, .pk_profile(list(pk = "1cmt_oral"), at, 100, 0, p))
+  # The intravenous form is the bolus at the full dose, not 70% of it.
+  expect_equal(iv, .pk_profile(list(pk = "1cmt_iv"), at, 100, 0,
+                               replace(p, "f", 1)))
+  # One patient given both receives both.
+  expect_equal(.pk_profile(list(pk = "1cmt_mixed"), at, c(100, 100), c(0, 0), p,
+                           routes = c("iv", "extravascular")), iv + ev)
+})
+
+test_that("the mixed model fits `f` on the depot and gives it no eta", {
+  spec <- deparse(.model_nlmixr_function("1cmt_mixed",
+                                         c(cl = 4, v = 40, ka = 0.4, f = 0.7),
+                                         "prop", 0.2, NULL))
+  expect_true(any(grepl("f(depot) <- f", spec, fixed = TRUE)))
+  expect_true(any(grepl("f <- exp(tf)", spec, fixed = TRUE)))
+  expect_false(any(grepl("eta.f", spec, fixed = TRUE)))
+  expect_true(any(grepl("eta.ka", spec, fixed = TRUE)))
+})
+
 # SIM-069. There is no minimum number of observations. An endpoint measured
 # once is a level, and a level is still something to generate -- the alternative
 # is a synthetic study silently missing an endpoint the source has.

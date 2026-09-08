@@ -291,12 +291,21 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     p <- .subject_parameters(fit$parameters$fixed, fit$covariate_effects,
                              etas[i, ], mine)
 
+    # How long each dose runs, from the rate the arm was given it at. This is
+    # the whole of what makes an infusion an infusion at generation: without it
+    # `.pk_single_dose()` falls back to a bolus, which is what every infusion
+    # study generated before (`SIM-073`).
+    duration <- if (nrow(schedule)) {
+      ifelse(schedule$rate > 0, schedule$amt / schedule$rate, 0)
+    } else numeric()
+
     rows <- list()
     if (nrow(schedule)) {
       rows[[length(rows) + 1L]] <- data.frame(
         TIME = schedule$time, DV = NA_real_, AMT = schedule$amt, EVID = 1L,
-        CMT = if (is.null(schema$cmt_dose)) NA else schema$cmt_dose,
-        DVID = NA_character_, stringsAsFactors = FALSE
+        CMT = .dose_compartment(schema, schedule$route),
+        DVID = NA_character_, RATE = schedule$rate, ROUTE = schedule$route,
+        stringsAsFactors = FALSE
       )
     }
     visits <- fit$visits[[arm]]
@@ -308,7 +317,7 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
         if (!nrow(schedule)) next
         concentration <- .pk_profile(list(pk = fit$structural), time,
                                      schedule$amt, schedule$time, p,
-                                     fit$parameters$duration %||% 0)
+                                     duration, routes = schedule$route)
         .add_residual_error(concentration, fit$parameters$residual, floor = 0)
       } else if (endpoint_name %in% names(fit$pd)) {
         # The subject's own arm where the shape was fitted per arm, and the
@@ -351,7 +360,8 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
         TIME = time, DV = value, AMT = 0, EVID = 0L,
         CMT = if (is.null(schema$cmt_obs[[endpoint_name]])) NA else
           schema$cmt_obs[[endpoint_name]],
-        DVID = endpoint_name, stringsAsFactors = FALSE
+        DVID = endpoint_name, RATE = 0, ROUTE = NA_character_,
+        stringsAsFactors = FALSE
       )
     }
     if (!length(rows)) next
@@ -363,6 +373,29 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   }
 
   .model_emit(pieces, fit, n_subjects, doses, subject_covariates, floored)
+}
+
+# The compartment a dose is written into. One number for a study dosed one way,
+# and the route's own where the study declared more than one.
+.dose_compartment <- function(schema, route) {
+  fallback <- if (is.null(schema$cmt_dose)) NA else schema$cmt_dose
+  if (is.null(schema$cmt_dose_route)) return(rep(fallback, length(route)))
+  out <- lapply(route, function(one) {
+    value <- if (!is.na(one)) schema$cmt_dose_route[[one]] else NULL
+    if (is.null(value)) fallback else value
+  })
+  unlist(out, use.names = FALSE) %||% fallback
+}
+
+# A column written back in the class the source wrote it in, so an integer
+# administration id does not come back as text.
+.match_class <- function(x, class) {
+  switch(class,
+         integer = as.integer(x),
+         numeric = as.numeric(x),
+         double = as.numeric(x),
+         factor = factor(x),
+         as.character(x))
 }
 
 # The finished table, in the source's shape. Everything here is bookkeeping the
@@ -395,8 +428,14 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   if (!is.null(roles$cens)) out[[roles$cens]] <- 0L
   if (!is.null(roles$limit)) out[[roles$limit]] <- NA_real_
   if (!is.null(roles$rate)) {
-    out[[roles$rate]] <- ifelse(frame$EVID != 0L,
-                                fit$parameters$rate %||% 0, 0)
+    out[[roles$rate]] <- ifelse(frame$EVID != 0L, frame$RATE %||% 0, 0)
+  }
+  # The administration id the study used, written back as the study wrote it,
+  # so a synthetic dataset from a mixed study can be read by whatever read the
+  # real one -- and can be re-fitted through the same `routes` declaration.
+  if (!is.null(roles$adm)) {
+    ids <- names(roles$routes)[match(frame$ROUTE, roles$routes)]
+    out[[roles$adm]] <- .match_class(ids, schema$adm_class %||% "character")
   }
   if (!is.null(roles$occasion)) {
     out[[roles$occasion]] <- unlist(lapply(

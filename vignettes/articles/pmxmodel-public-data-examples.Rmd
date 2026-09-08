@@ -345,12 +345,12 @@ count. It converged, and the report says `1cmt_infusion` with a clearance of
 
 The output shows it, and so does the generator. A cell count recovers to its
 baseline between infusions and a concentration decays toward zero, so the
-generated profiles run below the source's — a median of 0.35 to 4.1 against the
-source's 3.8 to 10.4 over the same window — and the source's nadir at 216 h and
-its recovery are absent. **49% of the generated observations landed below the
+generated profiles run below the source's — per-time medians of 0.35 to 6.9
+against the source's 1.1 to 10.8 — and the source's nadir at 216 h and its
+recovery are absent. **32% of the generated observations landed below the
 smallest value the study reported** and were raised to half of it, which the
-run says out loud: a floor catching half the output is a model that does not
-describe the low end of the data. It draws as the flat band along the bottom of
+run says out loud: a floor catching a third of the output is a model that does
+not describe the low end of the data. It draws as the flat band along the bottom of
 the synthetic panel. A4 reads 45 -> 37, because eight subjects drew no
 observations at all, and A5a and A5b fall with it.
 
@@ -543,7 +543,7 @@ overlay_plot(nimo_run$source, nimo_run$synthetic, nimo_roles,
 synpmx_scorecard_datatable(nimo_run$card)
 ```
 
-Nothing fails, and D1 at four times the source's spread is the one row to
+Nothing fails, and D1 at 3.4 times the source's spread is the one row to
 read — the widest of the eight, and what twelve subjects buy: a covariance
 matrix estimated from twelve people, drawn from freely, produces profiles more
 spread out than the twelve it came from. The subject floor exists for this, and

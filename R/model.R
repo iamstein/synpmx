@@ -511,6 +511,26 @@ print.pmx_model_report <- function(x, ...) {
     stats::median(vapply(x$dosing, function(d) nrow(d$planned), integer(1))),
     length(x$dosing)))
 
+  # How the doses are given, where the study says. A schedule of the same
+  # amounts means something different given over an hour than given as a bolus,
+  # and different again given subcutaneously, so the report says which.
+  routes <- .unique_in_order(unlist(lapply(x$dosing, function(d) d$planned$route)))
+  routes <- routes[!is.na(routes)]
+  durations <- unlist(lapply(x$dosing, function(d) {
+    with(d$planned, ifelse(rate > 0, amt / rate, NA_real_))
+  }))
+  durations <- durations[is.finite(durations) & durations > 0]
+  if (length(routes) || length(durations)) {
+    field("dose routes",
+          if (length(routes)) paste(routes, collapse = " and ") else
+            "one route, undeclared",
+          if (length(durations)) {
+            sprintf("; infused over %s h", if (length(unique(round(durations, 6))) == 1L)
+              signif(durations[[1L]], 4) else
+                paste(signif(range(durations), 4), collapse = " to "))
+          } else if (length(routes)) "; given as a bolus" else NULL)
+  }
+
   # The three rates are the whole model of missed doses and reductions, and a
   # reader looking for "what happens to the dosing" has to be able to find them
   # by name. Reported per arm, because they are per arm.

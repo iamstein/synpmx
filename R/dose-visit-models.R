@@ -44,13 +44,19 @@
 # one patient has cannot be generated -- the same reasoning as `SIM-047` on the
 # observation side.
 #
-.dose_model <- function(member_rows, aligned, amount, dose_rows, floor) {
+.dose_model <- function(member_rows, aligned, amount, dose_rows, floor,
+                        route = NULL, rate = NULL) {
   n <- length(member_rows)
+  if (is.null(route)) route <- rep(NA_character_, length(amount))
+  if (is.null(rate)) rate <- rep(0, length(amount))
   per_patient <- lapply(seq_len(n), function(i) {
     selected <- member_rows[[i]] & dose_rows
     order_by <- order(aligned[selected])
     data.frame(time = aligned[selected][order_by],
-               amt = amount[selected][order_by])
+               amt = amount[selected][order_by],
+               route = route[selected][order_by],
+               rate = rate[selected][order_by],
+               stringsAsFactors = FALSE)
   })
 
   # The planned grid: nominal dose times enough of the arm reached. Cycles only
@@ -104,8 +110,35 @@
     counts <- table(sprintf("%.10g", values))
     as.numeric(names(counts)[which.max(counts)])
   }, numeric(1))
+  # How each planned dose is given, alongside how much. The route and the rate
+  # are properties of the administration rather than of the patient, so each is
+  # the modal value among the patients dosed at that cycle -- the same reading
+  # the amount gets. A schedule that switches route partway through, or runs an
+  # infusion at one cycle and a bolus at the next, is carried as that.
+  modal <- function(values) {
+    values <- values[!is.na(values)]
+    if (!length(values)) return(NA)
+    counts <- table(as.character(values))
+    key <- names(counts)[which.max(counts)]
+    values[match(key, as.character(values))]
+  }
+  at_cycle <- function(column) {
+    lapply(seq_len(n_cycles), function(k) {
+      unlist(lapply(per_patient, function(p) {
+        hit <- which(abs(p$time - planned_times[k]) < 1e-8)
+        if (length(hit)) p[[column]][hit[1L]] else NULL
+      }))
+    })
+  }
+  planned_route <- vapply(at_cycle("route"),
+                          function(v) as.character(modal(v)), character(1))
+  planned_rate <- vapply(at_cycle("rate"), function(v) {
+    value <- modal(v)
+    if (is.na(value)) 0 else as.numeric(value)
+  }, numeric(1))
   planned <- data.frame(cycle = seq_len(n_cycles), time = planned_times,
-                        amt = planned_amt)
+                        amt = planned_amt, route = planned_route,
+                        rate = planned_rate, stringsAsFactors = FALSE)
 
   span <- integer(n)
   skipped <- integer(n)
@@ -207,6 +240,11 @@
 # interruption skips the cycle without ending treatment.
 .draw_schedule <- function(dosing) {
   planned <- dosing$planned
+  # A schedule summarised before the route and the rate were carried has
+  # neither column; it is one route given as a bolus, which is what these
+  # defaults say.
+  if (is.null(planned$route)) planned$route <- rep(NA_character_, nrow(planned))
+  if (is.null(planned$rate)) planned$rate <- rep(0, nrow(planned))
   levels <- dosing$levels
   level <- 1L
   keep <- logical(nrow(planned))
@@ -221,7 +259,18 @@
     }
     if (stats::runif(1) < dosing$discontinuation) break
   }
-  data.frame(time = planned$time[keep], amt = amounts[keep])
+  data.frame(time = planned$time[keep], amt = amounts[keep],
+             route = planned$route[keep],
+             # The rate follows the amount. Where a dose was reduced, an
+             # infusion given over the same duration runs at a lower rate, which
+             # is what a reduction means at the bedside; keeping the rate and
+             # shortening the infusion would be a different decision and not one
+             # anything here saw made.
+             rate = ifelse(planned$amt[keep] > 0,
+                           planned$rate[keep] * amounts[keep] /
+                             pmax(planned$amt[keep], .Machine$double.eps),
+                           0),
+             stringsAsFactors = FALSE)
 }
 
 # The dosing model and the visit model, one of each per arm.
@@ -245,10 +294,19 @@
   # its administrations with `AMT = 0`, and `.dose_rows()` drops those whenever
   # any positive amount exists in the study, which would leave the placebo arm
   # with no dosing events at all.
-  dose_rows <- .event_rows(source, roles)
+  # A negative amount is not a dose. NONMEM writes the end of an infusion as a
+  # mirror record -- `AMT` and `RATE` both negated at the stop time -- and
+  # `wbcSim` is written that way, so reading every event as an administration
+  # planned a schedule of alternating doses and anti-doses, and the generated
+  # data carried them (`SIM-072`).
   amount <- if (is.null(roles$amt)) rep(0, nrow(source)) else
     suppressWarnings(as.numeric(source[[roles$amt]]))
   amount[!is.finite(amount)] <- 0
+  dose_rows <- .event_rows(source, roles) & amount >= 0
+  route <- .dose_routes(source, roles)
+  rate <- if (is.null(roles$rate)) rep(0, nrow(source)) else
+    suppressWarnings(as.numeric(source[[roles$rate]]))
+  rate[!is.finite(rate) | rate < 0] <- 0
 
   arms <- unique(subject_group)
   index <- .named(cells$index, cells$name)
@@ -264,7 +322,7 @@
     sizes[arm] <- length(members)
 
     dosing[[arm]] <- .dose_model(member_rows, aligned, amount, dose_rows,
-                                 floor)
+                                 floor, route, rate)
 
     probability <- vapply(seq_len(nrow(cells)), function(row) {
       reached <- vapply(member_rows, function(rows) {
@@ -332,6 +390,19 @@
     values[match(names(counts)[which.max(counts)], as.character(values))]
   }
   cmt_dose <- if (is.null(roles$cmt)) NULL else mode_of(dose_rows, roles$cmt)
+  # Where the study doses more than one way, the dose compartment is a property
+  # of the route: an intravenous dose and a subcutaneous one are recorded in
+  # different compartments and have to be written back that way, or the
+  # generated table says every dose went to the same place.
+  routes <- .dose_routes(source, roles)
+  cmt_dose_route <- if (is.null(roles$cmt) || is.null(roles$adm)) NULL else {
+    present <- .unique_in_order(routes[dose_rows & !is.na(routes)])
+    stats::setNames(lapply(present, function(route) {
+      mode_of(dose_rows & !is.na(routes) & routes == route, roles$cmt)
+    }), present)
+  }
+  adm_class <- if (is.null(roles$adm)) NULL else
+    class(source[[roles$adm]])[[1L]]
   cmt_obs <- stats::setNames(lapply(endpoints, function(ep) {
     if (is.null(roles$cmt)) NULL else mode_of(observed & endpoint == ep,
                                               roles$cmt)
@@ -370,7 +441,8 @@
       max(identifiers, na.rm = TRUE)
     } else 0,
     id_levels = if (is.factor(identifiers)) levels(identifiers) else NULL,
-    cmt_dose = cmt_dose, cmt_obs = cmt_obs,
+    cmt_dose = cmt_dose, cmt_dose_route = cmt_dose_route,
+    adm_class = adm_class, cmt_obs = cmt_obs,
     carried = carried, arm_values = arm_values,
     endpoint_specs = .endpoint_value_types(source, roles)
   )

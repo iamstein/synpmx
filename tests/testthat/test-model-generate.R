@@ -79,6 +79,56 @@
   )
 }
 
+# SIM-073. An infusion that generates as a bolus is a different study. The
+# duration is what makes it an infusion, and it comes from the rate the arm was
+# given the dose at rather than from a parameter nobody set.
+test_that("an infusion generates as an infusion, with its rate written back", {
+  data <- .cycle_fixture()
+  data$RATE <- ifelse(data$EVID != 0L, data$AMT / 2, 0)
+  roles <- .generate_roles(rate = "RATE")
+  fit <- .hand_built_fit(data, roles, structural = "1cmt_infusion",
+                         fixed = c(cl = 5, v = 50))
+  synthetic <- as.data.frame(synpmx_model_generate(fit, n_subjects = 8, seed = 3))
+  doses <- synthetic[synthetic$EVID != 0L, , drop = FALSE]
+
+  expect_true(all(doses$RATE > 0))
+  # Two hours, which is the duration the source's rate implies.
+  expect_equal(unique(round(doses$AMT / doses$RATE, 6)), 2)
+  expect_true(all(doses$AMT > 0))
+
+  # And the concentration is the infusion's, not the bolus it used to be: an
+  # infusion has a lower peak than the same dose given instantly.
+  bolus <- .hand_built_fit(data, roles, structural = "1cmt_iv",
+                           fixed = c(cl = 5, v = 50))
+  peak <- function(fit) {
+    d <- as.data.frame(synpmx_model_generate(fit, n_subjects = 8, seed = 3))
+    max(d$DV[d$EVID == 0L], na.rm = TRUE)
+  }
+  expect_lt(peak(fit), peak(bolus))
+})
+
+# SIM-072. NONMEM writes the end of an infusion as a mirror record, `AMT` and
+# `RATE` both negated. Reading every event as an administration planned a
+# schedule of alternating doses and anti-doses, and generated them.
+test_that("an infusion stop record is not planned as a dose", {
+  data <- .cycle_fixture()
+  data$RATE <- ifelse(data$EVID != 0L, data$AMT, 0)
+  stops <- data[data$EVID != 0L, , drop = FALSE]
+  stops$TIME <- stops$TIME + 1
+  stops$NTIME <- stops$NTIME + 1
+  stops$AMT <- -stops$AMT
+  stops$RATE <- -stops$RATE
+  data <- rbind(data, stops)
+  data <- data[order(data$ID, data$TIME, data$EVID == 0L), , drop = FALSE]
+
+  roles <- .generate_roles(rate = "RATE")
+  fit <- .hand_built_fit(data, roles, structural = "1cmt_infusion",
+                         fixed = c(cl = 5, v = 50))
+  expect_true(all(fit$dosing[[1L]]$planned$amt >= 0))
+  synthetic <- as.data.frame(synpmx_model_generate(fit, n_subjects = 6, seed = 4))
+  expect_true(all(synthetic$AMT >= 0))
+})
+
 # The subject's arm has to reach their PD value, or fitting per arm buys
 # nothing. Built by hand: two arms, two shapes, and the arm each subject was
 # assigned decides which one is evaluated.
