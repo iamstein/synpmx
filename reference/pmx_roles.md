@@ -112,7 +112,14 @@ pmx_roles(
 
 - addl, ii:
 
-  Optional additional-dose and interdose-interval columns.
+  Optional additional-dose and interdose-interval columns, in the NONMEM
+  sense: one record plus "and `ADDL` more like it, every `II`". Declared
+  together or not at all. Every generator expands them on the way in, so
+  each dose the patient received is a row to the dose skeleton, the
+  derived time after dose and the population fit, and folds the output
+  back on the way out, so the synthetic study keeps its source's
+  encoding. See
+  [`pmx_expand_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md).
 
 - adm, routes:
 

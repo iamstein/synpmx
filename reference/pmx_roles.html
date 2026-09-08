@@ -185,7 +185,13 @@ interval-boundary columns.</p></dd>
 
 
 <dt id="arg-addl-ii">addl, ii<a class="anchor" aria-label="anchor" href="#arg-addl-ii"></a></dt>
-<dd><p>Optional additional-dose and interdose-interval columns.</p></dd>
+<dd><p>Optional additional-dose and interdose-interval columns, in
+the NONMEM sense: one record plus "and <code>ADDL</code> more like it, every <code>II</code>".
+Declared together or not at all. Every generator expands them on the way
+in, so each dose the patient received is a row to the dose skeleton, the
+derived time after dose and the population fit, and folds the output back
+on the way out, so the synthetic study keeps its source's encoding. See
+<code><a href="pmx_expand_doses.html">pmx_expand_doses()</a></code>.</p></dd>
 
 
 <dt id="arg-adm-routes">adm, routes<a class="anchor" aria-label="anchor" href="#arg-adm-routes"></a></dt>

@@ -195,6 +195,19 @@ about the protocol.</p>
 <p>Inferring that grid is a statement about the protocol only the caller
 can make, so <code>nominal_time</code> is required rather than
 derived.</p>
+<p><strong>Repeated doses are written out before anything reads
+them.</strong> A regimen recorded as one record plus <code>ADDL</code>
+and <code>II</code> — “and 364 more like it, every day” — is expanded by
+<code><a href="../reference/pmx_expand_doses.html">pmx_expand_doses()</a></code> on the way in, so that every dose the
+patient received is a row to the dosing model, the derived time after
+dose and the estimation table alike. Before this, every reader counted
+rows: <code>onc_sim</code> showed the fitter 237 dose records standing
+for 71,180 doses and got back a clearance six orders of magnitude off,
+from a fit that had moved and so tripped no gate (<code>REV-051</code>).
+The fitter is handed the compact form again, because
+<code>nlmixr2</code> reads it natively and is fastest on it, and the
+generated study is folded back by <code><a href="../reference/pmx_expand_doses.html">pmx_compress_doses()</a></code> on
+the way out, so it comes back in the encoding its source used.</p>
 </div>
 <div class="section level2">
 <h2 id="overview-of-algorithm">Overview of Algorithm<a class="anchor" aria-label="anchor" href="#overview-of-algorithm"></a>

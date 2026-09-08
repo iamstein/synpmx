@@ -59,6 +59,21 @@ protocol.
 Inferring that grid is a statement about the protocol only the caller
 can make, so `nominal_time` is required rather than derived.
 
+**Repeated doses are written out before anything reads them.** A regimen
+recorded as one record plus `ADDL` and `II` — “and 364 more like it,
+every day” — is expanded by
+[`pmx_expand_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+on the way in, so that every dose the patient received is a row to the
+dosing model, the derived time after dose and the estimation table
+alike. Before this, every reader counted rows: `onc_sim` showed the
+fitter 237 dose records standing for 71,180 doses and got back a
+clearance six orders of magnitude off, from a fit that had moved and so
+tripped no gate (`REV-051`). The fitter is handed the compact form
+again, because `nlmixr2` reads it natively and is fastest on it, and the
+generated study is folded back by
+[`pmx_compress_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+on the way out, so it comes back in the encoding its source used.
+
 ## Overview of Algorithm
 
 1.  **Classify the endpoints.** Four signals decide which endpoint is

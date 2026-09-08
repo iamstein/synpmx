@@ -90,6 +90,13 @@ rather than as planned times, and choosing where a trough sample belongs
 is a statement about the protocol rather than something an algorithm can
 derive.
 
+A regimen recorded as one record plus `ADDL` and `II` is written out by
+[`pmx_expand_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+before the features are built, so the dose cells count every dose the
+patient received; the generated study is folded back by
+[`pmx_compress_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+on the way out and leaves in the encoding its source used (`REV-051`).
+
 So
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
 requires `nominal_time` and refuses without it. A study that does not

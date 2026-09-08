@@ -230,6 +230,10 @@ Roles, endpoints, schema, and bounds that describe an event table.
 - [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
   : Declare pharmacometric column roles
 
+- [`pmx_expand_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+  [`pmx_compress_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+  : Expand or compress repeated dose records
+
 - [`pmx_endpoint()`](https://iamstein.github.io/synpmx/reference/pmx_endpoint.md)
   : Declare endpoint scientific-clock behavior
 
@@ -369,10 +373,18 @@ Structural checks on generated data, and restricted comparisons.
 - [`strata_summary()`](https://iamstein.github.io/synpmx/reference/strata_summary.md)
   : Summarize fitted strata and associated regimens
 
-## Fixtures
+## Fixtures and simulated studies
 
-Fully public example datasets for testing and demonstration.
+Fully public example datasets for testing and demonstration, and two
+simulated studies with the truth known: one dosed by two routes, one
+shaped like an oncology trial with crossover, dose reduction and
+compressed dose records.
 
+- [`mixroute_sim`](https://iamstein.github.io/synpmx/reference/mixroute_sim.md)
+  : A simulated study dosed intravenously, subcutaneously, and both
+- [`onc_sim`](https://iamstein.github.io/synpmx/reference/onc_sim.md) :
+  A simulated oncology study with crossover, dose reduction and
+  compressed doses
 - [`pmx_censoring_fixture()`](https://iamstein.github.io/synpmx/reference/pmx_censoring_fixture.md)
   : Public PMX censoring fixture
 - [`pmx_simulated_fixture()`](https://iamstein.github.io/synpmx/reference/pmx_simulated_fixture.md)

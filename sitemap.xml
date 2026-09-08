@@ -44,9 +44,11 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/dp_backend_status.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/flag_identifiable_subjects.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/index.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/mixroute_sim.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/model_candidates.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/model_parameters.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/model_report.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/onc_sim.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pca_component_effect.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pca_components.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pca_dose_rates.html</loc></url>
@@ -65,6 +67,7 @@
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_covariates_auto.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_endpoint.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_endpoint_types.html</loc></url>
+<url><loc>https://iamstein.github.io/synpmx/reference/pmx_expand_doses.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_generated_roles.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_masking_report.html</loc></url>
 <url><loc>https://iamstein.github.io/synpmx/reference/pmx_preflight.html</loc></url>

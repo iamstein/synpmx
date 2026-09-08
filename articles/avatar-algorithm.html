@@ -655,6 +655,12 @@ an infusion template. So two facts are read off each source subject
 here, once for the whole cohort, and used twice later: Step 6 needs the
 route to size the arms it may anchor in, and Step 8 needs both to pick
 each avatar’s donors.</p>
+<p>Both are read from the doses as given. A regimen recorded as one
+record plus <code>ADDL</code> and <code>II</code> is written out by
+<code><a href="../reference/pmx_expand_doses.html">pmx_expand_doses()</a></code> before this step, so a year of daily
+dosing is a year of dose rows here and not one; the generated study is
+folded back by <code><a href="../reference/pmx_expand_doses.html">pmx_compress_doses()</a></code> on the way out, so it
+leaves in the encoding its source used (<code>REV-051</code>).</p>
 <p><strong>Route of administration is an absolute barrier.</strong> A
 bolus, an infusion and an oral dose produce categorically different
 concentration shapes, so blending across them yields a trajectory no
