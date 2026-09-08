@@ -747,3 +747,29 @@ test_that("the mixed model's compartments carry the dose the data sends them", {
                                     routes = "extravascular")[[1L]]),
                0.35, tolerance = 1e-8)
 })
+
+# `max_fit_subjects`: the population model is fitted to a subset drawn in
+# proportion to the arms, and everything else reads the whole study.
+
+test_that("the cap cannot sit below the floor", {
+  expect_error(synpmx_model_estimate(.oral_study(), .estimate_roles(),
+                                     max_fit_subjects = 10L, min_subjects = 20L),
+               "below `min_subjects`")
+})
+
+test_that("a capped fit reports the count and still generates", {
+  skip_if_not_installed("nlmixr2est")
+  data <- .oral_study(n = 30)
+  fit <- suppressWarnings(suppressMessages(synpmx_model_estimate(
+    data, .estimate_roles(), max_fit_subjects = 12L, min_subjects = 10L,
+    seed = 2, quiet = TRUE)))
+  expect_equal(fit$fit_subjects$fitted, 12L)
+  expect_equal(fit$fit_subjects$of, 30L)
+  expect_equal(fit$settings$max_fit_subjects, 12L)
+  expect_match(paste(capture.output(print(model_report(fit))), collapse = "\n"),
+               "12 of 30 patients")
+  # The apparatus read the whole study.
+  expect_equal(fit$n_source, 30L)
+  synthetic <- suppressWarnings(synpmx_model_generate(fit, n_subjects = 10L, seed = 1))
+  expect_true(validate_pmx(synthetic, .estimate_roles())$valid)
+})

@@ -15,6 +15,7 @@ synpmx_model_estimate(
   min_subjects = 20L,
   min_arm_patients = 3L,
   min_time_bins = 6L,
+  max_fit_subjects = 60L,
   estimation = "focei",
   seed = NULL,
   quiet = FALSE
@@ -60,6 +61,14 @@ model and from the data generated from it.}
 hold. Below it a one-compartment model is not identifiable, which warns
 rather than refuses: the fit runs and its parameters sit close to their
 starting values. No post-dose observation at all is an error.}
+
+\item{max_fit_subjects}{Most subjects the population model is fitted to,
+60 by default. A study above it has its PK parameters estimated on a subset
+drawn in proportion to the arms, using \code{seed}; the dosing, visit and
+covariate models still read every subject. Fit time is linear in subjects
+and the parameters a synthetic study needs are settled well before the
+sixtieth, so this is where a twenty-minute fit becomes a five-minute one.
+\code{model_report()} states the count. Cannot be below \code{min_subjects}.}
 
 \item{estimation}{Passed to \code{nlmixr2}. \code{"focei"} by default because the
 selection criterion is AIC and \code{"saem"} does not reliably produce one at

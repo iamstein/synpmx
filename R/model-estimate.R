@@ -543,9 +543,18 @@
     # Wall clock rather than CPU time: the fitter threads, and what the caller
     # waited through is the number they are comparing against.
     started <- proc.time()[["elapsed"]]
+    # Neither the covariance step nor the residual tables is read by anything
+    # downstream: the generator takes the fixed effects, the omega matrix, the
+    # residual error and the empirical Bayes estimates, and every one of those
+    # is on the fit without them. Measured on a 40-patient cut of `onc_sim`
+    # (2026-09-08): 244 s with them, 98 s without, same estimates to the digit.
+    # The dose count is not where the time goes -- cutting each subject's dose
+    # history to 30 days saved 23% -- so this is the lever, not the schedule.
+    control <- if (identical(estimation, "focei")) {
+      nlmixr2est::foceiControl(print = 0, covMethod = "", calcTables = FALSE)
+    } else list(print = 0L)
     fit <- try(suppressWarnings(suppressMessages(
-      nlmixr2est::nlmixr(spec, data, est = estimation,
-                         control = list(print = 0L))
+      nlmixr2est::nlmixr(spec, data, est = estimation, control = control)
     )), silent = TRUE)
     seconds <- proc.time()[["elapsed"]] - started
     converged <- !inherits(fit, "try-error") &&
@@ -623,6 +632,41 @@
   )
   list(moved = any(changes$relative_change > tolerance, na.rm = TRUE),
        tolerance = tolerance, changes = changes)
+}
+
+# Which subjects the population model is fitted to, under `max_fit_subjects`.
+# `NULL` where the cap does not bind. Proportional to the arms, so a study of
+# eleven cohorts keeps eleven cohorts in the fit: each arm gets its share of the
+# cap, rounded, every arm with a fitted subject keeps at least one, and the
+# largest arms give up the rounding remainder. The draw uses the run's seed, so
+# the same call fits the same people.
+.model_fit_subset <- function(fitted_ids, subjects, subject_group, cap, seed) {
+  fitted_ids <- unique(as.character(fitted_ids))
+  if (length(fitted_ids) <= cap) return(NULL)
+  arm_of <- stats::setNames(as.character(subject_group), as.character(subjects))
+  arm <- arm_of[fitted_ids]
+  arm[is.na(arm)] <- "<none>"
+  sizes <- table(arm)
+  share <- pmax(1L, as.integer(round(as.numeric(sizes) * cap / length(fitted_ids))))
+  names(share) <- names(sizes)
+  # Rounding can overshoot or undershoot the cap; settle it on the largest arms.
+  while (sum(share) != cap) {
+    largest <- names(share)[order(-as.numeric(sizes[names(share)]))]
+    for (nm in largest) {
+      if (sum(share) == cap) break
+      if (sum(share) > cap && share[[nm]] > 1L) share[[nm]] <- share[[nm]] - 1L
+      if (sum(share) < cap && share[[nm]] < sizes[[nm]]) share[[nm]] <- share[[nm]] + 1L
+    }
+    if (all(share >= sizes[names(share)]) && sum(share) < cap) break
+  }
+  draw <- function() {
+    unlist(lapply(names(share), function(nm) {
+      pool <- fitted_ids[arm == nm]
+      if (length(pool) <= share[[nm]]) pool else sample(pool, share[[nm]])
+    }), use.names = FALSE)
+  }
+  chosen <- if (is.null(seed)) draw() else .with_local_seed(seed, draw())
+  fitted_ids[fitted_ids %in% chosen]
 }
 
 # Reading a converged fit back into the numbers the generator needs, and no
@@ -1099,6 +1143,13 @@
 #'   [synpmx_pca_summarize()] uses. Patients in a shorter arm are dropped with a
 #'   warning before anything is fitted, so that arm is absent from the fitted
 #'   model and from the data generated from it.
+#' @param max_fit_subjects Most subjects the population model is fitted to,
+#'   60 by default. A study above it has its PK parameters estimated on a subset
+#'   drawn in proportion to the arms, using `seed`; the dosing, visit and
+#'   covariate models still read every subject. Fit time is linear in subjects
+#'   and the parameters a synthetic study needs are settled well before the
+#'   sixtieth, so this is where a twenty-minute fit becomes a five-minute one.
+#'   `model_report()` states the count. Cannot be below `min_subjects`.
 #' @param min_time_bins Distinct nominal times after a dose the cohort should
 #'   hold. Below it a one-compartment model is not identifiable, which warns
 #'   rather than refuses: the fit runs and its parameters sit close to their
@@ -1119,10 +1170,17 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   endpoint_roles = NULL,
                                   covariate_effects = "auto",
                                   min_subjects = 20L, min_arm_patients = 3L,
-                                  min_time_bins = 6L, estimation = "focei",
+                                  min_time_bins = 6L, max_fit_subjects = 60L,
+                                  estimation = "focei",
                                   seed = NULL, quiet = FALSE) {
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
+  }
+  max_fit_subjects <- .positive_integer(max_fit_subjects, "max_fit_subjects")
+  if (max_fit_subjects < .positive_integer(min_subjects, "min_subjects")) {
+    stop("`max_fit_subjects` (", max_fit_subjects, ") is below `min_subjects` ",
+         "(", min_subjects, "): the fit cannot be capped under the floor it ",
+         "is told to hold.", call. = FALSE)
   }
   # Arguments are checked before the fitter is required, so that a
   # mistyped model name reads as a mistyped model name rather than as a
@@ -1209,6 +1267,30 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # fewer people than the study has, and a warning where it takes the fitted
   # cohort under the floor the run was told to hold.
   fitted_subjects <- length(unique(recorded_data$ID))
+  # The cap. Fit time is linear in subjects and the inner per-subject loop is
+  # where it goes -- measured 2026-09-08 on `onc_sim`, 40 patients fit in four
+  # minutes and 200 in twenty-five -- while what the generator needs from the
+  # fit, population parameters that put synthetic values where the real ones
+  # are, is settled long before the two-hundredth patient. So the population
+  # model is fitted to a subset drawn in proportion to the arms, and every
+  # other model -- dosing, visits, covariates, cells -- still reads the whole
+  # study. The report says so, because a reader who sees 200 patients and a
+  # fit on 60 is owed the number.
+  fit_draw <- .model_fit_subset(recorded_data$ID, subjects, subject_group,
+                                max_fit_subjects, seed)
+  if (!is.null(fit_draw)) {
+    recorded_data <- recorded_data[recorded_data$ID %in% fit_draw, ,
+                                   drop = FALSE]
+  }
+  fit_subjects <- list(fitted = length(unique(recorded_data$ID)),
+                       of = fitted_subjects, cap = max_fit_subjects)
+  if (!quiet && !is.null(fit_draw)) {
+    message(.wrap_plain(paste0(
+      "Fitting the population model to ", fit_subjects$fitted, " of ",
+      fitted_subjects, " patients (`max_fit_subjects` = ", max_fit_subjects,
+      "), drawn in proportion to the arms; the dosing, visit and covariate ",
+      "models read all ", n_source, ".")))
+  }
   if (fitted_subjects < n_source) {
     note <- paste0(n_source - fitted_subjects, " of ", n_source,
                    " subjects have no `", classified$pk,
@@ -1328,13 +1410,19 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       call. = FALSE)
   }
 
-  correlations <- .model_covariate_correlations(source, roles, subject_group,
-                                                parameters$etas)
+  # The empirical Bayes estimates are one row per FITTED subject, in source
+  # order, so the frame they are set beside has to be the same subjects in the
+  # same order.
+  fitted_ids <- unique(recorded_data$ID)
+  in_fit <- as.character(source[[roles$id]]) %in% fitted_ids
+  correlations <- .model_covariate_correlations(
+    source[in_fit, , drop = FALSE], roles,
+    subject_group[as.character(subjects) %in% fitted_ids], parameters$etas)
   parameters$etas <- NULL
 
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = search$table, parameters = parameters,
-    movement = movement,
+    movement = movement, fit_subjects = fit_subjects,
     endpoints = list(pk = classified$pk, pd = names(pd_fits),
                      discrete = classified$discrete, signals = classified$signals,
                      decided_by = classified$decided_by),
@@ -1344,7 +1432,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     roles = roles,
     settings = list(min_subjects = min_subjects,
                     min_arm_patients = min_arm_patients,
-                    min_time_bins = min_time_bins, estimation = estimation,
+                    min_time_bins = min_time_bins,
+                    max_fit_subjects = max_fit_subjects,
+                    estimation = estimation,
                     covariate_effects = covariate_effects, error = error),
     n_source = n_source,
     cells = cells, pd = pd_fits, covariate_effects = effects,

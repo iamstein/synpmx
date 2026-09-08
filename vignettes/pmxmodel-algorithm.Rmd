@@ -268,6 +268,13 @@ does from any other, since the closed-form solution is already there.
 
 ## Step 3: Estimate the PK and PD Parameters
 
+**The population model is fitted to at most `max_fit_subjects` patients**, 60
+by default, drawn in proportion to the arms with the run's seed. Fit time is
+linear in subjects and goes into the per-subject inner loop — on `onc_sim`, 40
+patients fit in four minutes and 200 in twenty-five — while the parameters a
+synthetic study needs are settled long before the sixtieth patient. Every other
+model in Step 4 still reads the whole study, and the report states the count.
+
 **The candidates are the structural PK models Step 2 left standing.** Each one
 is fitted as a population nonlinear mixed-effects model through `nlmixr2`, which
 estimates the fixed effects, the between-subject covariance matrix and the
@@ -565,6 +572,7 @@ badly is fitted, and told about.
 | Gate | Threshold | Result |
 |---|---|---|
 | Cohort size | 20 subjects | Warns and fits. A covariance matrix fitted to a handful of subjects describes those subjects, and nothing downstream will say so: the scorecard asks whether the output copies anybody or changed the study's shape, and a small-cohort fit does neither. `synpmx_pca()`'s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
+| Fit cap | `max_fit_subjects` = 60 | The PK model is fitted to a subset drawn in proportion to the arms; the dosing, visit and covariate models read every subject. Reported in `model_report()`. Cannot be set below `min_subjects`. |
 | Cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller's call to accept. |
 | No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |

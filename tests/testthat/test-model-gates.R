@@ -315,3 +315,24 @@ test_that("the unmoved warning says so in words nobody skims past", {
   # to be able to check.
   expect_match(note, "cl")
 })
+
+# `max_fit_subjects`: the population model is fitted to a subset drawn in
+# proportion to the arms, and everything else reads the whole study.
+
+test_that("the fit subset is proportional to the arms and seeded", {
+  subjects <- as.character(1:100)
+  arms <- rep(c("A", "B", "C"), c(60, 30, 10))
+  drawn <- .model_fit_subset(subjects, subjects, arms, 20L, seed = 4)
+  expect_length(drawn, 20L)
+  expect_equal(as.vector(table(arms[match(drawn, subjects)])), c(12L, 6L, 2L))
+  expect_identical(drawn, .model_fit_subset(subjects, subjects, arms, 20L, seed = 4))
+  expect_false(identical(drawn, .model_fit_subset(subjects, subjects, arms, 20L, seed = 5)))
+  # Order is the source's, so the empirical Bayes estimates line up.
+  expect_identical(drawn, subjects[subjects %in% drawn])
+  # An arm with one fitted patient keeps that patient.
+  tiny <- c(rep("A", 98), "B", "C")
+  small <- .model_fit_subset(subjects, subjects, tiny, 10L, seed = 1)
+  expect_true(all(c("99", "100") %in% small))
+  # Below the cap nothing is drawn.
+  expect_null(.model_fit_subset(subjects[1:15], subjects, arms, 20L, seed = 1))
+})

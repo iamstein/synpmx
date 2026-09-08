@@ -296,7 +296,7 @@
                               discrete = list(), design = NULL,
                               correlations = NULL, censoring = NULL,
                               quantification_floor = NULL, timing = NULL,
-                              movement = NULL) {
+                              movement = NULL, fit_subjects = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -355,7 +355,8 @@
     censoring = censoring,
     quantification_floor = quantification_floor,
     timing = timing,
-    movement = movement
+    movement = movement,
+    fit_subjects = fit_subjects
   ), class = "pmx_fitted_model")
 }
 
@@ -395,6 +396,7 @@ model_report <- function(fitted_model) {
     design = fitted_model$design,
     parameters = fitted_model$parameters,
     movement = fitted_model$movement,
+    fit_subjects = fitted_model$fit_subjects,
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
@@ -440,6 +442,14 @@ print.pmx_model_report <- function(x, ...) {
   }
   cat("Estimated by nlmixr2\n")
   cat("  structural model  ", x$structural, "\n")
+  if (!is.null(x$fit_subjects)) {
+    fs <- x$fit_subjects
+    field("fitted on", if (fs$fitted < fs$of) paste0(
+      fs$fitted, " of ", fs$of, " patients with a concentration, drawn in ",
+      "proportion to the arms under `max_fit_subjects` = ", fs$cap, "; the ",
+      "dosing, visit and covariate models below read the whole study") else
+        paste0("all ", fs$fitted, " patients with a concentration"))
+  }
   cat("  fixed effects     ",
       paste(sprintf("%s %.4g", names(x$parameters$fixed),
                     as.numeric(x$parameters$fixed)), collapse = ", "), "\n")
