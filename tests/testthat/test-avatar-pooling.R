@@ -211,3 +211,85 @@ test_that("a unique-dose subject no longer collapses to a sole donor", {
   expect_false(any(grepl("SYNPMX ALERT", msgs)))
   expect_true(validate_pmx(syn, roles)$valid)
 })
+
+# REV-048: a declared route must bind the donor pool. The proxies `.route_key()`
+# reads -- EVID, CMT, RATE -- are blind to a Monolix-style table that routes by
+# `ADM` alone, so without the declaration an intravenous and a subcutaneous
+# patient key alike and blend into each other.
+
+test_that("a declared `adm` separates routes the other tokens cannot see", {
+  one <- function(id, adm) data.frame(
+    ID = id, TIME = c(0, 0.5, 1, 2, 4),
+    DV = c(0, 1, 2, 1.5, 0.8), AMT = c(100, 0, 0, 0, 0),
+    EVID = c(1L, 0L, 0L, 0L, 0L), CMT = c(1L, 1L, 1L, 1L, 1L),
+    ADM = adm, RATE = 0, WT = 70
+  )
+  iv <- one(1L, adm = 1L)
+  sc <- one(2L, adm = 2L)
+  bare <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                    evid = "EVID", cmt = "CMT", rate = "RATE",
+                    covariates = "WT")
+  declared <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                        evid = "EVID", cmt = "CMT", rate = "RATE",
+                        adm = "ADM", routes = c("1" = "iv",
+                                                "2" = "extravascular"),
+                        covariates = "WT")
+
+  # Undeclared, the two patients are indistinguishable: same EVID, same
+  # compartment, same zero rate. That is the defect, not a property worth
+  # keeping -- it is why the declaration exists.
+  expect_identical(synpmx:::.route_key(iv, bare), synpmx:::.route_key(sc, bare))
+  expect_false(identical(synpmx:::.route_key(iv, declared),
+                         synpmx:::.route_key(sc, declared)))
+  expect_match(synpmx:::.route_key(iv, declared), "iv")
+  expect_match(synpmx:::.route_key(sc, declared), "extravascular")
+})
+
+test_that("an administration id outside `routes` keys on its own value", {
+  one <- function(id, adm) data.frame(
+    ID = id, TIME = c(0, 1, 2), DV = c(0, 2, 1), AMT = c(100, 0, 0),
+    EVID = c(1L, 0L, 0L), CMT = 1L, ADM = adm, WT = 70
+  )
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", adm = "ADM",
+                     routes = c("1" = "iv"), covariates = "WT")
+
+  # 7 and 9 are both uncovered by the mapping, and collapsing them into one
+  # "unmapped" class would blend across whatever they turn out to mean.
+  expect_false(identical(synpmx:::.route_key(one(1L, 7L), roles),
+                         synpmx:::.route_key(one(2L, 9L), roles)))
+  expect_match(synpmx:::.route_key(one(1L, 1L), roles), "iv")
+})
+
+test_that("a study dosed both ways never blends across the declared routes", {
+  one <- function(id, adm) {
+    scale <- if (adm == 1L) 1 else 0.3
+    data.frame(
+      ID = id, TIME = c(0, 0.5, 1, 2, 4),
+      DV = c(0, 2, 1.6, 1.1, 0.5) * scale + id * 1e-3,
+      AMT = c(100, 0, 0, 0, 0), EVID = c(1L, 0L, 0L, 0L, 0L),
+      CMT = 1L, ADM = adm, WT = 70 + id
+    )
+  }
+  src <- do.call(rbind, c(lapply(1:6, one, adm = 1L),
+                          lapply(7:12, one, adm = 2L)))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", adm = "ADM",
+                     routes = c("1" = "iv", "2" = "extravascular"),
+                     covariates = "WT")
+
+  syn <- suppressWarnings(
+    synpmx_avatar(src, roles, n_subjects = 12L, seed = 4))
+
+  # Each avatar carries one route, and the two arms stay separated by the
+  # concentration scale that only their own donors could have produced.
+  by_subject <- split(syn, syn$ID)
+  expect_true(all(vapply(by_subject,
+                         function(part) length(unique(part$ADM)) == 1L,
+                         logical(1))))
+  peak <- vapply(by_subject, function(part) {
+    max(part$DV[part$EVID == 0L], na.rm = TRUE)
+  }, numeric(1))
+  arm <- vapply(by_subject, function(part) part$ADM[[1L]], integer(1))
+  expect_gt(min(peak[arm == 1L]), max(peak[arm == 2L]))
+})

@@ -403,14 +403,24 @@ across them yields a trajectory no protocol could have produced. Donors are
 never drawn from outside the anchor's route. Each subject's route is the set of
 
 $$
-\bigl(\mathrm{EVID},\ \mathrm{CMT},\ [\mathrm{RATE}\neq 0]\bigr)
+\bigl(\mathrm{ADM},\ \mathrm{EVID},\ \mathrm{CMT},\ [\mathrm{RATE}\neq 0]\bigr)
 $$
 
-triples on its dosing rows, so the compartment a dose enters and whether it is
+tuples on its dosing rows, so the compartment a dose enters and whether it is
 delivered over time both bind, while dose *count* does not. Because it is the
 whole set, **a patient given more than one route is their own route class**: an
 infusion followed later by an oral dose matches neither the oral-only nor the
 infusion-only patients, only others with that same combination.
+
+The first term is the route the study *declared*, through `pmx_roles(adm =,
+routes =)`. The other three are proxies for a route a study did not state, and
+in exactly the studies the declaration exists for they are blind to it: a
+Monolix-style table routes by `ADM` alone, so an intravenous bolus and a
+subcutaneous dose carry the same EVID, the same compartment and the same zero
+rate. Without the declared term those two patients key alike and blend into each
+other, across the one boundary this step exists to hold. An administration id
+that `routes` does not cover keys on its own raw value, so two uncovered ids
+stay apart rather than collapsing together.
 
 ## Step 6: Restrict the Anchor Pool and Sample Anchors
 

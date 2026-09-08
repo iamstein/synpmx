@@ -155,6 +155,12 @@
 #'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
 #'   dvid = c("YTYPE", "NAME"), covariates = "WT", keep = "ARM"
 #' )
+#'
+#' # A study dosed both ways, saying which administration id is which route.
+#' roles <- pmx_roles(
+#'   id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+#'   cmt = "CMT", adm = "ADM", routes = c("1" = "iv", "2" = "extravascular")
+#' )
 pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,

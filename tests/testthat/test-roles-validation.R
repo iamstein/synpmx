@@ -258,3 +258,39 @@ test_that("generation overwrites TAD from the generated times", {
   expect_equal(synthetic$TAD, synpmx:::.derived_tad(synthetic, tad_roles()),
                tolerance = 1e-8)
 })
+
+# REV-049: `routes` maps administration ids to routes, so its *values* are
+# routes and not column names. Left in the column roles, every place that reads
+# a `pmx_roles` object as a list of columns asked the data for a column called
+# `iv`.
+
+test_that("`routes` values are not treated as column names", {
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", adm = "ADM",
+                     routes = c("1" = "iv", "2" = "extravascular"),
+                     covariates = "WT")
+
+  retained <- synpmx:::.retained_role_columns(roles)
+  expect_false(any(c("iv", "extravascular") %in% retained))
+  expect_true("ADM" %in% retained)               # the column it describes
+})
+
+test_that("a declared route reaches the generator and comes back", {
+  one <- function(id) data.frame(
+    ID = id, TIME = c(0, 1, 2), DV = c(0, 2, 1), AMT = c(100, 0, 0),
+    EVID = c(1L, 0L, 0L), CMT = 1L, ADM = 1L, WT = 70 + id
+  )
+  source <- do.call(rbind, lapply(1:8, one))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", adm = "ADM",
+                     routes = c("1" = "iv"), covariates = "WT")
+
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, n_subjects = 8L, seed = 1)
+  ))
+
+  # `adm` is a declared role, so the column is carried without `keep`.
+  expect_true("ADM" %in% names(synthetic))
+  expect_setequal(unique(synthetic$ADM), 1L)
+  expect_true(validate_pmx(synthetic, roles)$valid)
+})

@@ -59,16 +59,33 @@
 # accept it. A route difference is not a worse match, it is a different
 # experiment: a bolus, an infusion, and an oral dose produce categorically
 # different concentration shapes, so blending across them yields a trajectory no
-# protocol could have produced. Read from the dosing rows only: which EVID and
-# compartment the dose enters, and whether it is delivered over time. NONMEM's
-# RATE < 0 (modeled rate or duration) is still an infusion. The tokens form a
-# *set*, so three oral doses and five oral doses share a route -- dose count is
-# a schedule difference, handled by the signature, not a route difference.
+# protocol could have produced. Read from the dosing rows only: a declared
+# route, which EVID and compartment the dose enters, and whether it is delivered
+# over time. NONMEM's RATE < 0 (modeled rate or duration) is still an infusion.
+# The tokens form a *set*, so three oral doses and five oral doses share a route
+# -- dose count is a schedule difference, handled by the signature, not a route
+# difference.
+#
+# A declared `adm` binds first and on its own terms. The other three tokens are
+# proxies for a route the study did not state, and in the studies the
+# declaration exists for they are blind to it: a Monolix-style table routes by
+# `ADM` alone, so an intravenous bolus and a subcutaneous dose share an EVID, a
+# compartment and a zero rate, and without this an avatar would be blended
+# across the two routes the fit was taught to keep apart. An id the declaration
+# does not cover keys on its own raw value rather than collapsing with every
+# other uncovered id.
 # Documented in `avatar-algorithm.Rmd`, Step 5. Change one, change the other.
 .route_key <- function(subject_data, roles) {
   dosed <- .dose_rows(subject_data, roles)
   if (!any(dosed)) return("none")
-  pieces <- list(as.character(subject_data[[roles$evid]][dosed]))
+  pieces <- list()
+  if (!is.null(roles$adm)) {
+    declared <- .dose_routes(subject_data, roles)[dosed]
+    raw <- as.character(subject_data[[roles$adm]][dosed])
+    pieces[[1L]] <- ifelse(is.na(declared), paste0("adm", raw), declared)
+  }
+  pieces[[length(pieces) + 1L]] <-
+    as.character(subject_data[[roles$evid]][dosed])
   if (!is.null(roles$cmt)) {
     pieces[[length(pieces) + 1L]] <-
       as.character(subject_data[[roles$cmt[[1L]]]][dosed])
