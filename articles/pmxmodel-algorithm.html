@@ -941,6 +941,13 @@ entered.</td>
 <td>Errors rather than returning the least bad fit.</td>
 </tr>
 <tr class="even">
+<td>The between-subject terms did not move</td>
+<td>1% of the eta init, fixed effects moved</td>
+<td>A line under the parameter block in <code><a href="../reference/model_report.html">model_report()</a></code>, not
+the banner: the fixed effects are estimates, but the spread synthetic
+subjects get is the starting value rather than this study’s.</td>
+</tr>
+<tr class="odd">
 <td>The fit did not move</td>
 <td>1% of every starting value</td>
 <td>Warns, and prints <code>!! THE FIT DID NOT MOVE !!</code> above the
@@ -954,7 +961,7 @@ shape and a fit that never moved does neither. Each parameter’s start,
 estimate and percent change are listed, because “did not move” is a
 claim the reader has to be able to check.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>A fitted model as a public input</td>
 <td>—</td>
 <td>

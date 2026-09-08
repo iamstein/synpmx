@@ -75,14 +75,19 @@ The chunk above is shown rather than run. Fitting compiles a model, so
 this document reads a stored fit built by `scripts/build-model-fits.R`
 and `R CMD check` never needs a compiler.
 
-That call takes about eleven minutes on this study, and says so before
-it starts: every likelihood evaluation sums a contribution per dose per
-subject, and twelve weeks of daily dosing for 150 patients is 12,750
-dose records. Where a study’s doses are on an exact interval they are
-compressed to one record per patient first, which the message also
+That call takes about five minutes on this study, and says so before it
+starts. Two things set the wait. The population model is fitted to 60 of
+the 150 patients with a concentration, drawn in proportion to the arms
+under `max_fit_subjects`, because fit time is linear in subjects and the
+parameters a synthetic study needs are settled long before the sixtieth
+— the dosing, visit and covariate models still read all 180, and the
+report says so. And every likelihood evaluation sums a contribution per
+dose per subject: twelve weeks of daily dosing for those 60 patients is
+5,100 dose records. Where a study’s doses are on an exact interval they
+are compressed to one record per patient first, which the message also
 reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
-48.28 — so there is no exact interval to compress to, and the wait is
-the honest cost of the design.
+48.28 — so there is no exact interval to compress to, and the rest of
+the wait is the honest cost of the design.
 
 A clearance of 10.5 L/h and a volume of 88.9 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
