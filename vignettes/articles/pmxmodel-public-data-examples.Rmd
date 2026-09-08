@@ -191,10 +191,13 @@ synpmx_scorecard_datatable(case1$card)
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to 29,
 which is the visit model drawing attendance rather than copying it, and D1
-puts the concentration's standard deviation at 0.68 times the source's — a
-spread that narrowed, because the censored rows are fitted as censored and the
-residual error no longer carries the scatter of values the assay never
-measured.
+puts the concentration's standard deviation at 1.4 times the source's. The
+report explains the 1.4: the proportional residual error is estimated at 49%
+on a study where 46% of the concentrations are censored, and that scatter is
+written into every synthetic value, while the source's censored rows carry
+none of it — they sit at the limit. The population model behind it is fitted
+to 60 of the 150 patients with a concentration, under `max_fit_subjects`; the
+report says so, and the dosing and visit models still read all 180.
 `vignette("pmxmodel-demo")` works this study end to end, including what its 46%
 censoring and its PD endpoint cost.
 

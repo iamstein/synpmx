@@ -630,7 +630,15 @@
     relative_change = c(moved_fixed, moved_eta),
     stringsAsFactors = FALSE
   )
+  # Reported separately, because the fixed effects moving while every
+  # between-subject term sits on its init is a fit that found a population mean
+  # and never looked for its spread. The stored `case1_pkpd` fit was that for
+  # months: `cl`, `v` and `ka` estimated, all three omegas at 0.1, and the
+  # synthetic spread 0.68 of the source's as a result. Not the banner -- the
+  # fixed effects are estimates -- but a line the reader has to see.
   list(moved = any(changes$relative_change > tolerance, na.rm = TRUE),
+       omega_moved = if (length(eta)) any(moved_eta > tolerance, na.rm = TRUE)
+                     else NA,
        tolerance = tolerance, changes = changes)
 }
 

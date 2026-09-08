@@ -457,6 +457,15 @@ print.pmx_model_report <- function(x, ...) {
       paste(sprintf("%s %.3g", rownames(x$parameters$omega),
                     sqrt(diag(x$parameters$omega))), collapse = ", "),
       "(as SD on the log scale)\n")
+  if (!is.null(x$movement) && isTRUE(x$movement$moved) &&
+      isFALSE(x$movement$omega_moved)) {
+    field("", .wrap_plain(paste0(
+      "!! Every between-subject term is within ",
+      sprintf("%.0f%%", 100 * x$movement$tolerance), " of its starting value ",
+      "of ", .model_eta_init, " while the fixed effects moved: the fit found a ",
+      "population mean and did not estimate its spread. Synthetic subjects ",
+      "will be spread by the starting value, not by this study.")))
+  }
   cat("  residual error    ", x$parameters$residual$kind,
       sprintf("%.3g", x$parameters$residual$cv %||% x$parameters$residual$sd),
       "\n")

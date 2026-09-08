@@ -336,3 +336,13 @@ test_that("the fit subset is proportional to the arms and seeded", {
   # Below the cap nothing is drawn.
   expect_null(.model_fit_subset(subjects[1:15], subjects, arms, 20L, seed = 1))
 })
+
+test_that("fixed effects moving while every omega sits still is reported", {
+  omega <- diag(c(0.1, 0.1)); rownames(omega) <- colnames(omega) <- c("cl", "v")
+  movement <- .model_fit_movement(c(cl = 6, v = 50), omega, c(cl = 4, v = 40))
+  expect_true(movement$moved)
+  expect_false(movement$omega_moved)
+  omega_moved <- omega; diag(omega_moved) <- c(0.3, 0.1)
+  expect_true(.model_fit_movement(c(cl = 6, v = 50), omega_moved,
+                                  c(cl = 4, v = 40))$omega_moved)
+})
