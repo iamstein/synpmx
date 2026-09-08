@@ -154,8 +154,8 @@ case1$fit
 #>   fixed effects      cl 14.53, v 182.7, ka 6.489 
 #>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
 #>   residual error     proportional 0.26 
-#>   time to fit        7 min 45 s (7 min 47 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 7 min 45 s
+#>   time to fit        7 min 39 s (7 min 40 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 7 min 39 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -286,8 +286,8 @@ mad_run$fit
 #>   fixed effects      cl 5.564, v 153.6, ka 3.929 
 #>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        48.2 s (48.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 48.2 s
+#>   time to fit        47.0 s (47.3 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 47.0 s
 #>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
 #> 
@@ -396,8 +396,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        11.1 s (11.2 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 11.1 s
+#>   time to fit        10.8 s (10.9 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.8 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -520,10 +520,11 @@ wbc_roles <- pmx_roles(
 )
 wbc_run <- model_run("wbcSim", wbcSim, wbc_roles, "wbcsim-model-fit.rds",
                      seed = 505)
-#> Warning: 32% of generated observations (45 of 142) fell below the smallest
-#> value the study reported and were raised to half of it. A floor catching this
-#> much is a fitted model that does not describe the low end of the data, not an
-#> assay limit; read `model_report()` before using this dataset.
+#> Warning: 32% of generated observations (45 of 142) fell below the smallest value the
+#> study reported and were raised to half of it.
+#>   A floor catching this much is a fitted model that does not describe the
+#>   low end of the data, not an assay limit.
+#>   Fix: Read `model_report()` before using this dataset.
 model_report(wbc_run$fit)
 #> The PopPK model
 #> 
@@ -652,8 +653,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.03503, v 0.2088 
 #>   between-subject    cl 0.421, v 0.337 (as SD on the log scale)
 #>   residual error     proportional 0.721 
-#>   time to fit        21.4 s (21.6 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 21.4 s
+#>   time to fit        21.3 s (21.5 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 21.3 s
 #>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -815,8 +816,8 @@ theo_run$fit
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        12.7 s (12.9 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 12.7 s
+#>   time to fit        12.1 s (12.3 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 12.1 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -914,7 +915,9 @@ nimo_roles <- pmx_roles(
 )
 synpmx_model_estimate(nimoData, nimo_roles, seed = 1, min_subjects = 12L)
 #> Error:
-#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests. Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.
+#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.
+#>   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no
+#>     structural model.
 ```
 
 Every subject in `nimoData` receives the same dose, so there are no dose
@@ -951,8 +954,8 @@ nimo_run$fit
 #>   fixed effects      cl 0.1305, v 42.65 
 #>   between-subject    cl 0.585, v 0.704 (as SD on the log scale)
 #>   residual error     proportional 0.468 
-#>   time to fit        3.0 s (3.1 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 3.0 s
+#>   time to fit        3.1 s (3.1 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 3.1 s
 #>   covariate effects  none 
 #> 
 #> Values at the bottom of the scale
@@ -1058,7 +1061,9 @@ pheno_roles <- pmx_roles(
 )
 synpmx_model_estimate(pheno_flat, pheno_roles, seed = 1)
 #> Error:
-#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests. Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.
+#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.
+#>   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no
+#>     structural model.
 ```
 
 Name the endpoint and it fits. **Nothing in the generator’s own
@@ -1069,10 +1074,11 @@ output is still nearly empty.**
 
 pheno_flat_fit <- stored_fit("pheno-flat-model-fit.rds")
 pheno_flat_synthetic <- synpmx_model_generate(pheno_flat_fit, seed = 707)
-#> Warning: 65% of generated observations (15 of 23) fell below the smallest value
-#> the study reported and were raised to half of it. A floor catching this much is
-#> a fitted model that does not describe the low end of the data, not an assay
-#> limit; read `model_report()` before using this dataset.
+#> Warning: 65% of generated observations (15 of 23) fell below the smallest value the
+#> study reported and were raised to half of it.
+#>   A floor catching this much is a fitted model that does not describe the
+#>   low end of the data, not an assay limit.
+#>   Fix: Read `model_report()` before using this dataset.
 c(distinct_times = length(unique(pheno_sd$TIME[pheno_sd$EVID == 0])),
   grid_cells = nrow(pheno_flat_fit$cells),
   source_obs_per_patient = round(sum(pheno_sd$EVID == 0) /
@@ -1130,8 +1136,8 @@ pheno_run$fit
 #>   fixed effects      cl 0.006131, v 1.314 
 #>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
 #>   residual error     proportional 0.118 
-#>   time to fit        33.7 s (33.7 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 8.6 s, 1cmt_oral 25.0 s
+#>   time to fit        32.8 s (32.9 s for the whole call)
+#>                      nlmixr2: 1cmt_iv 8.5 s, 1cmt_oral 24.3 s
 #>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
 #> 
 #> Values at the bottom of the scale

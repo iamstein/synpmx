@@ -166,6 +166,27 @@ effect with no between-subject term: a design with one dose each way
 identifies the contrast between the routes, not a per-subject
 distribution over it.
 
+**A mixed model is fitted with explicit compartments rather than the
+closed form**, and bioavailability is the whole reason. Under `linCmt()`
+the `f(depot)` directive does not reach the doses the data sends to the
+depot: evaluated at known parameters it scaled the intravenous doses
+instead, so `f` was estimated as its own reciprocal and clearance and
+volume as `cl/f` and `v/f` — a fit whose own predictions tracked the
+data while reporting parameters that meant something else (`SIM-077`).
+Written as `d/dt(depot)` and `d/dt(central)`, the compartments are real,
+`f()` binds to the one it names, and the predictions match the analytic
+profile on both routes. Only a mixed study pays the solver cost; a study
+dosed one way has no `f` to place and keeps the closed form.
+
+Starting values for a mixed study are read one route at a time, for the
+same reason the fit has to be: pooled, the cohort’s median profile is an
+intravenous decline and an extravascular rise averaged together, and no
+non-compartmental quantity read off it describes either route.
+Disposition comes from the intravenous records, where `f` is not in the
+way; absorption from the extravascular ones, where there is a peak to
+find; and their two clearances give `f` itself a starting value, since
+an extravascular read returns `cl/f`.
+
 Detection below runs only where nothing was declared. It answers with
 one route for the whole study, which is the right answer for a study
 dosed one way and no answer at all for a study dosed two ways — the
@@ -356,7 +377,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892  11.082
+#> 1 1cmt_oral      TRUE 895.892  10.757
 ```
 
 ### Covariates
@@ -520,8 +541,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        11.1 s (11.2 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 11.1 s
+#>   time to fit        10.8 s (10.9 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.8 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -658,4 +679,5 @@ fit badly is fitted, and told about.
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |
 | No PK endpoint identified | — | Errors and names `endpoint_roles`. |
 | No candidate converged | — | Errors rather than returning the least bad fit. |
+| The fit did not move | 1% of every starting value | Warns, and prints `!! THE FIT DID NOT MOVE !!` above the parameter block in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md). A converged-looking fit is not necessarily an estimated one: where the optimizer takes no effective step, `nlmixr2` returns an objective, an AIC and a full table of starting values, and nothing else downstream contradicts them — the generator simulates from them and the scorecard passes, because it asks whether the output copies anybody or changed the study’s shape and a fit that never moved does neither. Each parameter’s start, estimate and percent change are listed, because “did not move” is a claim the reader has to be able to check. |
 | A fitted model as a public input | — | [`pmx_prior()`](https://iamstein.github.io/synpmx/reference/pmx_prior.md), [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md) and [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md) refuse a `pmx_fitted_model`, because its parameters were estimated from the confidential study. |

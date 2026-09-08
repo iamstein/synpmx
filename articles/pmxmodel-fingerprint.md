@@ -89,8 +89,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        11.1 s (11.2 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 11.1 s
+#>   time to fit        10.8 s (10.9 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.8 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -172,7 +172,8 @@ names(fit)
 #> [10] "settings"             "n_source"             "cells"               
 #> [13] "pd"                   "covariate_effects"    "covariates"          
 #> [16] "discrete"             "design"               "correlations"        
-#> [19] "censoring"            "quantification_floor" "timing"
+#> [19] "censoring"            "quantification_floor" "timing"              
+#> [22] "movement"
 ```
 
 ## The settings that produced it
@@ -222,7 +223,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892  11.082
+#> 1 1cmt_oral      TRUE 895.892  10.757
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.

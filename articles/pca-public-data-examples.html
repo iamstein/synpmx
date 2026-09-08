@@ -352,7 +352,10 @@ an algorithm can derive. So the function refuses without
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>, seed <span class="op">=</span> <span class="fl">111</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `synpmx_pca()` requires `nominal_time` in `pmx_roles()`. The nominal grid is the axis every feature sits on, and inferring it from recorded times is a statement about the protocol that only you can make. Add the protocol's planned times as a column and declare it.</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `synpmx_pca()` requires `nominal_time` in `pmx_roles()`.</span></span>
+<span><span class="co">#&gt;   The nominal grid is the axis every feature sits on, and inferring it from</span></span>
+<span><span class="co">#&gt;   recorded times is a statement about the protocol that only you can make.</span></span>
+<span><span class="co">#&gt;   Fix: Add the protocol's planned times as a column and declare it.</span></span></code></pre></div>
 <p>This is the sharpest difference between the two generators.
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> derives a grid from the recorded times when
 none is declared, and on <code>pheno_sd</code> that derivation does real

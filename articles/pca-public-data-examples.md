@@ -176,7 +176,10 @@ pheno_roles <- pmx_roles(
 )
 synpmx_pca_summarize(pheno_sd, pheno_roles, seed = 111)
 #> Error:
-#> ! `synpmx_pca()` requires `nominal_time` in `pmx_roles()`. The nominal grid is the axis every feature sits on, and inferring it from recorded times is a statement about the protocol that only you can make. Add the protocol's planned times as a column and declare it.
+#> ! `synpmx_pca()` requires `nominal_time` in `pmx_roles()`.
+#>   The nominal grid is the axis every feature sits on, and inferring it from
+#>   recorded times is a statement about the protocol that only you can make.
+#>   Fix: Add the protocol's planned times as a column and declare it.
 ```
 
 This is the sharpest difference between the two generators.
