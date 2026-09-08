@@ -243,6 +243,7 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   } else {
     .with_local_seed(seed, .model_generate(fitted_model, n_subjects))
   }
+  out <- pmx_compress_doses(out, fitted_model$roles)
   attr(out, "pmx_fitted_model") <- fitted_model
   attr(out, "pmx_source") <- "model"
   out

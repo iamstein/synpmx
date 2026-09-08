@@ -236,14 +236,16 @@ test_that("a TAD on another convention warns without invalidating", {
   expect_output(print(report), "Warnings \\(not fatal\\)")
 })
 
-test_that("the agreement check is skipped, loudly, when addl or ii is declared", {
+test_that("the agreement check runs on the expanded doses when addl or ii is declared", {
   source <- tad_source()
   source$ADDL <- 0L
   source$II <- 0
   report <- validate_pmx(source, tad_roles(addl = "ADDL", ii = "II"))
   agreement <- report$checks[report$checks$check == "tad_agreement", ]
-  expect_equal(agreement$status, "warning")
-  expect_match(agreement$message, "does not expand them")
+  # REV-051: the implied doses are written out before the derivation, so the
+  # declared column is checked rather than waved through.
+  expect_equal(agreement$status, "pass")
+  expect_false(grepl("not checked", agreement$message))
 })
 
 test_that("generation overwrites TAD from the generated times", {

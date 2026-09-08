@@ -100,6 +100,12 @@ soon as the doses were recorded as actuals rather than as planned times, and
 choosing where a trough sample belongs is a statement about the protocol rather
 than something an algorithm can derive.
 
+A regimen recorded as one record plus `ADDL` and `II` is written out by
+`pmx_expand_doses()` before the features are built, so the dose cells count
+every dose the patient received; the generated study is folded back by
+`pmx_compress_doses()` on the way out and leaves in the encoding its source
+used (`REV-051`).
+
 So `synpmx_pca()` requires `nominal_time` and refuses without it. A study that
 does not carry one needs the protocol's planned times added as a column first.
 Rows where it is missing are named in the error rather than filled.

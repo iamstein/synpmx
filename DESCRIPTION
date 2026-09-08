@@ -17,6 +17,7 @@ License: MIT + file LICENSE
 URL: https://iamstein.github.io/synpmx/, https://github.com/iamstein/synpmx
 BugReports: https://github.com/iamstein/synpmx/issues
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1.0)

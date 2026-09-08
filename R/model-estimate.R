@@ -1153,6 +1153,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   data <- as.data.frame(data)
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
                  drop = FALSE]
+  source <- pmx_expand_doses(source, roles)
 
   # Arms too small to summarize leave first, so every gate, count and fit below
   # sees the cohort that will actually be modelled.
@@ -1224,7 +1225,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       message(note)
     }
   }
-  estimation_data <- .compress_dose_schedule(recorded_data)
+  # A source that arrived compressed is folded back by runs, which is exact and
+  # keeps a dose change as its own record; one that wrote every dose out is
+  # compressed only where the whole schedule is regular.
+  estimation_data <- if (is.null(roles$addl)) {
+    .compress_dose_schedule(recorded_data)
+  } else {
+    .compress_dose_runs(recorded_data)
+  }
   # Proportional error unless the concentration lives on a scale that includes
   # zero. A handful of non-positive readings does not make that scale: they are
   # what the assay returns near its limit, and treating them as evidence costs

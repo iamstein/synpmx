@@ -385,6 +385,7 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
   data <- as.data.frame(data)
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
                  drop = FALSE]
+  source <- pmx_expand_doses(source, roles)
   # Arms too small to summarize leave first, so the cohort floor, the column
   # floor and the basis all see the patients that will actually be modelled.
   subjects <- .unique_in_order(source[[roles$id]])
@@ -502,6 +503,7 @@ synpmx_pca_generate <- function(trial_summary, n_subjects = NULL,
   } else {
     .with_local_seed(seed, .pca_generate(trial_summary, n_subjects))
   }
+  out <- pmx_compress_doses(out, trial_summary$roles)
   attr(out, "pmx_trial_summary") <- trial_summary
   attr(out, "pmx_source") <- "pca"
   out

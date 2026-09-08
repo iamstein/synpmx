@@ -2237,6 +2237,9 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
   source_roles <- roles
   source_roles$exclude <- NULL
   class(source_roles) <- "pmx_roles"
+  # Every dose the patient received is a row from here on; the output is folded
+  # back to the source's encoding before it is returned. See `R/dose-records.R`.
+  source <- pmx_expand_doses(source, source_roles)
   validate_pmx(source, source_roles, strict = TRUE)
   subjects <- .unique_in_order(source[[source_roles$id]])
   n_subjects <- .validate_generator_options(
@@ -3072,6 +3075,7 @@ synpmx_avatar <- function(data, roles, n_subjects = NULL, seed = 123,
       min_effective_donors = min(effective_donors),
       warnings = warnings$messages
     )
+    result <- pmx_compress_doses(result, source_roles)
     attr(result, "pmx_settings") <- settings
     validate_pmx(result, source_roles, strict = TRUE)
     if (length(warnings$messages)) {

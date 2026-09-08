@@ -82,7 +82,13 @@ check is skipped and says so.}
 \item{cens, limit}{Optional Monolix-style censoring indicator and other
 interval-boundary columns.}
 
-\item{addl, ii}{Optional additional-dose and interdose-interval columns.}
+\item{addl, ii}{Optional additional-dose and interdose-interval columns, in
+the NONMEM sense: one record plus "and \code{ADDL} more like it, every \code{II}".
+Declared together or not at all. Every generator expands them on the way
+in, so each dose the patient received is a row to the dose skeleton, the
+derived time after dose and the population fit, and folds the output back
+on the way out, so the synthetic study keeps its source's encoding. See
+\code{\link[=pmx_expand_doses]{pmx_expand_doses()}}.}
 
 \item{adm, routes}{Optional administration-id column and what its values mean,
 as \verb{adm = "ADM", routes = c("1" = "iv", "2" = "extravascular")}. Declared

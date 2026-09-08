@@ -263,15 +263,15 @@ validate_pmx <- function(data, roles, endpoints = NULL, strict = FALSE) {
     # convention silently replaced -- on `nlmixr2data::nimoData` that is 45% of
     # observation rows. A disagreement is reported, never fatal: the source may
     # be right and the derivation wrong for that study.
-    if (!is.null(roles$addl) || !is.null(roles$ii)) {
-      add("tad_agreement", "warning", paste0(
-        "TAD was not checked against the times: `addl`/`ii` are declared and ",
-        "`synpmx` does not expand them, so the doses implied by them are ",
-        "invisible to the derivation. Expand repeat doses into explicit rows ",
-        "if you want this checked."
-      ))
-    } else {
-      derived <- .derived_tad(data, roles)
+    {
+      # Derived on every dose the patient received, `ADDL`/`II` written out,
+      # and read back row for row through the origin map the expansion keeps.
+      expanded <- .expand_doses(data, roles)
+      origin <- attr(expanded, "pmx_origin")
+      derived_expanded <- .derived_tad(expanded, roles)
+      first_copy <- !duplicated(origin)
+      derived <- rep(NA_real_, nrow(data))
+      derived[origin[first_copy]] <- derived_expanded[first_copy]
       time <- suppressWarnings(as.numeric(data[[roles$time]]))
       # Scale-free, so a study measured in days is treated like one in hours,
       # and float noise and ordinary rounding are ignored.
