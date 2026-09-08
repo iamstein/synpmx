@@ -149,6 +149,7 @@ reference:
   desc: Roles, endpoints, schema, and bounds that describe an event table.
   contents:
   - pmx_roles
+  - pmx_expand_doses
   - pmx_endpoint
   - pmx_schema
   - pmx_bounds
@@ -204,8 +205,14 @@ reference:
   - sampling_summary
   - strata_summary
 
-- title: Fixtures
-  desc: Fully public example datasets for testing and demonstration.
+- title: Fixtures and simulated studies
+  desc: >
+    Fully public example datasets for testing and demonstration, and two
+    simulated studies with the truth known: one dosed by two routes, one
+    shaped like an oncology trial with crossover, dose reduction and
+    compressed dose records.
   contents:
+  - mixroute_sim
+  - onc_sim
   - pmx_censoring_fixture
   - pmx_simulated_fixture
