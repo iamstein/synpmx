@@ -53,6 +53,26 @@
   out
 }
 
+# The route of every row, from the declared administration column, or `NA`
+# where the study declares none. A value the mapping does not name is `NA` too:
+# a study that codes an id the caller did not describe has a route nobody
+# stated, and guessing is what `routes` exists to prevent.
+.dose_routes <- function(data, roles) {
+  if (is.null(roles$adm) || is.null(roles$routes)) {
+    return(rep(NA_character_, nrow(data)))
+  }
+  values <- as.character(data[[roles$adm]])
+  unname(roles$routes[match(values, names(roles$routes))])
+}
+
+# Which routes the study actually doses by. Read on the dose records only: an
+# administration id sitting on an observation row says which dose it follows,
+# not that a dose was given.
+.study_routes <- function(data, roles) {
+  routes <- .dose_routes(data, roles)[.dose_rows(data, roles)]
+  .unique_in_order(routes[!is.na(routes)])
+}
+
 .endpoint <- function(data, roles) {
   if (is.null(roles$dvid)) rep("DV", nrow(data)) else {
     out <- as.character(data[[.dvid_primary(roles)]])

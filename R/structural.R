@@ -7,7 +7,22 @@
 # compiler. An rxode2 model may be supplied instead for anything else.
 
 .pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
-                "2cmt_oral")
+                "2cmt_oral", "1cmt_mixed", "2cmt_mixed")
+
+# A study dosed both ways. The route is a property of each dose record rather
+# than of the study, so a mixed model is not a sixth curve shape: it is the
+# intravenous form for the doses given intravenously and the extravascular form
+# for the rest, summed. Superposition makes that exact, because every model here
+# is linear in dose, and it is what lets one patient receive both.
+#
+# `f` scales the extravascular doses only. Bioavailability is the fraction of an
+# extravascular dose that reaches the circulation, and an intravenous dose is
+# all of it by definition -- which is also why `f` is identifiable at all here,
+# and is not in a study dosed one way.
+.pk_mixed_forms <- list(
+  `1cmt_mixed` = c(iv = "1cmt_infusion", extravascular = "1cmt_oral"),
+  `2cmt_mixed` = c(iv = "2cmt_iv", extravascular = "2cmt_oral")
+)
 # PD is a simple time course with no exposure dependence. This is both adequate
 # for synthetic data and far better conditioned to calibrate than an exposure-driven
 # model, whose effect is a small deviation on a large baseline.
@@ -18,7 +33,9 @@
   `1cmt_oral`     = c("cl", "v", "ka"),
   `1cmt_infusion` = c("cl", "v"),
   `2cmt_iv`       = c("cl", "v", "q", "v2"),
-  `2cmt_oral`     = c("cl", "v", "q", "v2", "ka")
+  `2cmt_oral`     = c("cl", "v", "q", "v2", "ka"),
+  `1cmt_mixed`    = c("cl", "v", "ka", "f"),
+  `2cmt_mixed`    = c("cl", "v", "q", "v2", "ka", "f")
 )
 
 # Macro-constants for a two-compartment model. `v` is the central volume.
@@ -40,7 +57,19 @@
 
 # Concentration from one dose, evaluated at times measured from that dose.
 # Superposition is valid because every built-in model is linear in dose.
-.pk_single_dose <- function(model, time, dose, p, duration = 0) {
+.pk_single_dose <- function(model, time, dose, p, duration = 0,
+                           route = NULL) {
+  # A mixed model resolves to one of the single-route forms per dose. An
+  # intravenous dose carries no bioavailability term: it is all of the dose.
+  if (model %in% names(.pk_mixed_forms)) {
+    route <- route %||% "iv"
+    if (!route %in% names(.pk_mixed_forms[[model]])) {
+      stop("Unknown route `", route, "` for `", model, "`.", call. = FALSE)
+    }
+    if (identical(route, "iv")) p[["f"]] <- 1
+    return(.pk_single_dose(.pk_mixed_forms[[model]][[route]], time, dose, p,
+                           duration))
+  }
   time <- pmax(as.numeric(time), 0)
   ke <- p[["cl"]] / p[["v"]]
   # `[[` on a named numeric vector errors for a missing name, so test first.
@@ -112,16 +141,19 @@
 #' @return Numeric concentrations, one per `time`.
 #' @keywords internal
 .pk_profile <- function(model, time, doses, dose_times, params = NULL,
-                        duration = 0) {
+                        duration = 0, routes = NULL) {
   p <- params %||% model$typical
   time <- as.numeric(time)
   out <- numeric(length(time))
   duration <- rep_len(duration, length(doses))
+  routes <- if (is.null(routes)) rep_len(NA_character_, length(doses)) else
+    rep_len(as.character(routes), length(doses))
   for (i in seq_along(doses)) {
     active <- time >= dose_times[i]
     if (!any(active)) next
     out[active] <- out[active] + .pk_single_dose(
-      model$pk, time[active] - dose_times[i], doses[i], p, duration[i]
+      model$pk, time[active] - dose_times[i], doses[i], p, duration[i],
+      route = if (is.na(routes[i])) NULL else routes[i]
     )
   }
   out

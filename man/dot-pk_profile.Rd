@@ -4,7 +4,15 @@
 \alias{.pk_profile}
 \title{Concentration-time profile for a public structural model}
 \usage{
-.pk_profile(model, time, doses, dose_times, params = NULL, duration = 0)
+.pk_profile(
+  model,
+  time,
+  doses,
+  dose_times,
+  params = NULL,
+  duration = 0,
+  routes = NULL
+)
 }
 \arguments{
 \item{model}{A \code{pmx_structural_model}.}

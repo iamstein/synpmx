@@ -361,6 +361,32 @@
 .model_detect_route <- function(source, roles, observations, pk_endpoint,
                                 interval) {
   dosed <- .dose_rows(source, roles)
+  # A declared administration column ends the question. Detection exists because
+  # most studies do not say how they were dosed; one that does say is not
+  # guessed at, and a study dosed both ways cannot be guessed at at all -- the
+  # `rate` test below reads one nonzero rate anywhere as "this study is an
+  # infusion study", which is exactly how a mixed study came back as a single
+  # infusion model with no absorption in it.
+  declared <- .study_routes(source, roles)
+  if (length(declared) > 1L) {
+    return(list(route = "mixed", rising = NA_real_, routes = declared,
+                reason = paste0("declared through `adm` and `routes`: ",
+                                paste(declared, collapse = " and "),
+                                " doses in one study")))
+  }
+  if (length(declared) == 1L) {
+    return(list(
+      route = if (identical(declared, "extravascular")) "oral" else
+        if (!is.null(roles$rate) &&
+            any(is.finite(suppressWarnings(
+              as.numeric(source[[roles$rate]][dosed]))) &
+              suppressWarnings(as.numeric(source[[roles$rate]][dosed])) != 0)) {
+          "infusion"
+        } else "iv",
+      rising = NA_real_, routes = declared,
+      reason = paste0("declared through `adm` and `routes`: every dose is ",
+                      declared)))
+  }
   if (!is.null(roles$rate)) {
     rate <- suppressWarnings(as.numeric(source[[roles$rate]][dosed]))
     if (any(is.finite(rate) & rate != 0)) {
@@ -473,9 +499,10 @@
                        infusion = "1cmt_infusion",
                        iv = "1cmt_iv",
                        oral = "1cmt_oral",
+                       mixed = "1cmt_mixed",
                        both = c("1cmt_iv", "1cmt_oral"))
 
-  list(route = route$route, rising = route$rising,
+  list(route = route$route, rising = route$rising, routes = route$routes,
        reason = route$reason, interval = interval, richness = richness,
        candidates = candidates)
 }

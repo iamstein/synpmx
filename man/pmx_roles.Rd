@@ -21,6 +21,8 @@ pmx_roles(
   limit = NULL,
   addl = NULL,
   ii = NULL,
+  adm = NULL,
+  routes = NULL,
   covariates = NULL,
   strata = NULL,
   dose_covariate = NULL,
@@ -81,6 +83,18 @@ check is skipped and says so.}
 interval-boundary columns.}
 
 \item{addl, ii}{Optional additional-dose and interdose-interval columns.}
+
+\item{adm, routes}{Optional administration-id column and what its values mean,
+as \verb{adm = "ADM", routes = c("1" = "iv", "2" = "extravascular")}. Declared
+together or not at all: which id is which route is a convention of the
+dataset and cannot be read off the numbers, so reading it wrong would put
+doses in the wrong compartment without failing. Two routes are recognised.
+\code{iv} covers a bolus and an infusion, told apart per record by \code{rate} rather
+than declared twice; \code{extravascular} covers subcutaneous, oral and
+intramuscular, which are one first-order absorption with an absorption rate
+constant and a bioavailability. A study dosing both ways is fitted with one
+model that routes each dose record to its own compartment, so a patient may
+receive both.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 

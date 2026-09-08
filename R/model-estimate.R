@@ -161,7 +161,14 @@
     cl / volume_terminal)
 
   out <- c(cl = cl, v = volume_terminal)
-  if (grepl("oral", structural)) out <- c(out, ka = ka)
+  if (grepl("oral|mixed", structural)) out <- c(out, ka = ka)
+  # Bioavailability starts at 0.7, which is neither of the two values that
+  # would make the search start on a boundary of what it can mean: 1 says the
+  # extravascular dose is fully absorbed and 0 says none of it is. It is a
+  # starting value rather than an assumption -- the two routes' contrast is
+  # what moves it -- and nothing here can read it off the curve, since a
+  # non-compartmental area is an area under whatever reached the blood.
+  if (grepl("mixed", structural)) out <- c(out, f = 0.7)
   if (grepl("^2cmt", structural)) {
     # Steady-state volume from the mean residence time, which is what the first
     # moment of the curve is for. For an oral dose the residence time includes
@@ -211,9 +218,14 @@
 .model_nlmixr_function <- function(structural, start, error, error_start,
                                    weight = NULL) {
   parameters <- names(start)
+  # Bioavailability carries no between-subject term. It is identified here only
+  # by the contrast between the two routes, and asking a study to place a
+  # per-subject distribution on that contrast as well is asking more than a
+  # design with one dose each way can answer.
+  random <- setdiff(parameters, "f")
   ini <- c(
     sprintf("    t%s <- log(%.10g)", parameters, start),
-    sprintf("    eta.%s ~ 0.1", parameters),
+    sprintf("    eta.%s ~ 0.1", random),
     sprintf("    %s.err <- %.10g", error, error_start)
   )
   assignments <- vapply(parameters, function(parameter) {
@@ -222,11 +234,20 @@
       sprintf(" * (%s / %.10g)^%.2f", weight$covariate, weight$reference,
               .model_allometric_exponents[[parameter]])
     } else ""
+    if (identical(parameter, "f")) {
+      return(sprintf("    f <- exp(tf)%s", scaling))
+    }
     sprintf("    %s <- exp(t%s + eta.%s)%s", parameter, parameter, parameter,
             scaling)
   }, character(1))
   # `linCmt()` names the central volume `v` and the peripheral one `vp`.
   assignments <- sub("^    v2 <- ", "    vp <- ", assignments)
+  # Bioavailability applies to the depot, which is where `CMT` 1 sends the
+  # extravascular doses. An intravenous dose goes to the central compartment and
+  # is untouched by it, which is what makes the two routes different events.
+  if ("f" %in% parameters) {
+    assignments <- c(assignments, "    f(depot) <- f")
+  }
   predicted <- switch(error,
                       prop = "    linCmt() ~ prop(prop.err)",
                       add = "    linCmt() ~ add(add.err)")
@@ -269,6 +290,18 @@
     rate <- suppressWarnings(as.numeric(source[[roles$rate]]))
     rate[!is.finite(rate)] <- 0
     out$RATE <- ifelse(out$EVID != 0L, rate[keep], 0)
+  }
+  # Where the study doses both ways, the solver is told which compartment each
+  # dose enters: `linCmt()` with an absorption rate constant is a depot model,
+  # and `CMT` 1 is that depot while `CMT` 2 is the central compartment every
+  # observation is drawn from. This is the whole of what makes one patient's
+  # intravenous and subcutaneous doses different events rather than one average
+  # of the two.
+  routes <- .dose_routes(source, roles)
+  if (length(.study_routes(source, roles)) > 1L) {
+    out$CMT <- ifelse(out$EVID == 0L, 2L,
+                      ifelse(routes[keep] == "extravascular", 1L, 2L))
+    out$CMT[is.na(out$CMT)] <- 2L
   }
   # Censoring is handed to the fitter rather than imputed away, on the same
   # convention `pmx_roles(cens=, limit=)` already carries and `nlmixr2` already
