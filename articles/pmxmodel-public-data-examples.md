@@ -154,8 +154,8 @@ case1$fit
 #>   fixed effects      cl 14.53, v 182.7, ka 6.489 
 #>   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)
 #>   residual error     proportional 0.26 
-#>   time to fit        7 min 44 s (7 min 46 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 7 min 44 s
+#>   time to fit        7 min 45 s (7 min 47 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 7 min 45 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -286,8 +286,8 @@ mad_run$fit
 #>   fixed effects      cl 5.564, v 153.6, ka 3.929 
 #>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        46.8 s (47.1 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 46.8 s
+#>   time to fit        48.2 s (48.6 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 48.2 s
 #>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
 #> 
@@ -396,8 +396,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.6 s (10.8 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.6 s
+#>   time to fit        11.1 s (11.2 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 11.1 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -520,7 +520,7 @@ wbc_roles <- pmx_roles(
 )
 wbc_run <- model_run("wbcSim", wbcSim, wbc_roles, "wbcsim-model-fit.rds",
                      seed = 505)
-#> Warning: 49% of generated observations (59 of 120) fell below the smallest
+#> Warning: 32% of generated observations (45 of 142) fell below the smallest
 #> value the study reported and were raised to half of it. A floor catching this
 #> much is a fitted model that does not describe the low end of the data, not an
 #> assay limit; read `model_report()` before using this dataset.
@@ -546,12 +546,12 @@ model_report(wbc_run$fit)
 #> Summarized from the source, not estimated
 #>   cohort             45 patients in 1 arm(s): all (45)
 #>   dose schedule      one schedule per arm rather than one pooled across the
-#>                      study; 2 planned cycle(s) per arm at the median of the
+#>                      study; 1 planned cycle(s) per arm at the median of the
 #>                      1 arm(s)
-#>   dose changes       per planned cycle, a patient may reduce to the next
-#>                      dose level, skip that cycle, or stop treatment for
-#>                      good, at these rates:
-#>       all                reduce 0%, skip 39%, stop early 8% (1 dose level(s))
+#>   dose routes        one route, undeclared; infused over 1 h
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
 #>   visit attendance   11 grid cell(s) over 1 endpoint(s). A generated
 #>                      patient attends each with the frequency its arm
 #>                      attended it: median 11%, from 7% to 100%. That is the
@@ -597,15 +597,15 @@ something.
 
 The output shows it, and so does the generator. A cell count recovers to
 its baseline between infusions and a concentration decays toward zero,
-so the generated profiles run below the source’s — a median of 0.35 to
-4.1 against the source’s 3.8 to 10.4 over the same window — and the
-source’s nadir at 216 h and its recovery are absent. **49% of the
-generated observations landed below the smallest value the study
-reported** and were raised to half of it, which the run says out loud: a
-floor catching half the output is a model that does not describe the low
-end of the data. It draws as the flat band along the bottom of the
-synthetic panel. A4 reads 45 -\> 37, because eight subjects drew no
-observations at all, and A5a and A5b fall with it.
+so the generated profiles run below the source’s — per-time medians of
+0.35 to 6.9 against the source’s 1.1 to 10.8 — and the source’s nadir at
+216 h and its recovery are absent. **32% of the generated observations
+landed below the smallest value the study reported** and were raised to
+half of it, which the run says out loud: a floor catching a third of the
+output is a model that does not describe the low end of the data. It
+draws as the flat band along the bottom of the synthetic panel. A4 reads
+45 -\> 37, because eight subjects drew no observations at all, and A5a
+and A5b fall with it.
 
 Nothing here `FAIL`s, which is the honest report of what the scorecard
 checks: it asks whether the output is a legal dataset in the study’s
@@ -639,10 +639,6 @@ mavo_roles <- pmx_roles(
 )
 mavo_run <- model_run("mavoglurant", mavoglurant, mavo_roles,
                       "mavoglurant-model-fit.rds", seed = 707)
-#> Warning: 5% of generated observations (69 of 1356) fell below the smallest
-#> value the study reported and were raised to half of it. A floor catching this
-#> much is a fitted model that does not describe the low end of the data, not an
-#> assay limit; read `model_report()` before using this dataset.
 mavo_run$fit
 #> A fitted PMX model, from synpmx_model_estimate()
 #> Everything below is an input to `synpmx_model_generate()`.
@@ -656,8 +652,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.03503, v 0.2088 
 #>   between-subject    cl 0.421, v 0.337 (as SD on the log scale)
 #>   residual error     proportional 0.721 
-#>   time to fit        21.1 s (21.3 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 21.1 s
+#>   time to fit        21.4 s (21.6 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 21.4 s
 #>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -672,6 +668,7 @@ mavo_run$fit
 #>   dose schedule      one schedule per arm rather than one pooled across the
 #>                      study; 1 planned cycle(s) per arm at the median of the
 #>                      1 arm(s)
+#>   dose routes        one route, undeclared; infused over 0.1667 h
 #>   dose changes       none: no arm reduces a dose, skips a cycle or stops
 #>                      early, so every generated patient completes its arm's
 #>                      schedule
@@ -818,8 +815,8 @@ theo_run$fit
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        12.3 s (12.5 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 12.3 s
+#>   time to fit        12.7 s (12.9 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 12.7 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -970,6 +967,7 @@ nimo_run$fit
 #>   dose schedule      one schedule per arm rather than one pooled across the
 #>                      study; 10 planned cycle(s) per arm at the median of
 #>                      the 1 arm(s)
+#>   dose routes        one route, undeclared; infused over 0.1 to 1 h
 #>   dose changes       none: no arm reduces a dose, skips a cycle or stops
 #>                      early, so every generated patient completes its arm's
 #>                      schedule
@@ -1024,8 +1022,8 @@ nimo_run$fit
 synpmx_scorecard_datatable(nimo_run$card)
 ```
 
-Nothing fails, and D1 at four times the source’s spread is the one row
-to read — the widest of the eight, and what twelve subjects buy: a
+Nothing fails, and D1 at 3.4 times the source’s spread is the one row to
+read — the widest of the eight, and what twelve subjects buy: a
 covariance matrix estimated from twelve people, drawn from freely,
 produces profiles more spread out than the twelve it came from. The
 subject floor exists for this, and `nimoData` is the study that shows
@@ -1132,8 +1130,8 @@ pheno_run$fit
 #>   fixed effects      cl 0.006131, v 1.314 
 #>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
 #>   residual error     proportional 0.118 
-#>   time to fit        32.8 s (32.9 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 8.5 s, 1cmt_oral 24.3 s
+#>   time to fit        33.7 s (33.7 s for the whole call)
+#>                      nlmixr2: 1cmt_iv 8.6 s, 1cmt_oral 25.0 s
 #>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -1291,7 +1289,7 @@ knitr::kable(verdicts, row.names = FALSE,
 | case1_pkpd  |   11 |      2 |    0 |              5 |         |
 | mad         |   12 |      1 |    0 |              5 |         |
 | warfarin    |   12 |      1 |    0 |              5 |         |
-| wbcSim      |    9 |      4 |    0 |              5 |         |
+| wbcSim      |   10 |      3 |    0 |              5 |         |
 | mavoglurant |   10 |      3 |    0 |              5 |         |
 | theo_md     |   12 |      1 |    0 |              5 |         |
 | nimoData    |   12 |      1 |    0 |              5 |         |

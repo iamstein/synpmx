@@ -193,8 +193,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        10.6 s (10.8 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 10.6 s</span></span>
+<span><span class="co">#&gt;   time to fit        11.1 s (11.2 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 11.1 s</span></span>
 <span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -316,7 +316,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  10.629</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  11.082</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -493,7 +493,7 @@ builds, unchanged.</p>
 <code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">dosing</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">reduction</span>,</span>
 <span>  interruption <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">interruption</span>, discontinuation <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">discontinuation</span><span class="op">)</span></span>

@@ -146,6 +146,33 @@ Neither property below decides the model on its own.
 
 ### Route
 
+**A declared route is not detected at all.**
+`pmx_roles(adm = "ADM", routes = c("1" = "iv", "2" = "extravascular"))`
+names the administration column and says what its values mean, and the
+two are declared together or not at all: which id is which route is a
+convention of the dataset and cannot be read off the numbers, so a guess
+would put every dose in the wrong compartment without failing.
+
+Where a study declares both routes, the route is a property of each dose
+record rather than of the study, and the candidate is `1cmt_mixed` — the
+intravenous form for the doses given intravenously and the extravascular
+form for the rest, summed. That sum is exact rather than an
+approximation, because every model in the closed-form set is linear in
+dose, and it is what lets one patient receive both. Bioavailability
+scales the extravascular doses and not the intravenous ones, which is
+what bioavailability means and why it is identifiable in a study dosed
+both ways and not in one dosed a single way. It is fitted as a fixed
+effect with no between-subject term: a design with one dose each way
+identifies the contrast between the routes, not a per-subject
+distribution over it.
+
+Detection below runs only where nothing was declared. It answers with
+one route for the whole study, which is the right answer for a study
+dosed one way and no answer at all for a study dosed two ways — the
+`rate` test reads a single nonzero rate anywhere as “this is an infusion
+study”, so a mixed study came back as an infusion model with no
+absorption in it.
+
 A `rate` role carrying a nonzero value is an infusion, and
 `1cmt_infusion` is the only candidate. Otherwise one property separates
 the two remaining routes, and it is not how many patients peak early.
@@ -329,7 +356,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892  10.629
+#> 1 1cmt_oral      TRUE 895.892  11.082
 ```
 
 ### Covariates
@@ -493,8 +520,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        10.6 s (10.8 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.6 s
+#>   time to fit        11.1 s (11.2 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 11.1 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -627,6 +654,7 @@ fit badly is fitted, and told about.
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
+| Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |
 | No PK endpoint identified | — | Errors and names `endpoint_roles`. |
 | No candidate converged | — | Errors rather than returning the least bad fit. |

@@ -295,6 +295,30 @@ survives. Neither property below decides the model on its own.</p>
 <div class="section level3">
 <h3 id="route">Route<a class="anchor" aria-label="anchor" href="#route"></a>
 </h3>
+<p><strong>A declared route is not detected at all.</strong>
+<code>pmx_roles(adm = "ADM", routes = c("1" = "iv", "2" = "extravascular"))</code>
+names the administration column and says what its values mean, and the
+two are declared together or not at all: which id is which route is a
+convention of the dataset and cannot be read off the numbers, so a guess
+would put every dose in the wrong compartment without failing.</p>
+<p>Where a study declares both routes, the route is a property of each
+dose record rather than of the study, and the candidate is
+<code>1cmt_mixed</code> — the intravenous form for the doses given
+intravenously and the extravascular form for the rest, summed. That sum
+is exact rather than an approximation, because every model in the
+closed-form set is linear in dose, and it is what lets one patient
+receive both. Bioavailability scales the extravascular doses and not the
+intravenous ones, which is what bioavailability means and why it is
+identifiable in a study dosed both ways and not in one dosed a single
+way. It is fitted as a fixed effect with no between-subject term: a
+design with one dose each way identifies the contrast between the
+routes, not a per-subject distribution over it.</p>
+<p>Detection below runs only where nothing was declared. It answers with
+one route for the whole study, which is the right answer for a study
+dosed one way and no answer at all for a study dosed two ways — the
+<code>rate</code> test reads a single nonzero rate anywhere as “this is
+an infusion study”, so a mixed study came back as an infusion model with
+no absorption in it.</p>
 <p>A <code>rate</code> role carrying a nonzero value is an infusion, and
 <code>1cmt_infusion</code> is the only candidate. Otherwise one property
 separates the two remaining routes, and it is not how many patients peak
@@ -466,7 +490,7 @@ function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  10.629</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892  11.082</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
@@ -657,8 +681,8 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        10.6 s (10.8 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 10.6 s</span></span>
+<span><span class="co">#&gt;   time to fit        11.1 s (11.2 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 11.1 s</span></span>
 <span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -836,6 +860,14 @@ can make.</td>
 patient.</td>
 </tr>
 <tr class="odd">
+<td>Administration column</td>
+<td>
+<code>adm</code> and <code>routes</code> together</td>
+<td>Errors on either alone. What an administration id means is a
+convention of the dataset, and reading it wrong routes every dose to the
+wrong compartment silently.</td>
+</tr>
+<tr class="even">
 <td>PD shape candidacy</td>
 <td>1 residual degree of freedom</td>
 <td>The shape is dropped from the comparison, not the endpoint from the
@@ -844,17 +876,17 @@ its mean. A shape fitted exactly through its own points has
 <code>AIC</code> <code>-Inf</code> and would win any comparison it
 entered.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>No PK endpoint identified</td>
 <td>—</td>
 <td>Errors and names <code>endpoint_roles</code>.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>No candidate converged</td>
 <td>—</td>
 <td>Errors rather than returning the least bad fit.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A fitted model as a public input</td>
 <td>—</td>
 <td>

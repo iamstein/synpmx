@@ -209,8 +209,8 @@ printing the fitted object shows the same account.</p>
 <span><span class="co">#&gt;   fixed effects      cl 14.53, v 182.7, ka 6.489 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.327, v 0.308, ka 0.316 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.26 </span></span>
-<span><span class="co">#&gt;   time to fit        7 min 44 s (7 min 46 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 7 min 44 s</span></span>
+<span><span class="co">#&gt;   time to fit        7 min 45 s (7 min 47 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 7 min 45 s</span></span>
 <span><span class="co">#&gt;                      least squares: PD - Continuous 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -297,7 +297,7 @@ relationships without modelling them.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="st">"Candidates the design admitted"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[7310],[464],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"seconds","targets":3},{"name":"note","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Candidates the design admitted<\/caption>","data":[["1cmt_oral"],[true],[7310],[465],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[2,3]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"seconds","targets":3},{"name":"note","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>One row, because the default fits one model and stops. A distribution
 phase is a refinement of a shape the one-compartment model already has
 and costs several times as long to fit, so it is available rather than
 routine: <code>pk = "2cmt_oral"</code> forces it,

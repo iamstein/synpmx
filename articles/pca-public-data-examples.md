@@ -726,7 +726,7 @@ knitr::kable(
 | case1_pkpd | 180 | 6 | 34 | 11 | 1925 | 30 | smallest arm |
 | mad | 60 | 6 | 67 | 12 | 1715 | 10 | smallest arm |
 | warfarin | 32 | 1 | 25 | 6 | 292 | 5 | sparsest grid cell |
-| wbcSim | 45 | 1 | 21 | 4 | 197 | 6 | sparsest grid cell |
+| wbcSim | 45 | 1 | 21 | 4 | 195 | 6 | sparsest grid cell |
 | theo_md | 12 | 1 | 27 | 2 | 185 | 12 | sparsest grid cell |
 | nimoData | 12 | 1 | 41 | 2 | 272 | 9 | sparsest grid cell |
 | mavoglurant | 120 | 1 | 18 | 7 | 254 | 19 | sparsest grid cell |
