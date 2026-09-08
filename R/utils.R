@@ -484,6 +484,34 @@
   paste(.wrap_alert_field(text, initial, prefix), collapse = "\n")
 }
 
+# A condition has the one-long-line problem the run alerts have, and the same
+# fix. `warning()` and `stop()` print their message verbatim, so a newline put
+# here survives to the terminal and into knitted HTML; without one the message
+# arrives as a single 300-character line behind a horizontal scrollbar, which
+# is how a reader ends up skipping the thing the run was trying to tell them.
+#
+# `items` is what rescues the worst of them. A message that enumerates treatment
+# arms, endpoint names or candidate models joined by commas is unreadable at any
+# width -- the reader cannot see where one arm ends and the next begins, and
+# `.arm_label()` values contain commas of their own. One per line, indented, is
+# the whole fix.
+#
+# Call sites supply sentences and items; layout is fixed here, exactly as it is
+# for `.alert_text()`.
+.condition_text <- function(..., items = NULL, why = NULL, fix = NULL) {
+  lines <- .wrap_alert_field(paste0(...), "", "")
+  if (length(items)) {
+    lines <- c(lines, paste0("    ", items))
+  }
+  if (!is.null(why)) {
+    lines <- c(lines, .wrap_alert_field(why, "  ", "  "))
+  }
+  if (!is.null(fix)) {
+    lines <- c(lines, .wrap_alert_field(paste("Fix:", fix), "  ", "    "))
+  }
+  paste(lines, collapse = "\n")
+}
+
 .weighted_available <- function(values, weights) {
   okay <- is.finite(values) & is.finite(weights) & weights >= 0
   if (!any(okay)) return(NA_real_)

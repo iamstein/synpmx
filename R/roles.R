@@ -227,10 +227,12 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
   if (length(dose_shared)) modeled <- modeled[-match(dose_shared, modeled)]
   if (!is.null(roles$dose_covariate) &&
       !roles$dose_covariate %in% roles$covariates) {
-    stop("`dose_covariate` (\"", roles$dose_covariate, "\") must also be ",
-         "named in `covariates`. The avatar's amount is recomputed from its ",
-         "own blended value of that column, so the column has to be blended.",
-         call. = FALSE)
+    stop(.condition_text(
+      "`dose_covariate` (\"", roles$dose_covariate, "\") must also be named ",
+      "in `covariates`.",
+      why = paste("The avatar's amount is recomputed from its own blended",
+                  "value of that column, so the column has to be blended.")),
+      call. = FALSE)
   }
   duplicated_roles <- unique(modeled[duplicated(modeled)])
   if (length(duplicated_roles)) {
@@ -269,10 +271,12 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
          call. = FALSE)
   }
   if (is.null(routes)) {
-    stop("`adm` needs `routes`, as `routes = c(\"1\" = \"iv\", \"2\" = ",
-         "\"extravascular\")`. Which administration id is which route is a ",
-         "convention of the dataset, and reading it wrong puts the doses in ",
-         "the wrong compartment without failing.", call. = FALSE)
+    stop(.condition_text(
+      "`adm` needs `routes`, as `routes = c(\"1\" = \"iv\", \"2\" = ",
+      "\"extravascular\")`.",
+      why = paste("Which administration id is which route is a convention of",
+                  "the dataset, and reading it wrong puts the doses in the",
+                  "wrong compartment without failing.")), call. = FALSE)
   }
   if (!is.character(routes) || !length(routes) || is.null(names(routes)) ||
       anyNA(routes) || any(!nzchar(names(routes)))) {
@@ -281,12 +285,13 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
   }
   unknown <- setdiff(routes, .pk_routes)
   if (length(unknown)) {
-    stop("`routes` names route(s) outside the set: ",
-         paste(unique(unknown), collapse = ", "), ". Available: ",
-         paste(.pk_routes, collapse = ", "),
-         ". A bolus and an infusion are both `iv` and are told apart by `rate`; ",
-         "subcutaneous, oral and intramuscular are all `extravascular`.",
-         call. = FALSE)
+    stop(.condition_text(
+      "`routes` names route(s) outside the set: ",
+      paste(unique(unknown), collapse = ", "), ". Available: ",
+      paste(.pk_routes, collapse = ", "), ".",
+      why = paste("A bolus and an infusion are both `iv` and are told apart by",
+                  "`rate`; subcutaneous, oral and intramuscular are all",
+                  "`extravascular`.")), call. = FALSE)
   }
   if (anyDuplicated(names(routes))) {
     stop("`routes` names the same administration id twice: ",

@@ -219,11 +219,10 @@ pmx_structural_model <- function(pk, typical, pd = "none", source,
   pd <- match.arg(pd, .pd_models)
   if (missing(source) || !is.character(source) || length(source) != 1L ||
       !nzchar(trimws(source))) {
-    stop(
-      "`source` is required and must record where this model came from. ",
-      "A structural model without data-independent provenance cannot be ",
-      "treated as a public input.", call. = FALSE
-    )
+    stop(.condition_text(
+      "`source` is required and must record where this model came from.",
+      why = paste("A structural model without data-independent provenance",
+                  "cannot be treated as a public input.")), call. = FALSE)
   }
   if (!is.numeric(typical) || is.null(names(typical)) ||
       anyNA(typical) || any(!is.finite(typical)) || any(typical <= 0)) {
@@ -245,11 +244,11 @@ pmx_structural_model <- function(pk, typical, pd = "none", source,
     # built-in analytic solution. Silently returning an analytic curve for a
     # user-supplied ODE model would be a fidelity claim the package cannot
     # keep.
-    warning(
+    warning(.condition_text(
       "`rx` is not yet used: profiles are always evaluated from the built-in ",
-      "analytic `", pk, "` solution. Supplying an rxode2 model does not ",
-      "change the generated data.", call. = FALSE
-    )
+      "analytic `", pk, "` solution.",
+      why = paste("Supplying an rxode2 model does not change the generated",
+                  "data.")), call. = FALSE)
   }
   if (!is.numeric(residual_cv) || length(residual_cv) != 1L ||
       !is.finite(residual_cv) || residual_cv < 0) {

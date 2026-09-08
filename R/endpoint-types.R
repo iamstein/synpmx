@@ -127,11 +127,12 @@
   # measurements one at a time rather than a scale, so the cap is a refusal
   # rather than a silent widening.
   if (length(levels) > .endpoint_ordinal_max_levels) {
-    stop("Endpoint `", endpoint_name, "` is declared ordinal but holds ",
-         length(levels), " distinct observed values, more than the ",
-         .endpoint_ordinal_max_levels, " a scale is allowed. Declare it as ",
-         "`count` to round to whole numbers, or `continuous` to leave it ",
-         "alone.", call. = FALSE)
+    stop(.condition_text(
+      "Endpoint `", endpoint_name, "` is declared ordinal but holds ",
+      length(levels), " distinct observed values, more than the ",
+      .endpoint_ordinal_max_levels, " a scale is allowed.",
+      fix = paste("Declare it as `count` to round to whole numbers, or",
+                  "`continuous` to leave it alone.")), call. = FALSE)
   }
   if (length(levels) < 2L) {
     stop("Endpoint `", endpoint_name, "` is declared ordinal but holds fewer ",

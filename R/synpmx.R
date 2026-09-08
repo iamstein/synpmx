@@ -39,10 +39,11 @@
     return(release)
   }
   if (is.data.frame(x)) {
-    stop("`", what, "` carries no privacy release. Only datasets from ",
-         "`synpmx_calibrated()` or `synpmx_empirical()` do; ",
-         "`synpmx_avatar()` and `synpmx_prior()` make no formal claim.",
-         call. = FALSE)
+    stop(.condition_text(
+      "`", what, "` carries no privacy release.",
+      why = paste("Only datasets from `synpmx_calibrated()` or",
+                  "`synpmx_empirical()` do; `synpmx_avatar()` and",
+                  "`synpmx_prior()` make no formal claim.")), call. = FALSE)
   }
   stop("`", what, "` must be a generated dataset or a release object.",
        call. = FALSE)

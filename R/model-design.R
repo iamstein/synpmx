@@ -71,10 +71,21 @@
   nominal_source[[roles$time]] <- nominal
   aligned <- .aligned_time(nominal_source, roles)
   first_amt <- rep(NA_real_, nrow(source))
+  # Which route this subject was dosed by, where the study declared one. Carried
+  # per observation because the starting values for a mixed study are read one
+  # route at a time: pooling them averages an intravenous decline with an
+  # extravascular rise into a shape neither route produces. `NA` where nothing
+  # was declared, and "mixed" for a subject who received both, which is neither
+  # half's evidence.
+  dose_route <- .dose_routes(source, roles)
+  subject_route <- rep(NA_character_, nrow(source))
   for (rows in split(seq_len(nrow(source)), as.character(source[[roles$id]]))) {
     dose_at <- rows[dosed[rows] & is.finite(time[rows])]
     if (!length(dose_at)) next
     first_amt[rows] <- amount[dose_at[which.min(time[dose_at])]]
+    own <- unique(dose_route[dose_at][!is.na(dose_route[dose_at])])
+    subject_route[rows] <- if (!length(own)) NA_character_ else
+      if (length(own) == 1L) own else "mixed"
   }
 
   data.frame(
@@ -88,6 +99,7 @@
     first_dose_time = planned$first_time[observed],
     first_dose_at = actual$first_time[observed],
     first_dose_amt = first_amt[observed],
+    route = subject_route[observed],
     stringsAsFactors = FALSE
   )
 }
@@ -271,11 +283,13 @@
            paste(names(specs), collapse = ", "), ".", call. = FALSE)
     }
     if (!declared %in% continuous) {
-      stop("`endpoint_roles` names `", declared, "`, which is a ",
-           specs[[declared]]$type, " endpoint. A drug concentration has to be ",
-           "a continuous time course to be fitted; binary and ordinal ",
-           "endpoints are generated from their per-visit marginals instead.",
-           call. = FALSE)
+      stop(.condition_text(
+        "`endpoint_roles` names `", declared, "`, which is a ",
+        specs[[declared]]$type, " endpoint.",
+        why = paste("A drug concentration has to be a continuous time course",
+                    "to be fitted; binary and ordinal endpoints are generated",
+                    "from their per-visit marginals instead.")),
+        call. = FALSE)
     }
     return(list(pk = declared, pd = setdiff(continuous, declared),
                 discrete = discrete, signals = signals, decided_by = "declared"))
@@ -287,11 +301,14 @@
   passing <- signals$endpoint[required]
 
   if (!length(passing)) {
-    stop("No endpoint looks like a drug concentration: none is both absent ",
-         "before the first dose and dose-proportional. Name the concentration ",
-         "with `endpoint_roles = c(pk = \"...\")`, or use `synpmx_avatar()` or ",
-         "`synpmx_pca()`, which fit no structural model. Signals read: ",
-         .model_signal_summary(signals), call. = FALSE)
+    stop(.condition_text(
+      "No endpoint looks like a drug concentration: none is both absent ",
+      "before the first dose and dose-proportional.",
+      why = paste("Signals read:", .model_signal_summary(signals)),
+      fix = paste("Name the concentration with `endpoint_roles =",
+                  "c(pk = \"...\")`, or use `synpmx_avatar()` or",
+                  "`synpmx_pca()`, which fit no structural model.")),
+      call. = FALSE)
   }
   if (length(passing) > 1L) {
     breaks <- signals[required, , drop = FALSE]
@@ -299,11 +316,13 @@
                            !is.na(breaks$shape) & breaks$shape))
     best <- which(score == max(score))
     if (length(best) > 1L) {
-      stop(length(best), " endpoints look equally like a drug concentration (",
-           paste(breaks$endpoint[best], collapse = ", "), "): the required ",
-           "signals pass for all of them and the compartment and shape ",
-           "signals do not separate them. Name the concentration with ",
-           "`endpoint_roles = c(pk = \"...\")`.", call. = FALSE)
+      stop(.condition_text(
+        length(best), " endpoints look equally like a drug concentration:",
+        items = breaks$endpoint[best],
+        why = paste("The required signals pass for all of them and the",
+                    "compartment and shape signals do not separate them."),
+        fix = "Name the concentration with `endpoint_roles = c(pk = \"...\")`."),
+        call. = FALSE)
     }
     passing <- breaks$endpoint[best]
   }

@@ -362,13 +362,14 @@
   sizes <- table(group)
   short <- sizes[sizes < minimum]
   if (!length(short)) return(rep(TRUE, length(group)))
-  warning("`", what, "` dropped ", sum(as.integer(short)), " patient(s) in ",
-          length(short), " arm(s) below `min_arm_patients` = ", minimum, ": ",
-          paste(sprintf("%s (%d)", .arm_label(names(short)), as.integer(short)),
-                collapse = ", "),
-          ". An arm that size has no spread of its own, so it is absent from ",
-          "the synthetic data. Pool the arm, drop the column from `strata`, ",
-          "or lower `min_arm_patients` to keep it.", call. = FALSE)
+  warning(.condition_text(
+    "`", what, "` dropped ", sum(as.integer(short)), " patient(s) in ",
+    length(short), " arm(s) below `min_arm_patients` = ", minimum, ":",
+    items = sprintf("%s (%d)", .arm_label(names(short)), as.integer(short)),
+    why = paste("An arm that size has no spread of its own, so it is absent",
+                "from the synthetic data."),
+    fix = paste("Pool the arm, drop the column from `strata`, or lower",
+                "`min_arm_patients` to keep it.")), call. = FALSE)
   !(group %in% names(short))
 }
 

@@ -10,10 +10,14 @@
 }
 
 test_that("a cohort under min_subjects warns, fits, and names what it costs", {
-  expect_warning(.model_note_subjects(19L, 20L),
-                 "fitting a population model to 19 subjects")
-  expect_warning(.model_note_subjects(19L, 20L), "the scorecard asks")
-  expect_warning(.model_note_subjects(19L, 20L), "synpmx_pca\\(\\)")
+  # The message is wrapped for reading, so a phrase can span a line break.
+  # Match the squished text rather than the layout.
+  note <- squish(tryCatch(.model_note_subjects(19L, 20L),
+                          warning = conditionMessage))
+  expect_match(note, "fitting a population model to 19 subjects")
+  expect_match(note, "the scorecard asks")
+  expect_match(note, "synpmx_pca\\(\\)")
+  expect_warning(.model_note_subjects(19L, 20L))
   expect_silent(.model_note_subjects(20L, 20L))
   # Higher than PCA's floor of 10, deliberately: a cohort PCA will summarize is
   # not necessarily one this generator will fit well.
@@ -257,4 +261,57 @@ test_that("the object carries no per-subject quantity", {
   expect_false(any(grepl("eta|eb|individual|subject",
                          names(fit$parameters), ignore.case = TRUE)))
   expect_length(fit$parameters$fixed, 2L)
+})
+
+# SIM-075. A fit that reports an objective and an AIC has not necessarily
+# estimated anything. Where the optimizer takes no effective step, `nlmixr2`
+# returns the starting values and every number downstream is a starting value
+# wearing the costume of an estimate.
+
+test_that("a fit that never moved is detected", {
+  fixed <- c(cl = 6.172, v = 55.61, ka = 1.366, f = 0.7)
+  omega <- diag(c(0.1, 0.1, 0.1))
+  rownames(omega) <- colnames(omega) <- c("cl", "v", "ka")
+  start <- c(cl = 6.172, v = 55.61, ka = 1.366, f = 0.7)
+
+  movement <- .model_fit_movement(fixed, omega, start)
+  expect_false(movement$moved)
+  expect_true(all(movement$changes$relative_change == 0))
+  # Every parameter is accounted for, the between-subject terms included: the
+  # study that found this had three etas all sitting on sqrt(0.1).
+  expect_setequal(movement$changes$parameter,
+                  c("cl", "v", "ka", "f", "omega.cl", "omega.v", "omega.ka"))
+})
+
+test_that("a fit that moved anywhere is not flagged", {
+  start <- c(cl = 4, v = 40, ka = 0.4, f = 0.7)
+  omega <- diag(c(0.1, 0.1, 0.1))
+  rownames(omega) <- colnames(omega) <- c("cl", "v", "ka")
+
+  # One fixed effect moving is enough; the gate asks whether the optimizer
+  # moved at all, not whether it converged tightly.
+  moved_fixed <- .model_fit_movement(c(cl = 5, v = 40, ka = 0.4, f = 0.7),
+                                     omega, start)
+  expect_true(moved_fixed$moved)
+
+  # So is one between-subject term moving while the fixed effects sit still.
+  omega_moved <- omega
+  diag(omega_moved) <- c(0.25, 0.1, 0.1)
+  expect_true(.model_fit_movement(start, omega_moved, start)$moved)
+})
+
+test_that("the unmoved warning says so in words nobody skims past", {
+  fixed <- c(cl = 4, v = 40)
+  omega <- diag(c(0.1, 0.1))
+  rownames(omega) <- colnames(omega) <- c("cl", "v")
+  movement <- .model_fit_movement(fixed, omega, c(cl = 4, v = 40))
+
+  note <- squish(tryCatch(.model_warn_unmoved("1cmt_iv", movement),
+                          warning = conditionMessage))
+  expect_match(note, "THE FIT DID NOT MOVE")
+  expect_match(note, "starting values rather than estimates")
+  expect_match(note, "Do not generate from this fit")
+  # It names the parameters, because "did not move" is a claim the reader has
+  # to be able to check.
+  expect_match(note, "cl")
 })

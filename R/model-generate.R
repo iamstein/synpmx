@@ -44,9 +44,11 @@
     }
   }
   if (!length(rows)) {
-    stop("No nominal grid cell is held by at least ", floor, " patients, so ",
-         "there is no visit model to build. Every generated observation would ",
-         "sit at a time one real patient attended.", call. = FALSE)
+    stop(.condition_text(
+      "No nominal grid cell is held by at least ", floor, " patients, so ",
+      "there is no visit model to build.",
+      why = paste("Every generated observation would sit at a time one real",
+                  "patient attended.")), call. = FALSE)
   }
   out <- do.call(rbind, rows)
   out$index <- seq_len(nrow(out))
@@ -493,13 +495,16 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     share <- floored$raised / floored$seen
     attr(out, "pmx_floored") <- c(raised = floored$raised, seen = floored$seen)
     if (share > 0.05) {
-      warning(sprintf(
-        paste0("%.0f%% of generated observations (%d of %d) fell below the ",
-               "smallest value the study reported and were raised to half of ",
-               "it. A floor catching this much is a fitted model that does ",
-               "not describe the low end of the data, not an assay limit; ",
-               "read `model_report()` before using this dataset."),
-        100 * share, floored$raised, floored$seen), call. = FALSE)
+      warning(.condition_text(
+        sprintf(paste0("%.0f%% of generated observations (%d of %d) fell ",
+                       "below the smallest value the study reported and were ",
+                       "raised to half of it."),
+                100 * share, floored$raised, floored$seen),
+        why = paste("A floor catching this much is a fitted model that does",
+                    "not describe the low end of the data, not an assay",
+                    "limit."),
+        fix = "Read `model_report()` before using this dataset."),
+        call. = FALSE)
     }
   }
   out

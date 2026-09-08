@@ -295,11 +295,13 @@
 # Documented in `pca-algorithm.Rmd`, Step 2.
 .pca_require_nominal_time <- function(source, roles) {
   if (is.null(roles$nominal_time)) {
-    stop("`synpmx_pca()` requires `nominal_time` in `pmx_roles()`. The nominal ",
-         "grid is the axis every feature sits on, and inferring it from ",
-         "recorded times is a statement about the protocol that only you can ",
-         "make. Add the protocol's planned times as a column and declare it.",
-         call. = FALSE)
+    stop(.condition_text(
+      "`synpmx_pca()` requires `nominal_time` in `pmx_roles()`.",
+      why = paste("The nominal grid is the axis every feature sits on, and",
+                  "inferring it from recorded times is a statement about the",
+                  "protocol that only you can make."),
+      fix = "Add the protocol's planned times as a column and declare it."),
+      call. = FALSE)
   }
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   relevant <- .observation_rows(source, roles, require_present = TRUE) |

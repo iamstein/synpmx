@@ -89,11 +89,11 @@
   }
   resolved <- .opendp_backend()
   if (is.null(resolved)) {
-    stop(
-      "A validated differential-privacy backend is unavailable. Install ",
-      "the OpenDP R package; fitting confidential data fails closed and does ",
-      "not fall back to ordinary R random noise.", call. = FALSE
-    )
+    stop(.condition_text(
+      "A validated differential-privacy backend is unavailable.",
+      why = paste("Fitting confidential data fails closed and does not fall",
+                  "back to ordinary R random noise."),
+      fix = "Install the OpenDP R package."), call. = FALSE)
   }
   resolved
 }

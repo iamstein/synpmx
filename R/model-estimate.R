@@ -109,8 +109,60 @@
   list(cl = clearance, v = volume)
 }
 
+# A route needs this many subjects before it is read on its own. Below it the
+# pooled read is the worse of two bad options rather than the wrong one.
+.model_route_minimum <- 3L
+
+# SIM-076. The starting values for a mixed study are read one route at a time.
+#
+# Pooled, the cohort's median profile is an intravenous decline and an
+# extravascular rise averaged together, and no non-compartmental quantity read
+# off it describes either route: on a simulated study with true `cl` 4, `v` 40
+# and `ka` 0.4 the pooled read starts at 6.17, 55.6 and 1.37, and from there
+# `focei` does not move at all -- which is `SIM-075`, and is how this was found.
+#
+# Split, each half answers the question it can. The intravenous records give
+# clearance and volume with no bioavailability in the way, which is the whole
+# reason `f` is identifiable in a study like this. The extravascular records
+# give the absorption rate, since `tmax` only means anything where there is an
+# absorption phase to peak. And the two clearances together give `f` a starting
+# value that is read from the data rather than assumed: an extravascular read
+# returns `cl/f`, so their ratio is `f`.
+.model_initial_estimates_mixed <- function(rows, structural, pk_endpoint) {
+  if (is.null(rows$route)) return(NULL)
+  subjects_in <- function(route) {
+    length(unique(rows$subject[!is.na(rows$route) & rows$route == route]))
+  }
+  if (subjects_in("iv") < .model_route_minimum ||
+      subjects_in("extravascular") < .model_route_minimum) {
+    return(NULL)
+  }
+  iv <- rows[!is.na(rows$route) & rows$route == "iv", , drop = FALSE]
+  ev <- rows[!is.na(rows$route) & rows$route == "extravascular", , drop = FALSE]
+  disposition <- .model_initial_estimates(
+    iv, if (grepl("^2cmt", structural)) "2cmt_iv" else "1cmt_iv", pk_endpoint)
+  absorption <- .model_initial_estimates(ev, "1cmt_oral", pk_endpoint)
+
+  # `cl` from the extravascular half is `cl/f`, so the ratio is bioavailability.
+  # Held inside (0, 1]: a ratio above one is the two reads disagreeing rather
+  # than a dose more than fully absorbed, and a starting value on the boundary
+  # is one the search cannot move off.
+  f <- disposition[["cl"]] / absorption[["cl"]]
+  f <- if (is.finite(f) && f > 0) min(max(f, 0.05), 0.95) else 0.7
+
+  out <- c(disposition[c("cl", "v")], ka = unname(absorption[["ka"]]), f = f)
+  if (grepl("^2cmt", structural)) {
+    out <- c(out, disposition[c("q", "v2")])
+  }
+  out[.required_pk_params[[structural]]]
+}
+
 .model_initial_estimates <- function(observations, structural, pk_endpoint) {
   rows <- observations[observations$endpoint == pk_endpoint, , drop = FALSE]
+  if (structural %in% names(.pk_mixed_forms)) {
+    split_read <- .model_initial_estimates_mixed(rows, structural, pk_endpoint)
+    if (!is.null(split_read)) return(split_read)
+  }
   by_subject <- split(rows, rows$subject)
   dose <- stats::median(vapply(by_subject, function(part) {
     part$first_dose_amt[1L]
@@ -215,6 +267,23 @@
 # cost of the only fit this function performs.
 .model_allometric_exponents <- c(cl = 0.75, v = 1, q = 0.75, v2 = 1)
 
+# The compartments a mixed model is written with. Their order is the `CMT`
+# numbering the estimation data doses into: depot 1, central 2, peripheral 3,
+# which is what `.model_estimation_data()` assigns each dose record by route.
+.model_mixed_states <- function(structural) {
+  central_out <- if (identical(structural, "2cmt_mixed")) {
+    paste("    d/dt(central) <- ka * depot - (cl / v) * central -",
+          "(q / v) * central + (q / vp) * peripheral")
+  } else {
+    "    d/dt(central) <- ka * depot - (cl / v) * central"
+  }
+  c("    d/dt(depot) <- -ka * depot",
+    central_out,
+    if (identical(structural, "2cmt_mixed"))
+      "    d/dt(peripheral) <- (q / v) * central - (q / vp) * peripheral",
+    "    cp <- central / v")
+}
+
 .model_nlmixr_function <- function(structural, start, error, error_start,
                                    weight = NULL) {
   parameters <- names(start)
@@ -225,7 +294,7 @@
   random <- setdiff(parameters, "f")
   ini <- c(
     sprintf("    t%s <- log(%.10g)", parameters, start),
-    sprintf("    eta.%s ~ 0.1", random),
+    sprintf("    eta.%s ~ %.10g", random, .model_eta_init),
     sprintf("    %s.err <- %.10g", error, error_start)
   )
   assignments <- vapply(parameters, function(parameter) {
@@ -242,15 +311,28 @@
   }, character(1))
   # `linCmt()` names the central volume `v` and the peripheral one `vp`.
   assignments <- sub("^    v2 <- ", "    vp <- ", assignments)
-  # Bioavailability applies to the depot, which is where `CMT` 1 sends the
-  # extravascular doses. An intravenous dose goes to the central compartment and
-  # is untouched by it, which is what makes the two routes different events.
+  # SIM-077. A mixed study is written as explicit compartments rather than
+  # `linCmt()`, and the reason is bioavailability. `f(depot)` under `linCmt()`
+  # does not reach the doses that `CMT` 1 sends to the depot: evaluated at known
+  # parameters it scales the intravenous doses instead, so `f` came back as its
+  # own reciprocal and `cl` and `v` came back as `cl/f` and `v/f` -- a fit whose
+  # own `PRED` tracks the data, reporting parameters that mean something else.
+  # With states the compartments are real, `f()` binds to the one it names, and
+  # the predictions match `.pk_profile()` to four figures on both routes.
+  #
+  # Only the mixed models pay for this. A single-route study has no `f` to place
+  # and keeps the closed-form solution, which needs no solver.
   if ("f" %in% parameters) {
-    assignments <- c(assignments, "    f(depot) <- f")
+    assignments <- c(assignments, "    f(depot) <- f",
+                     .model_mixed_states(structural))
+    predicted <- switch(error,
+                        prop = "    cp ~ prop(prop.err)",
+                        add = "    cp ~ add(add.err)")
+  } else {
+    predicted <- switch(error,
+                        prop = "    linCmt() ~ prop(prop.err)",
+                        add = "    linCmt() ~ add(add.err)")
   }
-  predicted <- switch(error,
-                      prop = "    linCmt() ~ prop(prop.err)",
-                      add = "    linCmt() ~ add(add.err)")
   text <- paste(c(
     "function() {", "  ini({", ini, "  })", "  model({", assignments,
     predicted, "  })", "}"
@@ -450,8 +532,10 @@
                                   error, estimation, quiet, weight = NULL) {
   fits <- list()
   rows <- list()
+  starts <- list()
   for (candidate in candidates) {
     start <- .model_initial_estimates(observations, candidate, pk_endpoint)
+    starts[[candidate]] <- start
     error_start <- if (identical(error, "prop")) 0.2 else
       stats::sd(data$DV, na.rm = TRUE) / 5
     spec <- .model_nlmixr_function(candidate, start, error, error_start,
@@ -487,18 +571,58 @@
   table <- table[order(table$aic, na.last = TRUE), , drop = FALSE]
   rownames(table) <- NULL
   if (!any(table$converged)) {
-    stop("No candidate model converged, so there is nothing to generate from. ",
-         "Candidates tried: ", paste(table$model, collapse = ", "), ". ",
-         "`synpmx_avatar()` and `synpmx_pca()` need no identifiable structure ",
-         "and will run on this study.", call. = FALSE)
+    stop(.condition_text(
+      "No candidate model converged, so there is nothing to generate from. ",
+      "Candidates tried:",
+      items = table$model,
+      fix = paste("`synpmx_avatar()` and `synpmx_pca()` need no identifiable",
+                  "structure and will run on this study.")), call. = FALSE)
   }
   list(table = table, selected = table$model[which.min(table$aic)],
-       fits = fits)
+       fits = fits, starts = starts)
 }
 
 .model_first_line <- function(x) {
   message <- conditionMessage(attr(x, "condition"))
   trimws(strsplit(message, "\n", fixed = TRUE)[[1L]][1L])
+}
+
+# Every between-subject term starts here, so this is what "unchanged" is
+# measured against as well as what the model text declares.
+.model_eta_init <- 0.1
+
+# A fit that reports an objective and an AIC has not necessarily estimated
+# anything. Where the optimizer takes no effective step -- a bad starting point,
+# a flat or badly scaled objective -- `nlmixr2` returns the starting values, and
+# every number downstream is then a starting value wearing the costume of an
+# estimate: the report prints them, the generator simulates from them, and the
+# scorecard passes, because it asks whether the output copies anybody or changed
+# the study's shape and a fit that never moved does neither.
+#
+# Found on a mixed-route study whose report read `f 0.7` -- the starting value
+# exactly -- beside three between-subject terms all reading 0.316, which is
+# `sqrt(0.1)`, the eta init. Three identical values is the tell, and nothing in
+# the package said a word about it.
+#
+# Judged per parameter against its own start, because the scales differ by
+# orders of magnitude. `tolerance` is deliberately loose: this is not asking
+# whether the optimizer converged tightly, it is asking whether it moved at all.
+.model_fit_movement <- function(fixed, omega, start, tolerance = 0.01) {
+  names_fixed <- names(fixed)
+  start <- start[names_fixed]
+  moved_fixed <- abs(as.numeric(fixed) / as.numeric(start) - 1)
+  eta <- if (is.null(omega) || !nrow(omega)) numeric() else diag(omega)
+  moved_eta <- if (length(eta)) abs(eta / .model_eta_init - 1) else numeric()
+  changes <- data.frame(
+    parameter = c(names_fixed,
+                  if (length(eta)) paste0("omega.", rownames(omega))),
+    start = c(as.numeric(start), rep(.model_eta_init, length(eta))),
+    estimate = c(as.numeric(fixed), as.numeric(eta)),
+    relative_change = c(moved_fixed, moved_eta),
+    stringsAsFactors = FALSE
+  )
+  list(moved = any(changes$relative_change > tolerance, na.rm = TRUE),
+       tolerance = tolerance, changes = changes)
 }
 
 # Reading a converged fit back into the numbers the generator needs, and no
@@ -1019,9 +1143,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     stop("`pd_by_arm` must be TRUE or FALSE.", call. = FALSE)
   }
   if (!requireNamespace("nlmixr2est", quietly = TRUE)) {
-    stop("`synpmx_model_estimate()` needs the nlmixr2 package, which is in ",
-         "Suggests. Install it, or use `synpmx_avatar()` or `synpmx_pca()`, ",
-         "which fit no structural model.", call. = FALSE)
+    stop(.condition_text(
+      "`synpmx_model_estimate()` needs the nlmixr2 package, which is in ",
+      "Suggests.",
+      fix = paste("Install it, or use `synpmx_avatar()` or `synpmx_pca()`,",
+                  "which fit no structural model.")), call. = FALSE)
   }
   started <- proc.time()[["elapsed"]]
   data <- as.data.frame(data)
@@ -1145,6 +1271,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   selected <- search$selected
   fit_seconds <- sum(search$table$seconds, na.rm = TRUE)
   parameters <- .model_read_fit(search$fits[[selected]], selected, error)
+  movement <- .model_fit_movement(parameters$fixed, parameters$omega,
+                                  search$starts[[selected]])
+  if (!movement$moved) .model_warn_unmoved(selected, movement)
 
   effects <- if (is.null(weight)) list() else stats::setNames(
     lapply(intersect(names(parameters$fixed),
@@ -1181,12 +1310,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       sum(observations$endpoint == endpoint & is.finite(observations$dv) &
             is.finite(observations$aligned))
     }, integer(1))
-    warning("`synpmx_model_estimate()` fitted no shape to ",
-            paste(sprintf("`%s` (%d usable observation(s))", unfitted, counts),
-                  collapse = ", "),
-            ": every row of the endpoint is missing a value or a time on the ",
-            "nominal grid. Those endpoints are absent from the generated data ",
-            "entirely, rather than generated badly.", call. = FALSE)
+    warning(.condition_text(
+      "`synpmx_model_estimate()` fitted no shape to ", length(unfitted),
+      " endpoint(s):",
+      items = sprintf("`%s` (%d usable observation(s))", unfitted, counts),
+      why = paste("Every row of the endpoint is missing a value or a time on",
+                  "the nominal grid. Those endpoints are absent from the",
+                  "generated data entirely, rather than generated badly.")),
+      call. = FALSE)
   }
 
   correlations <- .model_covariate_correlations(source, roles, subject_group,
@@ -1195,6 +1326,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = search$table, parameters = parameters,
+    movement = movement,
     endpoints = list(pk = classified$pk, pd = names(pd_fits),
                      discrete = classified$discrete, signals = classified$signals,
                      decided_by = classified$decided_by),

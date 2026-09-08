@@ -33,17 +33,46 @@
 # What the warning has to carry is the part nothing downstream will say: a
 # scorecard reads whether the output copies anybody or changed the study's
 # shape, and a small-cohort fit does neither.
+# The loudest thing this package can say at estimation time, because it is the
+# one failure that otherwise looks exactly like success: an AIC, a parameter
+# table, a generated dataset, and a clean scorecard, all resting on numbers no
+# optimizer ever touched. See `.model_fit_movement()`.
+.model_warn_unmoved <- function(structural, movement) {
+  changes <- movement$changes
+  warning(.condition_text(
+    "THE FIT DID NOT MOVE. `", structural, "` returned every parameter within ",
+    sprintf("%.0f%%", 100 * movement$tolerance),
+    " of its starting value, so the numbers below are starting values rather ",
+    "than estimates:",
+    items = sprintf("%-10s %-12s -> %-12s (%.2f%%)", changes$parameter,
+                    sprintf("%.4g", changes$start),
+                    sprintf("%.4g", changes$estimate),
+                    100 * changes$relative_change),
+    why = paste("`nlmixr2` still reports an objective and an AIC, and nothing",
+                "downstream will contradict them: the generator simulates from",
+                "these values and the scorecard passes, because it asks",
+                "whether the output copies anybody or changed the study's",
+                "shape and a fit that never moved does neither."),
+    fix = paste("Do not generate from this fit. Check the starting values in",
+                "`model_report()`, and prefer `synpmx_avatar()` or",
+                "`synpmx_pca()`, which fit no structural model.")),
+    call. = FALSE)
+  invisible(TRUE)
+}
+
 .model_note_subjects <- function(n_source, minimum) {
   minimum <- .positive_integer(minimum, "min_subjects")
   if (n_source < minimum) {
-    warning("`synpmx_model_estimate()` is fitting a population model to ",
-            n_source, " subjects, below `min_subjects` = ", minimum,
-            ". The fixed effects and the covariance matrix describe those ",
-            n_source, " subjects rather than a population, and nothing ",
-            "downstream will tell you so: the scorecard asks whether the ",
-            "output copies anybody or changed the study's shape, and a ",
-            "small-cohort fit does neither. `synpmx_avatar()` and ",
-            "`synpmx_pca()` need no identifiable structure.", call. = FALSE)
+    warning(.condition_text(
+      "`synpmx_model_estimate()` is fitting a population model to ", n_source,
+      " subjects, below `min_subjects` = ", minimum, ".",
+      why = paste0("The fixed effects and the covariance matrix describe those ",
+                   n_source, " subjects rather than a population, and nothing ",
+                   "downstream will tell you so: the scorecard asks whether ",
+                   "the output copies anybody or changed the study's shape, ",
+                   "and a small-cohort fit does neither."),
+      fix = paste("`synpmx_avatar()` and `synpmx_pca()` need no identifiable",
+                  "structure.")), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -59,11 +88,13 @@
 # given, so the source is returned untouched and the two axes stay separate.
 .model_require_nominal_time <- function(source, roles) {
   if (is.null(roles$nominal_time)) {
-    stop("`synpmx_model_estimate()` requires `nominal_time` in `pmx_roles()`. ",
-         "The dosing and visit models sit on the nominal grid, and inferring ",
-         "that grid from recorded times is a statement about the protocol ",
-         "that only you can make. Add the protocol's planned times as a ",
-         "column and declare it.", call. = FALSE)
+    stop(.condition_text(
+      "`synpmx_model_estimate()` requires `nominal_time` in `pmx_roles()`.",
+      why = paste("The dosing and visit models sit on the nominal grid, and",
+                  "inferring that grid from recorded times is a statement",
+                  "about the protocol that only you can make."),
+      fix = "Add the protocol's planned times as a column and declare it."),
+      call. = FALSE)
   }
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   relevant <- .observation_rows(source, roles, require_present = TRUE) |
@@ -164,14 +195,16 @@
          .model_time_coverage_shortfall(source, roles), call. = FALSE)
   }
   if (bins < minimum) {
-    warning("`synpmx_model_estimate()` has observations at ", bins,
-            " distinct nominal time(s) after a dose, below `min_time_bins` = ",
-            minimum, ". A one-compartment model is not identifiable from that ",
-            "sampling: expect parameters close to their starting values and ",
-            "simulated profiles that are a plausible shape rather than an ",
-            "estimate of this study's. `synpmx_avatar()` and `synpmx_pca()` ",
-            "carry sparse sampling without fitting a structure to it.",
-            call. = FALSE)
+    warning(.condition_text(
+      "`synpmx_model_estimate()` has observations at ", bins,
+      " distinct nominal time(s) after a dose, below `min_time_bins` = ",
+      minimum, ".",
+      why = paste("A one-compartment model is not identifiable from that",
+                  "sampling: expect parameters close to their starting values",
+                  "and simulated profiles that are a plausible shape rather",
+                  "than an estimate of this study's."),
+      fix = paste("`synpmx_avatar()` and `synpmx_pca()` carry sparse sampling",
+                  "without fitting a structure to it.")), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -235,12 +268,14 @@
 # and is disclosed rather than gated.
 .reject_fitted_model <- function(x, argument, what) {
   if (inherits(x, "pmx_fitted_model")) {
-    stop("`", argument, "` is a `pmx_fitted_model`, which `", what,
-         "` cannot accept. Its parameters were estimated from the ",
-         "confidential study, so treating them as a public input would ",
-         "charge no privacy budget for information taken from the data. ",
-         "Supply a `pmx_structural_model()` whose values come from a source ",
-         "outside this dataset.", call. = FALSE)
+    stop(.condition_text(
+      "`", argument, "` is a `pmx_fitted_model`, which `", what,
+      "` cannot accept.",
+      why = paste("Its parameters were estimated from the confidential study,",
+                  "so treating them as a public input would charge no privacy",
+                  "budget for information taken from the data."),
+      fix = paste("Supply a `pmx_structural_model()` whose values come from a",
+                  "source outside this dataset.")), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -260,7 +295,8 @@
                               covariate_effects = list(), covariates = list(),
                               discrete = list(), design = NULL,
                               correlations = NULL, censoring = NULL,
-                              quantification_floor = NULL, timing = NULL) {
+                              quantification_floor = NULL, timing = NULL,
+                              movement = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -318,7 +354,8 @@
     correlations = correlations,
     censoring = censoring,
     quantification_floor = quantification_floor,
-    timing = timing
+    timing = timing,
+    movement = movement
   ), class = "pmx_fitted_model")
 }
 
@@ -357,6 +394,7 @@ model_report <- function(fitted_model) {
     endpoints = fitted_model$endpoints,
     design = fitted_model$design,
     parameters = fitted_model$parameters,
+    movement = fitted_model$movement,
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
@@ -383,6 +421,23 @@ print.pmx_model_report <- function(x, ...) {
                     strrep(" ", 21L)), "\n", sep = "")
   }
   cat("The PopPK model\n\n")
+  # Before the numbers, not after: a reader who stops at the parameter block
+  # has to have been told already that it is not a parameter block.
+  if (!is.null(x$movement) && !isTRUE(x$movement$moved)) {
+    changes <- x$movement$changes
+    cat("!! THE FIT DID NOT MOVE !!\n")
+    cat("  ", .wrap_plain(paste0(
+      "Every parameter came back within ",
+      sprintf("%.0f%%", 100 * x$movement$tolerance), " of its starting value, ",
+      "so everything under `Estimated by nlmixr2` below is a starting value ",
+      "rather than an estimate. Do not generate from this fit."
+    ), "", "  "), "\n", sep = "")
+    cat(sprintf("    %-10s %-12s -> %-12s (%.2f%%)\n", changes$parameter,
+                sprintf("%.4g", changes$start),
+                sprintf("%.4g", changes$estimate),
+                100 * changes$relative_change), sep = "")
+    cat("\n")
+  }
   cat("Estimated by nlmixr2\n")
   cat("  structural model  ", x$structural, "\n")
   cat("  fixed effects     ",

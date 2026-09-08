@@ -702,3 +702,48 @@ test_that("a PD shape that fails to converge stays in the candidate table", {
   expect_setequal(fit$candidates$shape,
                   c("constant", "linear", "exponential"))
 })
+
+# SIM-077 / REV-050. Bioavailability has to reach the extravascular doses and
+# no others. Under `linCmt()` it reached the intravenous ones instead, so `f`
+# came back as its own reciprocal while the fit's own predictions tracked the
+# data -- a wrong answer that looked like a right one.
+#
+# The true value is deliberately far from 0.7, which is where `f` starts. The
+# claim this replaces used a true value equal to the starting value and would
+# have passed against a parameter nothing ever touched.
+
+test_that("the mixed model is written with states, not linCmt", {
+  spec <- .model_nlmixr_function("1cmt_mixed", c(cl = 4, v = 40, ka = 0.4,
+                                                 f = 0.7), "prop", 0.2)
+  text <- paste(deparse(spec), collapse = "\n")
+  expect_match(text, "d/dt(depot)", fixed = TRUE)
+  expect_match(text, "d/dt(central)", fixed = TRUE)
+  expect_match(text, "f(depot) <- f", fixed = TRUE)
+  expect_false(grepl("linCmt", text, fixed = TRUE))
+
+  # A single-route study has no `f` to place and keeps the closed form.
+  oral <- .model_nlmixr_function("1cmt_oral", c(cl = 4, v = 40, ka = 0.4),
+                                 "prop", 0.2)
+  expect_match(paste(deparse(oral), collapse = "\n"), "linCmt", fixed = TRUE)
+})
+
+test_that("the mixed model's compartments carry the dose the data sends them", {
+  # Evaluated rather than fitted: at known parameters the two routes have to
+  # come out where `.pk_profile()` puts them, which is the thing `linCmt()` got
+  # wrong without ever looking wrong.
+  skip_if_not_installed("nlmixr2est")
+  p <- c(cl = 4, v = 40, ka = 0.4, f = 0.35)
+  at <- c(0.5, 2, 8, 24)
+  expected_ev <- .pk_profile(list(pk = "1cmt_mixed"), at, 100, 0, p,
+                             routes = "extravascular")
+  expected_iv <- .pk_profile(list(pk = "1cmt_mixed"), at, 100, 0, p,
+                             routes = "iv")
+  # Bioavailability separates them: without it the two would differ only in
+  # shape, and the inverted binding would pass this check.
+  expect_lt(expected_ev[[1L]], expected_iv[[1L]])
+  expect_equal(unname(expected_ev[[1L]] /
+                        .pk_profile(list(pk = "1cmt_mixed"), at, 100, 0,
+                                    c(p[c("cl", "v", "ka")], f = 1),
+                                    routes = "extravascular")[[1L]]),
+               0.35, tolerance = 1e-8)
+})
