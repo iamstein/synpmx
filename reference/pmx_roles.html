@@ -111,6 +111,8 @@ copied out of a real subject. Name a column in <code>keep</code> to carry it thr
 <span>  limit <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  addl <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ii <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  adm <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  routes <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  strata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -184,6 +186,20 @@ interval-boundary columns.</p></dd>
 
 <dt id="arg-addl-ii">addl, ii<a class="anchor" aria-label="anchor" href="#arg-addl-ii"></a></dt>
 <dd><p>Optional additional-dose and interdose-interval columns.</p></dd>
+
+
+<dt id="arg-adm-routes">adm, routes<a class="anchor" aria-label="anchor" href="#arg-adm-routes"></a></dt>
+<dd><p>Optional administration-id column and what its values mean,
+as <code>adm = "ADM", routes = c("1" = "iv", "2" = "extravascular")</code>. Declared
+together or not at all: which id is which route is a convention of the
+dataset and cannot be read off the numbers, so reading it wrong would put
+doses in the wrong compartment without failing. Two routes are recognised.
+<code>iv</code> covers a bolus and an infusion, told apart per record by <code>rate</code> rather
+than declared twice; <code>extravascular</code> covers subcutaneous, oral and
+intramuscular, which are one first-order absorption with an absorption rate
+constant and a bioavailability. A study dosing both ways is fitted with one
+model that routes each dose record to its own compartment, so a patient may
+receive both.</p></dd>
 
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>

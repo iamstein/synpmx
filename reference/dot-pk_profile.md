@@ -5,7 +5,15 @@ Concentration-time profile for a public structural model
 ## Usage
 
 ``` r
-.pk_profile(model, time, doses, dose_times, params = NULL, duration = 0)
+.pk_profile(
+  model,
+  time,
+  doses,
+  dose_times,
+  params = NULL,
+  duration = 0,
+  routes = NULL
+)
 ```
 
 ## Arguments
