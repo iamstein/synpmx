@@ -575,6 +575,29 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
 # Generation. Every argument is a summary; no patient row is in scope.
 #
 # Documented in `pca-algorithm.Rmd`, Steps 5 to 8.
+# The administration id per generated row. `.draw_schedule()` carries the route
+# of each planned dose, so a generated dose knows its own route and
+# `roles$routes` turns that into the id the study wrote. An observation carries
+# the id of the dose it follows, and a row before any dose takes the first
+# dose's id rather than `NA`, on the same reasoning `.derived_tad()` reports
+# zero there: the column is a property of the regimen, not of the sample.
+.pca_administration <- function(frame, roles, schema) {
+  ids <- names(roles$routes)[match(frame$ROUTE, roles$routes)]
+  if (all(is.na(ids))) {
+    # One route, or a study whose schema recorded none: every row carries the
+    # single declared id, which is what a single-route study means by it.
+    ids[] <- names(roles$routes)[[1L]]
+  } else {
+    for (rows in split(seq_len(nrow(frame)), frame$.subject)) {
+      own <- ids[rows]
+      filled <- which(!is.na(own))
+      if (!length(filled)) next
+      ids[rows] <- own[filled][pmax(findInterval(seq_along(own), filled), 1L)]
+    }
+  }
+  .match_class(ids, schema$adm_class %||% "character")
+}
+
 .pca_generate <- function(trial_summary, n_subjects) {
   fit <- trial_summary$basis
   roles <- trial_summary$roles
@@ -604,8 +627,12 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
     if (nrow(schedule)) {
       rows[[length(rows) + 1L]] <- data.frame(
         TIME = schedule$time, DV = NA_real_, AMT = schedule$amt, EVID = 1L,
-        CMT = if (is.null(schema$cmt_dose)) NA else schema$cmt_dose,
-        DVID = NA_character_, stringsAsFactors = FALSE
+        # Each dose enters the compartment its own route doses into, where the
+        # study declared more than one. `.draw_schedule()` carries the route
+        # per planned cycle, so a mixed regimen comes out mixed.
+        CMT = .dose_compartment(schema, schedule$route),
+        DVID = NA_character_, ROUTE = schedule$route,
+        stringsAsFactors = FALSE
       )
     }
     attended <- stats::runif(length(visits$cells)) < visits$probability
@@ -619,7 +646,8 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
         TIME = member$time, DV = value, AMT = 0, EVID = 0L,
         CMT = if (is.null(schema$cmt_obs[[member$endpoint]])) NA else
           schema$cmt_obs[[member$endpoint]],
-        DVID = member$endpoint, stringsAsFactors = FALSE
+        DVID = member$endpoint, ROUTE = NA_character_,
+        stringsAsFactors = FALSE
       )
     }
     if (!length(rows)) next
@@ -646,6 +674,15 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
     for (column in roles$dvid) out[[column]] <- frame$DVID
   }
   if (!is.null(roles$mdv)) out[[roles$mdv]] <- as.integer(frame$EVID != 0L)
+  # A declared administration column says which route each dose took, and it
+  # has to come back or the generated study cannot be read by whatever read the
+  # real one -- `validate_pmx()` and the scorecard both refuse a role column
+  # that is not there. PCA does not model the route, so it is read back from
+  # the compartment each dose enters, which the schema recorded per route, and
+  # an observation carries the id of the dose it follows.
+  if (!is.null(roles$adm)) {
+    out[[roles$adm]] <- .pca_administration(frame, roles, schema)
+  }
   if (!is.null(roles$cens)) out[[roles$cens]] <- 0L
   if (!is.null(roles$limit)) out[[roles$limit]] <- NA_real_
   if (!is.null(roles$rate)) out[[roles$rate]] <- 0

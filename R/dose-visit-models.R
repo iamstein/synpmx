@@ -366,8 +366,8 @@
     "`", what, "` dropped ", sum(as.integer(short)), " patient(s) in ",
     length(short), " arm(s) below `min_arm_patients` = ", minimum, ":",
     items = sprintf("%s (%d)", .arm_label(names(short)), as.integer(short)),
-    why = paste("An arm that size has no spread of its own, so it is absent",
-                "from the synthetic data."),
+    why = paste("An arm that size is deemed too small to include, so it is",
+                "absent from the synthetic data."),
     fix = paste("Pool the arm, drop the column from `strata`, or lower",
                 "`min_arm_patients` to keep it.")), call. = FALSE)
   !(group %in% names(short))

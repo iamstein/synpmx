@@ -174,3 +174,43 @@ saveRDS(synpmx_model_estimate(pheno_flat, pheno_roles, seed = 1,
                               endpoint_roles = c(pk = "DV")),
         "inst/extdata/pheno-flat-model-fit.rds", version = 2)
 message("wrote inst/extdata/pheno-flat-model-fit.rds")
+
+# The two simulated studies that ship as package data. Unlike the eight public
+# datasets these have a written-down truth, so the survey can say how close the
+# fit came rather than only that it converged.
+#
+# `mixroute_sim` is dosed intravenously, subcutaneously, and both, which is what
+# `1cmt_mixed` is for. Its `NTIME` is the protocol's planned time and is in the
+# dataset, so nothing has to be constructed here.
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_fit <- synpmx_model_estimate(mixroute_sim, mixroute_roles, seed = 1)
+saveRDS(mixroute_fit, "inst/extdata/mixroute-sim-model-fit.rds", version = 2)
+message("wrote inst/extdata/mixroute-sim-model-fit.rds")
+print(model_report(mixroute_fit))
+
+# `onc_sim` carries two endpoints and neither signal separates them: tumour size
+# and a trough concentration both read post-dose and dose-proportional, so the
+# classification asks for `endpoint_roles` and gets it. The tumour endpoint then
+# becomes the PD one, fitted as a time course.
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+#
+# The trough-only sampling gives the non-compartmental read no peak and no
+# terminal slope, so the absorption start comes out two orders of magnitude
+# below everolimus's own. `start_param` says what is known about the compound
+# instead; the clearance and volume are still read off the curve.
+onc_fit <- synpmx_model_estimate(onc_sim, onc_roles, seed = 1,
+                                 endpoint_roles = c(pk = "Everolimus trough"),
+                                 start_param = c(ka = 5))
+saveRDS(onc_fit, "inst/extdata/onc-sim-model-fit.rds", version = 2)
+message("wrote inst/extdata/onc-sim-model-fit.rds")
+print(model_report(onc_fit))

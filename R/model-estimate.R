@@ -143,18 +143,86 @@
     iv, if (grepl("^2cmt", structural)) "2cmt_iv" else "1cmt_iv", pk_endpoint)
   absorption <- .model_initial_estimates(ev, "1cmt_oral", pk_endpoint)
 
-  # `cl` from the extravascular half is `cl/f`, so the ratio is bioavailability.
-  # Held inside (0, 1]: a ratio above one is the two reads disagreeing rather
-  # than a dose more than fully absorbed, and a starting value on the boundary
-  # is one the search cannot move off.
-  f <- disposition[["cl"]] / absorption[["cl"]]
-  f <- if (is.finite(f) && f > 0) min(max(f, 0.05), 0.95) else 0.7
+  # `cl` from the extravascular half is `cl/f`, so the ratio is bioavailability
+  # -- and it is also a check on the intravenous read. Bioavailability cannot
+  # exceed one, so an implied `f` above one says the two reads disagree in a way
+  # `f` cannot express, and the intravenous one is the suspect: it rests on a
+  # terminal slope and an area, and a study sampled at troughs across an
+  # accumulating regimen gives it neither.
+  #
+  # Measured on a real mixed study 2026-09-09: the intravenous read returned a
+  # clearance of 4.87 where fitting the extravascular half alone found `cl/f`
+  # 0.37, so the intravenous number was high by more than an order of magnitude
+  # -- and, taken as the start, held the whole fit there. Where the two disagree
+  # this way the extravascular read is used for disposition instead, scaled by a
+  # neutral `f`, which keeps its own apparent clearance exactly where it read it.
+  ratio <- disposition[["cl"]] / absorption[["cl"]]
+  if (!is.finite(ratio) || ratio <= 0 || ratio > 1) {
+    f <- 0.7
+    disposition <- absorption[names(disposition)] * f
+  } else {
+    f <- max(ratio, 0.05)
+  }
 
   out <- c(disposition[c("cl", "v")], ka = unname(absorption[["ka"]]), f = f)
   if (grepl("^2cmt", structural)) {
     out <- c(out, disposition[c("q", "v2")])
   }
   out[.required_pk_params[[structural]]]
+}
+
+# Starting values the caller supplied, over the ones read off the curve.
+#
+# The automatic read is non-compartmental, and on a study it cannot read -- one
+# sampled only at troughs, one whose two routes disagree, one whose units are
+# not what they look like -- it can start the search somewhere the optimizer
+# cannot leave. `SIM-075` reports that after the fact; this is how a caller who
+# knows the compound fixes it in advance.
+#
+# Keyed by parameter and nothing else, because the population model is fitted to
+# exactly one endpoint: the concentration `endpoint_roles = c(pk = )` names. The
+# PD endpoints are least-squares time courses with their own parameters and are
+# not reached from here.
+#
+# Partial by design. A caller who knows the clearance and not the absorption
+# says so, and the rest is read off the curve as before.
+.model_validate_start_param <- function(start_param, candidates) {
+  if (is.null(start_param)) return(NULL)
+  if (!is.numeric(start_param) || is.null(names(start_param)) ||
+      anyNA(start_param) || any(!is.finite(start_param)) ||
+      any(start_param <= 0) || any(!nzchar(names(start_param))) ||
+      anyDuplicated(names(start_param))) {
+    stop(.condition_text(
+      "`start_param` must be a named vector of distinct, finite, positive ",
+      "starting values, as `start_param = c(cl = 4, v = 40)`.",
+      why = paste("Every parameter here is estimated on the log scale, so a",
+                  "zero or negative starting value has no logarithm.")),
+      call. = FALSE)
+  }
+  usable <- unique(unlist(.required_pk_params[candidates], use.names = FALSE))
+  unknown <- setdiff(names(start_param), usable)
+  if (length(unknown)) {
+    stop(.condition_text(
+      "`start_param` names parameter(s) that no candidate model has: ",
+      paste(unknown, collapse = ", "), ".",
+      why = paste0("The candidate(s) here are ",
+                   paste(candidates, collapse = ", "), ", which take ",
+                   paste(usable, collapse = ", "), "."),
+      fix = paste("Name the model with `pk` if you meant a different one, or",
+                  "drop the parameter.")), call. = FALSE)
+  }
+  start_param
+}
+
+# Applied per candidate, because a two-compartment candidate takes parameters a
+# one-compartment candidate does not. A value that does not apply to this
+# candidate is left out rather than an error: the caller named the parameters
+# of the model they have in mind, and the search may be over several.
+.model_apply_start_param <- function(start, start_param) {
+  if (is.null(start_param)) return(start)
+  named <- intersect(names(start_param), names(start))
+  start[named] <- start_param[named]
+  start
 }
 
 .model_initial_estimates <- function(observations, structural, pk_endpoint) {
@@ -529,12 +597,15 @@
 # search that came down to one survivor should not look like a search that had
 # one candidate.
 .model_fit_candidates <- function(data, candidates, observations, pk_endpoint,
-                                  error, estimation, quiet, weight = NULL) {
+                                  error, estimation, quiet, weight = NULL,
+                                  start_param = NULL) {
   fits <- list()
   rows <- list()
   starts <- list()
   for (candidate in candidates) {
-    start <- .model_initial_estimates(observations, candidate, pk_endpoint)
+    start <- .model_apply_start_param(
+      .model_initial_estimates(observations, candidate, pk_endpoint),
+      start_param)
     starts[[candidate]] <- start
     error_start <- if (identical(error, "prop")) 0.2 else
       stats::sd(data$DV, na.rm = TRUE) / 5
@@ -1151,6 +1222,22 @@
 #'   [synpmx_pca_summarize()] uses. Patients in a shorter arm are dropped with a
 #'   warning before anything is fitted, so that arm is absent from the fitted
 #'   model and from the data generated from it.
+#' @param start_param Starting values for the population PK parameters, as
+#'   `start_param = c(cl = 4, v = 40, ka = 0.5)`. Anything not named is read
+#'   off the curve as usual, so a caller who knows the clearance and not the
+#'   absorption says only the clearance.
+#'
+#'   No endpoint key is needed: the population model is fitted to exactly one
+#'   endpoint, the concentration that `endpoint_roles` names, and the PD
+#'   endpoints are least-squares time courses that this does not reach.
+#'
+#'   The automatic starting values are a non-compartmental read of the cohort's
+#'   median profile. On a study that read cannot describe — sampled only at
+#'   troughs, dosed by two routes whose reads disagree, or recorded in units
+#'   that are not what they appear — it can start the search somewhere the
+#'   optimizer cannot leave, which `model_report()` then reports as a fit that
+#'   did not move. This is how a caller who knows the compound fixes that in
+#'   advance, and `model_report()` says which values were declared.
 #' @param max_fit_subjects Most subjects the population model is fitted to,
 #'   60 by default. A study above it has its PK parameters estimated on a subset
 #'   drawn in proportion to the arms, using `seed`; the dosing, visit and
@@ -1175,7 +1262,7 @@
 #' @export
 synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   pd_by_arm = FALSE,
-                                  endpoint_roles = NULL,
+                                  endpoint_roles = NULL, start_param = NULL,
                                   covariate_effects = "auto",
                                   min_subjects = 20L, min_arm_patients = 3L,
                                   min_time_bins = 6L, max_fit_subjects = 60L,
@@ -1363,9 +1450,10 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
             if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
             ":")
   }
+  start_param <- .model_validate_start_param(start_param, design$candidates)
   search <- .model_fit_candidates(estimation_data, design$candidates,
                                   observations, classified$pk, error,
-                                  estimation, quiet, weight)
+                                  estimation, quiet, weight, start_param)
   selected <- search$selected
   fit_seconds <- sum(search$table$seconds, na.rm = TRUE)
   parameters <- .model_read_fit(search$fits[[selected]], selected, error)
@@ -1431,6 +1519,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = search$table, parameters = parameters,
     movement = movement, fit_subjects = fit_subjects,
+    start_param = start_param,
     endpoints = list(pk = classified$pk, pd = names(pd_fits),
                      discrete = classified$discrete, signals = classified$signals,
                      decided_by = classified$decided_by),

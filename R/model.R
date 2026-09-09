@@ -296,7 +296,8 @@
                               discrete = list(), design = NULL,
                               correlations = NULL, censoring = NULL,
                               quantification_floor = NULL, timing = NULL,
-                              movement = NULL, fit_subjects = NULL) {
+                              movement = NULL, fit_subjects = NULL,
+                              start_param = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -356,7 +357,8 @@
     quantification_floor = quantification_floor,
     timing = timing,
     movement = movement,
-    fit_subjects = fit_subjects
+    fit_subjects = fit_subjects,
+    start_param = start_param
   ), class = "pmx_fitted_model")
 }
 
@@ -397,6 +399,7 @@ model_report <- function(fitted_model) {
     parameters = fitted_model$parameters,
     movement = fitted_model$movement,
     fit_subjects = fitted_model$fit_subjects,
+    start_param = fitted_model$start_param,
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
@@ -465,6 +468,12 @@ print.pmx_model_report <- function(x, ...) {
       "of ", .model_eta_init, " while the fixed effects moved: the fit found a ",
       "population mean and did not estimate its spread. Synthetic subjects ",
       "will be spread by the starting value, not by this study.")))
+  }
+  if (length(x$start_param)) {
+    field("starting values", paste(sprintf("%s %.4g", names(x$start_param),
+                                           x$start_param), collapse = ", "),
+          " declared through `start_param`; the rest were read off the ",
+          "cohort's median profile")
   }
   cat("  residual error    ", x$parameters$residual$kind,
       sprintf("%.3g", x$parameters$residual$cv %||% x$parameters$residual$sd),

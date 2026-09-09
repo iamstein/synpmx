@@ -11,6 +11,7 @@ synpmx_model_estimate(
   pd = NULL,
   pd_by_arm = FALSE,
   endpoint_roles = NULL,
+  start_param = NULL,
   covariate_effects = "auto",
   min_subjects = 20L,
   min_arm_patients = 3L,
@@ -43,6 +44,23 @@ least-squares fits.}
 
 \item{endpoint_roles}{Named character vector naming which endpoint is the
 drug concentration, as \code{c(pk = "cp")}, overriding the inference.}
+
+\item{start_param}{Starting values for the population PK parameters, as
+\code{start_param = c(cl = 4, v = 40, ka = 0.5)}. Anything not named is read
+off the curve as usual, so a caller who knows the clearance and not the
+absorption says only the clearance.
+
+No endpoint key is needed: the population model is fitted to exactly one
+endpoint, the concentration that \code{endpoint_roles} names, and the PD
+endpoints are least-squares time courses that this does not reach.
+
+The automatic starting values are a non-compartmental read of the cohort's
+median profile. On a study that read cannot describe — sampled only at
+troughs, dosed by two routes whose reads disagree, or recorded in units
+that are not what they appear — it can start the search somewhere the
+optimizer cannot leave, which \code{model_report()} then reports as a fit that
+did not move. This is how a caller who knows the compound fixes that in
+advance, and \code{model_report()} says which values were declared.}
 
 \item{covariate_effects}{\code{"auto"} fits allometric scaling on clearance and
 volume where a weight-like covariate is declared and keeps it where it

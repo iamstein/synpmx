@@ -773,3 +773,81 @@ test_that("a capped fit reports the count and still generates", {
   synthetic <- suppressWarnings(synpmx_model_generate(fit, n_subjects = 10L, seed = 1))
   expect_true(validate_pmx(synthetic, .estimate_roles())$valid)
 })
+
+# `start_param`: the caller's starting values over the non-compartmental read.
+
+test_that("start_param is validated against the candidates", {
+  expect_error(.model_validate_start_param(c(cl = 4, zz = 1), "1cmt_oral"),
+               "no candidate model has: zz")
+  expect_error(.model_validate_start_param(c(cl = 0), "1cmt_oral"),
+               "finite, positive")
+  expect_error(.model_validate_start_param(c(4, 40), "1cmt_oral"), "named")
+  expect_error(.model_validate_start_param(c(cl = 4, cl = 5), "1cmt_oral"),
+               "distinct")
+  # `f` is a mixed-model parameter and is refused where no candidate has one.
+  expect_error(.model_validate_start_param(c(f = 0.5), "1cmt_oral"),
+               "no candidate model has: f")
+  expect_equal(.model_validate_start_param(c(f = 0.5), "1cmt_mixed"),
+               c(f = 0.5))
+  expect_null(.model_validate_start_param(NULL, "1cmt_oral"))
+})
+
+test_that("start_param overrides only what it names, per candidate", {
+  read <- c(cl = 1, v = 2, ka = 3)
+  expect_equal(.model_apply_start_param(read, c(cl = 9)), c(cl = 9, v = 2, ka = 3))
+  # A parameter this candidate does not take is left out rather than added.
+  expect_equal(.model_apply_start_param(c(cl = 1, v = 2), c(cl = 9, ka = 8)),
+               c(cl = 9, v = 2))
+  expect_equal(.model_apply_start_param(read, NULL), read)
+})
+
+test_that("a declared start reaches the fit and the report", {
+  skip_if_not_installed("nlmixr2est")
+  data <- .oral_study(n = 24)
+  fit <- suppressWarnings(suppressMessages(synpmx_model_estimate(
+    data, .estimate_roles(), start_param = c(ka = 1.25), min_subjects = 10L,
+    seed = 2, quiet = TRUE)))
+  expect_equal(fit$start_param, c(ka = 1.25))
+  expect_equal(fit$movement$changes$start[fit$movement$changes$parameter == "ka"],
+               1.25)
+  expect_match(paste(capture.output(print(model_report(fit))), collapse = " "),
+               "declared through `start_param`")
+})
+
+test_that("an impossible implied f falls back to the extravascular read", {
+  # The intravenous read rests on a terminal slope and an area; a study sampled
+  # at troughs across an accumulating regimen gives it neither, and it comes
+  # back high. Bioavailability above one is how that shows.
+  make <- function(iv_cl, ev_cl, ev_ka = 0.4) {
+    subjects <- as.character(1:12)
+    rows <- lapply(subjects, function(s) {
+      route <- if (as.integer(s) <= 6L) "iv" else "extravascular"
+      data.frame(subject = s, endpoint = "cp", route = route,
+                 time = c(1, 2, 4, 8), ntime = c(1, 2, 4, 8),
+                 aligned = c(1, 2, 4, 8), tad = c(1, 2, 4, 8),
+                 actual_tad = c(1, 2, 4, 8), interval = 1L,
+                 dv = if (route == "iv") 100 / iv_cl * exp(-0.1 * c(1, 2, 4, 8))
+                      else 100 / ev_cl * (exp(-0.1 * c(1, 2, 4, 8)) -
+                                            exp(-ev_ka * c(1, 2, 4, 8))),
+                 given = 100, first_dose_time = 0, first_dose_at = 0,
+                 first_dose_amt = 100, stringsAsFactors = FALSE)
+    })
+    do.call(rbind, rows)
+  }
+  # Reads that disagree the impossible way: `f` would be 4, so the intravenous
+  # disposition is discarded and the extravascular read carries it at f = 0.7.
+  bad <- .model_initial_estimates_mixed(make(iv_cl = 4, ev_cl = 1),
+                                        "1cmt_mixed", "cp")
+  expect_equal(unname(bad[["f"]]), 0.7)
+  ev_only <- .model_initial_estimates(
+    make(iv_cl = 4, ev_cl = 1)[make(iv_cl = 4, ev_cl = 1)$route ==
+                                 "extravascular", ], "1cmt_oral", "cp")
+  # Scaled by `f`, so the extravascular apparent clearance stays where it read.
+  expect_equal(unname(bad[["cl"]] / bad[["f"]]), unname(ev_only[["cl"]]),
+               tolerance = 1e-8)
+  # A possible ratio is kept as the estimate of `f` it is.
+  ok <- .model_initial_estimates_mixed(make(iv_cl = 2, ev_cl = 4),
+                                       "1cmt_mixed", "cp")
+  expect_lt(ok[["f"]], 1)
+  expect_gt(ok[["f"]], 0.05)
+})
