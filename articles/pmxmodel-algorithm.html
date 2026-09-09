@@ -215,8 +215,8 @@ the way out, so it comes back in the encoding its source used.</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Classify the endpoints.</strong> Four signals decide which
-endpoint is the drug concentration. Everything else continuous becomes a
-pharmacodynamic (PD) endpoint.</li>
+endpoint or endpoints are drug concentrations. Everything else
+continuous becomes a pharmacodynamic (PD) endpoint.</li>
 <li>
 <strong>Detect the design.</strong> The route of administration and
 the sampling richness prune the set of PK models that will be offered to
@@ -225,8 +225,8 @@ the fitter.</li>
 <strong>Estimate the parameters.</strong> Fit each surviving PK
 model as a population nonlinear mixed-effects model through
 <code>nlmixr2</code> and select on AIC, with allometric scaling folded
-in where a weight-like covariate is declared. Fit each PD endpoint’s
-time course by least squares.</li>
+in where a weight-like covariate is declared, once per concentration
+endpoint. Fit each PD endpoint’s time course by least squares.</li>
 <li>
 <strong>Fit a dosing model and a visit model per arm</strong>: a
 planned dose schedule with rates for reduction, interruption and
@@ -287,6 +287,39 @@ them, the function errors and names <code>endpoint_roles</code> as the
 way through. That is the inference-versus-declaration fork, answered the
 way <code>dose_covariate</code> answers it: infer where the data settles
 the question, offer the declaration as an override.</p>
+<div class="section level3">
+<h3 id="more-than-one-endpoint-can-be-a-concentration">More than one endpoint can be a concentration<a class="anchor" aria-label="anchor" href="#more-than-one-endpoint-can-be-a-concentration"></a>
+</h3>
+<p>A study measuring two drugs, or a parent and its metabolite, has two
+drug concentrations, and each is fitted its own population model — its
+own structural model, its own parameters, its own residual error,
+evaluated against the one dose schedule they share. No correlation
+between their random effects is estimated, which is a limitation rather
+than a claim: a patient with a high parent clearance is given an
+independently drawn metabolite clearance.</p>
+<p><strong>Inference promotes a second endpoint only on signal
+4.</strong> Dose proportionality is the positive evidence that something
+is a drug: a concentration scales with the dose and a biomarker does
+not. Signal 2 is necessary and not sufficient, and it is satisfied by
+any endpoint with no pre-dose observation. The distinction matters
+because signal 4 is often <em>not computable</em>, and the required test
+treats that as passing — which is right for choosing one endpoint and
+wrong for promoting a second. <code>warfarin</code>’s prothrombin
+activity and <code>onc_sim</code>’s tumour size both pass signals 2 and
+4 that way, and neither is a drug concentration; requiring signal 4 to
+be <code>TRUE</code> rather than merely not <code>FALSE</code> leaves
+both where they belong.</p>
+<p>So a study whose two endpoints both scale with dose is classified
+with two concentrations and no declaration. A study where the evidence
+is absent on both still refuses and asks, which is what
+<code>onc_sim</code> does.</p>
+<p><code>endpoint_roles = list(pk = c("parent", "metabolite"))</code>
+declares it where inference cannot. Declaring several is worth doing
+wherever it is true: a concentration demoted to a pharmacodynamic
+endpoint is fitted a time course with no dose term in it, so the
+generated values lose their dose ordering entirely — measured at 1.05
+times across a three-fold dose range, against 2.7 in the source
+(<code>SIM-080</code>).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">endpoints</span><span class="op">$</span><span class="va">signals</span></span>
 <span><span class="co">#&gt;   endpoint compartment post_dose shape proportional</span></span>
@@ -299,6 +332,7 @@ including a white-cell count. The remedy is <code>endpoint_roles</code>,
 and the evidence is in the table above: a row reading “not computable”
 under <code>proportional</code> is the classification saying how little
 it had to go on.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-2-detect-the-design">Step 2: Detect the Design<a class="anchor" aria-label="anchor" href="#step-2-detect-the-design"></a>
@@ -534,7 +568,7 @@ function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.245</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.233</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
@@ -948,6 +982,12 @@ the banner: the fixed effects are estimates, but the spread synthetic
 subjects get is the starting value rather than this study’s.</td>
 </tr>
 <tr class="odd">
+<td>Two endpoints tie as concentrations</td>
+<td>neither tie-break separates them</td>
+<td>Errors, naming both and <code>endpoint_roles</code>. Naming several
+is accepted, and each is fitted its own model.</td>
+</tr>
+<tr class="even">
 <td>The fit did not move</td>
 <td>1% of every starting value</td>
 <td>Warns, and prints <code>!! THE FIT DID NOT MOVE !!</code> above the
@@ -961,7 +1001,7 @@ shape and a fit that never moved does neither. Each parameter’s start,
 estimate and percent change are listed, because “did not move” is a
 claim the reader has to be able to check.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A fitted model as a public input</td>
 <td>—</td>
 <td>

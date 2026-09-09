@@ -158,8 +158,8 @@ case1$fit
 #>   fixed effects      cl 10.55, v 88.93, ka 4.76 
 #>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
 #>   residual error     proportional 0.486 
-#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 4 min 47 s
+#>   time to fit        4 min 49 s (4 min 51 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 4 min 49 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -244,8 +244,21 @@ compare_pmx_distributions(case1$source, case1$synthetic, case1_roles)
 
 ``` r
 
-synpmx_scorecard_datatable(case1$card)
+card_verdicts(case1$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 30.7 -\> 29 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.4 on PK Concentration (furthest of 3) | review |
+
+13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to
 29, which is the visit model drawing attendance rather than copying it,
@@ -306,8 +319,8 @@ mad_run$fit
 #>   fixed effects      cl 5.564, v 153.6, ka 3.929 
 #>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        38.8 s (39.1 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 38.8 s
+#>   time to fit        38.4 s (38.7 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 38.4 s
 #>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
 #> 
@@ -387,8 +400,20 @@ mad_run$fit
 
 ``` r
 
-synpmx_scorecard_datatable(mad_run$card)
+card_verdicts(mad_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.93 on PD - Count (furthest of 6) | review |
+
+14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including
 the three discrete ones, which are drawn from the level frequencies
@@ -510,8 +535,20 @@ compare_pmx_distributions(warfarin_run$source, warfarin_run$synthetic,
 
 ``` r
 
-synpmx_scorecard_datatable(warfarin_run$card)
+card_verdicts(warfarin_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.2 on cp (furthest of 4) | review |
+
+14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 Read the design line in the report above rather than the parameters. It
 says the median profile peaks at 9 h and that **31% of subjects do too**
@@ -566,7 +603,7 @@ model_report(wbc_run$fit)
 #>   fixed effects      cl 0.01245, v 20.4 
 #>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
 #>   residual error     proportional 0.347 
-#>   time to fit        2.1 s (2.2 s for the whole call)
+#>   time to fit        2.1 s (2.1 s for the whole call)
 #>                      nlmixr2: 1cmt_infusion 2.1 s
 #>   covariate effects  none 
 #> 
@@ -617,8 +654,22 @@ model_report(wbc_run$fit)
 
 ``` r
 
-synpmx_scorecard_datatable(wbc_run$card)
+card_verdicts(wbc_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 3.91 -\> 3.16 | review |
+| A5b | Doses per patient | 1.16 -\> 1 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.77 on DV (furthest of 1) | review |
+
+12 pass, 3 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 **This is the study where the generator’s endpoint test is wrong, and
 the scorecard only partly catches it.** `wbcSim` records a white blood
@@ -690,8 +741,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.03473, v 0.2098 
 #>   between-subject    cl 0.425, v 0.347 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        10.4 s (10.6 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 10.4 s
+#>   time to fit        10.3 s (10.5 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 10.3 s
 #>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -758,8 +809,22 @@ mavo_run$fit
 
 ``` r
 
-synpmx_scorecard_datatable(mavo_run$card)
+card_verdicts(mavo_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 20.2 -\> 11.3 | review |
+| A5b | Doses per patient | 1.65 -\> 1 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.42 on DV (furthest of 5) | review |
+
+12 pass, 3 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 Three rows to read, and two findings. A5b reports occasions per patient
 falling from 1.65 to 1 and A5a observations per patient from 20.2 to
@@ -854,8 +919,8 @@ theo_run$fit
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        10.4 s (10.7 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.4 s
+#>   time to fit        10.2 s (10.5 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.2 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -917,8 +982,20 @@ theo_run$fit
 
 ``` r
 
-synpmx_scorecard_datatable(theo_run$card)
+card_verdicts(theo_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.1 on DV (furthest of 2) | review |
+
+14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
@@ -1061,15 +1138,27 @@ nimo_run$fit
 
 ``` r
 
-synpmx_scorecard_datatable(nimo_run$card)
+card_verdicts(nimo_run$card)
 ```
 
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x3.4 on DV (furthest of 4) | review |
+
+14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+{.table}
+
 Nothing fails, and D1 at 3.4 times the source’s spread is the one row to
-read — the widest of the eight, and what twelve subjects buy: a
-covariance matrix estimated from twelve people, drawn from freely,
-produces profiles more spread out than the twelve it came from. The
-subject floor exists for this, and `nimoData` is the study that shows
-what lifting it costs.
+read — the widest of the ten, and what twelve subjects buy: a covariance
+matrix estimated from twelve people, drawn from freely, produces
+profiles more spread out than the twelve it came from. The subject floor
+exists for this, and `nimoData` is the study that shows what lifting it
+costs.
 
 `nimoData` is also the study that shows the other reading the fit has to
 make. It reports **one negative concentration in 321** — what an assay
@@ -1176,8 +1265,8 @@ pheno_run$fit
 #>   fixed effects      cl 0.006131, v 1.314 
 #>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
 #>   residual error     proportional 0.118 
-#>   time to fit        27.2 s (27.2 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 7.5 s, 1cmt_oral 19.7 s
+#>   time to fit        27.3 s (27.4 s for the whole call)
+#>                      nlmixr2: 1cmt_iv 7.5 s, 1cmt_oral 19.9 s
 #>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -1241,8 +1330,21 @@ pheno_run$fit
 
 ``` r
 
-synpmx_scorecard_datatable(pheno_run$card)
+card_verdicts(pheno_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 9.98 -\> 7.12 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.5 on APGR (furthest of 3) | review |
+
+13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+{.table}
 
 The fixed effects are the same either way, and that is the point worth
 holding on to: estimation reads the recorded clock and the recorded
@@ -1275,7 +1377,324 @@ derives a grid instead, and the [AVATAR
 evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs this study that way.
 
-## What the eight runs held
+## mixroute_sim: two routes, and a bioavailability that is known
+
+Ninety patients dosed intravenously, subcutaneously, and both. This is
+the study `1cmt_mixed` exists for, and because it is simulated the fit
+can be graded rather than merely read: the truth is a clearance of 2
+L/day, a volume of 10 L, an absorption rate of 0.5 /day and a
+bioavailability of 0.7.
+
+``` r
+
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_run <- model_run("mixroute_sim", mixroute_sim, mixroute_roles,
+                          "mixroute-sim-model-fit.rds", seed = 808)
+mixroute_run$fit
+#> A fitted PMX model, from synpmx_model_estimate()
+#> Everything below is an input to `synpmx_model_generate()`.
+#> 
+#>   candidates fitted  1 (1cmt_mixed selected on AIC) 
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_mixed 
+#>   fitted on          60 of 90 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 2.434, v 11.84, ka 0.5524, f 0.7398 
+#>   between-subject    cl 0.296, v 0.234, ka 0.312 (as SD on the log scale)
+#>   residual error     proportional 0.292 
+#>   time to fit        5.7 s (5.8 s for the whole call)
+#>                      nlmixr2: 1cmt_mixed 5.7 s
+#>   covariate effects  cl ~ (WT/71.95)^0.75, v ~ (WT/71.95)^1.00 
+#> 
+#> Values at the bottom of the scale
+#>   Reported below the assay limit:
+#>     DV                 3 of 1530 (0%) below 0.05 (the limit)
+#>   `DV` was fitted with those rows censored: each enters the likelihood as the
+#>   probability of falling below the limit, not as a value nobody measured.
+#>   Any other endpoint here reads a uniform draw below the limit instead,
+#>   because its shape is a least-squares fit with no likelihood to put
+#>   censoring in. At generation the boundary goes back, and a synthetic value
+#>   below the limit is written out censored the way the study recorded it.
+#> 
+#> Summarized from the source, not estimated
+#>   cohort             90 patients in 3 arm(s): IV only (30), SC only (30),
+#>                      IV then SC (30)
+#>   dose schedule      one schedule per arm rather than one pooled across the
+#>                      study; 3 planned cycle(s) per arm at the median of the
+#>                      3 arm(s)
+#>   dose routes        iv and extravascular; given as a bolus
+#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
+#>                      early, so every generated patient completes its arm's
+#>                      schedule
+#>   visit attendance   17 grid cell(s) over 1 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 100%, from 100% to 100%. That is
+#>                      the whole model of a missed observation.
+#>   covariates         WT lognormal, each drawn per arm from the source's own
+#>                      distribution and independently of the profiles
+#>   discrete endpoints 51 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,
+#>                      ARM
+#> 
+#> How the concentration endpoint was decided
+#>   endpoint           DV (inferred) 
+#>  endpoint compartment post_dose shape proportional
+#>        DV        TRUE      TRUE  TRUE           NA
+#> 
+#>   compartment: measured where the doses go, or one compartment above a
+#>   dosing compartment nobody observes. post_dose: absent before each
+#>   subject's own first dose. shape: the cohort's median profile rises to one
+#>   peak and comes back down. proportional: the peak at the highest dose
+#>   level scales with the dose against the lowest. `post_dose` and
+#>   `proportional` are the two that decide; `compartment` and `shape` break a
+#>   tie between endpoints that pass both. NA is a signal this study cannot
+#>   compute: `proportional` needs two dose levels several patients share, and
+#>   `shape` needs three sampling times in one dose interval.
+#>   design             declared through `adm` and `routes`: iv and extravascular doses in one study 
+#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 3 after the peak): ask for it with `pk = "2cmt_iv"` 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>         WT        ka     -0.1433
+#>         WT         v     -0.0698
+#>         WT        cl      0.0053
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
+```
+
+``` r
+
+truth <- c(cl = 2, v = 10, ka = 0.5, f = 0.7)
+fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
+data.frame(truth = truth, fitted = round(fitted, 3),
+           ratio = round(fitted / truth, 2))
+#>    truth fitted ratio
+#> cl   2.0  2.434  1.22
+#> v   10.0 11.836  1.18
+#> ka   0.5  0.552  1.10
+#> f    0.7  0.740  1.06
+```
+
+![](pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png)
+
+``` r
+
+card_verdicts(mixroute_run$card)
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.82 on WT (furthest of 2) | review |
+
+14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails, and bioavailability is recovered — which is the whole
+point of fitting the two routes as one study rather than two. `f` is
+identifiable here *because* the same study doses both ways; on either
+arm alone it is confounded with clearance and volume and cannot be
+estimated at all. It is fitted as a fixed effect with no between-subject
+term, because a design with one dose each way identifies the contrast
+between the routes and not a distribution over it.
+
+## onc_sim: a slow endpoint, and a concentration sampled only at troughs
+
+Two hundred patients, a year of daily everolimus, tumour size beside
+trough concentrations. Two things here defeat the parts of this
+generator that read a curve.
+
+**Both endpoints look like concentrations, and neither signal separates
+them.** Tumour size is absent before the first dose and its dose
+proportionality is not computable, which is exactly the pattern a
+concentration shows, so the classification refuses rather than guessing
+and names `endpoint_roles`. That is the right refusal: tumour size is
+not a drug concentration, and fitting it a one-compartment model would
+be worse than useless.
+
+**The concentration is sampled only at troughs.** The starting values
+are a non-compartmental read of the median profile, which needs a peak
+and a terminal slope; a trough series has neither, and the absorption
+rate started two orders of magnitude from everolimus’s own.
+`start_param` states what is known about the compound instead, and the
+clearance and volume are still read off the curve.
+
+``` r
+
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_run <- model_run("onc_sim", onc_sim, onc_roles, "onc-sim-model-fit.rds",
+                     seed = 808)
+onc_run$fit
+#> A fitted PMX model, from synpmx_model_estimate()
+#> Everything below is an input to `synpmx_model_generate()`.
+#> 
+#>   candidates fitted  2 (1cmt_oral selected on AIC) 
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          60 of 200 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 0.4461, v 1.043, ka 4.468 
+#>   between-subject    cl 0.454, v 0.408, ka 0.316 (as SD on the log scale)
+#>   starting values    ka 5 declared through `start_param`; the rest were
+#>                      read off the cohort's median profile
+#>   residual error     proportional 0.204 
+#>   time to fit        5 min 3 s (5 min 9 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 3 min 27 s, 1cmt_iv 1 min 36 s
+#>                      least squares: SLD 0.0 s
+#>   covariate effects  none 
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   SLD                linear: baseline 15.9, slope -0.005006;
+#>                      between-subject 0.328 (SD on the log baseline);
+#>                      residual additive 1.46; chosen on AIC from constant,
+#>                      linear, exponential
+#> 
+#> Values at the bottom of the scale
+#>   Reported below the assay limit:
+#>     Everolimus trough  203 of 1167 (17%) below 1 (the limit)
+#>   `Everolimus trough` was fitted with those rows censored: each enters the
+#>   likelihood as the probability of falling below the limit, not as a value
+#>   nobody measured. Any other endpoint here reads a uniform draw below the
+#>   limit instead, because its shape is a least-squares fit with no
+#>   likelihood to put censoring in. At generation the boundary goes back, and
+#>   a synthetic value below the limit is written out censored the way the
+#>   study recorded it.
+#>   No assay limit declared, so nothing is generated below:
+#>     SLD                1.315
+#>   Half the smallest value of each endpoint is reported above and used as a
+#>   floor for the synthetic data. A simulated profile that falls below that
+#>   floor is set to it.
+#> 
+#> Summarized from the source, not estimated
+#>   cohort             200 patients in 2 arm(s): Everolimus 10 mg (134),
+#>                      Placebo (66)
+#>   dose schedule      one schedule per arm rather than one pooled across the
+#>                      study; 421 planned cycle(s) per arm at the median of
+#>                      the 2 arm(s)
+#>   dose changes       per planned cycle, a patient may reduce to the next
+#>                      dose level, skip that cycle, or stop treatment for
+#>                      good, at these rates:
+#>       Everolimus 10 mg   reduce 0%, skip 0%, stop early 0% (2 dose level(s))
+#>       Placebo            reduce 0%, skip 15%, stop early 0% (1 dose level(s))
+#>   visit attendance   30 grid cell(s) over 2 endpoint(s). A generated
+#>                      patient attends each with the frequency its arm
+#>                      attended it: median 71%, from 0% to 100%. That is the
+#>                      whole model of a missed observation.
+#>   covariates         BSLD lognormal, AGE lognormal, SEX categorical, each
+#>                      drawn per arm from the source's own distribution and
+#>                      independently of the profiles
+#>   discrete endpoints 43 grid cell(s) whose values are drawn from the
+#>                      frequencies the source recorded there, rather than
+#>                      simulated
+#>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, NAME, CENS, ADDL,
+#>                      II, BSLD, AGE, SEX, ARM, CROSSOVER
+#> 
+#> How the concentration endpoint was decided
+#>   endpoint           Everolimus trough (declared) 
+#>           endpoint compartment post_dose shape proportional
+#>  Everolimus trough        TRUE      TRUE    NA           NA
+#>                SLD       FALSE      TRUE    NA           NA
+#> 
+#>   compartment: measured where the doses go, or one compartment above a
+#>   dosing compartment nobody observes. post_dose: absent before each
+#>   subject's own first dose. shape: the cohort's median profile rises to one
+#>   peak and comes back down. proportional: the peak at the highest dose
+#>   level scales with the dose against the lowest. `post_dose` and
+#>   `proportional` are the two that decide; `compartment` and `shape` break a
+#>   tie between endpoints that pass both. NA is a signal this study cannot
+#>   compute: `proportional` needs two dose levels several patients share, and
+#>   `shape` needs three sampling times in one dose interval.
+#>   design             too few distinct sampling times to place a peak 
+#> 
+#> Covariate against the individual random effects
+#>  covariate parameter correlation
+#>        AGE         v      -0.286
+#>        AGE        cl       0.266
+#>        AGE        ka       0.259
+#>       BSLD        cl       0.028
+#>       BSLD         v      -0.027
+#> 
+#>   A covariate that moves with a random effect and is not in the model above
+#>   is generated independently of the profiles, so the synthetic data carries
+#>   no relationship between them. `synpmx_avatar()` keeps those relationships
+#>   without modelling them.
+```
+
+The stored fit above was built with
+`endpoint_roles = c(pk = "Everolimus trough")` and
+`start_param = c(ka = 5)`; `scripts/build-model-fits.R` has the call.
+Tumour size becomes the PD endpoint and is fitted a time course.
+
+``` r
+
+truth <- c(cl = 0.470, v = 0.850, ka = 5)
+fitted <- onc_run$fit$parameters$fixed[names(truth)]
+data.frame(truth = truth, fitted = round(fitted, 3),
+           ratio = round(fitted / truth, 2))
+#>    truth fitted ratio
+#> cl  0.47  0.446  0.95
+#> v   0.85  1.043  1.23
+#> ka  5.00  4.468  0.89
+```
+
+![](pmxmodel-public-data-examples_files/figure-html/onc-plot-1.png)
+
+``` r
+
+card_verdicts(onc_run$card)
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 327 -\> 281 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.1 on AGE (furthest of 4) | review |
+
+13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails. Read the tumour endpoint against what it is, though: a PD
+time course here is a function of time with no exposure term and no dose
+term, pooled across arms unless `pd_by_arm = TRUE`. The source’s placebo
+and 10 mg arms diverge because the dose drives the tumour; the generated
+ones follow one shape. The dose history is faithfully reproduced and the
+endpoint that responds to it is not, and on this study that gap is the
+whole scientific content.
+
+## What the ten runs held
 
 ``` r
 
@@ -1311,8 +1730,10 @@ knitr::kable(inventory, row.names = FALSE,
 | theo_md | 12 | 1cmt_oral | cl 2.86, v 34.2, ka 1.46 | proportional 0.217 |
 | nimoData | 12 | 1cmt_infusion | cl 0.13, v 42.6 | proportional 0.468 |
 | pheno_sd | 59 | 1cmt_iv | cl 0.00613, v 1.31 | proportional 0.118 |
+| mixroute_sim | 90 | 1cmt_mixed | cl 2.43, v 11.8, ka 0.552, f 0.74 | proportional 0.292 |
+| onc_sim | 200 | 1cmt_oral | cl 0.446, v 1.04, ka 4.47 | proportional 0.204 |
 
-What each fit carries out of its study. {.table}
+What each fit carries out of its study. {.table style="width:100%;"}
 
 ``` r
 
@@ -1327,30 +1748,32 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the eight runs.")
+             caption = "Scorecard verdicts across the ten runs.")
 ```
 
-| Dataset     | pass | review | FAIL | not applicable | Failing |
-|:------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd  |   11 |      2 |    0 |              5 |         |
-| mad         |   12 |      1 |    0 |              5 |         |
-| warfarin    |   12 |      1 |    0 |              5 |         |
-| wbcSim      |   10 |      3 |    0 |              5 |         |
-| mavoglurant |   10 |      3 |    0 |              5 |         |
-| theo_md     |   12 |      1 |    0 |              5 |         |
-| nimoData    |   12 |      1 |    0 |              5 |         |
-| pheno_sd    |   11 |      2 |    0 |              5 |         |
+| Dataset      | pass | review | FAIL | not applicable | Failing |
+|:-------------|-----:|-------:|-----:|---------------:|:--------|
+| case1_pkpd   |   13 |      2 |    0 |              5 |         |
+| mad          |   14 |      1 |    0 |              5 |         |
+| warfarin     |   14 |      1 |    0 |              5 |         |
+| wbcSim       |   12 |      3 |    0 |              5 |         |
+| mavoglurant  |   12 |      3 |    0 |              5 |         |
+| theo_md      |   14 |      1 |    0 |              5 |         |
+| nimoData     |   14 |      1 |    0 |              5 |         |
+| pheno_sd     |   13 |      2 |    0 |              5 |         |
+| mixroute_sim |   14 |      1 |    0 |              5 |         |
+| onc_sim      |   13 |      2 |    0 |              5 |         |
 
-Scorecard verdicts across the eight runs. {.table}
+Scorecard verdicts across the ten runs. {.table}
 
-No card fails on any of the eight. Five rows on each read
-`not applicable` for the reasons given under `case1_pkpd`, and the rows
-that ask to be read are `A5a`, `A5b` and `D1` — how many observations
-and occasions each patient kept, and how far a spread moved.
+No card fails on any of the ten. Five rows on each read `not applicable`
+for the reasons given under `case1_pkpd`, and the rows that ask to be
+read are `A5a`, `A5b` and `D1` — how many observations and occasions
+each patient kept, and how far a spread moved.
 
 ## What is preserved, and what is not
 
-Preserved on all eight: the schema and event grammar, the cohort and arm
+Preserved on all ten: the schema and event grammar, the cohort and arm
 sizes, the nominal grid the study declared, one dose schedule per arm,
 the covariate marginals, and the guarantee B4b measures — no value any
 patient measured is reproduced.

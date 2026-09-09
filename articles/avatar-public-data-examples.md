@@ -178,11 +178,22 @@ both `Suggests` of this package.
 | `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions, recorded at the times they happened |
 | `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period crossover, `TIME` resetting within `OCC`, an occasion-varying assigned dose, infusion rows. |
 | `pheno_sd` | nlmixr2data | 59 | 744 | 1 | Neonatal phenobarbital, individualised dosing, sparse irregular sampling, time-varying weight. |
+| `mixroute_sim` | **synpmx** | 90 | 1800 | 1 | Three arms dosed intravenously, subcutaneously, and both. A declared `ADM`, and a known bioavailability |
+| `onc_sim` | **synpmx** | 200 | 3379 | 2 | Tumour size over a year beside trough concentrations, crossover on progression, dose reduction, and a daily regimen written with `ADDL`/`II` |
 
-**None of these datasets uses steady state, `ADDL`, or `II`.** Every
-dose is written out as its own row, so the handling of compressed dose
-records is exercised by the package’s tests rather than by anything
-below.
+The last two are simulated by `synpmx` itself rather than public package
+data, and they are here because the eight above have no example of what
+they carry: an administration column, a dose that changes within a
+patient for reasons that patient’s own data explains, an endpoint
+measured over months against a per-patient baseline, and compressed dose
+records. Being simulated, they also have a **written-down truth**, so a
+section can say how close a generator came rather than only that it ran.
+[`?mixroute_sim`](https://iamstein.github.io/synpmx/reference/mixroute_sim.md)
+and [`?onc_sim`](https://iamstein.github.io/synpmx/reference/onc_sim.md)
+give the models and their parameters.
+
+**Only `onc_sim` uses `ADDL` and `II`, and none uses steady state.**
+Every dose in the eight public datasets is written out as its own row.
 
 ## Shared workflow
 
@@ -195,18 +206,25 @@ Every example follows the same five steps:
 3.  plot the real and synthetic data;
 4.  plot the observation (DV) and baseline covariate distributions,
     source against synthetic
-5.  report the score card for the synthetic dataset.
+5.  report the score card’s verdicts, and the rows that are not a pass.
 
-The scorecard marks each check `pass`, `FAIL`, or `review`. A `review`
-row is one where the pharmacometrician could evaluate whether the output
-is acceptable for use. If the synthetic dataset will not be crossing a
-trust boundary, items marked `review` are acceptable.
+The scorecard marks each check `pass`, `FAIL`, `review`, or
+`not applicable`. A `review` row is one where the pharmacometrician
+could evaluate whether the output is acceptable for use. If the
+synthetic dataset will not be crossing a trust boundary, items marked
+`review` are acceptable.
 
 **No dataset here fails a check**, which is a thing to be careful about
 rather than reassured by. `nimoData`, on B1b, previously failed, and its
-section shows what fixing the issue involved. Every card carries five or
-six `review` rows instead, and those are where the eight datasets
-actually differ. The runs below are quiet:
+section shows what fixing the issue involved. Every card carries a
+handful of `review` rows instead, and those are where the ten datasets
+actually differ — so each section below prints the tally and *only*
+those rows. Ten full cards side by side is what the closing tables are
+for, and reading one card end to end is what
+[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+is for.
+
+The runs below are quiet:
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 prints an alert for every exposure it could not remove, and eighteen of
 those blocks would say what the scorecard and
@@ -255,9 +273,17 @@ compare_pmx_distributions(case1_pkpd, case1_synth, case1_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(case1_pkpd, case1_synth, case1_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(case1_pkpd, case1_synth, case1_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| D1 | Values landing in the same range | sd x0.64 on PD - Continuous (furthest of 3) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and C1 passes: all six treatment arms keep their source
 size. An avatar never leaves the arm it was anchored in, because
@@ -335,9 +361,17 @@ compare_pmx_distributions(mad, mad_synth, mad_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(mad, mad_synth, mad_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(mad, mad_synth, mad_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| D1 | Values landing in the same range | sd x0.6 on WEIGHTB (furthest of 6) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
 row count: row counts stayed plausible in the defect that motivated the
@@ -412,8 +446,8 @@ knitr::kable(
 Values taken by the three discrete endpoints. {.table}
 
 A6 in the scorecard above is the check on it, and it reads the finished
-table rather than trusting the mechanism. It is on every card; the seven
-studies before this one have no discrete endpoint, so theirs read
+table rather than trusting the mechanism. It is on every card; the nine
+other studies here have no discrete endpoint, so theirs read
 `no discrete endpoint` and pass.
 
 Two limits. The type is inferred, so an endpoint whose values are whole
@@ -451,9 +485,17 @@ compare_pmx_distributions(theo_md, theo_synth, theo_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(theo_md, theo_synth, theo_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(theo_md, theo_synth, theo_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| D1 | Values landing in the same range | sd x0.55 on WT (furthest of 2) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -490,9 +532,17 @@ compare_pmx_distributions(warfarin, warfarin_synth, warfarin_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| D1 | Values landing in the same range | sd x0.43 on age (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
 declared as the `dose_covariate` and each avatar’s `amt` is rebuilt from
@@ -528,9 +578,20 @@ compare_pmx_distributions(wbcSim, wbc_synth, wbc_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(wbcSim, wbc_synth, wbc_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(wbcSim, wbc_synth, wbc_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 3.91 -\> 3.62 | review |
+| A5b | Doses per patient | 1.16 -\> 1 | review |
+| C2 | Distinct dose-time schedules represented | 2 of 4 | review |
+| D1 | Values landing in the same range | sd x0.64 on DV (furthest of 1) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+14 pass, 4 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.
@@ -609,9 +670,19 @@ compare_pmx_distributions(nimoData, nimo_synth, nimo_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(nimoData, nimo_synth, nimo_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(nimoData, nimo_synth, nimo_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 10 -\> 1.58 | review |
+| C2 | Distinct dose-time schedules represented | 7 of 12 | review |
+| D1 | Values landing in the same range | sd x0.38 on AGE (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 **Nothing fails, and the dataset is still not shippable.** A5b is the
 row to read: doses per patient falls from 10 to 1.58, nowhere near the
@@ -902,9 +973,18 @@ compare_pmx_distributions(mavoglurant, mavo_synth, mavo_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 1.65 -\> 1.57 | review |
+| D1 | Values landing in the same range | sd x0.51 on HT (furthest of 5) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+16 pass, 2 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and B2 is the row this study used to break. Recorded
 follow-up length is bimodal here, because `TIME` restarts within `OCC`
@@ -983,9 +1063,19 @@ compare_pmx_distributions(pheno_sd, pheno_synth, pheno_roles)
 
 ``` r
 
-scorecard <- synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles)
-synpmx_scorecard_datatable(scorecard)
+card_verdicts(synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles))
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 9.98 -\> 5.63 | review |
+| C2 | Distinct dose-time schedules represented | 35 of 56 | review |
+| D1 | Values landing in the same range | sd x0.44 on WT (furthest of 3) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+{.table}
 
 **Nothing fails, and the two rows that moved say what reaching that
 cost.** Doses per patient falls from 9.98 to 5.63 in A5b, and 35 of the
@@ -1062,13 +1152,169 @@ that could not be masked. An avatar is never anchored outside the arm it
 was allocated to, so an arm whose dosing is individualised fails rather
 than borrowing patients from an arm whose dosing is not.
 
+## mixroute_sim: one study, two routes
+
+Ninety patients in three arms of thirty — intravenous only, subcutaneous
+only, and an intravenous loading dose followed by subcutaneous
+maintenance. The third arm is why the dataset exists: no public dataset
+in this survey has an administration column at all, and route of
+administration is the one structural axis AVATAR will never blend
+across.
+
+``` r
+
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_synth <- suppressWarnings(
+  synpmx_avatar(mixroute_sim, mixroute_roles, seed = 808)
+)
+```
+
+![](avatar-public-data-examples_files/figure-html/mixroute-plot-1.png)
+
+``` r
+
+compare_pmx_distributions(mixroute_sim, mixroute_synth, mixroute_roles)
+```
+
+![](avatar-public-data-examples_files/figure-html/mixroute-distributions-1.png)
+
+``` r
+
+card_verdicts(synpmx_scorecard(mixroute_sim, mixroute_synth, mixroute_roles))
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| D1 | Values landing in the same range | sd x0.66 on WT (furthest of 2) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails, and the arm-by-route table is the check worth making by
+hand, because it is the one thing this dataset is here to test:
+
+``` r
+
+dosed <- function(data) data[data$EVID == 1L, ]
+list(source = table(dosed(mixroute_sim)$ARM, dosed(mixroute_sim)$ADM),
+     synthetic = table(dosed(mixroute_synth)$ARM, dosed(mixroute_synth)$ADM))
+#> $source
+#>             
+#>               1  2
+#>   IV only    90  0
+#>   IV then SC 30 60
+#>   SC only     0 90
+#> 
+#> $synthetic
+#>             
+#>               1  2
+#>   IV only    90  0
+#>   IV then SC 30 60
+#>   SC only     0 90
+```
+
+Every avatar carries its anchor’s route, and the arm that receives both
+keeps both. That is `.route_key()` doing its job — an avatar is blended
+only from donors dosed the same way, and a patient dosed both ways is
+its own route class, matching neither the intravenous-only nor the
+subcutaneous-only patients.
+
+## onc_sim: a year of daily dosing, compressed
+
+Two hundred patients shaped like the phase 3 RECORD-1 trial of
+everolimus, following the tumour-growth model of Stein et al. (2012).
+Patients are randomised to 10 mg daily or to placebo; most placebo
+patients cross over on progression, and about a quarter of the
+everolimus arm reduce to 5 mg, some after an interruption. Tumour size
+is measured roughly six-weekly over a year, with trough concentrations
+alongside.
+
+Three things here that nothing else in this survey has: an endpoint
+anchored on a per-patient baseline and measured over months, a dose that
+changes within a patient for reasons that patient’s own data explains,
+and a regimen written with `ADDL` and `II` rather than one row per dose.
+
+``` r
+
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_synth <- suppressWarnings(synpmx_avatar(onc_sim, onc_roles, seed = 808))
+```
+
+The compressed dose records are the reason this runs at all. Written
+out, the study is 71,180 doses; as `ADDL`/`II` blocks it is 322 records,
+and
+[`pmx_expand_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+writes them out on the way in so the dose skeleton sees every dose, then
+folds them back on the way out:
+
+``` r
+
+records <- function(data) {
+  d <- data[data$EVID == 1L, ]
+  c(records = nrow(d), doses = sum(d$ADDL + 1L))
+}
+rbind(source = records(onc_sim), synthetic = records(onc_synth))
+#>           records doses
+#> source        322 71180
+#> synthetic     305 66668
+```
+
+![](avatar-public-data-examples_files/figure-html/onc-plot-1.png)
+
+``` r
+
+compare_pmx_distributions(onc_sim, onc_synth, onc_roles)
+```
+
+![](avatar-public-data-examples_files/figure-html/onc-distributions-1.png)
+
+``` r
+
+card_verdicts(synpmx_scorecard(onc_sim, onc_synth, onc_roles))
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 327 -\> 304 | review |
+| C2 | Distinct dose-time schedules represented | 21 of 26 | review |
+| D1 | Values landing in the same range | sd x0.67 on AGE (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails. The synthetic study comes back in the encoding its source
+used — one record per constant-dose run, carrying `ADDL` and `II` —
+which is what makes it readable by whatever read the real one.
+
+What this dataset shows that the others cannot is the cost of copying a
+dose schedule verbatim. An avatar’s doses come from one anchor, so a
+synthetic patient’s crossover time, reduction and interruption are one
+real patient’s, and the tumour trajectory blended onto that skeleton
+came from neighbours. On a study where the dose history is the exposure
+and the exposure is the effect, that pairing is the thing to look at
+before using the output.
+
 ## How well did the obfuscation work?
 
 Everything above shows that the synthetic data *looks* right. This
 section asks the other question: how much of each real patient is still
 visible in it?
 
-### Exposure across the eight datasets
+### Exposure across the ten datasets
 
 Each dataset above carries its own accounting. This section puts the
 same quantities in one place, because the *contrast* between datasets is
@@ -1099,7 +1345,9 @@ exposure <- rbind(
   exposure_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
   exposure_row("nimoData", nimoData, nimo_roles, nimo_synth),
   exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
+  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+  exposure_row("mixroute_sim", mixroute_sim, mixroute_roles, mixroute_synth),
+  exposure_row("onc_sim", onc_sim, onc_roles, onc_synth)
 )
 knitr::kable(
   exposure,
@@ -1121,6 +1369,8 @@ knitr::kable(
 | nimoData | 12 | 12 | 12 | 12 | 0 |
 | mavoglurant | 120 | 72 | 64 | 11 | 53 |
 | pheno_sd | 59 | 56 | 54 | 14 | 40 |
+| mixroute_sim | 90 | 90 | 0 | 0 | 0 |
+| onc_sim | 200 | 1 | 1 | 0 | 1 |
 
 Source subjects holding a visit schedule no other subject shares, before
 and after time coarsening. The last two columns split the ‘after’ count
@@ -1168,7 +1418,9 @@ knitr::kable(
     cost_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
     cost_row("nimoData", nimoData, nimo_roles, nimo_synth),
     cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
+    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+    cost_row("mixroute_sim", mixroute_sim, mixroute_roles, mixroute_synth),
+    cost_row("onc_sim", onc_sim, onc_roles, onc_synth)
   ),
   caption = paste(
     "What the masking removed. The first three counts are patients excluded",
@@ -1188,10 +1440,13 @@ knitr::kable(
 | nimoData | 12 | 0 | 0 | 12 | 12 | 2 | 2 | — |
 | mavoglurant | 120 | 0 | 0 | 120 | 73 | 2 | 2 | — |
 | pheno_sd | 59 | 0 | 0 | 59 | 56 | 3 | 3 | — |
+| mixroute_sim | 90 | 0 | 0 | 90 | 3 | 0 | 0 | — |
+| onc_sim | 200 | 0 | 0 | 200 | 6 | 1 | 1 | — |
 
 What the masking removed. The first three counts are patients excluded
 from the anchor pool; `Patterns` counts distinct visit sets in the
-source and `Patterns lost` those too rare to be reused. {.table}
+source and `Patterns lost` those too rare to be reused. {.table
+style="width:100%;"}
 
 Three columns in this table need reading with care.
 
@@ -1287,7 +1542,9 @@ knitr::kable(
     proximity_row("wbcSim", wbcSim, wbc_synth, wbc_roles),
     proximity_row("nimoData", nimoData, nimo_synth, nimo_roles),
     proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles),
-    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles)
+    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles),
+    proximity_row("mixroute_sim", mixroute_sim, mixroute_synth, mixroute_roles),
+    proximity_row("onc_sim", onc_sim, onc_synth, onc_roles)
   ),
   caption = paste(
     "Nearest-neighbour adversarial accuracy against a split-half null built",
@@ -1296,16 +1553,18 @@ knitr::kable(
 )
 ```
 
-| Dataset     | Adversarial accuracy | Null lower | Null upper | Per side |
-|:------------|---------------------:|-----------:|-----------:|---------:|
-| case1_pkpd  |                0.600 |      0.426 |      0.559 |       90 |
-| mad         |                0.583 |      0.350 |      0.605 |       30 |
-| theo_md     |                0.500 |      0.167 |      0.773 |        6 |
-| warfarin    |                0.438 |      0.216 |      0.719 |       16 |
-| wbcSim      |                0.477 |      0.335 |      0.632 |       22 |
-| nimoData    |                0.250 |      0.167 |      0.773 |        6 |
-| mavoglurant |                0.617 |      0.402 |      0.577 |       60 |
-| pheno_sd    |                0.466 |      0.353 |      0.596 |       29 |
+| Dataset      | Adversarial accuracy | Null lower | Null upper | Per side |
+|:-------------|---------------------:|-----------:|-----------:|---------:|
+| case1_pkpd   |                0.600 |      0.426 |      0.559 |       90 |
+| mad          |                0.583 |      0.350 |      0.605 |       30 |
+| theo_md      |                0.500 |      0.167 |      0.773 |        6 |
+| warfarin     |                0.438 |      0.216 |      0.719 |       16 |
+| wbcSim       |                0.477 |      0.335 |      0.632 |       22 |
+| nimoData     |                0.250 |      0.167 |      0.773 |        6 |
+| mavoglurant  |                0.617 |      0.402 |      0.577 |       60 |
+| pheno_sd     |                0.466 |      0.353 |      0.596 |       29 |
+| mixroute_sim |                0.556 |      0.408 |      0.632 |       45 |
+| onc_sim      |                0.565 |      0.424 |      0.551 |      100 |
 
 Nearest-neighbour adversarial accuracy against a split-half null built
 from the source cohort itself. 0.5 is the target. {.table}
@@ -1324,7 +1583,7 @@ verbatim copy and requiring it to object.
 **The unique-schedule count after coarsening is the number of patients
 you would consider dropping**, and the split by cause decides whether
 dropping is even the right response. Each dataset section above works
-through its own numbers; the pattern across all eight is what matters
+through its own numbers; the pattern across all ten is what matters
 here.
 
 The spread runs from **`case1_pkpd`, where 180 patients on a declared

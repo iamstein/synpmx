@@ -23,7 +23,7 @@ times, the declared occasion, or an occasion-relative clock. One cannot:
 generator refuses.
 
 Seven runs follow, then three cross-dataset tables and one finding — the
-copy check that fails on two of the seven, and what it does and does not
+copy check that fails on two of the nine, and what it does and does not
 mean.
 
 Plotting and reporting helpers used throughout this vignette
@@ -127,6 +127,15 @@ is about.
 | `nimoData` | nlmixr2data | 12 | 1 | Constructed from the declared occasion and time after dose |
 | `mavoglurant` | nlmixr2data | 120 | 1 | Constructed by snapping an occasion-relative clock |
 | `pheno_sd` | nlmixr2data | 59 | 1 | **None.** Routine care, individualised dosing — refused |
+| `mixroute_sim` | **synpmx** | 90 | 1 | Declared. Ships an `NTIME` column, and an `ADM` for the route |
+| `onc_sim` | **synpmx** | 200 | 2 | Declared. Scans and troughs are planned, so `NTIME` is the recorded day |
+
+The last two are simulated by `synpmx` rather than public package data,
+and carry what the eight above do not: a declared administration column,
+and a daily regimen written with `ADDL`/`II`. See
+[`?mixroute_sim`](https://iamstein.github.io/synpmx/reference/mixroute_sim.md)
+and
+[`?onc_sim`](https://iamstein.github.io/synpmx/reference/onc_sim.md).
 
 ## Shared workflow
 
@@ -187,8 +196,8 @@ This is the sharpest difference between the two generators.
 derives a grid from the recorded times when none is declared, and on
 `pheno_sd` that derivation does real work.
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
-has no such fallback, and the seven runs below are the seven studies
-where a grid could honestly be supplied.
+has no such fallback, and the nine runs below are the nine studies where
+a grid could honestly be supplied.
 
 ## case1_pkpd: a declared nominal grid
 
@@ -224,8 +233,23 @@ compare_pmx_distributions(case1$source, case1$synthetic, case1_roles)
 
 ``` r
 
-synpmx_scorecard_datatable(case1$card)
+card_verdicts(case1$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 30.7 -\> 29 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.96 on PK Concentration (furthest of 3) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+11 pass, 2 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails. The figure above is on a linear axis over the whole
 study, which is the structural view: both endpoints present, on the same
@@ -300,8 +324,22 @@ mad_run <- pca_run("mad", mad, mad_roles, seed = 909)
 
 ``` r
 
-synpmx_scorecard_datatable(mad_run$card)
+card_verdicts(mad_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.3 on PD - Count (furthest of 6) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+12 pass, 1 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is the
 check that the discrete endpoints kept their scale, and it reads the
@@ -385,8 +423,22 @@ compare_pmx_distributions(warfarin_run$source, warfarin_run$synthetic,
 
 ``` r
 
-synpmx_scorecard_datatable(warfarin_run$card)
+card_verdicts(warfarin_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.75 on wt (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+12 pass, 1 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 **B4a fails here**, and it is the first of the two datasets that does.
 One generated subject’s complete list of observation times equals a real
@@ -416,8 +468,24 @@ wbc_run <- pca_run("wbcSim", wbcSim, wbc_roles, seed = 505)
 
 ``` r
 
-synpmx_scorecard_datatable(wbc_run$card)
+card_verdicts(wbc_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 3.91 -\> 3.53 | review |
+| A5b | Doses per patient | 1.16 -\> 1 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.76 on DV (furthest of 1) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+10 pass, 3 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 The figure is cut at 700 h because a handful of source patients are
 followed to 4580 h and the rest are not. Those late visits are exactly
@@ -493,8 +561,22 @@ theo_run <- pca_run("theo_md", theo_md, theo_roles, seed = 303)
 
 ``` r
 
-synpmx_scorecard_datatable(theo_run$card)
+card_verdicts(theo_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.67 on WT (furthest of 2) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+12 pass, 1 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 Nothing fails, on twelve subjects. The cap holds the basis to two
 components here — a fifth of the cohort — which is what stops a basis
@@ -573,8 +655,22 @@ nimo_run <- pca_run("nimoData", nimoData, nimo_roles, seed = 606)
 
 ``` r
 
-synpmx_scorecard_datatable(nimo_run$card)
+card_verdicts(nimo_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.23 on BSA (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+12 pass, 1 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 **The dosing comes through in full**, which is the contrast worth
 drawing with the AVATAR run on this study. There, reaching the B1b
@@ -639,8 +735,24 @@ mavo_run <- pca_run("mavoglurant", mavoglurant, mavo_roles, seed = 707)
 
 ``` r
 
-synpmx_scorecard_datatable(mavo_run$card)
+card_verdicts(mavo_run$card)
 ```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5a | Observations per patient | 20.2 -\> 11.2 | review |
+| A5b | Doses per patient | 1.65 -\> 1 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.79 on HT (furthest of 5) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+10 pass, 3 review, 7 not applicable. The rows that are not a pass:
+{.table}
 
 **This is the most expensive construction in the vignette, and A5a says
 so**: 20.2 observations per patient in the source against 11.2 in the
@@ -689,7 +801,153 @@ and the [AVATAR
 evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs it.
 
-## What the seven runs held
+## mixroute_sim: a grid that is already the protocol’s
+
+Ninety patients in three arms — intravenous, subcutaneous, and
+intravenous then subcutaneous. Its `NTIME` is the protocol’s planned
+time and ships with the dataset, so nothing has to be constructed. What
+it is here to test is the route: PCA does not model a route, and until
+it carried one, a declared `ADM` was dropped from the output entirely
+and the generated table could not be validated at all.
+
+``` r
+
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_run <- pca_run("mixroute_sim", mixroute_sim, mixroute_roles, seed = 808)
+```
+
+![](pca-public-data-examples_files/figure-html/mixroute-plot-1.png)
+
+``` r
+
+card_verdicts(mixroute_run$card)
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x0.87 on WT (furthest of 2) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+12 pass, 1 review, 7 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails. The route comes back because each generated dose enters
+the compartment its own route doses into — `.draw_schedule()` carries
+the route of every planned dose, and the administration id is written
+from it:
+
+``` r
+
+dosed <- function(data) data[data$EVID == 1L, ]
+list(source = table(dosed(mixroute_sim)$ARM, dosed(mixroute_sim)$ADM),
+     synthetic = table(dosed(mixroute_run$synthetic)$ARM,
+                       dosed(mixroute_run$synthetic)$ADM))
+#> $source
+#>             
+#>               1  2
+#>   IV only    90  0
+#>   IV then SC 30 60
+#>   SC only     0 90
+#> 
+#> $synthetic
+#>             
+#>               1  2
+#>   IV only    90  0
+#>   IV then SC 30 60
+#>   SC only     0 90
+```
+
+The arm dosed both ways keeps both, because the route is a property of
+each planned cycle in the arm’s dosing model rather than of the arm.
+
+## onc_sim: a dose that changes for reasons the patient’s data explains
+
+Two hundred patients, a year of daily everolimus, tumour size beside
+trough concentrations. Most placebo patients cross over on progression
+and about a quarter of the treated arm reduce their dose, so the dose
+history is neither constant nor protocol-driven — it is a response to
+what happened to that patient.
+
+``` r
+
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_run <- pca_run("onc_sim", onc_sim, onc_roles, seed = 808)
+```
+
+![](pca-public-data-examples_files/figure-html/onc-plot-1.png)
+
+``` r
+
+card_verdicts(onc_run$card)
+```
+
+| check | question | result | verdict |
+|:---|:---|:---|:---|
+| A5b | Doses per patient | 327 -\> 286 | review |
+| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
+| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
+| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
+| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
+| C2 | Distinct dose-time schedules represented | no run record | not applicable |
+| D1 | Values landing in the same range | sd x1.1 on Everolimus trough (furthest of 4) | review |
+| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
+| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
+
+11 pass, 2 review, 7 not applicable. The rows that are not a pass:
+{.table}
+
+Nothing fails, and one row is worth reading against the source rather
+than against a threshold. A5b — doses per patient — moves from 327 to
+286. That is counted on the doses, not on the records they are written
+in: both tables are expanded before the card is scored, so `ADDL` and
+`II` cannot flatter or distort it. The records themselves tell a
+different story:
+
+``` r
+
+records <- function(data) {
+  d <- data[data$EVID == 1L, ]
+  c(records = nrow(d), doses = sum(d$ADDL + 1L))
+}
+rbind(source = records(onc_sim), synthetic = records(onc_run$synthetic))
+#>           records doses
+#> source        322 71180
+#> synthetic    2367 63030
+```
+
+The doses are close and the *encoding* is not: 2,367 records where the
+source has 322. The dosing model draws a reduction, a skip or a
+discontinuation independently at each planned cycle, and this study’s
+cycle is one day, so a synthetic patient’s dose flickers between levels
+where a real patient held one dose for months and changed it once. The
+regimen is close to right on average and wrong in its runs, and because
+[`pmx_compress_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
+writes each constant run as its own record, the record count is what
+makes it visible — which is exactly why A5b counts doses instead, and
+why the two numbers have to be read together.
+
+That is a fair description of what the model is: per-cycle hazards, with
+no memory of how long a patient has been at a dose. On a study dosed
+every three weeks it is a good description of dose reduction. On one
+dosed daily it is not, and this is the dataset that says so.
+
+## What the nine runs held
 
 The trial summary is the whole of what leaves the source, so its size
 across seven studies is worth one table.
@@ -733,6 +991,8 @@ knitr::kable(
 | theo_md | 12 | 1 | 27 | 2 | 185 | 12 | sparsest grid cell |
 | nimoData | 12 | 1 | 41 | 2 | 272 | 9 | sparsest grid cell |
 | mavoglurant | 120 | 1 | 18 | 7 | 254 | 19 | sparsest grid cell |
+| mixroute_sim | 90 | 3 | 18 | 5 | 269 | 30 | smallest arm |
+| onc_sim | 200 | 2 | 31 | 9 | 2221 | 51 | sparsest grid cell |
 
 What each run read out of its source. `Numbers held` is every quantity
 in the trial summary; `Fewest patients` is the smallest number of
@@ -771,20 +1031,22 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the seven runs.")
+             caption = "Scorecard verdicts across the nine runs.")
 ```
 
-| Dataset     | pass | review | FAIL | not applicable | Failing |
-|:------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd  |   11 |      2 |    0 |              5 |         |
-| mad         |   12 |      1 |    0 |              5 |         |
-| warfarin    |   12 |      1 |    0 |              5 |         |
-| wbcSim      |   10 |      3 |    0 |              5 |         |
-| theo_md     |   12 |      1 |    0 |              5 |         |
-| nimoData    |   12 |      1 |    0 |              5 |         |
-| mavoglurant |   10 |      3 |    0 |              5 |         |
+| Dataset      | pass | review | FAIL | not applicable | Failing |
+|:-------------|-----:|-------:|-----:|---------------:|:--------|
+| case1_pkpd   |   11 |      2 |    0 |              7 |         |
+| mad          |   12 |      1 |    0 |              7 |         |
+| warfarin     |   12 |      1 |    0 |              7 |         |
+| wbcSim       |   10 |      3 |    0 |              7 |         |
+| theo_md      |   12 |      1 |    0 |              7 |         |
+| nimoData     |   12 |      1 |    0 |              7 |         |
+| mavoglurant  |   10 |      3 |    0 |              7 |         |
+| mixroute_sim |   12 |      1 |    0 |              7 |         |
+| onc_sim      |   11 |      2 |    0 |              7 |         |
 
-Scorecard verdicts across the seven runs. {.table}
+Scorecard verdicts across the nine runs. {.table}
 
 `not applicable` is 5 on every row and is a gap rather than a result.
 B1a, B1b and C2 read a run record this generator does not write; all
@@ -835,7 +1097,7 @@ copies <- do.call(rbind, lapply(runs, function(entry) {
   )
 }))
 knitr::kable(copies, row.names = FALSE,
-             caption = "B4a and B4b across the seven runs, beside how long a source patient's record is.")
+             caption = "B4a and B4b across the nine runs, beside how long a source patient's record is.")
 ```
 
 | Dataset | Median observations | Time vectors copied (B4a) | DV vectors copied (B4b) |
@@ -847,8 +1109,10 @@ knitr::kable(copies, row.names = FALSE,
 | theo_md | 22 | not applicable: attendance drawn per visit | 0 |
 | nimoData | 27 | not applicable: attendance drawn per visit | 0 |
 | mavoglurant | 24 | not applicable: attendance drawn per visit | 0 |
+| mixroute_sim | 17 | not applicable: attendance drawn per visit | 0 |
+| onc_sim | 16 | not applicable: attendance drawn per visit | 0 |
 
-B4a and B4b across the seven runs, beside how long a source patient’s
+B4a and B4b across the nine runs, beside how long a source patient’s
 record is. {.table}
 
 **B4b is zero everywhere.** No generated subject reproduces a real
@@ -920,5 +1184,5 @@ Not preserved, and each is a decision rather than a defect:
   — how each is estimated, and what it costs.
 - [Evaluating AVATAR on public
   data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
-  — the same eight datasets under
+  — the same ten datasets under
   [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md).

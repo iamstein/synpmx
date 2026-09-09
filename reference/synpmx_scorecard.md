@@ -156,30 +156,34 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard(data, synthetic, roles)
 #> Scorecard: see vignette("avatar-scorecard") for what each asks
 #> 
-#>   check question                                           reads        result                              verdict
-#>   A1    Synthetic table is a legal PMX dataset             synthetic    TRUE                                pass
-#>   A2    Source is legal under the declared roles           source       TRUE                                pass
-#>   A3    Every endpoint survived                            both         2 of 2                              pass
-#>   A4    Cohort size survived                               both         30 -> 30                            pass
-#>   A5a   Observations per patient                           both         14 -> 14                            pass
-#>   A5b   Doses per patient                                  both         2 -> 2                              pass
-#>   A6    Discrete endpoints keeping their source scale      both         no discrete endpoint                pass
-#>   B1a   Avatars with a visit set nobody else shares        run settings 0                                   pass
-#>   B1b   Avatars with a dose schedule nobody else shares    run settings 0                                   pass
-#>   B2    Synthetic patients unusual within their stratum    synthetic    0 of 30                             pass
-#>   B3    Adversarial accuracy inside its null interval      both         0.767 above [0.248, 0.692]          pass
-#>   B4a   Generated time vectors copying an exposed real one both         0                                   pass
-#>   B4b   Generated DV vectors copying an exposed real one   both         0                                   pass
-#>   B5    Rare source levels copied into the output          both         no categorical covariate or stratum pass
-#>   C1    Strata keeping their source size                   both         no strata declared                  pass
-#>   C2    Distinct dose-time schedules represented           run settings 1 of 1                              pass
-#>   C3    Arms keeping their source endpoints                both         no strata declared                  pass
-#>   D1    Values landing in the same range                   both         sd x1.4 on pd (furthest of 3)       review
+#>   check question                                                      reads        result                                        verdict
+#>   A1    Synthetic table is a legal PMX dataset                        synthetic    TRUE                                          pass
+#>   A2    Source is legal under the declared roles                      source       TRUE                                          pass
+#>   A3    Every endpoint survived                                       both         2 of 2                                        pass
+#>   A4    Cohort size survived                                          both         30 -> 30                                      pass
+#>   A5a   Observations per patient                                      both         14 -> 14                                      pass
+#>   A5b   Doses per patient                                             both         2 -> 2                                        pass
+#>   A6    Discrete endpoints keeping their source scale                 both         no discrete endpoint                          pass
+#>   B1a   Avatars with a visit set nobody else shares                   run settings 0                                             pass
+#>   B1b   Avatars with a dose schedule nobody else shares               run settings 0                                             pass
+#>   B2    Synthetic patients unusual within their stratum               synthetic    0 of 30                                       pass
+#>   B3    Adversarial accuracy inside its null interval                 both         0.767 above [0.248, 0.692]                    pass
+#>   B4a   Generated time vectors copying an exposed real one            both         0                                             pass
+#>   B4b   Generated DV vectors copying an exposed real one              both         0                                             pass
+#>   B5    Rare source levels copied into the output                     both         no categorical covariate or stratum           pass
+#>   C1    Strata keeping their source size                              both         no strata declared                            pass
+#>   C2    Distinct dose-time schedules represented                      run settings 1 of 1                                        pass
+#>   C3    Arms keeping their source endpoints                           both         no strata declared                            pass
+#>   D1    Values landing in the same range                              both         sd x1.4 on pd (furthest of 3)                 review
+#>   E1    Fitted parameters moved off their starting values             fitted model not applicable: no population model was fitted not applicable
+#>   E2    Between-subject terms were estimated, not left at their start fitted model not applicable: no population model was fitted not applicable
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")
+#>   E1    model_report(attr(synthetic, "pmx_fitted_model"))
+#>   E2    model_parameters(attr(synthetic, "pmx_fitted_model"))$omega
 #> 
-#> no failures, 1 to review.
-#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`.
+#> no failures, 1 to review, 2 unanswered.
+#> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`, which this table does not carry.
 #> Rows reading `source` or `both` are restricted output.
 ```

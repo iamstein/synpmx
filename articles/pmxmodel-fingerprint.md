@@ -168,13 +168,14 @@ when no accessor covers it.
 
 names(fit)
 #>  [1] "structural"           "candidates"           "parameters"          
-#>  [4] "endpoints"            "arms"                 "dosing"              
-#>  [7] "visits"               "schema"               "roles"               
-#> [10] "settings"             "n_source"             "cells"               
-#> [13] "pd"                   "covariate_effects"    "covariates"          
-#> [16] "discrete"             "design"               "correlations"        
-#> [19] "censoring"            "quantification_floor" "timing"              
-#> [22] "movement"             "fit_subjects"
+#>  [4] "arms"                 "dosing"               "visits"              
+#>  [7] "schema"               "roles"                "settings"            
+#> [10] "n_source"             "cells"                "pd"                  
+#> [13] "covariate_effects"    "covariates"           "discrete"            
+#> [16] "design"               "correlations"         "censoring"           
+#> [19] "quantification_floor" "timing"               "movement"            
+#> [22] "fit_subjects"         "start_param"          "pk_models"           
+#> [25] "endpoints"
 ```
 
 ## The settings that produced it
@@ -224,7 +225,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892   9.245
+#> 1 1cmt_oral      TRUE 895.892   9.233
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.

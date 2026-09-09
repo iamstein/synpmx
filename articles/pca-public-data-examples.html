@@ -99,12 +99,8 @@
 
 
 
-<link href="pca-public-data-examples_files/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
-<script src="pca-public-data-examples_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="pca-public-data-examples_files/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
-<script src="pca-public-data-examples_files/datatables-binding-0.34.0/datatables.js"></script><link href="pca-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
-<link href="pca-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
-<script src="pca-public-data-examples_files/dt-core-1.13.6/js/jquery.dataTables.min.js"></script><link href="pca-public-data-examples_files/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
-<script src="pca-public-data-examples_files/crosstalk-1.2.2/js/crosstalk.min.js"></script><div class="row">
+
+<div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Evaluating PCA on public data</h1>
@@ -135,7 +131,7 @@ the dose times, the declared occasion, or an occasion-relative clock.
 One cannot: <code>pheno_sd</code> is routine neonatal care with no
 protocol behind it, and the generator refuses.</p>
 <p>Seven runs follow, then three cross-dataset tables and one finding —
-the copy check that fails on two of the seven, and what it does and does
+the copy check that fails on two of the nine, and what it does and does
 not mean.</p>
 <details><summary>
 Plotting and reporting helpers used throughout this vignette
@@ -303,8 +299,29 @@ protocol’s</td>
 <strong>None.</strong> Routine care, individualised dosing —
 refused</td>
 </tr>
+<tr class="odd">
+<td><code>mixroute_sim</code></td>
+<td><strong>synpmx</strong></td>
+<td>90</td>
+<td>1</td>
+<td>Declared. Ships an <code>NTIME</code> column, and an
+<code>ADM</code> for the route</td>
+</tr>
+<tr class="even">
+<td><code>onc_sim</code></td>
+<td><strong>synpmx</strong></td>
+<td>200</td>
+<td>2</td>
+<td>Declared. Scans and troughs are planned, so <code>NTIME</code> is
+the recorded day</td>
+</tr>
 </tbody>
 </table>
+<p>The last two are simulated by <code>synpmx</code> rather than public
+package data, and carry what the eight above do not: a declared
+administration column, and a daily regimen written with
+<code>ADDL</code>/<code>II</code>. See <code><a href="../reference/mixroute_sim.html">?mixroute_sim</a></code> and
+<code><a href="../reference/onc_sim.html">?onc_sim</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="shared-workflow">Shared workflow<a class="anchor" aria-label="anchor" href="#shared-workflow"></a>
@@ -359,8 +376,8 @@ an algorithm can derive. So the function refuses without
 <p>This is the sharpest difference between the two generators.
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> derives a grid from the recorded times when
 none is declared, and on <code>pheno_sd</code> that derivation does real
-work. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> has no such fallback, and the seven runs
-below are the seven studies where a grid could honestly be supplied.</p>
+work. <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> has no such fallback, and the nine runs
+below are the nine studies where a grid could honestly be supplied.</p>
 </div>
 <div class="section level2">
 <h2 id="case1_pkpd-a-declared-nominal-grid">case1_pkpd: a declared nominal grid<a class="anchor" aria-label="anchor" href="#case1_pkpd-a-declared-nominal-grid"></a>
@@ -388,9 +405,82 @@ is easiest on.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">source</span>, <span class="va">case1</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","180 -&gt; 180","30.7 -&gt; 29","70.8 -&gt; 70.8","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.539 in [0.415, 0.561]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.96 on PK Concentration (furthest of 3)"],["pass","pass","pass","pass","review","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. The figure above is on a linear axis over the whole
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>11 pass, 2 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">30.7 -&gt; 29</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.96 on PK Concentration (furthest of 3)</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing fails. The figure above is on a linear axis over the whole
 study, which is the structural view: both endpoints present, on the same
 ranges, over the same 2040 hours. It is the wrong axis for reading a PK
 concentration, and the censoring behaviour it cannot show is worth a
@@ -477,9 +567,76 @@ dataset is here to catch.</p>
 <span><span class="va">mad_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","5 of 5","60 -&gt; 60","61.7 -&gt; 59.7","5 -&gt; 5","3 of 3","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.467 in [0.324, 0.630]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x1.3 on PD - Count (furthest of 6)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>12 pass, 1 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x1.3 on PD - Count (furthest of 6)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is
 the check that the discrete endpoints kept their scale, and it reads the
 finished table rather than trusting the mechanism.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -563,9 +720,76 @@ declaration, not a derivation.</p>
 <span>                          <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/warfarin-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","2 of 2","32 -&gt; 32","15.1 -&gt; 14.8","1 -&gt; 1","1 of 1","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.656 in [0.320, 0.656]","not applicable: attendance drawn per visit","0","0 of 0 exposed","no strata declared","no run record","no strata declared","sd x0.75 on wt (furthest of 4)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>B4a fails here</strong>, and it is the first of the two
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>12 pass, 1 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.75 on wt (furthest of 4)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>B4a fails here</strong>, and it is the first of the two
 datasets that does. One generated subject’s complete list of observation
 times equals a real patient’s that no other patient shares. The section
 “What B4a found” below is what that does and does not mean; it is a
@@ -589,9 +813,88 @@ rest.</p>
 <span><span class="va">wbc_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, seed <span class="op">=</span> <span class="fl">505</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","45 -&gt; 45","3.91 -&gt; 3.53","1.16 -&gt; 1","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.477 in [0.346, 0.682]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x0.76 on DV (furthest of 1)"],["pass","pass","pass","pass","review","review","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The figure is cut at 700 h because a handful of source patients are
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>10 pass, 3 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">3.91 -&gt; 3.53</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">1.16 -&gt; 1</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.76 on DV (furthest of 1)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The figure is cut at 700 h because a handful of source patients are
 followed to 4580 h and the rest are not. Those late visits are exactly
 what the column guard removes: a grid cell fewer than
 <code>min_column_patients</code> patients reached describes those
@@ -649,9 +952,76 @@ inside a function they cannot.</p>
 <span><span class="va">theo_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">303</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","12 -&gt; 12","22 -&gt; 22.2","7 -&gt; 7","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.250 in [0.102, 0.750]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x0.67 on WT (furthest of 2)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, on twelve subjects. The cap holds the basis to two
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>12 pass, 1 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.67 on WT (furthest of 2)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing fails, on twelve subjects. The cap holds the basis to two
 components here — a fifth of the cohort — which is what stops a basis
 fitted on that few subjects from interpolating them.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
@@ -713,9 +1083,76 @@ slot of its own instead.</p>
 <span><span class="co">#&gt; (`geom_point()`).</span></span></code></pre>
 <p><img src="pca-public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","12 -&gt; 12","26.8 -&gt; 25.8","10 -&gt; 10","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.833 above [0.102, 0.667]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x0.23 on BSA (furthest of 4)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>The dosing comes through in full</strong>, which is the
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>12 pass, 1 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.23 on BSA (furthest of 4)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dosing comes through in full</strong>, which is the
 contrast worth drawing with the AVATAR run on this study. There,
 reaching the B1b guarantee cost the dosing: 10 doses per patient became
 1.6, and every avatar’s course was truncated. Here the doses are the
@@ -826,9 +1263,88 @@ so.</p>
 <span><span class="va">mavo_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both"],["TRUE","TRUE","1 of 1","120 -&gt; 120","20.2 -&gt; 11.2","1.65 -&gt; 1","no discrete endpoint","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.650 above [0.402, 0.617]","not applicable: attendance drawn per visit","0","no categorical covariate or stratum","no strata declared","no run record","no strata declared","sd x0.79 on HT (furthest of 5)"],["pass","pass","pass","pass","review","review","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>This is the most expensive construction in the vignette, and
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>10 pass, 3 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A5a</td>
+<td align="left">Observations per patient</td>
+<td align="left">20.2 -&gt; 11.2</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">1.65 -&gt; 1</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.79 on HT (furthest of 5)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is the most expensive construction in the vignette, and
 A5a says so</strong>: 20.2 observations per patient in the source
 against 11.2 in the synthetic cohort. Snapping 117 distinct recorded
 times onto 15 nominal ones collapses several real samples into one cell,
@@ -867,11 +1383,250 @@ and the <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-e
 evaluation</a> runs it.</p>
 </div>
 <div class="section level2">
-<h2 id="what-the-seven-runs-held">What the seven runs held<a class="anchor" aria-label="anchor" href="#what-the-seven-runs-held"></a>
+<h2 id="mixroute_sim-a-grid-that-is-already-the-protocols">mixroute_sim: a grid that is already the protocol’s<a class="anchor" aria-label="anchor" href="#mixroute_sim-a-grid-that-is-already-the-protocols"></a>
+</h2>
+<p>Ninety patients in three arms — intravenous, subcutaneous, and
+intravenous then subcutaneous. Its <code>NTIME</code> is the protocol’s
+planned time and ships with the dataset, so nothing has to be
+constructed. What it is here to test is the route: PCA does not model a
+route, and until it carried one, a declared <code>ADM</code> was dropped
+from the output entirely and the generated table could not be validated
+at all.</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mixroute_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, adm <span class="op">=</span> <span class="st">"ADM"</span>,</span>
+<span>  routes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"iv"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"extravascular"</span><span class="op">)</span>,</span>
+<span>  cens <span class="op">=</span> <span class="st">"CENS"</span>, strata <span class="op">=</span> <span class="st">"ARM"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">mixroute_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mixroute_sim"</span>, <span class="va">mixroute_sim</span>, <span class="va">mixroute_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span></code></pre></div>
+<p><img src="pca-public-data-examples_files/figure-html/mixroute-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>12 pass, 1 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x0.87 on WT (furthest of 2)</td>
+<td align="left">review</td>
+</tr>
+<tr class="odd">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing fails. The route comes back because each generated dose
+enters the compartment its own route doses into —
+<code>.draw_schedule()</code> carries the route of every planned dose,
+and the administration id is written from it:</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dosed</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">dosed</span><span class="op">(</span><span class="va">mixroute_sim</span><span class="op">)</span><span class="op">$</span><span class="va">ARM</span>, <span class="fu">dosed</span><span class="op">(</span><span class="va">mixroute_sim</span><span class="op">)</span><span class="op">$</span><span class="va">ADM</span><span class="op">)</span>,</span>
+<span>     synthetic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">dosed</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">synthetic</span><span class="op">)</span><span class="op">$</span><span class="va">ARM</span>,</span>
+<span>                       <span class="fu">dosed</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">synthetic</span><span class="op">)</span><span class="op">$</span><span class="va">ADM</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $source</span></span>
+<span><span class="co">#&gt;             </span></span>
+<span><span class="co">#&gt;               1  2</span></span>
+<span><span class="co">#&gt;   IV only    90  0</span></span>
+<span><span class="co">#&gt;   IV then SC 30 60</span></span>
+<span><span class="co">#&gt;   SC only     0 90</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $synthetic</span></span>
+<span><span class="co">#&gt;             </span></span>
+<span><span class="co">#&gt;               1  2</span></span>
+<span><span class="co">#&gt;   IV only    90  0</span></span>
+<span><span class="co">#&gt;   IV then SC 30 60</span></span>
+<span><span class="co">#&gt;   SC only     0 90</span></span></code></pre></div>
+<p>The arm dosed both ways keeps both, because the route is a property
+of each planned cycle in the arm’s dosing model rather than of the
+arm.</p>
+</div>
+<div class="section level2">
+<h2 id="onc_sim-a-dose-that-changes-for-reasons-the-patients-data-explains">onc_sim: a dose that changes for reasons the patient’s data
+explains<a class="anchor" aria-label="anchor" href="#onc_sim-a-dose-that-changes-for-reasons-the-patients-data-explains"></a>
+</h2>
+<p>Two hundred patients, a year of daily everolimus, tumour size beside
+trough concentrations. Most placebo patients cross over on progression
+and about a quarter of the treated arm reduce their dose, so the dose
+history is neither constant nor protocol-driven — it is a response to
+what happened to that patient.</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">onc_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, dvid <span class="op">=</span> <span class="st">"NAME"</span>, addl <span class="op">=</span> <span class="st">"ADDL"</span>, ii <span class="op">=</span> <span class="st">"II"</span>,</span>
+<span>  cens <span class="op">=</span> <span class="st">"CENS"</span>, strata <span class="op">=</span> <span class="st">"ARM"</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BSLD"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span>,</span>
+<span>  keep <span class="op">=</span> <span class="st">"CROSSOVER"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">onc_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"onc_sim"</span>, <span class="va">onc_sim</span>, <span class="va">onc_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span></code></pre></div>
+<p><img src="pca-public-data-examples_files/figure-html/onc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>11 pass, 2 review, 7 not applicable. The rows that are not a
+pass:</caption>
+<colgroup>
+<col width="4%">
+<col width="43%">
+<col width="42%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">check</th>
+<th align="left">question</th>
+<th align="left">result</th>
+<th align="left">verdict</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A5b</td>
+<td align="left">Doses per patient</td>
+<td align="left">327 -&gt; 286</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">B1a</td>
+<td align="left">Avatars with a visit set nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B1b</td>
+<td align="left">Avatars with a dose schedule nobody else shares</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">B2</td>
+<td align="left">Synthetic patients unusual within their stratum</td>
+<td align="left">not applicable: profiles simulated, not built from a
+patient</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">B4a</td>
+<td align="left">Generated time vectors copying an exposed real one</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left">C2</td>
+<td align="left">Distinct dose-time schedules represented</td>
+<td align="left">no run record</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">D1</td>
+<td align="left">Values landing in the same range</td>
+<td align="left">sd x1.1 on Everolimus trough (furthest of 4)</td>
+<td align="left">review</td>
+</tr>
+<tr class="even">
+<td align="left">E1</td>
+<td align="left">Fitted parameters moved off their starting values</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left">E2</td>
+<td align="left">Between-subject terms were estimated, not left at their
+start</td>
+<td align="left">not applicable: no population model was fitted</td>
+<td align="left">not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing fails, and one row is worth reading against the source rather
+than against a threshold. A5b — doses per patient — moves from 327 to
+286. That is counted on the doses, not on the records they are written
+in: both tables are expanded before the card is scored, so
+<code>ADDL</code> and <code>II</code> cannot flatter or distort it. The
+records themselves tell a different story:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">records</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>records <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span>, doses <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">ADDL</span> <span class="op">+</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>source <span class="op">=</span> <span class="fu">records</span><span class="op">(</span><span class="va">onc_sim</span><span class="op">)</span>, synthetic <span class="op">=</span> <span class="fu">records</span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">synthetic</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           records doses</span></span>
+<span><span class="co">#&gt; source        322 71180</span></span>
+<span><span class="co">#&gt; synthetic    2367 63030</span></span></code></pre></div>
+<p>The doses are close and the <em>encoding</em> is not: 2,367 records
+where the source has 322. The dosing model draws a reduction, a skip or
+a discontinuation independently at each planned cycle, and this study’s
+cycle is one day, so a synthetic patient’s dose flickers between levels
+where a real patient held one dose for months and changed it once. The
+regimen is close to right on average and wrong in its runs, and because
+<code><a href="../reference/pmx_expand_doses.html">pmx_compress_doses()</a></code> writes each constant run as its own
+record, the record count is what makes it visible — which is exactly why
+A5b counts doses instead, and why the two numbers have to be read
+together.</p>
+<p>That is a fair description of what the model is: per-cycle hazards,
+with no memory of how long a patient has been at a dose. On a study
+dosed every three weeks it is a good description of dose reduction. On
+one dosed daily it is not, and this is the dataset that says so.</p>
+</div>
+<div class="section level2">
+<h2 id="what-the-nine-runs-held">What the nine runs held<a class="anchor" aria-label="anchor" href="#what-the-nine-runs-held"></a>
 </h2>
 <p>The trial summary is the whole of what leaves the source, so its size
 across seven studies is worth one table.</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">inventory</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">runs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">entry</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">report</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/pca_report.html">pca_report</a></span><span class="op">(</span><span class="va">entry</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">basis</span> <span class="op">&lt;-</span> <span class="va">entry</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">basis</span></span>
@@ -904,13 +1659,13 @@ is every quantity in the trial summary; <code>Fewest patients</code> is
 the smallest number of patients standing behind any one of them, and
 <code>Set by</code> names which quantity that is.</caption>
 <colgroup>
-<col width="12%">
+<col width="13%">
 <col width="9%">
 <col width="5%">
 <col width="9%">
 <col width="11%">
 <col width="13%">
-<col width="17%">
+<col width="16%">
 <col width="20%">
 </colgroup>
 <thead><tr class="header">
@@ -994,6 +1749,26 @@ the smallest number of patients standing behind any one of them, and
 <td align="right">19</td>
 <td align="left">sparsest grid cell</td>
 </tr>
+<tr class="even">
+<td align="left">mixroute_sim</td>
+<td align="right">90</td>
+<td align="right">3</td>
+<td align="right">18</td>
+<td align="right">5</td>
+<td align="right">269</td>
+<td align="right">30</td>
+<td align="left">smallest arm</td>
+</tr>
+<tr class="odd">
+<td align="left">onc_sim</td>
+<td align="right">200</td>
+<td align="right">2</td>
+<td align="right">31</td>
+<td align="right">9</td>
+<td align="right">2221</td>
+<td align="right">51</td>
+<td align="left">sparsest grid cell</td>
+</tr>
 </tbody>
 </table>
 <p>Two things to read across the rows. <strong>Components track the
@@ -1018,7 +1793,7 @@ timepoints.</p>
 <div class="section level2">
 <h2 id="what-the-scorecards-said">What the scorecards said<a class="anchor" aria-label="anchor" href="#what-the-scorecards-said"></a>
 </h2>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">verdicts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">runs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">entry</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">entry</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span>
 <span>  <span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">card</span><span class="op">$</span><span class="va">verdict</span>,</span>
@@ -1030,9 +1805,9 @@ timepoints.</p>
 <span>             check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">verdicts</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"Scorecard verdicts across the seven runs."</span><span class="op">)</span></span></code></pre></div>
+<span>             caption <span class="op">=</span> <span class="st">"Scorecard verdicts across the nine runs."</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Scorecard verdicts across the seven runs.</caption>
+<caption>Scorecard verdicts across the nine runs.</caption>
 <thead><tr class="header">
 <th align="left">Dataset</th>
 <th align="right">pass</th>
@@ -1047,7 +1822,7 @@ timepoints.</p>
 <td align="right">11</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="even">
@@ -1055,7 +1830,7 @@ timepoints.</p>
 <td align="right">12</td>
 <td align="right">1</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="odd">
@@ -1063,7 +1838,7 @@ timepoints.</p>
 <td align="right">12</td>
 <td align="right">1</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="even">
@@ -1071,7 +1846,7 @@ timepoints.</p>
 <td align="right">10</td>
 <td align="right">3</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="odd">
@@ -1079,7 +1854,7 @@ timepoints.</p>
 <td align="right">12</td>
 <td align="right">1</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="even">
@@ -1087,7 +1862,7 @@ timepoints.</p>
 <td align="right">12</td>
 <td align="right">1</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 <tr class="odd">
@@ -1095,7 +1870,23 @@ timepoints.</p>
 <td align="right">10</td>
 <td align="right">3</td>
 <td align="right">0</td>
-<td align="right">5</td>
+<td align="right">7</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">mixroute_sim</td>
+<td align="right">12</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">onc_sim</td>
+<td align="right">11</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">7</td>
 <td align="left"></td>
 </tr>
 </tbody>
@@ -1134,7 +1925,7 @@ cost nothing read <code>pass</code> on it.</p>
 times equals a real patient’s that <strong>no other patient
 shares</strong>. It fails on two of the seven, and it is worth being
 precise about what that is.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">copies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">runs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">entry</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">entry</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span>
 <span>  <span class="va">observations</span> <span class="op">&lt;-</span> <span class="va">entry</span><span class="op">$</span><span class="va">source</span><span class="op">[[</span><span class="va">entry</span><span class="op">$</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="fl">0</span></span>
@@ -1149,12 +1940,12 @@ precise about what that is.</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">copies</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"B4a and B4b across the seven runs, beside how long a source patient's record is."</span><span class="op">)</span></span></code></pre></div>
+<span>             caption <span class="op">=</span> <span class="st">"B4a and B4b across the nine runs, beside how long a source patient's record is."</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>B4a and B4b across the seven runs, beside how long a source
+<caption>B4a and B4b across the nine runs, beside how long a source
 patient’s record is.</caption>
 <colgroup>
-<col width="12%">
+<col width="13%">
 <col width="20%">
 <col width="43%">
 <col width="24%">
@@ -1205,6 +1996,18 @@ patient’s record is.</caption>
 <tr class="odd">
 <td align="left">mavoglurant</td>
 <td align="right">24</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">0</td>
+</tr>
+<tr class="even">
+<td align="left">mixroute_sim</td>
+<td align="right">17</td>
+<td align="left">not applicable: attendance drawn per visit</td>
+<td align="left">0</td>
+</tr>
+<tr class="odd">
+<td align="left">onc_sim</td>
+<td align="right">16</td>
 <td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
@@ -1292,7 +2095,7 @@ fingerprint holds.</li>
 what it costs.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating
-AVATAR on public data</a> — the same eight datasets under
+AVATAR on public data</a> — the same ten datasets under
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>.</li>
 </ul>
 </div>

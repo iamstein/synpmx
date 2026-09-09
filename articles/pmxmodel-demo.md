@@ -117,8 +117,8 @@ model_report(fit)
 #>   fixed effects      cl 10.55, v 88.93, ka 4.76 
 #>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
 #>   residual error     proportional 0.486 
-#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 4 min 47 s
+#>   time to fit        4 min 49 s (4 min 51 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 4 min 49 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 

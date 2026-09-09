@@ -76,17 +76,17 @@ on the way out, so it comes back in the encoding its source used.
 
 ## Overview of Algorithm
 
-1.  **Classify the endpoints.** Four signals decide which endpoint is
-    the drug concentration. Everything else continuous becomes a
-    pharmacodynamic (PD) endpoint.
+1.  **Classify the endpoints.** Four signals decide which endpoint or
+    endpoints are drug concentrations. Everything else continuous
+    becomes a pharmacodynamic (PD) endpoint.
 2.  **Detect the design.** The route of administration and the sampling
     richness prune the set of PK models that will be offered to the
     fitter.
 3.  **Estimate the parameters.** Fit each surviving PK model as a
     population nonlinear mixed-effects model through `nlmixr2` and
     select on AIC, with allometric scaling folded in where a weight-like
-    covariate is declared. Fit each PD endpoint’s time course by least
-    squares.
+    covariate is declared, once per concentration endpoint. Fit each PD
+    endpoint’s time course by least squares.
 4.  **Fit a dosing model and a visit model per arm**: a planned dose
     schedule with rates for reduction, interruption and discontinuation,
     and the probability of a visit at each nominal time.
@@ -138,6 +138,39 @@ them, the function errors and names `endpoint_roles` as the way through.
 That is the inference-versus-declaration fork, answered the way
 `dose_covariate` answers it: infer where the data settles the question,
 offer the declaration as an override.
+
+### More than one endpoint can be a concentration
+
+A study measuring two drugs, or a parent and its metabolite, has two
+drug concentrations, and each is fitted its own population model — its
+own structural model, its own parameters, its own residual error,
+evaluated against the one dose schedule they share. No correlation
+between their random effects is estimated, which is a limitation rather
+than a claim: a patient with a high parent clearance is given an
+independently drawn metabolite clearance.
+
+**Inference promotes a second endpoint only on signal 4.** Dose
+proportionality is the positive evidence that something is a drug: a
+concentration scales with the dose and a biomarker does not. Signal 2 is
+necessary and not sufficient, and it is satisfied by any endpoint with
+no pre-dose observation. The distinction matters because signal 4 is
+often *not computable*, and the required test treats that as passing —
+which is right for choosing one endpoint and wrong for promoting a
+second. `warfarin`’s prothrombin activity and `onc_sim`’s tumour size
+both pass signals 2 and 4 that way, and neither is a drug concentration;
+requiring signal 4 to be `TRUE` rather than merely not `FALSE` leaves
+both where they belong.
+
+So a study whose two endpoints both scale with dose is classified with
+two concentrations and no declaration. A study where the evidence is
+absent on both still refuses and asks, which is what `onc_sim` does.
+
+`endpoint_roles = list(pk = c("parent", "metabolite"))` declares it
+where inference cannot. Declaring several is worth doing wherever it is
+true: a concentration demoted to a pharmacodynamic endpoint is fitted a
+time course with no dose term in it, so the generated values lose their
+dose ordering entirely — measured at 1.05 times across a three-fold dose
+range, against 2.7 in the source (`SIM-080`).
 
 ``` r
 
@@ -400,7 +433,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892   9.245
+#> 1 1cmt_oral      TRUE 895.892   9.233
 ```
 
 ### Covariates
@@ -705,5 +738,6 @@ fit badly is fitted, and told about.
 | No PK endpoint identified | — | Errors and names `endpoint_roles`. |
 | No candidate converged | — | Errors rather than returning the least bad fit. |
 | The between-subject terms did not move | 1% of the eta init, fixed effects moved | A line under the parameter block in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md), not the banner: the fixed effects are estimates, but the spread synthetic subjects get is the starting value rather than this study’s. |
+| Two endpoints tie as concentrations | neither tie-break separates them | Errors, naming both and `endpoint_roles`. Naming several is accepted, and each is fitted its own model. |
 | The fit did not move | 1% of every starting value | Warns, and prints `!! THE FIT DID NOT MOVE !!` above the parameter block in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md). A converged-looking fit is not necessarily an estimated one: where the optimizer takes no effective step, `nlmixr2` returns an objective, an AIC and a full table of starting values, and nothing else downstream contradicts them — the generator simulates from them and the scorecard passes, because it asks whether the output copies anybody or changed the study’s shape and a fit that never moved does neither. Each parameter’s start, estimate and percent change are listed, because “did not move” is a claim the reader has to be able to check. |
 | A fitted model as a public input | — | [`pmx_prior()`](https://iamstein.github.io/synpmx/reference/pmx_prior.md), [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md) and [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md) refuse a `pmx_fitted_model`, because its parameters were estimated from the confidential study. |

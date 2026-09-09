@@ -63,8 +63,26 @@ synpmx_model_estimate(
 
 - endpoint_roles:
 
-  Named character vector naming which endpoint is the drug
-  concentration, as `c(pk = "cp")`, overriding the inference.
+  Which endpoint is the drug concentration, as `c(pk = "cp")`,
+  overriding the inference.
+
+  **More than one may be named**, for a study that measures two
+  concentrations — two drugs, or a parent and its metabolite. Each gets
+  its own structural model, its own parameters and its own residual
+  error, evaluated against the one dose schedule they share; no
+  correlation between their random effects is estimated. Write it as
+  `list(pk = c("parent", "metabolite"))`, or
+  `c(pk = c("parent", "metabolite"))`, which R renames to `pk1`/`pk2`
+  and which is read the same way.
+
+  Naming several is a declaration, never an inference. Left to itself
+  the classification picks one concentration and treats every other
+  continuous endpoint as a pharmacodynamic time course, because a second
+  endpoint that passes the concentration signals is at least as often a
+  biomarker as a metabolite — `onc_sim`'s tumour size passes them. Where
+  a demoted endpoint really is a concentration, that time course has no
+  dose term in it and the generated values lose their dose ordering,
+  which is why naming both is worth doing.
 
 - start_param:
 
@@ -73,9 +91,13 @@ synpmx_model_estimate(
   read off the curve as usual, so a caller who knows the clearance and
   not the absorption says only the clearance.
 
-  No endpoint key is needed: the population model is fitted to exactly
-  one endpoint, the concentration that `endpoint_roles` names, and the
-  PD endpoints are least-squares time courses that this does not reach.
+  Where the study fits **more than one** concentration endpoint, key it
+  by endpoint —
+  `start_param = list(parent = c(cl = 4), metabolite = c(cl = 9))` —
+  because a flat vector would not say which one it describes, and is
+  refused with that message. With one concentration the flat form is
+  what to write. The PD endpoints are least-squares time courses that
+  this does not reach.
 
   The automatic starting values are a non-compartmental read of the
   cohort's median profile. On a study that read cannot describe —

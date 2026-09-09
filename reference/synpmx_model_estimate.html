@@ -147,8 +147,23 @@ least-squares fits.</p></dd>
 
 
 <dt id="arg-endpoint-roles">endpoint_roles<a class="anchor" aria-label="anchor" href="#arg-endpoint-roles"></a></dt>
-<dd><p>Named character vector naming which endpoint is the
-drug concentration, as <code>c(pk = "cp")</code>, overriding the inference.</p></dd>
+<dd><p>Which endpoint is the drug concentration, as
+<code>c(pk = "cp")</code>, overriding the inference.</p>
+<p><strong>More than one may be named</strong>, for a study that measures two
+concentrations — two drugs, or a parent and its metabolite. Each gets its
+own structural model, its own parameters and its own residual error,
+evaluated against the one dose schedule they share; no correlation between
+their random effects is estimated. Write it as
+<code>list(pk = c("parent", "metabolite"))</code>, or <code>c(pk = c("parent", "metabolite"))</code>, which R renames to <code>pk1</code>/<code>pk2</code> and which is read the same
+way.</p>
+<p>Naming several is a declaration, never an inference. Left to itself the
+classification picks one concentration and treats every other continuous
+endpoint as a pharmacodynamic time course, because a second endpoint that
+passes the concentration signals is at least as often a biomarker as a
+metabolite — <code>onc_sim</code>'s tumour size passes them. Where a demoted endpoint
+really is a concentration, that time course has no dose term in it and the
+generated values lose their dose ordering, which is why naming both is
+worth doing.</p></dd>
 
 
 <dt id="arg-start-param">start_param<a class="anchor" aria-label="anchor" href="#arg-start-param"></a></dt>
@@ -156,9 +171,11 @@ drug concentration, as <code>c(pk = "cp")</code>, overriding the inference.</p><
 <code>start_param = c(cl = 4, v = 40, ka = 0.5)</code>. Anything not named is read
 off the curve as usual, so a caller who knows the clearance and not the
 absorption says only the clearance.</p>
-<p>No endpoint key is needed: the population model is fitted to exactly one
-endpoint, the concentration that <code>endpoint_roles</code> names, and the PD
-endpoints are least-squares time courses that this does not reach.</p>
+<p>Where the study fits <strong>more than one</strong> concentration endpoint, key it by
+endpoint — <code>start_param = list(parent = c(cl = 4), metabolite = c(cl = 9))</code> — because a flat vector would not say which one it describes,
+and is refused with that message. With one concentration the flat form is
+what to write. The PD endpoints are least-squares time courses that this
+does not reach.</p>
 <p>The automatic starting values are a non-compartmental read of the cohort's
 median profile. On a study that read cannot describe — sampled only at
 troughs, dosed by two routes whose reads disagree, or recorded in units

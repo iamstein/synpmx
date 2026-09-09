@@ -268,13 +268,14 @@ directly when no accessor covers it.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "structural"           "candidates"           "parameters"          </span></span>
-<span><span class="co">#&gt;  [4] "endpoints"            "arms"                 "dosing"              </span></span>
-<span><span class="co">#&gt;  [7] "visits"               "schema"               "roles"               </span></span>
-<span><span class="co">#&gt; [10] "settings"             "n_source"             "cells"               </span></span>
-<span><span class="co">#&gt; [13] "pd"                   "covariate_effects"    "covariates"          </span></span>
-<span><span class="co">#&gt; [16] "discrete"             "design"               "correlations"        </span></span>
-<span><span class="co">#&gt; [19] "censoring"            "quantification_floor" "timing"              </span></span>
-<span><span class="co">#&gt; [22] "movement"             "fit_subjects"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [4] "arms"                 "dosing"               "visits"              </span></span>
+<span><span class="co">#&gt;  [7] "schema"               "roles"                "settings"            </span></span>
+<span><span class="co">#&gt; [10] "n_source"             "cells"                "pd"                  </span></span>
+<span><span class="co">#&gt; [13] "covariate_effects"    "covariates"           "discrete"            </span></span>
+<span><span class="co">#&gt; [16] "design"               "correlations"         "censoring"           </span></span>
+<span><span class="co">#&gt; [19] "quantification_floor" "timing"               "movement"            </span></span>
+<span><span class="co">#&gt; [22] "fit_subjects"         "start_param"          "pk_models"           </span></span>
+<span><span class="co">#&gt; [25] "endpoints"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
@@ -318,7 +319,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.245</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.233</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
