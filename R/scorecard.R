@@ -341,6 +341,17 @@
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #' synpmx_scorecard(data, synthetic, roles)
 synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
+  # Doses, not dose records. A regimen written as one row plus `ADDL`/`II`
+  # stands for as many doses as `ADDL` says, and every row here that counts
+  # dose rows would otherwise be scoring the encoding rather than the study.
+  # A5b is where it showed: on `onc_sim` under `synpmx_pca()` it read 1.18 to
+  # 7.48 doses per patient, which is 322 records against 2367, while the doses
+  # those records stand for are 356 against 315 -- a regimen written in more
+  # pieces, not a patient given six times the drug. Both tables are expanded,
+  # because comparing an expanded source against a compressed synthetic would
+  # be its own kind of wrong.
+  source <- pmx_expand_doses(source, roles)
+  synthetic <- .keep_attributes(pmx_expand_doses(synthetic, roles), synthetic)
   # No `pmx_settings` is not an error. Everything the card measures from the two
   # tables is measurable on any synthetic dataset, whatever produced it, and
   # refusing the whole card for the three rows that need the run's own record
@@ -717,6 +728,52 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     'compare_pmx_distributions(source, synthetic, roles, output = "tables")',
     verdict = "review"
   )))
+
+  # Section E. Everything above scores the table; these two score the model
+  # that produced it, and they exist because a population fit can fail in a way
+  # no property of the output reveals. Where the optimizer takes no effective
+  # step, `nlmixr2` returns an objective, an AIC and a full table of starting
+  # values, the generator simulates from them, and every row above passes --
+  # because they ask whether the output copies anybody or changed the study's
+  # shape, and a fit that never moved does neither (`SIM-075`).
+  #
+  # `review` rather than `FAIL`: the numbers may still be usable for the purpose
+  # at hand, and that is the reader's call. But it has to be on the card, and
+  # the card is where a reader looks.
+  #
+  # Read from `attr(synthetic, "pmx_fitted_model")`, which
+  # `synpmx_model_generate()` leaves behind. Output from any other generator has
+  # no fit to score and reads `not applicable`.
+  fitted <- attr(synthetic, "pmx_fitted_model")
+  models <- if (is.null(fitted)) NULL else fitted$pk_models
+  e_row <- function(check, question, result, explore, ok) {
+    if (is.null(models)) {
+      return(.scorecard_row(check, question, "fitted model",
+                            "not applicable: no population model was fitted",
+                            explore, verdict = "not applicable"))
+    }
+    .scorecard_row(check, question, "fitted model", result, explore, ok)
+  }
+  moved_all <- if (is.null(models)) NA else
+    vapply(models, function(m) isTRUE(m$movement$moved), logical(1))
+  omega_all <- if (is.null(models)) NA else
+    vapply(models, function(m) isTRUE(m$movement$omega_moved), logical(1))
+  still <- if (is.null(models)) character() else names(models)[!moved_all]
+  omega_still <- if (is.null(models)) character() else
+    names(models)[moved_all & !omega_all]
+  rows <- c(rows, list(
+    e_row("E1", "Fitted parameters moved off their starting values",
+          if (!length(still)) sprintf("moved (%d model(s))", length(models))
+          else paste0("did not move: ", paste(still, collapse = ", ")),
+          "model_report(attr(synthetic, \"pmx_fitted_model\"))",
+          if (!length(still)) TRUE else NA),
+    e_row("E2", "Between-subject terms were estimated, not left at their start",
+          if (!length(omega_still)) "estimated"
+          else paste0("left at the starting value: ",
+                      paste(omega_still, collapse = ", ")),
+          "model_parameters(attr(synthetic, \"pmx_fitted_model\"))$omega",
+          if (!length(omega_still)) TRUE else NA)
+  ))
 
   out <- do.call(rbind, rows)
   rownames(out) <- NULL

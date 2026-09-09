@@ -1601,6 +1601,8 @@ flag_identifiable_subjects <- function(data, roles, threshold = 3.5,
 #' skeleton_uniqueness(data, roles, coarsen_time = TRUE)
 skeleton_uniqueness <- function(data, roles, coarsen_time = FALSE) {
   .assert_roles(data, roles)
+  # A dose schedule is the doses, not the records they are written in.
+  data <- pmx_expand_doses(data, roles)
   if (isTRUE(coarsen_time)) data <- .coarsen_source_time(data, roles)$source
   subjects <- .unique_in_order(data[[roles$id]])
   sub <- factor(as.character(data[[roles$id]]),

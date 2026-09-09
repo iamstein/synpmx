@@ -223,3 +223,13 @@ pmx_compress_doses <- function(data, roles) {
                      addl = "ADDL", ii = "II")
   pmx_compress_doses(frame, roles)
 }
+
+# `synpmx_scorecard()` reads `attr(synthetic, "pmx_settings")` for three of its
+# rows, and expanding the table would otherwise drop it along with every other
+# attribute a generator left behind.
+.keep_attributes <- function(new, old) {
+  carried <- setdiff(names(attributes(old)),
+                     c("names", "row.names", "class", "pmx_origin"))
+  for (key in carried) attr(new, key) <- attr(old, key)
+  new
+}

@@ -203,9 +203,14 @@ a single patient can legitimately come back empty.
 synpmx_scorecard_datatable(mad_card[mad_card$check %in% c("A5a", "A5b"), ])
 ```
 
-A5a and A5b are rows per patient, split by event type: observations in one, dose
-events in the other. Each passes when the synthetic count lands within 5% of the
-source's — that much movement leaves each patient carrying the same amount of
+A5a and A5b are events per patient, split by type: observations in one, doses in
+the other. **Doses, not dose records.** A regimen written as one row plus `ADDL`
+and `II` stands for as many doses as `ADDL` says, so both tables are expanded
+before anything here is counted; otherwise the row would score the encoding
+rather than the study. On `onc_sim` — 322 dose records standing for 71,180
+doses — the difference is the difference between reading 1.18 against 7.48 and
+reading 327 against 286. Each passes when the synthetic count lands within 5% of
+the source's — that much movement leaves each patient carrying the same amount of
 information, and there is nothing to decide. Further than that is `review` and
 never `FAIL`, because the number is permitted to move: a shortened dose course
 can be the correct answer, as the rest of this section shows.
@@ -871,6 +876,39 @@ And one check cannot be on this list: **does the pipeline that will consume the
 real study run unchanged against this?** Only you can answer it. Run your own
 code against the output and see whether the joins, reshapes, derivations and
 control streams behave.
+
+## E1, E2. Did the model that made the data actually fit
+
+The rows above all score the synthetic table. These two score the *model* that
+produced it, and they exist because a population fit can fail in a way no
+property of the output reveals.
+
+Where the optimizer takes no effective step, `nlmixr2` still returns an
+objective, an AIC and a full parameter table — of starting values. The generator
+simulates from those values, and every row above passes, because they ask
+whether the output copies anybody or changed the study's shape and a fit that
+never moved does neither. That is `SIM-075`, found on a real study whose report
+read `f 0.7` — the starting value exactly — beside three between-subject terms
+all reading 0.316, which is `sqrt(0.1)`, the eta initial value.
+
+- **E1** passes when every fitted concentration model moved off its starting
+  values, judged at a deliberately loose 1% per parameter: the question is
+  whether the optimizer moved at all, not whether it converged tightly. A model
+  that did not move is named.
+- **E2** passes when the between-subject terms were estimated rather than left
+  at their starting value while the fixed effects moved. That is the narrower
+  failure, and the stored `case1_pkpd` fit was it for months: clearance, volume
+  and absorption estimated, all three omegas sitting on 0.1, and a synthetic
+  spread 0.68 of the source's as the visible consequence.
+
+Both are `review` and never `FAIL`. The numbers may still serve the purpose at
+hand, and that is the reader's call — but it has to be on the card, because the
+card is where a reader looks.
+
+Both read `attr(synthetic, "pmx_fitted_model")`, which `synpmx_model_generate()`
+leaves on its output. Data from `synpmx_avatar()` or `synpmx_pca()` has no
+population model to score, so both rows read `not applicable`, which is a
+statement about the generator rather than a gap in the card.
 
 ## Where to go next
 

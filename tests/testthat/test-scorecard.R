@@ -306,8 +306,10 @@ test_that("a table with no run record is scored, not refused", {
   expect_identical(card$check, full$check)
   expect_identical(card$verdict[!card$check %in% recorded],
                    full$verdict[!full$check %in% recorded])
-  # `not applicable` is not `pass`: the count line has to say so.
-  expect_output(print(card), "3 unanswered")
+  # `not applicable` is not `pass`: the count line has to say so. Three rows
+  # need the run's record and two more need a fitted model, which an avatar
+  # table stripped of its attributes has neither of.
+  expect_output(print(card), "5 unanswered")
 })
 
 test_that("C2 reads the run's record, and says that it does", {
@@ -517,4 +519,48 @@ test_that("a table with no source attribute is measured the AVATAR way", {
   attr(synthetic, "pmx_source") <- NULL
   card <- as.data.frame(synpmx_scorecard(data, synthetic, roles))
   expect_false(card$verdict[card$check == "B4a"] == "not applicable")
+})
+
+# Section E scores the model rather than the table: a population fit that
+# returned its starting values passes every other row on the card.
+
+test_that("E1 and E2 read the fit behind the data", {
+  skip_if_not_installed("nlmixr2est")
+  stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
+  skip_if(!nzchar(stored), "stored fit unavailable")
+  fit <- readRDS(stored)
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_model_generate(fit, n_subjects = 20L, seed = 1)))
+  source <- as.data.frame(nlmixr2data::warfarin)
+  source$ntime <- source$time
+  roles <- pmx_roles(id = "id", time = "time", nominal_time = "ntime",
+                     dv = "dv", amt = "amt", evid = "evid", dvid = "dvid",
+                     covariates = c("wt", "age", "sex"))
+  card <- suppressMessages(synpmx_scorecard(source, synthetic, roles))
+  plain <- as.data.frame(card)
+  expect_true(all(c("E1", "E2") %in% plain$check))
+  expect_equal(plain$reads[plain$check == "E1"], "fitted model")
+  expect_equal(plain$verdict[plain$check == "E1"], "pass")
+
+  # A fit that never moved is named, and the row asks to be read.
+  frozen <- fit
+  for (nm in names(frozen$pk_models)) {
+    frozen$pk_models[[nm]]$movement$moved <- FALSE
+  }
+  attr(synthetic, "pmx_fitted_model") <- frozen
+  frozen_card <- as.data.frame(
+    suppressMessages(synpmx_scorecard(source, synthetic, roles)))
+  expect_equal(frozen_card$verdict[frozen_card$check == "E1"], "review")
+  expect_match(frozen_card$result[frozen_card$check == "E1"], "did not move")
+})
+
+test_that("E1 and E2 are not applicable without a fitted model", {
+  source <- private_fixture(24L)
+  roles <- private_roles()
+  synthetic <- suppressWarnings(suppressMessages(
+    synpmx_avatar(source, roles, seed = 1)))
+  plain <- as.data.frame(
+    suppressMessages(synpmx_scorecard(source, synthetic, roles)))
+  expect_equal(plain$verdict[plain$check %in% c("E1", "E2")],
+               rep("not applicable", 2L))
 })

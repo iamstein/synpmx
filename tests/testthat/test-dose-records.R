@@ -162,3 +162,32 @@ test_that("the avatar returns a compressed study from a compressed one", {
   expect_true(all(doses$II == 1))
   expect_true(validate_pmx(synthetic, roles)$valid)
 })
+
+test_that("the scorecard counts doses, not dose records", {
+  one <- function(id, addl, ii) rbind(
+    data.frame(ID = id, TIME = 0, DV = NA_real_, AMT = 10, EVID = 1L, CMT = 1L,
+               ADDL = addl, II = ii, WT = 70 + id),
+    data.frame(ID = id, TIME = c(1, 2, 3, 4, 5),
+               DV = c(2, 3, 3.6, 3.9, 4) * (1 + id / 60),
+               AMT = 0, EVID = 0L, CMT = 2L, ADDL = 0L, II = 0, WT = 70 + id))
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", addl = "ADDL", ii = "II",
+                     covariates = "WT")
+  # Same doses on both sides, written in different numbers of records: one
+  # block of five against five blocks of one.
+  source <- do.call(rbind, lapply(1:10, one, addl = 4L, ii = 1))
+  spread <- do.call(rbind, lapply(1:10, function(id) {
+    rows <- one(id, addl = 0L, ii = 0)
+    doses <- rows[rep(1L, 5L), ]
+    doses$TIME <- 0:4
+    rbind(doses, rows[rows$EVID == 0L, ])
+  }))
+  a5b <- function(a, b) {
+    card <- suppressMessages(synpmx_scorecard(a, b, roles))
+    as.data.frame(card)$result[card$check == "A5b"]
+  }
+  # Five doses per patient either way, so the row reads no change at all.
+  expect_match(a5b(source, spread), "^5 -> 5$")
+  # And it is not fooled the other way round.
+  expect_match(a5b(spread, source), "^5 -> 5$")
+})

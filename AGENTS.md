@@ -31,8 +31,14 @@ Four cross-document contracts, each a defect when broken:
   in one without the other, is a defect. 
 - Every worked dataset in `vignettes/articles/avatar-public-data-examples.Rmd`
   has the same shape — roles, `synpmx_avatar()`, one source-versus-synthetic
-  figure, `compare_pmx_distributions()`, `synpmx_scorecard()` — with prose only
-  where the numbers need it. Additional datasets get the same five steps.
+  figure, `compare_pmx_distributions()`, and the scorecard's verdicts through
+  the article's own `card_verdicts()` helper — with prose only where the numbers
+  need it. Additional datasets get the same five steps. `card_verdicts()` prints
+  the tally and only the rows that are not a pass: ten full cards per article
+  was ten near-identical eighteen-row tables whose shared message was "nothing
+  failed", and comparing them is what the closing cross-dataset tables are for.
+  A section may show named rows in full where the prose is about them, as
+  `nimoData` does with A5a and A5b.
   `vignettes/articles/pca-public-data-examples.Rmd` is the same contract for
   `synpmx_pca()` over the same datasets, with `synpmx_pca_summarize()` and
   `synpmx_pca_generate()` in place of `synpmx_avatar()`, and
