@@ -186,6 +186,41 @@
 #
 # Partial by design. A caller who knows the clearance and not the absorption
 # says so, and the rest is read off the curve as before.
+# With several PK endpoints the flat form is ambiguous, so it is keyed by
+# endpoint: `start_param = list(parent = c(cl = 4), metabolite = c(cl = 9))`.
+# With one it stays flat, because naming the only endpoint there is would be
+# ceremony. Returns a list keyed by endpoint either way.
+.model_split_start_param <- function(start_param, pk_endpoints) {
+  if (is.null(start_param)) {
+    return(stats::setNames(vector("list", length(pk_endpoints)), pk_endpoints))
+  }
+  if (is.list(start_param)) {
+    unknown <- setdiff(names(start_param), pk_endpoints)
+    if (is.null(names(start_param)) || length(unknown)) {
+      stop(.condition_text(
+        "`start_param` is a list, so it is read as one set of starting values ",
+        "per concentration endpoint, and it names endpoint(s) that are not ",
+        "fitted as one:",
+        items = if (is.null(names(start_param))) "<unnamed>" else unknown,
+        why = paste("The concentration endpoint(s) here are:",
+                    paste(pk_endpoints, collapse = ", "))), call. = FALSE)
+    }
+    out <- stats::setNames(vector("list", length(pk_endpoints)), pk_endpoints)
+    out[names(start_param)] <- start_param
+    return(out)
+  }
+  if (length(pk_endpoints) > 1L) {
+    stop(.condition_text(
+      "`start_param` is a flat vector but ", length(pk_endpoints),
+      " endpoints are fitted as concentrations, so it is not clear which one ",
+      "it describes.",
+      items = pk_endpoints,
+      fix = paste0("Key it by endpoint: `start_param = list(`",
+                   pk_endpoints[[1L]], "` = c(cl = ...))`.")), call. = FALSE)
+  }
+  stats::setNames(list(start_param), pk_endpoints)
+}
+
 .model_validate_start_param <- function(start_param, candidates) {
   if (is.null(start_param)) return(NULL)
   if (!is.numeric(start_param) || is.null(names(start_param)) ||
@@ -1210,8 +1245,26 @@
 #'   asserting no dose-response form; an arm holding too little of an endpoint
 #'   to fit keeps the pooled shape. Costs nothing measurable, since these are
 #'   least-squares fits.
-#' @param endpoint_roles Named character vector naming which endpoint is the
-#'   drug concentration, as `c(pk = "cp")`, overriding the inference.
+#' @param endpoint_roles Which endpoint is the drug concentration, as
+#'   `c(pk = "cp")`, overriding the inference.
+#'
+#'   **More than one may be named**, for a study that measures two
+#'   concentrations — two drugs, or a parent and its metabolite. Each gets its
+#'   own structural model, its own parameters and its own residual error,
+#'   evaluated against the one dose schedule they share; no correlation between
+#'   their random effects is estimated. Write it as
+#'   `list(pk = c("parent", "metabolite"))`, or `c(pk = c("parent",
+#'   "metabolite"))`, which R renames to `pk1`/`pk2` and which is read the same
+#'   way.
+#'
+#'   Naming several is a declaration, never an inference. Left to itself the
+#'   classification picks one concentration and treats every other continuous
+#'   endpoint as a pharmacodynamic time course, because a second endpoint that
+#'   passes the concentration signals is at least as often a biomarker as a
+#'   metabolite — `onc_sim`'s tumour size passes them. Where a demoted endpoint
+#'   really is a concentration, that time course has no dose term in it and the
+#'   generated values lose their dose ordering, which is why naming both is
+#'   worth doing.
 #' @param covariate_effects `"auto"` fits allometric scaling on clearance and
 #'   volume where a weight-like covariate is declared and keeps it where it
 #'   improves AIC. `"none"` fits nothing.
@@ -1227,9 +1280,12 @@
 #'   off the curve as usual, so a caller who knows the clearance and not the
 #'   absorption says only the clearance.
 #'
-#'   No endpoint key is needed: the population model is fitted to exactly one
-#'   endpoint, the concentration that `endpoint_roles` names, and the PD
-#'   endpoints are least-squares time courses that this does not reach.
+#'   Where the study fits **more than one** concentration endpoint, key it by
+#'   endpoint — `start_param = list(parent = c(cl = 4), metabolite =
+#'   c(cl = 9))` — because a flat vector would not say which one it describes,
+#'   and is refused with that message. With one concentration the flat form is
+#'   what to write. The PD endpoints are least-squares time courses that this
+#'   does not reach.
 #'
 #'   The automatic starting values are a non-compartmental read of the cohort's
 #'   median profile. On a study that read cannot describe — sampled only at
@@ -1331,15 +1387,22 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   observations <- .model_observations(source, roles)
   classified <- .model_classify_endpoints(source, roles, observations,
                                           endpoint_roles)
-  design <- .model_detect_design(source, roles, observations, classified$pk)
-  if (!is.null(pk)) {
-    design$candidates <- pk
-    design$reason <- if (length(pk) == 1L) {
-      paste0("declared through `pk = \"", pk, "\"`")
-    } else {
-      paste0("searched over the ", length(pk), " models named in `pk`")
+  # One design read per concentration endpoint: the route is a property of the
+  # study, but the sampling richness that prunes the candidate set is a property
+  # of the endpoint, and a metabolite is not always sampled like its parent.
+  designs <- stats::setNames(lapply(classified$pk, function(endpoint) {
+    one <- .model_detect_design(source, roles, observations, endpoint)
+    if (!is.null(pk)) {
+      one$candidates <- pk
+      one$reason <- if (length(pk) == 1L) {
+        paste0("declared through `pk = \"", pk, "\"`")
+      } else {
+        paste0("searched over the ", length(pk), " models named in `pk`")
+      }
     }
-  }
+    one
+  }), classified$pk)
+  design <- designs[[1L]]
 
   # The apparatus, on the nominal grid, exactly as `synpmx_pca_summarize()`
   # builds it. `.model_cells()` is this generator's adapter over the same
@@ -1445,29 +1508,62 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   if (!quiet) {
     note <- .dose_record_message(recorded_data, estimation_data)
     if (!is.null(note)) message(note)
-    message("Fitting ", length(design$candidates), " model(s) for `",
-            classified$pk, "` (", design$route, ")",
-            if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
-            ":")
   }
-  start_param <- .model_validate_start_param(start_param, design$candidates)
-  search <- .model_fit_candidates(estimation_data, design$candidates,
-                                  observations, classified$pk, error,
-                                  estimation, quiet, weight, start_param)
-  selected <- search$selected
-  fit_seconds <- sum(search$table$seconds, na.rm = TRUE)
-  parameters <- .model_read_fit(search$fits[[selected]], selected, error)
-  movement <- .model_fit_movement(parameters$fixed, parameters$omega,
-                                  search$starts[[selected]])
-  if (!movement$moved) .model_warn_unmoved(selected, movement)
+  starts_by_endpoint <- .model_split_start_param(start_param, classified$pk)
 
-  effects <- if (is.null(weight)) list() else stats::setNames(
-    lapply(intersect(names(parameters$fixed),
-                     names(.model_allometric_exponents)), function(parameter) {
-      list(covariate = weight$covariate, reference = weight$reference,
-           exponent = unname(.model_allometric_exponents[[parameter]]))
-    }), intersect(names(parameters$fixed), names(.model_allometric_exponents))
-  )
+  # One population model per concentration endpoint. They share the dosing
+  # records -- the same doses drive a parent and its metabolite -- and nothing
+  # else: each has its own structural model, its own parameters and its own
+  # residual error, and no correlation between their random effects is
+  # estimated, which is a limitation worth knowing rather than a claim.
+  pk_models <- stats::setNames(lapply(classified$pk, function(endpoint) {
+    own_design <- designs[[endpoint]]
+    own_data <- if (identical(endpoint, classified$pk[[1L]])) estimation_data else {
+      one <- .model_estimation_data(censoring_source, roles, endpoint)
+      one <- if (is.null(roles$addl)) .compress_dose_schedule(one) else
+        .compress_dose_runs(one)
+      attached <- .model_attach_weight(one, source, roles, weight)
+      if (is.null(attached)) one else attached
+    }
+    if (!quiet) {
+      message("Fitting ", length(own_design$candidates), " model(s) for `",
+              endpoint, "` (", own_design$route, ")",
+              if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
+              ":")
+    }
+    own_start <- .model_validate_start_param(starts_by_endpoint[[endpoint]],
+                                             own_design$candidates)
+    search <- .model_fit_candidates(own_data, own_design$candidates,
+                                    observations, endpoint, error,
+                                    estimation, quiet, weight, own_start)
+    selected <- search$selected
+    parameters <- .model_read_fit(search$fits[[selected]], selected, error)
+    movement <- .model_fit_movement(parameters$fixed, parameters$omega,
+                                    search$starts[[selected]])
+    if (!movement$moved) .model_warn_unmoved(selected, movement)
+    list(endpoint = endpoint, structural = selected, parameters = parameters,
+         candidates = search$table, movement = movement, design = own_design,
+         start_param = own_start,
+         seconds = sum(search$table$seconds, na.rm = TRUE),
+         effects = if (is.null(weight)) list() else stats::setNames(
+           lapply(intersect(names(parameters$fixed),
+                            names(.model_allometric_exponents)),
+                  function(parameter) {
+                    list(covariate = weight$covariate,
+                         reference = weight$reference,
+                         exponent = unname(
+                           .model_allometric_exponents[[parameter]]))
+                  }),
+           intersect(names(parameters$fixed),
+                     names(.model_allometric_exponents))))
+  }), classified$pk)
+
+  primary <- pk_models[[1L]]
+  selected <- primary$structural
+  parameters <- primary$parameters
+  movement <- primary$movement
+  effects <- primary$effects
+  fit_seconds <- sum(vapply(pk_models, function(m) m$seconds, numeric(1)))
 
   pd_seconds <- stats::setNames(numeric(length(classified$pd)), classified$pd)
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
@@ -1517,7 +1613,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   parameters$etas <- NULL
 
   fitted <- .pmx_fitted_model(
-    structural = selected, candidates = search$table, parameters = parameters,
+    structural = selected, candidates = primary$candidates,
+    parameters = parameters, pk_models = pk_models,
     movement = movement, fit_subjects = fit_subjects,
     start_param = start_param,
     endpoints = list(pk = classified$pk, pd = names(pd_fits),
@@ -1548,8 +1645,15 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     # second candidate" is: the answer to that is `pk = "1cmt_oral"`.
     timing = list(fit = fit_seconds,
                   total = proc.time()[["elapsed"]] - started,
-                  candidates = search$table[, c("model", "converged",
-                                                "seconds")],
+                  # Every candidate of every concentration endpoint, so a
+                  # study fitting two of them accounts for both waits.
+                  candidates = do.call(rbind, lapply(pk_models, function(m) {
+                    row <- m$candidates[, c("model", "converged", "seconds")]
+                    if (length(pk_models) > 1L) {
+                      row$model <- paste0(m$endpoint, ": ", row$model)
+                    }
+                    row
+                  })),
                   pd = pd_seconds)
   )
   if (!quiet) {

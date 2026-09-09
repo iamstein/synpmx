@@ -297,7 +297,7 @@
                               correlations = NULL, censoring = NULL,
                               quantification_floor = NULL, timing = NULL,
                               movement = NULL, fit_subjects = NULL,
-                              start_param = NULL) {
+                              start_param = NULL, pk_models = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -338,7 +338,6 @@
     structural = structural,
     candidates = candidates,
     parameters = parameters,
-    endpoints = endpoints,
     arms = arms,
     dosing = dosing,
     visits = visits,
@@ -358,7 +357,19 @@
     timing = timing,
     movement = movement,
     fit_subjects = fit_subjects,
-    start_param = start_param
+    start_param = start_param,
+    # One entry per concentration endpoint. `structural` and `parameters` above
+    # are the first of them, which is every study that fits one concentration.
+    # A model assembled without the list -- a hand-built fixture, or a fit
+    # stored before there could be more than one -- gets a one-entry list built
+    # from those fields, so every reader can index by endpoint unconditionally.
+    pk_models = pk_models %||% stats::setNames(list(list(
+      endpoint = endpoints$pk[[1L]], structural = structural,
+      parameters = parameters, candidates = candidates, movement = movement,
+      design = design, start_param = start_param,
+      effects = covariate_effects,
+      seconds = timing$fit %||% NA_real_)), endpoints$pk[[1L]]),
+    endpoints = endpoints
   ), class = "pmx_fitted_model")
 }
 
@@ -400,6 +411,7 @@ model_report <- function(fitted_model) {
     movement = fitted_model$movement,
     fit_subjects = fitted_model$fit_subjects,
     start_param = fitted_model$start_param,
+    pk_models = fitted_model$pk_models,
     covariate_effects = fitted_model$covariate_effects,
     correlations = fitted_model$correlations,
     censoring = fitted_model$censoring,
@@ -443,41 +455,66 @@ print.pmx_model_report <- function(x, ...) {
                 100 * changes$relative_change), sep = "")
     cat("\n")
   }
-  cat("Estimated by nlmixr2\n")
-  cat("  structural model  ", x$structural, "\n")
-  if (!is.null(x$fit_subjects)) {
-    fs <- x$fit_subjects
-    field("fitted on", if (fs$fitted < fs$of) paste0(
-      fs$fitted, " of ", fs$of, " patients with a concentration, drawn in ",
-      "proportion to the arms under `max_fit_subjects` = ", fs$cap, "; the ",
-      "dosing, visit and covariate models below read the whole study") else
-        paste0("all ", fs$fitted, " patients with a concentration"))
+  models <- x$pk_models
+  if (!length(models)) models <- list(list(structural = x$structural,
+                                           parameters = x$parameters,
+                                           movement = x$movement,
+                                           start_param = x$start_param))
+  for (k in seq_along(models)) {
+    own <- models[[k]]
+    cat(if (length(models) > 1L)
+      sprintf("Estimated by nlmixr2: `%s`\n", own$endpoint) else
+        "Estimated by nlmixr2\n")
+    cat("  structural model  ", own$structural, "\n")
+    if (k == 1L && !is.null(x$fit_subjects)) {
+      fs <- x$fit_subjects
+      field("fitted on", if (fs$fitted < fs$of) paste0(
+        fs$fitted, " of ", fs$of, " patients with a concentration, drawn in ",
+        "proportion to the arms under `max_fit_subjects` = ", fs$cap, "; the ",
+        "dosing, visit and covariate models below read the whole study") else
+          paste0("all ", fs$fitted, " patients with a concentration"))
+    }
+    if (!is.null(own$movement) && !isTRUE(own$movement$moved)) {
+      changes <- own$movement$changes
+      cat("  !! THE FIT DID NOT MOVE !!\n")
+      cat("  ", .wrap_plain(paste0(
+        "Every parameter came back within ",
+        sprintf("%.0f%%", 100 * own$movement$tolerance),
+        " of its starting value, so the numbers below are starting values ",
+        "rather than estimates. Do not generate from this fit."
+      ), "", "  "), "\n", sep = "")
+      cat(sprintf("    %-10s %-12s -> %-12s (%.2f%%)\n", changes$parameter,
+                  sprintf("%.4g", changes$start),
+                  sprintf("%.4g", changes$estimate),
+                  100 * changes$relative_change), sep = "")
+    }
+    cat("  fixed effects     ",
+        paste(sprintf("%s %.4g", names(own$parameters$fixed),
+                      as.numeric(own$parameters$fixed)), collapse = ", "), "\n")
+    cat("  between-subject   ",
+        paste(sprintf("%s %.3g", rownames(own$parameters$omega),
+                      sqrt(diag(own$parameters$omega))), collapse = ", "),
+        "(as SD on the log scale)\n")
+    if (!is.null(own$movement) && isTRUE(own$movement$moved) &&
+        isFALSE(own$movement$omega_moved)) {
+      field("", .wrap_plain(paste0(
+        "!! Every between-subject term is within ",
+        sprintf("%.0f%%", 100 * own$movement$tolerance),
+        " of its starting value of ", .model_eta_init, " while the fixed ",
+        "effects moved: the fit found a population mean and did not estimate ",
+        "its spread. Synthetic subjects will be spread by the starting value, ",
+        "not by this study.")))
+    }
+    if (length(own$start_param)) {
+      field("starting values", paste(sprintf("%s %.4g", names(own$start_param),
+                                             own$start_param), collapse = ", "),
+            " declared through `start_param`; the rest were read off the ",
+            "cohort's median profile")
+    }
+    cat("  residual error    ", own$parameters$residual$kind,
+        sprintf("%.3g", own$parameters$residual$cv %||%
+                  own$parameters$residual$sd), "\n")
   }
-  cat("  fixed effects     ",
-      paste(sprintf("%s %.4g", names(x$parameters$fixed),
-                    as.numeric(x$parameters$fixed)), collapse = ", "), "\n")
-  cat("  between-subject   ",
-      paste(sprintf("%s %.3g", rownames(x$parameters$omega),
-                    sqrt(diag(x$parameters$omega))), collapse = ", "),
-      "(as SD on the log scale)\n")
-  if (!is.null(x$movement) && isTRUE(x$movement$moved) &&
-      isFALSE(x$movement$omega_moved)) {
-    field("", .wrap_plain(paste0(
-      "!! Every between-subject term is within ",
-      sprintf("%.0f%%", 100 * x$movement$tolerance), " of its starting value ",
-      "of ", .model_eta_init, " while the fixed effects moved: the fit found a ",
-      "population mean and did not estimate its spread. Synthetic subjects ",
-      "will be spread by the starting value, not by this study.")))
-  }
-  if (length(x$start_param)) {
-    field("starting values", paste(sprintf("%s %.4g", names(x$start_param),
-                                           x$start_param), collapse = ", "),
-          " declared through `start_param`; the rest were read off the ",
-          "cohort's median profile")
-  }
-  cat("  residual error    ", x$parameters$residual$kind,
-      sprintf("%.3g", x$parameters$residual$cv %||% x$parameters$residual$sd),
-      "\n")
   # What the wait was. A fit is the slow thing this package does, and a caller
   # deciding whether to change a setting and run it again asks this first.
   if (!is.null(x$timing)) {

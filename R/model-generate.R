@@ -261,7 +261,14 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   floored$seen <- 0L
   floored$raised <- 0L
 
-  etas <- .draw_random_effects(fit$parameters$omega, n_subjects)
+  # One set of random effects per concentration endpoint, drawn from that
+  # endpoint's own covariance matrix. They are drawn independently, because
+  # nothing estimated a correlation between a parent's clearance and its
+  # metabolite's -- see `SIM-080`.
+  pk_etas <- lapply(fit$pk_models, function(model) {
+    .draw_random_effects(model$parameters$omega, n_subjects)
+  })
+  etas <- pk_etas[[1L]]
   # Between-subject variability on a PD baseline is its own draw. It is not in
   # the PK covariance matrix, because the PD shapes are fitted separately and a
   # baseline is not a parameter of the concentration-time curve.
@@ -291,8 +298,11 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
 
     schedule <- .draw_schedule(fit$dosing[[arm]])
     doses[i] <- if (nrow(schedule)) sum(schedule$amt) else 0
-    p <- .subject_parameters(fit$parameters$fixed, fit$covariate_effects,
-                             etas[i, ], mine)
+    p <- stats::setNames(lapply(names(fit$pk_models), function(endpoint) {
+      model <- fit$pk_models[[endpoint]]
+      .subject_parameters(model$parameters$fixed, model$effects,
+                          pk_etas[[endpoint]][i, ], mine)
+    }), names(fit$pk_models))
 
     # How long each dose runs, from the rate the arm was given it at. This is
     # the whole of what makes an infusion an infusion at generation: without it
@@ -316,12 +326,17 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     for (index in which(attended)) {
       endpoint_name <- cells$endpoint[index]
       time <- cells$time[index]
-      value <- if (identical(endpoint_name, fit$endpoints$pk)) {
+      value <- if (endpoint_name %in% fit$endpoints$pk) {
         if (!nrow(schedule)) next
-        concentration <- .pk_profile(list(pk = fit$structural), time,
-                                     schedule$amt, schedule$time, p,
+        # Each concentration endpoint has its own structural model, its own
+        # parameters and its own residual error, evaluated against the one
+        # dose schedule they share.
+        own <- fit$pk_models[[endpoint_name]]
+        concentration <- .pk_profile(list(pk = own$structural), time,
+                                     schedule$amt, schedule$time,
+                                     p[[endpoint_name]],
                                      duration, routes = schedule$route)
-        .add_residual_error(concentration, fit$parameters$residual, floor = 0)
+        .add_residual_error(concentration, own$parameters$residual, floor = 0)
       } else if (endpoint_name %in% names(fit$pd)) {
         # The subject's own arm where the shape was fitted per arm, and the
         # pooled shape otherwise. `synpmx_model_estimate(pd_by_arm = TRUE)` is

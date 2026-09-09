@@ -42,17 +42,36 @@ asserting no dose-response form; an arm holding too little of an endpoint
 to fit keeps the pooled shape. Costs nothing measurable, since these are
 least-squares fits.}
 
-\item{endpoint_roles}{Named character vector naming which endpoint is the
-drug concentration, as \code{c(pk = "cp")}, overriding the inference.}
+\item{endpoint_roles}{Which endpoint is the drug concentration, as
+\code{c(pk = "cp")}, overriding the inference.
+
+\strong{More than one may be named}, for a study that measures two
+concentrations — two drugs, or a parent and its metabolite. Each gets its
+own structural model, its own parameters and its own residual error,
+evaluated against the one dose schedule they share; no correlation between
+their random effects is estimated. Write it as
+\code{list(pk = c("parent", "metabolite"))}, or \code{c(pk = c("parent", "metabolite"))}, which R renames to \code{pk1}/\code{pk2} and which is read the same
+way.
+
+Naming several is a declaration, never an inference. Left to itself the
+classification picks one concentration and treats every other continuous
+endpoint as a pharmacodynamic time course, because a second endpoint that
+passes the concentration signals is at least as often a biomarker as a
+metabolite — \code{onc_sim}'s tumour size passes them. Where a demoted endpoint
+really is a concentration, that time course has no dose term in it and the
+generated values lose their dose ordering, which is why naming both is
+worth doing.}
 
 \item{start_param}{Starting values for the population PK parameters, as
 \code{start_param = c(cl = 4, v = 40, ka = 0.5)}. Anything not named is read
 off the curve as usual, so a caller who knows the clearance and not the
 absorption says only the clearance.
 
-No endpoint key is needed: the population model is fitted to exactly one
-endpoint, the concentration that \code{endpoint_roles} names, and the PD
-endpoints are least-squares time courses that this does not reach.
+Where the study fits \strong{more than one} concentration endpoint, key it by
+endpoint — \code{start_param = list(parent = c(cl = 4), metabolite = c(cl = 9))} — because a flat vector would not say which one it describes,
+and is refused with that message. With one concentration the flat form is
+what to write. The PD endpoints are least-squares time courses that this
+does not reach.
 
 The automatic starting values are a non-compartmental read of the cohort's
 median profile. On a study that read cannot describe — sampled only at

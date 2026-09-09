@@ -547,7 +547,7 @@ synpmx_scorecard_datatable(nimo_run$card)
 ```
 
 Nothing fails, and D1 at 3.4 times the source's spread is the one row to
-read — the widest of the eight, and what twelve subjects buy: a covariance
+read — the widest of the ten, and what twelve subjects buy: a covariance
 matrix estimated from twelve people, drawn from freely, produces profiles more
 spread out than the twelve it came from. The subject floor exists for this, and
 `nimoData` is the study that shows what lifting it costs.
@@ -662,7 +662,108 @@ declaration outright; `synpmx_avatar()` derives a grid instead, and the
 [AVATAR evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs this study that way.
 
-## What the eight runs held
+## mixroute_sim: two routes, and a bioavailability that is known
+
+Ninety patients dosed intravenously, subcutaneously, and both. This is the study
+`1cmt_mixed` exists for, and because it is simulated the fit can be graded
+rather than merely read: the truth is a clearance of 2 L/day, a volume of 10 L,
+an absorption rate of 0.5 /day and a bioavailability of 0.7.
+
+```{r mixroute, eval=run, message=FALSE}
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_run <- model_run("mixroute_sim", mixroute_sim, mixroute_roles,
+                          "mixroute-sim-model-fit.rds", seed = 808)
+mixroute_run$fit
+```
+
+```{r mixroute-truth, eval=run}
+truth <- c(cl = 2, v = 10, ka = 0.5, f = 0.7)
+fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
+data.frame(truth = truth, fitted = round(fitted, 3),
+           ratio = round(fitted / truth, 2))
+```
+
+```{r mixroute-plot, echo=FALSE, eval=plots}
+overlay_plot(mixroute_run$source, mixroute_run$synthetic, mixroute_roles,
+             "mixroute_sim: three arms, two routes", alpha = 0.35)
+```
+
+```{r mixroute-scorecard, eval=run}
+synpmx_scorecard_datatable(mixroute_run$card)
+```
+
+Nothing fails, and bioavailability is recovered — which is the whole point of
+fitting the two routes as one study rather than two. `f` is identifiable here
+*because* the same study doses both ways; on either arm alone it is confounded
+with clearance and volume and cannot be estimated at all. It is fitted as a
+fixed effect with no between-subject term, because a design with one dose each
+way identifies the contrast between the routes and not a distribution over it.
+
+## onc_sim: a slow endpoint, and a concentration sampled only at troughs
+
+Two hundred patients, a year of daily everolimus, tumour size beside trough
+concentrations. Two things here defeat the parts of this generator that read a
+curve.
+
+**Both endpoints look like concentrations, and neither signal separates them.**
+Tumour size is absent before the first dose and its dose proportionality is not
+computable, which is exactly the pattern a concentration shows, so the
+classification refuses rather than guessing and names `endpoint_roles`. That is
+the right refusal: tumour size is not a drug concentration, and fitting it a
+one-compartment model would be worse than useless.
+
+**The concentration is sampled only at troughs.** The starting values are a
+non-compartmental read of the median profile, which needs a peak and a terminal
+slope; a trough series has neither, and the absorption rate started two orders
+of magnitude from everolimus's own. `start_param` states what is known about the
+compound instead, and the clearance and volume are still read off the curve.
+
+```{r onc, eval=run, message=FALSE}
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_run <- model_run("onc_sim", onc_sim, onc_roles, "onc-sim-model-fit.rds",
+                     seed = 808)
+onc_run$fit
+```
+
+The stored fit above was built with
+`endpoint_roles = c(pk = "Everolimus trough")` and `start_param = c(ka = 5)`;
+`scripts/build-model-fits.R` has the call. Tumour size becomes the PD endpoint
+and is fitted a time course.
+
+```{r onc-truth, eval=run}
+truth <- c(cl = 0.470, v = 0.850, ka = 5)
+fitted <- onc_run$fit$parameters$fixed[names(truth)]
+data.frame(truth = truth, fitted = round(fitted, 3),
+           ratio = round(fitted / truth, 2))
+```
+
+```{r onc-plot, echo=FALSE, eval=plots}
+overlay_plot(onc_run$source, onc_run$synthetic, onc_roles,
+             "onc_sim: tumour size and trough concentration", alpha = 0.25)
+```
+
+```{r onc-scorecard, eval=run}
+synpmx_scorecard_datatable(onc_run$card)
+```
+
+Nothing fails. Read the tumour endpoint against what it is, though: a PD time
+course here is a function of time with no exposure term and no dose term, pooled
+across arms unless `pd_by_arm = TRUE`. The source's placebo and 10 mg arms
+diverge because the dose drives the tumour; the generated ones follow one shape.
+The dose history is faithfully reproduced and the endpoint that responds to it
+is not, and on this study that gap is the whole scientific content.
+
+## What the ten runs held
 
 ```{r inventory, eval=run}
 inventory <- do.call(rbind, lapply(runs, function(entry) {
@@ -699,17 +800,17 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the eight runs.")
+             caption = "Scorecard verdicts across the ten runs.")
 ```
 
-No card fails on any of the eight. Five rows on each read `not applicable` for
+No card fails on any of the ten. Five rows on each read `not applicable` for
 the reasons given under `case1_pkpd`, and the rows that ask to be read are
 `A5a`, `A5b` and `D1` — how many observations and occasions each patient kept,
 and how far a spread moved.
 
 ## What is preserved, and what is not
 
-Preserved on all eight: the schema and event grammar, the cohort and arm
+Preserved on all ten: the schema and event grammar, the cohort and arm
 sizes, the nominal grid the study declared, one dose schedule per arm, the
 covariate marginals, and the guarantee B4b measures — no value any patient
 measured is reproduced.

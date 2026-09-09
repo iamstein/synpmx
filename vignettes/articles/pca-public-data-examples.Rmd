@@ -43,7 +43,7 @@ occasion, or an occasion-relative clock. One cannot: `pheno_sd` is routine
 neonatal care with no protocol behind it, and the generator refuses.
 
 Seven runs follow, then three cross-dataset tables and one finding — the
-copy check that fails on two of the seven, and what it does and does not mean.
+copy check that fails on two of the nine, and what it does and does not mean.
 
 <details>
 <summary>Plotting and reporting helpers used throughout this vignette</summary>
@@ -150,6 +150,12 @@ Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
 | `nimoData` | nlmixr2data | 12 | 1 | Constructed from the declared occasion and time after dose |
 | `mavoglurant` | nlmixr2data | 120 | 1 | Constructed by snapping an occasion-relative clock |
 | `pheno_sd` | nlmixr2data | 59 | 1 | **None.** Routine care, individualised dosing — refused |
+| `mixroute_sim` | **synpmx** | 90 | 1 | Declared. Ships an `NTIME` column, and an `ADM` for the route |
+| `onc_sim` | **synpmx** | 200 | 2 | Declared. Scans and troughs are planned, so `NTIME` is the recorded day |
+
+The last two are simulated by `synpmx` rather than public package data, and
+carry what the eight above do not: a declared administration column, and a
+daily regimen written with `ADDL`/`II`. See `?mixroute_sim` and `?onc_sim`.
 
 ## Shared workflow
 
@@ -195,7 +201,7 @@ synpmx_pca_summarize(pheno_sd, pheno_roles, seed = 111)
 This is the sharpest difference between the two generators. `synpmx_avatar()`
 derives a grid from the recorded times when none is declared, and on `pheno_sd`
 that derivation does real work. `synpmx_pca()` has no such fallback, and the
-seven runs below are the seven studies where a grid could honestly be supplied.
+nine runs below are the nine studies where a grid could honestly be supplied.
 
 ## case1_pkpd: a declared nominal grid
 
@@ -612,7 +618,100 @@ its derived grid does real work there, and the [AVATAR
 evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
 runs it.
 
-## What the seven runs held
+## mixroute_sim: a grid that is already the protocol's
+
+Ninety patients in three arms — intravenous, subcutaneous, and intravenous then
+subcutaneous. Its `NTIME` is the protocol's planned time and ships with the
+dataset, so nothing has to be constructed. What it is here to test is the route:
+PCA does not model a route, and until it carried one, a declared `ADM` was
+dropped from the output entirely and the generated table could not be validated
+at all.
+
+```{r mixroute, message=FALSE}
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_run <- pca_run("mixroute_sim", mixroute_sim, mixroute_roles, seed = 808)
+```
+
+```{r mixroute-plot, echo=FALSE, eval=has_ggplot2}
+overlay_plot(mixroute_run$source, mixroute_run$synthetic, mixroute_roles,
+             "mixroute_sim: three arms, two routes", alpha = 0.35)
+```
+
+```{r mixroute-scorecard}
+synpmx_scorecard_datatable(mixroute_run$card)
+```
+
+Nothing fails. The route comes back because each generated dose enters the
+compartment its own route doses into — `.draw_schedule()` carries the route of
+every planned dose, and the administration id is written from it:
+
+```{r mixroute-routes}
+dosed <- function(data) data[data$EVID == 1L, ]
+list(source = table(dosed(mixroute_sim)$ARM, dosed(mixroute_sim)$ADM),
+     synthetic = table(dosed(mixroute_run$synthetic)$ARM,
+                       dosed(mixroute_run$synthetic)$ADM))
+```
+
+The arm dosed both ways keeps both, because the route is a property of each
+planned cycle in the arm's dosing model rather than of the arm.
+
+## onc_sim: a dose that changes for reasons the patient's data explains
+
+Two hundred patients, a year of daily everolimus, tumour size beside trough
+concentrations. Most placebo patients cross over on progression and about a
+quarter of the treated arm reduce their dose, so the dose history is neither
+constant nor protocol-driven — it is a response to what happened to that patient.
+
+```{r onc, message=FALSE}
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_run <- pca_run("onc_sim", onc_sim, onc_roles, seed = 808)
+```
+
+```{r onc-plot, echo=FALSE, eval=has_ggplot2}
+overlay_plot(onc_run$source, onc_run$synthetic, onc_roles,
+             "onc_sim: tumour size and trough concentration", alpha = 0.25)
+```
+
+```{r onc-scorecard}
+synpmx_scorecard_datatable(onc_run$card)
+```
+
+Nothing fails, and one row is worth reading against the source rather than
+against a threshold. A5b — dose records per patient — moves from 1.18 to
+7.48, and the dose records tell the same story:
+
+```{r onc-doses}
+records <- function(data) {
+  d <- data[data$EVID == 1L, ]
+  c(records = nrow(d), doses = sum(d$ADDL + 1L))
+}
+rbind(source = records(onc_sim), synthetic = records(onc_run$synthetic))
+```
+
+The total drug is close; the *encoding* is not. The dosing model draws a
+reduction, a skip or a discontinuation independently at each planned cycle, and
+this study's cycle is one day, so a synthetic patient's dose flickers between
+levels where a real patient held one dose for months and changed it once. The
+regimen is right on average and wrong in its runs, and because
+`pmx_compress_doses()` writes each constant run as its own record, the record
+count is what shows it.
+
+That is a fair description of what the model is: per-cycle hazards, with no
+memory of how long a patient has been at a dose. On a study dosed every three
+weeks it is a good description of dose reduction. On one dosed daily it is not,
+and this is the dataset that says so.
+
+## What the nine runs held
 
 The trial summary is the whole of what leaves the source, so its size across
 seven studies is worth one table.
@@ -675,7 +774,7 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the seven runs.")
+             caption = "Scorecard verdicts across the nine runs.")
 ```
 
 `not applicable` is 5 on every row and is a gap rather than a result. B1a, B1b
@@ -723,7 +822,7 @@ copies <- do.call(rbind, lapply(runs, function(entry) {
   )
 }))
 knitr::kable(copies, row.names = FALSE,
-             caption = "B4a and B4b across the seven runs, beside how long a source patient's record is.")
+             caption = "B4a and B4b across the nine runs, beside how long a source patient's record is.")
 ```
 
 **B4b is zero everywhere.** No generated subject reproduces a real patient's
@@ -783,4 +882,4 @@ Not preserved, and each is a decision rather than a defect:
 - `vignette("pca-fingerprint")` — every quantity the fingerprint holds.
 - `vignette("pca-algorithm")` — how each is estimated, and what it costs.
 - [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
-  — the same eight datasets under `synpmx_avatar()`.
+  — the same ten datasets under `synpmx_avatar()`.

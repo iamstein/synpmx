@@ -210,10 +210,20 @@ Every dataset here is public package data from `nlmixr2data` or `xgxr`, both
 | `nimoData` | nlmixr2data | 12 | 441 | 1 | Ten roughly weekly infusions, recorded at the times they happened |
 | `mavoglurant` | nlmixr2data | 120 | 2678 | 1 | One- and two-period crossover, `TIME` resetting within `OCC`, an occasion-varying assigned dose, infusion rows. |
 | `pheno_sd` | nlmixr2data | 59 | 744 | 1 | Neonatal phenobarbital, individualised dosing, sparse irregular sampling, time-varying weight. |
+| `mixroute_sim` | **synpmx** | 90 | 1800 | 1 | Three arms dosed intravenously, subcutaneously, and both. A declared `ADM`, and a known bioavailability |
+| `onc_sim` | **synpmx** | 200 | 3379 | 2 | Tumour size over a year beside trough concentrations, crossover on progression, dose reduction, and a daily regimen written with `ADDL`/`II` |
 
-**None of these datasets uses steady state, `ADDL`, or `II`.** Every dose is
-written out as its own row, so the handling of compressed dose records is
-exercised by the package's tests rather than by anything below.
+The last two are simulated by `synpmx` itself rather than public package data,
+and they are here because the eight above have no example of what they carry:
+an administration column, a dose that changes within a patient for reasons that
+patient's own data explains, an endpoint measured over months against a
+per-patient baseline, and compressed dose records. Being simulated, they also
+have a **written-down truth**, so a section can say how close a generator came
+rather than only that it ran. `?mixroute_sim` and `?onc_sim` give the models
+and their parameters.
+
+**Only `onc_sim` uses `ADDL` and `II`, and none uses steady state.** Every dose
+in the eight public datasets is written out as its own row.
 
 ## Shared workflow
 
@@ -232,7 +242,7 @@ one where the pharmacometrician could evaluate whether the output is acceptable 
 **No dataset here fails a check**, which is a thing to be careful about rather
 than reassured by. `nimoData`, on B1b, previously failed, and its section
 shows what fixing the issue involved. Every card carries five or six `review` rows
-instead, and those are where the eight datasets actually differ. The runs below
+instead, and those are where the ten datasets actually differ. The runs below
 are quiet: `synpmx_avatar()` prints an alert for every exposure it could not
 remove, and eighteen of those blocks would say what the scorecard and
 `pmx_masking_report()` say here in tables.
@@ -404,9 +414,8 @@ knitr::kable(
 ```
 
 A6 in the scorecard above is the check on it, and it reads the finished table
-rather than trusting the mechanism. It is on every card; the seven studies
-before this one have no discrete endpoint, so theirs read
-`no discrete endpoint` and pass.
+rather than trusting the mechanism. It is on every card; the nine other studies
+here have no discrete endpoint, so theirs read `no discrete endpoint` and pass.
 
 Two limits. The type is inferred, so an endpoint whose values are whole numbers
 for a reason other than being discrete is called discrete anyway — `warfarin`'s
@@ -933,12 +942,126 @@ name the arm that could not be masked. An avatar is never anchored outside the
 arm it was allocated to, so an arm whose dosing is individualised fails rather
 than borrowing patients from an arm whose dosing is not.
 
+## mixroute_sim: one study, two routes
+
+Ninety patients in three arms of thirty — intravenous only, subcutaneous only,
+and an intravenous loading dose followed by subcutaneous maintenance. The third
+arm is why the dataset exists: no public dataset in this survey has an
+administration column at all, and route of administration is the one structural
+axis AVATAR will never blend across.
+
+```{r mixroute, message=FALSE}
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", adm = "ADM",
+  routes = c("1" = "iv", "2" = "extravascular"),
+  cens = "CENS", strata = "ARM", covariates = "WT"
+)
+mixroute_synth <- suppressWarnings(
+  synpmx_avatar(mixroute_sim, mixroute_roles, seed = 808)
+)
+```
+
+```{r mixroute-plot, echo=FALSE, eval=has_ggplot2, fig.height=overlay_height(mixroute_sim, mixroute_roles)}
+overlay_plot(mixroute_sim, mixroute_synth, mixroute_roles,
+             "mixroute_sim: concentration by arm, three routes",
+             clock = "tad", x_label = "Time after dose (days)", alpha = 0.3)
+```
+
+```{r mixroute-distributions, eval=has_distributions, fig.height=compare_pmx_distributions_height(mixroute_sim, mixroute_roles)}
+compare_pmx_distributions(mixroute_sim, mixroute_synth, mixroute_roles)
+```
+
+```{r mixroute-scorecard}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(mixroute_sim, mixroute_synth, mixroute_roles)
+)
+```
+
+Nothing fails, and the arm-by-route table is the check worth making by hand,
+because it is the one thing this dataset is here to test:
+
+```{r mixroute-routes}
+dosed <- function(data) data[data$EVID == 1L, ]
+list(source = table(dosed(mixroute_sim)$ARM, dosed(mixroute_sim)$ADM),
+     synthetic = table(dosed(mixroute_synth)$ARM, dosed(mixroute_synth)$ADM))
+```
+
+Every avatar carries its anchor's route, and the arm that receives both keeps
+both. That is `.route_key()` doing its job — an avatar is blended only from
+donors dosed the same way, and a patient dosed both ways is its own route class,
+matching neither the intravenous-only nor the subcutaneous-only patients.
+
+## onc_sim: a year of daily dosing, compressed
+
+Two hundred patients shaped like the phase 3 RECORD-1 trial of everolimus,
+following the tumour-growth model of Stein et al. (2012). Patients are
+randomised to 10 mg daily or to placebo; most placebo patients cross over on
+progression, and about a quarter of the everolimus arm reduce to 5 mg, some
+after an interruption. Tumour size is measured roughly six-weekly over a year,
+with trough concentrations alongside.
+
+Three things here that nothing else in this survey has: an endpoint anchored on
+a per-patient baseline and measured over months, a dose that changes within a
+patient for reasons that patient's own data explains, and a regimen written with
+`ADDL` and `II` rather than one row per dose.
+
+```{r onc, message=FALSE}
+onc_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",
+  cens = "CENS", strata = "ARM", covariates = c("BSLD", "AGE", "SEX"),
+  keep = "CROSSOVER"
+)
+onc_synth <- suppressWarnings(synpmx_avatar(onc_sim, onc_roles, seed = 808))
+```
+
+The compressed dose records are the reason this runs at all. Written out, the
+study is 71,180 doses; as `ADDL`/`II` blocks it is 322 records, and
+`pmx_expand_doses()` writes them out on the way in so the dose skeleton sees
+every dose, then folds them back on the way out:
+
+```{r onc-doses}
+records <- function(data) {
+  d <- data[data$EVID == 1L, ]
+  c(records = nrow(d), doses = sum(d$ADDL + 1L))
+}
+rbind(source = records(onc_sim), synthetic = records(onc_synth))
+```
+
+```{r onc-plot, echo=FALSE, eval=has_ggplot2, fig.height=overlay_height(onc_sim, onc_roles)}
+overlay_plot(onc_sim, onc_synth, onc_roles,
+             "onc_sim: tumour size and trough concentration over a year",
+             y_label = "DV", alpha = 0.25)
+```
+
+```{r onc-distributions, eval=has_distributions, fig.height=compare_pmx_distributions_height(onc_sim, onc_roles)}
+compare_pmx_distributions(onc_sim, onc_synth, onc_roles)
+```
+
+```{r onc-scorecard}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(onc_sim, onc_synth, onc_roles)
+)
+```
+
+Nothing fails. The synthetic study comes back in the encoding its source used —
+one record per constant-dose run, carrying `ADDL` and `II` — which is what makes
+it readable by whatever read the real one.
+
+What this dataset shows that the others cannot is the cost of copying a dose
+schedule verbatim. An avatar's doses come from one anchor, so a synthetic
+patient's crossover time, reduction and interruption are one real patient's, and
+the tumour trajectory blended onto that skeleton came from neighbours. On a
+study where the dose history is the exposure and the exposure is the effect,
+that pairing is the thing to look at before using the output.
+
 ## How well did the obfuscation work?
 
 Everything above shows that the synthetic data *looks* right. This section asks
 the other question: how much of each real patient is still visible in it?
 
-### Exposure across the eight datasets
+### Exposure across the ten datasets
 
 Each dataset above carries its own accounting. This section puts the same
 quantities in one place, because the *contrast* between datasets is what shows
@@ -967,7 +1090,9 @@ exposure <- rbind(
   exposure_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
   exposure_row("nimoData", nimoData, nimo_roles, nimo_synth),
   exposure_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
+  exposure_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+  exposure_row("mixroute_sim", mixroute_sim, mixroute_roles, mixroute_synth),
+  exposure_row("onc_sim", onc_sim, onc_roles, onc_synth)
 )
 knitr::kable(
   exposure,
@@ -1018,7 +1143,9 @@ knitr::kable(
     cost_row("wbcSim", wbcSim, wbc_roles, wbc_synth),
     cost_row("nimoData", nimoData, nimo_roles, nimo_synth),
     cost_row("mavoglurant", mavoglurant, mavo_roles, mavo_synth),
-    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth)
+    cost_row("pheno_sd", pheno_sd, pheno_roles, pheno_synth),
+    cost_row("mixroute_sim", mixroute_sim, mixroute_roles, mixroute_synth),
+    cost_row("onc_sim", onc_sim, onc_roles, onc_synth)
   ),
   caption = paste(
     "What the masking removed. The first three counts are patients excluded",
@@ -1112,7 +1239,9 @@ knitr::kable(
     proximity_row("wbcSim", wbcSim, wbc_synth, wbc_roles),
     proximity_row("nimoData", nimoData, nimo_synth, nimo_roles),
     proximity_row("mavoglurant", mavoglurant, mavo_synth, mavo_roles),
-    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles)
+    proximity_row("pheno_sd", pheno_sd, pheno_synth, pheno_roles),
+    proximity_row("mixroute_sim", mixroute_sim, mixroute_synth, mixroute_roles),
+    proximity_row("onc_sim", onc_sim, onc_synth, onc_roles)
   ),
   caption = paste(
     "Nearest-neighbour adversarial accuracy against a split-half null built",
@@ -1134,7 +1263,7 @@ the function a verbatim copy and requiring it to object.
 **The unique-schedule count after coarsening is the number of patients you would
 consider dropping**, and the split by cause decides whether dropping is even the
 right response. Each dataset
-section above works through its own numbers; the pattern across all eight is what
+section above works through its own numbers; the pattern across all ten is what
 matters here.
 
 The spread runs from **`case1_pkpd`, where 180 patients on a declared nominal

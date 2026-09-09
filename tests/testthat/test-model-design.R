@@ -240,7 +240,7 @@ test_that("endpoint_roles naming something unfittable says which", {
   obs <- .model_observations(data, roles)
   expect_error(
     .model_classify_endpoints(data, roles, obs, endpoint_roles = c(pk = "nope")),
-    "not an endpoint in this data"
+    "not in this data"
   )
 })
 
@@ -511,4 +511,82 @@ test_that("the wait is announced before it happens", {
                "30 dose records compressed to 6")
   # Nothing compressed and nothing much to wait for: no message at all.
   expect_null(.dose_record_message(data, data))
+})
+
+# SIM-080. A study that measures two concentrations fits two population models.
+# Declared, never inferred: a second endpoint passing the concentration signals
+# is as often a biomarker as a metabolite.
+
+test_that("endpoint_roles accepts several concentrations, in three spellings", {
+  data <- .pk_fixture()
+  data2 <- data
+  data2$DVID <- "cp2"
+  data2$DV <- data2$DV * 0.4
+  both <- rbind(data, data2[data2$EVID == 0L, ])
+  roles <- .design_roles()
+  obs <- .model_observations(both, roles)
+
+  for (spelling in list(list(pk = c("cp", "cp2")), c(pk = c("cp", "cp2")))) {
+    got <- .model_classify_endpoints(both, roles, obs, spelling)
+    expect_setequal(got$pk, c("cp", "cp2"))
+    expect_length(got$pd, 0L)
+    expect_identical(got$decided_by, "declared")
+  }
+  # One endpoint still reads as one, and everything else stays PD.
+  one <- .model_classify_endpoints(both, roles, obs, c(pk = "cp"))
+  expect_identical(one$pk, "cp")
+  expect_identical(one$pd, "cp2")
+})
+
+test_that("inference still returns a single concentration", {
+  data <- .pk_fixture()
+  roles <- .design_roles()
+  got <- .model_classify_endpoints(data, roles,
+                                   .model_observations(data, roles), NULL)
+  expect_length(got$pk, 1L)
+  expect_identical(got$decided_by, "inferred")
+})
+
+test_that("a declared endpoint that is absent or discrete is refused by name", {
+  data <- .pk_fixture()
+  roles <- .design_roles()
+  obs <- .model_observations(data, roles)
+  expect_error(
+    .model_classify_endpoints(data, roles, obs, list(pk = c("cp", "nope"))),
+    "not in this data")
+})
+
+test_that("inference promotes several endpoints only on dose proportionality", {
+  # Two endpoints that both scale with dose are two concentrations, and
+  # inference says so without being told.
+  data <- .pk_fixture()
+  second <- data[data$EVID == 0L, ]
+  second$DVID <- "cp2"
+  second$DV <- second$DV * 0.4
+  both <- rbind(data, second)
+  roles <- .design_roles()
+  signals <- .model_endpoint_signals(both, roles,
+                                     .model_observations(both, roles))
+  skip_if_not(all(signals$proportional %in% TRUE),
+              "fixture does not carry two dose levels")
+  got <- .model_classify_endpoints(both, roles,
+                                   .model_observations(both, roles), NULL)
+  expect_setequal(got$pk, c("cp", "cp2"))
+  expect_identical(got$decided_by, "inferred")
+})
+
+test_that("an endpoint whose proportionality is unknown is not promoted", {
+  # `warfarin`'s prothrombin activity and `onc_sim`'s tumour size both pass the
+  # required signals only because `proportional` cannot be computed, and a
+  # signal nobody could compute is not evidence that an endpoint is a drug.
+  signals <- data.frame(
+    endpoint = c("cp", "biomarker"), compartment = c(TRUE, FALSE),
+    post_dose = c(TRUE, TRUE), shape = c(TRUE, FALSE),
+    proportional = c(NA, NA), stringsAsFactors = FALSE
+  )
+  required <- signals$post_dose &
+    (is.na(signals$proportional) | signals$proportional)
+  strong <- required & !is.na(signals$proportional) & signals$proportional
+  expect_equal(sum(required), 2L)
+  expect_equal(sum(strong), 0L)
 })

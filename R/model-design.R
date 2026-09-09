@@ -276,16 +276,37 @@
   discrete <- setdiff(names(specs), continuous)
 
   if (!is.null(endpoint_roles)) {
-    declared <- unname(endpoint_roles[["pk"]] %||% endpoint_roles[[1L]])
-    if (!declared %in% names(specs)) {
-      stop("`endpoint_roles` names `", declared, "`, which is not an endpoint ",
-           "in this data. Endpoints here are: ",
-           paste(names(specs), collapse = ", "), ".", call. = FALSE)
+    # Several may be declared. Two drugs in one study, or a parent and its
+    # metabolite, are two concentrations and each earns its own structural
+    # model; the alternative is the one this replaces, where the second was
+    # demoted to a time course with no dose term in it (`SIM-080`).
+    # Three spellings reach the same place. `c(pk = "a")` is the one-endpoint
+    # form; `c(pk = c("a", "b"))` is what a caller naturally writes and what R
+    # silently renames to `pk1`, `pk2`; `list(pk = c("a", "b"))` is the form
+    # that survives the rename. All three mean the same thing here.
+    declared <- if (is.list(endpoint_roles)) {
+      unname(endpoint_roles[["pk"]] %||% endpoint_roles[[1L]])
+    } else {
+      keys <- names(endpoint_roles) %||% rep("", length(endpoint_roles))
+      named_pk <- grepl("^pk[0-9]*$", keys)
+      if (any(named_pk)) unname(endpoint_roles[named_pk]) else
+        unname(endpoint_roles[[1L]])
     }
-    if (!declared %in% continuous) {
+    absent <- setdiff(declared, names(specs))
+    if (length(absent)) {
       stop(.condition_text(
-        "`endpoint_roles` names `", declared, "`, which is a ",
-        specs[[declared]]$type, " endpoint.",
+        "`endpoint_roles` names endpoint(s) not in this data:",
+        items = absent,
+        why = paste("Endpoints here are:", paste(names(specs), collapse = ", "))),
+        call. = FALSE)
+    }
+    not_continuous <- setdiff(declared, continuous)
+    if (length(not_continuous)) {
+      stop(.condition_text(
+        "`endpoint_roles` names endpoint(s) that are not continuous:",
+        items = sprintf("%s (%s)", not_continuous,
+                        vapply(specs[not_continuous], function(x) x$type,
+                               character(1))),
         why = paste("A drug concentration has to be a continuous time course",
                     "to be fitted; binary and ordinal endpoints are generated",
                     "from their per-visit marginals instead.")),
@@ -310,6 +331,21 @@
                   "`synpmx_pca()`, which fit no structural model.")),
       call. = FALSE)
   }
+  # Several endpoints may be concentrations -- two drugs, or a parent and its
+  # metabolite -- and inference says so only on positive evidence. Dose
+  # proportionality is that evidence: a concentration scales with the dose and
+  # a biomarker does not. `required` above accepts a `proportional` that is NA,
+  # which means the study could not compute it, and NA is not evidence of
+  # anything: on `warfarin` prothrombin activity passes that way, and on
+  # `onc_sim` so does tumour size. Both would be fitted a one-compartment model
+  # if absence of contradiction were enough.
+  strong <- required & !is.na(signals$proportional) & signals$proportional
+  if (sum(strong) > 1L) {
+    return(list(pk = signals$endpoint[strong],
+                pd = setdiff(continuous, signals$endpoint[strong]),
+                discrete = discrete, signals = signals,
+                decided_by = "inferred"))
+  }
   if (length(passing) > 1L) {
     breaks <- signals[required, , drop = FALSE]
     score <- rowSums(cbind(!is.na(breaks$compartment) & breaks$compartment,
@@ -321,7 +357,11 @@
         items = breaks$endpoint[best],
         why = paste("The required signals pass for all of them and the",
                     "compartment and shape signals do not separate them."),
-        fix = "Name the concentration with `endpoint_roles = c(pk = \"...\")`."),
+        fix = paste("Name the concentration with `endpoint_roles =",
+                    "c(pk = \"...\")`. Name more than one -- `c(pk =",
+                    "c(\"parent\", \"metabolite\"))` -- where the study",
+                    "really does measure two concentrations, and each is",
+                    "fitted its own model.")),
         call. = FALSE)
     }
     passing <- breaks$endpoint[best]
