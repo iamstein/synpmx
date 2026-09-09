@@ -8,7 +8,6 @@
 ^scripts$
 ^output$
 ^vignettes/.*\.(html|pdf)$
-^data/\.gitkeep$
 ^LICENSE\.md$
 ^\.DS_Store$
 ^\.posit$

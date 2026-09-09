@@ -50,13 +50,10 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-# Local data, generated output, and private references.
-# `data/` now also holds the package's own shipped datasets, which must be
-# tracked: `mixroute_sim` and `onc_sim` are `LazyData` and every survey article
-# reads them, so an untracked `.rda` is a green local build and a failed one in
-# CI, which is exactly what happened.
-data/*
-!data/*.rda
+# Generated output and private references. `data/` is deliberately NOT ignored:
+# it holds the package's own shipped datasets, and the rule that used to cover
+# it was there to keep clinical data out of this repository, which now lives
+# somewhere else entirely.
 output/*
 !output/.gitkeep
 references/private/
