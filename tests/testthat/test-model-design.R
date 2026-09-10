@@ -417,6 +417,31 @@ test_that("dose times recorded as actuals are left alone by default", {
   expect_false("ADDL" %in% names(compressed))
 })
 
+test_that("a study that compresses only in part still assembles", {
+  # SIM-081. The regimen most studies actually run: a regular schedule for most
+  # subjects and a single dose, a dose reduction or an early stop for some. The
+  # compressed subjects carry `ADDL`/`II` and the ones left alone do not, and
+  # binding those two shapes together is an error rather than a fill -- which
+  # reached the user as `numbers of columns of arguments do not match`, from
+  # inside a call that had already run for minutes.
+  regular <- .repeated_study(n = 3, doses = 5)
+  stopped <- data.frame(ID = 4L, TIME = c(0, 24, 1, 25), DV = c(NA, NA, 5, 4),
+                        AMT = c(100, 100, 0, 0), EVID = c(1L, 1L, 0L, 0L))
+  data <- rbind(regular, stopped)
+
+  expect_silent(compressed <- .compress_dose_schedule(data))
+  # Three subjects folded to one dose row each; the fourth keeps both of its.
+  expect_equal(sum(compressed$EVID != 0L), 5L)
+  expect_equal(sum(compressed$EVID == 0L), sum(data$EVID == 0L))
+  expect_true(all(compressed$ADDL[compressed$ID == 4L] == 0L))
+  expect_true(all(compressed$II[compressed$ID == 4L] == 0))
+  expect_true(all(compressed$ADDL[compressed$ID != 4L &
+                                    compressed$EVID != 0L] == 4L))
+  # An uncompressed subject says its dose is the whole dose, so the solver
+  # reads the same schedule it was handed.
+  expect_equal(.time_after_dose(compressed), .time_after_dose(data))
+})
+
 test_that("a tolerance regularises the clock without moving a sample's TAD", {
   data <- .repeated_study(n = 6, doses = 5, drift = 0.4)
   compressed <- .compress_dose_schedule(data, tolerance = 0.05)

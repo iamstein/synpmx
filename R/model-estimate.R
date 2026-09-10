@@ -598,12 +598,24 @@
     rows <- rbind(first, observations)
     rows[order(rows$TIME, rows$EVID == 0L), , drop = FALSE]
   })
-  out <- do.call(rbind, pieces)
+  # A subject left alone keeps the columns it arrived with, so a study that
+  # mixes a regular regimen with a single dose, a dose reduction or an early
+  # stop reaches here holding both shapes -- and `rbind()` on frames whose
+  # columns differ is an error rather than a fill (`SIM-081`). The pieces that
+  # did not compress are given the columns back, saying what is true of them:
+  # this record is the whole dose, and no more follow it.
+  compressed <- vapply(pieces, function(part) "ADDL" %in% names(part),
+                       logical(1))
+  if (any(compressed)) {
+    pieces[!compressed] <- lapply(pieces[!compressed], function(part) {
+      part$ADDL <- rep(0L, nrow(part))
+      part$II <- rep(0, nrow(part))
+      part
+    })
+  }
   # A study where nothing compressed keeps the columns off the data entirely,
   # so that the fitted dataset is the one this function was handed.
-  if (!"ADDL" %in% names(out)) return(out)
-  out$ADDL[is.na(out$ADDL)] <- 0L
-  out$II[is.na(out$II)] <- 0
+  out <- do.call(rbind, pieces)
   rownames(out) <- NULL
   out
 }
