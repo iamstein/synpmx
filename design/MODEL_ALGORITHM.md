@@ -89,7 +89,7 @@ Arguments beyond the roles and the seed:
 | `pk` | `NULL` | One of the five built-in models, forcing it; or several, which is how a search is asked for. |
 | `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
 | `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. |
-| `covariate_effects` | `"auto"` | `"auto"` applies allometric scaling where a weight-like covariate is declared; `"none"` fits nothing. |
+| `covariate_effects` | `"none"` | `"none"` puts no covariate in the structural model; `"auto"` applies allometric scaling where a weight-like covariate is declared. |
 | `min_subjects` | `20L` | Warn and fit anyway below this cohort size. |
 | `min_arm_patients` | `3L` | Warn and drop the patients in any arm below this, as `synpmx_pca_summarize()` does. |
 | `min_time_bins` | `6L` | Warn and fit anyway below this many distinct nominal times after a dose; no post-dose observation at all still refuses. |
@@ -180,12 +180,13 @@ alongside the ones that fitted, so a search that came down to one survivor does
 not look like a search that had one candidate. Where nothing converges, the
 function errors rather than returning the least bad fit.
 
-**Covariates.** The default `"auto"` fits allometric scaling on clearance and
-volume when a weight-like covariate is declared, keeps it when it improves AIC,
-and fits nothing else. Everything beyond that is opt-in through
-`covariate_effects`. The cost of this default is explicit: covariates that
-influence the real profiles and are not in the model are generated independently
-of the profiles, so the synthetic data carries no relationship between them.
+**Covariates.** The default `"none"` puts no covariate in the structural
+model. `"auto"` fits allometric scaling on clearance and volume when a
+weight-like covariate is declared and keeps it when it improves AIC; everything
+beyond that is opt-in through `covariate_effects`. The cost of the default is
+explicit and unchanged in kind: covariates that influence the real profiles are
+generated independently of them, so the synthetic data carries no relationship
+between them. `fit$correlations` is where that shows up.
 AVATAR preserves those relationships without modelling them, because a blended
 subject's covariates and profile come from the same donors. `model_report()`
 reports the correlation between each declared covariate and the individual

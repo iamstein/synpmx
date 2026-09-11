@@ -520,7 +520,7 @@ test_that("the fit reports how long each fit took", {
   expect_true(all(fit$timing$candidates$seconds >= 0))
   out <- paste(utils::capture.output(print(model_report(fit))),
                collapse = " ")
-  expect_match(out, "nlmixr2: ")
+  expect_match(out, "nlmixr2")
 })
 
 # The arm of every subject, named by subject. `vapply()` names its result from a

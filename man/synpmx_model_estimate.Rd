@@ -12,7 +12,7 @@ synpmx_model_estimate(
   pd_by_arm = FALSE,
   endpoint_roles = NULL,
   start_param = NULL,
-  covariate_effects = "auto",
+  covariate_effects = "none",
   min_subjects = 20L,
   min_arm_patients = 3L,
   min_time_bins = 6L,
@@ -81,9 +81,17 @@ optimizer cannot leave, which \code{model_report()} then reports as a fit that
 did not move. This is how a caller who knows the compound fixes that in
 advance, and \code{model_report()} says which values were declared.}
 
-\item{covariate_effects}{\code{"auto"} fits allometric scaling on clearance and
-volume where a weight-like covariate is declared and keeps it where it
-improves AIC. \code{"none"} fits nothing.}
+\item{covariate_effects}{\code{"none"}, the default, puts no covariate in the
+structural model. \code{"auto"} fits allometric scaling on clearance and volume
+where a weight-like covariate is declared and keeps it where it improves
+AIC.
+
+The default is \code{"none"} because a synthetic study does not need the
+relationship: covariates are generated per arm from the source's own
+distributions either way, and a clearance that moves with weight buys
+nothing the generator spends. \code{fit$correlations} still reports where a
+covariate moves with a random effect, so the relationship the model is
+not carrying is still visible.}
 
 \item{min_subjects}{Cohort size the fit should have. Below it the covariance
 matrix describes the subjects it was fitted to rather than a population,

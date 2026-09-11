@@ -1285,9 +1285,17 @@
 #'   really is a concentration, that time course has no dose term in it and the
 #'   generated values lose their dose ordering, which is why naming both is
 #'   worth doing.
-#' @param covariate_effects `"auto"` fits allometric scaling on clearance and
-#'   volume where a weight-like covariate is declared and keeps it where it
-#'   improves AIC. `"none"` fits nothing.
+#' @param covariate_effects `"none"`, the default, puts no covariate in the
+#'   structural model. `"auto"` fits allometric scaling on clearance and volume
+#'   where a weight-like covariate is declared and keeps it where it improves
+#'   AIC.
+#'
+#'   The default is `"none"` because a synthetic study does not need the
+#'   relationship: covariates are generated per arm from the source's own
+#'   distributions either way, and a clearance that moves with weight buys
+#'   nothing the generator spends. `fit$correlations` still reports where a
+#'   covariate moves with a random effect, so the relationship the model is
+#'   not carrying is still visible.
 #' @param min_subjects Cohort size the fit should have. Below it the covariance
 #'   matrix describes the subjects it was fitted to rather than a population,
 #'   which warns rather than refuses: the fit runs on whatever the study has.
@@ -1339,7 +1347,7 @@
 synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   pd_by_arm = FALSE,
                                   endpoint_roles = NULL, start_param = NULL,
-                                  covariate_effects = "auto",
+                                  covariate_effects = "none",
                                   min_subjects = 20L, min_arm_patients = 3L,
                                   min_time_bins = 6L, max_fit_subjects = 60L,
                                   estimation = "focei",

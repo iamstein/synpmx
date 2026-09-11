@@ -96,10 +96,10 @@ encoding its source used.
 2. **Detect the design.** The route of administration and the sampling richness
    prune the set of PK models that will be offered to the fitter.
 3. **Estimate the parameters.** Fit each surviving PK model as a population
-   nonlinear mixed-effects model through `nlmixr2` and select on AIC, with
-   allometric scaling folded in where a weight-like covariate is declared, once
-   per concentration endpoint. Fit each PD endpoint's time course by least
-   squares.
+   nonlinear mixed-effects model through `nlmixr2` and select on AIC, once
+   per concentration endpoint. No covariate enters the structural model unless
+   `covariate_effects = "auto"` asks for it. Fit each PD endpoint's time course
+   by least squares.
 4. **Fit a dosing model and a visit model per arm**: a planned dose schedule
    with rates for reduction, interruption and discontinuation, and the
    probability of a visit at each nominal time.
@@ -414,12 +414,17 @@ model_candidates(fit)
 
 ### Covariates
 
-The default `"auto"` applies allometric scaling on clearance and volume where a
-weight-like covariate is declared, and fits nothing else. The exponents are the
-standard 0.75 and 1 rather than estimated ones, and the effect is **asserted
-rather than tested**: it is folded into the one fit, not compared against a
-model without it. Testing it would double the cost of the whole call.
-`covariate_effects = "none"` switches it off.
+The default `"none"` puts no covariate in the structural model. A synthetic
+study does not need the relationship: covariates are generated per arm from the
+source's own distributions either way, so a clearance that moves with weight
+buys the generator nothing.
+
+`covariate_effects = "auto"` applies allometric scaling on clearance and volume
+where a weight-like covariate is declared, and fits nothing else. The exponents
+are the standard 0.75 and 1 rather than estimated ones, and the effect is
+**asserted rather than tested**: it is folded into the one fit, not compared
+against a model without it. Testing it would double the cost of the whole
+call.
 
 The covariate is recognised by name, `wt`, `weight`, `bw` and the like, and must
 be numeric and positive. There is no way to recognise a body weight from its

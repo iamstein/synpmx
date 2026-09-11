@@ -78,7 +78,17 @@ case1_roles <- pmx_roles(
   cens = "CENS", amt = "AMT", evid = "EVID", cmt = "CMT", dvid = "NAME",
   strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB", keep = "STUDY"
 )
-case1_fit <- synpmx_model_estimate(case1, case1_roles, seed = 1)
+# `start_param` because the non-compartmental read of this study's median
+# profile starts the optimizer somewhere it takes no step from at all: every
+# parameter came back within 1% and the AIC was 4077 against 2989 from a
+# workable start. Allometric scaling used to hide that -- it rescaled `cl` and
+# `v` enough for the fit to move -- and with `covariate_effects` now defaulting
+# to `"none"` the weakness is the caller's to answer, which is what this
+# argument is for (`SIM-079`). The fit moves a long way from these numbers,
+# to `cl` 21.2 and `ka` 5.7, so they are a starting point and not the answer.
+case1_fit <- synpmx_model_estimate(case1, case1_roles, seed = 1,
+                                   start_param = c(cl = 10.55, v = 88.93,
+                                                   ka = 4.76))
 
 saveRDS(case1_fit, "inst/extdata/case1-pkpd-model-fit.rds", version = 2)
 message("wrote inst/extdata/case1-pkpd-model-fit.rds")

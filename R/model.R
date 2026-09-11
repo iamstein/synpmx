@@ -475,7 +475,11 @@ print.pmx_model_report <- function(x, ...) {
     }
     cat(paste(lines, collapse = "\n"), "\n", sep = "")
   }
-  cat("The PopPK model\n\n")
+  # Simplest first. The trial and what was done to the patients in it, then
+  # the shapes fitted to the endpoints that need least, then the population
+  # model -- so a reader meets a summary of the source before a structural
+  # model of it. The `did not move` banner keeps the top whatever the order,
+  # because it is the one line that says do not use this fit at all.
   # Before the numbers, not after: a reader who stops at the parameter block
   # has to have been told already that it is not a parameter block.
   if (!is.null(x$movement) && !isTRUE(x$movement$moved)) {
@@ -493,145 +497,7 @@ print.pmx_model_report <- function(x, ...) {
                 100 * changes$relative_change), sep = "")
     cat("\n")
   }
-  models <- x$pk_models
-  if (!length(models)) models <- list(list(structural = x$structural,
-                                           parameters = x$parameters,
-                                           movement = x$movement,
-                                           start_param = x$start_param))
-  for (k in seq_along(models)) {
-    own <- models[[k]]
-    cat(if (length(models) > 1L)
-      sprintf("Estimated by nlmixr2: `%s`\n", own$endpoint) else
-        "Estimated by nlmixr2\n")
-    cat("  structural model  ", own$structural, "\n")
-    if (k == 1L && !is.null(x$fit_subjects)) {
-      fs <- x$fit_subjects
-      field("fitted on", if (fs$fitted < fs$of) paste0(
-        fs$fitted, " of ", fs$of, " patients with a concentration, drawn in ",
-        "proportion to the arms under `max_fit_subjects` = ", fs$cap, "; the ",
-        "dosing, visit and covariate models below read the whole study") else
-          paste0("all ", fs$fitted, " patients with a concentration"))
-    }
-    if (!is.null(own$movement) && !isTRUE(own$movement$moved)) {
-      changes <- own$movement$changes
-      cat("  !! THE FIT DID NOT MOVE !!\n")
-      cat("  ", .wrap_plain(paste0(
-        "Every parameter came back within ",
-        sprintf("%.0f%%", 100 * own$movement$tolerance),
-        " of its starting value, so the numbers below are starting values ",
-        "rather than estimates. Do not generate from this fit."
-      ), "", "  "), "\n", sep = "")
-      cat(sprintf("    %-10s %-12s -> %-12s (%.2f%%)\n", changes$parameter,
-                  sprintf("%.4g", changes$start),
-                  sprintf("%.4g", changes$estimate),
-                  100 * changes$relative_change), sep = "")
-    }
-    cat("  fixed effects     ",
-        paste(sprintf("%s %.4g", names(own$parameters$fixed),
-                      as.numeric(own$parameters$fixed)), collapse = ", "), "\n")
-    cat("  between-subject   ",
-        paste(sprintf("%s %.3g", rownames(own$parameters$omega),
-                      sqrt(diag(own$parameters$omega))), collapse = ", "),
-        "(as SD on the log scale)\n")
-    if (!is.null(own$movement) && isTRUE(own$movement$moved) &&
-        isFALSE(own$movement$omega_moved)) {
-      field("", .wrap_plain(paste0(
-        "!! Every between-subject term is within ",
-        sprintf("%.0f%%", 100 * own$movement$tolerance),
-        " of its starting value of ", .model_eta_init, " while the fixed ",
-        "effects moved: the fit found a population mean and did not estimate ",
-        "its spread. Synthetic subjects will be spread by the starting value, ",
-        "not by this study.")))
-    }
-    if (length(own$start_param)) {
-      field("starting values", paste(sprintf("%s %.4g", names(own$start_param),
-                                             own$start_param), collapse = ", "),
-            " declared through `start_param`; the rest were read off the ",
-            "cohort's median profile")
-    }
-    cat("  residual error    ", own$parameters$residual$kind,
-        sprintf("%.3g", own$parameters$residual$cv %||%
-                  own$parameters$residual$sd), "\n")
-  }
-  # What the wait was. A fit is the slow thing this package does, and a caller
-  # deciding whether to change a setting and run it again asks this first.
-  if (!is.null(x$timing)) {
-    field("time to fit", .model_duration(x$timing$fit),
-          sprintf(" (%s for the whole call)",
-                  .model_duration(x$timing$total)))
-    # Which fit the wait was. Every candidate is a separate compiled
-    # population fit, so a search that ran four of them waited four times.
-    if (!is.null(x$timing$candidates) && nrow(x$timing$candidates)) {
-      rows <- x$timing$candidates
-      field("", "nlmixr2: ", paste(sprintf(
-        "%s %s%s", rows$model,
-        vapply(rows$seconds, .model_duration, character(1)),
-        ifelse(rows$converged, "", " (did not converge)")
-      ), collapse = ", "))
-    }
-    if (length(x$timing$pd)) {
-      field("", "least squares: ", paste(sprintf(
-        "%s %s", names(x$timing$pd),
-        vapply(unname(x$timing$pd), .model_duration, character(1))
-      ), collapse = ", "))
-    }
-  }
-  cat("  covariate effects ",
-      if (length(x$covariate_effects)) {
-        paste(vapply(names(x$covariate_effects), function(parameter) {
-          effect <- x$covariate_effects[[parameter]]
-          sprintf("%s ~ (%s/%.4g)^%.2f", parameter, effect$covariate,
-                  effect$reference, effect$exponent)
-        }, character(1)), collapse = ", ")
-      } else "none", "\n")
-  # The shape name alone is not the fit: the generator draws every one of these
-  # numbers, so a report that is an inventory of its inputs has to show them.
-  # `constant` and `linear` come from `lm()` and `exponential` from `nls()`,
-  # all on study time from the first dose.
-  if (length(x$pd)) {
-    cat("\nEach other continuous endpoint, fitted as a shape in time\n")
-    for (name in names(x$pd)) {
-      shape <- x$pd[[name]]
-      # One line per arm where the shape was fitted per arm, because that is
-      # then six fits rather than one and the arms are the whole point of
-      # asking for it.
-      if (length(shape$arms)) {
-        field(name, "one shape per arm (`pd_by_arm = TRUE`):")
-        for (arm in names(shape$arms)) {
-          own <- shape$arms[[arm]]
-          field("", "  ", .arm_label(arm), ": ", own$pd)
-          shape_block(own, strrep(" ", 25L))
-        }
-        next
-      }
-      field(name, shape$pd)
-      shape_block(shape, strrep(" ", 23L))
-    }
-  }
-
-  # The assay limit and the emission floor are what confused the first readers
-  # of this report, because both are one terse number about values near zero and
-  # they mean opposite things: one is what the source reported and the fit was
-  # given instead, the other is what the generator refuses to write. Each is
-  # spelled out in a sentence rather than compressed into a label.
-  censored <- if (is.null(x$censoring)) NULL else
-    x$censoring[x$censoring$censored > 0, , drop = FALSE]
-  if ((!is.null(censored) && nrow(censored)) || length(x$quantification_floor)) {
-    cat("\nValues at the bottom of the scale\n")
-  }
-  if (!is.null(censored) && nrow(censored)) {
-    cat("  Reported below the assay limit:\n")
-    cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g (the limit)\n",
-                censored$endpoint, censored$censored, censored$observations,
-                100 * censored$fraction, censored$limit), sep = "")
-  }
-  if (length(x$quantification_floor)) {
-    cat("  No assay limit declared, so nothing is generated below:\n")
-    cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
-                unlist(x$quantification_floor)), sep = "")
-  }
-
-  cat("\nSummarized from the source, not estimated\n")
+  cat("Summarized from the source, not estimated\n")
   # One arm to a line. A study whose arms are named for their regimen -- a
   # priming dose, a maintenance dose, a route and a population, all in the
   # label -- runs to sixty characters an arm, and seven of those wrapped into
@@ -712,6 +578,152 @@ print.pmx_model_report <- function(x, ...) {
                                    collapse = ", "))
   }
 
+  # The assay limit and the emission floor are what confused the first readers
+  # of this report, because both are one terse number about values near zero and
+  # they mean opposite things: one is what the source reported and the fit was
+  # given instead, the other is what the generator refuses to write. Each is
+  # spelled out in a sentence rather than compressed into a label.
+  censored <- if (is.null(x$censoring)) NULL else
+    x$censoring[x$censoring$censored > 0, , drop = FALSE]
+  if ((!is.null(censored) && nrow(censored)) || length(x$quantification_floor)) {
+    cat("\nValues at the lower limit of what was observed\n")
+  }
+  if (!is.null(censored) && nrow(censored)) {
+    cat("  Reported below the assay limit:\n")
+    cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g (the limit)\n",
+                censored$endpoint, censored$censored, censored$observations,
+                100 * censored$fraction, censored$limit), sep = "")
+  }
+  if (length(x$quantification_floor)) {
+    cat("  ", .wrap_plain(paste(
+      "No assay limit declared. Each floor below is half the smallest value",
+      "the endpoint was observed at, and a simulated value under it is raised",
+      "to it:"), "", "  "), "\n", sep = "")
+    cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
+                unlist(x$quantification_floor)), sep = "")
+  }
+
+  # The shape name alone is not the fit: the generator draws every one of these
+  # numbers, so a report that is an inventory of its inputs has to show them.
+  # `constant` and `linear` come from `lm()` and `exponential` from `nls()`,
+  # all on study time from the first dose.
+  if (length(x$pd)) {
+    cat("\nEach other continuous endpoint, fitted as a shape in time\n")
+    for (name in names(x$pd)) {
+      shape <- x$pd[[name]]
+      # One line per arm where the shape was fitted per arm, because that is
+      # then six fits rather than one and the arms are the whole point of
+      # asking for it.
+      if (length(shape$arms)) {
+        field(name, "one shape per arm (`pd_by_arm = TRUE`):")
+        for (arm in names(shape$arms)) {
+          own <- shape$arms[[arm]]
+          field("", "  ", .arm_label(arm), ": ", own$pd)
+          shape_block(own, strrep(" ", 25L))
+        }
+        next
+      }
+      field(name, shape$pd)
+      shape_block(shape, strrep(" ", 23L))
+    }
+  }
+
+  cat("\nThe PopPK model\n\n")
+  models <- x$pk_models
+  if (!length(models)) models <- list(list(structural = x$structural,
+                                           parameters = x$parameters,
+                                           movement = x$movement,
+                                           start_param = x$start_param))
+  for (k in seq_along(models)) {
+    own <- models[[k]]
+    cat(if (length(models) > 1L)
+      sprintf("Estimated by nlmixr2: `%s`\n", own$endpoint) else
+        "Estimated by nlmixr2\n")
+    cat("  structural model  ", own$structural, "\n")
+    if (k == 1L && !is.null(x$fit_subjects)) {
+      fs <- x$fit_subjects
+      field("fitted on", if (fs$fitted < fs$of) paste0(
+        fs$fitted, " of ", fs$of, " patients with a concentration, drawn in ",
+        "proportion to the arms under `max_fit_subjects` = ", fs$cap, "; the ",
+        "dosing, visit and covariate models below read the whole study") else
+          paste0("all ", fs$fitted, " patients with a concentration"))
+    }
+    if (!is.null(own$movement) && !isTRUE(own$movement$moved)) {
+      changes <- own$movement$changes
+      cat("  !! THE FIT DID NOT MOVE !!\n")
+      cat("  ", .wrap_plain(paste0(
+        "Every parameter came back within ",
+        sprintf("%.0f%%", 100 * own$movement$tolerance),
+        " of its starting value, so the numbers below are starting values ",
+        "rather than estimates. Do not generate from this fit."
+      ), "", "  "), "\n", sep = "")
+      cat(sprintf("    %-10s %-12s -> %-12s (%.2f%%)\n", changes$parameter,
+                  sprintf("%.4g", changes$start),
+                  sprintf("%.4g", changes$estimate),
+                  100 * changes$relative_change), sep = "")
+    }
+    cat("  fixed effects     ",
+        paste(sprintf("%s %.4g", names(own$parameters$fixed),
+                      as.numeric(own$parameters$fixed)), collapse = ", "), "\n")
+    cat("  between-subject   ",
+        paste(sprintf("%s %.3g", rownames(own$parameters$omega),
+                      sqrt(diag(own$parameters$omega))), collapse = ", "),
+        "(as SD on the log scale)\n")
+    if (!is.null(own$movement) && isTRUE(own$movement$moved) &&
+        isFALSE(own$movement$omega_moved)) {
+      field("", .wrap_plain(paste0(
+        "!! Every between-subject term is within ",
+        sprintf("%.0f%%", 100 * own$movement$tolerance),
+        " of its starting value of ", .model_eta_init, " while the fixed ",
+        "effects moved: the fit found a population mean and did not estimate ",
+        "its spread. Synthetic subjects will be spread by the starting value, ",
+        "not by this study.")))
+    }
+    if (length(own$start_param)) {
+      field("starting values", paste(sprintf("%s %.4g", names(own$start_param),
+                                             own$start_param), collapse = ", "),
+            " declared through `start_param`; the rest were read off the ",
+            "cohort's median profile")
+    }
+    cat("  residual error    ", own$parameters$residual$kind,
+        sprintf("%.3g", own$parameters$residual$cv %||%
+                  own$parameters$residual$sd), "\n")
+  }
+  # What the wait was. A fit is the slow thing this package does, and a caller
+  # deciding whether to change a setting and run it again asks this first.
+  if (!is.null(x$timing)) {
+    field("time to fit", .model_duration(x$timing$fit),
+          sprintf(" (%s for the whole call)",
+                  .model_duration(x$timing$total)))
+    # Which fit the wait was. Every candidate is a separate compiled
+    # population fit, so a search that ran four of them waited four times --
+    # and one to a line, because the number a reader is after is the one
+    # candidate that took the minutes, which a wrapped list buries.
+    if (!is.null(x$timing$candidates) && nrow(x$timing$candidates)) {
+      rows <- x$timing$candidates
+      field("", "nlmixr2")
+      cat(sprintf("%s%-26s %s%s\n", strrep(" ", 23L), rows$model,
+                  vapply(rows$seconds, .model_duration, character(1)),
+                  ifelse(rows$converged, "", " (did not converge)")),
+          sep = "")
+    }
+    if (length(x$timing$pd)) {
+      field("", "least squares: ", paste(sprintf(
+        "%s %s", names(x$timing$pd),
+        vapply(unname(x$timing$pd), .model_duration, character(1))
+      ), collapse = ", "))
+    }
+  }
+  # Only where something was fitted. `covariate_effects` is `"none"` by
+  # default, and a line reading "none" on every report says nothing.
+  if (length(x$covariate_effects)) {
+    field("covariate effects",
+          paste(vapply(names(x$covariate_effects), function(parameter) {
+            effect <- x$covariate_effects[[parameter]]
+            sprintf("%s ~ (%s/%.4g)^%.2f", parameter, effect$covariate,
+                    effect$reference, effect$exponent)
+          }, character(1)), collapse = ", "))
+  }
   # Which endpoint carries the structural model, and on what grounds. The four
   # signals behind an inferred answer are on the object at
   # `fit$endpoints$signals`; as a grid of bare logicals they read as a puzzle,
@@ -737,15 +749,6 @@ print.pmx_model_report <- function(x, ...) {
     }
   }
 
-  # The correlations an unmodelled covariate relationship shows up in. A
-  # covariate that influences the real profiles and is not in the model is
-  # generated independently of them, and this is the only place that says so.
-  if (!is.null(x$correlations) && nrow(x$correlations)) {
-    strongest <- x$correlations[order(-abs(x$correlations$correlation)), ,
-                                drop = FALSE]
-    cat("\nCovariate against the individual random effects\n")
-    print(utils::head(strongest, 5L), row.names = FALSE, digits = 2)
-  }
   invisible(x)
 }
 
