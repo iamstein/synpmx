@@ -635,16 +635,23 @@
 .dose_record_message <- function(before, after) {
   doses_before <- sum(before$EVID != 0L)
   doses_after <- sum(after$EVID != 0L)
-  if (doses_after < doses_before) {
-    return(paste0(doses_before, " dose records compressed to ", doses_after,
-                  " with `ADDL`/`II`, keeping each sample's time after dose."))
+  compressed <- if (doses_after < doses_before) {
+    paste0(doses_before, " dose records compressed to ", doses_after,
+           " with `ADDL`/`II`, keeping each sample's time after dose.")
   }
-  if (doses_before < 1000L) return(NULL)
-  paste0(doses_before, " dose records, and every likelihood evaluation sums a ",
-         "contribution per dose: expect minutes rather than seconds. The ",
-         "schedule is not exactly regular -- it varies in amount, or in ",
-         "interval, or its dose times are recorded actuals -- so it cannot be ",
-         "written as one record plus `ADDL`/`II`.")
+  # What is left, not what went. A study where a handful of subjects hold a
+  # regular schedule and the rest do not compresses 4401 records to 4385, and
+  # reporting only the compression tells a caller a wait was avoided when
+  # 4385 records of it remain. The threshold reads the count the fitter
+  # actually gets.
+  if (doses_after < 1000L) return(compressed)
+  wait <- paste0(doses_after, " dose records reach the fitter, and every ",
+                 "likelihood evaluation sums a contribution per dose: expect ",
+                 "minutes rather than seconds. The rest of the schedule is ",
+                 "not exactly regular -- it varies in amount, or in interval, ",
+                 "or its dose times are recorded actuals -- so it cannot be ",
+                 "written as one record plus `ADDL`/`II`.")
+  paste(c(compressed, wait), collapse = " ")
 }
 
 # The search. Every candidate is fitted, the ones that converge are compared on

@@ -151,6 +151,25 @@ test_that("`pk` naming a model outside the closed-form set is refused", {
   )
 })
 
+test_that("a study whose dose records survive compression is told the wait", {
+  # 4401 records compressed to 4385 is a 0.4% saving, and reporting only the
+  # compression told a caller a wait had been avoided while 4385 records of it
+  # remained. Reported 2026-09-11 by the owner, watching a fit that had said
+  # nothing for ninety seconds.
+  rows <- function(n) data.frame(EVID = rep(1L, n))
+  barely <- .dose_record_message(rows(4401), rows(4385))
+  expect_match(barely, "compressed to 4385", fixed = TRUE)
+  expect_match(barely, "expect minutes rather than seconds", fixed = TRUE)
+
+  # A real compression says so and stops there.
+  expect_match(.dose_record_message(rows(12750), rows(150)),
+               "^12750 dose records compressed to 150")
+  expect_false(grepl("expect minutes",
+                     .dose_record_message(rows(12750), rows(150)), fixed = TRUE))
+  # And a small study says nothing at all.
+  expect_null(.dose_record_message(rows(240), rows(240)))
+})
+
 test_that("allometric scaling is asserted, not tested, and costs no extra fit", {
   skip_without_fitter()
   auto <- .shared("auto", synpmx_model_estimate(
