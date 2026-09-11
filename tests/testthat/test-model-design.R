@@ -442,6 +442,28 @@ test_that("a study that compresses only in part still assembles", {
   expect_equal(.time_after_dose(compressed), .time_after_dose(data))
 })
 
+test_that("a fit table is built for one endpoint, never the vector of them", {
+  # SIM-082. `.model_estimation_data()` selects rows with `endpoint ==
+  # pk_endpoint`, which recycles against a vector rather than failing, so the
+  # first concentration of a two-endpoint study was fitted to a row-by-row mix
+  # of both -- or to nothing, depending only on how the rows happened to be
+  # ordered. Nothing warned and the fit converged either way.
+  d <- data.frame(
+    ID = 1L, TIME = c(0, rep(1:6, each = 2)), NTIME = c(0, rep(1:6, each = 2)),
+    DV = c(NA, rep(c(99, 10), 6)), AMT = c(100, rep(0, 12)),
+    EVID = c(1L, rep(0L, 12)),
+    DVID = c("parent", rep(c("metabolite", "parent"), 6)),
+    MDV = c(1L, rep(0L, 12)))
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", dvid = "DVID",
+                     mdv = "MDV")
+
+  one <- .model_estimation_data(d, roles, "parent")
+  expect_equal(one$DV[one$EVID == 0L], rep(10, 6))
+  expect_error(.model_estimation_data(d, roles, c("parent", "metabolite")),
+               "one fit table for one endpoint")
+})
+
 test_that("a tolerance regularises the clock without moving a sample's TAD", {
   data <- .repeated_study(n = 6, doses = 5, drift = 0.4)
   compressed <- .compress_dose_schedule(data, tolerance = 0.05)

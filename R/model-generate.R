@@ -115,7 +115,16 @@
 # Per-visit marginals for the endpoints that are not time courses. A binary or
 # ordinal endpoint is drawn from the level frequencies its arm holds at that
 # nominal time, which is the same thing the visit model does for attendance.
-.discrete_model <- function(source, roles, cells, subject_group) {
+#
+# `drawn` is the set of endpoints `.model_generate()` will actually look up
+# here: everything that is neither a concentration nor a fitted shape. Without
+# it this built a marginal for every cell of every endpoint, and since a
+# marginal is the source's own values with their frequencies, a fit whose
+# endpoints were all time courses carried thousands of real measurements that
+# nothing could ever read -- 5219 of them on `case1_pkpd` (`SIM-083`). The
+# entry stays `NULL` at its own index rather than being dropped, because
+# generation indexes this list by cell.
+.discrete_model <- function(source, roles, cells, subject_group, drawn) {
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   planned <- source
   planned[[roles$time]] <- nominal
@@ -129,6 +138,7 @@
   out <- list()
   for (arm in unique(subject_group)) {
     out[[arm]] <- lapply(seq_len(nrow(cells)), function(i) {
+      if (!cells$endpoint[i] %in% drawn) return(NULL)
       at <- observed & row_arm == arm & endpoint == cells$endpoint[i] &
         abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
       values <- source[[roles$dv]][at]

@@ -451,6 +451,14 @@
 # clearance, and the model would report a population that eliminates the drug
 # faster than the real one.
 .model_estimation_data <- function(source, roles, pk_endpoint) {
+  # One endpoint, never the vector of them. `endpoint == pk_endpoint` recycles
+  # row by row rather than failing, so a vector here silently selects a mix of
+  # two concentrations, or none, depending only on how the rows are ordered --
+  # which is how `SIM-082` survived. An internal invariant, so it is terse.
+  if (length(pk_endpoint) != 1L) {
+    stop("`.model_estimation_data()` builds one fit table for one endpoint; ",
+         "got ", length(pk_endpoint), ".", call. = FALSE)
+  }
   time <- suppressWarnings(as.numeric(source[[roles$time]]))
   dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
   endpoint <- .endpoint(source, roles)
@@ -1431,8 +1439,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # `censoring_source` rather than `source`: the fitter is given the study's own
   # values with their censoring flags, while the summaries below keep the
   # imputed ones. The two frames differ only in the censored `DV` values.
+  # The FIRST concentration endpoint, never the vector of them. This table is
+  # the fit table for that one endpoint -- the loop below reuses it under
+  # `identical(endpoint, classified$pk[[1L]])` and builds its own for the rest
+  # -- and handing the whole vector to a function that tests `endpoint ==
+  # pk_endpoint` recycles the comparison row by row (`SIM-082`).
+  primary_endpoint <- classified$pk[[1L]]
   recorded_data <- .model_estimation_data(censoring_source, roles,
-                                          classified$pk)
+                                          primary_endpoint)
   # Who that left out. Said plainly, because the fit is then a statement about
   # fewer people than the study has, and a warning where it takes the fitted
   # cohort under the floor the run was told to hold.
@@ -1463,7 +1477,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   }
   if (fitted_subjects < n_source) {
     note <- paste0(n_source - fitted_subjects, " of ", n_source,
-                   " subjects have no `", classified$pk,
+                   " subjects have no `", primary_endpoint,
                    "` observation and are not fitted; their dosing and visits ",
                    "still reach the arm models.")
     # A warning only where it is news: a cohort already under the floor was
@@ -1503,7 +1517,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     estimation_data$DV[substituted] <- assay_floor
     if (!quiet) {
       message(length(substituted), " of ", length(values), " `",
-              classified$pk, "` observations are not positive and were fitted ",
+              primary_endpoint, "` observations are not positive and were fitted ",
               "at ", signif(assay_floor, 4),
               ", half the smallest positive value the study reports.")
     }
@@ -1645,7 +1659,12 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     n_source = n_source,
     cells = cells, pd = pd_fits, covariate_effects = effects,
     covariates = .covariate_model(source, roles, subject_group),
-    discrete = .discrete_model(source, roles, cells, subject_group),
+    # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
+    # not a concentration, and not a shape that fitted. A PD endpoint that
+    # failed to fit falls through to a per-visit marginal, so it belongs here.
+    discrete = .discrete_model(source, roles, cells, subject_group,
+                               setdiff(unique(cells$endpoint),
+                                       c(classified$pk, names(pd_fits)))),
     design = design, correlations = correlations,
     censoring = .model_censoring_summary(censoring_source, roles, fittable),
     quantification_floor = .model_quantification_floor(censoring_source, roles,

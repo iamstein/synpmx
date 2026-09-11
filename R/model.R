@@ -236,6 +236,27 @@
 # shape had a degree of freedom left to be judged on; where one did, saying
 # "chosen on AIC" would describe a comparison that never ran, and where the
 # endpoint is a level the note on the row is the honest account.
+# Why an endpoint was read as the concentration, from the signals that decided
+# it. `post_dose` and `proportional` are the two that decide, so they are always
+# stated; `compartment` and `shape` only break ties and are mentioned only where
+# they passed.
+.model_endpoint_reason <- function(signals, endpoint) {
+  if (is.null(signals)) return("the signals did not separate the endpoints")
+  row <- signals[signals$endpoint == endpoint, , drop = FALSE]
+  if (!nrow(row)) return("the signals did not separate the endpoints")
+  parts <- c(
+    if (isTRUE(row$post_dose[[1L]])) "absent before the first dose" else
+      "present before the first dose",
+    if (is.na(row$proportional[[1L]]))
+      "dose proportionality not computable here" else
+        if (isTRUE(row$proportional[[1L]])) "dose-proportional" else
+          "not dose-proportional",
+    if (isTRUE(row$compartment[[1L]])) "measured where the doses go",
+    if (isTRUE(row$shape[[1L]])) "rises to one peak and comes back down"
+  )
+  paste(parts, collapse = "; ")
+}
+
 .model_pd_selection <- function(shape) {
   table <- shape$candidates
   if (is.null(table)) return(NULL)
@@ -437,6 +458,23 @@ print.pmx_model_report <- function(x, ...) {
     cat(.wrap_plain(paste0(...), sprintf("  %-18s ", label),
                     strrep(" ", 21L)), "\n", sep = "")
   }
+  # A shape, one parameter to a line. The generator draws every one of these
+  # numbers, and as a wrapped paragraph a reader looking for one of them had to
+  # find it mid-sentence, three lines down, beside a different endpoint's.
+  shape_block <- function(shape, indent) {
+    lines <- sprintf("%s%-16s %.4g", indent, names(shape$typical),
+                     as.numeric(shape$typical))
+    lines <- c(lines,
+               sprintf("%s%-16s %.3g (SD on the log baseline)", indent,
+                       "between-subject", shape$baseline_cv %||% 0),
+               sprintf("%s%-16s %s %.3g", indent, "residual",
+                       shape$residual$kind, shape$residual$sd))
+    selection <- .model_pd_selection(shape)
+    if (!is.null(selection)) {
+      lines <- c(lines, paste0(indent, sub("^; ", "", selection)))
+    }
+    cat(paste(lines, collapse = "\n"), "\n", sep = "")
+  }
   cat("The PopPK model\n\n")
   # Before the numbers, not after: a reader who stops at the parameter block
   # has to have been told already that it is not a parameter block.
@@ -561,23 +599,13 @@ print.pmx_model_report <- function(x, ...) {
         field(name, "one shape per arm (`pd_by_arm = TRUE`):")
         for (arm in names(shape$arms)) {
           own <- shape$arms[[arm]]
-          field("", "  ", .arm_label(arm), ": ", own$pd, ", ",
-                paste(sprintf("%s %.4g", names(own$typical),
-                              as.numeric(own$typical)), collapse = ", "),
-                "; between-subject ", sprintf("%.3g", own$baseline_cv %||% 0),
-                "; residual ", own$residual$kind, " ",
-                sprintf("%.3g", own$residual$sd),
-                .model_pd_selection(own))
+          field("", "  ", .arm_label(arm), ": ", own$pd)
+          shape_block(own, strrep(" ", 25L))
         }
         next
       }
-      field(name, shape$pd, ": ",
-            paste(sprintf("%s %.4g", names(shape$typical),
-                          as.numeric(shape$typical)), collapse = ", "),
-            "; between-subject ", sprintf("%.3g", shape$baseline_cv %||% 0),
-            " (SD on the log baseline); residual ", shape$residual$kind, " ",
-            sprintf("%.3g", shape$residual$sd),
-            .model_pd_selection(shape))
+      field(name, shape$pd)
+      shape_block(shape, strrep(" ", 23L))
     }
   }
 
@@ -596,41 +624,22 @@ print.pmx_model_report <- function(x, ...) {
     cat(sprintf("    %-18s %d of %d (%.0f%%) below %.4g (the limit)\n",
                 censored$endpoint, censored$censored, censored$observations,
                 100 * censored$fraction, censored$limit), sep = "")
-    cat("  ", .wrap_plain(paste0(
-      "`", x$endpoints$pk, "` was fitted with those rows censored: each ",
-      "enters the likelihood as the probability of falling below the limit, ",
-      "not as a value nobody measured. Any other endpoint here reads a ",
-      "uniform draw below the limit instead, because its shape is a ",
-      "least-squares fit with no likelihood to put censoring in. At ",
-      "generation the boundary goes back, and a synthetic value below the ",
-      "limit is written out censored the way the study recorded it."
-    ), "", "  "), "\n", sep = "")
   }
   if (length(x$quantification_floor)) {
     cat("  No assay limit declared, so nothing is generated below:\n")
     cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
                 unlist(x$quantification_floor)), sep = "")
-    cat("  ", .wrap_plain(paste(
-      "Half the smallest value of each endpoint is reported above and used as",
-      "a floor for the synthetic data. A simulated profile that falls below",
-      "that floor is set to it."
-    ), "", "  "), "\n", sep = "")
   }
 
   cat("\nSummarized from the source, not estimated\n")
-  field("cohort", x$n_source, " patients in ", length(x$arms$arms),
-        " arm(s): ",
-        paste(sprintf("%s (%d)", .arm_label(names(x$arms$sizes)),
-                      as.integer(x$arms$sizes)), collapse = ", "))
-  # "Per arm" is the whole content of this line: the schedule is not pooled
-  # across the study, so an arm dosed weekly and an arm dosed every three weeks
-  # each keep their own, and the median is across those arms.
-  field("dose schedule", sprintf(
-    paste0("one schedule per arm rather than one pooled across the study; ",
-           "%g planned cycle(s) per arm at the median of the %d arm(s)"),
-    stats::median(vapply(x$dosing, function(d) nrow(d$planned), integer(1))),
-    length(x$dosing)))
-
+  # One arm to a line. A study whose arms are named for their regimen -- a
+  # priming dose, a maintenance dose, a route and a population, all in the
+  # label -- runs to sixty characters an arm, and seven of those wrapped into
+  # a paragraph is not a list of arms any reader can count.
+  field("cohort", x$n_source, " patients in ", length(x$arms$arms), " arm(s)")
+  cat(sprintf("%s%s (%d)\n", strrep(" ", 21L),
+              .arm_label(names(x$arms$sizes)), as.integer(x$arms$sizes)),
+      sep = "")
   # How the doses are given, where the study says. A schedule of the same
   # amounts means something different given over an hour than given as a bolus,
   # and different again given subcutaneously, so the report says which.
@@ -663,30 +672,25 @@ print.pmx_model_report <- function(x, ...) {
     stringsAsFactors = FALSE
   )
   if (any(rates$reduce > 0 | rates$skip > 0 | rates$stop_early > 0)) {
-    field("dose changes", "per planned cycle, a patient may reduce to the ",
-          "next dose level, skip that cycle, or stop treatment for good, at ",
-          "these rates:")
+    field("dose changes", "per planned cycle:")
     cat(sprintf("      %-18s reduce %.0f%%, skip %.0f%%, stop early %.0f%% (%d dose level(s))\n",
                 .arm_label(rates$arm), 100 * rates$reduce, 100 * rates$skip,
                 100 * rates$stop_early, rates$levels), sep = "")
   } else {
-    field("dose changes", "none: no arm reduces a dose, skips a cycle or ",
-          "stops early, so every generated patient completes its arm's ",
-          "schedule")
+    field("dose changes", "none")
   }
 
   # Attendance is the model of a missed observation, and it is one probability
   # per grid cell. The spread is what a reader needs: a cell nobody misses and
   # a cell half the arm misses are the same line otherwise.
   attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
-  field("visit attendance", nrow(x$cells), " grid cell(s) over ",
-        length(unique(x$cells$endpoint)), " endpoint(s). ",
+  field("visit attendance", nrow(x$cells), " cell(s) of the visit grid ",
+        "(one endpoint at one nominal time) over ",
+        length(unique(x$cells$endpoint)), " endpoint(s), ",
         if (length(attendance)) sprintf(
-          paste("A generated patient attends each with the frequency its arm",
-                "attended it: median %.0f%%, from %.0f%% to %.0f%%. That is",
-                "the whole model of a missed observation."),
+          "attended at median %.0f%%, from %.0f%% to %.0f%%",
           100 * stats::median(attendance), 100 * min(attendance),
-          100 * max(attendance)) else "No attendance model.")
+          100 * max(attendance)) else "no attendance model")
 
   if (length(x$covariates)) {
     first <- x$covariates[[1L]]
@@ -694,53 +698,42 @@ print.pmx_model_report <- function(x, ...) {
       paste(sprintf("%s %s", names(first),
                     vapply(first, function(spec) spec$kind, character(1))),
             collapse = ", "),
-      ", each drawn per arm from the source's own distribution and ",
-      "independently of the profiles") else "none declared")
+      ", drawn per arm, independently of the profiles") else "none declared")
   }
-  discrete_cells <- sum(vapply(x$discrete %||% list(), function(arm) {
-    sum(!vapply(arm, is.null, logical(1)))
-  }, integer(1)))
-  if (discrete_cells) {
-    field("discrete endpoints", discrete_cells, " grid cell(s) whose values ",
-          "are drawn from the frequencies the source recorded there, rather ",
-          "than simulated")
+  drawn <- .unique_in_order(unlist(lapply(x$discrete %||% list(),
+    function(arm) x$cells$endpoint[!vapply(arm, is.null, logical(1))])))
+  if (length(drawn)) {
+    field("discrete endpoints", paste(drawn, collapse = ", "),
+          ": drawn from each arm's recorded frequencies at each visit, ",
+          "not simulated")
   }
   if (!is.null(x$schema)) {
     field("columns emitted", paste(x$schema$columns %||% character(0),
                                    collapse = ", "))
   }
 
-  cat("\nHow the concentration endpoint was decided\n")
-  cat("  endpoint          ", x$endpoints$pk, sprintf("(%s)",
-                                                      x$endpoints$decided_by), "\n")
-  if (!is.null(x$endpoints$signals)) {
-    print(x$endpoints$signals, row.names = FALSE)
-    # A table of four bare logicals is unreadable without them, and the reader
-    # who needs it most is the one whose endpoint was classified wrongly.
-    cat("\n", .wrap_plain(paste(
-      "compartment: measured where the doses go, or one compartment above a",
-      "dosing compartment nobody observes. post_dose: absent before each",
-      "subject's own first dose. shape: the cohort's median profile rises to",
-      "one peak and comes back down. proportional: the peak at the highest",
-      "dose level scales with the dose against the lowest. `post_dose` and",
-      "`proportional` are the two that decide; `compartment` and `shape`",
-      "break a tie between endpoints that pass both. NA is a signal this",
-      "study cannot compute: `proportional` needs two dose levels several",
-      "patients share, and `shape` needs three sampling times in one dose",
-      "interval."
-    ), "  ", "  "), "\n", sep = "")
+  # Which endpoint carries the structural model, and on what grounds. The four
+  # signals behind an inferred answer are on the object at
+  # `fit$endpoints$signals`; as a grid of bare logicals they read as a puzzle,
+  # so what prints here is the decision in words.
+  cat("\nPK endpoint for the PopPK model\n")
+  for (endpoint in x$endpoints$pk) {
+    field(endpoint,
+          if (identical(x$endpoints$decided_by, "declared")) {
+            "declared through `endpoint_roles`"
+          } else {
+            paste0("inferred: ",
+                   .model_endpoint_reason(x$endpoints$signals, endpoint))
+          })
   }
   if (!is.null(x$design)) {
-    cat("  design            ", x$design$reason, "\n")
-    # The candidate set is one-compartment. Where the sampling would support a
-    # distribution phase, say so, because asking for it is the caller's move.
+    field("route", x$design$route, ": ", x$design$reason)
     if (isTRUE(x$design$richness$rich) && !grepl("^2cmt", x$structural)) {
-      cat("  also available    ",
-          sprintf("the sampling would support a two-compartment model (%s): ask for it with `pk = \"2cmt_%s\"`",
-                  sprintf("median %g distinct times after a dose, %g after the peak",
-                          x$design$richness$per_subject,
-                          x$design$richness$after_peak),
-                  if (grepl("oral", x$structural)) "oral" else "iv"), "\n")
+      field("also available",
+            sprintf("2cmt_%s, which the sampling would support: median %g distinct times after a dose, %g after the peak",
+                    if (grepl("oral", x$structural)) "oral" else "iv",
+                    x$design$richness$per_subject,
+                    x$design$richness$after_peak))
     }
   }
 
@@ -752,12 +745,6 @@ print.pmx_model_report <- function(x, ...) {
                                 drop = FALSE]
     cat("\nCovariate against the individual random effects\n")
     print(utils::head(strongest, 5L), row.names = FALSE, digits = 2)
-    cat("\n", .wrap_plain(paste(
-      "A covariate that moves with a random effect and is not in the model",
-      "above is generated independently of the profiles, so the synthetic",
-      "data carries no relationship between them. `synpmx_avatar()` keeps",
-      "those relationships without modelling them."
-    ), "  ", "  "), "\n", sep = "")
   }
   invisible(x)
 }

@@ -75,7 +75,8 @@
     roles = roles,
     settings = list(min_arm_patients = 3L), n_source = length(subject_group),
     cells = cells, covariates = .covariate_model(data, roles, subject_group),
-    discrete = .discrete_model(data, roles, cells, subject_group)
+    discrete = .discrete_model(data, roles, cells, subject_group,
+                               setdiff(unique(cells$endpoint), classified$pk))
   )
 }
 
@@ -166,7 +167,7 @@ test_that("printing a fit reports every input the generator simulates from", {
   fit <- .hand_built_fit(data, roles)
   out <- paste(utils::capture.output(print(fit)), collapse = "\n")
   for (heading in c("structural model", "fixed effects", "between-subject",
-                    "residual error", "cohort", "dose schedule",
+                    "residual error", "cohort",
                     "dose changes", "visit attendance", "covariates",
                     "columns emitted")) {
     expect_match(out, heading, fixed = TRUE)
@@ -411,6 +412,30 @@ test_that("nothing is emitted below the quantification floor", {
   dv <- synthetic$DV[synthetic$EVID == 0L & !is.na(synthetic$DV)]
   expect_true(all(dv >= floor_value$cp))
   expect_false(any(dv == 0))
+})
+
+test_that("a per-visit marginal is built only where generation reads one", {
+  # SIM-083. `.discrete_model()` built a marginal for every cell of every
+  # endpoint, and a marginal is the source's own values with their
+  # frequencies. `.model_generate()` reads one only for an endpoint that is
+  # neither a concentration nor a fitted shape, so on a study whose endpoints
+  # are all time courses every one of those marginals was unreadable -- and
+  # the fit object, which is written to `inst/extdata/` and shipped, carried
+  # thousands of real measurements nothing could ever draw from.
+  data <- .cycle_fixture()
+  roles <- .generate_roles()
+  cells <- .model_cells(data, roles, unique(data$DVID), 1L)
+  group <- .model_subject_arms(data, roles)
+
+  none <- .discrete_model(data, roles, cells, group, drawn = character(0))
+  expect_true(all(vapply(unlist(none, recursive = FALSE), is.null,
+                         logical(1))))
+
+  one <- unique(cells$endpoint)[[1L]]
+  some <- .discrete_model(data, roles, cells, group, drawn = one)
+  kept <- cells$endpoint[!vapply(some[[1L]], is.null, logical(1))]
+  expect_true(length(kept) > 0L)
+  expect_equal(unique(kept), one)
 })
 
 test_that("a fit carrying no floor still generates", {
