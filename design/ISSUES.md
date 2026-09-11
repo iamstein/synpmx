@@ -67,8 +67,8 @@ it is not repeated here.
 
 ## Open — PMX model generator
 
-Designed in `design/MODEL_ALGORITHM.md`; the build order there is what tracks
-the work. Only findings go here.
+Described in `vignettes/pmxmodel-algorithm.Rmd`, which is the generator's
+specification as well as its documentation. Only findings go here.
 
 | ID | Issue | Direction |
 |---|---|---|
