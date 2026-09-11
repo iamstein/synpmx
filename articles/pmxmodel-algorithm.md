@@ -38,6 +38,38 @@ returns the comparison table the selection was made from, and
 returns the fixed effects, the between-subject covariance matrix and the
 residual error.
 
+`nlmixr2` is in `Suggests`, is loaded only by
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
+and the candidate set is exactly the models the generator can evaluate
+in closed form. A candidate the fitter could estimate and the generator
+could not simulate would be a model that fits and then generates
+nothing, so the two lists are one list. The vignettes read a stored fit
+built by `scripts/build-model-fits.R`, so `R CMD check` and the pkgdown
+site never compile a model.
+
+## The Arguments
+
+Beyond the roles and the seed:
+
+| Argument | Default | Effect |
+|----|----|----|
+| `pk` | `NULL` | One of the five built-in models, forcing it; or several, which is how a search is asked for. |
+| `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
+| `pd_by_arm` | `FALSE` | Fit each PD endpoint’s shape per arm rather than once over the pooled cohort. |
+| `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. More than one may be named. |
+| `start_param` | `NULL` | Starting values for the population fit, keyed by endpoint where more than one concentration is fitted. The escape hatch where the non-compartmental read of the median profile starts the optimizer somewhere it cannot move from. |
+| `covariate_effects` | `"none"` | `"none"` puts no covariate in the structural model; `"auto"` applies allometric scaling on clearance and volume where a weight-like covariate is declared. |
+| `min_subjects` | `20L` | Warn and fit anyway below this cohort size. |
+| `min_arm_patients` | `3L` | Warn and drop the patients in any arm below this, as [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md) does. |
+| `min_time_bins` | `6L` | Warn and fit anyway below this many distinct nominal times after a dose; no post-dose observation at all still refuses. |
+| `max_fit_subjects` | `60L` | Fit the population model to this many subjects, drawn in proportion to the arms. The dosing, visit and covariate models read every subject. |
+| `estimation` | `"focei"` | Passed to `nlmixr2`. |
+
+**The default path performs exactly one population fit.** The arguments
+above are the ways to spend more time for more accuracy: a search costs
+one fit per candidate, and a second concentration endpoint costs one
+more. Neither happens unless it is asked for.
+
 ## Two Time Axes, and `nominal_time` Is Required
 
 **Estimation reads recorded times.** A population PK fit is a statement

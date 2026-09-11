@@ -174,6 +174,106 @@ carries, <code><a href="../reference/model_candidates.html">model_candidates()</
 the selection was made from, and <code><a href="../reference/model_parameters.html">model_parameters()</a></code> returns
 the fixed effects, the between-subject covariance matrix and the
 residual error.</p>
+<p><code>nlmixr2</code> is in <code>Suggests</code>, is loaded only by
+<code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code>, and the candidate set is exactly
+the models the generator can evaluate in closed form. A candidate the
+fitter could estimate and the generator could not simulate would be a
+model that fits and then generates nothing, so the two lists are one
+list. The vignettes read a stored fit built by
+<code>scripts/build-model-fits.R</code>, so <code>R CMD check</code> and
+the pkgdown site never compile a model.</p>
+</div>
+<div class="section level2">
+<h2 id="the-arguments">The Arguments<a class="anchor" aria-label="anchor" href="#the-arguments"></a>
+</h2>
+<p>Beyond the roles and the seed:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Argument</th>
+<th>Default</th>
+<th>Effect</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>pk</code></td>
+<td><code>NULL</code></td>
+<td>One of the five built-in models, forcing it; or several, which is
+how a search is asked for.</td>
+</tr>
+<tr class="even">
+<td><code>pd</code></td>
+<td><code>NULL</code></td>
+<td>Named vector of PD shapes per endpoint. Skips that search.</td>
+</tr>
+<tr class="odd">
+<td><code>pd_by_arm</code></td>
+<td><code>FALSE</code></td>
+<td>Fit each PD endpoint’s shape per arm rather than once over the
+pooled cohort.</td>
+</tr>
+<tr class="even">
+<td><code>endpoint_roles</code></td>
+<td><code>NULL</code></td>
+<td>Names which endpoint is the drug concentration, overriding
+inference. More than one may be named.</td>
+</tr>
+<tr class="odd">
+<td><code>start_param</code></td>
+<td><code>NULL</code></td>
+<td>Starting values for the population fit, keyed by endpoint where more
+than one concentration is fitted. The escape hatch where the
+non-compartmental read of the median profile starts the optimizer
+somewhere it cannot move from.</td>
+</tr>
+<tr class="even">
+<td><code>covariate_effects</code></td>
+<td><code>"none"</code></td>
+<td>
+<code>"none"</code> puts no covariate in the structural model;
+<code>"auto"</code> applies allometric scaling on clearance and volume
+where a weight-like covariate is declared.</td>
+</tr>
+<tr class="odd">
+<td><code>min_subjects</code></td>
+<td><code>20L</code></td>
+<td>Warn and fit anyway below this cohort size.</td>
+</tr>
+<tr class="even">
+<td><code>min_arm_patients</code></td>
+<td><code>3L</code></td>
+<td>Warn and drop the patients in any arm below this, as
+<code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> does.</td>
+</tr>
+<tr class="odd">
+<td><code>min_time_bins</code></td>
+<td><code>6L</code></td>
+<td>Warn and fit anyway below this many distinct nominal times after a
+dose; no post-dose observation at all still refuses.</td>
+</tr>
+<tr class="even">
+<td><code>max_fit_subjects</code></td>
+<td><code>60L</code></td>
+<td>Fit the population model to this many subjects, drawn in proportion
+to the arms. The dosing, visit and covariate models read every
+subject.</td>
+</tr>
+<tr class="odd">
+<td><code>estimation</code></td>
+<td><code>"focei"</code></td>
+<td>Passed to <code>nlmixr2</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The default path performs exactly one population
+fit.</strong> The arguments above are the ways to spend more time for
+more accuracy: a search costs one fit per candidate, and a second
+concentration endpoint costs one more. Neither happens unless it is
+asked for.</p>
 </div>
 <div class="section level2">
 <h2 id="two-time-axes-and-nominal_time-is-required">Two Time Axes, and <code>nominal_time</code> Is Required<a class="anchor" aria-label="anchor" href="#two-time-axes-and-nominal_time-is-required"></a>
