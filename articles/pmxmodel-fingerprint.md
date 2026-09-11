@@ -82,33 +82,6 @@ account, because everything on it is an input to the generation step.
 ``` r
 
 model_report(fit)
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
-#>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        9.4 s (9.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 9.4 s
-#>                      least squares: pca 0.0 s
-#>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     cp                 0.3
-#>     pca                4.5
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
@@ -120,20 +93,40 @@ model_report(fit)
 #>                      per arm, independently of the profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     cp                 0.3
+#>     pca                4.5
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   pca                exponential
+#>                        plateau          27.34
+#>                        baseline         96.3
+#>                        rate             0.09877
+#>                        between-subject  0.146 (SD on the log baseline)
+#>                        residual         additive 12.4
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
+#>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
+#>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
+#>   residual error     proportional 0.211 
+#>   time to fit        10.5 s (10.6 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  10.5 s
+#>                      least squares: pca 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   cp                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; rises to one peak
 #>                      and comes back down
 #>   route              oral: the median profile rises to a peak at 9 before
 #>                      declining, and 31% of subjects do too
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        age        cl        0.37
-#>        sex        cl       -0.23
-#>         wt        ka        0.21
-#>         wt        cl       -0.13
-#>         wt         v       -0.12
 ```
 
 Every section below expands one part of it. The object is a plain list
@@ -162,7 +155,7 @@ unlist(fit$settings)
 #>      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects 
 #>              "20"               "3"               "6"              "60" 
 #>        estimation covariate_effects             error 
-#>           "focei"            "auto"            "prop"
+#>           "focei"            "none"            "prop"
 c(patients = fit$n_source, arms = length(fit$arms$arms))
 #> patients     arms 
 #>       32        1
@@ -200,8 +193,8 @@ fit$endpoints$decided_by
 fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
-#>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892   9.425
+#>       model converged      aic seconds note
+#> 1 1cmt_oral      TRUE 926.9152  10.473
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.
@@ -215,7 +208,7 @@ look most like a result and are least entitled to be read as one.
 
 model_parameters(fit)$fixed
 #>        cl         v        ka 
-#> 0.1362061 8.1753822 0.6029980
+#> 0.1352699 8.1149407 0.5796365
 ```
 
 ## Between-subject variability
@@ -227,13 +220,13 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>            cl           v       ka
-#> cl 0.06071257 0.000000000 0.000000
-#> v  0.00000000 0.007300333 0.000000
-#> ka 0.00000000 0.000000000 0.462376
+#>            cl          v        ka
+#> cl 0.07122477 0.00000000 0.0000000
+#> v  0.00000000 0.04153328 0.0000000
+#> ka 0.00000000 0.00000000 0.4620561
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
-#>         cl          v         ka 
-#> 0.24639922 0.08544199 0.67998235
+#>        cl         v        ka 
+#> 0.2668797 0.2037971 0.6797471
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
@@ -251,7 +244,7 @@ model_parameters(fit)$residual
 #> [1] "proportional"
 #> 
 #> $cv
-#> [1] 0.2102603
+#> [1] 0.2108138
 ```
 
 Additive here rather than proportional, because `warfarin` holds
@@ -288,26 +281,7 @@ assay stopped reporting.
 ``` r
 
 fit$covariate_effects
-#> $cl
-#> $cl$covariate
-#> [1] "wt"
-#> 
-#> $cl$reference
-#> [1] 70
-#> 
-#> $cl$exponent
-#> [1] 0.75
-#> 
-#> 
-#> $v
-#> $v$covariate
-#> [1] "wt"
-#> 
-#> $v$reference
-#> [1] 70
-#> 
-#> $v$exponent
-#> [1] 1
+#> list()
 ```
 
 Allometric scaling on clearance and volume, with the standard exponents.

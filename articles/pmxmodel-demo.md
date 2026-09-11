@@ -89,7 +89,7 @@ reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
 48.28 — so there is no exact interval to compress to, and the rest of
 the wait is the honest cost of the design.
 
-A clearance of 10.5 L/h and a volume of 88.9 L. Whether those are the
+A clearance of 21.1 L/h and a volume of 98.3 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
@@ -106,35 +106,6 @@ which is why printing the fitted object shows the same account.
 ``` r
 
 model_report(fit)
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          60 of 150 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 10.55, v 88.93, ka 4.76 
-#>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
-#>   residual error     proportional 0.486 
-#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 4 min 47 s
-#>                      least squares: PD - Continuous 0.0 s
-#>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   PD - Continuous    exponential
-#>                        plateau          149
-#>                        baseline         52.24
-#>                        rate             0.04868
-#>                        between-subject  0.984 (SD on the log baseline)
-#>                        residual         additive 225
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   Reported below the assay limit:
-#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             180 patients in 6 arm(s)
 #>                      Placebo / 0 (30)
@@ -152,6 +123,38 @@ model_report(fit)
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
+#> Values at the lower limit of what was observed
+#>   Reported below the assay limit:
+#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   PD - Continuous    exponential
+#>                        plateau          149
+#>                        baseline         52.24
+#>                        rate             0.04868
+#>                        between-subject  0.984 (SD on the log baseline)
+#>                        residual         additive 225
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          60 of 150 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 21.15, v 98.26, ka 5.703 
+#>   between-subject    cl 0.323, v 0.334, ka 0.319 (as SD on the log scale)
+#>   starting values    cl 10.55, v 88.93, ka 4.76 declared through
+#>                      `start_param`; the rest were read off the cohort's
+#>                      median profile
+#>   residual error     proportional 0.264 
+#>   time to fit        2 min 49 s (2 min 51 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  2 min 49 s
+#>                      least squares: PD - Continuous 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   PK Concentration   inferred: absent before the first dose;
 #>                      dose-proportional; measured where the doses go; rises
@@ -160,12 +163,6 @@ model_report(fit)
 #>                      declining, and 99% of subjects do too
 #>   also available     2cmt_oral, which the sampling would support: median 9
 #>                      distinct times after a dose, 6 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>    WEIGHTB         v       -0.58
-#>    WEIGHTB        ka        0.23
-#>    WEIGHTB        cl       -0.15
 ```
 
 Three lines in the estimated half are worth reading before anything

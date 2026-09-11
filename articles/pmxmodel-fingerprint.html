@@ -186,33 +186,6 @@ Printing the fitted object shows the same account, because everything on
 it is an input to the generation step.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; The PopPK model</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Estimated by nlmixr2</span></span>
-<span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
-<span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        9.4 s (9.6 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 9.4 s</span></span>
-<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
-<span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
-<span><span class="co">#&gt;   pca                exponential</span></span>
-<span><span class="co">#&gt;                        plateau          27.34</span></span>
-<span><span class="co">#&gt;                        baseline         96.3</span></span>
-<span><span class="co">#&gt;                        rate             0.09877</span></span>
-<span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 12.4</span></span>
-<span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Values at the bottom of the scale</span></span>
-<span><span class="co">#&gt;   No assay limit declared, so nothing is generated below:</span></span>
-<span><span class="co">#&gt;     cp                 0.3</span></span>
-<span><span class="co">#&gt;     pca                4.5</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (32)</span></span>
@@ -224,20 +197,40 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
+<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
+<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
+<span><span class="co">#&gt;     cp                 0.3</span></span>
+<span><span class="co">#&gt;     pca                4.5</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt;   pca                exponential</span></span>
+<span><span class="co">#&gt;                        plateau          27.34</span></span>
+<span><span class="co">#&gt;                        baseline         96.3</span></span>
+<span><span class="co">#&gt;                        rate             0.09877</span></span>
+<span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 12.4</span></span>
+<span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; The PopPK model</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Estimated by nlmixr2</span></span>
+<span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
+<span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1353, v 8.115, ka 0.5796 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
+<span><span class="co">#&gt;   time to fit        10.5 s (10.6 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2</span></span>
+<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span>
+<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   cp                 inferred: absent before the first dose; dose</span></span>
 <span><span class="co">#&gt;                      proportionality not computable here; rises to one peak</span></span>
 <span><span class="co">#&gt;                      and comes back down</span></span>
 <span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
-<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Covariate against the individual random effects</span></span>
-<span><span class="co">#&gt;  covariate parameter correlation</span></span>
-<span><span class="co">#&gt;        age        cl        0.37</span></span>
-<span><span class="co">#&gt;        sex        cl       -0.23</span></span>
-<span><span class="co">#&gt;         wt        ka        0.21</span></span>
-<span><span class="co">#&gt;         wt        cl       -0.13</span></span>
-<span><span class="co">#&gt;         wt         v       -0.12</span></span></code></pre></div>
+<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span></code></pre></div>
 <p>Every section below expands one part of it. The object is a plain
 list and the names used are its own, so a quantity can be reached
 directly when no accessor covers it.</p>
@@ -261,7 +254,7 @@ directly when no accessor covers it.</p>
 <span><span class="co">#&gt;      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects </span></span>
 <span><span class="co">#&gt;              "20"               "3"               "6"              "60" </span></span>
 <span><span class="co">#&gt;        estimation covariate_effects             error </span></span>
-<span><span class="co">#&gt;           "focei"            "auto"            "prop"</span></span>
+<span><span class="co">#&gt;           "focei"            "none"            "prop"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">n_source</span>, arms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; patients     arms </span></span>
 <span><span class="co">#&gt;       32        1</span></span></code></pre></div>
@@ -294,8 +287,8 @@ the object telling you how little evidence it had, and
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">structural</span></span>
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.425</span></span></code></pre></div>
+<span><span class="co">#&gt;       model converged      aic seconds note</span></span>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.473</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -308,7 +301,7 @@ one.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">fixed</span></span>
 <span><span class="co">#&gt;        cl         v        ka </span></span>
-<span><span class="co">#&gt; 0.1362061 8.1753822 0.6029980</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.1352699 8.1149407 0.5796365</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="between-subject-variability">Between-subject variability<a class="anchor" aria-label="anchor" href="#between-subject-variability"></a>
@@ -318,13 +311,13 @@ a random effect. Generation draws each synthetic subject’s deviations
 from this matrix.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span></span>
-<span><span class="co">#&gt;            cl           v       ka</span></span>
-<span><span class="co">#&gt; cl 0.06071257 0.000000000 0.000000</span></span>
-<span><span class="co">#&gt; v  0.00000000 0.007300333 0.000000</span></span>
-<span><span class="co">#&gt; ka 0.00000000 0.000000000 0.462376</span></span>
+<span><span class="co">#&gt;            cl          v        ka</span></span>
+<span><span class="co">#&gt; cl 0.07122477 0.00000000 0.0000000</span></span>
+<span><span class="co">#&gt; v  0.00000000 0.04153328 0.0000000</span></span>
+<span><span class="co">#&gt; ka 0.00000000 0.00000000 0.4620561</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span><span class="op">)</span>  <span class="co"># as CV on the log scale</span></span>
-<span><span class="co">#&gt;         cl          v         ka </span></span>
-<span><span class="co">#&gt; 0.24639922 0.08544199 0.67998235</span></span></code></pre></div>
+<span><span class="co">#&gt;        cl         v        ka </span></span>
+<span><span class="co">#&gt; 0.2668797 0.2037971 0.6797471</span></span></code></pre></div>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 are per-subject quantities, and an object carrying them would be a
 description of each real patient. They are not here. This matrix is what
@@ -340,7 +333,7 @@ than about anybody in it.</p>
 <span><span class="co">#&gt; [1] "proportional"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $cv</span></span>
-<span><span class="co">#&gt; [1] 0.2102603</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.2108138</span></span></code></pre></div>
 <p>Additive here rather than proportional, because <code>warfarin</code>
 holds concentrations recorded as zero and a proportional error on zero
 is zero. The substitution is recorded on the object rather than being
@@ -371,26 +364,7 @@ stopped reporting.</p>
 </h2>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">covariate_effects</span></span>
-<span><span class="co">#&gt; $cl</span></span>
-<span><span class="co">#&gt; $cl$covariate</span></span>
-<span><span class="co">#&gt; [1] "wt"</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $cl$reference</span></span>
-<span><span class="co">#&gt; [1] 70</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $cl$exponent</span></span>
-<span><span class="co">#&gt; [1] 0.75</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v</span></span>
-<span><span class="co">#&gt; $v$covariate</span></span>
-<span><span class="co">#&gt; [1] "wt"</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v$reference</span></span>
-<span><span class="co">#&gt; [1] 70</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v$exponent</span></span>
-<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<span><span class="co">#&gt; list()</span></span></code></pre></div>
 <p>Allometric scaling on clearance and volume, with the standard
 exponents. It is asserted rather than tested —
 <code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> says why — and
@@ -402,7 +376,7 @@ exponents. It is asserted rather than tested —
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>,</span>
 <span>     <span class="st">"Each covariate against the individual random effects"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["age","sex","wt","wt","wt","age","sex","sex","age"],["cl","cl","ka","cl","v","ka","v","ka","v"],[0.372,-0.228,0.215,-0.127,-0.121,-0.0975,0.0716,-0.0311,0.0186]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["wt","sex","wt","age","sex","wt","sex","age","age"],["v","v","cl","cl","ka","ka","cl","ka","v"],[0.752,0.6830000000000001,0.34,0.305,-0.153,0.146,0.133,-0.0893,-0.0474]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
 diagnostic rather than a released quantity. A covariate that moves with
 a random effect and is not in the model above is generated
 <strong>independently</strong> of the profiles, so the synthetic data

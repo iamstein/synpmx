@@ -147,35 +147,6 @@ case1$fit
 #> 
 #>   candidates fitted  1 (1cmt_oral selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          60 of 150 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 10.55, v 88.93, ka 4.76 
-#>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
-#>   residual error     proportional 0.486 
-#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 4 min 47 s
-#>                      least squares: PD - Continuous 0.0 s
-#>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   PD - Continuous    exponential
-#>                        plateau          149
-#>                        baseline         52.24
-#>                        rate             0.04868
-#>                        between-subject  0.984 (SD on the log baseline)
-#>                        residual         additive 225
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   Reported below the assay limit:
-#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             180 patients in 6 arm(s)
 #>                      Placebo / 0 (30)
@@ -193,6 +164,38 @@ case1$fit
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
+#> Values at the lower limit of what was observed
+#>   Reported below the assay limit:
+#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   PD - Continuous    exponential
+#>                        plateau          149
+#>                        baseline         52.24
+#>                        rate             0.04868
+#>                        between-subject  0.984 (SD on the log baseline)
+#>                        residual         additive 225
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          60 of 150 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 21.15, v 98.26, ka 5.703 
+#>   between-subject    cl 0.323, v 0.334, ka 0.319 (as SD on the log scale)
+#>   starting values    cl 10.55, v 88.93, ka 4.76 declared through
+#>                      `start_param`; the rest were read off the cohort's
+#>                      median profile
+#>   residual error     proportional 0.264 
+#>   time to fit        2 min 49 s (2 min 51 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  2 min 49 s
+#>                      least squares: PD - Continuous 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   PK Concentration   inferred: absent before the first dose;
 #>                      dose-proportional; measured where the doses go; rises
@@ -201,12 +204,6 @@ case1$fit
 #>                      declining, and 99% of subjects do too
 #>   also available     2cmt_oral, which the sampling would support: median 9
 #>                      distinct times after a dose, 6 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>    WEIGHTB         v       -0.58
-#>    WEIGHTB        ka        0.23
-#>    WEIGHTB        cl       -0.15
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png)
@@ -231,7 +228,7 @@ card_verdicts(case1$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x1.4 on PK Concentration (furthest of 3) | review |
+| D1 | Values landing in the same range | sd x0.88 on PK Concentration (furthest of 3) | review |
 
 13 pass, 2 review, 5 not applicable. The rows that are not a pass:
 {.table}
@@ -287,40 +284,6 @@ mad_run$fit
 #> 
 #>   candidates fitted  1 (1cmt_oral selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 50 patients with a concentration
-#>   fixed effects      cl 5.564, v 153.6, ka 3.929 
-#>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
-#>   residual error     proportional 0.719 
-#>   time to fit        39.1 s (39.4 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 39.1 s
-#>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
-#>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   PD - Continuous    exponential
-#>                        plateau          31.47
-#>                        baseline         1.637
-#>                        rate             0.01344
-#>                        between-subject  1.33 (SD on the log baseline)
-#>                        residual         additive 8.13
-#>                        chosen on AIC from constant, linear, exponential
-#>   PD - Count         exponential
-#>                        plateau          2.888
-#>                        baseline         10.38
-#>                        rate             0.01484
-#>                        between-subject  0.248 (SD on the log baseline)
-#>                        residual         additive 2.78
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     PK Concentration   0.025
-#>     PD - Continuous    0.0825
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             60 patients in 6 arm(s)
 #>                      Placebo / 0 (10)
@@ -340,6 +303,41 @@ mad_run$fit
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,
 #>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     PK Concentration   0.025
+#>     PD - Continuous    0.0825
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   PD - Continuous    exponential
+#>                        plateau          31.47
+#>                        baseline         1.637
+#>                        rate             0.01344
+#>                        between-subject  1.33 (SD on the log baseline)
+#>                        residual         additive 8.13
+#>                        chosen on AIC from constant, linear, exponential
+#>   PD - Count         exponential
+#>                        plateau          2.888
+#>                        baseline         10.38
+#>                        rate             0.01484
+#>                        between-subject  0.248 (SD on the log baseline)
+#>                        residual         additive 2.78
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 50 patients with a concentration
+#>   fixed effects      cl 5.47, v 152.8, ka 3.964 
+#>   between-subject    cl 0.426, v 0.429, ka 0.258 (as SD on the log scale)
+#>   residual error     proportional 0.722 
+#>   time to fit        34.3 s (34.5 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  34.3 s
+#>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   PK Concentration   inferred: absent before the first dose;
 #>                      dose-proportional; measured where the doses go; rises
@@ -348,12 +346,6 @@ mad_run$fit
 #>                      declining, and 100% of subjects do too
 #>   also available     2cmt_oral, which the sampling would support: median 13
 #>                      distinct times after a dose, 9 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>    WEIGHTB        cl       0.294
-#>    WEIGHTB         v       0.193
-#>    WEIGHTB        ka       0.095
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png)
@@ -405,33 +397,6 @@ warfarin_roles <- pmx_roles(
 warfarin_run <- model_run("warfarin", warfarin, warfarin_roles,
                           "warfarin-model-fit.rds", seed = 404)
 model_report(warfarin_run$fit)
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
-#>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        9.4 s (9.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 9.4 s
-#>                      least squares: pca 0.0 s
-#>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     cp                 0.3
-#>     pca                4.5
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
@@ -443,20 +408,40 @@ model_report(warfarin_run$fit)
 #>                      per arm, independently of the profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     cp                 0.3
+#>     pca                4.5
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   pca                exponential
+#>                        plateau          27.34
+#>                        baseline         96.3
+#>                        rate             0.09877
+#>                        between-subject  0.146 (SD on the log baseline)
+#>                        residual         additive 12.4
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
+#>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
+#>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
+#>   residual error     proportional 0.211 
+#>   time to fit        10.5 s (10.6 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  10.5 s
+#>                      least squares: pca 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   cp                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; rises to one peak
 #>                      and comes back down
 #>   route              oral: the median profile rises to a peak at 9 before
 #>                      declining, and 31% of subjects do too
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        age        cl        0.37
-#>        sex        cl       -0.23
-#>         wt        ka        0.21
-#>         wt        cl       -0.13
-#>         wt         v       -0.12
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png)
@@ -531,22 +516,6 @@ wbc_run <- model_run("wbcSim", wbcSim, wbc_roles, "wbcsim-model-fit.rds",
 #>   low end of the data, not an assay limit.
 #>   Fix: Read `model_report()` before using this dataset.
 model_report(wbc_run$fit)
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_infusion 
-#>   fitted on          all 45 patients with a concentration
-#>   fixed effects      cl 0.01245, v 20.4 
-#>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
-#>   residual error     proportional 0.347 
-#>   time to fit        2.1 s (2.2 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 2.1 s
-#>   covariate effects  none 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 0.35
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             45 patients in 1 arm(s)
 #>                      all (45)
@@ -557,6 +526,23 @@ model_report(wbc_run$fit)
 #>                      11%, from 7% to 100%
 #>   covariates         none declared
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE
+#> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 0.35
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_infusion 
+#>   fitted on          all 45 patients with a concentration
+#>   fixed effects      cl 0.01245, v 20.4 
+#>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
+#>   residual error     proportional 0.347 
+#>   time to fit        2.3 s (2.3 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_infusion              2.3 s
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred: absent before the first dose; dose
@@ -645,25 +631,6 @@ mavo_run$fit
 #> 
 #>   candidates fitted  1 (1cmt_infusion selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_infusion 
-#>   fitted on          60 of 120 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 0.03473, v 0.2098 
-#>   between-subject    cl 0.425, v 0.347 (as SD on the log scale)
-#>   residual error     proportional 0.719 
-#>   time to fit        10.5 s (10.7 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 10.5 s
-#>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 1.005
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             120 patients in 1 arm(s)
 #>                      all (120)
@@ -678,6 +645,26 @@ mavo_run$fit
 #>   columns emitted    ID, TIME, NTIME, OCC, DV, AMT, EVID, CMT, MDV, RATE,
 #>                      AGE, SEX, WT, HT, DOSE
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 1.005
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_infusion 
+#>   fitted on          60 of 120 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 0.03414, v 0.2079 
+#>   between-subject    cl 0.434, v 0.364 (as SD on the log scale)
+#>   residual error     proportional 0.717 
+#>   time to fit        8.3 s (8.5 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_infusion              8.3 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred: absent before the first dose;
 #>                      dose-proportional; measured where the doses go; rises
@@ -685,14 +672,6 @@ mavo_run$fit
 #>   route              infusion: a nonzero `rate` on the dose records
 #>   also available     2cmt_iv, which the sampling would support: median 11
 #>                      distinct times after a dose, 10 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        SEX         v        0.26
-#>        AGE        cl       -0.22
-#>        SEX        cl        0.15
-#>         HT         v       -0.14
-#>         HT        cl        0.12
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png)
@@ -711,7 +690,7 @@ card_verdicts(mavo_run$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x0.42 on DV (furthest of 5) | review |
+| D1 | Values landing in the same range | sd x0.4 on DV (furthest of 5) | review |
 
 12 pass, 3 review, 5 not applicable. The rows that are not a pass:
 {.table}
@@ -801,22 +780,6 @@ theo_run$fit
 #> 
 #>   candidates fitted  1 (1cmt_oral selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.859, v 34.21, ka 1.461 
-#>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
-#>   residual error     proportional 0.217 
-#>   time to fit        10.3 s (10.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.3 s
-#>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 0.075
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
@@ -828,6 +791,23 @@ theo_run$fit
 #>                      profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 0.075
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 12 patients with a concentration
+#>   fixed effects      cl 2.813, v 33.6, ka 1.45 
+#>   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)
+#>   residual error     proportional 0.217 
+#>   time to fit        7.7 s (8.0 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  7.7 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; measured where
@@ -836,12 +816,6 @@ theo_run$fit
 #>                      declining, and 100% of subjects do too
 #>   also available     2cmt_oral, which the sampling would support: median 11
 #>                      distinct times after a dose, 6 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>         WT        ka        0.58
-#>         WT         v       -0.35
-#>         WT        cl       -0.26
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png)
@@ -858,7 +832,7 @@ card_verdicts(theo_run$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x1.1 on DV (furthest of 2) | review |
+| D1 | Values landing in the same range | sd x0.97 on WT (furthest of 2) | review |
 
 14 pass, 1 review, 5 not applicable. The rows that are not a pass:
 {.table}
@@ -928,22 +902,6 @@ nimo_run$fit
 #> 
 #>   candidates fitted  1 (1cmt_infusion selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_infusion 
-#>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 0.1305, v 42.65 
-#>   between-subject    cl 0.585, v 0.704 (as SD on the log scale)
-#>   residual error     proportional 0.468 
-#>   time to fit        2.2 s (2.2 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 2.2 s
-#>   covariate effects  none 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 0.1323
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
@@ -957,19 +915,28 @@ nimo_run$fit
 #>   columns emitted    ID, TIME, NTIME, TAD, OCC, DV, AMT, EVID, MDV, RATE,
 #>                      BSA, AGE, HGT, DOS
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 0.1323
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_infusion 
+#>   fitted on          all 12 patients with a concentration
+#>   fixed effects      cl 0.1305, v 42.65 
+#>   between-subject    cl 0.585, v 0.704 (as SD on the log scale)
+#>   residual error     proportional 0.468 
+#>   time to fit        2.2 s (2.2 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_infusion              2.2 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 declared through `endpoint_roles`
 #>   route              infusion: a nonzero `rate` on the dose records
 #>   also available     2cmt_iv, which the sampling would support: median 6
 #>                      distinct times after a dose, 5 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        HGT        cl       -0.47
-#>        HGT         v       -0.41
-#>        AGE        cl        0.24
-#>        AGE         v        0.13
-#>        BSA         v       -0.12
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png)
@@ -1089,27 +1056,16 @@ pheno_sd$NTIME <- ifelse(
 
 pheno_run <- model_run("pheno_sd", pheno_sd, pheno_roles,
                        "pheno-model-fit.rds", seed = 707)
+#> Warning: 6% of generated observations (9 of 149) fell below the smallest value the
+#> study reported and were raised to half of it.
+#>   A floor catching this much is a fitted model that does not describe the
+#>   low end of the data, not an assay limit.
+#>   Fix: Read `model_report()` before using this dataset.
 pheno_run$fit
 #> A fitted PMX model, from synpmx_model_estimate()
 #> Everything below is an input to `synpmx_model_generate()`.
 #> 
 #>   candidates fitted  2 (1cmt_iv selected on AIC) 
-#> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_iv 
-#>   fitted on          all 59 patients with a concentration
-#>   fixed effects      cl 0.006131, v 1.314 
-#>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
-#>   residual error     proportional 0.118 
-#>   time to fit        27.7 s (27.8 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 7.6 s, 1cmt_oral 20.1 s
-#>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 3.35
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             59 patients in 1 arm(s)
@@ -1123,16 +1079,27 @@ pheno_run$fit
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 3.35
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_iv 
+#>   fitted on          all 59 patients with a concentration
+#>   fixed effects      cl 0.005864, v 1.441 
+#>   between-subject    cl 0.367, v 0.446 (as SD on the log scale)
+#>   residual error     proportional 0.126 
+#>   time to fit        19.4 s (19.5 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_iv                    4.3 s
+#>                        1cmt_oral                  15.1 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 declared through `endpoint_roles`
 #>   route              both: too few distinct sampling times to place a peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>         WT        cl       0.224
-#>       APGR        cl      -0.201
-#>       APGR         v      -0.117
-#>         WT         v       0.055
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png)
@@ -1210,25 +1177,6 @@ mixroute_run$fit
 #> 
 #>   candidates fitted  1 (1cmt_mixed selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_mixed 
-#>   fitted on          60 of 90 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 2.434, v 11.84, ka 0.5524, f 0.7398 
-#>   between-subject    cl 0.296, v 0.234, ka 0.312 (as SD on the log scale)
-#>   residual error     proportional 0.292 
-#>   time to fit        5.3 s (5.4 s for the whole call)
-#>                      nlmixr2: 1cmt_mixed 5.3 s
-#>   covariate effects  cl ~ (WT/71.95)^0.75, v ~ (WT/71.95)^1.00 
-#> 
-#> Values at the bottom of the scale
-#>   Reported below the assay limit:
-#>     DV                 3 of 1530 (0%) below 0.05 (the limit)
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             90 patients in 3 arm(s)
 #>                      IV only (30)
@@ -1244,6 +1192,25 @@ mixroute_run$fit
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,
 #>                      ARM
 #> 
+#> Values at the lower limit of what was observed
+#>   Reported below the assay limit:
+#>     DV                 3 of 1530 (0%) below 0.05 (the limit)
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_mixed 
+#>   fitted on          60 of 90 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 2.398, v 11.6, ka 0.5446, f 0.7134 
+#>   between-subject    cl 0.322, v 0.272, ka 0.337 (as SD on the log scale)
+#>   residual error     proportional 0.292 
+#>   time to fit        4.4 s (4.5 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_mixed                 4.4 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; measured where
@@ -1252,12 +1219,6 @@ mixroute_run$fit
 #>                      extravascular doses in one study
 #>   also available     2cmt_iv, which the sampling would support: median 9
 #>                      distinct times after a dose, 3 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>         WT        ka     -0.1433
-#>         WT         v     -0.0698
-#>         WT        cl      0.0053
 ```
 
 ``` r
@@ -1267,10 +1228,10 @@ fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 #>    truth fitted ratio
-#> cl   2.0  2.434  1.22
-#> v   10.0 11.836  1.18
-#> ka   0.5  0.552  1.10
-#> f    0.7  0.740  1.06
+#> cl   2.0  2.398  1.20
+#> v   10.0 11.604  1.16
+#> ka   0.5  0.545  1.09
+#> f    0.7  0.713  1.02
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png)
@@ -1337,38 +1298,6 @@ onc_run$fit
 #> 
 #>   candidates fitted  2 (1cmt_oral selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          60 of 200 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 0.4461, v 1.043, ka 4.468 
-#>   between-subject    cl 0.454, v 0.408, ka 0.316 (as SD on the log scale)
-#>   starting values    ka 5 declared through `start_param`; the rest were
-#>                      read off the cohort's median profile
-#>   residual error     proportional 0.204 
-#>   time to fit        5 min 11 s (5 min 17 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 3 min 33 s, 1cmt_iv 1 min 38 s
-#>                      least squares: SLD 0.0 s
-#>   covariate effects  none 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   SLD                linear
-#>                        baseline         15.9
-#>                        slope            -0.005006
-#>                        between-subject  0.328 (SD on the log baseline)
-#>                        residual         additive 1.46
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   Reported below the assay limit:
-#>     Everolimus trough  203 of 1167 (17%) below 1 (the limit)
-#>   No assay limit declared, so nothing is generated below:
-#>     SLD                1.315
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             200 patients in 2 arm(s)
 #>                      Everolimus 10 mg (134)
@@ -1384,17 +1313,43 @@ onc_run$fit
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, NAME, CENS, ADDL,
 #>                      II, BSLD, AGE, SEX, ARM, CROSSOVER
 #> 
+#> Values at the lower limit of what was observed
+#>   Reported below the assay limit:
+#>     Everolimus trough  203 of 1167 (17%) below 1 (the limit)
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     SLD                1.315
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   SLD                linear
+#>                        baseline         15.9
+#>                        slope            -0.005006
+#>                        between-subject  0.328 (SD on the log baseline)
+#>                        residual         additive 1.46
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          60 of 200 patients with a concentration, drawn in
+#>                      proportion to the arms under `max_fit_subjects` = 60;
+#>                      the dosing, visit and covariate models below read the
+#>                      whole study
+#>   fixed effects      cl 0.4461, v 1.043, ka 4.468 
+#>   between-subject    cl 0.454, v 0.408, ka 0.316 (as SD on the log scale)
+#>   starting values    ka 5 declared through `start_param`; the rest were
+#>                      read off the cohort's median profile
+#>   residual error     proportional 0.204 
+#>   time to fit        5 min 4 s (5 min 10 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  3 min 28 s
+#>                        1cmt_iv                    1 min 36 s
+#>                      least squares: SLD 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   Everolimus trough  declared through `endpoint_roles`
 #>   route              both: too few distinct sampling times to place a peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        AGE         v      -0.286
-#>        AGE        cl       0.266
-#>        AGE        ka       0.259
-#>       BSLD        cl       0.028
-#>       BSLD         v      -0.027
 ```
 
 The stored fit above was built with
@@ -1470,15 +1425,15 @@ knitr::kable(inventory, row.names = FALSE,
 
 | Dataset | Patients | Model | Fixed effects | Residual |
 |:---|---:|:---|:---|:---|
-| case1_pkpd | 180 | 1cmt_oral | cl 10.5, v 88.9, ka 4.76 | proportional 0.486 |
-| mad | 60 | 1cmt_oral | cl 5.56, v 154, ka 3.93 | proportional 0.719 |
-| warfarin | 32 | 1cmt_oral | cl 0.136, v 8.18, ka 0.603 | proportional 0.21 |
+| case1_pkpd | 180 | 1cmt_oral | cl 21.1, v 98.3, ka 5.7 | proportional 0.264 |
+| mad | 60 | 1cmt_oral | cl 5.47, v 153, ka 3.96 | proportional 0.722 |
+| warfarin | 32 | 1cmt_oral | cl 0.135, v 8.11, ka 0.58 | proportional 0.211 |
 | wbcSim | 45 | 1cmt_infusion | cl 0.0124, v 20.4 | proportional 0.347 |
-| mavoglurant | 120 | 1cmt_infusion | cl 0.0347, v 0.21 | proportional 0.719 |
-| theo_md | 12 | 1cmt_oral | cl 2.86, v 34.2, ka 1.46 | proportional 0.217 |
+| mavoglurant | 120 | 1cmt_infusion | cl 0.0341, v 0.208 | proportional 0.717 |
+| theo_md | 12 | 1cmt_oral | cl 2.81, v 33.6, ka 1.45 | proportional 0.217 |
 | nimoData | 12 | 1cmt_infusion | cl 0.13, v 42.6 | proportional 0.468 |
-| pheno_sd | 59 | 1cmt_iv | cl 0.00613, v 1.31 | proportional 0.118 |
-| mixroute_sim | 90 | 1cmt_mixed | cl 2.43, v 11.8, ka 0.552, f 0.74 | proportional 0.292 |
+| pheno_sd | 59 | 1cmt_iv | cl 0.00586, v 1.44 | proportional 0.126 |
+| mixroute_sim | 90 | 1cmt_mixed | cl 2.4, v 11.6, ka 0.545, f 0.713 | proportional 0.292 |
 | onc_sim | 200 | 1cmt_oral | cl 0.446, v 1.04, ka 4.47 | proportional 0.204 |
 
 What each fit carries out of its study. {.table style="width:100%;"}

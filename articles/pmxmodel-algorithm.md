@@ -84,9 +84,9 @@ on the way out, so it comes back in the encoding its source used.
     fitter.
 3.  **Estimate the parameters.** Fit each surviving PK model as a
     population nonlinear mixed-effects model through `nlmixr2` and
-    select on AIC, with allometric scaling folded in where a weight-like
-    covariate is declared, once per concentration endpoint. Fit each PD
-    endpoint’s time course by least squares.
+    select on AIC, once per concentration endpoint. No covariate enters
+    the structural model unless `covariate_effects = "auto"` asks for
+    it. Fit each PD endpoint’s time course by least squares.
 4.  **Fit a dosing model and a visit model per arm**: a planned dose
     schedule with rates for reduction, interruption and discontinuation,
     and the probability of a visit at each nominal time.
@@ -432,19 +432,23 @@ function errors rather than returning the least bad fit.
 ``` r
 
 model_candidates(fit)
-#>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892   9.425
+#>       model converged      aic seconds note
+#> 1 1cmt_oral      TRUE 926.9152  10.473
 ```
 
 ### Covariates
 
-The default `"auto"` applies allometric scaling on clearance and volume
-where a weight-like covariate is declared, and fits nothing else. The
-exponents are the standard 0.75 and 1 rather than estimated ones, and
-the effect is **asserted rather than tested**: it is folded into the one
-fit, not compared against a model without it. Testing it would double
-the cost of the whole call. `covariate_effects = "none"` switches it
-off.
+The default `"none"` puts no covariate in the structural model. A
+synthetic study does not need the relationship: covariates are generated
+per arm from the source’s own distributions either way, so a clearance
+that moves with weight buys the generator nothing.
+
+`covariate_effects = "auto"` applies allometric scaling on clearance and
+volume where a weight-like covariate is declared, and fits nothing else.
+The exponents are the standard 0.75 and 1 rather than estimated ones,
+and the effect is **asserted rather than tested**: it is folded into the
+one fit, not compared against a model without it. Testing it would
+double the cost of the whole call.
 
 The covariate is recognised by name, `wt`, `weight`, `bw` and the like,
 and must be numeric and positive. There is no way to recognise a body
@@ -590,33 +594,6 @@ correlation.
 ``` r
 
 model_report(fit)
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
-#>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        9.4 s (9.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 9.4 s
-#>                      least squares: pca 0.0 s
-#>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
-#> 
-#> Each other continuous endpoint, fitted as a shape in time
-#>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
-#>                        chosen on AIC from constant, linear, exponential
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     cp                 0.3
-#>     pca                4.5
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
@@ -628,20 +605,40 @@ model_report(fit)
 #>                      per arm, independently of the profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     cp                 0.3
+#>     pca                4.5
+#> 
+#> Each other continuous endpoint, fitted as a shape in time
+#>   pca                exponential
+#>                        plateau          27.34
+#>                        baseline         96.3
+#>                        rate             0.09877
+#>                        between-subject  0.146 (SD on the log baseline)
+#>                        residual         additive 12.4
+#>                        chosen on AIC from constant, linear, exponential
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 32 patients with a concentration
+#>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
+#>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
+#>   residual error     proportional 0.211 
+#>   time to fit        10.5 s (10.6 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  10.5 s
+#>                      least squares: pca 0.0 s
+#> 
 #> PK endpoint for the PopPK model
 #>   cp                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; rises to one peak
 #>                      and comes back down
 #>   route              oral: the median profile rises to a peak at 9 before
 #>                      declining, and 31% of subjects do too
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>        age        cl        0.37
-#>        sex        cl       -0.23
-#>         wt        ka        0.21
-#>         wt        cl       -0.13
-#>         wt         v       -0.12
 ```
 
 ## Step 6: Generate New Subjects

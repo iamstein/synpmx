@@ -18,7 +18,7 @@ synpmx_model_estimate(
   pd_by_arm = FALSE,
   endpoint_roles = NULL,
   start_param = NULL,
-  covariate_effects = "auto",
+  covariate_effects = "none",
   min_subjects = 20L,
   min_arm_patients = 3L,
   min_time_bins = 6L,
@@ -112,9 +112,16 @@ synpmx_model_estimate(
 
 - covariate_effects:
 
+  `"none"`, the default, puts no covariate in the structural model.
   `"auto"` fits allometric scaling on clearance and volume where a
   weight-like covariate is declared and keeps it where it improves AIC.
-  `"none"` fits nothing.
+
+  The default is `"none"` because a synthetic study does not need the
+  relationship: covariates are generated per arm from the source's own
+  distributions either way, and a clearance that moves with weight buys
+  nothing the generator spends. `fit$correlations` still reports where a
+  covariate moves with a random effect, so the relationship the model is
+  not carrying is still visible.
 
 - min_subjects:
 

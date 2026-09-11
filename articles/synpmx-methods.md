@@ -166,22 +166,6 @@ model_fit
 #> 
 #>   candidates fitted  1 (1cmt_oral selected on AIC) 
 #> 
-#> The PopPK model
-#> 
-#> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.859, v 34.21, ka 1.461 
-#>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
-#>   residual error     proportional 0.217 
-#>   time to fit        10.3 s (10.6 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.3 s
-#>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
-#> 
-#> Values at the bottom of the scale
-#>   No assay limit declared, so nothing is generated below:
-#>     DV                 0.075
-#> 
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
@@ -193,6 +177,23 @@ model_fit
 #>                      profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
+#> Values at the lower limit of what was observed
+#>   No assay limit declared. Each floor below is half the smallest value the
+#>   endpoint was observed at, and a simulated value under it is raised to it:
+#>     DV                 0.075
+#> 
+#> The PopPK model
+#> 
+#> Estimated by nlmixr2
+#>   structural model   1cmt_oral 
+#>   fitted on          all 12 patients with a concentration
+#>   fixed effects      cl 2.813, v 33.6, ka 1.45 
+#>   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)
+#>   residual error     proportional 0.217 
+#>   time to fit        7.7 s (8.0 s for the whole call)
+#>                      nlmixr2
+#>                        1cmt_oral                  7.7 s
+#> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred: absent before the first dose; dose
 #>                      proportionality not computable here; measured where
@@ -201,12 +202,6 @@ model_fit
 #>                      declining, and 100% of subjects do too
 #>   also available     2cmt_oral, which the sampling would support: median 11
 #>                      distinct times after a dose, 6 after the peak
-#> 
-#> Covariate against the individual random effects
-#>  covariate parameter correlation
-#>         WT        ka        0.58
-#>         WT         v       -0.35
-#>         WT        cl       -0.26
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 
@@ -690,7 +685,7 @@ knitr::kable(
 |                 | n_observations | median |  p10 |   p90 |
 |:----------------|---------------:|-------:|-----:|------:|
 | Source          |            264 |   5.74 | 1.25 |  9.30 |
-| 1\. PMX model   |            258 |   5.80 | 1.52 | 10.54 |
+| 1\. PMX model   |            258 |   5.66 | 1.50 |  9.92 |
 | 2\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
 | 3\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
