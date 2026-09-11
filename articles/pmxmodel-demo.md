@@ -123,73 +123,52 @@ model_report(fit)
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
-#>   PD - Continuous    exponential: plateau 149, baseline 52.24, rate
-#>                      0.04868; between-subject 0.984 (SD on the log
-#>                      baseline); residual additive 225; chosen on AIC from
-#>                      constant, linear, exponential
+#>   PD - Continuous    exponential
+#>                        plateau          149
+#>                        baseline         52.24
+#>                        rate             0.04868
+#>                        between-subject  0.984 (SD on the log baseline)
+#>                        residual         additive 225
+#>                        chosen on AIC from constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
 #>   Reported below the assay limit:
 #>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
-#>   `PK Concentration` was fitted with those rows censored: each enters the
-#>   likelihood as the probability of falling below the limit, not as a value
-#>   nobody measured. Any other endpoint here reads a uniform draw below the
-#>   limit instead, because its shape is a least-squares fit with no
-#>   likelihood to put censoring in. At generation the boundary goes back, and
-#>   a synthetic value below the limit is written out censored the way the
-#>   study recorded it.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             180 patients in 6 arm(s): Placebo / 0 (30), 3 mg / 3
-#>                      (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100
-#>                      (30), 300 mg / 300 (30)
-#>   dose schedule      one schedule per arm rather than one pooled across the
-#>                      study; 85 planned cycle(s) per arm at the median of
-#>                      the 6 arm(s)
-#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
-#>                      early, so every generated patient completes its arm's
-#>                      schedule
-#>   visit attendance   33 grid cell(s) over 2 endpoint(s). A generated
-#>                      patient attends each with the frequency its arm
-#>                      attended it: median 100%, from 0% to 100%. That is the
-#>                      whole model of a missed observation.
-#>   covariates         WEIGHTB lognormal, each drawn per arm from the
-#>                      source's own distribution and independently of the
+#>   cohort             180 patients in 6 arm(s)
+#>                      Placebo / 0 (30)
+#>                      3 mg / 3 (30)
+#>                      10 mg / 10 (30)
+#>                      30 mg / 30 (30)
+#>                      100 mg / 100 (30)
+#>                      300 mg / 300 (30)
+#>   dose changes       none
+#>   visit attendance   33 cell(s) of the visit grid (one endpoint at one
+#>                      nominal time) over 2 endpoint(s), attended at median
+#>                      100%, from 0% to 100%
+#>   covariates         WEIGHTB lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints 174 grid cell(s) whose values are drawn from the
-#>                      frequencies the source recorded there, rather than
+#>   discrete endpoints PD - Continuous, PK Concentration: drawn from each
+#>                      arm's recorded frequencies at each visit, not
 #>                      simulated
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
-#> How the concentration endpoint was decided
-#>   endpoint           PK Concentration (inferred) 
-#>          endpoint compartment post_dose shape proportional
-#>   PD - Continuous       FALSE     FALSE    NA        FALSE
-#>  PK Concentration        TRUE      TRUE  TRUE         TRUE
-#> 
-#>   compartment: measured where the doses go, or one compartment above a
-#>   dosing compartment nobody observes. post_dose: absent before each
-#>   subject's own first dose. shape: the cohort's median profile rises to one
-#>   peak and comes back down. proportional: the peak at the highest dose
-#>   level scales with the dose against the lowest. `post_dose` and
-#>   `proportional` are the two that decide; `compartment` and `shape` break a
-#>   tie between endpoints that pass both. NA is a signal this study cannot
-#>   compute: `proportional` needs two dose levels several patients share, and
-#>   `shape` needs three sampling times in one dose interval.
-#>   design             the median profile rises to a peak at 1 before declining, and 99% of subjects do too 
-#>   also available     the sampling would support a two-compartment model (median 9 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> PK endpoint for the PopPK model
+#>   PK Concentration   inferred: absent before the first dose;
+#>                      dose-proportional; measured where the doses go; rises
+#>                      to one peak and comes back down
+#>   route              oral: the median profile rises to a peak at 1 before
+#>                      declining, and 99% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 9
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
 #>    WEIGHTB         v       -0.58
 #>    WEIGHTB        ka        0.23
 #>    WEIGHTB        cl       -0.15
-#> 
-#>   A covariate that moves with a random effect and is not in the model above
-#>   is generated independently of the profiles, so the synthetic data carries
-#>   no relationship between them. `synpmx_avatar()` keeps those relationships
-#>   without modelling them.
 ```
 
 Three lines in the estimated half are worth reading before anything

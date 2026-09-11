@@ -181,56 +181,34 @@ model_fit
 #> Values at the bottom of the scale
 #>   No assay limit declared, so nothing is generated below:
 #>     DV                 0.075
-#>   Half the smallest value of each endpoint is reported above and used as a
-#>   floor for the synthetic data. A simulated profile that falls below that
-#>   floor is set to it.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             12 patients in 1 arm(s): all (12)
-#>   dose schedule      one schedule per arm rather than one pooled across the
-#>                      study; 7 planned cycle(s) per arm at the median of the
-#>                      1 arm(s)
-#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
-#>                      early, so every generated patient completes its arm's
-#>                      schedule
-#>   visit attendance   25 grid cell(s) over 1 endpoint(s). A generated
-#>                      patient attends each with the frequency its arm
-#>                      attended it: median 100%, from 33% to 100%. That is
-#>                      the whole model of a missed observation.
-#>   covariates         WT lognormal, each drawn per arm from the source's own
-#>                      distribution and independently of the profiles
-#>   discrete endpoints 25 grid cell(s) whose values are drawn from the
-#>                      frequencies the source recorded there, rather than
-#>                      simulated
+#>   cohort             12 patients in 1 arm(s)
+#>                      all (12)
+#>   dose changes       none
+#>   visit attendance   25 cell(s) of the visit grid (one endpoint at one
+#>                      nominal time) over 1 endpoint(s), attended at median
+#>                      100%, from 33% to 100%
+#>   covariates         WT lognormal, drawn per arm, independently of the
+#>                      profiles
+#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
+#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
-#> How the concentration endpoint was decided
-#>   endpoint           DV (inferred) 
-#>  endpoint compartment post_dose shape proportional
-#>        DV        TRUE      TRUE  TRUE           NA
-#> 
-#>   compartment: measured where the doses go, or one compartment above a
-#>   dosing compartment nobody observes. post_dose: absent before each
-#>   subject's own first dose. shape: the cohort's median profile rises to one
-#>   peak and comes back down. proportional: the peak at the highest dose
-#>   level scales with the dose against the lowest. `post_dose` and
-#>   `proportional` are the two that decide; `compartment` and `shape` break a
-#>   tie between endpoints that pass both. NA is a signal this study cannot
-#>   compute: `proportional` needs two dose levels several patients share, and
-#>   `shape` needs three sampling times in one dose interval.
-#>   design             the median profile rises to a peak at 2 before declining, and 100% of subjects do too 
-#>   also available     the sampling would support a two-compartment model (median 11 distinct times after a dose, 6 after the peak): ask for it with `pk = "2cmt_oral"` 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred: absent before the first dose; dose
+#>                      proportionality not computable here; measured where
+#>                      the doses go; rises to one peak and comes back down
+#>   route              oral: the median profile rises to a peak at 2 before
+#>                      declining, and 100% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 11
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
 #>         WT        ka        0.58
 #>         WT         v       -0.35
 #>         WT        cl       -0.26
-#> 
-#>   A covariate that moves with a random effect and is not in the model above
-#>   is generated independently of the profiles, so the synthetic data carries
-#>   no relationship between them. `synpmx_avatar()` keeps those relationships
-#>   without modelling them.
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 

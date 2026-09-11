@@ -96,55 +96,38 @@ model_report(fit)
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
 #> Each other continuous endpoint, fitted as a shape in time
-#>   pca                exponential: plateau 27.34, baseline 96.3, rate
-#>                      0.09877; between-subject 0.146 (SD on the log
-#>                      baseline); residual additive 12.4; chosen on AIC from
-#>                      constant, linear, exponential
+#>   pca                exponential
+#>                        plateau          27.34
+#>                        baseline         96.3
+#>                        rate             0.09877
+#>                        between-subject  0.146 (SD on the log baseline)
+#>                        residual         additive 12.4
+#>                        chosen on AIC from constant, linear, exponential
 #> 
 #> Values at the bottom of the scale
 #>   No assay limit declared, so nothing is generated below:
 #>     cp                 0.3
 #>     pca                4.5
-#>   Half the smallest value of each endpoint is reported above and used as a
-#>   floor for the synthetic data. A simulated profile that falls below that
-#>   floor is set to it.
 #> 
 #> Summarized from the source, not estimated
-#>   cohort             32 patients in 1 arm(s): all (32)
-#>   dose schedule      one schedule per arm rather than one pooled across the
-#>                      study; 1 planned cycle(s) per arm at the median of the
-#>                      1 arm(s)
-#>   dose changes       none: no arm reduces a dose, skips a cycle or stops
-#>                      early, so every generated patient completes its arm's
-#>                      schedule
-#>   visit attendance   22 grid cell(s) over 2 endpoint(s). A generated
-#>                      patient attends each with the frequency its arm
-#>                      attended it: median 95%, from 9% to 100%. That is the
-#>                      whole model of a missed observation.
-#>   covariates         wt lognormal, age lognormal, sex categorical, each
-#>                      drawn per arm from the source's own distribution and
-#>                      independently of the profiles
-#>   discrete endpoints 22 grid cell(s) whose values are drawn from the
-#>                      frequencies the source recorded there, rather than
-#>                      simulated
+#>   cohort             32 patients in 1 arm(s)
+#>                      all (32)
+#>   dose changes       none
+#>   visit attendance   22 cell(s) of the visit grid (one endpoint at one
+#>                      nominal time) over 2 endpoint(s), attended at median
+#>                      95%, from 9% to 100%
+#>   covariates         wt lognormal, age lognormal, sex categorical, drawn
+#>                      per arm, independently of the profiles
+#>   discrete endpoints cp, pca: drawn from each arm's recorded frequencies at
+#>                      each visit, not simulated
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
-#> How the concentration endpoint was decided
-#>   endpoint           cp (inferred) 
-#>  endpoint compartment post_dose shape proportional
-#>        cp          NA      TRUE  TRUE           NA
-#>       pca          NA      TRUE FALSE           NA
-#> 
-#>   compartment: measured where the doses go, or one compartment above a
-#>   dosing compartment nobody observes. post_dose: absent before each
-#>   subject's own first dose. shape: the cohort's median profile rises to one
-#>   peak and comes back down. proportional: the peak at the highest dose
-#>   level scales with the dose against the lowest. `post_dose` and
-#>   `proportional` are the two that decide; `compartment` and `shape` break a
-#>   tie between endpoints that pass both. NA is a signal this study cannot
-#>   compute: `proportional` needs two dose levels several patients share, and
-#>   `shape` needs three sampling times in one dose interval.
-#>   design             the median profile rises to a peak at 9 before declining, and 31% of subjects do too 
+#> PK endpoint for the PopPK model
+#>   cp                 inferred: absent before the first dose; dose
+#>                      proportionality not computable here; rises to one peak
+#>                      and comes back down
+#>   route              oral: the median profile rises to a peak at 9 before
+#>                      declining, and 31% of subjects do too
 #> 
 #> Covariate against the individual random effects
 #>  covariate parameter correlation
@@ -153,11 +136,6 @@ model_report(fit)
 #>         wt        ka        0.21
 #>         wt        cl       -0.13
 #>         wt         v       -0.12
-#> 
-#>   A covariate that moves with a random effect and is not in the model above
-#>   is generated independently of the profiles, so the synthetic data carries
-#>   no relationship between them. `synpmx_avatar()` keeps those relationships
-#>   without modelling them.
 ```
 
 Every section below expands one part of it. The object is a plain list
