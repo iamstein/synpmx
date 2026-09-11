@@ -158,8 +158,8 @@ case1$fit
 #>   fixed effects      cl 10.55, v 88.93, ka 4.76 
 #>   between-subject    cl 0.345, v 0.268, ka 0.216 (as SD on the log scale)
 #>   residual error     proportional 0.486 
-#>   time to fit        4 min 49 s (4 min 51 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 4 min 49 s
+#>   time to fit        4 min 47 s (4 min 49 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 4 min 47 s
 #>                      least squares: PD - Continuous 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/117.1)^0.75, v ~ (WEIGHTB/117.1)^1.00 
 #> 
@@ -190,9 +190,6 @@ case1$fit
 #>                      100%, from 0% to 100%
 #>   covariates         WEIGHTB lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints PD - Continuous, PK Concentration: drawn from each
-#>                      arm's recorded frequencies at each visit, not
-#>                      simulated
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
@@ -298,8 +295,8 @@ mad_run$fit
 #>   fixed effects      cl 5.564, v 153.6, ka 3.929 
 #>   between-subject    cl 0.357, v 0.35, ka 0.264 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        38.4 s (38.7 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 38.4 s
+#>   time to fit        39.1 s (39.4 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 39.1 s
 #>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
 #>   covariate effects  cl ~ (WEIGHTB/78.5)^0.75, v ~ (WEIGHTB/78.5)^1.00 
 #> 
@@ -338,8 +335,7 @@ mad_run$fit
 #>                      100%, from 0% to 100%
 #>   covariates         WEIGHTB lognormal, SEX categorical, drawn per arm,
 #>                      independently of the profiles
-#>   discrete endpoints PD - Continuous, PD - Count, PD - Binary, PD -
-#>                      Ordinal, PK Concentration: drawn from each arm's
+#>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
 #>                      recorded frequencies at each visit, not simulated
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,
 #>                      WEIGHTB, SEX, TRTACT, DOSE
@@ -417,8 +413,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        9.2 s (9.4 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 9.2 s
+#>   time to fit        9.4 s (9.6 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 9.4 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -445,8 +441,6 @@ model_report(warfarin_run$fit)
 #>                      95%, from 9% to 100%
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      per arm, independently of the profiles
-#>   discrete endpoints cp, pca: drawn from each arm's recorded frequencies at
-#>                      each visit, not simulated
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> PK endpoint for the PopPK model
@@ -545,7 +539,7 @@ model_report(wbc_run$fit)
 #>   fixed effects      cl 0.01245, v 20.4 
 #>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
 #>   residual error     proportional 0.347 
-#>   time to fit        2.1 s (2.1 s for the whole call)
+#>   time to fit        2.1 s (2.2 s for the whole call)
 #>                      nlmixr2: 1cmt_infusion 2.1 s
 #>   covariate effects  none 
 #> 
@@ -562,8 +556,6 @@ model_report(wbc_run$fit)
 #>                      nominal time) over 1 endpoint(s), attended at median
 #>                      11%, from 7% to 100%
 #>   covariates         none declared
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE
 #> 
 #> PK endpoint for the PopPK model
@@ -664,8 +656,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.03473, v 0.2098 
 #>   between-subject    cl 0.425, v 0.347 (as SD on the log scale)
 #>   residual error     proportional 0.719 
-#>   time to fit        10.3 s (10.5 s for the whole call)
-#>                      nlmixr2: 1cmt_infusion 10.3 s
+#>   time to fit        10.5 s (10.7 s for the whole call)
+#>                      nlmixr2: 1cmt_infusion 10.5 s
 #>   covariate effects  cl ~ (WT/82.6)^0.75, v ~ (WT/82.6)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -683,8 +675,6 @@ mavo_run$fit
 #>   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT
 #>                      lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, OCC, DV, AMT, EVID, CMT, MDV, RATE,
 #>                      AGE, SEX, WT, HT, DOSE
 #> 
@@ -819,8 +809,8 @@ theo_run$fit
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        10.2 s (10.5 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.2 s
+#>   time to fit        10.3 s (10.6 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.3 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -836,8 +826,6 @@ theo_run$fit
 #>                      100%, from 33% to 100%
 #>   covariates         WT lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> PK endpoint for the PopPK model
@@ -966,8 +954,6 @@ nimo_run$fit
 #>                      100%, from 25% to 100%
 #>   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn per
 #>                      arm, independently of the profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, TAD, OCC, DV, AMT, EVID, MDV, RATE,
 #>                      BSA, AGE, HGT, DOS
 #> 
@@ -1117,8 +1103,8 @@ pheno_run$fit
 #>   fixed effects      cl 0.006131, v 1.314 
 #>   between-subject    cl 0.182, v 0.172 (as SD on the log scale)
 #>   residual error     proportional 0.118 
-#>   time to fit        27.3 s (27.4 s for the whole call)
-#>                      nlmixr2: 1cmt_iv 7.5 s, 1cmt_oral 19.9 s
+#>   time to fit        27.7 s (27.8 s for the whole call)
+#>                      nlmixr2: 1cmt_iv 7.6 s, 1cmt_oral 20.1 s
 #>   covariate effects  cl ~ (WT/1.3)^0.75, v ~ (WT/1.3)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -1135,8 +1121,6 @@ pheno_run$fit
 #>                      25%, from 8% to 81%
 #>   covariates         WT lognormal, APGR lognormal, drawn per arm,
 #>                      independently of the profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR
 #> 
 #> PK endpoint for the PopPK model
@@ -1237,8 +1221,8 @@ mixroute_run$fit
 #>   fixed effects      cl 2.434, v 11.84, ka 0.5524, f 0.7398 
 #>   between-subject    cl 0.296, v 0.234, ka 0.312 (as SD on the log scale)
 #>   residual error     proportional 0.292 
-#>   time to fit        5.7 s (5.8 s for the whole call)
-#>                      nlmixr2: 1cmt_mixed 5.7 s
+#>   time to fit        5.3 s (5.4 s for the whole call)
+#>                      nlmixr2: 1cmt_mixed 5.3 s
 #>   covariate effects  cl ~ (WT/71.95)^0.75, v ~ (WT/71.95)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -1257,8 +1241,6 @@ mixroute_run$fit
 #>                      100%, from 100% to 100%
 #>   covariates         WT lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,
 #>                      ARM
 #> 
@@ -1368,8 +1350,8 @@ onc_run$fit
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.204 
-#>   time to fit        5 min 3 s (5 min 9 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 3 min 27 s, 1cmt_iv 1 min 36 s
+#>   time to fit        5 min 11 s (5 min 17 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 3 min 33 s, 1cmt_iv 1 min 38 s
 #>                      least squares: SLD 0.0 s
 #>   covariate effects  none 
 #> 
@@ -1399,8 +1381,6 @@ onc_run$fit
 #>                      71%, from 0% to 100%
 #>   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn
 #>                      per arm, independently of the profiles
-#>   discrete endpoints Everolimus trough, SLD: drawn from each arm's recorded
-#>                      frequencies at each visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, NAME, CENS, ADDL,
 #>                      II, BSLD, AGE, SEX, ARM, CROSSOVER
 #> 

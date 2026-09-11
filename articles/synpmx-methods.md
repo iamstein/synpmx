@@ -174,8 +174,8 @@ model_fit
 #>   fixed effects      cl 2.859, v 34.21, ka 1.461 
 #>   between-subject    cl 0.189, v 0.112, ka 0.578 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        10.2 s (10.5 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 10.2 s
+#>   time to fit        10.3 s (10.6 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 10.3 s
 #>   covariate effects  cl ~ (WT/70.5)^0.75, v ~ (WT/70.5)^1.00 
 #> 
 #> Values at the bottom of the scale
@@ -191,8 +191,6 @@ model_fit
 #>                      100%, from 33% to 100%
 #>   covariates         WT lognormal, drawn per arm, independently of the
 #>                      profiles
-#>   discrete endpoints DV: drawn from each arm's recorded frequencies at each
-#>                      visit, not simulated
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> PK endpoint for the PopPK model

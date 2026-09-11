@@ -90,8 +90,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1362, v 8.175, ka 0.603 
 #>   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        9.2 s (9.4 s for the whole call)
-#>                      nlmixr2: 1cmt_oral 9.2 s
+#>   time to fit        9.4 s (9.6 s for the whole call)
+#>                      nlmixr2: 1cmt_oral 9.4 s
 #>                      least squares: pca 0.0 s
 #>   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 
 #> 
@@ -118,8 +118,6 @@ model_report(fit)
 #>                      95%, from 9% to 100%
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      per arm, independently of the profiles
-#>   discrete endpoints cp, pca: drawn from each arm's recorded frequencies at
-#>                      each visit, not simulated
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> PK endpoint for the PopPK model
@@ -203,7 +201,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged     aic seconds note
-#> 1 1cmt_oral      TRUE 895.892   9.233
+#> 1 1cmt_oral      TRUE 895.892   9.425
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.

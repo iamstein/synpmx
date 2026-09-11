@@ -568,7 +568,7 @@ function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged     aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.233</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 895.892   9.425</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
@@ -760,8 +760,8 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1362, v 8.175, ka 0.603 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.246, v 0.0854, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        9.2 s (9.4 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 9.2 s</span></span>
+<span><span class="co">#&gt;   time to fit        9.4 s (9.6 s for the whole call)</span></span>
+<span><span class="co">#&gt;                      nlmixr2: 1cmt_oral 9.4 s</span></span>
 <span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
 <span><span class="co">#&gt;   covariate effects  cl ~ (wt/70)^0.75, v ~ (wt/70)^1.00 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -788,8 +788,6 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;                      95%, from 9% to 100%</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
-<span><span class="co">#&gt;   discrete endpoints cp, pca: drawn from each arm's recorded frequencies at</span></span>
-<span><span class="co">#&gt;                      each visit, not simulated</span></span>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
