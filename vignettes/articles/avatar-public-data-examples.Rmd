@@ -27,9 +27,14 @@ has_distributions <- has_ggplot2 &&
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 
 # The per-section cards were near-identical 18-row tables whose main message was
-# "nothing failed". What differs between datasets is the rows that are *not* a
-# pass, so that is what each section shows; the full cards are put side by side
+# "nothing failed". What differs between datasets is the rows that ask to be
+# read, so that is what each section shows; the full cards are put side by side
 # in the closing tables, which is where comparing them is the point.
+#
+# A `not applicable` row is not one of them. It reports a check that did not
+# run, the same rows read that way on every card, and printing them in every
+# section is one fact repeated -- explained once in prose and counted in the
+# tally line.
 card_verdicts <- function(card) {
   plain <- as.data.frame(card)
   counts <- table(factor(plain$verdict,
@@ -38,14 +43,14 @@ card_verdicts <- function(card) {
   counts <- counts[counts > 0]
   tally <- paste(sprintf("%d %s", as.integer(counts), names(counts)),
                  collapse = ", ")
-  notable <- plain[plain$verdict != "pass",
+  notable <- plain[plain$verdict %in% c("review", "FAIL"),
                    c("check", "question", "result", "verdict")]
   if (!nrow(notable)) {
     return(knitr::asis_output(paste0("*", tally, ".*\n")))
   }
   knitr::kable(notable, row.names = FALSE,
                caption = paste0(tally,
-                                ". The rows that are not a pass:"))
+                                ". The rows that ask to be read:"))
 }
 
 ```
@@ -131,14 +136,21 @@ observed_plot_data <- function(data, roles, dataset,
 # synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time
 # after dose instead of study time, which is the readable view once a study
 # doses more than once.
+# `endpoints` draws one endpoint of a study that has several. A log axis is the
+# reason it exists: `facet_grid()` puts one scale on every panel, so a study
+# whose concentration wants a log axis and whose PD endpoint goes negative
+# cannot be one figure.
 overlay_plot <- function(source, synthetic, roles, title,
                          clock = "study_time",
                          x_label = "Study time (hours)", y_label = "DV",
-                         log_y = FALSE, alpha = 0.3) {
+                         log_y = FALSE, alpha = 0.3, endpoints = NULL) {
   plotted <- rbind(
     observed_plot_data(source, roles, "Source", clock),
     observed_plot_data(synthetic, roles, "Synthetic", clock)
   )
+  if (!is.null(endpoints)) {
+    plotted <- plotted[plotted$endpoint %in% endpoints, , drop = FALSE]
+  }
   # One line per patient on a study-time axis, and one line per occasion on a
   # dose-relative one, where the profiles are meant to lie on top of each other.
   plotted$series <- if (identical(clock, "tad")) {
@@ -257,7 +269,7 @@ Every example follows the same five steps:
 3. plot the real and synthetic data;
 4. plot the observation (DV) and baseline covariate distributions, source
    against synthetic
-5. report the score card's verdicts, and the rows that are not a pass.
+5. report the score card's verdicts, and the rows that ask to be read.
 
 The scorecard marks each check `pass`, `FAIL`, `review`, or `not applicable`. A
 `review` row is one where the pharmacometrician could evaluate whether the
@@ -304,10 +316,20 @@ case1_synth <- suppressWarnings(
 )
 ```
 
-```{r case1-plot, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=overlay_height(case1_pkpd, case1_roles)}
+```{r case1-plot-pk, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=3.4}
+# Log, because 46% of this study's concentrations are at the assay limit and on
+# a linear axis they and everything near them are one line along the bottom.
 overlay_plot(case1_pkpd, case1_synth, case1_roles,
-             "case1_pkpd: PK concentration and continuous PD, six arms",
-             y_label = "LIDV", alpha = 0.2)
+             "case1_pkpd: PK concentration, six arms",
+             y_label = "LIDV (log scale)", alpha = 0.2, log_y = TRUE,
+             endpoints = "PK Concentration")
+```
+
+```{r case1-plot-pd, echo=FALSE, eval=has_xgxr && has_ggplot2, fig.height=3.4}
+# Linear, because the PD endpoint is signed and runs to -621.
+overlay_plot(case1_pkpd, case1_synth, case1_roles,
+             "case1_pkpd: continuous PD, six arms",
+             y_label = "LIDV", alpha = 0.2, endpoints = "PD - Continuous")
 ```
 
 ```{r case1-distributions, eval=has_xgxr && has_distributions, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
@@ -467,10 +489,14 @@ theo_roles <- pmx_roles(
 theo_synth <- suppressWarnings(synpmx_avatar(theo_md, theo_roles, seed = 303))
 ```
 
-```{r theo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2}
+```{r theo-plot, echo=FALSE, eval=has_nlmixr2data && has_ggplot2, warning=FALSE}
+# Log, and `warning = FALSE` with it: `theo_md` records a handful of
+# concentrations at or below zero, which a log axis drops with a warning about
+# rows removed that says nothing about the generator.
 overlay_plot(theo_md, theo_synth, theo_roles,
              "theo_md: dose-relative concentration profiles",
-             clock = "tad", x_label = "Time after dose (hours)", alpha = 0.25)
+             clock = "tad", x_label = "Time after dose (hours)",
+             y_label = "DV (log scale)", log_y = TRUE, alpha = 0.25)
 ```
 
 ```{r theo-distributions, eval=has_nlmixr2data && has_distributions, fig.height=compare_pmx_distributions_height(theo_md, theo_roles)}

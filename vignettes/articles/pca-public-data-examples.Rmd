@@ -27,9 +27,14 @@ has_distributions <- has_ggplot2 &&
 comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 
 # The per-section cards were near-identical 18-row tables whose main message was
-# "nothing failed". What differs between datasets is the rows that are *not* a
-# pass, so that is what each section shows; the full cards are put side by side
+# "nothing failed". What differs between datasets is the rows that ask to be
+# read, so that is what each section shows; the full cards are put side by side
 # in the closing tables, which is where comparing them is the point.
+#
+# A `not applicable` row is not one of them. It reports a check that did not
+# run, the same rows read that way on every card, and printing them in every
+# section is one fact repeated -- explained once in prose and counted in the
+# tally line.
 card_verdicts <- function(card) {
   plain <- as.data.frame(card)
   counts <- table(factor(plain$verdict,
@@ -38,14 +43,14 @@ card_verdicts <- function(card) {
   counts <- counts[counts > 0]
   tally <- paste(sprintf("%d %s", as.integer(counts), names(counts)),
                  collapse = ", ")
-  notable <- plain[plain$verdict != "pass",
+  notable <- plain[plain$verdict %in% c("review", "FAIL"),
                    c("check", "question", "result", "verdict")]
   if (!nrow(notable)) {
     return(knitr::asis_output(paste0("*", tally, ".*\n")))
   }
   knitr::kable(notable, row.names = FALSE,
                caption = paste0(tally,
-                                ". The rows that are not a pass:"))
+                                ". The rows that ask to be read:"))
 }
 
 ```
@@ -76,9 +81,13 @@ copy check that fails on two of the nine, and what it does and does not mean.
 # endpoint. The same shape as the AVATAR vignette's figure, reduced to what the
 # PCA output needs: this generator writes onto a nominal grid, so there is no
 # time-after-dose view to switch to.
+# `endpoints` draws one endpoint of a study that has several. A log axis is the
+# reason it exists: `facet_grid()` puts one scale on every panel, so a study
+# whose concentration wants a log axis and whose PD endpoint goes negative
+# cannot be one figure.
 overlay_plot <- function(source, synthetic, roles, title,
                          y_label = "DV", log_y = FALSE, alpha = 0.3,
-                         max_time = Inf) {
+                         max_time = Inf, endpoints = NULL) {
   frame <- function(data, label) {
     observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
       !is.na(data[[roles$dv]])
@@ -102,6 +111,9 @@ overlay_plot <- function(source, synthetic, roles, title,
     )
   }
   plotted <- rbind(frame(source, "Source"), frame(synthetic, "Synthetic"))
+  if (!is.null(endpoints)) {
+    plotted <- plotted[plotted$endpoint %in% endpoints, , drop = FALSE]
+  }
   figure <- ggplot2::ggplot(
     plotted,
     ggplot2::aes(time, dv,
@@ -192,7 +204,8 @@ Every example follows the same five steps:
    synthetic;
 5. report the scorecard.
 
-Five scorecard rows read `not applicable` on every card below. **B1a**, **B1b**
+Five scorecard rows read `not applicable` on every card below, which the cards
+count in their tally and do not list. **B1a**, **B1b**
 and **C2** read a run record that `synpmx_avatar()` writes and this generator
 does not. **B4a** asks whether a generated set of observation times copies a
 real one, and **B2** whether a synthetic patient stands out from its stratum;
@@ -248,10 +261,20 @@ case1_roles <- pmx_roles(
 case1 <- pca_run("case1_pkpd", case1_pkpd, case1_roles, seed = 808)
 ```
 
-```{r case1-plot, echo=FALSE, eval=plots, fig.height=overlay_height(case1_pkpd, case1_roles)}
+```{r case1-plot-pk, echo=FALSE, eval=plots, fig.height=3.4}
+# Log, because 46% of this study's concentrations are at the assay limit and on
+# a linear axis they and everything near them are one line along the bottom.
 overlay_plot(case1$source, case1$synthetic, case1_roles,
-             "case1_pkpd: PK concentration and continuous PD, six arms",
-             y_label = "LIDV", alpha = 0.2)
+             "case1_pkpd: PK concentration, six arms",
+             y_label = "LIDV (log scale)", alpha = 0.2, log_y = TRUE,
+             endpoints = "PK Concentration")
+```
+
+```{r case1-plot-pd, echo=FALSE, eval=plots, fig.height=3.4}
+# Linear, because the PD endpoint is signed and runs to -621.
+overlay_plot(case1$source, case1$synthetic, case1_roles,
+             "case1_pkpd: continuous PD, six arms",
+             y_label = "LIDV", alpha = 0.2, endpoints = "PD - Continuous")
 ```
 
 ```{r case1-distributions, eval=has_xgxr && has_distributions, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
@@ -483,9 +506,13 @@ theo_roles <- pmx_roles(
 theo_run <- pca_run("theo_md", theo_md, theo_roles, seed = 303)
 ```
 
-```{r theo-plot, echo=FALSE, eval=plots}
+```{r theo-plot, echo=FALSE, eval=plots, warning=FALSE}
+# Log, and `warning = FALSE` with it: `theo_md` records a handful of
+# concentrations at or below zero, which a log axis drops with a warning about
+# rows removed that says nothing about the generator.
 overlay_plot(theo_run$source, theo_run$synthetic, theo_roles,
-             "theo_md: seven Q24H oral doses", alpha = 0.35)
+             "theo_md: seven Q24H oral doses", y_label = "DV (log scale)",
+             log_y = TRUE, alpha = 0.35)
 ```
 
 ```{r theo-scorecard, eval=has_nlmixr2data}
