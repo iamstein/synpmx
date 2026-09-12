@@ -47,14 +47,17 @@ Five cross-document contracts, each a defect when broken:
   that survey never fits, so a dataset it covers needs its fit built by
   `scripts/build-model-fits.R` in the same commit.
   `vignettes/articles/prior-public-data-examples.Rmd` deliberately breaks the
-  shape, and the reason is the contract: `synpmx_prior()` needs the protocol
-  stated as a `pmx_trial_design()`, and only two of these studies have a dose
-  a public declaration can state without inventing one per subject. It carries
-  a table of what a public design cannot express for each of the ten, which is
-  the reference half, and it measures the elicitation rather than the generator
-  — a level ratio per run plus a clearance sweep, because there are no
-  parameters to grade. Adding a dataset to it means adding a row to that table
-  saying why, not just another section. All four are articles, so `R CMD check`
+  shape. Trial-level realized design is public throughout this package, so
+  reading a regimen off the data and declaring it is legitimate and that is
+  what its examples do; the constraint is that `pmx_trial_design()` has a
+  fixed grammar and several of these studies did things it cannot say. Its
+  table of those limits is the reference half, and it must keep separating a
+  gap in the grammar from `onc_sim`'s response-driven dose, which is a
+  per-subject outcome and different in kind. It measures the elicitation
+  rather than the generator — a level ratio per run plus a clearance sweep,
+  because there are no parameters to grade. Adding a dataset means saying in
+  that table which approximation was made, since its cost lands in the result
+  alongside the model's. All four are articles, so `R CMD check`
   never runs them: `./build.sh articles` is what proves them.
 - `vignettes/pmxmodel-algorithm.Rmd` documents what `synpmx_model()` does, and
   holds the same shape as `pca-algorithm.Rmd`: each numbered step describes an
