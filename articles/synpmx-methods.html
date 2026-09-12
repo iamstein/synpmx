@@ -80,6 +80,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>4. Prior</h6></li>
     <li><a class="dropdown-item" href="../articles/prior-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/prior-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/prior-public-data-examples.html">Evaluation on public data</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -1122,10 +1123,11 @@ The model catalogue is small and fixed:</p>
 <td>PK</td>
 <td>
 <code>1cmt_iv</code>, <code>1cmt_oral</code>,
-<code>1cmt_infusion</code>, <code>2cmt_iv</code>,
-<code>2cmt_oral</code>, and <code>1cmt_mixed</code> /
-<code>2cmt_mixed</code> for a study dosed by two routes — closed form,
-no ODEs</td>
+<code>1cmt_infusion</code>, <code>2cmt_iv</code>, <code>2cmt_oral</code>
+— closed form, no ODEs. <code>1cmt_mixed</code> and
+<code>2cmt_mixed</code> exist for a study dosed by two routes, but only
+<code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> can use them: it reads each dose’s route
+from the study, and a public design cannot state one</td>
 </tr>
 <tr class="even">
 <td>PD</td>

@@ -78,11 +78,32 @@ pmx_structural_model(pk = "2cmt_oral", typical = c(cl = 1), source = "x")
 #> ! `typical` is missing required parameters: v, q, v2, ka.
 ```
 
-The two `_mixed` forms exist for a study dosed by two routes. They
-resolve to a single-route form per dose — intravenous or extravascular —
-and `f` is the bioavailability applied to the extravascular one. An
-intravenous dose carries no bioavailability term, because it is all of
-the dose.
+Two forms in that list, `1cmt_mixed` and `2cmt_mixed`, are for a study
+dosed by two routes. They resolve to a single-route form per dose, and
+`f` is the bioavailability applied to the extravascular one. **This mode
+refuses them**, because resolving the form needs to know which dose went
+by which route and a public trial design has no way to say:
+
+``` r
+
+synpmx_prior(
+  pmx_structural_model("1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7),
+                       source = "illustrative"),
+  pmx_trial_design(100, 30, sampling = c(1, 3, 7), source = "illustrative")
+)
+#> Error:
+#> ! `synpmx_prior()` cannot generate from the `1cmt_mixed` model.
+#>   A mixed-route model needs to know which dose went by which route, and a
+#>   public trial design has no way to say. Declare the route the study
+#>   actually used -- 1cmt_iv or 1cmt_oral -- or use `synpmx_model()`, which
+#>   reads the route from the data.
+```
+
+Before that refusal existed, these forms ran and returned the plain
+intravenous profile with `f` discarded, identical at any value of it.
+Declare the route the study used, or use
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md),
+which reads the route from the data.
 
 Two further inputs are assertions about variability:
 

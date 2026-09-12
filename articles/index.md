@@ -56,6 +56,9 @@
 - [Demo: Using
   synpmx_prior](https://iamstein.github.io/synpmx/articles/prior-demo.md):
 
+- [Evaluating prior-only generation on public
+  data](https://iamstein.github.io/synpmx/articles/prior-public-data-examples.md):
+
 - [Mechanism-level privacy
   argument](https://iamstein.github.io/synpmx/articles/privacy-argument.md):
 

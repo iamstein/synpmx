@@ -80,6 +80,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>4. Prior</h6></li>
     <li><a class="dropdown-item" href="../articles/prior-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/prior-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/prior-public-data-examples.html">Evaluation on public data</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -234,11 +235,29 @@ keep.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span>pk <span class="op">=</span> <span class="st">"2cmt_oral"</span>, typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, source <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `typical` is missing required parameters: v, q, v2, ka.</span></span></code></pre></div>
-<p>The two <code>_mixed</code> forms exist for a study dosed by two
-routes. They resolve to a single-route form per dose — intravenous or
-extravascular — and <code>f</code> is the bioavailability applied to the
-extravascular one. An intravenous dose carries no bioavailability term,
-because it is all of the dose.</p>
+<p>Two forms in that list, <code>1cmt_mixed</code> and
+<code>2cmt_mixed</code>, are for a study dosed by two routes. They
+resolve to a single-route form per dose, and <code>f</code> is the
+bioavailability applied to the extravascular one. <strong>This mode
+refuses them</strong>, because resolving the form needs to know which
+dose went by which route and a public trial design has no way to
+say:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span><span class="st">"1cmt_mixed"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">2</span>, v <span class="op">=</span> <span class="fl">10</span>, ka <span class="op">=</span> <span class="fl">0.5</span>, f <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span>,</span>
+<span>                       source <span class="op">=</span> <span class="st">"illustrative"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">30</span>, sampling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">7</span><span class="op">)</span>, source <span class="op">=</span> <span class="st">"illustrative"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `synpmx_prior()` cannot generate from the `1cmt_mixed` model.</span></span>
+<span><span class="co">#&gt;   A mixed-route model needs to know which dose went by which route, and a</span></span>
+<span><span class="co">#&gt;   public trial design has no way to say. Declare the route the study</span></span>
+<span><span class="co">#&gt;   actually used -- 1cmt_iv or 1cmt_oral -- or use `synpmx_model()`, which</span></span>
+<span><span class="co">#&gt;   reads the route from the data.</span></span></code></pre></div>
+<p>Before that refusal existed, these forms ran and returned the plain
+intravenous profile with <code>f</code> discarded, identical at any
+value of it. Declare the route the study used, or use
+<code><a href="../reference/synpmx_model.html">synpmx_model()</a></code>, which reads the route from the data.</p>
 <p>Two further inputs are assertions about variability:</p>
 <ul>
 <li>
@@ -275,7 +294,7 @@ days and takes a single trough between them is written down.
 <code>duration</code> makes them infusions, and
 <code>visit_window</code> is the fraction by which actual sample times
 deviate from nominal.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rich</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">4</span>, <span class="fl">8</span>, <span class="fl">24</span><span class="op">)</span></span>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
 <span>  dose_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">300</span><span class="op">)</span>, cohort_sizes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">12</span><span class="op">)</span>,</span>
@@ -308,7 +327,7 @@ prescribes the schema to generate into.</p>
 <p>Taking a declaration means honouring it, so a declaration naming a
 column this generator cannot produce is refused rather than answered
 with a table that fails <code><a href="../reference/validate_pmx.html">validate_pmx()</a></code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span>pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>,</span>
 <span>                              typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">6</span>, v <span class="op">=</span> <span class="fl">35</span>, ka <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>,</span>
 <span>                              source <span class="op">=</span> <span class="st">"illustrative"</span><span class="op">)</span></span>
@@ -371,7 +390,7 @@ exact here rather than an approximation, and it is also what lets one
 subject receive two routes.</p>
 <p>The consequence is worth seeing, because it is the one fidelity
 property this mode does hold exactly:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">low</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span><span class="va">model</span>, <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
 <span>  dose_levels <span class="op">=</span> <span class="fl">10</span>, cohort_sizes <span class="op">=</span> <span class="fl">1</span>, sampling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span>, <span class="fl">12</span><span class="op">)</span>,</span>
 <span>  source <span class="op">=</span> <span class="st">"illustrative"</span><span class="op">)</span>, n_subjects <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -450,7 +469,7 @@ demonstrating, because the output looks plausible and is not. The PD
 forms are functions of time alone, so the PD endpoint does not respond
 to dose:</li>
 </ul>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pkpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
 <span>  pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>, pd <span class="op">=</span> <span class="st">"linear"</span>,</span>
 <span>  typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">6</span>, v <span class="op">=</span> <span class="fl">35</span>, ka <span class="op">=</span> <span class="fl">1.5</span>, baseline <span class="op">=</span> <span class="fl">100</span>, slope <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
