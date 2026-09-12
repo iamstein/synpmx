@@ -546,7 +546,9 @@ important, but outside the scope of this package.</p>
 <span><span class="co"># `theo_roles` without its covariate. A mode that reads nothing can produce a</span></span>
 <span><span class="co"># covariate only from a public distribution it was given, so declaring `WT`</span></span>
 <span><span class="co"># here without supplying one is refused rather than answered with a table</span></span>
-<span><span class="co"># that is missing it.</span></span>
+<span><span class="co"># that is missing it. `pmx_covariates_reference("WT")` is that distribution</span></span>
+<span><span class="co"># where one has to be assumed; it is left out here so the figures below show</span></span>
+<span><span class="co"># which modes carry a covariate at all.</span></span>
 <span><span class="va">public_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
 <span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span></span>

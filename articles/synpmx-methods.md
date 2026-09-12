@@ -474,7 +474,9 @@ theo_design
 # `theo_roles` without its covariate. A mode that reads nothing can produce a
 # covariate only from a public distribution it was given, so declaring `WT`
 # here without supplying one is refused rather than answered with a table
-# that is missing it.
+# that is missing it. `pmx_covariates_reference("WT")` is that distribution
+# where one has to be assumed; it is left out here so the figures below show
+# which modes carry a covariate at all.
 public_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT"

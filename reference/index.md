@@ -108,18 +108,35 @@ data elicitation articles for how to produce these without reading data.
 
 - [`pmx_structural_model()`](https://iamstein.github.io/synpmx/reference/pmx_structural_model.md)
   : Declare a public structural model
+
 - [`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md)
   : Declare a public trial design
+
 - [`pmx_public_design()`](https://iamstein.github.io/synpmx/reference/pmx_public_design.md)
   : Declare public event-design information
+
 - [`pmx_prior()`](https://iamstein.github.io/synpmx/reference/pmx_prior.md)
   : Declare one public prior range
+
 - [`pmx_priors()`](https://iamstein.github.io/synpmx/reference/pmx_priors.md)
   : Collect public priors for the released corrections
+
 - [`pmx_covariate()`](https://iamstein.github.io/synpmx/reference/pmx_covariate.md)
   : Declare one public baseline covariate
+
 - [`pmx_covariates()`](https://iamstein.github.io/synpmx/reference/pmx_covariates.md)
   : Collect public covariate declarations
+
+- [`pmx_covariates_reference()`](https://iamstein.github.io/synpmx/reference/pmx_covariates_reference.md)
+  : Reference distributions for the usual baseline covariates
+
+- [`pmx_covariate_reference_table()`](https://iamstein.github.io/synpmx/reference/pmx_covariate_reference_table.md)
+  :
+
+  What
+  [`pmx_covariates_reference()`](https://iamstein.github.io/synpmx/reference/pmx_covariates_reference.md)
+  holds
+
 - [`pmx_covariates_auto()`](https://iamstein.github.io/synpmx/reference/pmx_covariates_auto.md)
   : Declare bootstrap-resampled covariates by column name
 

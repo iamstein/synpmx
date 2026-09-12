@@ -478,7 +478,51 @@ which.</li>
 <li>
 <strong>How are missing covariates represented</strong> —
 <code>NA</code>, <code>-99</code>, carried forward?</li>
+<li>
+<strong>What are the inclusion criteria for each one</strong> — the
+age window, the weight or body mass index limits, the renal cutoff.
+These are the public bounds, and they come from the protocol rather than
+the data.</li>
+<li>
+<strong>What did enrollment target</strong> — the sex split, the
+countries and sites. A trial that enrolled in one region has a race
+distribution that has nothing to do with any general population.</li>
+<li>
+<strong>Which unit is recorded</strong> — height in centimetres or
+metres, creatinine clearance in mL/min or mL/s. This is the question
+that most often makes a generated column wrong by a factor rather than
+by a little.</li>
 </ol>
+</div>
+<div class="section level3">
+<h3 id="declaring-a-covariate-without-reading-the-data">Declaring a covariate without reading the data<a class="anchor" aria-label="anchor" href="#declaring-a-covariate-without-reading-the-data"></a>
+</h3>
+<p>The bound and the distribution are separate answers.
+<code>range</code> is the public limit a value is clipped to, so it
+should be generous; <code>median</code> and <code>cv</code> say where
+the population sits inside it.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_covariates.html">pmx_covariates</a></span><span class="op">(</span></span>
+<span>  WT  <span class="op">=</span> <span class="fu"><a href="../reference/pmx_covariate.html">pmx_covariate</a></span><span class="op">(</span>range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">45</span>, <span class="fl">140</span><span class="op">)</span>, median <span class="op">=</span> <span class="fl">78</span>, cv <span class="op">=</span> <span class="fl">0.18</span>,</span>
+<span>                      source <span class="op">=</span> <span class="st">"protocol v4 section 4.2 inclusion criteria"</span><span class="op">)</span>,</span>
+<span>  SEX <span class="op">=</span> <span class="fu"><a href="../reference/pmx_covariate.html">pmx_covariate</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span>, <span class="st">"F"</span><span class="op">)</span>, prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.7</span>, <span class="fl">0.3</span><span class="op">)</span>,</span>
+<span>                      source <span class="op">=</span> <span class="st">"NCT01234567 baseline characteristics posting"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Supplying a range and nothing else leaves the generator with only the
+bound to work from, and it centres a symmetric draw on the midpoint six
+standard deviations wide. That is rarely what a covariate looks like,
+and widening the bound for safety then widens the distribution with
+it.</p>
+<p>Where a distribution has to be assumed rather than elicited,
+<code><a href="../reference/pmx_covariates_reference.html">pmx_covariates_reference()</a></code> supplies one for the usual
+covariates and <code><a href="../reference/pmx_covariate_reference_table.html">pmx_covariate_reference_table()</a></code> lists what
+it holds with its units. Those are package reference values for a broad
+adult population, not a rendering of any trial, and the spread is the
+half worth reusing: body weight holds much the same coefficient of
+variation across adult cohorts while the median moves, so
+<code>medians</code> adjusts the one that does not transfer. Age, sex
+and race are protocol facts that no reference population can supply —
+answer questions 17 and 18 instead.</p>
 <hr>
 </div>
 </div>
@@ -486,7 +530,7 @@ which.</li>
 <h2 id="output-a-design-declaration">5. Output: a design declaration<a class="anchor" aria-label="anchor" href="#output-a-design-declaration"></a>
 </h2>
 <p>The result of this interview, alongside the model declaration from <a href="model-elicitation.html">the model elicitation guide</a>:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
 <span>  complexity      <span class="op">=</span> <span class="st">"level_3_intrapatient_escalation"</span>,</span>
 <span>  dose_levels     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">30</span>, <span class="fl">100</span>, <span class="fl">300</span><span class="op">)</span>,</span>
