@@ -887,6 +887,10 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 # available: plain `red` and `orange` are respectively glaring and washed out
 # at this size, and the card is read, not glanced at. Grey says "nothing was
 # measured here", which is a quieter statement than either.
+# Every verdict a row can carry, loudest last in the reading order a tally
+# wants: how many passed, then what asks to be read.
+.scorecard_verdicts <- c("pass", "review", "FAIL", "not applicable")
+
 .scorecard_verdict_colours <- c(FAIL = "#B00020", review = "#B45309",
                                 `not applicable` = "#6C757D")
 
@@ -923,6 +927,16 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #' the whole table belongs in the environment the source lives in.
 #'
 #' @param x A [synpmx_scorecard()].
+#' @param report `"all"`, the default, shows every row. `"minimal"` shows only
+#'   the rows that ask to be read -- `"review"` and `"FAIL"` -- and puts the
+#'   full tally in the caption, so the count of each verdict is still there
+#'   while the rows nobody has to act on are not.
+#'
+#'   `"pass"` is most of a card and says the check found nothing; `"not
+#'   applicable"` says the check did not run, which on a generator that writes
+#'   no run record is the same five rows on every card of every study. Neither
+#'   is a finding. A reader comparing studies wants them; a reader reading one
+#'   study's card wants what moved.
 #' @param ... Passed to `DT::datatable()`. Paging is off and row numbers are
 #'   suppressed by default, since the whole card is meant to be read at once
 #'   and `check` already names each row.
@@ -940,7 +954,23 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #' )
 #' synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 #' synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles))
-synpmx_scorecard_datatable <- function(x, ...) {
+#'
+#' # Only the rows that ask to be read
+#' synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles),
+#'                            report = "minimal")
+synpmx_scorecard_datatable <- function(x, report = c("all", "minimal"), ...) {
+  report <- match.arg(report)
+  plain <- as.data.frame(x)
+  # The tally before the filter, because the filter is what makes it worth
+  # printing: a caption reading "24 pass, 2 review, 5 not applicable" is the
+  # whole card in one line, and the rows below it are the two that moved.
+  counts <- table(factor(plain$verdict, levels = .scorecard_verdicts))
+  counts <- counts[counts > 0]
+  tally <- paste(sprintf("%d %s", as.integer(counts), names(counts)),
+                 collapse = ", ")
+  shown <- if (identical(report, "minimal")) {
+    plain[plain$verdict %in% c("review", "FAIL"), , drop = FALSE]
+  } else plain
   # `htmltools` is what `DT` itself is built on, so the second test only fails
   # on a broken installation; it is here so that a missing one is a message
   # rather than an error from inside the assembly below.
@@ -948,7 +978,12 @@ synpmx_scorecard_datatable <- function(x, ...) {
       !requireNamespace("htmltools", quietly = TRUE)) {
     message("DT is not installed, so the scorecard is printed uncoloured. ",
             "Install DT for the coloured table.")
-    print(x)
+    if (identical(report, "minimal")) {
+      cat(tally, "\n")
+      print(shown)
+    } else {
+      print(x)
+    }
     return(invisible(x))
   }
   verdicts <- names(.scorecard_verdict_colours)
@@ -956,9 +991,14 @@ synpmx_scorecard_datatable <- function(x, ...) {
   # fixtures: passing `options` to a call that already names it is an error,
   # and a caller who wants paging or a caption should get it.
   arguments <- list(...)
-  arguments$data <- as.data.frame(x)
+  arguments$data <- shown
   arguments$rownames <- arguments$rownames %||% FALSE
   arguments$options <- arguments$options %||% list(paging = FALSE)
+  if (identical(report, "minimal")) {
+    arguments$caption <- arguments$caption %||% paste0(
+      tally, if (nrow(shown)) ". The rows that ask to be read:" else
+        ". No row asks to be read.")
+  }
   table <- do.call(DT::datatable, arguments)
   coloured <- DT::formatStyle(
     table, "verdict",
@@ -981,6 +1021,10 @@ synpmx_scorecard_datatable <- function(x, ...) {
   # a list.
   parts <- list(coloured)
   rare <- attr(x, "rare_levels")
+  # Under `report = "minimal"` the detail comes only where its own row did: B5
+  # passing and its levels listed underneath would be the one excluded verdict
+  # printed anyway.
+  if (identical(report, "minimal") && !"B5" %in% shown$check) rare <- NULL
   if (!is.null(rare) && nrow(rare)) {
     parts <- c(parts, list(DT::datatable(
       rare, rownames = FALSE, options = list(paging = FALSE),

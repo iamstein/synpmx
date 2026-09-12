@@ -449,6 +449,54 @@ test_that("the datatable keeps the B5 detail that knitting the card shows", {
   expect_match(paste(unlist(shown), collapse = " "), "OTHER")
 })
 
+# A card is thirty-odd rows of prose, most of them saying a check found nothing
+# and five of them saying a check did not run. `report = "minimal"` is for
+# reading one study; the tally keeps the counts a reader would otherwise have to
+# rebuild by hand.
+test_that("`report = \"minimal\"` shows the rows that ask to be read", {
+  skip_if_not_installed("DT")
+  source <- pmx_simulated_fixture(30)
+  roles <- sc_roles()
+  synthetic <- sc_synthetic(source, roles)
+  attr(synthetic, "pmx_settings") <- NULL
+  card <- synpmx_scorecard(source, synthetic, roles)
+
+  all_rows <- synpmx_scorecard_datatable(card)[[1L]]$x$data
+  minimal <- synpmx_scorecard_datatable(card, report = "minimal")[[1L]]
+  shown <- minimal$x$data
+
+  expect_setequal(unique(shown$verdict),
+                  intersect(c("review", "FAIL"), all_rows$verdict))
+  expect_lt(nrow(shown), nrow(all_rows))
+  expect_false(any(shown$verdict %in% c("pass", "not applicable")))
+  # The tally counts the whole card, including the rows the filter removed.
+  caption <- as.character(minimal$x$caption)
+  expect_match(caption, sprintf("%d pass", sum(all_rows$verdict == "pass")))
+  expect_match(caption, sprintf("%d not applicable",
+                                sum(all_rows$verdict == "not applicable")))
+  expect_error(synpmx_scorecard_datatable(card, report = "some"))
+})
+
+# B5 answers with a list and the card can only name one level in a cell, so the
+# detail table rides along -- but only where the B5 row itself survived the
+# filter, or `minimal` would print the one excluded verdict after all.
+test_that("`minimal` carries the B5 detail only where B5 asks to be read", {
+  skip_if_not_installed("DT")
+  source <- pmx_simulated_fixture(30)
+  roles <- sc_roles()
+  card <- synpmx_scorecard(source, sc_synthetic(source, roles), roles)
+  attr(card, "rare_levels") <- data.frame(
+    column = "RACE", level = "OTHER",
+    source_patients = 1L, synthetic_patients = 2L,
+    stringsAsFactors = FALSE
+  )
+
+  minimal <- synpmx_scorecard_datatable(card, report = "minimal")
+  tables <- Filter(function(part) inherits(part, "datatables"), minimal)
+  b5 <- card$verdict[card$check == "B5"] %in% c("review", "FAIL")
+  expect_length(tables, if (isTRUE(b5)) 2L else 1L)
+})
+
 test_that("the datatable says so and prints the card when DT is missing", {
   source <- pmx_simulated_fixture(20)
   roles <- sc_roles()

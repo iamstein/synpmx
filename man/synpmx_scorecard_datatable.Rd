@@ -4,10 +4,20 @@
 \alias{synpmx_scorecard_datatable}
 \title{A scorecard as a coloured HTML table}
 \usage{
-synpmx_scorecard_datatable(x, ...)
+synpmx_scorecard_datatable(x, report = c("all", "minimal"), ...)
 }
 \arguments{
 \item{x}{A \code{\link[=synpmx_scorecard]{synpmx_scorecard()}}.}
+
+\item{report}{\code{"all"}, the default, shows every row. \code{"minimal"} shows only
+the rows that ask to be read -- \code{"review"} and \code{"FAIL"} -- and puts the
+full tally in the caption, so the count of each verdict is still there
+while the rows nobody has to act on are not.
+
+\code{"pass"} is most of a card and says the check found nothing; \code{"not applicable"} says the check did not run, which on a generator that writes
+no run record is the same five rows on every card of every study. Neither
+is a finding. A reader comparing studies wants them; a reader reading one
+study's card wants what moved.}
 
 \item{...}{Passed to \code{DT::datatable()}. Paging is off and row numbers are
 suppressed by default, since the whole card is meant to be read at once
@@ -51,6 +61,10 @@ roles <- pmx_roles(
 )
 synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles))
+
+# Only the rows that ask to be read
+synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles),
+                           report = "minimal")
 }
 \seealso{
 \code{\link[=synpmx_scorecard]{synpmx_scorecard()}}.
