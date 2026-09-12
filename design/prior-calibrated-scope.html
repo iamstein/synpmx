@@ -448,7 +448,8 @@
     <h1>Prior &amp; Calibrated Buildout</h1>
     <p class="standfirst">Three documents each for <code>synpmx_prior()</code> and
     <code>synpmx_calibrated()</code>, an extra methods menu, and a renumbering —
-    scoped into four tranches before any of it was written.</p>
+    scoped into tranches before any of it was written, and amended as each one
+    landed.</p>
   </header>
 
   <section class="decision">
@@ -586,6 +587,64 @@
         argument on the comparison functions.</p>
       </div>
     </article>
+
+    <!-- ===================== 2b ===================== -->
+    <article class="tranche">
+      <div class="spine">
+        <div class="ordinal">2b</div>
+        <span class="chip go">done</span>
+        <div class="cost">2 new exports<br>10 covariates</div>
+      </div>
+      <div>
+        <h2>Reference Covariate Distributions</h2>
+        <p class="verdict">Came out of tranche 2's refusal. A mode that reads nothing can
+        only draw a covariate from a distribution it was handed, and there was no way to
+        state one.</p>
+
+        <p>The old declaration drew <code>Normal(midpoint(range), diff(range) / 6)</code>
+        clipped, and uniform over levels for a categorical. So a plausible weight bound of
+        <code>c(40, 130)</code> gave a symmetric distribution centred on 85&nbsp;kg, and a
+        four-level race column came out 25&nbsp;per&nbsp;cent each. The defect underneath is
+        that the clipping bound and the dispersion were the same number, so widening the
+        bound for safety widened the distribution with it.</p>
+
+        <h3>The spread transfers between populations and the median does not</h3>
+        <p>Measured across the adult studies in the public-data surveys, body weight holds a
+        coefficient of variation of 14 to 18 per cent while its median moves by a factor of
+        1.7 &mdash; from about 70&nbsp;kg in a healthy-volunteer study to about 117 in a
+        cohort selected for obesity. So a catalogue can own the shape and the spread, and
+        the median is the argument it has to expose. Age and sex are not population
+        constants at all: the same surveys run at ages centred on 31, 46 and 61 years and
+        sex splits of 87/13, 50/50 and 70/30, which is decided by inclusion criteria and by
+        where a trial enrolled. Those entries exist to put a column in the table, and the
+        documentation says so rather than calling them reference values.</p>
+
+        <h3>What the numbers are</h3>
+        <p>Round values for a broad adult population, carrying a <code>source</code> that
+        reads &ldquo;a package default, not measured from any study&rdquo; &mdash; the same
+        stance the methods article takes on the built-in structural models. No citation is
+        attached that could not be checked. Paediatric and neonatal cohorts are out of
+        scope and sent to <code>pmx_covariate()</code>, because <code>pheno_sd</code>'s
+        1.3&nbsp;kg neonates are three orders of magnitude from anything an adult catalogue
+        can say. Units are the other trap: <code>mavoglurant</code> records height in metres
+        and <code>nimoData</code> in centimetres, which is how a generated column ends up
+        wrong by a factor rather than by a little, so
+        <code>pmx_covariate_reference_table()</code> exists to be read first.</p>
+
+        <ul class="files">
+          <li><code>R/covariates.R</code><span><code>median</code>, <code>cv</code>, <code>distribution</code>, <code>prob</code> and <code>integer</code> on <code>pmx_covariate()</code>; <code>pmx_covariates_reference()</code> and <code>pmx_covariate_reference_table()</code> over ten covariates</span></li>
+          <li><code>tests/testthat/test-covariates.R</code><span>43 checks, including that a range alone still behaves exactly as before, and that the reference median stays within 15% of the ordinary adult cohorts and outside it for the obese and neonatal ones</span></li>
+          <li><code>vignettes/articles/data-elicitation.Rmd</code><span>three more interview questions &mdash; inclusion criteria, enrollment targets, units &mdash; and a section on declaring a distribution without reading data</span></li>
+          <li><code>_pkgdown.yml</code><span>the two new exports in the reference index, which <code>build.sh</code> checks</span></li>
+        </ul>
+
+        <p>Rather than write the per-dataset medians into prose, which checklist item 9 in
+        the writing guide rules out, the claim behind the catalogue is a regression test.
+        That is also what stops the reference value drifting away from the populations it
+        says it covers.</p>
+      </div>
+    </article>
+
 
     <!-- ===================== 3 ===================== -->
     <article class="tranche">

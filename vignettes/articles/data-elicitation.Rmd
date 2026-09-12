@@ -228,6 +228,45 @@ data, and costs nothing.
 ### Covariates
 15. **Baseline versus time-varying**, and which is which.
 16. **How are missing covariates represented** — `NA`, `-99`, carried forward?
+17. **What are the inclusion criteria for each one** — the age window, the
+    weight or body mass index limits, the renal cutoff. These are the public
+    bounds, and they come from the protocol rather than the data.
+18. **What did enrollment target** — the sex split, the countries and sites.
+    A trial that enrolled in one region has a race distribution that has
+    nothing to do with any general population.
+19. **Which unit is recorded** — height in centimetres or metres, creatinine
+    clearance in mL/min or mL/s. This is the question that most often makes a
+    generated column wrong by a factor rather than by a little.
+
+### Declaring a covariate without reading the data
+
+The bound and the distribution are separate answers. `range` is the public
+limit a value is clipped to, so it should be generous; `median` and `cv` say
+where the population sits inside it.
+
+```r
+covariates <- pmx_covariates(
+  WT  = pmx_covariate(range = c(45, 140), median = 78, cv = 0.18,
+                      source = "protocol v4 section 4.2 inclusion criteria"),
+  SEX = pmx_covariate(levels = c("M", "F"), prob = c(0.7, 0.3),
+                      source = "NCT01234567 baseline characteristics posting")
+)
+```
+
+Supplying a range and nothing else leaves the generator with only the bound to
+work from, and it centres a symmetric draw on the midpoint six standard
+deviations wide. That is rarely what a covariate looks like, and widening the
+bound for safety then widens the distribution with it.
+
+Where a distribution has to be assumed rather than elicited,
+`pmx_covariates_reference()` supplies one for the usual covariates and
+`pmx_covariate_reference_table()` lists what it holds with its units. Those are
+package reference values for a broad adult population, not a rendering of any
+trial, and the spread is the half worth reusing: body weight holds much the
+same coefficient of variation across adult cohorts while the median moves, so
+`medians` adjusts the one that does not transfer. Age, sex and race are
+protocol facts that no reference population can supply — answer questions 17
+and 18 instead.
 
 ---
 

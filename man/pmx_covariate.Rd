@@ -4,7 +4,16 @@
 \alias{pmx_covariate}
 \title{Declare one public baseline covariate}
 \usage{
-pmx_covariate(range = NULL, levels = NULL, source)
+pmx_covariate(
+  range = NULL,
+  levels = NULL,
+  source,
+  median = NULL,
+  cv = NULL,
+  distribution = NULL,
+  prob = NULL,
+  integer = FALSE
+)
 }
 \arguments{
 \item{range}{Two increasing numbers bracketing a continuous covariate.}
@@ -12,12 +21,63 @@ pmx_covariate(range = NULL, levels = NULL, source)
 \item{levels}{Character levels of a categorical covariate.}
 
 \item{source}{Required provenance string.}
+
+\item{median}{Typical value of a continuous covariate. For the default
+lognormal this is the median, equivalently the geometric mean, following
+the same convention as a population parameter in
+\code{\link[=pmx_structural_model]{pmx_structural_model()}}.}
+
+\item{cv}{Coefficient of variation of a continuous covariate, as a
+proportion: \code{0.18} for 18 percent. Requires \code{median}.}
+
+\item{distribution}{\code{"lognormal"} (the default when \code{median} and \code{cv} are
+given) or \code{"normal"}. Lognormal is right-skewed and cannot go negative,
+which suits body size and clearance; normal suits age and a laboratory
+value that is roughly symmetric.}
+
+\item{prob}{Probability per level of a categorical covariate, in the order
+of \code{levels}. Normalized if it does not sum to one.}
+
+\item{integer}{Round draws to whole numbers. For a covariate recorded as a
+count of years or a score.}
 }
 \value{
 A \code{pmx_covariate}.
 }
 \description{
-A covariate is either continuous, with a public plausible \code{range} used for
-clipping, or categorical, with public \code{levels}. The range or level set must
-be chosen without inspecting the confidential data.
+A covariate is either continuous, with a public plausible \code{range}, or
+categorical, with public \code{levels}. The range or level set must be chosen
+without inspecting the confidential data.
+}
+\section{The range is a bound, and the distribution is separate}{
+
+\code{range} is the clipping bound that makes a differentially private release of
+this covariate possible, so it should be generous: a value outside it is
+pulled to the edge. \code{median} and \code{cv} say where the population actually sits
+inside that bound. Supplying neither leaves the generator with only the
+range to work from, and it falls back to a normal draw centred on the
+midpoint with the range spanning six standard deviations. That couples two
+unrelated things -- widening the bound for safety also widens the
+distribution -- and for a right-skewed covariate such as body weight the
+shape is wrong as well. State \code{median} and \code{cv} for anything whose
+distribution matters, and see \code{\link[=pmx_covariates_reference]{pmx_covariates_reference()}} for defensible
+starting values.
+
+For a categorical covariate, \code{prob} is the same point: without it every
+level is equally likely, which is rarely what a trial looked like.
+}
+
+\examples{
+# Body weight: a generous bound, and the distribution stated separately.
+pmx_covariate(range = c(35, 160), median = 75, cv = 0.18,
+              source = "protocol inclusion criteria")
+
+# A trial that enrolled seven men for every three women.
+pmx_covariate(levels = c("M", "F"), prob = c(0.7, 0.3),
+              source = "protocol enrollment targets")
+}
+\seealso{
+\code{\link[=pmx_covariates]{pmx_covariates()}} to collect them,
+\code{\link[=pmx_covariates_reference]{pmx_covariates_reference()}} for reference-population values,
+\code{\link[=pmx_covariates_auto]{pmx_covariates_auto()}} to resample from the data instead.
 }
