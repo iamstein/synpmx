@@ -122,9 +122,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
 #>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.211 
-#>   time to fit        10.5 s (10.6 s for the whole call)
-#>                      nlmixr2
-#>                        1cmt_oral                  10.5 s
+#>   time to fit        10.5 s
+#>   whole call         10.6 s, against 10.5 s in the fitter
 ```
 
 Every section below expands one part of it. The object is a plain list

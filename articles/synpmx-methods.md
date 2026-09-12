@@ -198,9 +198,8 @@ model_fit
 #>   fixed effects      cl 2.813, v 33.6, ka 1.45 
 #>   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        7.7 s (8.0 s for the whole call)
-#>                      nlmixr2
-#>                        1cmt_oral                  7.7 s
+#>   time to fit        7.7 s
+#>   whole call         8.0 s, against 7.7 s in the fitter
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 

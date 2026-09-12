@@ -601,9 +601,10 @@ All three shapes are fitted by least squares rather than through
 `nlmixr2`, so all three together cost no measurable time, and **the only
 compiled fits in the whole call are the PK candidates.**
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-breaks the wait down by fit: one line per candidate the search compiled,
-and one for the least-squares shapes. A search that spent nine of its
-ten minutes in a second candidate is a run whose answer is to name `pk`.
+breaks the wait down by fit: each concentration’s block carries what
+that fit took, one line per candidate where the search compiled more
+than one. A search that spent nine of its ten minutes in a second
+candidate is a run whose answer is to name `pk`.
 
 Binary and ordinal endpoints are not fitted at all. They are drawn from
 the level frequencies their arm holds at each nominal time, which is
@@ -714,9 +715,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
 #>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.211 
-#>   time to fit        10.5 s (10.6 s for the whole call)
-#>                      nlmixr2
-#>                        1cmt_oral                  10.5 s
+#>   time to fit        10.5 s
+#>   whole call         10.6 s, against 10.5 s in the fitter
 ```
 
 ## Step 6: Generate New Subjects

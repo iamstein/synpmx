@@ -792,9 +792,10 @@ winning on AIC against two other flat lines is visible as that.</p>
 <code>nlmixr2</code>, so all three together cost no measurable time, and
 <strong>the only compiled fits in the whole call are the PK
 candidates.</strong> <code><a href="../reference/model_report.html">model_report()</a></code> breaks the wait down by
-fit: one line per candidate the search compiled, and one for the
-least-squares shapes. A search that spent nine of its ten minutes in a
-second candidate is a run whose answer is to name <code>pk</code>.</p>
+fit: each concentration’s block carries what that fit took, one line per
+candidate where the search compiled more than one. A search that spent
+nine of its ten minutes in a second candidate is a run whose answer is
+to name <code>pk</code>.</p>
 <p>Binary and ordinal endpoints are not fitted at all. They are drawn
 from the level frequencies their arm holds at each nominal time, which
 is what the visit model already does for attendance.</p>
@@ -937,9 +938,8 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1353, v 8.115, ka 0.5796 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
-<span><span class="co">#&gt;   time to fit        10.5 s (10.6 s for the whole call)</span></span>
-<span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span></code></pre></div>
+<span><span class="co">#&gt;   time to fit        10.5 s</span></span>
+<span><span class="co">#&gt;   whole call         10.6 s, against 10.5 s in the fitter</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-6-generate-new-subjects">Step 6: Generate New Subjects<a class="anchor" aria-label="anchor" href="#step-6-generate-new-subjects"></a>
