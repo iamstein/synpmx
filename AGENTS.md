@@ -22,7 +22,7 @@ synthetic pharmacometric datasets.
   is the maintainer's to update, so raise anything that looks wrong in the
   conversation rather than editing it.
 
-Four cross-document contracts, each a defect when broken:
+Five cross-document contracts, each a defect when broken:
 
 - `vignettes/avatar-scorecard.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
@@ -56,6 +56,18 @@ Four cross-document contracts, each a defect when broken:
   by `scripts/build-model-fits.R`, so `R CMD check` never compiles a
   population model. Changing what the fit reports means rebuilding that file
   in the same commit.
+- `vignettes/prior-algorithm.Rmd` documents what `synpmx_prior()` does, in the
+  same shape as `pca-algorithm.Rmd`: each numbered step is an operation the
+  function performs, and the functions carry a pointer comment naming their
+  step. Two things in it run rather than assert, and must keep running. The
+  model catalogue is enumerated by `error=TRUE` chunks that ask `match.arg()`
+  for its options, so adding or removing a form updates the document by
+  itself; do not replace those with a hand-written list. And the
+  exposure-independence of the PD forms is shown on two dose levels a
+  hundredfold apart, because the methods article states that limitation and
+  nothing else demonstrates it. `vignettes/prior-demo.Rmd` is the worked
+  specification, including the parts of it the generator cannot express; it
+  reads no data and compiles nothing, so `R CMD check` executes it.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.
