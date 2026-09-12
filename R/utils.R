@@ -249,9 +249,11 @@
 # Entries of a `pmx_roles` object that are not column names, and so must be kept
 # out of every place that treats the object as a list of columns: `exclude`
 # names columns to remove rather than to keep, `endpoint_types` is keyed by
-# endpoint with a type for a value, and `routes` is keyed by administration id
-# with a route for a value -- the column it describes is `adm`, which is here.
-.non_column_roles <- c("exclude", "endpoint_types", "routes")
+# endpoint with a type for a value, and `routes` and `dose_endpoints` are keyed
+# by administration id with a route and an endpoint name for a value -- the
+# column both describe is `adm`, which is here.
+.non_column_roles <- c("exclude", "endpoint_types", "routes",
+                       "dose_endpoints")
 
 # Every column a role points at, other than the ones `exclude` names for
 # removal. This is the allowlist: what AVATAR retains, and what the

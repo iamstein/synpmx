@@ -686,3 +686,16 @@ test_that("an observation's dosing history is its own drug's", {
   pooled_b <- pooled[pooled$endpoint == "B conc", , drop = FALSE]
   expect_equal(pooled_b$tad[abs(pooled_b$time - 169) < 1e-8][[1L]], 1)
 })
+
+# The same trap `endpoint_types` fell into: an entry keyed by administration id
+# with an ENDPOINT NAME for a value must not reach the places that unlist the
+# roles object as a list of columns, or every reader of the study errors with
+# "role columns not found" on the endpoint's own name.
+test_that("`dose_endpoints` is not treated as a column name", {
+  data <- .combination_fixture()
+  roles <- .combination_roles(
+    dose_endpoints = c("1" = "A conc", "2" = "B conc"))
+  expect_true(.assert_roles(data, roles))
+  expect_false(any(c("A conc", "B conc") %in% .retained_role_columns(roles)))
+  expect_silent(validate_pmx(data, roles))
+})
