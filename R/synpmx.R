@@ -320,6 +320,17 @@ synpmx_calibrated <- function(data, roles, model, design, priors, epsilon,
 #' observation timing, endpoint trajectories, baseline covariates, and
 #' censoring, then rebuilds subjects from those summaries alone.
 #'
+#' @section Not developed further:
+#' This engine exists so both ends of the privacy and utility axis are in the
+#' package and the tradeoff can be checked. It is not being developed, it has
+#' no documents of its own, and the one section that explains why it is rarely
+#' the right choice is "Why not release more quantities?" in the
+#' [methods article](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
+#' Every clipping range, contribution limit and budget share is an explicit
+#' public input, and getting one wrong breaks the guarantee without any error
+#' being raised, so do not reach for it on the strength of this help page
+#' alone.
+#'
 #' It asserts less than [synpmx_calibrated()] but releases far more numbers, so
 #' one epsilon is split many ways. Utility therefore collapses below a few
 #' hundred subjects; this mode earns its keep on large pooled corpora.

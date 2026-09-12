@@ -87,7 +87,7 @@ navbar:
     # the protocol stated as a design, and most of these studies dose per
     # subject, which a public declaration cannot say.
     methods:
-      text: Methods
+      text: Addl. Methods
       menu:
       - text: "3. PCA"
       - text: Demo
