@@ -209,49 +209,9 @@ error, and a per-arm dosing and visit model.
 [`vignette("pmxmodel-fingerprint")`](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md)
 is the itemised list, and the parameters are not estimates to report.
 
-## Mode 2: PCA
+## Mode 2: AVATAR blending
 
-Rather than asserting a curve shape, this generator measures one. Every
-subject’s profile becomes a vector on the nominal grid, a
-principal-component basis is fitted to those vectors, and new subjects
-are drawn as new scores on that basis. It reads the study without
-holding on to any subject’s values.
-
-``` r
-
-pca_summary <- synpmx_pca_summarize(theo_md, theo_roles, seed = 22)
-pca_summary
-#> A trial summary, from synpmx_pca_summarize()
-#> 
-#>   fitted on    12 patients, 1 arm(s): all (12) 
-#>   endpoints    DV (26 visits modelled) 
-#>   covariates   WT 
-#>   components   2 (78% of variance) 
-#>   dose term    factor 
-#>   dosing       7 planned cycle(s) per arm | no reductions, interruptions or early stops 
-#> 
-#> synpmx_pca_generate() reads this object and nothing else. To look inside it:
-#>   pca_report()      what it read out of the source data
-#>   pca_dosing()      the planned dose schedule, per arm
-#>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the probability of a visit, per arm
-#>   pca_components()  the loadings, over time
-pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
-```
-
-Twelve subjects buy two components, holding 78% of the variance, as the
-summary above says. That is the visible cost: everything outside those
-two components, measurement noise from visit to visit included, is not
-reproduced, and the generated profiles are smoother than the source
-ones.
-[`vignette("pca-algorithm")`](https://iamstein.github.io/synpmx/articles/pca-algorithm.md)
-is the specification and
-[`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
-itemises what the summary carries.
-
-## Mode 3: AVATAR blending
-
-The least work of the three:
+The least work of the three data-reading modes:
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 needs no grid, no model and no fit — only the data and a declaration of
 what the columns mean. For each synthetic subject it copies a real
@@ -416,11 +376,51 @@ participant’s record and only wants to confirm membership — the
 mechanisms reduce the ways that attack succeeds without limiting how
 often it does.
 
+## Mode 3: PCA
+
+Rather than asserting a curve shape, this generator measures one. Every
+subject’s profile becomes a vector on the nominal grid, a
+principal-component basis is fitted to those vectors, and new subjects
+are drawn as new scores on that basis. It reads the study without
+holding on to any subject’s values.
+
+``` r
+
+pca_summary <- synpmx_pca_summarize(theo_md, theo_roles, seed = 22)
+pca_summary
+#> A trial summary, from synpmx_pca_summarize()
+#> 
+#>   fitted on    12 patients, 1 arm(s): all (12) 
+#>   endpoints    DV (26 visits modelled) 
+#>   covariates   WT 
+#>   components   2 (78% of variance) 
+#>   dose term    factor 
+#>   dosing       7 planned cycle(s) per arm | no reductions, interruptions or early stops 
+#> 
+#> synpmx_pca_generate() reads this object and nothing else. To look inside it:
+#>   pca_report()      what it read out of the source data
+#>   pca_dosing()      the planned dose schedule, per arm
+#>   pca_dose_rates()  reduction, interruption and discontinuation
+#>   pca_visits()      the probability of a visit, per arm
+#>   pca_components()  the loadings, over time
+pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
+```
+
+Twelve subjects buy two components, holding 78% of the variance, as the
+summary above says. That is the visible cost: everything outside those
+two components, measurement noise from visit to visit included, is not
+reproduced, and the generated profiles are smoother than the source
+ones.
+[`vignette("pca-algorithm")`](https://iamstein.github.io/synpmx/articles/pca-algorithm.md)
+is the specification and
+[`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
+itemises what the summary carries.
+
 ## Mode 4: prior only
 
-The opposite extreme. Declare a public structural model and a public
-protocol, and simulate. No confidential data is read, so there is
-nothing to protect and no budget to spend: this is `epsilon = 0`, the
+The opposite extreme from AVATAR. Declare a public structural model and
+a public protocol, and simulate. No confidential data is read, so there
+is nothing to protect and no budget to spend: this is `epsilon = 0`, the
 strongest possible guarantee.
 
 The typical parameter values must come from somewhere that is not the
@@ -654,8 +654,8 @@ generated_roles <- pmx_generated_roles()
 all_observations <- rbind(
   observations(theo_md, theo_roles, "Source"),
   observations(model_data, theo_roles, "1. PMX model"),
-  observations(pca_data, theo_roles, "2. PCA"),
-  observations(avatar, theo_roles, "3. AVATAR"),
+  observations(avatar, theo_roles, "2. AVATAR"),
+  observations(pca_data, theo_roles, "3. PCA"),
   observations(prior_only, generated_roles, "4. Prior only"),
   observations(calibrated_data, generated_roles, "5. Calibration"),
   # The empirical engine restores the source schema, so it uses source roles.
@@ -684,8 +684,8 @@ knitr::kable(
 |:----------------|---------------:|-------:|-----:|------:|
 | Source          |            264 |   5.74 | 1.25 |  9.30 |
 | 1\. PMX model   |            258 |   5.66 | 1.50 |  9.92 |
-| 2\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
-| 3\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
+| 2\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
+| 3\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
 | 5\. Calibration |            240 |   4.05 | 0.36 |  7.54 |
 | 6\. Empirical   |            264 |   4.43 | 0.43 | 11.96 |
@@ -714,17 +714,17 @@ ggplot2::ggplot(
 ![](synpmx-methods_files/figure-html/compare-plot-1.png)
 
 The table is the quickest read. The three data-reading modes land on the
-source’s concentrations — medians of 6.01, 5.95 and 5.21 against 5.74,
+source’s concentrations — medians of 5.66, 5.21 and 5.95 against 5.74,
 and tenth and ninetieth percentiles within a few tenths — while the
 three public-model modes do not: 3.16, 4.05 and 4.43. That gap is the
 whole subject of this article.
 
-Among the first three, mode 1 draws every profile from one structural
-model at a different parameter draw, so its profiles are the smoothest
-here and a real profile’s visit-to-visit wobble is absent. Mode 2 takes
-its shape from the observed profiles instead, and smooths within the two
-components twelve subjects buy. Mode 3 tracks the source most closely,
-because it is made of it.
+Among modes 1 to 3, which read the data, the PMX model draws every
+profile from one structural model at a different parameter draw, so its
+profiles are the smoothest here and a real profile’s visit-to-visit
+wobble is absent. AVATAR tracks the source most closely, because it is
+made of it. PCA takes its shape from the observed profiles instead, and
+smooths within the two components twelve subjects buy.
 
 Modes 4 to 6 are where the level goes. The prior-only data has the right
 structure and a clearance assumed about twice too fast, which is exactly
@@ -759,8 +759,8 @@ distributions <- rbind(
              stringsAsFactors = FALSE),
   weights(theo_md, theo_roles, "Source"),
   weights(model_data, theo_roles, "1. PMX model"),
-  weights(pca_data, theo_roles, "2. PCA"),
-  weights(avatar, theo_roles, "3. AVATAR"),
+  weights(avatar, theo_roles, "2. AVATAR"),
+  weights(pca_data, theo_roles, "3. PCA"),
   weights(prior_only, generated_roles, "4. Prior only"),
   weights(calibrated_data, generated_roles, "5. Calibration"),
   weights(empirical_data, theo_roles, "6. Empirical")
@@ -774,13 +774,13 @@ ggplot2::ggplot(distributions,
   ggplot2::facet_wrap(~ variable, scales = "free_x") +
   ggplot2::scale_colour_manual(
     values = c("Source" = "#111111", "1. PMX model" = "#1B6CA8",
-               "2. PCA" = "#2E8B57", "3. AVATAR" = "#D95F02",
+               "2. AVATAR" = "#D95F02", "3. PCA" = "#2E8B57",
                "4. Prior only" = "#7570B3", "5. Calibration" = "#A6761D",
                "6. Empirical" = "#B00020")
   ) +
   ggplot2::scale_linetype_manual(
     values = c("Source" = "solid", "1. PMX model" = "dashed",
-               "2. PCA" = "dashed", "3. AVATAR" = "dashed",
+               "2. AVATAR" = "dashed", "3. PCA" = "dashed",
                "4. Prior only" = "dotted", "5. Calibration" = "dotted",
                "6. Empirical" = "dotted")
   ) +
@@ -804,8 +804,8 @@ does not have.
 | Mode | Function | Output built from | Guarantee | Cohort size | Elicitation needed |
 |:---|:---|:---|:---|:---|:---|
 | 1\. PMX model | synpmx_model() | A population model fitted to the study, simulated forward | None; governance only | ~20 and up | None, but a nominal grid is required |
-| 2\. PCA | synpmx_pca() | A component basis of the observed profiles, and new scores on it | None; governance only | Any, from ~5, per arm | None, but a nominal grid is required |
-| 3\. AVATAR blending | synpmx_avatar() | Real subject templates and blended real trajectories | None; governance only | Any, from ~5 | None |
+| 2\. AVATAR blending | synpmx_avatar() | Real subject templates and blended real trajectories | None; governance only | Any, from ~5 | None |
+| 3\. PCA | synpmx_pca() | A component basis of the observed profiles, and new scores on it | None; governance only | Any, from ~5, per arm | None, but a nominal grid is required |
 | 4\. Prior only | synpmx_prior() | A public model and protocol only | epsilon = 0 (no data read) | Any (data-independent) | Structural model + protocol |
 | 5\. Calibration | synpmx_calibrated() | A public model, magnitude corrected by 2 private releases | (epsilon, delta) DP | ~20 and up | Model, protocol, prior ranges |
 | 6\. Empirical | synpmx_empirical() | Dozens of noised population summaries | (epsilon, delta) DP | ~200 and up | Endpoints, bounds, limits, budget split |

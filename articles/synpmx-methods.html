@@ -58,23 +58,24 @@
   </ul>
 </li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown--pca" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. PCA</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown--pca">
-<li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
-    <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
-  </ul>
-</li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">3. AVATAR</button>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. AVATAR</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown--avatar">
 <li><a class="dropdown-item" href="../articles/avatar-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-algorithm.html">Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/avatar-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
+  </ul>
+</li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Methods</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-methods">
+<li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
+    <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -305,50 +306,15 @@ error, and a per-arm dosing and visit model.
 the parameters are not estimates to report.</p>
 </div>
 <div class="section level2">
-<h2 id="mode-2-pca">Mode 2: PCA<a class="anchor" aria-label="anchor" href="#mode-2-pca"></a>
+<h2 id="mode-2-avatar-blending">Mode 2: AVATAR blending<a class="anchor" aria-label="anchor" href="#mode-2-avatar-blending"></a>
 </h2>
-<p>Rather than asserting a curve shape, this generator measures one.
-Every subject’s profile becomes a vector on the nominal grid, a
-principal-component basis is fitted to those vectors, and new subjects
-are drawn as new scores on that basis. It reads the study without
-holding on to any subject’s values.</p>
+<p>The least work of the three data-reading modes:
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> needs no grid, no model and no fit — only
+the data and a declaration of what the columns mean. For each synthetic
+subject it copies a real subject’s event skeleton, then fills the
+covariates and concentrations with a distance-weighted blend of that
+subject’s nearest compatible neighbors, plus noise.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pca_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span>
-<span><span class="va">pca_summary</span></span>
-<span><span class="co">#&gt; A trial summary, from synpmx_pca_summarize()</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   fitted on    12 patients, 1 arm(s): all (12) </span></span>
-<span><span class="co">#&gt;   endpoints    DV (26 visits modelled) </span></span>
-<span><span class="co">#&gt;   covariates   WT </span></span>
-<span><span class="co">#&gt;   components   2 (78% of variance) </span></span>
-<span><span class="co">#&gt;   dose term    factor </span></span>
-<span><span class="co">#&gt;   dosing       7 planned cycle(s) per arm | no reductions, interruptions or early stops </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; synpmx_pca_generate() reads this object and nothing else. To look inside it:</span></span>
-<span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
-<span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
-<span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
-<span><span class="co">#&gt;   pca_visits()      the probability of a visit, per arm</span></span>
-<span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span>
-<span><span class="va">pca_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">pca_summary</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span></code></pre></div>
-<p>Twelve subjects buy two components, holding 78% of the variance, as
-the summary above says. That is the visible cost: everything outside
-those two components, measurement noise from visit to visit included, is
-not reproduced, and the generated profiles are smoother than the source
-ones. <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> is the specification and
-<code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code> itemises what the summary
-carries.</p>
-</div>
-<div class="section level2">
-<h2 id="mode-3-avatar-blending">Mode 3: AVATAR blending<a class="anchor" aria-label="anchor" href="#mode-3-avatar-blending"></a>
-</h2>
-<p>The least work of the three: <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> needs no
-grid, no model and no fit — only the data and a declaration of what the
-columns mean. For each synthetic subject it copies a real subject’s
-event skeleton, then fills the covariates and concentrations with a
-distance-weighted blend of that subject’s nearest compatible neighbors,
-plus noise.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">avatar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">101</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; synpmx_avatar(): no `dvid` declared, so every observation is treated as one endpoint.</span></span>
 <span><span class="co">#&gt;   Correct for a single-endpoint study; declare `dvid` if this one has more.</span></span>
@@ -493,11 +459,46 @@ often it does.</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="mode-3-pca">Mode 3: PCA<a class="anchor" aria-label="anchor" href="#mode-3-pca"></a>
+</h2>
+<p>Rather than asserting a curve shape, this generator measures one.
+Every subject’s profile becomes a vector on the nominal grid, a
+principal-component basis is fitted to those vectors, and new subjects
+are drawn as new scores on that basis. It reads the study without
+holding on to any subject’s values.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pca_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span>
+<span><span class="va">pca_summary</span></span>
+<span><span class="co">#&gt; A trial summary, from synpmx_pca_summarize()</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   fitted on    12 patients, 1 arm(s): all (12) </span></span>
+<span><span class="co">#&gt;   endpoints    DV (26 visits modelled) </span></span>
+<span><span class="co">#&gt;   covariates   WT </span></span>
+<span><span class="co">#&gt;   components   2 (78% of variance) </span></span>
+<span><span class="co">#&gt;   dose term    factor </span></span>
+<span><span class="co">#&gt;   dosing       7 planned cycle(s) per arm | no reductions, interruptions or early stops </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; synpmx_pca_generate() reads this object and nothing else. To look inside it:</span></span>
+<span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
+<span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
+<span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
+<span><span class="co">#&gt;   pca_visits()      the probability of a visit, per arm</span></span>
+<span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span>
+<span><span class="va">pca_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">pca_summary</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span></code></pre></div>
+<p>Twelve subjects buy two components, holding 78% of the variance, as
+the summary above says. That is the visible cost: everything outside
+those two components, measurement noise from visit to visit included, is
+not reproduced, and the generated profiles are smoother than the source
+ones. <code><a href="../articles/pca-algorithm.html">vignette("pca-algorithm")</a></code> is the specification and
+<code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code> itemises what the summary
+carries.</p>
+</div>
+<div class="section level2">
 <h2 id="mode-4-prior-only">Mode 4: prior only<a class="anchor" aria-label="anchor" href="#mode-4-prior-only"></a>
 </h2>
-<p>The opposite extreme. Declare a public structural model and a public
-protocol, and simulate. No confidential data is read, so there is
-nothing to protect and no budget to spend: this is
+<p>The opposite extreme from AVATAR. Declare a public structural model
+and a public protocol, and simulate. No confidential data is read, so
+there is nothing to protect and no budget to spend: this is
 <code>epsilon = 0</code>, the strongest possible guarantee.</p>
 <p>The typical parameter values must come from somewhere that is not the
 data — allometric scaling from preclinical work, a published model for
@@ -685,8 +686,8 @@ against each other.</p>
 <span><span class="va">all_observations</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"2. PCA"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"3. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
 <span>  <span class="co"># The empirical engine restores the source schema, so it uses source roles.</span></span>
@@ -734,18 +735,18 @@ against each other.</p>
 <td align="right">9.92</td>
 </tr>
 <tr class="odd">
-<td align="left">2. PCA</td>
-<td align="right">261</td>
-<td align="right">5.95</td>
-<td align="right">1.31</td>
-<td align="right">9.30</td>
-</tr>
-<tr class="even">
-<td align="left">3. AVATAR</td>
+<td align="left">2. AVATAR</td>
 <td align="right">264</td>
 <td align="right">5.21</td>
 <td align="right">1.21</td>
 <td align="right">8.33</td>
+</tr>
+<tr class="even">
+<td align="left">3. PCA</td>
+<td align="right">261</td>
+<td align="right">5.95</td>
+<td align="right">1.31</td>
+<td align="right">9.30</td>
 </tr>
 <tr class="odd">
 <td align="left">4. Prior only</td>
@@ -788,16 +789,16 @@ doses.</p>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="synpmx-methods_files/figure-html/compare-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The table is the quickest read. The three data-reading modes land on
-the source’s concentrations — medians of 6.01, 5.95 and 5.21 against
+the source’s concentrations — medians of 5.66, 5.21 and 5.95 against
 5.74, and tenth and ninetieth percentiles within a few tenths — while
 the three public-model modes do not: 3.16, 4.05 and 4.43. That gap is
 the whole subject of this article.</p>
-<p>Among the first three, mode 1 draws every profile from one structural
-model at a different parameter draw, so its profiles are the smoothest
-here and a real profile’s visit-to-visit wobble is absent. Mode 2 takes
-its shape from the observed profiles instead, and smooths within the two
-components twelve subjects buy. Mode 3 tracks the source most closely,
-because it is made of it.</p>
+<p>Among modes 1 to 3, which read the data, the PMX model draws every
+profile from one structural model at a different parameter draw, so its
+profiles are the smoothest here and a real profile’s visit-to-visit
+wobble is absent. AVATAR tracks the source most closely, because it is
+made of it. PCA takes its shape from the observed profiles instead, and
+smooths within the two components twelve subjects buy.</p>
 <p>Modes 4 to 6 are where the level goes. The prior-only data has the
 right structure and a clearance assumed about twice too fast, which is
 exactly the cost of reading nothing: its median concentration is 3.16
@@ -828,8 +829,8 @@ they carried.</p>
 <span>             stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"2. PCA"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"3. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
@@ -843,13 +844,13 @@ they carried.</p>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">variable</span>, scales <span class="op">=</span> <span class="st">"free_x"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"#111111"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"#1B6CA8"</span>,</span>
-<span>               <span class="st">"2. PCA"</span> <span class="op">=</span> <span class="st">"#2E8B57"</span>, <span class="st">"3. AVATAR"</span> <span class="op">=</span> <span class="st">"#D95F02"</span>,</span>
+<span>               <span class="st">"2. AVATAR"</span> <span class="op">=</span> <span class="st">"#D95F02"</span>, <span class="st">"3. PCA"</span> <span class="op">=</span> <span class="st">"#2E8B57"</span>,</span>
 <span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"#7570B3"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"#A6761D"</span>,</span>
 <span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"#B00020"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"solid"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
-<span>               <span class="st">"2. PCA"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"3. AVATAR"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
+<span>               <span class="st">"2. AVATAR"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"3. PCA"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
 <span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"dotted"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"dotted"</span>,</span>
 <span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"dotted"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
@@ -896,22 +897,22 @@ forward</td>
 <td align="left">None, but a nominal grid is required</td>
 </tr>
 <tr class="even">
-<td align="left">2. PCA</td>
-<td align="left">synpmx_pca()</td>
-<td align="left">A component basis of the observed profiles, and new
-scores on it</td>
-<td align="left">None; governance only</td>
-<td align="left">Any, from ~5, per arm</td>
-<td align="left">None, but a nominal grid is required</td>
-</tr>
-<tr class="odd">
-<td align="left">3. AVATAR blending</td>
+<td align="left">2. AVATAR blending</td>
 <td align="left">synpmx_avatar()</td>
 <td align="left">Real subject templates and blended real
 trajectories</td>
 <td align="left">None; governance only</td>
 <td align="left">Any, from ~5</td>
 <td align="left">None</td>
+</tr>
+<tr class="odd">
+<td align="left">3. PCA</td>
+<td align="left">synpmx_pca()</td>
+<td align="left">A component basis of the observed profiles, and new
+scores on it</td>
+<td align="left">None; governance only</td>
+<td align="left">Any, from ~5, per arm</td>
+<td align="left">None, but a nominal grid is required</td>
 </tr>
 <tr class="even">
 <td align="left">4. Prior only</td>
