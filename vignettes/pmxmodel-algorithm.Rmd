@@ -180,10 +180,37 @@ infer where the data settles the question, offer the declaration as an override.
 
 A study measuring two drugs, or a parent and its metabolite, has two drug
 concentrations, and each is fitted its own population model — its own structural
-model, its own parameters, its own residual error, evaluated against the one
-dose schedule they share. No correlation between their random effects is
-estimated, which is a limitation rather than a claim: a patient with a high
-parent clearance is given an independently drawn metabolite clearance.
+model, its own parameters, its own residual error. No correlation between their
+random effects is estimated, which is a limitation rather than a claim: a
+patient with a high parent clearance is given an independently drawn metabolite
+clearance.
+
+**Which doses drive which endpoint is a declaration.** By default every dose
+record drives every concentration: one administration, two analytes, which is
+what a parent and its metabolite are. Two *different* drugs given together are
+the opposite case — each model has to see its own drug's doses and not the
+other's, or a clearance and a volume come back having absorbed an input the
+patient never received of that drug.
+
+The data cannot settle it. A metabolite has no dose records of its own, so
+"this endpoint's doses are the ones marked `2`" and "this endpoint has no
+doses" are the same table, and guessing wrong leaves a model with no input at
+all. So it is declared, on the argument `routes` is declared on:
+
+```r
+pmx_roles(
+  adm            = "ADM",
+  routes         = c("1" = "extravascular", "2" = "extravascular"),
+  dose_endpoints = c("1" = "drug A PK", "2" = "drug B PK")
+)
+```
+
+Declared, each drug gets its own dose schedule per arm — its own amounts, its
+own interval, its own ladder of reductions — each endpoint's profile is
+evaluated against its own drug's doses, and the generated study writes both
+drugs' dose records back with their own `adm` value and compartment. Undeclared,
+`model_report()` says so on a study with more than one concentration, which is
+the case where it matters.
 
 **Inference promotes a second endpoint only on signal 4.** Dose proportionality
 is the positive evidence that something is a drug: a concentration scales with

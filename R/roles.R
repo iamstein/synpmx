@@ -67,6 +67,26 @@
 #'   constant and a bioavailability. A study dosing both ways is fitted with one
 #'   model that routes each dose record to its own compartment, so a patient may
 #'   receive both.
+#' @param dose_endpoints Which endpoint each administration id doses, as
+#'   `dose_endpoints = c("1" = "drug A PK", "2" = "drug B PK")`. Needs `adm`,
+#'   and names endpoints by their `dvid` value.
+#'
+#'   Declare it for a study that gives **two different drugs** and measures a
+#'   concentration of each. Undeclared, every dose record drives every
+#'   concentration endpoint's fit and its generated profile, which is right for
+#'   a parent and its metabolite -- one dose, two analytes -- and wrong for a
+#'   combination, where each drug's model would be fitted against the other
+#'   drug's doses as well as its own.
+#'
+#'   The two cases cannot be told apart from the data: a metabolite has no dose
+#'   records of its own, so "this endpoint's doses are the ones marked `2`" and
+#'   "this endpoint has no doses" are the same table. Hence a declaration, on
+#'   the same argument `routes` makes.
+#'
+#'   Every administration id present on a dose record must be named, and every
+#'   endpoint named must be one the fit puts a structural model on. Each drug
+#'   then gets its own dose schedule per arm, and the generated study writes
+#'   both drugs' dose records back with their own `adm` value.
 #' @param covariates Baseline covariate column names, or `NULL`.
 #' @param strata Treatment arm, dose group, cohort — any **assigned,
 #'   subject-level stratum**, as opposed to a measured characteristic, which is a
@@ -171,7 +191,7 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                       dvid = NULL, mdv = NULL, rate = NULL,
                       nominal_time = NULL, tad = NULL, occasion = NULL,
                       cens = NULL, limit = NULL, addl = NULL, ii = NULL,
-                      adm = NULL, routes = NULL,
+                      adm = NULL, routes = NULL, dose_endpoints = NULL,
                       covariates = NULL, strata = NULL,
                       dose_covariate = NULL, assigned_dose = NULL,
                       endpoint_types = NULL,
@@ -181,19 +201,23 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
     occasion = occasion, dv = dv, amt = amt, evid = evid, cmt = cmt,
     dvid = dvid, mdv = mdv, rate = rate, cens = cens, limit = limit,
     addl = addl, ii = ii, adm = adm, routes = routes,
+    dose_endpoints = dose_endpoints,
     assigned_dose = assigned_dose,
     dose_covariate = dose_covariate,
     covariates = covariates, strata = strata,
     keep = keep, exclude = exclude
   )
   roles$routes <- .validate_routes(adm, routes)
+  roles$dose_endpoints <- .validate_dose_endpoints(adm, dose_endpoints)
 
   vector_roles <- c("dvid", "covariates", "strata", "keep",
                     "exclude")
-  # `routes` is a mapping rather than a column name, so it sits out of both
-  # loops below and out of the collision check.
+  # `routes` and `dose_endpoints` are mappings rather than column names, so they
+  # sit out of both loops below and out of the collision check.
   routes <- roles$routes
+  dose_endpoints <- roles$dose_endpoints
   roles$routes <- NULL
+  roles$dose_endpoints <- NULL
   scalar_roles <- setdiff(names(roles), vector_roles)
   for (role in scalar_roles) {
     value <- roles[[role]]
@@ -224,6 +248,13 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
   # Every other collision stays an error.
   shared <- intersect(roles$cmt, roles$dvid)
   if (length(shared)) modeled <- modeled[-match(shared, modeled)]
+  # And one column may be both `cmt` and `adm`, for the same reason. A NONMEM
+  # dataset has no administration column: the compartment a dose enters is the
+  # administration id, and in a study giving two drugs it is what separates
+  # them. Requiring a copy of the column under a second name would declare
+  # nothing extra.
+  shared_adm <- intersect(roles$cmt, roles$adm)
+  if (length(shared_adm)) modeled <- modeled[-match(shared_adm, modeled)]
   # `dose_covariate` must name a column that is ALSO in `covariates`, and that
   # is the whole mechanism rather than an oversight: the avatar's amount is
   # rebuilt from its own *blended* value, so the column has to be blended, which
@@ -257,6 +288,7 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
   # Same reason as `endpoint_types`: a mapping from the values of a column, not
   # a column name.
   roles$routes <- routes
+  roles$dose_endpoints <- dose_endpoints
   structure(roles, class = "pmx_roles")
 }
 
@@ -305,6 +337,39 @@ pmx_roles <- function(id, time, dv, amt = NULL, evid, cmt = NULL,
                collapse = ", "), ".", call. = FALSE)
   }
   routes
+}
+
+# Which drug each administration id is. The same argument `routes` makes: an
+# `ADM` value is a convention of the dataset, so the mapping is declared or the
+# column is not read for this at all.
+#
+# Undeclared, every dose record drives every concentration endpoint, which is
+# what a parent and its metabolite need and what two co-administered drugs must
+# not have. Declaring it is the only way to tell those apart, because a
+# metabolite has no dose records of its own and "this endpoint's doses are
+# elsewhere" and "this endpoint has no doses" are the same table.
+.validate_dose_endpoints <- function(adm, dose_endpoints) {
+  if (is.null(dose_endpoints)) return(NULL)
+  if (is.null(adm)) {
+    stop(.condition_text(
+      "`dose_endpoints` needs `adm`: it says which endpoint each value of an ",
+      "administration column doses, so there has to be a column for it to ",
+      "describe.",
+      fix = paste("Name the column that separates the drugs as `adm` -- in a",
+                  "NONMEM dataset that is usually `CMT`.")), call. = FALSE)
+  }
+  if (!is.character(dose_endpoints) || !length(dose_endpoints) ||
+      is.null(names(dose_endpoints)) || anyNA(dose_endpoints) ||
+      any(!nzchar(dose_endpoints)) || any(!nzchar(names(dose_endpoints)))) {
+    stop("`dose_endpoints` must be a named character vector, mapping each ",
+         "value of `", adm, "` to the endpoint it doses.", call. = FALSE)
+  }
+  if (anyDuplicated(names(dose_endpoints))) {
+    stop("`dose_endpoints` names the same administration id twice: ",
+         paste(unique(names(dose_endpoints)[duplicated(names(dose_endpoints))]),
+               collapse = ", "), ".", call. = FALSE)
+  }
+  dose_endpoints
 }
 
 .validate_endpoint_types <- function(endpoint_types) {

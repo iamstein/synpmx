@@ -330,7 +330,8 @@
                               correlations = NULL, censoring = NULL,
                               quantification_floor = NULL, timing = NULL,
                               movement = NULL, fit_subjects = NULL,
-                              start_param = NULL, pk_models = NULL) {
+                              start_param = NULL, pk_models = NULL,
+                              dose_records = NULL) {
   if (!structural %in% .pk_models) {
     stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
          ".", call. = FALSE)
@@ -391,6 +392,11 @@
     movement = movement,
     fit_subjects = fit_subjects,
     start_param = start_param,
+    # How many dose records drove each concentration endpoint's fit. What the
+    # report says with it is the point: a study with two concentrations either
+    # shares one administration between them or has to tell two drugs' doses
+    # apart, and the count is where a reader sees which happened.
+    dose_records = dose_records,
     # One entry per concentration endpoint. `structural` and `parameters` above
     # are the first of them, which is every study that fits one concentration.
     # A model assembled without the list -- a hand-built fixture, or a fit
@@ -455,6 +461,8 @@ model_report <- function(fitted_model) {
     dosing = fitted_model$dosing,
     visits = fitted_model$visits,
     cells = fitted_model$cells,
+    dose_records = fitted_model$dose_records,
+    roles = fitted_model$roles,
     covariates = fitted_model$covariates,
     discrete = fitted_model$discrete,
     schema = fitted_model$schema,
@@ -521,9 +529,20 @@ print.pmx_model_report <- function(x, ...) {
   # How the doses are given, where the study says. A schedule of the same
   # amounts means something different given over an hour than given as a bolus,
   # and different again given subcutaneously, so the report says which.
-  routes <- .unique_in_order(unlist(lapply(x$dosing, function(d) d$planned$route)))
+  # One entry per arm, or one per arm per drug where `dose_endpoints` split the
+  # doses, labelled so that a reader sees which schedule belongs to which drug.
+  dosing <- list()
+  for (arm in names(x$dosing)) {
+    models <- .dose_group_models(x$dosing[[arm]])
+    for (k in seq_along(models)) {
+      label <- if (is.null(names(models))) arm else
+        paste0(arm, " / ", names(models)[[k]])
+      dosing[[label]] <- models[[k]]
+    }
+  }
+  routes <- .unique_in_order(unlist(lapply(dosing, function(d) d$planned$route)))
   routes <- routes[!is.na(routes)]
-  durations <- unlist(lapply(x$dosing, function(d) {
+  durations <- unlist(lapply(dosing, function(d) {
     with(d$planned, ifelse(rate > 0, amt / rate, NA_real_))
   }))
   durations <- durations[is.finite(durations) & durations > 0]
@@ -542,11 +561,11 @@ print.pmx_model_report <- function(x, ...) {
   # reader looking for "what happens to the dosing" has to be able to find them
   # by name. Reported per arm, because they are per arm.
   rates <- data.frame(
-    arm = names(x$dosing),
-    reduce = vapply(x$dosing, function(d) d$reduction, numeric(1)),
-    skip = vapply(x$dosing, function(d) d$interruption, numeric(1)),
-    stop_early = vapply(x$dosing, function(d) d$discontinuation, numeric(1)),
-    levels = vapply(x$dosing, function(d) length(d$levels), integer(1)),
+    arm = names(dosing),
+    reduce = vapply(dosing, function(d) d$reduction, numeric(1)),
+    skip = vapply(dosing, function(d) d$interruption, numeric(1)),
+    stop_early = vapply(dosing, function(d) d$discontinuation, numeric(1)),
+    levels = vapply(dosing, function(d) length(d$levels), integer(1)),
     stringsAsFactors = FALSE
   )
   if (any(rates$reduce > 0 | rates$skip > 0 | rates$stop_early > 0)) {
@@ -662,6 +681,27 @@ print.pmx_model_report <- function(x, ...) {
             sep = "")
       }
     }
+    # Which doses this one was fitted against, and only where the study has a
+    # second concentration to confuse it with.
+    if (length(x$endpoints$pk) > 1L && !is.null(x$dose_records) &&
+        !is.null(x$roles$dose_endpoints)) {
+      cat(.wrap_plain(paste0(
+        "driven by the ", x$dose_records[[endpoint]], " dose record(s) ",
+        "`dose_endpoints` gives it"),
+        strrep(" ", 23L), strrep(" ", 25L)), "\n", sep = "")
+    }
+  }
+  # Said once for the study rather than once per endpoint, because undeclared it
+  # is one fact about all of them: every dose record drives every concentration.
+  # Right for a parent and its metabolite, which share one administration, and
+  # wrong for two drugs given together, where each model is fitted against the
+  # other drug's doses as well as its own -- and silent until it was printed.
+  if (length(x$endpoints$pk) > 1L && !is.null(x$dose_records) &&
+      is.null(x$roles$dose_endpoints)) {
+    field("doses", "all ", x$dose_records[[1L]], " dose record(s) drive every ",
+          "endpoint above: right for a parent and its metabolite, wrong for ",
+          "two drugs given together, which `dose_endpoints` in `pmx_roles()` ",
+          "separates")
   }
   if (!is.null(x$design)) {
     field("route", x$design$route, ": ", x$design$reason)

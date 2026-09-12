@@ -58,8 +58,51 @@
   amount <- if (is.null(roles$amt)) rep(NA_real_, nrow(source)) else
     suppressWarnings(as.numeric(source[[roles$amt]]))
 
-  planned <- .model_dose_relative(source, roles, nominal, dosed)
-  actual <- .model_dose_relative(source, roles, time, dosed, amount)
+  # Everything below is measured against the doses a row's endpoint answers to.
+  # For one drug that is every dose record; for a study whose `dose_endpoints`
+  # separates two, it is that drug's own -- otherwise a B sample's time after
+  # dose is counted from whichever drug was given last and its first dose
+  # amount is whichever drug came first, and the starting values, the route
+  # reading and the dose-proportionality signal are all read off a mixture.
+  drives <- .dose_endpoint(source, roles)
+  # Which route this subject was dosed by, where the study declared one, is
+  # carried per observation because the starting values for a mixed study are
+  # read one route at a time: pooling them averages an intravenous decline with
+  # an extravascular rise into a shape neither route produces. `NA` where
+  # nothing was declared, and "mixed" for a subject who received both, which is
+  # neither half's evidence.
+  summarize <- function(dose_mask) {
+    first_amt <- rep(NA_real_, nrow(source))
+    dose_route <- .dose_routes(source, roles)
+    subject_route <- rep(NA_character_, nrow(source))
+    for (rows in split(seq_len(nrow(source)), as.character(source[[roles$id]]))) {
+      dose_at <- rows[dose_mask[rows] & is.finite(time[rows])]
+      if (!length(dose_at)) next
+      first_amt[rows] <- amount[dose_at[which.min(time[dose_at])]]
+      own <- unique(dose_route[dose_at][!is.na(dose_route[dose_at])])
+      subject_route[rows] <- if (!length(own)) NA_character_ else
+        if (length(own) == 1L) own else "mixed"
+    }
+    list(planned = .model_dose_relative(source, roles, nominal, dose_mask),
+         actual = .model_dose_relative(source, roles, time, dose_mask, amount),
+         first_amt = first_amt, subject_route = subject_route)
+  }
+  shared <- summarize(dosed)
+  planned <- shared$planned
+  actual <- shared$actual
+  first_amt <- shared$first_amt
+  subject_route <- shared$subject_route
+  for (group in .unique_in_order(drives[dosed & !is.na(drives)])) {
+    own <- summarize(dosed & !is.na(drives) & drives == group)
+    rows <- endpoint == group
+    for (field in c("interval", "tad", "first_time")) {
+      planned[[field]][rows] <- own$planned[[field]][rows]
+      actual[[field]][rows] <- own$actual[[field]][rows]
+    }
+    actual$given[rows] <- own$actual$given[rows]
+    first_amt[rows] <- own$first_amt[rows]
+    subject_route[rows] <- own$subject_route[rows]
+  }
 
   # Study time on the nominal grid, measured from the subject's first dose --
   # the same axis `.model_cells()` places the visit grid on, computed by the
@@ -70,23 +113,6 @@
   nominal_source <- source
   nominal_source[[roles$time]] <- nominal
   aligned <- .aligned_time(nominal_source, roles)
-  first_amt <- rep(NA_real_, nrow(source))
-  # Which route this subject was dosed by, where the study declared one. Carried
-  # per observation because the starting values for a mixed study are read one
-  # route at a time: pooling them averages an intravenous decline with an
-  # extravascular rise into a shape neither route produces. `NA` where nothing
-  # was declared, and "mixed" for a subject who received both, which is neither
-  # half's evidence.
-  dose_route <- .dose_routes(source, roles)
-  subject_route <- rep(NA_character_, nrow(source))
-  for (rows in split(seq_len(nrow(source)), as.character(source[[roles$id]]))) {
-    dose_at <- rows[dosed[rows] & is.finite(time[rows])]
-    if (!length(dose_at)) next
-    first_amt[rows] <- amount[dose_at[which.min(time[dose_at])]]
-    own <- unique(dose_route[dose_at][!is.na(dose_route[dose_at])])
-    subject_route[rows] <- if (!length(own)) NA_character_ else
-      if (length(own) == 1L) own else "mixed"
-  }
 
   data.frame(
     subject = as.character(source[[roles$id]])[observed],

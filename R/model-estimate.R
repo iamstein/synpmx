@@ -450,6 +450,56 @@
 # dose was reduced would push the drop in concentration that followed into
 # clearance, and the model would report a population that eliminates the drug
 # faster than the real one.
+# What `dose_endpoints` has to be true of the study for the split to mean
+# anything. Checked against the data rather than in `pmx_roles()`, which sees a
+# mapping and no dataset: an id nobody was dosed with is a typo in the
+# declaration, an unnamed id would have its doses vanish from every fit, and an
+# endpoint left with no doses at all is a model with no input.
+.model_check_dose_endpoints <- function(source, roles, pk_endpoints) {
+  if (is.null(roles$dose_endpoints)) return(invisible(NULL))
+  dosed <- .dose_rows(source, roles)
+  ids <- .unique_in_order(as.character(source[[roles$adm]][dosed]))
+  ids <- ids[!is.na(ids)]
+  unnamed <- setdiff(ids, names(roles$dose_endpoints))
+  if (length(unnamed)) {
+    stop(.condition_text(
+      "`dose_endpoints` does not say which endpoint these `", roles$adm,
+      "` value(s) dose:",
+      items = unnamed,
+      why = paste("Their dose records would enter no endpoint's fit, so a",
+                  "drug the study gave would be missing from every generated",
+                  "profile.")), call. = FALSE)
+  }
+  declared <- .unique_in_order(unname(roles$dose_endpoints))
+  unknown <- setdiff(declared, pk_endpoints)
+  if (length(unknown)) {
+    stop(.condition_text(
+      "`dose_endpoints` names endpoint(s) that carry no structural model:",
+      items = unknown,
+      why = paste("Only a concentration endpoint is driven by doses. The",
+                  "concentration endpoints here are:",
+                  paste(pk_endpoints, collapse = ", ")),
+      fix = paste("Name them with `endpoint_roles = c(pk = ...)` where they",
+                  "are concentrations, or drop them from `dose_endpoints`.")),
+      call. = FALSE)
+  }
+  driven <- .study_dose_endpoints(source, roles)
+  starved <- setdiff(pk_endpoints, driven)
+  if (length(starved)) {
+    stop(.condition_text(
+      "`dose_endpoints` leaves concentration endpoint(s) with no dose record:",
+      items = starved,
+      why = paste("A concentration with no dose has no input to fit against.",
+                  "An endpoint measured from doses given as another drug --",
+                  "a metabolite of one -- is the case `dose_endpoints` is not",
+                  "for."),
+      fix = paste("Drop `dose_endpoints` where the endpoints share one",
+                  "administration, or map an administration id to each.")),
+      call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 .model_estimation_data <- function(source, roles, pk_endpoint) {
   # One endpoint, never the vector of them. `endpoint == pk_endpoint` recycles
   # row by row rather than failing, so a vector here silently selects a mix of
@@ -463,6 +513,16 @@
   dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
   endpoint <- .endpoint(source, roles)
   dosed <- .dose_rows(source, roles)
+  # This endpoint's doses, where `dose_endpoints` says which are whose. Without
+  # the declaration every dose record enters every concentration endpoint's fit
+  # -- right for a parent and its metabolite, which share one administration,
+  # and wrong for two drugs given together, where each model would be fitted
+  # against the other drug's doses as well as its own and its clearance and
+  # volume would absorb them.
+  drives <- .dose_endpoint(source, roles)
+  if (!is.null(roles$dose_endpoints)) {
+    dosed <- dosed & !is.na(drives) & drives == pk_endpoint
+  }
   observed <- .observation_rows(source, roles, require_present = TRUE) &
     endpoint == pk_endpoint
   keep <- (dosed | observed) & is.finite(time)
@@ -1422,6 +1482,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   observations <- .model_observations(source, roles)
   classified <- .model_classify_endpoints(source, roles, observations,
                                           endpoint_roles)
+  .model_check_dose_endpoints(source, roles, classified$pk)
   # One design read per concentration endpoint: the route is a property of the
   # study, but the sampling richness that prunes the candidate set is a property
   # of the endpoint, and a metabolite is not always sampled like its parent.
@@ -1448,8 +1509,23 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   cells <- .model_cells(source, roles, c(fittable, classified$discrete),
                         min_arm_patients)
+  # Which dose records drive which endpoint. `NULL` unless `dose_endpoints` is
+  # declared, which every reader of it takes as "every dose drives them all".
+  dose_groups <- if (is.null(roles$dose_endpoints)) NULL else
+    .dose_endpoint(planned, roles)
   arm_models <- .arm_models(planned, roles, cells, subject_group,
-                            min_arm_patients)
+                            min_arm_patients, dose_groups)
+  # Counted here so that the report can say what each fit was given. A study
+  # with one concentration endpoint has nothing to say; one with two is either
+  # a parent and its metabolite sharing an administration or two drugs whose
+  # doses have to be told apart, and the count is how a reader sees which.
+  dose_rows <- .dose_rows(source, roles)
+  drives <- .dose_endpoint(source, roles)
+  dose_records <- vapply(stats::setNames(classified$pk, classified$pk),
+                         function(endpoint) {
+    sum(if (is.null(roles$dose_endpoints)) dose_rows else
+      dose_rows & !is.na(drives) & drives == endpoint)
+  }, integer(1))
 
   # `censoring_source` rather than `source`: the fitter is given the study's own
   # values with their censoring flags, while the summaries below keep the
@@ -1674,6 +1750,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                     covariate_effects = covariate_effects, error = error),
     n_source = n_source,
     cells = cells, pd = pd_fits, covariate_effects = effects,
+    dose_records = dose_records,
     covariates = .covariate_model(source, roles),
     # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
     # not a concentration, and not a shape that fitted. A PD endpoint that

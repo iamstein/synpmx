@@ -45,10 +45,16 @@
 # observation side.
 #
 .dose_model <- function(member_rows, aligned, amount, dose_rows, floor,
-                        route = NULL, rate = NULL) {
+                        route = NULL, rate = NULL, adm = NULL) {
   n <- length(member_rows)
   if (is.null(route)) route <- rep(NA_character_, length(amount))
   if (is.null(rate)) rate <- rep(0, length(amount))
+  # The administration id, carried so that the generated dose record can be
+  # written back with the one the study used. Reversing the route mapping is
+  # not enough for a study whose ids separate two drugs given the same way:
+  # both are `extravascular`, and the reverse lookup would stamp every dose
+  # with whichever id came first.
+  if (is.null(adm)) adm <- rep(NA_character_, length(amount))
   per_patient <- lapply(seq_len(n), function(i) {
     selected <- member_rows[[i]] & dose_rows
     order_by <- order(aligned[selected])
@@ -56,6 +62,7 @@
                amt = amount[selected][order_by],
                route = route[selected][order_by],
                rate = rate[selected][order_by],
+               adm = adm[selected][order_by],
                stringsAsFactors = FALSE)
   })
 
@@ -136,9 +143,12 @@
     value <- modal(v)
     if (is.na(value)) 0 else as.numeric(value)
   }, numeric(1))
+  planned_adm <- vapply(at_cycle("adm"),
+                        function(v) as.character(modal(v)), character(1))
   planned <- data.frame(cycle = seq_len(n_cycles), time = planned_times,
                         amt = planned_amt, route = planned_route,
-                        rate = planned_rate, stringsAsFactors = FALSE)
+                        rate = planned_rate, adm = planned_adm,
+                        stringsAsFactors = FALSE)
 
   span <- integer(n)
   skipped <- integer(n)
@@ -245,6 +255,7 @@
   # defaults say.
   if (is.null(planned$route)) planned$route <- rep(NA_character_, nrow(planned))
   if (is.null(planned$rate)) planned$rate <- rep(0, nrow(planned))
+  if (is.null(planned$adm)) planned$adm <- rep(NA_character_, nrow(planned))
   levels <- dosing$levels
   level <- 1L
   keep <- logical(nrow(planned))
@@ -260,7 +271,7 @@
     if (stats::runif(1) < dosing$discontinuation) break
   }
   data.frame(time = planned$time[keep], amt = amounts[keep],
-             route = planned$route[keep],
+             route = planned$route[keep], adm = planned$adm[keep],
              # The rate follows the amount. Where a dose was reduced, an
              # infusion given over the same duration runs at a lower rate, which
              # is what a reduction means at the bedside; keeping the rate and
@@ -285,7 +296,8 @@
 # per endpoint and per retained nominal time, the fraction of the arm that has
 # an observation there, so attendance is drawn per visit rather than a real
 # patient's set of attended visits being reused.
-.arm_models <- function(source, roles, cells, subject_group, floor) {
+.arm_models <- function(source, roles, cells, subject_group, floor,
+                        dose_groups = NULL) {
   subjects <- .unique_in_order(source[[roles$id]])
   aligned <- .aligned_time(source, roles)
   observed <- .observation_rows(source, roles, require_present = TRUE)
@@ -304,6 +316,8 @@
   amount[!is.finite(amount)] <- 0
   dose_rows <- .event_rows(source, roles) & amount >= 0
   route <- .dose_routes(source, roles)
+  admin <- if (is.null(roles$adm)) rep(NA_character_, nrow(source)) else
+    as.character(source[[roles$adm]])
   rate <- if (is.null(roles$rate)) rep(0, nrow(source)) else
     suppressWarnings(as.numeric(source[[roles$rate]]))
   rate[!is.finite(rate) | rate < 0] <- 0
@@ -321,8 +335,22 @@
     })
     sizes[arm] <- length(members)
 
-    dosing[[arm]] <- .dose_model(member_rows, aligned, amount, dose_rows,
-                                 floor, route, rate)
+    # One dose model, or one per drug where `dose_groups` says which dose
+    # record is whose. A combination study's arm has two schedules -- two
+    # amounts, two intervals, two ladders of reduction -- and pooling them
+    # plans a regimen neither drug was given: at a nominal time both drugs were
+    # dosed at, only the first record would survive into the plan.
+    dosing[[arm]] <- if (is.null(dose_groups)) {
+      .dose_model(member_rows, aligned, amount, dose_rows, floor, route, rate,
+                  admin)
+    } else {
+      stats::setNames(lapply(.unique_in_order(dose_groups[!is.na(dose_groups)]),
+                             function(group) {
+        .dose_model(member_rows, aligned, amount,
+                    dose_rows & !is.na(dose_groups) & dose_groups == group,
+                    floor, route, rate, admin)
+      }), .unique_in_order(dose_groups[!is.na(dose_groups)]))
+    }
 
     probability <- vapply(seq_len(nrow(cells)), function(row) {
       reached <- vapply(member_rows, function(rows) {
@@ -404,6 +432,16 @@
   }
   adm_class <- if (is.null(roles$adm)) NULL else
     class(source[[roles$adm]])[[1L]]
+  # And per administration id, which is what separates two drugs dosed the same
+  # way: both are `extravascular`, so the route lookup above cannot tell their
+  # compartments apart and a generated dose record would put both drugs in one.
+  cmt_dose_adm <- if (is.null(roles$cmt) || is.null(roles$adm)) NULL else {
+    ids <- as.character(source[[roles$adm]])
+    present <- .unique_in_order(ids[dose_rows & !is.na(ids)])
+    stats::setNames(lapply(present, function(id) {
+      mode_of(dose_rows & !is.na(ids) & ids == id, roles$cmt)
+    }), present)
+  }
   cmt_obs <- stats::setNames(lapply(endpoints, function(ep) {
     if (is.null(roles$cmt)) NULL else mode_of(observed & endpoint == ep,
                                               roles$cmt)
@@ -443,6 +481,7 @@
     } else 0,
     id_levels = if (is.factor(identifiers)) levels(identifiers) else NULL,
     cmt_dose = cmt_dose, cmt_dose_route = cmt_dose_route,
+    cmt_dose_adm = cmt_dose_adm,
     adm_class = adm_class, cmt_obs = cmt_obs,
     carried = carried, arm_values = arm_values,
     endpoint_specs = .endpoint_value_types(source, roles)

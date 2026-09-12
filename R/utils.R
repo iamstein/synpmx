@@ -65,6 +65,24 @@
   unname(roles$routes[match(values, names(roles$routes))])
 }
 
+# Which endpoint each row's dose drives, where `dose_endpoints` says. `NA`
+# everywhere in a study that does not declare it, which every caller reads as
+# "every dose drives every endpoint" -- the parent-and-metabolite reading.
+.dose_endpoint <- function(data, roles) {
+  if (is.null(roles$adm) || is.null(roles$dose_endpoints)) {
+    return(rep(NA_character_, nrow(data)))
+  }
+  values <- as.character(data[[roles$adm]])
+  unname(roles$dose_endpoints[match(values, names(roles$dose_endpoints))])
+}
+
+# The endpoints this study doses separately, in the order the declaration names
+# them, or `character(0)` where it declares none.
+.study_dose_endpoints <- function(data, roles) {
+  endpoints <- .dose_endpoint(data, roles)[.dose_rows(data, roles)]
+  .unique_in_order(endpoints[!is.na(endpoints)])
+}
+
 # Which routes the study actually doses by. Read on the dose records only: an
 # administration id sitting on an observation row says which dose it follows,
 # not that a dose was given.

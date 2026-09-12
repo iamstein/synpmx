@@ -533,8 +533,11 @@ test_that("the fit table follows the study's subject order, not the text one", {
 test_that("the fit reports how long each fit took", {
   skip_without_fitter()
   fit <- .default_fit()
-  expect_true(all(c("fit", "total", "candidates", "pd") %in%
-                    names(fit$timing)))
+  expect_true(all(c("fit", "total", "candidates") %in% names(fit$timing)))
+  # The least-squares shapes are not timed: `lm()` and `nls()` return in
+  # milliseconds, so the number was always 0.0 s beside a fitter that takes
+  # minutes.
+  expect_false("pd" %in% names(fit$timing))
   expect_identical(fit$timing$candidates$model, fit$candidates$model)
   expect_true(all(fit$timing$candidates$seconds >= 0))
   out <- paste(utils::capture.output(print(model_report(fit))),

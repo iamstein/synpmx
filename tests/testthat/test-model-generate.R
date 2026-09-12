@@ -469,3 +469,220 @@ test_that("a fit with no floor records nothing and warns about nothing", {
   synthetic <- synpmx_model_generate(fit, n_subjects = 12, seed = 2)
   expect_null(attr(synthetic, "pmx_floored"))
 })
+
+# Two drugs in one study ------------------------------------------------------
+#
+# A combination is the case every PK endpoint sharing every dose record is wrong
+# for. Undeclared, drug B's doses enter drug A's fit and drive drug A's
+# generated profile; `dose_endpoints` is what tells the two apart, because the
+# data cannot -- a metabolite has no dose records of its own.
+
+.combination_fixture <- function(n = 12, cycles = 4) {
+  cycle_times <- (seq_len(cycles) - 1L) * 168
+  samples <- c(0, 1, 4, 24, 167)
+  pieces <- lapply(seq_len(n), function(subject) {
+    # Drug A weekly at 100 mg (ADM 1), drug B on the first day of every other
+    # week at 900 mg (ADM 2). Different amounts and different schedules, which
+    # is what pooling them destroys.
+    a_times <- cycle_times
+    b_times <- cycle_times[seq(1L, cycles, by = 2L)]
+    doses <- rbind(
+      data.frame(TIME = a_times, NTIME = a_times, DV = 0, AMT = 100,
+                 EVID = 1L, CMT = 1L, ADM = 1L, DVID = "A conc", MDV = 1L),
+      data.frame(TIME = b_times, NTIME = b_times, DV = 0, AMT = 900,
+                 EVID = 1L, CMT = 3L, ADM = 2L, DVID = "B conc", MDV = 1L)
+    )
+    times <- as.numeric(outer(samples, cycle_times, "+"))
+    obs <- rbind(
+      data.frame(TIME = times, NTIME = times,
+                 DV = 5 * exp(-0.02 * (times %% 168)) + 0.1 * subject,
+                 AMT = 0, EVID = 0L, CMT = 2L, ADM = NA_integer_,
+                 DVID = "A conc", MDV = 0L),
+      data.frame(TIME = times, NTIME = times,
+                 DV = 40 * exp(-0.01 * (times %% 336)) + 0.5 * subject,
+                 AMT = 0, EVID = 0L, CMT = 4L, ADM = NA_integer_,
+                 DVID = "B conc", MDV = 0L)
+    )
+    rows <- rbind(doses, obs)
+    rows$ID <- subject
+    rows$WT <- 70 + 10 * sin(subject)
+    rows
+  })
+  out <- do.call(rbind, pieces)
+  out <- out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.combination_roles <- function(...) {
+  pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+            amt = "AMT", evid = "EVID", cmt = "CMT", dvid = "DVID",
+            mdv = "MDV", covariates = "WT", adm = "ADM",
+            routes = c("1" = "extravascular", "2" = "extravascular"), ...)
+}
+
+# Two structural models, two parameter sets, and the apparatus built from the
+# source exactly as `.hand_built_fit()` does it for one endpoint.
+.combination_fit <- function(data, roles) {
+  subject_group <- .model_subject_arms(data, roles)
+  observations <- .model_observations(data, roles)
+  classified <- .model_classify_endpoints(
+    data, roles, observations, endpoint_roles = c(pk = c("A conc", "B conc")))
+  cells <- .model_cells(data, roles, classified$pk, 3L)
+  planned <- data
+  planned[[roles$time]] <- as.numeric(data[[roles$nominal_time]])
+  groups <- if (is.null(roles$dose_endpoints)) NULL else
+    .dose_endpoint(planned, roles)
+  arm_models <- .arm_models(planned, roles, cells, subject_group, 3L, groups)
+  model <- function(fixed) {
+    omega <- diag(rep(0.09, length(fixed)))
+    dimnames(omega) <- list(names(fixed), names(fixed))
+    list(structural = "1cmt_oral",
+         parameters = list(fixed = fixed, omega = omega,
+                           residual = list(kind = "proportional", cv = 0.1)),
+         effects = list())
+  }
+  pk_models <- list(`A conc` = model(c(cl = 5, v = 50, ka = 1.2)),
+                    `B conc` = model(c(cl = 20, v = 200, ka = 0.5)))
+  dose_rows <- .dose_rows(data, roles)
+  drives <- .dose_endpoint(data, roles)
+  .pmx_fitted_model(
+    structural = "1cmt_oral",
+    candidates = data.frame(model = "1cmt_oral", converged = TRUE, aic = 1,
+                            note = "", stringsAsFactors = FALSE),
+    parameters = pk_models[[1L]]$parameters,
+    pk_models = pk_models,
+    endpoints = list(pk = classified$pk, pd = character(),
+                     discrete = character(), decided_by = "declared"),
+    arms = list(arms = arm_models$arms, sizes = arm_models$sizes),
+    dosing = arm_models$dosing, visits = arm_models$visits,
+    schema = .source_schema(data, roles, classified$pk, subject_group),
+    roles = roles, settings = list(min_arm_patients = 3L),
+    n_source = length(subject_group), cells = cells,
+    dose_records = vapply(stats::setNames(classified$pk, classified$pk),
+                          function(endpoint) {
+                            sum(if (is.null(roles$dose_endpoints)) dose_rows else
+                              dose_rows & !is.na(drives) & drives == endpoint)
+                          }, integer(1)),
+    covariates = .covariate_model(data, roles),
+    discrete = .discrete_model(data, roles, cells, subject_group, character())
+  )
+}
+
+test_that("each endpoint is fitted against its own drug's doses", {
+  data <- .combination_fixture()
+  roles <- .combination_roles(
+    dose_endpoints = c("1" = "A conc", "2" = "B conc"))
+  a <- .model_estimation_data(data, roles, "A conc")
+  b <- .model_estimation_data(data, roles, "B conc")
+  expect_setequal(a$AMT[a$EVID != 0L], 100)
+  expect_setequal(b$AMT[b$EVID != 0L], 900)
+  # Undeclared, both fits see both drugs, which is the parent-and-metabolite
+  # reading and the reason the declaration exists.
+  shared <- .combination_roles()
+  pooled <- .model_estimation_data(data, shared, "A conc")
+  expect_setequal(pooled$AMT[pooled$EVID != 0L], c(100, 900))
+})
+
+test_that("a declared combination generates both drugs' dose records", {
+  data <- .combination_fixture()
+  roles <- .combination_roles(
+    dose_endpoints = c("1" = "A conc", "2" = "B conc"))
+  fit <- .combination_fit(data, roles)
+  synthetic <- synpmx_model_generate(fit, n_subjects = 8, seed = 5)
+  doses <- synthetic[synthetic$EVID != 0L, , drop = FALSE]
+  expect_setequal(as.integer(doses$ADM), c(1L, 2L))
+  # Each drug keeps its own amount, its own schedule and its own compartment.
+  expect_setequal(doses$AMT[doses$ADM == 1L], 100)
+  expect_setequal(doses$AMT[doses$ADM == 2L], 900)
+  expect_setequal(doses$CMT[doses$ADM == 1L], 1L)
+  expect_setequal(doses$CMT[doses$ADM == 2L], 3L)
+  expect_gt(sum(doses$ADM == 1L), sum(doses$ADM == 2L))
+})
+
+# The whole point of the split: drug B's dose can move without moving drug A's
+# concentration. Pooled, it cannot -- both endpoints read one schedule.
+test_that("a drug's profile answers to its own doses only", {
+  data <- .combination_fixture()
+  roles <- .combination_roles(
+    dose_endpoints = c("1" = "A conc", "2" = "B conc"))
+  fit <- .combination_fit(data, roles)
+  base <- synpmx_model_generate(fit, n_subjects = 8, seed = 5)
+
+  heavier <- fit
+  for (arm in names(heavier$dosing)) {
+    heavier$dosing[[arm]][["B conc"]]$planned$amt <-
+      heavier$dosing[[arm]][["B conc"]]$planned$amt * 10
+  }
+  moved <- synpmx_model_generate(heavier, n_subjects = 8, seed = 5)
+
+  a_of <- function(d) d$DV[d$EVID == 0L & d$DVID == "A conc"]
+  b_of <- function(d) d$DV[d$EVID == 0L & d$DVID == "B conc"]
+  expect_equal(a_of(moved), a_of(base))
+  expect_gt(mean(b_of(moved)), 5 * mean(b_of(base)))
+})
+
+# A NONMEM dataset has no administration column: the compartment a dose enters
+# is the administration id, so `adm` and `cmt` may name one column.
+test_that("a NONMEM study separates its drugs by compartment", {
+  data <- .combination_fixture()
+  roles <- pmx_roles(
+    id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+    evid = "EVID", cmt = "CMT", dvid = "DVID", mdv = "MDV", covariates = "WT",
+    adm = "CMT", routes = c("1" = "extravascular", "3" = "extravascular"),
+    dose_endpoints = c("1" = "A conc", "3" = "B conc")
+  )
+  a <- .model_estimation_data(data, roles, "A conc")
+  b <- .model_estimation_data(data, roles, "B conc")
+  expect_setequal(a$AMT[a$EVID != 0L], 100)
+  expect_setequal(b$AMT[b$EVID != 0L], 900)
+})
+
+test_that("a dose_endpoints mapping is checked against the study", {
+  data <- .combination_fixture()
+  expect_error(
+    .model_check_dose_endpoints(
+      data, .combination_roles(dose_endpoints = c("1" = "A conc")),
+      c("A conc", "B conc")),
+    "does not say which endpoint")
+  expect_error(
+    .model_check_dose_endpoints(
+      data,
+      .combination_roles(dose_endpoints = c("1" = "A conc", "2" = "A conc")),
+      c("A conc", "B conc")),
+    "no dose record")
+  expect_error(
+    .model_check_dose_endpoints(
+      data,
+      .combination_roles(dose_endpoints = c("1" = "A conc", "2" = "nobody")),
+      c("A conc", "B conc")),
+    "no structural model")
+  expect_error(pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                         evid = "EVID", dose_endpoints = c("1" = "A conc")),
+               "needs `adm`")
+})
+
+# The dosing history each observation is read against. Time after dose, the
+# dose interval and the first dose amount feed the starting values, the route
+# reading and the dose-proportionality signal, so a B sample measured from A's
+# last dose puts every one of them on a mixture of two drugs.
+test_that("an observation's dosing history is its own drug's", {
+  data <- .combination_fixture()
+  roles <- .combination_roles(
+    dose_endpoints = c("1" = "A conc", "2" = "B conc"))
+  obs <- .model_observations(data, roles)
+  b <- obs[obs$endpoint == "B conc", , drop = FALSE]
+  expect_setequal(b$first_dose_amt, 900)
+  # Drug B is dosed on the first day of every other week, so a sample at 169 h
+  # is 169 hours after its own drug's dose and 1 hour after the other's.
+  expect_equal(b$tad[abs(b$time - 169) < 1e-8][[1L]], 169)
+  a <- obs[obs$endpoint == "A conc", , drop = FALSE]
+  expect_setequal(a$first_dose_amt, 100)
+  expect_equal(a$tad[abs(a$time - 169) < 1e-8][[1L]], 1)
+
+  # Undeclared, both endpoints read every dose, which is the reading a parent
+  # and its metabolite need.
+  pooled <- .model_observations(data, .combination_roles())
+  pooled_b <- pooled[pooled$endpoint == "B conc", , drop = FALSE]
+  expect_equal(pooled_b$tad[abs(pooled_b$time - 169) < 1e-8][[1L]], 1)
+})
