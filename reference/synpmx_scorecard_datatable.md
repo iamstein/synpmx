@@ -47,7 +47,9 @@ synpmx_scorecard_datatable(x, report = c("all", "minimal"), ...)
 An
 [`htmltools::tagList`](https://rstudio.github.io/htmltools/reference/tagList.html)
 holding the coloured card and the notes that knitting one carries.
-Without `DT` installed, `x` invisibly, having printed it.
+Without `DT` installed, the rows `report` selects invisibly, having
+printed them: `DT` is a suggested package, so the card stays readable
+without it and only the colour is lost.
 
 ## Details
 
