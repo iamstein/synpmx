@@ -87,7 +87,7 @@ where a weight-like covariate is declared and keeps it where it improves
 AIC.
 
 The default is \code{"none"} because a synthetic study does not need the
-relationship: covariates are generated per arm from the source's own
+relationship: covariates are generated from the source's own study-wide
 distributions either way, and a clearance that moves with weight buys
 nothing the generator spends. \code{fit$correlations} still reports where a
 covariate moves with a random effect, so the relationship the model is

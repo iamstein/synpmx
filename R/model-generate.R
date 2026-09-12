@@ -55,42 +55,46 @@
   out[, c("index", "name", "endpoint", "time")]
 }
 
-# Baseline covariates, per arm. A mean and a standard deviation on the log scale
-# for a positive continuous covariate, on the natural scale otherwise, and level
-# frequencies for a categorical one. Deliberately independent draws: this
-# generator models the relationship between a covariate and a profile only where
-# a covariate effect was fitted, and `model_report()` reports the correlations
-# that says nothing about.
-.covariate_model <- function(source, roles, subject_group) {
+# Baseline covariates, once for the whole study. A mean and a standard deviation
+# on the log scale for a positive continuous covariate, on the natural scale
+# otherwise, and level frequencies for a categorical one. Deliberately
+# independent draws: this generator models the relationship between a covariate
+# and a profile only where a covariate effect was fitted, and `model_report()`
+# reports the correlations that says nothing about.
+#
+# Pooled rather than per arm, unlike the dose and visit models beside it. Those
+# describe what an arm was given and when it was seen, which is per arm by
+# construction; a baseline covariate is recorded before the first dose, so what
+# separates two arms' weights in a randomized study is the sampling noise of
+# eight patients. Modelling that noise reproduces it as if it were structure,
+# and for a categorical covariate the split can leave an arm with a level the
+# study does not have in it. The cost is a study whose arms enrol differently by
+# design -- a pediatric cohort, a renal-impairment arm -- where the arms now
+# share one distribution.
+.covariate_model <- function(source, roles) {
   subjects <- .unique_in_order(source[[roles$id]])
   first_row <- vapply(subjects, function(subject) {
     which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
   }, integer(1))
-  out <- list()
-  for (arm in unique(subject_group)) {
-    members <- first_row[subject_group == arm]
-    out[[arm]] <- lapply(stats::setNames(roles$covariates, roles$covariates),
-                         function(column) {
-      values <- source[[column]][members]
-      values <- values[!is.na(values)]
-      if (!length(values)) return(list(kind = "missing"))
-      if (is.numeric(values) && !is.factor(values)) {
-        if (all(values > 0)) {
-          logged <- log(values)
-          return(list(kind = "lognormal", meanlog = mean(logged),
-                      sdlog = stats::sd(logged) %|na|% 0,
-                      median = stats::median(values)))
-        }
-        return(list(kind = "normal", mean = mean(values),
-                    sd = stats::sd(values) %|na|% 0,
+  lapply(stats::setNames(roles$covariates, roles$covariates), function(column) {
+    values <- source[[column]][first_row]
+    values <- values[!is.na(values)]
+    if (!length(values)) return(list(kind = "missing"))
+    if (is.numeric(values) && !is.factor(values)) {
+      if (all(values > 0)) {
+        logged <- log(values)
+        return(list(kind = "lognormal", meanlog = mean(logged),
+                    sdlog = stats::sd(logged) %|na|% 0,
                     median = stats::median(values)))
       }
-      counts <- table(as.character(values))
-      list(kind = "categorical", levels = names(counts),
-           probability = as.numeric(counts) / sum(counts))
-    })
-  }
-  out
+      return(list(kind = "normal", mean = mean(values),
+                  sd = stats::sd(values) %|na|% 0,
+                  median = stats::median(values)))
+    }
+    counts <- table(as.character(values))
+    list(kind = "categorical", levels = names(counts),
+         probability = as.numeric(counts) / sum(counts))
+  })
 }
 
 `%|na|%` <- function(x, y) if (is.na(x)) y else x
@@ -292,18 +296,14 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     pd_etas <- matrix(pd_etas, nrow = n_subjects,
                       dimnames = list(NULL, names(fit$pd)))
   }
-  covariates <- stats::setNames(lapply(fit$arms$arms, function(arm) {
-    .draw_covariates(fit$covariates[[arm]], sum(assignment == arm))
-  }), fit$arms$arms)
-  taken <- stats::setNames(integer(length(fit$arms$arms)), fit$arms$arms)
+  covariates <- .draw_covariates(fit$covariates, n_subjects)
 
   pieces <- vector("list", n_subjects)
   subject_covariates <- vector("list", n_subjects)
   doses <- numeric(n_subjects)
   for (i in seq_len(n_subjects)) {
     arm <- assignment[[i]]
-    taken[arm] <- taken[arm] + 1L
-    mine <- lapply(covariates[[arm]], function(column) column[taken[arm]])
+    mine <- lapply(covariates, function(column) column[i])
     subject_covariates[[i]] <- mine
 
     schedule <- .draw_schedule(fit$dosing[[arm]])

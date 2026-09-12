@@ -259,10 +259,15 @@ adequate for exercising longitudinal code and is not an exposure-response model.
 
 ## The covariate distributions
 
-One distribution per covariate per arm, drawn from independently at generation.
+One distribution per covariate, fitted over the whole study and drawn from
+independently at generation. Pooled rather than per arm because a baseline
+covariate is recorded before the first dose: in a randomized study what
+separates two arms' weights is the sampling noise of however many patients the
+arm has, and modelling it per arm reproduces that noise as if it were
+structure.
 
 ```{r covariate-model, eval=run}
-str(fit$covariates, max.level = 3)
+str(fit$covariates, max.level = 2)
 ```
 
 ## The arms

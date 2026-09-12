@@ -445,9 +445,9 @@ model_candidates(fit)
 ### Covariates
 
 The default `"none"` puts no covariate in the structural model. A synthetic
-study does not need the relationship: covariates are generated per arm from the
-source's own distributions either way, so a clearance that moves with weight
-buys the generator nothing.
+study does not need the relationship: covariates are generated from the
+source's own study-wide distributions either way, so a clearance that moves with
+weight buys the generator nothing.
 
 `covariate_effects = "auto"` applies allometric scaling on clearance and volume
 where a weight-like covariate is declared, and fits nothing else. The exponents

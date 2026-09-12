@@ -1298,7 +1298,7 @@
 #'   AIC.
 #'
 #'   The default is `"none"` because a synthetic study does not need the
-#'   relationship: covariates are generated per arm from the source's own
+#'   relationship: covariates are generated from the source's own study-wide
 #'   distributions either way, and a clearance that moves with weight buys
 #'   nothing the generator spends. `fit$correlations` still reports where a
 #'   covariate moves with a random effect, so the relationship the model is
@@ -1606,15 +1606,16 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   effects <- primary$effects
   fit_seconds <- sum(vapply(pk_models, function(m) m$seconds, numeric(1)))
 
-  pd_seconds <- stats::setNames(numeric(length(classified$pd)), classified$pd)
+  # Not timed, unlike the population fits. `lm()` and `nls()` on one endpoint's
+  # observations return in milliseconds, so the number was always 0.0 s beside a
+  # fitter that takes seconds to minutes, and a reader weighing a rerun has
+  # nothing to weigh.
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
-    started_pd <- proc.time()[["elapsed"]]
     pooled <- .model_fit_pd(observations, endpoint, pd)
     if (!is.null(pooled) && pd_by_arm) {
       pooled$arms <- .model_fit_pd_arms(observations, endpoint, pd,
                                         subject_group, pooled)
     }
-    pd_seconds[[endpoint]] <<- proc.time()[["elapsed"]] - started_pd
     pooled
   }), classified$pd)
   pd_fits <- pd_fits[!vapply(pd_fits, is.null, logical(1))]
@@ -1673,7 +1674,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                     covariate_effects = covariate_effects, error = error),
     n_source = n_source,
     cells = cells, pd = pd_fits, covariate_effects = effects,
-    covariates = .covariate_model(source, roles, subject_group),
+    covariates = .covariate_model(source, roles),
     # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
     # not a concentration, and not a shape that fitted. A PD endpoint that
     # failed to fit falls through to a per-visit marginal, so it belongs here.
@@ -1699,8 +1700,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                       row$model <- paste0(m$endpoint, ": ", row$model)
                     }
                     row
-                  })),
-                  pd = pd_seconds)
+                  })))
   )
   if (!quiet) {
     message("Fitted in ", .model_duration(fitted$timing$fit), "; ",

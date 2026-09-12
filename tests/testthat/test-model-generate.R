@@ -74,7 +74,7 @@
     schema = .source_schema(data, roles, classified$pk, subject_group),
     roles = roles,
     settings = list(min_arm_patients = 3L), n_source = length(subject_group),
-    cells = cells, covariates = .covariate_model(data, roles, subject_group),
+    cells = cells, covariates = .covariate_model(data, roles),
     discrete = .discrete_model(data, roles, cells, subject_group,
                                setdiff(unique(cells$endpoint), classified$pk))
   )
@@ -168,7 +168,8 @@ test_that("printing a fit reports every input the generator simulates from", {
   out <- paste(utils::capture.output(print(fit)), collapse = "\n")
   for (heading in c("structural model", "fixed effects", "between-subject",
                     "residual error", "cohort",
-                    "dose changes", "visit attendance", "covariates",
+                    "dose changes", "visit grid", "visit attendance",
+                    "covariates",
                     "columns emitted")) {
     expect_match(out, heading, fixed = TRUE)
   }
@@ -282,7 +283,7 @@ test_that("the visit model refuses a grid no arm shares", {
                "held by at least 3 patients")
 })
 
-test_that("covariates are drawn from the arm's model, not copied", {
+test_that("covariates are drawn from the study's model, not copied", {
   data <- .cycle_fixture()
   roles <- .generate_roles()
   synthetic <- synpmx_model_generate(.hand_built_fit(data, roles),

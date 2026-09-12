@@ -240,21 +240,33 @@
 # it. `post_dose` and `proportional` are the two that decide, so they are always
 # stated; `compartment` and `shape` only break ties and are mentioned only where
 # they passed.
+# One signal to a line, in the words of what was read rather than of the field
+# that holds it, and only for the signals that were readable. Semicolons ran the
+# four together into a sentence that had to be parsed to be counted, and two of
+# them said less than they knew: "measured where the doses go" is a statement
+# about the `cmt` column, and the shape is read inside one dose interval and not
+# across the study.
 .model_endpoint_reason <- function(signals, endpoint) {
   if (is.null(signals)) return("the signals did not separate the endpoints")
   row <- signals[signals$endpoint == endpoint, , drop = FALSE]
   if (!nrow(row)) return("the signals did not separate the endpoints")
-  parts <- c(
+  c(
     if (isTRUE(row$post_dose[[1L]])) "absent before the first dose" else
       "present before the first dose",
-    if (is.na(row$proportional[[1L]]))
-      "dose proportionality not computable here" else
-        if (isTRUE(row$proportional[[1L]])) "dose-proportional" else
+    # Silent where proportionality could not be read. A study with one dose
+    # level, or an amount per patient, has nothing to compare across doses;
+    # `.model_classify_endpoints()` waives the requirement there and the other
+    # signals decide, so a line about a signal that did not speak is one more
+    # thing to read past on the way to the ones that did.
+    if (is.na(row$proportional[[1L]])) NULL else
+      if (isTRUE(row$proportional[[1L]]))
+        "dose-proportional: the peak scales with the dose" else
           "not dose-proportional",
-    if (isTRUE(row$compartment[[1L]])) "measured where the doses go",
-    if (isTRUE(row$shape[[1L]])) "rises to one peak and comes back down"
+    if (isTRUE(row$compartment[[1L]]))
+      "recorded in the compartment the doses go into",
+    if (isTRUE(row$shape[[1L]]))
+      "rises to one peak and comes back down within one dose interval"
   )
-  paste(parts, collapse = "; ")
 }
 
 .model_pd_selection <- function(shape) {
@@ -547,24 +559,28 @@ print.pmx_model_report <- function(x, ...) {
   }
 
   # Attendance is the model of a missed observation, and it is one probability
-  # per grid cell. The spread is what a reader needs: a cell nobody misses and
-  # a cell half the arm misses are the same line otherwise.
+  # per endpoint per nominal time per arm -- the fraction of that arm with an
+  # observation there. Said in those words: the first readers of this report
+  # took "cell(s) of the visit grid" for a count of nominal times, which it is
+  # not, because endpoints are not all measured at the same times. The spread is
+  # what a reader needs beside the median, because a slot nobody misses and a
+  # slot half the arm misses are the same line otherwise.
   attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
-  field("visit attendance", nrow(x$cells), " cell(s) of the visit grid ",
-        "(one endpoint at one nominal time) over ",
-        length(unique(x$cells$endpoint)), " endpoint(s), ",
-        if (length(attendance)) sprintf(
-          "attended at median %.0f%%, from %.0f%% to %.0f%%",
-          100 * stats::median(attendance), 100 * min(attendance),
-          100 * max(attendance)) else "no attendance model")
+  field("visit grid", length(unique(x$cells$endpoint)), " endpoint(s) at ",
+        length(unique(x$cells$time)), " nominal time(s), ", nrow(x$cells),
+        " slot(s) in all")
+  field("visit attendance", if (length(attendance)) sprintf(
+    "median %.0f%% of an arm attends a slot (%.0f%% to %.0f%%)",
+    100 * stats::median(attendance), 100 * min(attendance),
+    100 * max(attendance)) else "no attendance model")
 
   if (length(x$covariates)) {
-    first <- x$covariates[[1L]]
-    field("covariates", if (length(first)) paste0(
-      paste(sprintf("%s %s", names(first),
-                    vapply(first, function(spec) spec$kind, character(1))),
+    field("covariates", paste0(
+      paste(sprintf("%s %s", names(x$covariates),
+                    vapply(x$covariates, function(spec) spec$kind,
+                           character(1))),
             collapse = ", "),
-      ", drawn per arm, independently of the profiles") else "none declared")
+      ", drawn once for the whole study, independently of the profiles"))
   }
   drawn <- .unique_in_order(unlist(lapply(x$discrete %||% list(),
     function(arm) x$cells$endpoint[!vapply(arm, is.null, logical(1))])))
@@ -594,21 +610,22 @@ print.pmx_model_report <- function(x, ...) {
                 censored$endpoint, censored$censored, censored$observations,
                 100 * censored$fraction, censored$limit), sep = "")
   }
-  if (length(x$quantification_floor)) {
-    cat("  ", .wrap_plain(paste(
-      "No assay limit declared. Each floor below is half the smallest value",
-      "the endpoint was observed at, and a simulated value under it is raised",
-      "to it:"), "", "  "), "\n", sep = "")
-    cat(sprintf("    %-18s %.4g\n", names(x$quantification_floor),
-                unlist(x$quantification_floor)), sep = "")
-  }
+  # One line per endpoint, the same shape as the censored lines above it, and
+  # carrying its own sentence rather than a paragraph over the group: an
+  # endpoint with a declared limit and an endpoint with a floor are the same
+  # kind of fact about the same kind of number, and reading the second one
+  # meant reading a wrapped preamble first to find out which it was.
+  floors <- unlist(x$quantification_floor)
+  cat(sprintf("    %-18s %.4g, half the smallest value seen, no assay limit\n",
+              names(floors), floors), sep = "")
 
   # The shape name alone is not the fit: the generator draws every one of these
   # numbers, so a report that is an inventory of its inputs has to show them.
   # `constant` and `linear` come from `lm()` and `exponential` from `nls()`,
   # all on study time from the first dose.
   if (length(x$pd)) {
-    cat("\nEach other continuous endpoint, fitted as a shape in time\n")
+    cat("\nEach non-PK continuous endpoint, fitted as constant, linear,",
+        "or exponential\n")
     for (name in names(x$pd)) {
       shape <- x$pd[[name]]
       # One line per arm where the shape was fitted per arm, because that is
@@ -625,6 +642,35 @@ print.pmx_model_report <- function(x, ...) {
       }
       field(name, shape$pd)
       shape_block(shape, strrep(" ", 23L))
+    }
+  }
+
+  # Which endpoint carries the structural model, and on what grounds. The four
+  # signals behind an inferred answer are on the object at
+  # `fit$endpoints$signals`; as a grid of bare logicals they read as a puzzle,
+  # so what prints here is the decision in words. Before the model rather than
+  # after it: the reader is told which endpoint was fitted, and why that one,
+  # before they are shown the fit to it.
+  cat("\nPK endpoint for the PopPK model\n")
+  for (endpoint in x$endpoints$pk) {
+    if (identical(x$endpoints$decided_by, "declared")) {
+      field(endpoint, "declared through `endpoint_roles`")
+    } else {
+      field(endpoint, "inferred from the following data characteristics:")
+      for (reason in .model_endpoint_reason(x$endpoints$signals, endpoint)) {
+        cat(.wrap_plain(reason, strrep(" ", 23L), strrep(" ", 25L)), "\n",
+            sep = "")
+      }
+    }
+  }
+  if (!is.null(x$design)) {
+    field("route", x$design$route, ": ", x$design$reason)
+    if (isTRUE(x$design$richness$rich) && !grepl("^2cmt", x$structural)) {
+      field("also available",
+            sprintf("2cmt_%s, which the sampling would support: median %g distinct times after a dose, %g after the peak",
+                    if (grepl("oral", x$structural)) "oral" else "iv",
+                    x$design$richness$per_subject,
+                    x$design$richness$after_peak))
     }
   }
 
@@ -707,12 +753,6 @@ print.pmx_model_report <- function(x, ...) {
                   ifelse(rows$converged, "", " (did not converge)")),
           sep = "")
     }
-    if (length(x$timing$pd)) {
-      field("", "least squares: ", paste(sprintf(
-        "%s %s", names(x$timing$pd),
-        vapply(unname(x$timing$pd), .model_duration, character(1))
-      ), collapse = ", "))
-    }
   }
   # Only where something was fitted. `covariate_effects` is `"none"` by
   # default, and a line reading "none" on every report says nothing.
@@ -728,27 +768,6 @@ print.pmx_model_report <- function(x, ...) {
   # signals behind an inferred answer are on the object at
   # `fit$endpoints$signals`; as a grid of bare logicals they read as a puzzle,
   # so what prints here is the decision in words.
-  cat("\nPK endpoint for the PopPK model\n")
-  for (endpoint in x$endpoints$pk) {
-    field(endpoint,
-          if (identical(x$endpoints$decided_by, "declared")) {
-            "declared through `endpoint_roles`"
-          } else {
-            paste0("inferred: ",
-                   .model_endpoint_reason(x$endpoints$signals, endpoint))
-          })
-  }
-  if (!is.null(x$design)) {
-    field("route", x$design$route, ": ", x$design$reason)
-    if (isTRUE(x$design$richness$rich) && !grepl("^2cmt", x$structural)) {
-      field("also available",
-            sprintf("2cmt_%s, which the sampling would support: median %g distinct times after a dose, %g after the peak",
-                    if (grepl("oral", x$structural)) "oral" else "iv",
-                    x$design$richness$per_subject,
-                    x$design$richness$after_peak))
-    }
-  }
-
   invisible(x)
 }
 
