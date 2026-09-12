@@ -66,8 +66,8 @@ every dose record drives every concentration named here: one
 administration, two analytes, which is what a parent and its metabolite
 are. Two \emph{different} drugs given together need
 \code{dose_endpoints} in \code{\link[=pmx_roles]{pmx_roles()}}, or each drug is fitted against the
-other's doses as well as its own. \code{model_report()} says which of the two
-is happening whenever more than one concentration is named.}
+other's doses as well as its own. Undeclared, \code{model_report()} says so
+whenever more than one concentration is named.}
 
 \item{start_param}{Starting values for the population PK parameters, as
 \code{start_param = c(cl = 4, v = 40, ka = 0.5)}. Anything not named is read

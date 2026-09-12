@@ -1357,8 +1357,8 @@
 #'   administration, two analytes, which is what a parent and its metabolite
 #'   are. Two *different* drugs given together need
 #'   `dose_endpoints` in [pmx_roles()], or each drug is fitted against the
-#'   other's doses as well as its own. `model_report()` says which of the two
-#'   is happening whenever more than one concentration is named.
+#'   other's doses as well as its own. Undeclared, `model_report()` says so
+#'   whenever more than one concentration is named.
 #' @param covariate_effects `"none"`, the default, puts no covariate in the
 #'   structural model. `"auto"` fits allometric scaling on clearance and volume
 #'   where a weight-like covariate is declared and keeps it where it improves

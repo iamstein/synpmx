@@ -109,8 +109,8 @@
 #'   twice: `pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints =
 #'   c("1" = "drug A PK", "3" = "drug B PK"))`.
 #'
-#'   Either way, [model_report()] says which dose records drove which fit
-#'   whenever a study has more than one concentration.
+#'   Undeclared, [model_report()] says so on any study with more than one
+#'   concentration, because that is the case worth a line.
 #' @param covariates Baseline covariate column names, or `NULL`.
 #' @param strata Treatment arm, dose group, cohort — any **assigned,
 #'   subject-level stratum**, as opposed to a measured characteristic, which is a

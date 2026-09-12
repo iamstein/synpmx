@@ -144,8 +144,8 @@ compartment.
 In a NONMEM dataset the compartment does this job, so declare the column
 twice: \code{pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints = c("1" = "drug A PK", "3" = "drug B PK"))}.
 
-Either way, \code{\link[=model_report]{model_report()}} says which dose records drove which fit
-whenever a study has more than one concentration.}
+Undeclared, \code{\link[=model_report]{model_report()}} says so on any study with more than one
+concentration, because that is the case worth a line.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 

@@ -681,21 +681,14 @@ print.pmx_model_report <- function(x, ...) {
             sep = "")
       }
     }
-    # Which doses this one was fitted against, and only where the study has a
-    # second concentration to confuse it with.
-    if (length(x$endpoints$pk) > 1L && !is.null(x$dose_records) &&
-        !is.null(x$roles$dose_endpoints)) {
-      cat(.wrap_plain(paste0(
-        "driven by the ", x$dose_records[[endpoint]], " dose record(s) ",
-        "`dose_endpoints` gives it"),
-        strrep(" ", 23L), strrep(" ", 25L)), "\n", sep = "")
-    }
   }
-  # Said once for the study rather than once per endpoint, because undeclared it
-  # is one fact about all of them: every dose record drives every concentration.
-  # Right for a parent and its metabolite, which share one administration, and
+  # Only where the doses were NOT separated, because only then is there
+  # something to say: every dose record drives every concentration, which is
+  # right for a parent and its metabolite, which share one administration, and
   # wrong for two drugs given together, where each model is fitted against the
   # other drug's doses as well as its own -- and silent until it was printed.
+  # Declared, the split is the unsurprising case and its record count is a
+  # number nobody reads.
   if (length(x$endpoints$pk) > 1L && !is.null(x$dose_records) &&
       is.null(x$roles$dose_endpoints)) {
     field("doses", "all ", x$dose_records[[1L]], " dose record(s) drive every ",
