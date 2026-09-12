@@ -1337,9 +1337,8 @@
 #'
 #'   **More than one may be named**, for a study that measures two
 #'   concentrations — two drugs, or a parent and its metabolite. Each gets its
-#'   own structural model, its own parameters and its own residual error,
-#'   evaluated against the one dose schedule they share; no correlation between
-#'   their random effects is estimated. Write it as
+#'   own structural model, its own parameters and its own residual error; no
+#'   correlation between their random effects is estimated. Write it as
 #'   `list(pk = c("parent", "metabolite"))`, or `c(pk = c("parent",
 #'   "metabolite"))`, which R renames to `pk1`/`pk2` and which is read the same
 #'   way.
@@ -1352,6 +1351,14 @@
 #'   really is a concentration, that time course has no dose term in it and the
 #'   generated values lose their dose ordering, which is why naming both is
 #'   worth doing.
+#'
+#'   **Which doses drive which of them is a second declaration.** By default
+#'   every dose record drives every concentration named here: one
+#'   administration, two analytes, which is what a parent and its metabolite
+#'   are. Two *different* drugs given together need
+#'   `dose_endpoints` in [pmx_roles()], or each drug is fitted against the
+#'   other's doses as well as its own. `model_report()` says which of the two
+#'   is happening whenever more than one concentration is named.
 #' @param covariate_effects `"none"`, the default, puts no covariate in the
 #'   structural model. `"auto"` fits allometric scaling on clearance and volume
 #'   where a weight-like covariate is declared and keeps it where it improves

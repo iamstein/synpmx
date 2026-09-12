@@ -205,12 +205,28 @@ pmx_roles(
 )
 ```
 
+In a NONMEM dataset the compartment already does this job, so declare the column
+twice — `cmt = "CMT", adm = "CMT"` — and key the mapping on compartment numbers.
+
 Declared, each drug gets its own dose schedule per arm — its own amounts, its
-own interval, its own ladder of reductions — each endpoint's profile is
-evaluated against its own drug's doses, and the generated study writes both
-drugs' dose records back with their own `adm` value and compartment. Undeclared,
-`model_report()` says so on a study with more than one concentration, which is
-the case where it matters.
+own interval, its own ladder of reductions — and each endpoint's fit and
+generated profile read only that drug's doses. **Including the dosing history
+each observation is read against**: time after dose, the dose interval and the
+first dose amount follow the endpoint's own drug, which is what the starting
+values, the route reading, the sampling richness and the dose-proportionality
+signal are all computed from. Without that half, a fit table split correctly
+still starts from a volume scaled by the wrong drug's milligrams. The generated
+study then writes both drugs' dose records back with their own `adm` value and
+compartment.
+
+Measured on a simulated combination — 100 mg weekly at `cl` 5, `v` 50, `ka` 1.2
+beside 900 mg fortnightly at `cl` 20, `v` 200, `ka` 0.5, sixteen subjects — the
+second drug comes back `cl` 14.4, `v` 3.26, `ka` 9.34 with the doses pooled, and
+`cl` 19.3, `v` 166, `ka` 0.57 with them separated, which is what that data
+fitted on its own gives.
+
+Undeclared, `model_report()` says so on a study with more than one
+concentration, which is the case where it matters.
 
 **Inference promotes a second endpoint only on signal 4.** Dose proportionality
 is the positive evidence that something is a drug: a concentration scales with

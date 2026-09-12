@@ -47,9 +47,8 @@ least-squares fits.}
 
 \strong{More than one may be named}, for a study that measures two
 concentrations — two drugs, or a parent and its metabolite. Each gets its
-own structural model, its own parameters and its own residual error,
-evaluated against the one dose schedule they share; no correlation between
-their random effects is estimated. Write it as
+own structural model, its own parameters and its own residual error; no
+correlation between their random effects is estimated. Write it as
 \code{list(pk = c("parent", "metabolite"))}, or \code{c(pk = c("parent", "metabolite"))}, which R renames to \code{pk1}/\code{pk2} and which is read the same
 way.
 
@@ -60,7 +59,15 @@ passes the concentration signals is at least as often a biomarker as a
 metabolite — \code{onc_sim}'s tumour size passes them. Where a demoted endpoint
 really is a concentration, that time course has no dose term in it and the
 generated values lose their dose ordering, which is why naming both is
-worth doing.}
+worth doing.
+
+\strong{Which doses drive which of them is a second declaration.} By default
+every dose record drives every concentration named here: one
+administration, two analytes, which is what a parent and its metabolite
+are. Two \emph{different} drugs given together need
+\code{dose_endpoints} in \code{\link[=pmx_roles]{pmx_roles()}}, or each drug is fitted against the
+other's doses as well as its own. \code{model_report()} says which of the two
+is happening whenever more than one concentration is named.}
 
 \item{start_param}{Starting values for the population PK parameters, as
 \code{start_param = c(cl = 4, v = 40, ka = 0.5)}. Anything not named is read

@@ -55,8 +55,11 @@ censoring boundary. \code{\link[=synpmx_avatar]{synpmx_avatar()}} refuses rather
 silently.
 
 A NONMEM \code{CMT} usually does both jobs, so \strong{one column may be named as both
-roles}: \code{pmx_roles(..., cmt = "CMT", dvid = "CMT")}. This is the only
-permitted overlap; every other collision is an error.}
+roles}: \code{pmx_roles(..., cmt = "CMT", dvid = "CMT")}. \code{cmt} and \code{adm} may
+likewise be one column, for the same reason — a NONMEM dataset has no
+administration column, and the compartment a dose enters is what says how
+it was given and which drug it is. Those two are the only permitted
+overlaps; every other collision is an error.}
 
 \item{nominal_time, occasion}{Optional time metadata columns.}
 
@@ -101,7 +104,12 @@ than declared twice; \code{extravascular} covers subcutaneous, oral and
 intramuscular, which are one first-order absorption with an absorption rate
 constant and a bioavailability. A study dosing both ways is fitted with one
 model that routes each dose record to its own compartment, so a patient may
-receive both.}
+receive both.
+
+\code{adm} may name the same column as \code{cmt}: a NONMEM dataset has no
+administration column, and the compartment a dose enters is the
+administration id. See \code{dose_endpoints} for the other thing an
+administration id says — which drug the dose is.}
 
 \item{dose_endpoints}{Which endpoint each administration id doses, as
 \code{dose_endpoints = c("1" = "drug A PK", "2" = "drug B PK")}. Needs \code{adm},
@@ -120,9 +128,24 @@ records of its own, so "this endpoint's doses are the ones marked \code{2}" and
 the same argument \code{routes} makes.
 
 Every administration id present on a dose record must be named, and every
-endpoint named must be one the fit puts a structural model on. Each drug
-then gets its own dose schedule per arm, and the generated study writes
-both drugs' dose records back with their own \code{adm} value.}
+endpoint named must be one the fit puts a structural model on — both are
+checked against the study when the fit runs. A mapping that leaves a
+concentration with no dose record at all is refused, and that refusal is
+the signal that the endpoint is a metabolite and this is not the argument
+for it.
+
+Declared, each drug gets its own dose schedule per arm — its own amounts,
+its own interval, its own ladder of reductions — each endpoint's fit and
+generated profile read only that drug's doses, each observation's time
+after dose is measured from that drug's last dose, and the generated study
+writes both drugs' dose records back with their own \code{adm} value and
+compartment.
+
+In a NONMEM dataset the compartment does this job, so declare the column
+twice: \code{pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints = c("1" = "drug A PK", "3" = "drug B PK"))}.
+
+Either way, \code{\link[=model_report]{model_report()}} says which dose records drove which fit
+whenever a study has more than one concentration.}
 
 \item{covariates}{Baseline covariate column names, or \code{NULL}.}
 
