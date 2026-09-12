@@ -180,8 +180,22 @@ synpmx_disable_dp_engines <- function() {
 #' class, or the reasoning that set the starting dose. The output is exactly as
 #' good as that prior.
 #'
+#' @section Roles here name the output, not an input:
+#' Every generator in the package takes a [pmx_roles()] declaration and writes
+#' its output under those column names, so that one declaration serves the
+#' generator, [compare_pmx_distributions()] and [synpmx_scorecard()]. For
+#' [synpmx_avatar()], [synpmx_pca()] and [synpmx_model()] the declaration
+#' describes the study being read. This function reads nothing, so the same
+#' object does the opposite job here: it prescribes the schema to generate
+#' into. Pass the roles of the study the synthetic data has to stand in for and
+#' the output drops straight into code written against it. A role left
+#' undeclared gets no column. The default, [pmx_generated_roles()], names every
+#' column the generator can produce.
+#'
 #' @param model A [pmx_structural_model()].
 #' @param design A [pmx_trial_design()].
+#' @param roles A [pmx_roles()] naming the columns of the output. Defaults to
+#'   [pmx_generated_roles()], the package's own generated schema.
 #' @param n_subjects Number of subjects. Defaults to the planned cohort total.
 #' @param seed Ordinary generation seed. Unrelated to privacy noise.
 #' @param dropout Fraction of subjects who discontinue early. A public
@@ -190,8 +204,7 @@ synpmx_disable_dp_engines <- function() {
 #'   `CENS = 1` with `DV` at the limit, following the Monolix convention.
 #' @param covariates Optional [pmx_covariates()].
 #'
-#' @return A data frame in the generated event-table schema; see
-#'   [pmx_generated_roles()].
+#' @return A data frame in event-table form, under the names in `roles`.
 #' @seealso [synpmx_avatar()], [synpmx_calibrated()], [synpmx_empirical()]
 #' @export
 #' @examples
@@ -205,7 +218,15 @@ synpmx_disable_dp_engines <- function() {
 #' )
 #' syn <- synpmx_prior(model, design, n_subjects = 12, seed = 202)
 #' head(syn, 3)
-synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
+#'
+#' # Generating into a study's own schema, so the output needs no renaming.
+#' study_roles <- pmx_roles(
+#'   id = "SUBJID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+#'   amt = "AMT", evid = "EVID", cmt = "CMT", mdv = "MDV"
+#' )
+#' names(synpmx_prior(model, design, study_roles, n_subjects = 3, seed = 202))
+synpmx_prior <- function(model, design, roles = pmx_generated_roles(),
+                         n_subjects = NULL, seed = NULL,
                          dropout = 0, lloq = NULL, covariates = NULL) {
   .reject_fitted_model(model, "model", "synpmx_prior()")
   if (!inherits(model, "pmx_structural_model")) {
@@ -214,7 +235,7 @@ synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
   }
   .generate_structural(model, design = design, n_subjects = n_subjects,
                        seed = seed, dropout = dropout, lloq = lloq,
-                       covariates = covariates)
+                       covariates = covariates, roles = roles)
 }
 
 
@@ -246,7 +267,10 @@ synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
 #' will run (unless `backend = "public"`, which makes no DP claim).
 #'
 #' @param data The confidential dataset.
-#' @param roles A [pmx_roles()] declaration for `data`.
+#' @param roles A [pmx_roles()] declaration for `data`. It names the columns of
+#'   the output too, so the synthetic table wears the source study's schema,
+#'   the way [synpmx_avatar()] and [synpmx_model()] output does. A role left
+#'   undeclared gets no column.
 #' @param model A public [pmx_structural_model()].
 #' @param design A public [pmx_trial_design()].
 #' @param priors A [pmx_priors()] giving a public range per released correction.
@@ -264,9 +288,9 @@ synpmx_prior <- function(model, design, n_subjects = NULL, seed = NULL,
 #' @param public_source Assert that `data` is genuinely public. Required by, and
 #'   only meaningful for, `backend = "public"`, which makes no DP claim.
 #'
-#' @return A data frame in the generated event-table schema, carrying its
-#'   release so that [privacy_report()] and [synpmx_generate()] can read it.
-#'   A list of such data frames when `n_datasets > 1`.
+#' @return A data frame under the names in `roles`, carrying its release so
+#'   that [privacy_report()] and [synpmx_generate()] can read it. A list of
+#'   such data frames when `n_datasets > 1`.
 #' @seealso [synpmx_generate()] to draw more datasets for free,
 #'   [privacy_report()] for the realized accounting.
 #' @export
@@ -307,7 +331,8 @@ synpmx_calibrated <- function(data, roles, model, design, priors, epsilon,
 #' @inheritSection synpmx_calibrated Maintenance status
 #'
 #' @param data The confidential dataset.
-#' @param roles A [pmx_roles()] declaration for `data`.
+#' @param roles A [pmx_roles()] declaration for `data`. It names the columns of
+#'   the output too, so the synthetic table wears the source study's schema.
 #' @param endpoints Named list of [pmx_endpoint()] declarations.
 #' @param epsilon The privacy budget. A governance decision, not a default.
 #' @param delta Additive slack in the probability bound. The implemented Laplace

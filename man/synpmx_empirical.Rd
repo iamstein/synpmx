@@ -25,7 +25,8 @@ synpmx_empirical(
 \arguments{
 \item{data}{The confidential dataset.}
 
-\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} declaration for \code{data}.}
+\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} declaration for \code{data}. It names the columns of
+the output too, so the synthetic table wears the source study's schema.}
 
 \item{endpoints}{Named list of \code{\link[=pmx_endpoint]{pmx_endpoint()}} declarations.}
 

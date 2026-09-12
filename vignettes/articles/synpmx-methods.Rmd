@@ -373,13 +373,29 @@ theo_design <- pmx_trial_design(
   source = "illustrative protocol"
 )
 theo_design
-prior_only <- synpmx_prior(theo_model, theo_design, n_subjects = 12, seed = 202)
+# `theo_roles` without its covariate. A mode that reads nothing can produce a
+# covariate only from a public distribution it was given, so declaring `WT`
+# here without supplying one is refused rather than answered with a table
+# that is missing it.
+public_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT"
+)
+prior_only <- synpmx_prior(theo_model, theo_design, public_roles,
+                           n_subjects = 12, seed = 202)
 head(prior_only, 3)
 ```
 
-The generated table uses the package's own generated schema
-(`pmx_generated_roles()`), including nominal time, time after dose, and
-occasion columns. The clearance of 6 L/h assumed above is about twice the truth
+Every generator here takes a `pmx_roles()` and writes its output under those
+column names, so one declaration serves the generator, `compare_pmx()` and
+`synpmx_scorecard()`. The three that read a study take it as a description of
+what they are reading. This one reads nothing, so the same object does the
+opposite job: it says which schema to generate into, and that is what makes
+the table above comparable to `theo_md` without renaming a column.
+`pmx_generated_roles()` is the default, and it names every column the
+generator can produce — nominal time, time after dose and occasion included.
+
+The clearance of 6 L/h assumed above is about twice the truth
 for theophylline, and the output shows it: concentrations run low. That is the
 honest cost of spending no budget — the data is exactly as good as the prior.
 
@@ -412,7 +428,7 @@ worth its budget?" before any budget is spent.
 
 ```{r calibrate, eval=has_nlmixr2data}
 calibrated_data <- synpmx_calibrated(
-  data = theo_md, roles = theo_roles, model = theo_model,
+  data = theo_md, roles = public_roles, model = theo_model,
   design = theo_design, priors = priors, epsilon = 1, seed = 303,
   backend = "public", public_source = TRUE   # theo_md is public; no DP claim
 )
@@ -435,7 +451,7 @@ another <- synpmx_generate(calibrated_data, seed = 304)   # spends nothing
 
 ```{r opendp, eval=FALSE}
 calibrated <- synpmx_calibrated(
-  data = confidential, roles = theo_roles, model = theo_model,
+  data = confidential, roles = public_roles, model = theo_model,
   design = theo_design, priors = priors, epsilon = 1,
   backend = "opendp"
 )
@@ -498,15 +514,16 @@ Every generated dataset above holds the same study in a different way. Pulled
 into one frame, they can be read against the source and against each other.
 
 ```{r compare, eval=has_fit}
-generated_roles <- pmx_generated_roles()
 all_observations <- rbind(
   observations(theo_md, theo_roles, "Source"),
   observations(model_data, theo_roles, "1. PMX model"),
   observations(avatar, theo_roles, "2. AVATAR"),
   observations(pca_data, theo_roles, "3. PCA"),
-  observations(prior_only, generated_roles, "4. Prior only"),
-  observations(calibrated_data, generated_roles, "5. Calibration"),
-  # The empirical engine restores the source schema, so it uses source roles.
+  observations(prior_only, public_roles, "4. Prior only"),
+  observations(calibrated_data, public_roles, "5. Calibration"),
+  # Every mode now writes the schema it was declared under. This one declares
+  # `WT` among its bounds and generates it, so it reads back under the full
+  # `theo_roles` rather than the covariate-free `public_roles`.
   observations(empirical_data, theo_roles, "6. Empirical")
 )
 all_observations$method <- factor(all_observations$method,
@@ -574,7 +591,8 @@ concentrations they generated, and the baseline weights they carried.
 ```{r compare-distributions, eval=has_fit && has_ggplot2, fig.height=4.5}
 # One long frame of every value each mode produced, so concentration and weight
 # can be drawn on the same panel row. A mode that carries no weight column --
-# the public-model modes declare no covariates -- simply has no rows here.
+# the two generating under `public_roles`, which declares no covariate -- simply
+# has no rows here.
 weights <- function(data, roles, label) {
   covariate <- if ("WT" %in% names(data)) "WT" else NULL
   if (is.null(covariate)) return(NULL)
@@ -591,8 +609,8 @@ distributions <- rbind(
   weights(model_data, theo_roles, "1. PMX model"),
   weights(avatar, theo_roles, "2. AVATAR"),
   weights(pca_data, theo_roles, "3. PCA"),
-  weights(prior_only, generated_roles, "4. Prior only"),
-  weights(calibrated_data, generated_roles, "5. Calibration"),
+  weights(prior_only, public_roles, "4. Prior only"),
+  weights(calibrated_data, public_roles, "5. Calibration"),
   weights(empirical_data, theo_roles, "6. Empirical")
 )
 distributions$method <- factor(distributions$method,

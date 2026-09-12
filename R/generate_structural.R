@@ -54,6 +54,105 @@
   rep(seq_along(design$dose_levels), times = counts)[seq_len(n_subjects)]
 }
 
+# Taking a `pmx_roles()` means honouring it. Every generator that reads a study
+# returns a table satisfying the roles it was handed, and these two must too --
+# so a declaration naming a column they cannot produce is refused here rather
+# than answered with a table that fails `validate_pmx()` under the caller's own
+# declaration. The default roles name only columns the generator fills, so this
+# is reachable only from a study's own declaration.
+.reject_unfillable_roles <- function(roles, covariates) {
+  # Column-naming roles with no counterpart in a structurally generated table.
+  # `exclude` names columns to drop, and `routes`, `dose_endpoints` and
+  # `endpoint_types` are mappings rather than columns, so none belong here.
+  unfillable <- c("limit", "addl", "ii", "adm", "dose_covariate", "strata",
+                  "keep")
+  named <- unlist(roles[intersect(unfillable, names(roles))],
+                  use.names = FALSE)
+  wanted <- roles$covariates
+  produced <- if (is.null(covariates)) character() else names(covariates)
+  absent <- setdiff(wanted, produced)
+  if (!length(named) && !length(absent)) return(invisible(NULL))
+
+  why <- character()
+  if (length(absent)) {
+    why <- c(why, paste0(
+      "The covariate(s) ", paste(absent, collapse = ", "),
+      " are declared but not generated. These modes draw a covariate only ",
+      "from a public distribution, so pass `covariates = pmx_covariates(",
+      absent[[1L]], " = pmx_covariate(...))` as well."
+    ))
+  }
+  if (length(named)) {
+    why <- c(why, paste0(
+      "The column(s) ", paste(named, collapse = ", "),
+      " are declared and cannot be produced from a structural model and a ",
+      "protocol. Leave those roles out of the declaration passed here."
+    ))
+  }
+  stop(.condition_text(
+    "`roles` declares columns this generator cannot fill.",
+    why = paste(why, collapse = " ")), call. = FALSE)
+}
+
+# The generated table is built under the names in `pmx_generated_roles()`, and
+# this renames it to whatever the caller declared. It is what makes
+# `synpmx_prior()` and `synpmx_calibrated()` hand back the same thing
+# `synpmx_avatar()`, `synpmx_pca()` and `synpmx_model()` do: a table wearing
+# the study's own column names, so one `pmx_roles()` serves the generator,
+# `compare_pmx_distributions()` and `synpmx_scorecard()` alike.
+#
+# Two consequences of adopting that convention rather than inventing one. A
+# role the caller did not declare gets no column, because a study with no TAD
+# column should not be handed one back -- and with the default roles every slot
+# is named, so nothing is dropped. And `dvid` may name several columns, of
+# which the first is used: the generated table holds one endpoint key and
+# nothing here can split it across more.
+.rename_to_roles <- function(out, roles) {
+  if (!inherits(roles, "pmx_roles")) {
+    stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
+  }
+  generated <- pmx_generated_roles()
+  # Walk the table's own columns rather than the role list, so the output keeps
+  # the column order the generator produced whatever `roles` is.
+  slot_of <- character()
+  for (slot in names(generated)) {
+    name <- generated[[slot]]
+    if (length(name) == 1L) slot_of[[name]] <- slot
+  }
+  # `pmx_roles()` permits exactly one collision: `cmt` and `dvid` naming the
+  # same column, because NONMEM's CMT routinely does both jobs -- the dosing
+  # compartment on event rows, the endpoint key on observation rows. The
+  # generated table keeps the two apart, and its CMT already tells the
+  # endpoints apart (1 dose, 2 cp, 3 pd), so a shared declaration takes CMT
+  # and the separate endpoint-key column is dropped rather than written twice.
+  skip <- if (length(intersect(roles$cmt, roles$dvid))) generated$dvid
+  targets <- character()
+  values <- list()
+  for (name in names(out)) {
+    if (name %in% skip) next
+    slot <- if (name %in% names(slot_of)) slot_of[[name]] else NA_character_
+    if (is.na(slot)) {
+      # Covariate columns are named by `pmx_covariates()` and pass through as
+      # they are; they fill no role slot this table knows about.
+      to <- name
+    } else {
+      to <- roles[[slot]]
+      if (!length(to)) next
+      to <- to[[1L]]
+    }
+    targets <- c(targets, to)
+    values <- c(values, list(out[[name]]))
+  }
+  collisions <- unique(targets[duplicated(targets)])
+  if (length(collisions)) {
+    stop("`roles` puts more than one generated column in ",
+         paste(collisions, collapse = ", "),
+         ". Give each role its own column name.", call. = FALSE)
+  }
+  names(values) <- targets
+  as.data.frame(values, stringsAsFactors = FALSE, check.names = FALSE)
+}
+
 #' Generate a synthetic PMX event table from a structural model
 #'
 #' Works in two modes. Supplied a [pmx_structural_model()] it generates purely
@@ -75,11 +174,15 @@
 #' @param covariates Optional [pmx_covariates()] for prior-mode generation.
 #'   Ignored for a calibrated model, which carries its own released covariate
 #'   summaries.
+#' @param roles A [pmx_roles()] naming the columns of the output. Defaults to
+#'   the roles a calibrated model was fitted under, and otherwise to
+#'   [pmx_generated_roles()].
 #'
-#' @return A data frame in PMX event-table form.
+#' @return A data frame in PMX event-table form, under the names in `roles`.
 #' @keywords internal
 .generate_structural <- function(x, design = NULL, n_subjects = NULL, seed = NULL,
-                         dropout = 0, lloq = NULL, covariates = NULL) {
+                         dropout = 0, lloq = NULL, covariates = NULL,
+                         roles = NULL) {
   if (inherits(x, "pmx_calibrated_model")) {
     model <- x$model
     design <- design %||% x$design
@@ -89,6 +192,9 @@
     )))
     covariates <- x$covariates
     covariate_summaries <- x$covariate_summaries
+    # The release carries the declaration it was fitted under. The fallback is
+    # the schema generation used before it carried one.
+    roles <- roles %||% x$roles %||% pmx_generated_roles()
   } else if (inherits(x, "pmx_structural_model")) {
     model <- x
     typical <- x$typical
@@ -101,6 +207,7 @@
       stop("`covariates` must come from `pmx_covariates()`.", call. = FALSE)
     }
     covariate_summaries <- NULL
+    roles <- roles %||% pmx_generated_roles()
   } else {
     stop("`x` must be a `pmx_structural_model` or a `pmx_calibrated_model`.",
          call. = FALSE)
@@ -108,6 +215,10 @@
   if (!inherits(design, "pmx_trial_design")) {
     stop("`design` must come from `pmx_trial_design()`.", call. = FALSE)
   }
+  if (!inherits(roles, "pmx_roles")) {
+    stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
+  }
+  .reject_unfillable_roles(roles, covariates)
   n_subjects <- as.integer(n_subjects)
   if (!is.finite(n_subjects) || n_subjects < 1L) {
     stop("`n_subjects` must be one positive integer.", call. = FALSE)
@@ -188,6 +299,7 @@
     out <- merge(out, cov_table, by = "ID", sort = FALSE)
     out <- out[order(out$ID, out$TIME, out$EVID == 0L), , drop = FALSE]
   }
+  out <- .rename_to_roles(out, roles)
   rownames(out) <- NULL
   attr(out, "pmx_source") <- if (inherits(x, "pmx_calibrated_model")) {
     "calibrated"

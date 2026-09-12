@@ -7,6 +7,7 @@
 synpmx_prior(
   model,
   design,
+  roles = pmx_generated_roles(),
   n_subjects = NULL,
   seed = NULL,
   dropout = 0,
@@ -18,6 +19,9 @@ synpmx_prior(
 \item{model}{A \code{\link[=pmx_structural_model]{pmx_structural_model()}}.}
 
 \item{design}{A \code{\link[=pmx_trial_design]{pmx_trial_design()}}.}
+
+\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} naming the columns of the output. Defaults to
+\code{\link[=pmx_generated_roles]{pmx_generated_roles()}}, the package's own generated schema.}
 
 \item{n_subjects}{Number of subjects. Defaults to the planned cohort total.}
 
@@ -32,8 +36,7 @@ assumption from the protocol.}
 \item{covariates}{Optional \code{\link[=pmx_covariates]{pmx_covariates()}}.}
 }
 \value{
-A data frame in the generated event-table schema; see
-\code{\link[=pmx_generated_roles]{pmx_generated_roles()}}.
+A data frame in event-table form, under the names in \code{roles}.
 }
 \description{
 Simulates from a public structural model and a public protocol. No
@@ -46,6 +49,20 @@ allometric scaling from preclinical work, a published model for the compound
 class, or the reasoning that set the starting dose. The output is exactly as
 good as that prior.
 }
+\section{Roles here name the output, not an input}{
+
+Every generator in the package takes a \code{\link[=pmx_roles]{pmx_roles()}} declaration and writes
+its output under those column names, so that one declaration serves the
+generator, \code{\link[=compare_pmx_distributions]{compare_pmx_distributions()}} and \code{\link[=synpmx_scorecard]{synpmx_scorecard()}}. For
+\code{\link[=synpmx_avatar]{synpmx_avatar()}}, \code{\link[=synpmx_pca]{synpmx_pca()}} and \code{\link[=synpmx_model]{synpmx_model()}} the declaration
+describes the study being read. This function reads nothing, so the same
+object does the opposite job here: it prescribes the schema to generate
+into. Pass the roles of the study the synthetic data has to stand in for and
+the output drops straight into code written against it. A role left
+undeclared gets no column. The default, \code{\link[=pmx_generated_roles]{pmx_generated_roles()}}, names every
+column the generator can produce.
+}
+
 \examples{
 model <- pmx_structural_model(
   pk = "1cmt_oral", typical = c(cl = 6, v = 35, ka = 1.5),
@@ -57,6 +74,13 @@ design <- pmx_trial_design(
 )
 syn <- synpmx_prior(model, design, n_subjects = 12, seed = 202)
 head(syn, 3)
+
+# Generating into a study's own schema, so the output needs no renaming.
+study_roles <- pmx_roles(
+  id = "SUBJID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+  amt = "AMT", evid = "EVID", cmt = "CMT", mdv = "MDV"
+)
+names(synpmx_prior(model, design, study_roles, n_subjects = 3, seed = 202))
 }
 \seealso{
 \code{\link[=synpmx_avatar]{synpmx_avatar()}}, \code{\link[=synpmx_calibrated]{synpmx_calibrated()}}, \code{\link[=synpmx_empirical]{synpmx_empirical()}}

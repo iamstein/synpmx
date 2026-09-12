@@ -386,6 +386,11 @@ print.pmx_preflight <- function(x, ...) {
   out <- structure(list(
     version = 3L,
     engine = "calibrated_structural_generator",
+    # The caller's column names, so that generation from this release -- now or
+    # from `synpmx_generate()` later -- writes the schema the study was read
+    # under. Names, not values: nothing here was derived from a record, and the
+    # release still contains none.
+    roles = roles,
     model = model, design = design, priors = priors,
     covariates = covariates, covariate_summaries = covariate_summaries,
     corrections = results,

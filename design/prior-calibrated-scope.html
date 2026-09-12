@@ -458,11 +458,14 @@
     be the workhorses of this package and other functions (even if written first) should
     follow their conventions.”</p>
     <p>This settles the one open API question in the scope below and reverses its
-    direction. The five generators agree on one thing — a <code>pmx_roles()</code>
-    declaration governs the column names of the output — and the two public-model modes
-    are the reference implementations of that agreement, not exceptions to it.
-    <code>synpmx_empirical()</code> comes along by construction, because all three share
-    <code>.generate_structural()</code>.</p>
+    direction. All six generators agree on one thing — a <code>pmx_roles()</code>
+    declaration governs the column names of the output — and the two workhorses are the
+    reference implementations of that agreement, not exceptions to it.
+    <code>synpmx_empirical()</code> needed nothing: it already writes under the source
+    roles through <code>.set_row_role()</code> and restores the public schema, so this
+    scope's guess that it would follow by construction had the direction backwards. Only
+    <code>synpmx_prior()</code> and <code>synpmx_calibrated()</code> stood outside the
+    convention, which is the pair named.</p>
   </section>
 
   <div class="tranches">
@@ -518,43 +521,65 @@
     <article class="tranche">
       <div class="spine">
         <div class="ordinal">2</div>
-        <span class="chip go">next</span>
-        <div class="cost">code + tests<br>+ roxygen</div>
+        <span class="chip go">done</span>
+        <div class="cost">2 functions<br>5 checks</div>
       </div>
       <div>
         <h2>Roles on the Public-Model Modes</h2>
-        <p class="verdict">The governing decision, implemented. It has to land before the
-        four documents in tranche 3, because those documents show the call signature.</p>
+        <p class="verdict">The governing decision, implemented. It landed before the four
+        documents in tranche 3, because those documents show the call signature.</p>
 
-        <p>Today <code>synpmx_avatar()</code>, <code>synpmx_pca()</code> and
+        <p><code>synpmx_avatar()</code>, <code>synpmx_pca()</code> and
         <code>synpmx_model()</code> return the source study's own columns, so a single
         <code>pmx_roles()</code> serves both sides of
         <code>compare_pmx_distributions(source, synthetic, roles)</code> and
         <code>synpmx_scorecard(source, synthetic, roles)</code>.
-        <code>synpmx_prior()</code>, <code>synpmx_calibrated()</code> and
-        <code>synpmx_empirical()</code> return a fixed schema instead —
-        <code>pmx_generated_roles()</code>, which is
-        <code>ID</code>/<code>TIME</code>/<code>NTIME</code>/<code>TAD</code>/<code>OCC</code>/<code>DV</code>/<code>AMT</code>/<code>RATE</code>/<code>EVID</code>/<code>CMT</code>/<code>DVID</code>/<code>MDV</code>/<code>CENS</code>/<code>DOSE</code>.</p>
+        <code>synpmx_prior()</code> and <code>synpmx_calibrated()</code> returned a fixed
+        schema instead &mdash; <code>pmx_generated_roles()</code>, which is
+        <code>ID</code>/<code>TIME</code>/<code>NTIME</code>/<code>TAD</code>/<code>OCC</code>/<code>DV</code>/<code>AMT</code>/<code>RATE</code>/<code>EVID</code>/<code>CMT</code>/<code>DVID</code>/<code>MDV</code>/<code>CENS</code>/<code>DOSE</code>.
+        That is now the default rather than the only possibility.</p>
 
         <h3>One argument, two directions</h3>
-        <p><code>synpmx_calibrated()</code> already accepts <code>roles</code> and uses it
-        to read <code>data</code>; what changes is that the same declaration also names the
-        output columns. <code>synpmx_prior()</code> reads no data at all, so its
-        <code>roles</code> argument is purely a statement about the output. The object is
-        the same and its direction is inverted, and the documentation has to say so rather
-        than let a reader assume <code>roles</code> always describes an input.
-        <code>pmx_generated_roles()</code> becomes the default rather than the only
-        possibility.</p>
+        <p><code>synpmx_calibrated()</code> already accepted <code>roles</code> and used it
+        to read <code>data</code>; the same declaration now names the output columns too,
+        so its signature did not change at all &mdash; only what the argument governs.
+        <code>synpmx_prior()</code> reads no data, so its new third argument is purely a
+        statement about the output: it prescribes a schema rather than describing one. The
+        roxygen says so under its own heading, because a reader who has met the other three
+        generators will assume <code>roles</code> always describes an input.</p>
 
-        <h3>What moves with it</h3>
+        <h3>Honouring a declaration means refusing one you cannot honour</h3>
+        <p>The first working version handed back a table that failed
+        <code>validate_pmx()</code> under the very roles it was given: the declaration named
+        a <code>WT</code> covariate, and these modes draw a covariate only from a public
+        distribution they were handed. <code>synpmx_avatar()</code> never does that, so
+        <code>.reject_unfillable_roles()</code> refuses up front and names what is missing
+        &mdash; a covariate with no <code>pmx_covariates()</code> to draw it from, or a
+        column such as <code>ADDL</code> that no structural model and protocol can produce.
+        The default roles name only fillable columns, so this is reachable only from a real
+        study's declaration.</p>
+
+        <p>Two smaller things the implementation settled. The rename walks the generated
+        table's own columns rather than the role list, so column order is unchanged from
+        what the generator produced &mdash; the first version walked the roles and moved
+        <code>RATE</code> four places. And <code>pmx_roles()</code> deliberately permits one
+        collision, <code>cmt</code> and <code>dvid</code> on one column, because NONMEM's
+        <code>CMT</code> does both jobs; there the generated <code>CMT</code> already tells
+        the endpoints apart, so the separate endpoint key is dropped rather than written
+        over the same column twice.</p>
+
+        <h3>What moved</h3>
         <ul class="files">
-          <li><code>R/generate_structural.R</code><span><code>.generate_structural()</code> emits under a supplied roles declaration; <code>pmx_generated_roles()</code> becomes its default</span></li>
-          <li><code>R/synpmx.R</code><span>signatures and roxygen for <code>synpmx_prior()</code>, <code>synpmx_calibrated()</code>, <code>synpmx_empirical()</code>, <code>synpmx_generate()</code></span></li>
-          <li><code>R/covariates.R</code><span>the prior-mode covariate error message at line 241</span></li>
-          <li><code>tests/testthat/</code><span><code>test-synpmx-api.R</code>, <code>test-structural-v3.R</code>, <code>test-model-gates.R</code>, <code>test-roles-validation.R</code></span></li>
-          <li><code>vignettes/articles/synpmx-methods.Rmd</code><span>the mode 4, 5 and 6 chunks</span></li>
-          <li><code>scripts/example_prior_pyrazinamide.qmd</code><span>the worked prior example, which tranche 3 promotes to a vignette</span></li>
+          <li><code>R/generate_structural.R</code><span><code>.rename_to_roles()</code>, <code>.reject_unfillable_roles()</code>, and a <code>roles</code> argument on <code>.generate_structural()</code></span></li>
+          <li><code>R/synpmx.R</code><span><code>synpmx_prior()</code> gains <code>roles</code> as its third argument; roxygen for all three public-model modes</span></li>
+          <li><code>R/calibrate.R</code><span>the release carries the declaration, so <code>synpmx_generate()</code> reproduces the same schema later</span></li>
+          <li><code>tests/testthat/test-structural-v3.R</code><span>five checks: the default schema and its column order, a declared schema with identical numbers, the two refusals, the shared <code>CMT</code>, and the calibrated round trip</span></li>
+          <li><code>vignettes/articles/synpmx-methods.Rmd</code><span>modes 4 and 5 generate under the study's declaration, and the comparison no longer needs a second roles object</span></li>
         </ul>
+
+        <p>No existing caller needed changing: every one passed
+        <code>pmx_generated_roles()</code> or nothing. <code>synpmx_empirical()</code> needed
+        nothing either, as the decision block above records.</p>
 
         <p>The payoff is tranche 4: the five-step survey shape transfers without a
         column-mapping layer in each article and without a second <code>roles</code>
@@ -628,10 +653,14 @@
 
         <ol class="obstacles">
           <li>
-            <h3>The output schema <span class="resolved">resolved</span></h3>
+            <h3>The output schema <span class="resolved">closed</span></h3>
             <p>The five-step contract in <code>AGENTS.md</code> passes one
-            <code>roles</code> to both the generator and the comparison functions. Tranche 2
-            makes prior and calibrated honor that, so the shape transfers unchanged.</p>
+            <code>roles</code> to both the generator and the comparison functions, and
+            tranche 2 made prior and calibrated honour it. Verified on <code>theo_md</code>:
+            the calibrated output carries the study's own seven columns and
+            <code>synpmx_scorecard(theo_md, calibrated, theo_roles)</code> scores twenty
+            rows from one declaration. Nothing about the survey's shape is blocked any
+            more.</p>
           </li>
           <li>
             <h3>Every dataset needs a hand-elicited model and design</h3>

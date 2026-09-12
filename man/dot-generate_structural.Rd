@@ -11,7 +11,8 @@
   seed = NULL,
   dropout = 0,
   lloq = NULL,
-  covariates = NULL
+  covariates = NULL,
+  roles = NULL
 )
 }
 \arguments{
@@ -34,9 +35,13 @@ assumption from the protocol.}
 \item{covariates}{Optional \code{\link[=pmx_covariates]{pmx_covariates()}} for prior-mode generation.
 Ignored for a calibrated model, which carries its own released covariate
 summaries.}
+
+\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} naming the columns of the output. Defaults to
+the roles a calibrated model was fitted under, and otherwise to
+\code{\link[=pmx_generated_roles]{pmx_generated_roles()}}.}
 }
 \value{
-A data frame in PMX event-table form.
+A data frame in PMX event-table form, under the names in \code{roles}.
 }
 \description{
 Works in two modes. Supplied a \code{\link[=pmx_structural_model]{pmx_structural_model()}} it generates purely

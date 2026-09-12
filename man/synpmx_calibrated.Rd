@@ -22,7 +22,10 @@ synpmx_calibrated(
 \arguments{
 \item{data}{The confidential dataset.}
 
-\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} declaration for \code{data}.}
+\item{roles}{A \code{\link[=pmx_roles]{pmx_roles()}} declaration for \code{data}. It names the columns of
+the output too, so the synthetic table wears the source study's schema,
+the way \code{\link[=synpmx_avatar]{synpmx_avatar()}} and \code{\link[=synpmx_model]{synpmx_model()}} output does. A role left
+undeclared gets no column.}
 
 \item{model}{A public \code{\link[=pmx_structural_model]{pmx_structural_model()}}.}
 
@@ -51,9 +54,9 @@ fails closed if it is unavailable.}
 only meaningful for, \code{backend = "public"}, which makes no DP claim.}
 }
 \value{
-A data frame in the generated event-table schema, carrying its
-release so that \code{\link[=privacy_report]{privacy_report()}} and \code{\link[=synpmx_generate]{synpmx_generate()}} can read it.
-A list of such data frames when \code{n_datasets > 1}.
+A data frame under the names in \code{roles}, carrying its release so
+that \code{\link[=privacy_report]{privacy_report()}} and \code{\link[=synpmx_generate]{synpmx_generate()}} can read it. A list of
+such data frames when \code{n_datasets > 1}.
 }
 \description{
 Keeps a public structural model's \emph{shape} and spends a small privacy budget

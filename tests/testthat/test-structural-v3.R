@@ -688,3 +688,106 @@ test_that("per-occasion sampling reaches the generated data", {
   middle <- observed$NTIME > 50 & observed$NTIME < 140
   expect_false(any(middle))
 })
+
+# Roles name the output --------------------------------------------------------
+#
+# `synpmx_prior()` and `synpmx_calibrated()` hand back a table wearing the
+# caller's column names, the way `synpmx_avatar()`, `synpmx_pca()` and
+# `synpmx_model()` already do, so one `pmx_roles()` serves the generator,
+# `compare_pmx()` and `synpmx_scorecard()`. These checks hold that contract:
+# the default is the schema the package generated before, a declaration is
+# honoured exactly, and a declaration that cannot be honoured is refused
+# instead of answered with a table that fails `validate_pmx()`.
+
+.v3_study_roles <- function(...) {
+  pmx_roles(id = "SUBJID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+            amt = "AMT", evid = "EVID", cmt = "CMT", mdv = "MDV", ...)
+}
+
+test_that("the default roles keep the generated schema, names and order", {
+  table <- synpmx_prior(.v3_model(), .v3_design(), n_subjects = 4, seed = 1)
+  expect_identical(
+    names(table),
+    c("ID", "TIME", "NTIME", "TAD", "OCC", "DV", "AMT", "RATE", "EVID",
+      "CMT", "DVID", "MDV", "CENS", "DOSE")
+  )
+  expect_true(validate_pmx(table, pmx_generated_roles())$valid)
+})
+
+test_that("a declared schema is what comes back, with the same numbers", {
+  roles <- .v3_study_roles()
+  default <- synpmx_prior(.v3_model(), .v3_design(), n_subjects = 4, seed = 1)
+  declared <- synpmx_prior(.v3_model(), .v3_design(), roles,
+                           n_subjects = 4, seed = 1)
+  expect_identical(names(declared),
+                   c("SUBJID", "TIME", "NTIME", "DV", "AMT", "EVID", "CMT",
+                     "MDV"))
+  expect_true(validate_pmx(declared, roles)$valid)
+  # Renaming only: an undeclared role loses its column and nothing else moves.
+  expect_equal(declared$DV, default$DV)
+  expect_equal(declared$TIME, default$TIME)
+  expect_equal(declared$SUBJID, default$ID)
+  expect_false("TAD" %in% names(declared))
+})
+
+test_that("a role the generator cannot fill is refused, not silently dropped", {
+  # A covariate is generatable, but only from a public distribution.
+  expect_error(
+    synpmx_prior(.v3_model(), .v3_design(), .v3_study_roles(covariates = "WT"),
+                 n_subjects = 4, seed = 1),
+    "WT"
+  )
+  covariates <- pmx_covariates(
+    WT = pmx_covariate(range = c(40, 130), source = "unit test protocol")
+  )
+  with_covariate <- synpmx_prior(
+    .v3_model(), .v3_design(), .v3_study_roles(covariates = "WT"),
+    n_subjects = 4, seed = 1, covariates = covariates
+  )
+  expect_true("WT" %in% names(with_covariate))
+  expect_true(
+    validate_pmx(with_covariate, .v3_study_roles(covariates = "WT"))$valid
+  )
+  # A column no structural model and protocol can produce is refused outright.
+  expect_error(
+    synpmx_prior(.v3_model(), .v3_design(), .v3_study_roles(addl = "ADDL"),
+                 n_subjects = 4, seed = 1),
+    "ADDL"
+  )
+})
+
+test_that("one column may be both cmt and dvid, and keeps the compartment", {
+  # `pmx_roles()` permits this collision because NONMEM's CMT does both jobs.
+  # The generated CMT already tells the endpoints apart, so the separate
+  # endpoint key is dropped rather than written over the same column twice.
+  roles <- pmx_roles(id = "ID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", dvid = "CMT", mdv = "MDV")
+  table <- synpmx_prior(.v3_model("linear"), .v3_design(), roles,
+                        n_subjects = 4, seed = 1)
+  expect_identical(sum(names(table) == "CMT"), 1L)
+  expect_true(validate_pmx(table, roles)$valid)
+  expect_setequal(table$CMT[table$EVID == 0L], c(2L, 3L))
+  expect_setequal(table$CMT[table$EVID == 1L], 1L)
+})
+
+test_that("a calibrated release generates the schema it was fitted under", {
+  roles <- pmx_roles(id = "SUBJID", time = "TIME", dv = "DV", amt = "AMT",
+                     evid = "EVID", cmt = "CMT", mdv = "MDV")
+  data <- synpmx_prior(.v3_model(), .v3_design(), roles, n_subjects = 24,
+                       seed = 7)
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "unit test"))
+  synthetic <- synpmx_calibrated(
+    data = data, roles = roles, model = .v3_model(), design = .v3_design(),
+    priors = priors, epsilon = 1, seed = 11,
+    backend = "public", public_source = TRUE
+  )
+  expect_identical(names(synthetic), names(data))
+  expect_true(validate_pmx(synthetic, roles)$valid)
+  # Post-processing from the same release must not change the schema.
+  again <- synpmx_generate(synthetic, seed = 12)
+  expect_identical(names(again), names(data))
+  # The release carries the declaration, which is what makes that work.
+  expect_s3_class(attr(synthetic, "synpmx_release")$roles, "pmx_roles")
+  # One declaration now serves the generator and the comparison functions.
+  expect_s3_class(synpmx_scorecard(data, synthetic, roles), "data.frame")
+})
