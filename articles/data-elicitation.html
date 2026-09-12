@@ -76,6 +76,10 @@
     <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>4. Prior</h6></li>
+    <li><a class="dropdown-item" href="../articles/prior-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/prior-algorithm.html">Algorithm</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -515,14 +519,26 @@ and widening the bound for safety then widens the distribution with
 it.</p>
 <p>Where a distribution has to be assumed rather than elicited,
 <code><a href="../reference/pmx_covariates_reference.html">pmx_covariates_reference()</a></code> supplies one for the usual
-covariates and <code><a href="../reference/pmx_covariate_reference_table.html">pmx_covariate_reference_table()</a></code> lists what
-it holds with its units. Those are package reference values for a broad
-adult population, not a rendering of any trial, and the spread is the
-half worth reusing: body weight holds much the same coefficient of
-variation across adult cohorts while the median moves, so
-<code>medians</code> adjusts the one that does not transfer. Age, sex
-and race are protocol facts that no reference population can supply —
-answer questions 17 and 18 instead.</p>
+covariates. <code><a href="../reference/pmx_covariate_reference_table.html">pmx_covariate_reference_table()</a></code> lists what it
+holds, in which units, and on what basis: body size from NHANES adults,
+the laboratory values from conventional reference intervals, and age,
+sex and race marked as placeholders because questions 17 and 18 are what
+decide those.</p>
+<p>A survey is not a trial cohort, so treat those as a starting point
+rather than an answer. NHANES describes the general adult population and
+eligibility criteria cut its tails, so a trial usually runs both lighter
+and tighter — a weight median around a tenth below the survey’s, at a
+coefficient of variation nearer 15% than 25%. <code>medians</code> and
+<code>cvs</code> move each, and a covariate whose median you replace
+records that in its own <code>source</code> rather than going on citing
+the survey:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_covariates_reference.html">pmx_covariates_reference</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="st">"WT"</span>, AGE <span class="op">=</span> <span class="st">"AGE"</span><span class="op">)</span>,</span>
+<span>  medians <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="fl">75</span><span class="op">)</span>, cvs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="fl">0.16</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>A cohort selected for obesity, or for renal impairment, runs the
+other way.</p>
 <hr>
 </div>
 </div>
@@ -530,7 +546,7 @@ answer questions 17 and 18 instead.</p>
 <h2 id="output-a-design-declaration">5. Output: a design declaration<a class="anchor" aria-label="anchor" href="#output-a-design-declaration"></a>
 </h2>
 <p>The result of this interview, alongside the model declaration from <a href="model-elicitation.html">the model elicitation guide</a>:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
 <span>  complexity      <span class="op">=</span> <span class="st">"level_3_intrapatient_escalation"</span>,</span>
 <span>  dose_levels     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">30</span>, <span class="fl">100</span>, <span class="fl">300</span><span class="op">)</span>,</span>

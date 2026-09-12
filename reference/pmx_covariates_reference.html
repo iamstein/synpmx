@@ -61,6 +61,10 @@ hand. The values are round numbers for a broad adult population."></head><body>
     <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pca-fingerprint.html">Study fingerprint</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>4. Prior</h6></li>
+    <li><a class="dropdown-item" href="../articles/prior-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/prior-algorithm.html">Algorithm</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
@@ -92,12 +96,7 @@ hand. The values are round numbers for a broad adult population.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span></span>
-<span>  <span class="va">names</span>,</span>
-<span>  medians <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"synpmx reference distribution for a"</span>,</span>
-<span>    <span class="st">"broad adult population; a package"</span>, <span class="st">"default, not measured from any study"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span><span class="va">names</span>, medians <span class="op">=</span> <span class="cn">NULL</span>, cvs <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -119,9 +118,11 @@ those columns, in the units listed by <code><a href="pmx_covariate_reference_tab
 Named by output column, so <code>c(BWT = 82)</code> goes with <code>names = c(BWT = "WT")</code>.</p></dd>
 
 
-<dt id="arg-source">source<a class="anchor" aria-label="anchor" href="#arg-source"></a></dt>
-<dd><p>Provenance recorded on every covariate built here. The default
-says these are package reference values rather than a study's own.</p></dd>
+<dt id="arg-cvs">cvs<a class="anchor" aria-label="anchor" href="#arg-cvs"></a></dt>
+<dd><p>Optional named numeric replacing the reference coefficient of
+variation, as a proportion. Named by output column, the same way as
+<code>medians</code>. A trial's eligibility criteria usually make this smaller than
+the survey's.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -129,28 +130,36 @@ says these are package reference values rather than a study's own.</p></dd>
     <p>A <code>pmx_covariates</code> object.</p>
     </div>
     <div class="section level2">
-    <h2 id="what-these-numbers-are-and-are-not">What these numbers are, and are not<a class="anchor" aria-label="anchor" href="#what-these-numbers-are-and-are-not"></a></h2>
+    <h2 id="where-the-numbers-come-from">Where the numbers come from<a class="anchor" aria-label="anchor" href="#where-the-numbers-come-from"></a></h2>
 
 
-<p>They are the same kind of input as the built-in structural models in
-<code><a href="pmx_structural_model.html">pmx_structural_model()</a></code>: illustrative on purpose, so that covariate-handling
-code has something to run against. They are not a rendering of any
-particular trial and were not measured from one.</p>
-<p>The spread is the half that travels. Body weight holds much the same
-coefficient of variation across adult populations whatever its median is, so
-the shape and the CV are reusable and the median is not: an ordinary adult
-cohort and a cohort selected for obesity differ in the median alone.
-<code>medians</code> is how to move it, and a regression test holds the reference
-median against the adult studies in this package's own surveys.</p>
-<p>Age, sex and race are not population constants. The protocol's inclusion
-criteria and where it enrolled decide them, and a phase 1 healthy-volunteer
-cohort, a renal-impairment study and an oncology trial have nothing in
-common here. The entries put a column in the data. State your own if
-anything downstream reads it. No dataset in this package carries a race
-column at all.</p>
-<p>Nothing here fits a neonatal or paediatric cohort, where body size differs
-from an adult by more than an order of magnitude. Declare those with
-<code><a href="pmx_covariate.html">pmx_covariate()</a></code>.</p>
+<p>Body size comes from NHANES, the CDC's continuous National Health and
+Nutrition Examination Survey, for adults aged 20 and over of both sexes.
+The laboratory values come from conventional adult reference intervals,
+which is what a stated normal range is. Every covariate records its own
+basis in its <code>source</code>, and
+<code><a href="pmx_covariate_reference_table.html">pmx_covariate_reference_table()</a></code> prints the basis alongside the value.
+Adults only, and deliberately: a paediatric population needs its own
+declaration through <code><a href="pmx_covariate.html">pmx_covariate()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="a-survey-population-is-not-a-trial-cohort">A survey population is not a trial cohort<a class="anchor" aria-label="anchor" href="#a-survey-population-is-not-a-trial-cohort"></a></h2>
+
+
+<p>NHANES describes the general adult population. Eligibility criteria cut the
+tails off that, so a trial runs both lighter and tighter than the survey –
+by weight, a median around 10 per cent below the survey's and a coefficient
+of variation closer to 15 per cent than 25. A cohort selected for obesity
+runs the other way. <code>medians</code> and <code>cvs</code> are how to move each, and a
+regression test holds this gap against the adult studies in this package's
+own public-data surveys so the starting point cannot drift silently.</p>
+<p>Age, sex and race have no population source worth quoting here. The
+protocol's inclusion criteria and where it enrolled decide them, and a
+phase 1 healthy-volunteer cohort, a renal-impairment study and an oncology
+trial have nothing in common. Those three entries exist to put a column in
+the table and say so in their <code>source</code>. State your own if anything
+downstream reads them. No dataset in this package carries a race column at
+all.</p>
 <p>Before generated data crosses a trust boundary, replace these with the
 protocol's own criteria or a published description of the population, and
 record that in each covariate's <code>source</code>.</p>
@@ -166,19 +175,68 @@ record that in each covariate's <code>source</code>.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Covariates</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   WT: continuous [35, 160]; lognormal, median 75, CV 18% (public, DP)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   WT: continuous [35, 180]; lognormal, median 84, CV 25% (public, DP)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   AGE: continuous [18, 90]; normal, median 45, CV 30% (public, DP)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   SEX: categorical {M 50%, F 50%} (public, DP)</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># A heavier cohort, in a column named the way the study names it.</span></span></span>
-<span class="r-in"><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="st">"WT"</span><span class="op">)</span>, medians <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="fl">117</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># What the survey holds, and what it is.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="pmx_covariate_reference_table.html">pmx_covariate_reference_table</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    covariate                             quantity          unit distribution</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         WT                          body weight            kg    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         HT                               height            cm    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        BMI                      body mass index         kg/m2    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        BSA                    body surface area            m2    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        AGE                                  age         years       normal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       CRCL                 creatinine clearance        mL/min    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       EGFR estimated glomerular filtration rate mL/min/1.73m2    lognormal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        ALB                        serum albumin           g/L       normal</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        SEX                                  sex          &lt;NA&gt;  categorical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10      RACE                                 race          &lt;NA&gt;  categorical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                          typical   cv</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                             84  25%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                                                            168   6%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                                                             29  24%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                                                              2  14%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                                                             45  30%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                                                            100  25%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                                                             95  25%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                                                             43  10%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                                                   M 50%, F 50% &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 White 65%, Black or African American 12%, Asian 15%, Other 8% &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         range</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   35 to 180</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  130 to 210</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    15 to 60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    1.1 to 3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5    18 to 90</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   15 to 200</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7   15 to 180</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8    25 to 55</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                basis</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                   NHANES 2015-2018, adults 20 and over, both sexes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                                                   NHANES 2015-2018, adults 20 and over, both sexes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                                                   NHANES 2015-2018, adults 20 and over, both sexes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                          Mosteller formula applied to the NHANES 2015-2018 adult height and weight</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                                         placeholder: the protocol's inclusion criteria decide this</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                                       conventional adult reference interval, normal renal function</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                                          KDIGO stage G1, normal or high glomerular filtration rate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                                                conventional adult reference interval, 35 to 50 g/L</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                                                placeholder: the protocol's enrollment decides this</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 placeholder: the OMB and FDA reporting categories; where a trial enrolled decides the proportions</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A trial that enrolled lighter and narrower than the general population,</span></span></span>
+<span class="r-in"><span><span class="co"># in a column named the way the study names it.</span></span></span>
+<span class="r-in"><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="st">"WT"</span><span class="op">)</span>, medians <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="fl">75</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                         cvs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WEIGHTB <span class="op">=</span> <span class="fl">0.16</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Covariates</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   WEIGHTB: continuous [35, 234]; lognormal, median 117, CV 18% (public, DP)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   WEIGHTB: continuous [35, 180]; lognormal, median 75, CV 16% (public, DP)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># `WEIGHTB` resolves on its own, so the mapping is only needed to rename.</span></span></span>
 <span class="r-in"><span><span class="fu">pmx_covariates_reference</span><span class="op">(</span><span class="st">"WEIGHTB"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Covariates</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   WEIGHTB: continuous [35, 160]; lognormal, median 75, CV 18% (public, DP)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   WEIGHTB: continuous [35, 180]; lognormal, median 84, CV 25% (public, DP)</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
