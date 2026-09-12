@@ -767,25 +767,31 @@ print.pmx_model_report <- function(x, ...) {
     cat("  residual error    ", own$parameters$residual$kind,
         sprintf("%.3g", own$parameters$residual$cv %||%
                   own$parameters$residual$sd), "\n")
-  }
-  # What the wait was. A fit is the slow thing this package does, and a caller
-  # deciding whether to change a setting and run it again asks this first.
-  if (!is.null(x$timing)) {
-    field("time to fit", .model_duration(x$timing$fit),
-          sprintf(" (%s for the whole call)",
-                  .model_duration(x$timing$total)))
-    # Which fit the wait was. Every candidate is a separate compiled
-    # population fit, so a search that ran four of them waited four times --
-    # and one to a line, because the number a reader is after is the one
-    # candidate that took the minutes, which a wrapped list buries.
-    if (!is.null(x$timing$candidates) && nrow(x$timing$candidates)) {
-      rows <- x$timing$candidates
-      field("", "nlmixr2")
-      cat(sprintf("%s%-26s %s%s\n", strrep(" ", 23L), rows$model,
-                  vapply(rows$seconds, .model_duration, character(1)),
-                  ifelse(rows$converged, "", " (did not converge)")),
+    # What this one cost, under this one. A fit is the slow thing this package
+    # does and "which of these took the minutes" is a question about a model,
+    # so the answer belongs in its block rather than in a table after the last
+    # of them. Every candidate is a separate compiled population fit, so a
+    # search that ran four of them waited four times, and they go one to a
+    # line -- but only where there was a search: a single candidate's time is
+    # the time already on the line above it.
+    if (length(own$seconds) && is.finite(own$seconds)) {
+      cat("  time to fit        ", .model_duration(own$seconds), "\n",
           sep = "")
+      rows <- own$candidates
+      if (!is.null(rows) && "seconds" %in% names(rows) && nrow(rows) > 1L) {
+        cat(sprintf("%s%-26s %s%s\n", strrep(" ", 23L), rows$model,
+                    vapply(rows$seconds, .model_duration, character(1)),
+                    ifelse(rows$converged, "", " (did not converge)")),
+            sep = "")
+      }
     }
+  }
+  # The call, against the fits inside it. The difference is reading the study,
+  # the shapes fitted by least squares, and the dosing and visit models, and a
+  # caller deciding whether to run this again weighs the whole of it.
+  if (!is.null(x$timing)) {
+    field("whole call", .model_duration(x$timing$total),
+          ", against ", .model_duration(x$timing$fit), " in the fitter")
   }
   # Only where something was fitted. `covariate_effects` is `"none"` by
   # default, and a line reading "none" on every report says nothing.

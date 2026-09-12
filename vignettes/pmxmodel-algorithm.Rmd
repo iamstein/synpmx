@@ -562,9 +562,9 @@ winning on AIC against two other flat lines is visible as that.
 All three shapes are fitted by least squares rather than through `nlmixr2`, so
 all three together cost no measurable time, and **the only compiled fits in the
 whole call are the PK candidates.** `model_report()` breaks the wait down by
-fit: one line per candidate the search compiled, and one for the least-squares
-shapes. A search that spent nine of its ten minutes in a second candidate is a
-run whose answer is to name `pk`.
+fit: each concentration's block carries what that fit took, one line per
+candidate where the search compiled more than one. A search that spent nine of
+its ten minutes in a second candidate is a run whose answer is to name `pk`.
 
 Binary and ordinal endpoints are not fitted at all. They are drawn from the level
 frequencies their arm holds at each nominal time, which is what the visit model
