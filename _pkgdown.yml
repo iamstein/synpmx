@@ -82,9 +82,10 @@ navbar:
     # The three modes that are not their own callout. The numbering groups by
     # what a mode reads: 1 to 3 read the study and rest on governance, 4 to 6
     # protect privacy more strictly, so PCA sits at 3 beside PMXmodel and
-    # AVATAR rather than beside the two it shares this menu with. Prior has no
-    # public-data survey: it reads nothing, so there is no source study to
-    # evaluate it against, and its demo is the worked case instead.
+    # AVATAR rather than beside the two it shares this menu with. Prior's
+    # public-data survey is two studies rather than the collection: it needs
+    # the protocol stated as a design, and most of these studies dose per
+    # subject, which a public declaration cannot say.
     methods:
       text: Methods
       menu:
@@ -104,6 +105,8 @@ navbar:
         href: articles/prior-demo.html
       - text: Algorithm
         href: articles/prior-algorithm.html
+      - text: Evaluation on public data
+        href: articles/prior-public-data-examples.html
     scorecard:
       text: Scorecard
       menu:

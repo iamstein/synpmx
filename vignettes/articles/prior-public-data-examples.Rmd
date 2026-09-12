@@ -1,0 +1,361 @@
+---
+title: "Evaluating prior-only generation on public data"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Evaluating prior-only generation on public data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(synpmx)
+has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+run <- has_nlmixr2data
+plots <- run && has_ggplot2
+has_distributions <- has_ggplot2 &&
+  requireNamespace("patchwork", quietly = TRUE)
+comparison_colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
+```
+
+`synpmx_prior()` reads no data, so this article measures something different
+from the other three surveys. There, a poor comparison is the generator's
+fault. Here every mismatch is the asserted model's fault, and the number that
+matters is how far the output sits from the study the model was meant to
+describe.
+
+**Read this as a measurement of elicitation, not of an algorithm.** The
+generator has no parameters to tune and nothing to learn. Ask it for a study
+under a correct model and it produces one; ask under a model that is twice
+wrong and it produces something twice wrong, quietly and without complaint.
+The two runs below bracket that, and the sensitivity section puts a number on
+the slope between them.
+
+```{r data, eval=run}
+data("theo_md", package = "nlmixr2data")
+theo_md <- as.data.frame(theo_md)
+mixroute <- as.data.frame(mixroute_sim)
+```
+
+## Why two datasets and not ten
+
+The other surveys run the same generator across every public study in the
+package's collection. That is not available here, because prior-only
+generation needs the protocol stated as a `pmx_trial_design()`, and most of
+these studies have a design a public declaration cannot express. The
+obstruction is almost always the dosing rather than the endpoint.
+
+| Dataset | Distinct dose amounts | What a public design cannot state |
+|---|---|---|
+| `mixroute_sim` | 1 | The two administration routes; `1cmt_mixed` is refused because a design cannot say which dose went by which route |
+| `theo_md` | 1 | — |
+| `case1_pkpd` | 5 levels | A placebo arm (`dose_levels` must be positive), and samples at negative nominal times before the first dose |
+| `mad` | 5 levels | The same placebo arm and pre-dose samples, plus four of its five endpoints: ordinal, count and binary have no form |
+| `mavoglurant` | 3 levels, 4 infusion rates | A per-subject infusion rate |
+| `nimoData` | 4 | A per-subject infusion rate, over ten infusions recorded as actuals |
+| `warfarin` | 20 | A per-subject dose amount, and its PD endpoint is turnover |
+| `pheno_sd` | 54 | A per-subject dose amount, in a neonatal cohort |
+| `wbcSim` | 28 | A per-subject dose amount, and myelosuppression is an ODE model |
+| `onc_sim` | — | Dosing compressed into `ADDL`/`II`, a dose that changes within a patient from that patient's own response, and an ODE tumour model |
+
+Two studies have a single protocol dose that a public design states exactly,
+and they are the two below. Everything else would need a dose amount invented
+per subject, which puts the invention rather than the model under test.
+
+That table is also the quickest way to answer "can I use this mode on my
+study?". A protocol dose and a stated sampling schedule are what it needs; a
+study whose dose follows the patient is a study for `synpmx_avatar()` or
+`synpmx_model()`.
+
+## Shared workflow
+
+Both examples follow the same five steps:
+
+1. declare the column meanings with `pmx_roles()`, which for this mode names
+   the schema to generate **into** rather than one to read;
+2. state the public model and design, with where each came from;
+3. generate with `synpmx_prior()`;
+4. plot the real and synthetic observations together;
+5. report the scorecard and the ratio of median concentrations.
+
+`synpmx_scorecard_datatable(card, report = "minimal")` prints the tally and
+only the rows that are not a pass, which is the same call the other surveys
+use. Five rows read `not applicable` on both cards below, for two different
+reasons. **B1a**, **B1b** and **C2** read a run record that `synpmx_avatar()`
+writes and this generator does not. **E1** and **E2** ask whether a fitted
+model's parameters moved off their starting values and whether its
+between-subject terms were estimated — questions for `synpmx_model()`, and
+this mode fits nothing. Both are limitations of those rows on this generator
+rather than properties of either dataset, and they read the same on both
+cards.
+
+Note which questions are *not* marked inapplicable. **B4a** and **B4b** ask
+directly whether a generated time vector or value vector copies an exposed
+real one, and both are scored here as on any other card. Both pass at zero,
+which is the answer a mode that reads nothing has to give — and a card that
+skipped the question could not have shown it.
+
+```{r helpers, eval=run}
+# Observation rows only, source beside synthetic, on a shared axis.
+observed <- function(data, roles, label) {
+  keep <- data[[roles$evid]] == 0
+  value <- suppressWarnings(as.numeric(data[[roles$dv]][keep]))
+  data.frame(
+    set = label,
+    subject = paste(label, data[[roles$id]][keep]),
+    time = suppressWarnings(as.numeric(data[[roles$time]][keep])),
+    dv = value
+  )[is.finite(value) & value > 0, ]
+}
+
+# The number this article is about: where the asserted model put the level,
+# against where the study has it.
+level_ratio <- function(source, synthetic, roles) {
+  med <- function(d) {
+    v <- suppressWarnings(as.numeric(d[[roles$dv]][d[[roles$evid]] == 0]))
+    stats::median(v[is.finite(v) & v > 0])
+  }
+  c(source = med(source), synthetic = med(synthetic),
+    ratio = med(synthetic) / med(source))
+}
+```
+
+## mixroute_sim: the model that generated it is public
+
+This fixture's own documentation states the parameters it was simulated from —
+clearance 2 L/day, volume 10 L, absorption 0.5 /day and bioavailability 0.7,
+with clearance and volume scaled allometrically on weight. Handing those back
+as the public model is the best case this mode can have: the prior is not an
+estimate or a guess, it is the truth, and whatever gap remains is the part of
+the truth the catalogue cannot hold.
+
+Three things it cannot hold here. The allometric scaling, because no covariate
+reaches a parameter. The bioavailability, because `1cmt_oral` has no `f` and
+the mixed form that does is refused for a public design. And the three arms,
+because one asserted model covers one route.
+
+```{r mixroute-inputs, eval=run}
+mixroute_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", cens = "CENS", covariates = "WT"
+)
+mixroute_model <- pmx_structural_model(
+  pk = "1cmt_oral", typical = c(cl = 2, v = 10, ka = 0.5),
+  source = "the documented generating truth of the mixroute_sim fixture"
+)
+mixroute_design <- pmx_trial_design(
+  dose_levels = 100, cohort_sizes = 90, sampling = c(0, 1, 2, 3, 7),
+  n_doses = 3, dose_interval = 7,
+  source = "the fixture's protocol: 100 mg on days 0, 7 and 14"
+)
+mixroute_covariates <- pmx_covariates(WT = pmx_covariate(
+  range = c(40, 130), median = 72, cv = 0.17,
+  source = "the fixture's documented weight distribution"
+))
+mixroute_syn <- synpmx_prior(
+  mixroute_model, mixroute_design, mixroute_roles,
+  n_subjects = 90, seed = 1, covariates = mixroute_covariates
+)
+```
+
+```{r mixroute-figure, eval=plots, fig.height=4}
+frame <- rbind(observed(mixroute, mixroute_roles, "Source"),
+               observed(mixroute_syn, mixroute_roles, "Synthetic"))
+ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
+  ggplot2::geom_line(alpha = 0.3) +
+  ggplot2::geom_point(alpha = 0.35, size = 0.7) +
+  ggplot2::facet_wrap(~ set) +
+  ggplot2::scale_colour_manual(values = comparison_colours, guide = "none") +
+  ggplot2::labs(x = "Study time (days)", y = "Concentration (mg/L)",
+                title = "mixroute_sim under its own generating model") +
+  ggplot2::theme_minimal()
+```
+
+```{r mixroute-level, eval=run}
+round(level_ratio(mixroute, mixroute_syn, mixroute_roles), 3)
+```
+
+```{r mixroute-card, eval=run}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(mixroute, mixroute_syn, mixroute_roles), report = "minimal"
+)
+```
+
+The median sits within about a quarter of the study's, which flatters it. The
+figure shows why, and so does the scorecard's one substantive review row: the
+synthetic profiles are tighter than the real ones. One asserted model gives
+every subject the same route, and the route is what separates this study's
+arms.
+
+```{r mixroute-arms, eval=run}
+spread <- function(data) {
+  v <- suppressWarnings(as.numeric(data$DV[data$EVID == 0]))
+  v <- v[is.finite(v) & v > 0]
+  c(median = stats::median(v), sd = stats::sd(v),
+    p90 = stats::quantile(v, 0.9, names = FALSE))
+}
+by_arm <- tapply(mixroute$DV[mixroute$EVID == 0],
+                 mixroute$ARM[mixroute$EVID == 0],
+                 function(v) stats::median(v, na.rm = TRUE))
+round(by_arm, 2)
+round(rbind(source = spread(mixroute), synthetic = spread(mixroute_syn)), 2)
+```
+
+The three arms sit a factor of two and a half apart, because an intravenous
+dose is all of the dose and a subcutaneous one is seventy per cent of it. The
+synthetic cohort lands between them — it is the average of arms it has no way
+to tell apart — and its spread is roughly half the study's, the missing part
+being that between-arm separation plus the allometric scaling on weight that no
+covariate can reach.
+
+**This is the ceiling, and it is worth being precise about what it is a ceiling
+on.** Handed the model that generated the data, this mode reproduces the event
+structure exactly, the central level to within a quarter, and the dispersion to
+about a half. Nothing a better prior could fix remains: what is left out is
+what the catalogue cannot say.
+
+## theo_md: an illustrative prior, and what being wrong costs
+
+Nothing published was used here. The model is the one the methods article uses
+for the same study — round numbers from allometric scaling, never fitted to
+`theo_md` — and its clearance is deliberately too fast.
+
+```{r theo-inputs, eval=run}
+theo_roles <- pmx_roles(
+  id = "ID", time = "TIME", dv = "DV", amt = "AMT", evid = "EVID",
+  cmt = "CMT", covariates = "WT"
+)
+theo_model <- pmx_structural_model(
+  pk = "1cmt_oral", typical = c(cl = 6, v = 35, ka = 1.5),
+  source = "illustrative allometric scaling; never fitted to theo_md"
+)
+rich <- c(0, 0.25, 0.5, 1, 2, 4, 7, 9, 12, 24)
+theo_design <- pmx_trial_design(
+  dose_levels = 320, cohort_sizes = 12,
+  sampling = list(rich, 0, NULL, NULL, NULL, NULL, rich),
+  n_doses = 7, dose_interval = 24,
+  source = "illustrative protocol: 320 mg daily, sampled on days 1 and 7"
+)
+theo_covariates <- pmx_covariates(WT = pmx_covariate(
+  range = c(40, 130), median = 70, cv = 0.15,
+  source = "illustrative; a healthy-volunteer cohort"
+))
+theo_syn <- synpmx_prior(theo_model, theo_design, theo_roles,
+                         n_subjects = 12, seed = 1,
+                         covariates = theo_covariates)
+```
+
+```{r theo-figure, eval=plots, fig.height=4}
+frame <- rbind(observed(theo_md, theo_roles, "Source"),
+               observed(theo_syn, theo_roles, "Synthetic"))
+ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
+  ggplot2::geom_line(alpha = 0.4) +
+  ggplot2::geom_point(alpha = 0.4, size = 0.8) +
+  ggplot2::facet_wrap(~ set) +
+  ggplot2::scale_colour_manual(values = comparison_colours, guide = "none") +
+  ggplot2::labs(x = "Study time (hours)", y = "Concentration (mg/L)",
+                title = "theo_md under a deliberately imperfect prior") +
+  ggplot2::theme_minimal()
+```
+
+```{r theo-level, eval=run}
+round(level_ratio(theo_md, theo_syn, theo_roles), 3)
+```
+
+```{r theo-card, eval=run}
+synpmx_scorecard_datatable(
+  synpmx_scorecard(theo_md, theo_syn, theo_roles), report = "minimal"
+)
+```
+
+The concentrations run low, by about half. The event structure, the sampling
+schedule, the occasions and the censoring flag are all correct; only the level
+is wrong, and it is wrong because the clearance assumed was wrong. The
+scorecard is the same shape as the run above, which is the point worth noticing
+about the scorecard here: it reads structure, and structure is what this mode
+gets right whatever the parameters say.
+
+## How wrong can the prior be
+
+The two runs above bracket the answer. This sweep fills in between, holding
+everything but the assumed clearance fixed and reading off the level each one
+produces.
+
+```{r sensitivity, eval=run}
+sweep <- do.call(rbind, lapply(c(1.5, 2.2, 3, 4.5, 6, 9, 13.5), function(cl) {
+  model <- pmx_structural_model(
+    pk = "1cmt_oral", typical = c(cl = cl, v = 35, ka = 1.5),
+    source = "illustrative sweep"
+  )
+  syn <- synpmx_prior(model, theo_design, theo_roles, n_subjects = 12,
+                      seed = 1, covariates = theo_covariates)
+  level <- level_ratio(theo_md, syn, theo_roles)
+  data.frame(assumed_cl = cl, synthetic_median = round(level[["synthetic"]], 2),
+             ratio_to_source = round(level[["ratio"]], 2))
+}))
+knitr::kable(sweep, row.names = FALSE,
+             caption = "Assumed clearance against the level it produces")
+```
+
+```{r sensitivity-figure, eval=plots, fig.height=3.6}
+ggplot2::ggplot(sweep, ggplot2::aes(assumed_cl, ratio_to_source)) +
+  ggplot2::geom_hline(yintercept = 1, linetype = "dashed",
+                      colour = "#888888") +
+  ggplot2::geom_line(colour = "#1B6CA8") +
+  ggplot2::geom_point(colour = "#1B6CA8") +
+  ggplot2::scale_x_log10() + ggplot2::scale_y_log10() +
+  ggplot2::labs(x = "Assumed clearance (L/h, log scale)",
+                y = "Synthetic / source median (log scale)",
+                title = "The output level is the elicitation error") +
+  ggplot2::theme_minimal()
+```
+
+Two things to take from this. The level the study actually sits at corresponds
+to an assumed clearance of a little over 2 L/h, and the illustrative model's 6
+is about three times that — hence the halved concentrations.
+
+And the slope is **shallower than one**. Clearance across this sweep spans a
+factor of nine, and the resulting level spans a factor of four. A profile
+sampled richly through absorption is not purely clearance-determined: early
+concentrations are absorption-limited, so an error in clearance is diluted in
+the median. That cuts both ways. A prior wrong by a factor of two costs less
+than a factor of two in the output, and a level that looks close is weaker
+evidence about the clearance than it appears.
+
+## What the two runs held
+
+```{r summary-table, eval=run}
+levels_tbl <- rbind(
+  c(dataset = "mixroute_sim", prior = "documented generating truth",
+    round(level_ratio(mixroute, mixroute_syn, mixroute_roles), 2)),
+  c(dataset = "theo_md", prior = "illustrative allometric scaling",
+    round(level_ratio(theo_md, theo_syn, theo_roles), 2))
+)
+knitr::kable(levels_tbl, row.names = FALSE,
+             caption = "Median concentration, source against synthetic")
+```
+
+A correct prior put the level within a quarter; a prior three times off in
+clearance halved it. Neither run failed a structural check, because nothing
+about the event table depends on the parameters being right — which is exactly
+what makes this mode useful for developing code and useless for answering
+questions about a drug.
+
+## Where to go next
+
+- `vignette("prior-demo")` — one specification worked end to end, including the
+  parts of it the generator cannot express.
+- `vignette("prior-algorithm")` — every step, and the full catalogue enumerated
+  from the code.
+- [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
+  — the same collection of studies under a generator that reads them, which is
+  what the table at the top of this article is implicitly recommending for most
+  of them.
+- [The synpmx data generation algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
+  — the other modes, and which one to use when.
