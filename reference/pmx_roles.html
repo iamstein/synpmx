@@ -113,6 +113,7 @@ copied out of a real subject. Name a column in <code>keep</code> to carry it thr
 <span>  ii <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  adm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  routes <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  dose_endpoints <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  strata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -206,6 +207,26 @@ intramuscular, which are one first-order absorption with an absorption rate
 constant and a bioavailability. A study dosing both ways is fitted with one
 model that routes each dose record to its own compartment, so a patient may
 receive both.</p></dd>
+
+
+<dt id="arg-dose-endpoints">dose_endpoints<a class="anchor" aria-label="anchor" href="#arg-dose-endpoints"></a></dt>
+<dd><p>Which endpoint each administration id doses, as
+<code>dose_endpoints = c("1" = "drug A PK", "2" = "drug B PK")</code>. Needs <code>adm</code>,
+and names endpoints by their <code>dvid</code> value.</p>
+<p>Declare it for a study that gives <strong>two different drugs</strong> and measures a
+concentration of each. Undeclared, every dose record drives every
+concentration endpoint's fit and its generated profile, which is right for
+a parent and its metabolite – one dose, two analytes – and wrong for a
+combination, where each drug's model would be fitted against the other
+drug's doses as well as its own.</p>
+<p>The two cases cannot be told apart from the data: a metabolite has no dose
+records of its own, so "this endpoint's doses are the ones marked <code>2</code>" and
+"this endpoint has no doses" are the same table. Hence a declaration, on
+the same argument <code>routes</code> makes.</p>
+<p>Every administration id present on a dose record must be named, and every
+endpoint named must be one the fit puts a structural model on. Each drug
+then gets its own dose schedule per arm, and the generated study writes
+both drugs' dose records back with their own <code>adm</code> value.</p></dd>
 
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>

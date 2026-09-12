@@ -393,11 +393,35 @@ the question, offer the declaration as an override.</p>
 </h3>
 <p>A study measuring two drugs, or a parent and its metabolite, has two
 drug concentrations, and each is fitted its own population model — its
-own structural model, its own parameters, its own residual error,
-evaluated against the one dose schedule they share. No correlation
-between their random effects is estimated, which is a limitation rather
-than a claim: a patient with a high parent clearance is given an
-independently drawn metabolite clearance.</p>
+own structural model, its own parameters, its own residual error. No
+correlation between their random effects is estimated, which is a
+limitation rather than a claim: a patient with a high parent clearance
+is given an independently drawn metabolite clearance.</p>
+<p><strong>Which doses drive which endpoint is a declaration.</strong>
+By default every dose record drives every concentration: one
+administration, two analytes, which is what a parent and its metabolite
+are. Two <em>different</em> drugs given together are the opposite case —
+each model has to see its own drug’s doses and not the other’s, or a
+clearance and a volume come back having absorbed an input the patient
+never received of that drug.</p>
+<p>The data cannot settle it. A metabolite has no dose records of its
+own, so “this endpoint’s doses are the ones marked <code>2</code>” and
+“this endpoint has no doses” are the same table, and guessing wrong
+leaves a model with no input at all. So it is declared, on the argument
+<code>routes</code> is declared on:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  adm            <span class="op">=</span> <span class="st">"ADM"</span>,</span>
+<span>  routes         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"extravascular"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"extravascular"</span><span class="op">)</span>,</span>
+<span>  dose_endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"drug A PK"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"drug B PK"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Declared, each drug gets its own dose schedule per arm — its own
+amounts, its own interval, its own ladder of reductions — each
+endpoint’s profile is evaluated against its own drug’s doses, and the
+generated study writes both drugs’ dose records back with their own
+<code>adm</code> value and compartment. Undeclared,
+<code><a href="../reference/model_report.html">model_report()</a></code> says so on a study with more than one
+concentration, which is the case where it matters.</p>
 <p><strong>Inference promotes a second endpoint only on signal
 4.</strong> Dose proportionality is the positive evidence that something
 is a drug: a concentration scales with the dose and a biomarker does
@@ -421,7 +445,7 @@ endpoint is fitted a time course with no dose term in it, so the
 generated values lose their dose ordering entirely — measured at 1.05
 times across a three-fold dose range, against 2.7 in the source
 (<code>SIM-080</code>).</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">endpoints</span><span class="op">$</span><span class="va">signals</span></span>
 <span><span class="co">#&gt;   endpoint compartment post_dose shape proportional</span></span>
 <span><span class="co">#&gt; 1       cp          NA      TRUE  TRUE           NA</span></span>
@@ -509,7 +533,7 @@ study as intravenous: it counts the sampling schedule rather than the
 drug. The share of subjects whose own profile rises is still reported,
 because it says how much of the cohort the median profile speaks for,
 but it decides nothing.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">design</span><span class="op">$</span><span class="va">reason</span></span>
 <span><span class="co">#&gt; [1] "the median profile rises to a peak at 9 before declining, and 31% of subjects do too"</span></span></code></pre></div>
 </div>
@@ -634,7 +658,7 @@ that happens to have one candidate: one model, chosen by the route
 detection above, with allometric scaling folded into it where a
 weight-like covariate is declared. <code>pk</code> is how you buy
 accuracy with time.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># One fit, the default.</span></span>
 <span><span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="co"># One fit, your choice of model.</span></span>
@@ -666,7 +690,7 @@ method produced it.</p>
 table, so that a search which came down to one survivor does not look
 like a search that had one candidate. Where nothing converges the
 function errors rather than returning the least bad fit.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic seconds note</span></span>
 <span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.507</span></span></code></pre></div>
@@ -855,7 +879,7 @@ be writing out a description of each real patient. They are not stored
 on the object. Generation draws random effects from the covariance
 matrix instead, and the correlation report above computes from them and
 keeps only the correlation.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>

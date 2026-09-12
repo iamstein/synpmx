@@ -30,6 +30,7 @@ pmx_roles(
   ii = NULL,
   adm = NULL,
   routes = NULL,
+  dose_endpoints = NULL,
   covariates = NULL,
   strata = NULL,
   dose_covariate = NULL,
@@ -134,6 +135,29 @@ pmx_roles(
   absorption with an absorption rate constant and a bioavailability. A
   study dosing both ways is fitted with one model that routes each dose
   record to its own compartment, so a patient may receive both.
+
+- dose_endpoints:
+
+  Which endpoint each administration id doses, as
+  `dose_endpoints = c("1" = "drug A PK", "2" = "drug B PK")`. Needs
+  `adm`, and names endpoints by their `dvid` value.
+
+  Declare it for a study that gives **two different drugs** and measures
+  a concentration of each. Undeclared, every dose record drives every
+  concentration endpoint's fit and its generated profile, which is right
+  for a parent and its metabolite – one dose, two analytes – and wrong
+  for a combination, where each drug's model would be fitted against the
+  other drug's doses as well as its own.
+
+  The two cases cannot be told apart from the data: a metabolite has no
+  dose records of its own, so "this endpoint's doses are the ones marked
+  `2`" and "this endpoint has no doses" are the same table. Hence a
+  declaration, on the same argument `routes` makes.
+
+  Every administration id present on a dose record must be named, and
+  every endpoint named must be one the fit puts a structural model on.
+  Each drug then gets its own dose schedule per arm, and the generated
+  study writes both drugs' dose records back with their own `adm` value.
 
 - covariates:
 
