@@ -57,6 +57,28 @@
   rep(seq_along(design$dose_levels), times = counts)[seq_len(n_subjects)]
 }
 
+# A mixed-route model needs to know which dose went by which route, and the
+# only place that can come from is the data: `pmx_trial_design()` has no route
+# argument, and `.generate_structural()` calls `.pk_profile()` without one, so
+# every dose would default to intravenous. For a `_mixed` form that also sets
+# `f` to 1, silently discarding a bioavailability the constructor required --
+# the output was byte-identical to the plain intravenous form at any `f`
+# whatever (`REV-053`). `synpmx_model()` is the path that reads routes from a
+# study and can use these forms.
+.reject_mixed_route_model <- function(model, fn) {
+  if (!inherits(model, "pmx_structural_model")) return(invisible(NULL))
+  if (!model$pk %in% c("1cmt_mixed", "2cmt_mixed")) return(invisible(NULL))
+  stop(.condition_text(
+    "`", fn, "()` cannot generate from the `", model$pk, "` model.",
+    why = paste(
+      "A mixed-route model needs to know which dose went by which route, and",
+      "a public trial design has no way to say. Declare the route the study",
+      "actually used --", paste(sub("_mixed", "_iv", model$pk), "or",
+                                sub("_mixed", "_oral", model$pk)),
+      "-- or use `synpmx_model()`, which reads the route from the data."
+    )), call. = FALSE)
+}
+
 # Taking a `pmx_roles()` means honouring it. Every generator that reads a study
 # returns a table satisfying the roles it was handed, and these two must too --
 # so a declaration naming a column they cannot produce is refused here rather
@@ -223,6 +245,7 @@
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
   }
+  .reject_mixed_route_model(model, "synpmx_prior")
   .reject_unfillable_roles(roles, covariates)
   n_subjects <- as.integer(n_subjects)
   if (!is.finite(n_subjects) || n_subjects < 1L) {

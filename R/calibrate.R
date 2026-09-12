@@ -270,6 +270,10 @@ print.pmx_preflight <- function(x, ...) {
   if (!inherits(model, "pmx_structural_model")) {
     stop("`model` must come from `pmx_structural_model()`.", call. = FALSE)
   }
+  # Before any budget is spent: the correction is an AUC ratio computed from
+  # `.pk_profile()` without routes, so a mixed-route model would be corrected
+  # against an all-intravenous prediction (`REV-053`).
+  .reject_mixed_route_model(model, "synpmx_calibrated")
   if (!inherits(design, "pmx_trial_design")) {
     stop("`design` must come from `pmx_trial_design()`.", call. = FALSE)
   }

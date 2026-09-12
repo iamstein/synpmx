@@ -791,3 +791,46 @@ test_that("a calibrated release generates the schema it was fitted under", {
   # One declaration now serves the generator and the comparison functions.
   expect_s3_class(synpmx_scorecard(data, synthetic, roles), "data.frame")
 })
+
+test_that("a mixed-route model is refused rather than run as intravenous", {
+  # REV-053: only `synpmx_model()` supplies routes to the profile evaluator.
+  # The public-model modes cannot, so a `_mixed` form silently discarded `f`
+  # and returned the plain intravenous profile at any value of it.
+  mixed <- pmx_structural_model(
+    "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7), source = "unit test"
+  )
+  design <- pmx_trial_design(100, 30, sampling = c(1, 3, 7),
+                             source = "unit test protocol")
+  expect_error(synpmx_prior(mixed, design, n_subjects = 5, seed = 1),
+               "1cmt_mixed")
+  expect_error(synpmx_prior(mixed, design, n_subjects = 5, seed = 1),
+               "synpmx_model")
+
+  # And before any budget is spent, because the correction is fitted from the
+  # same route-blind prediction.
+  data <- synpmx_prior(
+    pmx_structural_model("1cmt_oral", c(cl = 2, v = 10, ka = 0.5),
+                         source = "unit test"),
+    design, n_subjects = 24, seed = 2
+  )
+  expect_error(
+    synpmx_calibrated(
+      data = data, roles = pmx_generated_roles(), model = mixed,
+      design = design,
+      priors = pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "unit test")),
+      epsilon = 1, seed = 3, backend = "public", public_source = TRUE
+    ),
+    "1cmt_mixed"
+  )
+
+  # The single-route forms the error names are usable.
+  for (form in c("1cmt_iv", "1cmt_oral")) {
+    typical <- c(cl = 2, v = 10)
+    if (form == "1cmt_oral") typical <- c(typical, ka = 0.5)
+    expect_s3_class(
+      synpmx_prior(pmx_structural_model(form, typical, source = "unit test"),
+                   design, n_subjects = 5, seed = 1),
+      "data.frame"
+    )
+  }
+})

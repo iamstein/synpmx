@@ -777,7 +777,7 @@ small and fixed:
 
 | | Supported |
 |---|---|
-| PK | `1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral`, and `1cmt_mixed` / `2cmt_mixed` for a study dosed by two routes — closed form, no ODEs |
+| PK | `1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral` — closed form, no ODEs. `1cmt_mixed` and `2cmt_mixed` exist for a study dosed by two routes, but only `synpmx_model()` can use them: it reads each dose's route from the study, and a public design cannot state one |
 | PD | `constant`, `linear`, `exponential`, with no exposure dependence |
 | Variability | Lognormal between-subject variability on the typical parameters |
 | Residual error | Proportional only |
