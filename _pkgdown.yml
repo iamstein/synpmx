@@ -82,9 +82,9 @@ navbar:
     # The three modes that are not their own callout. The numbering groups by
     # what a mode reads: 1 to 3 read the study and rest on governance, 4 to 6
     # protect privacy more strictly, so PCA sits at 3 beside PMXmodel and
-    # AVATAR rather than beside the two it shares this menu with. The Prior
-    # and Calibrated entries arrive with their own documents; until then the
-    # menu holds PCA alone and the 4 and 5 gap is the pending work.
+    # AVATAR rather than beside the two it shares this menu with. Prior has no
+    # public-data survey: it reads nothing, so there is no source study to
+    # evaluate it against, and its demo is the worked case instead.
     methods:
       text: Methods
       menu:
@@ -98,6 +98,12 @@ navbar:
       - text: -------
       - text: Study fingerprint
         href: articles/pca-fingerprint.html
+      - text: -------
+      - text: "4. Prior"
+      - text: Demo
+        href: articles/prior-demo.html
+      - text: Algorithm
+        href: articles/prior-algorithm.html
     scorecard:
       text: Scorecard
       menu:

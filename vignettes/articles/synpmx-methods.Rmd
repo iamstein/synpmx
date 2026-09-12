@@ -777,7 +777,7 @@ small and fixed:
 
 | | Supported |
 |---|---|
-| PK | `1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral` — closed form, no ODEs |
+| PK | `1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral`, and `1cmt_mixed` / `2cmt_mixed` for a study dosed by two routes — closed form, no ODEs |
 | PD | `constant`, `linear`, `exponential`, with no exposure dependence |
 | Variability | Lognormal between-subject variability on the typical parameters |
 | Residual error | Proportional only |
@@ -797,6 +797,10 @@ which already does the job properly. What the built-in models are *for* is
 narrow and useful: giving the DP engines a public backbone whose magnitude can
 be corrected under a budget, and producing structurally correct event tables to
 develop pipeline code against.
+
+`vignette("prior-algorithm")` enumerates the catalogue from the code itself
+and demonstrates the exposure-independence of the PD forms on two dose levels,
+which is the limitation in this list most likely to be mistaken for a result.
 
 So if your question is **"does my code handle this dataset shape?"**, these
 modes are the right tool. If it is **"what would this study look like under my

@@ -57,6 +57,7 @@
 
 # Concentration from one dose, evaluated at times measured from that dose.
 # Superposition is valid because every built-in model is linear in dose.
+# prior-algorithm.Rmd, Step 7: Evaluate the Profile by Superposition
 .pk_single_dose <- function(model, time, dose, p, duration = 0,
                            route = NULL) {
   # A mixed model resolves to one of the single-route forms per dose. An
@@ -165,6 +166,8 @@
 # deviation statistic does not. `doses`
 # and `dose_times` are accepted for a common signature with `.pk_profile()` but
 # are unused.
+# prior-algorithm.Rmd, "What This Algorithm Cannot Express": these forms
+# are functions of time alone, so the PD endpoint does not respond to dose.
 .pd_profile <- function(model, time, doses, dose_times, params = NULL,
                         duration = 0) {
   p <- params %||% model$typical

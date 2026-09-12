@@ -10,6 +10,7 @@
 # scale, so it targets the geometric mean. Centering the arithmetic mean here
 # instead would leave a systematic exp(sigma^2 / 2) gap between what is fitted
 # and what is generated, which does not shrink with N or epsilon.
+# prior-algorithm.Rmd, Step 5: Draw One Parameter Vector per Subject
 .draw_subject_params <- function(typical, iiv, n) {
   out <- matrix(rep(typical, each = n), nrow = n,
                 dimnames = list(NULL, names(typical)))
@@ -25,6 +26,7 @@
 # That keeps a predose sample exactly predose, keeps every sample within its own
 # occasion, and guarantees a nonnegative TAD. Jittering absolute time does none
 # of those things and reproduces defect SIM-005.
+# prior-algorithm.Rmd, Step 6: Place Dose and Observation Events on a Clock
 .structural_clock <- function(nominal, dose_times, window) {
   occ <- pmax(findInterval(nominal, dose_times), 1L)
   anchor <- dose_times[occ]
@@ -39,6 +41,7 @@
   list(actual = anchor + tad, tad = tad, occasion = occ)
 }
 
+# prior-algorithm.Rmd, Step 4: Assign Subjects to Cohorts
 .assign_cohorts <- function(design, n_subjects) {
   weights <- design$cohort_sizes / sum(design$cohort_sizes)
   counts <- as.integer(round(weights * n_subjects))
@@ -60,6 +63,7 @@
 # than answered with a table that fails `validate_pmx()` under the caller's own
 # declaration. The default roles name only columns the generator fills, so this
 # is reachable only from a study's own declaration.
+# prior-algorithm.Rmd, Step 3: Check the Output Declaration Can Be Filled
 .reject_unfillable_roles <- function(roles, covariates) {
   # Column-naming roles with no counterpart in a structurally generated table.
   # `exclude` names columns to drop, and `routes`, `dose_endpoints` and
@@ -107,6 +111,7 @@
 # is named, so nothing is dropped. And `dvid` may name several columns, of
 # which the first is used: the generated table holds one endpoint key and
 # nothing here can split it across more.
+# prior-algorithm.Rmd, Step 11: Name the Columns from the Declaration
 .rename_to_roles <- function(out, roles) {
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
