@@ -90,9 +90,9 @@ synpmx_model_estimate(
   `dose_endpoints` in
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md),
   or each drug is fitted against the other's doses as well as its own.
+  Undeclared,
   [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-  says which of the two is happening whenever more than one
-  concentration is named.
+  says so whenever more than one concentration is named.
 
 - start_param:
 

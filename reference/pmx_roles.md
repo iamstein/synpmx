@@ -180,10 +180,10 @@ pmx_roles(
   column twice:
   `pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints = c("1" = "drug A PK", "3" = "drug B PK"))`.
 
-  Either way,
+  Undeclared,
   [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-  says which dose records drove which fit whenever a study has more than
-  one concentration.
+  says so on any study with more than one concentration, because that is
+  the case worth a line.
 
 - covariates:
 

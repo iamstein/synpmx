@@ -244,8 +244,8 @@ writes both drugs' dose records back with their own <code>adm</code> value and
 compartment.</p>
 <p>In a NONMEM dataset the compartment does this job, so declare the column
 twice: <code>pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints = c("1" = "drug A PK", "3" = "drug B PK"))</code>.</p>
-<p>Either way, <code><a href="model_report.html">model_report()</a></code> says which dose records drove which fit
-whenever a study has more than one concentration.</p></dd>
+<p>Undeclared, <code><a href="model_report.html">model_report()</a></code> says so on any study with more than one
+concentration, because that is the case worth a line.</p></dd>
 
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>
