@@ -22,7 +22,7 @@ synthetic pharmacometric datasets.
   is the maintainer's to update, so raise anything that looks wrong in the
   conversation rather than editing it.
 
-Five cross-document contracts, each a defect when broken:
+Six cross-document contracts, each a defect when broken:
 
 - `vignettes/avatar-scorecard.Rmd` documents the checks that
   `synpmx_scorecard()` implements: every row the function emits has a section
@@ -80,6 +80,23 @@ Five cross-document contracts, each a defect when broken:
   nothing else demonstrates it. `vignettes/prior-demo.Rmd` is the worked
   specification, including the parts of it the generator cannot express; it
   reads no data and compiles nothing, so `R CMD check` executes it.
+- `vignettes/calibrated-algorithm.Rmd` documents what `synpmx_calibrated()`
+  does, step by step, and its step table states for each step whether it reads
+  data and whether it spends budget — only the two release steps do, and that
+  column is the document's point. `vignettes/calibrated-demo.Rmd` runs one
+  study end to end. Both, and
+  `vignettes/articles/calibrated-public-data-examples.Rmd`, use
+  `backend = "opendp"` rather than `"public"`: the public fixture backend has
+  `noise_scale = 0` and adds no noise at all, so a document using it would
+  demonstrate the correction mechanism while saying nothing about epsilon.
+  Privacy noise is deliberately never user-seeded, so these pages differ
+  between builds; no realized value may be written into their prose, and the
+  evaluation article makes every claim over repeated draws computed in the
+  document. Its finding is load-bearing and must keep running: at a phase 1
+  cohort size and a defensible epsilon, a release is not merely uninformative
+  but worse than not spending, because most draws are clipped to a prior
+  boundary and a boundary is further from the study than the prior's centre.
+  The comparison against prior-only generation is what shows that, so it stays.
 - `vignettes/avatar-algorithm.Rmd` documents what `synpmx_avatar()` does. Each
   numbered step describes an operation the function performs, and each masking
   mechanism M1 to M6 has a section stating what it does and what it costs.

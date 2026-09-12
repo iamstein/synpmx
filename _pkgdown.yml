@@ -107,6 +107,14 @@ navbar:
         href: articles/prior-algorithm.html
       - text: Evaluation on public data
         href: articles/prior-public-data-examples.html
+      - text: -------
+      - text: "5. Calibrated"
+      - text: Demo
+        href: articles/calibrated-demo.html
+      - text: Algorithm
+        href: articles/calibrated-algorithm.html
+      - text: Evaluation on public data
+        href: articles/calibrated-public-data-examples.html
     scorecard:
       text: Scorecard
       menu:

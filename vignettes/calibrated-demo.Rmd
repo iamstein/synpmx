@@ -1,0 +1,221 @@
+---
+title: "Demo: Using synpmx_calibrated"
+author: "Andrew Stein"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 9
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Demo: Using synpmx_calibrated}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+library(synpmx)
+has_opendp <- requireNamespace("opendp", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+plots <- has_opendp && has_ggplot2
+```
+
+One study through the calibrated path end to end: decide whether the release is
+worth making, spend the budget once, read what was released, and generate from
+it for free.
+
+The study is `mixroute_sim`, a simulated 90-subject dataset shipped with the
+package. It is public, so nothing here is a real disclosure — but it is run
+through the genuine OpenDP backend rather than the no-noise fixture, because
+the point of this document is what a real release looks like.
+
+**The numbers below change every time this page is built.** Privacy noise is
+never user-seeded; a `seed` argument controls ordinary generation only.
+Two runs of the same call give different releases, by design.
+
+## The acknowledgment
+
+`synpmx_calibrated()` refuses to run until this has been called once in the
+session. It is a deliberate speed bump, not a technical safeguard.
+
+```{r enable}
+synpmx_enable_dp_engines()
+```
+
+## Configuration
+
+```{r inputs, eval=has_opendp}
+study <- as.data.frame(mixroute_sim)
+
+study_roles <- pmx_roles(
+  id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
+  evid = "EVID", cmt = "CMT", cens = "CENS"
+)
+```
+
+The model and the design are public inputs, and each records where it came
+from. These are the same objects prior-only generation takes; what calibration
+adds is a correction to the magnitude.
+
+```{r public-inputs, eval=has_opendp}
+public_model <- pmx_structural_model(
+  pk = "1cmt_oral", typical = c(cl = 2, v = 10, ka = 0.5),
+  source = "the documented generating truth of the mixroute_sim fixture"
+)
+public_design <- pmx_trial_design(
+  dose_levels = 100, cohort_sizes = 90, sampling = c(0, 1, 2, 3, 7),
+  n_doses = 3, dose_interval = 7,
+  source = "the fixture's protocol: 100 mg on days 0, 7 and 14"
+)
+priors <- pmx_priors(pk = pmx_prior(
+  c(1 / 4, 4),
+  source = "scaling literature: the prediction is believed good to four-fold"
+))
+```
+
+The prior is the input worth pausing on. It says the model's prediction is
+believed accurate to about four-fold in either direction, which is a claim
+anyone can make without knowing the clearance. It is also the dominant
+sensitivity term: the noise is measured against its width.
+
+## Is this release worth its budget?
+
+Ask before spending. `pmx_preflight()` reads no data and spends nothing.
+
+```{r preflight}
+pmx_preflight(priors, epsilon = 0.1, n_subjects = 90)
+```
+
+At 90 subjects an epsilon of 0.1 is worth making. The same question at a
+phase 1 cohort size gets a different answer:
+
+```{r preflight-small}
+pmx_preflight(priors, epsilon = 0.1, n_subjects = 12)
+```
+
+That is not a marginal call — the function says the release would tell you
+nothing you did not already assume, and recommends prior-only generation
+instead. **Run this before choosing epsilon, not after.**
+
+## Spend the budget, once
+
+```{r fit, eval=has_opendp}
+synthetic <- synpmx_calibrated(
+  data = study, roles = study_roles, model = public_model,
+  design = public_design, priors = priors,
+  epsilon = 0.1, seed = 404, backend = "opendp"
+)
+```
+
+A warning here is expected rather than exceptional, and this page shows
+whichever one this build's draw produced. At an epsilon of 0.1 the noise is a
+third of the prior's width, so a fair proportion of draws land pressed against
+a prior boundary — and when one does, the function says so, because the
+generated data then reflects the boundary rather than the study. That is the
+mechanism working: the release is still valid, and it is still nearly
+uninformative. The
+[public-data evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+draws this release two hundred times and shows the whole distribution, which is
+the honest way to read a single one.
+
+## What was released
+
+```{r release, eval=has_opendp}
+release <- attr(synthetic, "synpmx_release")
+release
+```
+
+Two numbers left the study: a correction multiplying the assumed clearance, and
+a noisy subject count. Everything else in the printed object is a public input
+or an accounting entry.
+
+```{r accounting, eval=has_opendp}
+release$privacy$accounting$entries
+```
+
+The correction is not an estimate of anything, and the noisy count is not the
+study's size — this study has exactly 90 subjects and the released count will
+not say so. Compare the corrected clearance against the 2 L/day that was
+assumed: whatever multiple this build drew, a single release at this epsilon is
+one sample from a wide distribution, not a measurement.
+
+## The generated data
+
+```{r generated, eval=has_opendp}
+str(synthetic)
+```
+
+The table wears the columns `study_roles` declared, so it drops into code
+written against the source study without renaming anything.
+
+```{r figure, eval=plots, fig.height=4}
+observed <- function(data, label) {
+  keep <- data$EVID == 0
+  value <- suppressWarnings(as.numeric(data$DV[keep]))
+  out <- data.frame(set = label, subject = paste(label, data$ID[keep]),
+                    time = as.numeric(data$TIME[keep]), dv = value)
+  out[is.finite(out$dv) & out$dv > 0, ]
+}
+frame <- rbind(observed(study, "Source"), observed(synthetic, "Synthetic"))
+ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
+  ggplot2::geom_line(alpha = 0.3) +
+  ggplot2::geom_point(alpha = 0.35, size = 0.7) +
+  ggplot2::facet_wrap(~ set) +
+  ggplot2::scale_colour_manual(
+    values = c(Source = "#1B6CA8", Synthetic = "#D95F02"), guide = "none") +
+  ggplot2::labs(x = "Study time (days)", y = "Concentration (mg/L)",
+                title = "mixroute_sim, calibrated at epsilon = 0.1") +
+  ggplot2::theme_minimal()
+```
+
+## Further datasets are free
+
+Generation from an existing release is post-processing. It reads no
+confidential data and spends nothing, so any number of datasets can be drawn
+from the one payment.
+
+```{r again, eval=has_opendp}
+another <- synpmx_generate(synthetic, seed = 405)
+identical(names(another), names(synthetic))
+```
+
+Draw them this way rather than by calling `synpmx_calibrated()` again. A second
+fit spends the budget a second time, and the function warns when it notices
+one:
+
+```{r repeat-warning, eval=has_opendp}
+second_fit <- tryCatch(
+  synpmx_calibrated(
+    data = study, roles = study_roles, model = public_model,
+    design = public_design, priors = priors,
+    epsilon = 0.1, seed = 406, backend = "opendp"
+  ),
+  warning = function(w) conditionMessage(w)
+)
+cat(if (is.character(second_fit)) second_fit else "no warning", "\n")
+```
+
+## What this run does and does not support
+
+The event structure, the schedule, the occasions and the censoring flag are
+correct because the design said so. The concentration *level* has been pulled
+toward the study by one released number. Everything else — the curve shape,
+the between-subject spread, the residual error — is the public model's
+assertion, uncorrected and uncosted.
+
+So the output supports developing code against a dataset shaped like this
+study, with a formal guarantee attached to the one quantity that was measured.
+It does not support estimating a parameter, comparing arms, or concluding
+anything about the compound.
+
+## Where to go next
+
+- `vignette("calibrated-algorithm")` — every step, what each one spends, and
+  where the sensitivity bound comes from.
+- [Evaluating calibration on public data](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+  — what this epsilon produces across repeated draws, and the cohort size below
+  which it produces noise.
+- [Feasibility by cohort size](https://iamstein.github.io/synpmx/articles/feasibility.html)
+  — where `f` comes from.
+- [What differential privacy does and does not guarantee](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
+  — the trust-boundary decision rule, and what a production release needs.
