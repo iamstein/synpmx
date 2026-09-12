@@ -11,54 +11,71 @@ describe.
 generator has no parameters to tune and nothing to learn. Ask it for a
 study under a correct model and it produces one; ask under a model that
 is twice wrong and it produces something twice wrong, quietly and
-without complaint. The two runs below bracket that, and the sensitivity
-section puts a number on the slope between them.
+without complaint. The three runs below span that — the model that
+generated a study, an untuned guess from general pharmacology, and a
+clearance three times too fast — and the sensitivity section puts a
+number on the slope between them.
 
 ``` r
 
 data("theo_md", package = "nlmixr2data")
+data("warfarin", package = "nlmixr2data")
 theo_md <- as.data.frame(theo_md)
+warfarin <- as.data.frame(warfarin)
 mixroute <- as.data.frame(mixroute_sim)
 ```
 
-## Why two datasets and not ten
+## Which studies this mode can be pointed at
 
-The other surveys run the same generator across every public study in
-the package’s collection. That is not available here, because prior-only
-generation needs the protocol stated as a
-[`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md),
-and most of these studies have a design a public declaration cannot
-express. The obstruction is almost always the dosing rather than the
-endpoint.
+The other surveys run their generator across every public study in the
+package’s collection. This one runs three, and the reason is worth being
+precise about, because it is easy to state wrongly.
 
-| Dataset | Distinct dose amounts | What a public design cannot state |
-|----|----|----|
-| `mixroute_sim` | 1 | The two administration routes; `1cmt_mixed` is refused because a design cannot say which dose went by which route |
-| `theo_md` | 1 | — |
-| `case1_pkpd` | 5 levels | A placebo arm (`dose_levels` must be positive), and samples at negative nominal times before the first dose |
-| `mad` | 5 levels | The same placebo arm and pre-dose samples, plus four of its five endpoints: ordinal, count and binary have no form |
-| `mavoglurant` | 3 levels, 4 infusion rates | A per-subject infusion rate |
-| `nimoData` | 4 | A per-subject infusion rate, over ten infusions recorded as actuals |
-| `warfarin` | 20 | A per-subject dose amount, and its PD endpoint is turnover |
-| `pheno_sd` | 54 | A per-subject dose amount, in a neonatal cohort |
-| `wbcSim` | 28 | A per-subject dose amount, and myelosuppression is an ODE model |
-| `onc_sim` | — | Dosing compressed into `ADDL`/`II`, a dose that changes within a patient from that patient’s own response, and an ODE tumour model |
+It is **not** a provenance problem. Trial-level realized design — the
+dose levels, the cohort sizes, the sampling schedule — is [treated as
+public throughout this
+package](https://iamstein.github.io/synpmx/articles/data-elicitation.html),
+because it is routinely published, because inferring anything about an
+individual from it is many-to-one and confounded, and because it is a
+property of the study rather than of a person. So reading a regimen off
+the data and declaring it is legitimate, and it is what the three
+examples below do. Record where it came from in the design’s `source`
+and move on.
 
-Two studies have a single protocol dose that a public design states
-exactly, and they are the two below. Everything else would need a dose
-amount invented per subject, which puts the invention rather than the
-model under test.
+The constraint is narrower:
+[`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md)
+has a fixed grammar, and some of these studies did things it has no way
+to say.
 
-That table is also the quickest way to answer “can I use this mode on my
-study?”. A protocol dose and a stated sampling schedule are what it
-needs; a study whose dose follows the patient is a study for
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-or
-[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md).
+| Dataset | What the design grammar cannot state |
+|----|----|
+| `theo_md` | — |
+| `mixroute_sim` | Two administration routes; the mixed-route forms are refused because a design cannot say which dose went by which route |
+| `warfarin` | Dosing in mg/kg — `dose_levels` takes absolute amounts, so a weight-based regimen becomes one typical dose |
+| `pheno_sd`, `wbcSim` | The same mg/kg limitation, over irregular per-subject schedules |
+| `mavoglurant`, `nimoData` | An infusion rate per subject; `duration` is one number for the whole design |
+| `case1_pkpd`, `mad` | A placebo arm, since `dose_levels` must be positive, and samples at negative nominal times before the first dose |
+| `mad` | Four of its five endpoints: ordinal, count and binary have no form |
+| `onc_sim` | Dosing compressed into `ADDL`/`II`, and an ODE tumour model |
+
+Only the last row is different in kind. `onc_sim`’s dose changes
+*within* a patient because of that patient’s own response, and [an
+individual’s dose trajectory is that individual’s
+outcome](https://iamstein.github.io/synpmx/articles/data-elicitation.html)
+rather than a trial-level fact — so that one is a genuine per-subject
+disclosure question and not merely a gap in the grammar.
+
+Everything above it is approximable. A weight-based regimen can be
+declared as a typical dose, an infusion rate as a typical rate, an
+active-arm-only study by dropping placebo. The three worked below are
+the ones where the approximation is small enough that what remains under
+test is the asserted *model* rather than the asserted design. Adding
+another means saying which approximation was made and accepting that its
+cost is mixed into the result.
 
 ## Shared workflow
 
-Both examples follow the same five steps:
+All three examples follow the same five steps:
 
 1.  declare the column meanings with
     [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md),
@@ -72,7 +89,7 @@ Both examples follow the same five steps:
 
 `synpmx_scorecard_datatable(card, report = "minimal")` prints the tally
 and only the rows that are not a pass, which is the same call the other
-surveys use. Five rows read `not applicable` on both cards below, for
+surveys use. Five rows read `not applicable` on every card below, for
 two different reasons. **B1a**, **B1b** and **C2** read a run record
 that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -225,6 +242,106 @@ reproduces the event structure exactly, the central level to within a
 quarter, and the dispersion to about a half. Nothing a better prior
 could fix remains: what is left out is what the catalogue cannot say.
 
+## warfarin: a regimen read off the data, and a prior from drug properties
+
+A single oral dose, sampled to 120 hours, with the PK endpoint taken on
+its own — the PD endpoint is a turnover model the catalogue has no form
+for. The regimen is regular enough to state exactly:
+
+``` r
+
+warfarin_pk <- warfarin[warfarin$dvid == "cp", ]
+per_subject <- !duplicated(warfarin$id)
+round(range(warfarin$amt[warfarin$amt > 0] /
+              warfarin$wt[warfarin$amt > 0]), 3)
+#> [1] 1.499 1.501
+round(stats::median(warfarin$wt[per_subject]), 1)
+#> [1] 71.7
+```
+
+Every subject received 1.5 mg/kg, and the 60 to 153 mg spread in the
+recorded amounts is entirely weight. That regimen is the trial-level
+fact this package treats as public, so it goes straight into the design
+— except that `dose_levels` takes absolute amounts, so it becomes one
+typical dose for a subject of the median weight.
+
+``` r
+
+warfarin_roles <- pmx_roles(
+  id = "id", time = "time", dv = "dv", amt = "amt", evid = "evid",
+  dvid = "dvid"
+)
+warfarin_model <- pmx_structural_model(
+  pk = "1cmt_oral", typical = c(cl = 0.2, v = 8, ka = 1),
+  source = paste("illustrative: warfarin is a low-clearance drug with a long",
+                 "half-life and a small volume of distribution")
+)
+warfarin_design <- pmx_trial_design(
+  dose_levels = 107, cohort_sizes = 32,
+  sampling = sort(unique(warfarin_pk$time[warfarin_pk$evid == 0])),
+  n_doses = 1,
+  source = "1.5 mg/kg single oral dose, at the cohort's median weight"
+)
+warfarin_syn <- synpmx_prior(warfarin_model, warfarin_design, warfarin_roles,
+                             n_subjects = 32, seed = 1)
+```
+
+Nothing was fitted and nothing was tuned. The three parameters are round
+numbers from what is generally known about the drug: clearance well
+under a litre an hour, a volume close to plasma volume, and absorption
+fast relative to elimination.
+
+``` r
+
+frame <- rbind(observed(warfarin_pk, warfarin_roles, "Source"),
+               observed(warfarin_syn, warfarin_roles, "Synthetic"))
+ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
+  ggplot2::geom_line(alpha = 0.4) +
+  ggplot2::geom_point(alpha = 0.4, size = 0.8) +
+  ggplot2::facet_wrap(~ set) +
+  ggplot2::scale_colour_manual(values = comparison_colours, guide = "none") +
+  ggplot2::labs(x = "Time (hours)", y = "Concentration (mg/L)",
+                title = "warfarin, single 1.5 mg/kg oral dose") +
+  ggplot2::theme_minimal()
+```
+
+![](prior-public-data-examples_files/figure-html/warfarin-figure-1.png)
+
+``` r
+
+round(level_ratio(warfarin_pk, warfarin_syn, warfarin_roles), 3)
+#>    source synthetic     ratio 
+#>     6.300     7.034     1.116
+```
+
+``` r
+
+synpmx_scorecard_datatable(
+  synpmx_scorecard(warfarin_pk, warfarin_syn, warfarin_roles),
+  report = "minimal"
+)
+```
+
+An untuned prior from general pharmacology lands within a tenth or so of
+the study’s level. That is the case worth holding against the one below:
+this mode is not inaccurate by construction, it is exactly as accurate
+as what was asserted.
+
+One difference the level ratio does not show. The design declares one
+sampling schedule and every generated subject gets all of it, while the
+real study sampled some subjects more sparsely than others:
+
+``` r
+
+c(source = round(mean(table(warfarin_pk$id[warfarin_pk$evid == 0])), 1),
+  synthetic = round(mean(table(warfarin_syn$id[warfarin_syn$evid == 0])), 1))
+#>    source synthetic 
+#>       7.8      14.0
+```
+
+A study with per-subject sampling variation comes back denser than it
+was, which the scorecard’s observations-per-patient row is what notices.
+
 ## theo_md: an illustrative prior, and what being wrong costs
 
 Nothing published was used here. The model is the one the methods
@@ -296,7 +413,7 @@ and structure is what this mode gets right whatever the parameters say.
 
 ## How wrong can the prior be
 
-The two runs above bracket the answer. This sweep fills in between,
+The runs above span the answer at three points. This sweep fills it in,
 holding everything but the assumed clearance fixed and reading off the
 level each one produces.
 
@@ -359,32 +476,41 @@ prior wrong by a factor of two costs less than a factor of two in the
 output, and a level that looks close is weaker evidence about the
 clearance than it appears.
 
-## What the two runs held
+## What the three runs held
 
 ``` r
 
 levels_tbl <- rbind(
-  c(dataset = "mixroute_sim", prior = "documented generating truth",
+  c(dataset = "mixroute_sim", prior = "the documented generating truth",
     round(level_ratio(mixroute, mixroute_syn, mixroute_roles), 2)),
-  c(dataset = "theo_md", prior = "illustrative allometric scaling",
+  c(dataset = "warfarin", prior = "round numbers from drug properties",
+    round(level_ratio(warfarin_pk, warfarin_syn, warfarin_roles), 2)),
+  c(dataset = "theo_md", prior = "allometric scaling, clearance ~3x too fast",
     round(level_ratio(theo_md, theo_syn, theo_roles), 2))
 )
 knitr::kable(levels_tbl, row.names = FALSE,
              caption = "Median concentration, source against synthetic")
 ```
 
-| dataset      | prior                           | source | synthetic | ratio |
-|:-------------|:--------------------------------|:-------|:----------|:------|
-| mixroute_sim | documented generating truth     | 4.68   | 5.85      | 1.25  |
-| theo_md      | illustrative allometric scaling | 5.89   | 3.15      | 0.53  |
+| dataset | prior | source | synthetic | ratio |
+|:---|:---|:---|:---|:---|
+| mixroute_sim | the documented generating truth | 4.68 | 5.85 | 1.25 |
+| warfarin | round numbers from drug properties | 6.3 | 7.03 | 1.12 |
+| theo_md | allometric scaling, clearance ~3x too fast | 5.89 | 3.15 | 0.53 |
 
 Median concentration, source against synthetic {.table}
 
-A correct prior put the level within a quarter; a prior three times off
-in clearance halved it. Neither run failed a structural check, because
-nothing about the event table depends on the parameters being right —
-which is exactly what makes this mode useful for developing code and
-useless for answering questions about a drug.
+The three rows are a gradient in one thing only: how good the asserted
+model was. The generating truth and an untuned guess from general
+pharmacology both land close; a clearance three times too fast halves
+the level. There is nothing else varying — the generator has no
+parameters, reads nothing, and did the same work in all three cases.
+
+No run failed a structural check, and all three produced the same
+verdict profile, because nothing about the event table depends on the
+parameters being right. That is the division this mode rests on: the
+structure comes from the design and is reliable, the level comes from
+the model and is exactly as reliable as the model.
 
 ## Where to go next
 
@@ -393,11 +519,10 @@ useless for answering questions about a drug.
   generator cannot express.
 - [`vignette("prior-algorithm")`](https://iamstein.github.io/synpmx/articles/prior-algorithm.md)
   — every step, and the full catalogue enumerated from the code.
-- [Evaluating AVATAR on public
-  data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
-  — the same collection of studies under a generator that reads them,
-  which is what the table at the top of this article is implicitly
-  recommending for most of them.
+- [Evaluating calibration on public
+  data](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+  — the other formally private mode, measured the same way, and what a
+  defensible epsilon buys at these cohort sizes.
 - [The synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
   — the other modes, and which one to use when.

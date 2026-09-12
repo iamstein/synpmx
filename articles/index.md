@@ -14,6 +14,15 @@
 - [Scorecard: Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md):
 
+- [The synpmx_calibrated
+  Algorithm](https://iamstein.github.io/synpmx/articles/calibrated-algorithm.md):
+
+- [Demo: Using
+  synpmx_calibrated](https://iamstein.github.io/synpmx/articles/calibrated-demo.md):
+
+- [Evaluating calibration on public
+  data](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.md):
+
 - [Describing the trial: a data-structure elicitation
   guide](https://iamstein.github.io/synpmx/articles/data-elicitation.md):
 

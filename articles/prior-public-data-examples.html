@@ -81,6 +81,11 @@
     <li><a class="dropdown-item" href="../articles/prior-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/prior-algorithm.html">Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/prior-public-data-examples.html">Evaluation on public data</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>5. Calibrated</h6></li>
+    <li><a class="dropdown-item" href="../articles/calibrated-demo.html">Demo</a></li>
+    <li><a class="dropdown-item" href="../articles/calibrated-algorithm.html">Algorithm</a></li>
+    <li><a class="dropdown-item" href="../articles/calibrated-public-data-examples.html">Evaluation on public data</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -133,104 +138,108 @@ from the study the model was meant to describe.</p>
 algorithm.</strong> The generator has no parameters to tune and nothing
 to learn. Ask it for a study under a correct model and it produces one;
 ask under a model that is twice wrong and it produces something twice
-wrong, quietly and without complaint. The two runs below bracket that,
-and the sensitivity section puts a number on the slope between them.</p>
+wrong, quietly and without complaint. The three runs below span that —
+the model that generated a study, an untuned guess from general
+pharmacology, and a clearance three times too fast — and the sensitivity
+section puts a number on the slope between them.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"theo_md"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"warfarin"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">theo_md</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">)</span></span>
+<span><span class="va">warfarin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">warfarin</span><span class="op">)</span></span>
 <span><span class="va">mixroute</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">mixroute_sim</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="why-two-datasets-and-not-ten">Why two datasets and not ten<a class="anchor" aria-label="anchor" href="#why-two-datasets-and-not-ten"></a>
+<h2 id="which-studies-this-mode-can-be-pointed-at">Which studies this mode can be pointed at<a class="anchor" aria-label="anchor" href="#which-studies-this-mode-can-be-pointed-at"></a>
 </h2>
-<p>The other surveys run the same generator across every public study in
-the package’s collection. That is not available here, because prior-only
-generation needs the protocol stated as a
-<code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code>, and most of these studies have a design
-a public declaration cannot express. The obstruction is almost always
-the dosing rather than the endpoint.</p>
+<p>The other surveys run their generator across every public study in
+the package’s collection. This one runs three, and the reason is worth
+being precise about, because it is easy to state wrongly.</p>
+<p>It is <strong>not</strong> a provenance problem. Trial-level realized
+design — the dose levels, the cohort sizes, the sampling schedule — is
+<a href="https://iamstein.github.io/synpmx/articles/data-elicitation.html">treated
+as public throughout this package</a>, because it is routinely
+published, because inferring anything about an individual from it is
+many-to-one and confounded, and because it is a property of the study
+rather than of a person. So reading a regimen off the data and declaring
+it is legitimate, and it is what the three examples below do. Record
+where it came from in the design’s <code>source</code> and move on.</p>
+<p>The constraint is narrower: <code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code> has a
+fixed grammar, and some of these studies did things it has no way to
+say.</p>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="50%">
+<col width="50%">
 </colgroup>
 <thead><tr class="header">
 <th>Dataset</th>
-<th>Distinct dose amounts</th>
-<th>What a public design cannot state</th>
+<th>What the design grammar cannot state</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>mixroute_sim</code></td>
-<td>1</td>
-<td>The two administration routes; <code>1cmt_mixed</code> is refused
-because a design cannot say which dose went by which route</td>
-</tr>
-<tr class="even">
 <td><code>theo_md</code></td>
-<td>1</td>
 <td>—</td>
 </tr>
-<tr class="odd">
-<td><code>case1_pkpd</code></td>
-<td>5 levels</td>
-<td>A placebo arm (<code>dose_levels</code> must be positive), and
-samples at negative nominal times before the first dose</td>
-</tr>
 <tr class="even">
-<td><code>mad</code></td>
-<td>5 levels</td>
-<td>The same placebo arm and pre-dose samples, plus four of its five
-endpoints: ordinal, count and binary have no form</td>
-</tr>
-<tr class="odd">
-<td><code>mavoglurant</code></td>
-<td>3 levels, 4 infusion rates</td>
-<td>A per-subject infusion rate</td>
-</tr>
-<tr class="even">
-<td><code>nimoData</code></td>
-<td>4</td>
-<td>A per-subject infusion rate, over ten infusions recorded as
-actuals</td>
+<td><code>mixroute_sim</code></td>
+<td>Two administration routes; the mixed-route forms are refused because
+a design cannot say which dose went by which route</td>
 </tr>
 <tr class="odd">
 <td><code>warfarin</code></td>
-<td>20</td>
-<td>A per-subject dose amount, and its PD endpoint is turnover</td>
+<td>Dosing in mg/kg — <code>dose_levels</code> takes absolute amounts,
+so a weight-based regimen becomes one typical dose</td>
 </tr>
 <tr class="even">
-<td><code>pheno_sd</code></td>
-<td>54</td>
-<td>A per-subject dose amount, in a neonatal cohort</td>
+<td>
+<code>pheno_sd</code>, <code>wbcSim</code>
+</td>
+<td>The same mg/kg limitation, over irregular per-subject schedules</td>
 </tr>
 <tr class="odd">
-<td><code>wbcSim</code></td>
-<td>28</td>
-<td>A per-subject dose amount, and myelosuppression is an ODE model</td>
+<td>
+<code>mavoglurant</code>, <code>nimoData</code>
+</td>
+<td>An infusion rate per subject; <code>duration</code> is one number
+for the whole design</td>
+</tr>
+<tr class="even">
+<td>
+<code>case1_pkpd</code>, <code>mad</code>
+</td>
+<td>A placebo arm, since <code>dose_levels</code> must be positive, and
+samples at negative nominal times before the first dose</td>
+</tr>
+<tr class="odd">
+<td><code>mad</code></td>
+<td>Four of its five endpoints: ordinal, count and binary have no
+form</td>
 </tr>
 <tr class="even">
 <td><code>onc_sim</code></td>
-<td>—</td>
-<td>Dosing compressed into <code>ADDL</code>/<code>II</code>, a dose
-that changes within a patient from that patient’s own response, and an
-ODE tumour model</td>
+<td>Dosing compressed into <code>ADDL</code>/<code>II</code>, and an ODE
+tumour model</td>
 </tr>
 </tbody>
 </table>
-<p>Two studies have a single protocol dose that a public design states
-exactly, and they are the two below. Everything else would need a dose
-amount invented per subject, which puts the invention rather than the
-model under test.</p>
-<p>That table is also the quickest way to answer “can I use this mode on
-my study?”. A protocol dose and a stated sampling schedule are what it
-needs; a study whose dose follows the patient is a study for
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> or <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code>.</p>
+<p>Only the last row is different in kind. <code>onc_sim</code>’s dose
+changes <em>within</em> a patient because of that patient’s own
+response, and <a href="https://iamstein.github.io/synpmx/articles/data-elicitation.html">an
+individual’s dose trajectory is that individual’s outcome</a> rather
+than a trial-level fact — so that one is a genuine per-subject
+disclosure question and not merely a gap in the grammar.</p>
+<p>Everything above it is approximable. A weight-based regimen can be
+declared as a typical dose, an infusion rate as a typical rate, an
+active-arm-only study by dropping placebo. The three worked below are
+the ones where the approximation is small enough that what remains under
+test is the asserted <em>model</em> rather than the asserted design.
+Adding another means saying which approximation was made and accepting
+that its cost is mixed into the result.</p>
 </div>
 <div class="section level2">
 <h2 id="shared-workflow">Shared workflow<a class="anchor" aria-label="anchor" href="#shared-workflow"></a>
 </h2>
-<p>Both examples follow the same five steps:</p>
+<p>All three examples follow the same five steps:</p>
 <ol style="list-style-type: decimal">
 <li>declare the column meanings with <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code>, which for
 this mode names the schema to generate <strong>into</strong> rather than
@@ -243,7 +252,7 @@ one to read;</li>
 <p><code>synpmx_scorecard_datatable(card, report = "minimal")</code>
 prints the tally and only the rows that are not a pass, which is the
 same call the other surveys use. Five rows read
-<code>not applicable</code> on both cards below, for two different
+<code>not applicable</code> on every card below, for two different
 reasons. <strong>B1a</strong>, <strong>B1b</strong> and
 <strong>C2</strong> read a run record that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
 writes and this generator does not. <strong>E1</strong> and
@@ -377,13 +386,93 @@ prior could fix remains: what is left out is what the catalogue cannot
 say.</p>
 </div>
 <div class="section level2">
+<h2 id="warfarin-a-regimen-read-off-the-data-and-a-prior-from-drug-properties">warfarin: a regimen read off the data, and a prior from drug
+properties<a class="anchor" aria-label="anchor" href="#warfarin-a-regimen-read-off-the-data-and-a-prior-from-drug-properties"></a>
+</h2>
+<p>A single oral dose, sampled to 120 hours, with the PK endpoint taken
+on its own — the PD endpoint is a turnover model the catalogue has no
+form for. The regimen is regular enough to state exactly:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">warfarin_pk</span> <span class="op">&lt;-</span> <span class="va">warfarin</span><span class="op">[</span><span class="va">warfarin</span><span class="op">$</span><span class="va">dvid</span> <span class="op">==</span> <span class="st">"cp"</span>, <span class="op">]</span></span>
+<span><span class="va">per_subject</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">duplicated</a></span><span class="op">(</span><span class="va">warfarin</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">warfarin</span><span class="op">$</span><span class="va">amt</span><span class="op">[</span><span class="va">warfarin</span><span class="op">$</span><span class="va">amt</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span> <span class="op">/</span></span>
+<span>              <span class="va">warfarin</span><span class="op">$</span><span class="va">wt</span><span class="op">[</span><span class="va">warfarin</span><span class="op">$</span><span class="va">amt</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1.499 1.501</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">warfarin</span><span class="op">$</span><span class="va">wt</span><span class="op">[</span><span class="va">per_subject</span><span class="op">]</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 71.7</span></span></code></pre></div>
+<p>Every subject received 1.5 mg/kg, and the 60 to 153 mg spread in the
+recorded amounts is entirely weight. That regimen is the trial-level
+fact this package treats as public, so it goes straight into the design
+— except that <code>dose_levels</code> takes absolute amounts, so it
+becomes one typical dose for a subject of the median weight.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">warfarin_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"id"</span>, time <span class="op">=</span> <span class="st">"time"</span>, dv <span class="op">=</span> <span class="st">"dv"</span>, amt <span class="op">=</span> <span class="st">"amt"</span>, evid <span class="op">=</span> <span class="st">"evid"</span>,</span>
+<span>  dvid <span class="op">=</span> <span class="st">"dvid"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">warfarin_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
+<span>  pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>, typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">0.2</span>, v <span class="op">=</span> <span class="fl">8</span>, ka <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"illustrative: warfarin is a low-clearance drug with a long"</span>,</span>
+<span>                 <span class="st">"half-life and a small volume of distribution"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">warfarin_design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
+<span>  dose_levels <span class="op">=</span> <span class="fl">107</span>, cohort_sizes <span class="op">=</span> <span class="fl">32</span>,</span>
+<span>  sampling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">warfarin_pk</span><span class="op">$</span><span class="va">time</span><span class="op">[</span><span class="va">warfarin_pk</span><span class="op">$</span><span class="va">evid</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  n_doses <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  source <span class="op">=</span> <span class="st">"1.5 mg/kg single oral dose, at the cohort's median weight"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">warfarin_syn</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span><span class="va">warfarin_model</span>, <span class="va">warfarin_design</span>, <span class="va">warfarin_roles</span>,</span>
+<span>                             n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p>Nothing was fitted and nothing was tuned. The three parameters are
+round numbers from what is generally known about the drug: clearance
+well under a litre an hour, a volume close to plasma volume, and
+absorption fast relative to elimination.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">frame</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">observed</span><span class="op">(</span><span class="va">warfarin_pk</span>, <span class="va">warfarin_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
+<span>               <span class="fu">observed</span><span class="op">(</span><span class="va">warfarin_syn</span>, <span class="va">warfarin_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">frame</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>, group <span class="op">=</span> <span class="va">subject</span>, colour <span class="op">=</span> <span class="va">set</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span>, size <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">set</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">comparison_colours</span>, guide <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"Concentration (mg/L)"</span>,</span>
+<span>                title <span class="op">=</span> <span class="st">"warfarin, single 1.5 mg/kg oral dose"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="prior-public-data-examples_files/figure-html/warfarin-figure-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">warfarin_pk</span>, <span class="va">warfarin_syn</span>, <span class="va">warfarin_roles</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    source synthetic     ratio </span></span>
+<span><span class="co">#&gt;     6.300     7.034     1.116</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin_pk</span>, <span class="va">warfarin_syn</span>, <span class="va">warfarin_roles</span><span class="op">)</span>,</span>
+<span>  report <span class="op">=</span> <span class="st">"minimal"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["7.84 -&gt; 14","sd x1.1 on cp (furthest of 1)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>An untuned prior from general pharmacology lands within a tenth or so
+of the study’s level. That is the case worth holding against the one
+below: this mode is not inaccurate by construction, it is exactly as
+accurate as what was asserted.</p>
+<p>One difference the level ratio does not show. The design declares one
+sampling schedule and every generated subject gets all of it, while the
+real study sampled some subjects more sparsely than others:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">warfarin_pk</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="va">warfarin_pk</span><span class="op">$</span><span class="va">evid</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  synthetic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">warfarin_syn</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="va">warfarin_syn</span><span class="op">$</span><span class="va">evid</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    source synthetic </span></span>
+<span><span class="co">#&gt;       7.8      14.0</span></span></code></pre></div>
+<p>A study with per-subject sampling variation comes back denser than it
+was, which the scorecard’s observations-per-patient row is what
+notices.</p>
+</div>
+<div class="section level2">
 <h2 id="theo_md-an-illustrative-prior-and-what-being-wrong-costs">theo_md: an illustrative prior, and what being wrong costs<a class="anchor" aria-label="anchor" href="#theo_md-an-illustrative-prior-and-what-being-wrong-costs"></a>
 </h2>
 <p>Nothing published was used here. The model is the one the methods
 article uses for the same study — round numbers from allometric scaling,
 never fitted to <code>theo_md</code> — and its clearance is deliberately
 too fast.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">theo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>,</span>
 <span>  cmt <span class="op">=</span> <span class="st">"CMT"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
@@ -406,7 +495,7 @@ too fast.</p>
 <span><span class="va">theo_syn</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span><span class="va">theo_model</span>, <span class="va">theo_design</span>, <span class="va">theo_roles</span>,</span>
 <span>                         n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>                         covariates <span class="op">=</span> <span class="va">theo_covariates</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">frame</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">observed</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>               <span class="fu">observed</span><span class="op">(</span><span class="va">theo_syn</span>, <span class="va">theo_roles</span>, <span class="st">"Synthetic"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">frame</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>, group <span class="op">=</span> <span class="va">subject</span>, colour <span class="op">=</span> <span class="va">set</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -418,16 +507,16 @@ too fast.</p>
 <span>                title <span class="op">=</span> <span class="st">"theo_md under a deliberately imperfect prior"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="prior-public-data-examples_files/figure-html/theo-figure-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_syn</span>, <span class="va">theo_roles</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    source synthetic     ratio </span></span>
 <span><span class="co">#&gt;     5.890     3.149     0.535</span></span></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_syn</span>, <span class="va">theo_roles</span><span class="op">)</span>, report <span class="op">=</span> <span class="st">"minimal"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["22 -&gt; 20","sd x1.2 on WT (furthest of 2)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The concentrations run low, by about half. The event structure, the
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["22 -&gt; 20","sd x1.2 on WT (furthest of 2)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The concentrations run low, by about half. The event structure, the
 sampling schedule, the occasions and the censoring flag are all correct;
 only the level is wrong, and it is wrong because the clearance assumed
 was wrong. The scorecard is the same shape as the run above, which is
@@ -438,10 +527,10 @@ say.</p>
 <div class="section level2">
 <h2 id="how-wrong-can-the-prior-be">How wrong can the prior be<a class="anchor" aria-label="anchor" href="#how-wrong-can-the-prior-be"></a>
 </h2>
-<p>The two runs above bracket the answer. This sweep fills in between,
-holding everything but the assumed clearance fixed and reading off the
-level each one produces.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<p>The runs above span the answer at three points. This sweep fills it
+in, holding everything but the assumed clearance fixed and reading off
+the level each one produces.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sweep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="fl">2.2</span>, <span class="fl">3</span>, <span class="fl">4.5</span>, <span class="fl">6</span>, <span class="fl">9</span>, <span class="fl">13.5</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">cl</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
 <span>    pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>, typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="va">cl</span>, v <span class="op">=</span> <span class="fl">35</span>, ka <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>,</span>
@@ -500,7 +589,7 @@ level each one produces.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">sweep</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">assumed_cl</span>, <span class="va">ratio_to_source</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">1</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span>,</span>
 <span>                      colour <span class="op">=</span> <span class="st">"#888888"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -526,13 +615,15 @@ factor of two in the output, and a level that looks close is weaker
 evidence about the clearance than it appears.</p>
 </div>
 <div class="section level2">
-<h2 id="what-the-two-runs-held">What the two runs held<a class="anchor" aria-label="anchor" href="#what-the-two-runs-held"></a>
+<h2 id="what-the-three-runs-held">What the three runs held<a class="anchor" aria-label="anchor" href="#what-the-three-runs-held"></a>
 </h2>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">levels_tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="st">"mixroute_sim"</span>, prior <span class="op">=</span> <span class="st">"documented generating truth"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="st">"mixroute_sim"</span>, prior <span class="op">=</span> <span class="st">"the documented generating truth"</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">mixroute</span>, <span class="va">mixroute_syn</span>, <span class="va">mixroute_roles</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="st">"theo_md"</span>, prior <span class="op">=</span> <span class="st">"illustrative allometric scaling"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="st">"warfarin"</span>, prior <span class="op">=</span> <span class="st">"round numbers from drug properties"</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">warfarin_pk</span>, <span class="va">warfarin_syn</span>, <span class="va">warfarin_roles</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="st">"theo_md"</span>, prior <span class="op">=</span> <span class="st">"allometric scaling, clearance ~3x too fast"</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_syn</span>, <span class="va">theo_roles</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">levels_tbl</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -540,11 +631,11 @@ evidence about the clearance than it appears.</p>
 <table class="table">
 <caption>Median concentration, source against synthetic</caption>
 <colgroup>
-<col width="19%">
-<col width="47%">
-<col width="10%">
-<col width="14%">
+<col width="16%">
+<col width="54%">
 <col width="8%">
+<col width="12%">
+<col width="7%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">dataset</th>
@@ -556,25 +647,37 @@ evidence about the clearance than it appears.</p>
 <tbody>
 <tr class="odd">
 <td align="left">mixroute_sim</td>
-<td align="left">documented generating truth</td>
+<td align="left">the documented generating truth</td>
 <td align="left">4.68</td>
 <td align="left">5.85</td>
 <td align="left">1.25</td>
 </tr>
 <tr class="even">
+<td align="left">warfarin</td>
+<td align="left">round numbers from drug properties</td>
+<td align="left">6.3</td>
+<td align="left">7.03</td>
+<td align="left">1.12</td>
+</tr>
+<tr class="odd">
 <td align="left">theo_md</td>
-<td align="left">illustrative allometric scaling</td>
+<td align="left">allometric scaling, clearance ~3x too fast</td>
 <td align="left">5.89</td>
 <td align="left">3.15</td>
 <td align="left">0.53</td>
 </tr>
 </tbody>
 </table>
-<p>A correct prior put the level within a quarter; a prior three times
-off in clearance halved it. Neither run failed a structural check,
-because nothing about the event table depends on the parameters being
-right — which is exactly what makes this mode useful for developing code
-and useless for answering questions about a drug.</p>
+<p>The three rows are a gradient in one thing only: how good the
+asserted model was. The generating truth and an untuned guess from
+general pharmacology both land close; a clearance three times too fast
+halves the level. There is nothing else varying — the generator has no
+parameters, reads nothing, and did the same work in all three cases.</p>
+<p>No run failed a structural check, and all three produced the same
+verdict profile, because nothing about the event table depends on the
+parameters being right. That is the division this mode rests on: the
+structure comes from the design and is reliable, the level comes from
+the model and is exactly as reliable as the model.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
@@ -587,10 +690,10 @@ to end, including the parts of it the generator cannot express.</li>
 <code><a href="../articles/prior-algorithm.html">vignette("prior-algorithm")</a></code> — every step, and the full
 catalogue enumerated from the code.</li>
 <li>
-<a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating
-AVATAR on public data</a> — the same collection of studies under a
-generator that reads them, which is what the table at the top of this
-article is implicitly recommending for most of them.</li>
+<a href="https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html">Evaluating
+calibration on public data</a> — the other formally private mode,
+measured the same way, and what a defensible epsilon buys at these
+cohort sizes.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">The
 synpmx data generation algorithms</a> — the other modes, and which one
