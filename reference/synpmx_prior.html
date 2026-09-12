@@ -92,6 +92,7 @@ spend: this is <code>epsilon = 0</code>, the strongest possible guarantee.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">synpmx_prior</span><span class="op">(</span></span>
 <span>  <span class="va">model</span>,</span>
 <span>  <span class="va">design</span>,</span>
+<span>  roles <span class="op">=</span> <span class="fu"><a href="pmx_generated_roles.html">pmx_generated_roles</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  n_subjects <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dropout <span class="op">=</span> <span class="fl">0</span>,</span>
@@ -110,6 +111,11 @@ spend: this is <code>epsilon = 0</code>, the strongest possible guarantee.</p>
 
 <dt id="arg-design">design<a class="anchor" aria-label="anchor" href="#arg-design"></a></dt>
 <dd><p>A <code><a href="pmx_trial_design.html">pmx_trial_design()</a></code>.</p></dd>
+
+
+<dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
+<dd><p>A <code><a href="pmx_roles.html">pmx_roles()</a></code> naming the columns of the output. Defaults to
+<code><a href="pmx_generated_roles.html">pmx_generated_roles()</a></code>, the package's own generated schema.</p></dd>
 
 
 <dt id="arg-n-subjects">n_subjects<a class="anchor" aria-label="anchor" href="#arg-n-subjects"></a></dt>
@@ -136,8 +142,7 @@ assumption from the protocol.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame in the generated event-table schema; see
-<code><a href="pmx_generated_roles.html">pmx_generated_roles()</a></code>.</p>
+    <p>A data frame in event-table form, under the names in <code>roles</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -145,6 +150,21 @@ assumption from the protocol.</p></dd>
 allometric scaling from preclinical work, a published model for the compound
 class, or the reasoning that set the starting dose. The output is exactly as
 good as that prior.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="roles-here-name-the-output-not-an-input">Roles here name the output, not an input<a class="anchor" aria-label="anchor" href="#roles-here-name-the-output-not-an-input"></a></h2>
+
+
+<p>Every generator in the package takes a <code><a href="pmx_roles.html">pmx_roles()</a></code> declaration and writes
+its output under those column names, so that one declaration serves the
+generator, <code><a href="compare_pmx_distributions.html">compare_pmx_distributions()</a></code> and <code><a href="synpmx_scorecard.html">synpmx_scorecard()</a></code>. For
+<code><a href="synpmx_avatar.html">synpmx_avatar()</a></code>, <code><a href="synpmx_pca.html">synpmx_pca()</a></code> and <code><a href="synpmx_model.html">synpmx_model()</a></code> the declaration
+describes the study being read. This function reads nothing, so the same
+object does the opposite job here: it prescribes the schema to generate
+into. Pass the roles of the study the synthetic data has to stand in for and
+the output drops straight into code written against it. A role left
+undeclared gets no column. The default, <code><a href="pmx_generated_roles.html">pmx_generated_roles()</a></code>, names every
+column the generator can produce.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -171,6 +191,14 @@ good as that prior.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  320</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2  320</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  320</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Generating into a study's own schema, so the output needs no renaming.</span></span></span>
+<span class="r-in"><span><span class="va">study_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  id <span class="op">=</span> <span class="st">"SUBJID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>,</span></span>
+<span class="r-in"><span>  amt <span class="op">=</span> <span class="st">"AMT"</span>, evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, mdv <span class="op">=</span> <span class="st">"MDV"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">synpmx_prior</span><span class="op">(</span><span class="va">model</span>, <span class="va">design</span>, <span class="va">study_roles</span>, n_subjects <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">202</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "SUBJID" "TIME"   "NTIME"  "DV"     "AMT"    "EVID"   "CMT"    "MDV"   </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

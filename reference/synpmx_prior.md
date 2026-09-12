@@ -10,6 +10,7 @@ to spend: this is `epsilon = 0`, the strongest possible guarantee.
 synpmx_prior(
   model,
   design,
+  roles = pmx_generated_roles(),
   n_subjects = NULL,
   seed = NULL,
   dropout = 0,
@@ -29,6 +30,14 @@ synpmx_prior(
 
   A
   [`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md).
+
+- roles:
+
+  A
+  [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
+  naming the columns of the output. Defaults to
+  [`pmx_generated_roles()`](https://iamstein.github.io/synpmx/reference/pmx_generated_roles.md),
+  the package's own generated schema.
 
 - n_subjects:
 
@@ -55,8 +64,7 @@ synpmx_prior(
 
 ## Value
 
-A data frame in the generated event-table schema; see
-[`pmx_generated_roles()`](https://iamstein.github.io/synpmx/reference/pmx_generated_roles.md).
+A data frame in event-table form, under the names in `roles`.
 
 ## Details
 
@@ -64,6 +72,28 @@ The typical parameter values must come from somewhere that is not the
 data – allometric scaling from preclinical work, a published model for
 the compound class, or the reasoning that set the starting dose. The
 output is exactly as good as that prior.
+
+## Roles here name the output, not an input
+
+Every generator in the package takes a
+[`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
+declaration and writes its output under those column names, so that one
+declaration serves the generator,
+[`compare_pmx_distributions()`](https://iamstein.github.io/synpmx/reference/compare_pmx_distributions.md)
+and
+[`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md).
+For
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
+[`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
+and
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+the declaration describes the study being read. This function reads
+nothing, so the same object does the opposite job here: it prescribes
+the schema to generate into. Pass the roles of the study the synthetic
+data has to stand in for and the output drops straight into code written
+against it. A role left undeclared gets no column. The default,
+[`pmx_generated_roles()`](https://iamstein.github.io/synpmx/reference/pmx_generated_roles.md),
+names every column the generator can produce.
 
 ## See also
 
@@ -92,4 +122,12 @@ head(syn, 3)
 #> 1  320
 #> 2  320
 #> 3  320
+
+# Generating into a study's own schema, so the output needs no renaming.
+study_roles <- pmx_roles(
+  id = "SUBJID", time = "TIME", nominal_time = "NTIME", dv = "DV",
+  amt = "AMT", evid = "EVID", cmt = "CMT", mdv = "MDV"
+)
+names(synpmx_prior(model, design, study_roles, n_subjects = 3, seed = 202))
+#> [1] "SUBJID" "TIME"   "NTIME"  "DV"     "AMT"    "EVID"   "CMT"    "MDV"   
 ```

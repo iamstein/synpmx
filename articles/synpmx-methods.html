@@ -543,22 +543,36 @@ important, but outside the scope of this package.</p>
 <span><span class="co">#&gt;     dose 6: none</span></span>
 <span><span class="co">#&gt;     dose 7: 0, 0.25, 0.5, 1, 2, 4, 7, 9, 12, 24</span></span>
 <span><span class="co">#&gt;   source: illustrative protocol</span></span>
-<span><span class="va">prior_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span><span class="va">theo_model</span>, <span class="va">theo_design</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">202</span><span class="op">)</span></span>
+<span><span class="co"># `theo_roles` without its covariate. A mode that reads nothing can produce a</span></span>
+<span><span class="co"># covariate only from a public distribution it was given, so declaring `WT`</span></span>
+<span><span class="co"># here without supplying one is refused rather than answered with a table</span></span>
+<span><span class="co"># that is missing it.</span></span>
+<span><span class="va">public_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
+<span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">prior_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_prior.html">synpmx_prior</a></span><span class="op">(</span><span class="va">theo_model</span>, <span class="va">theo_design</span>, <span class="va">public_roles</span>,</span>
+<span>                           n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">202</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   ID      TIME NTIME       TAD OCC       DV AMT RATE EVID CMT DVID MDV CENS</span></span>
-<span><span class="co">#&gt; 1  1 0.0000000  0.00 0.0000000   1       NA 320    0    1   1 &lt;NA&gt;   1    0</span></span>
-<span><span class="co">#&gt; 2  1 0.0000000  0.00 0.0000000   1 0.000000   0    0    0   2   cp   0    0</span></span>
-<span><span class="co">#&gt; 3  1 0.2447759  0.25 0.2447759   1 3.462932   0    0    0   2   cp   0    0</span></span>
-<span><span class="co">#&gt;   DOSE</span></span>
-<span><span class="co">#&gt; 1  320</span></span>
-<span><span class="co">#&gt; 2  320</span></span>
-<span><span class="co">#&gt; 3  320</span></span></code></pre></div>
-<p>The generated table uses the package’s own generated schema
-(<code><a href="../reference/pmx_generated_roles.html">pmx_generated_roles()</a></code>), including nominal time, time after
-dose, and occasion columns. The clearance of 6 L/h assumed above is
-about twice the truth for theophylline, and the output shows it:
-concentrations run low. That is the honest cost of spending no budget —
-the data is exactly as good as the prior.</p>
+<span><span class="co">#&gt;   ID      TIME NTIME       DV AMT EVID CMT</span></span>
+<span><span class="co">#&gt; 1  1 0.0000000  0.00       NA 320    1   1</span></span>
+<span><span class="co">#&gt; 2  1 0.0000000  0.00 0.000000   0    0   2</span></span>
+<span><span class="co">#&gt; 3  1 0.2447759  0.25 3.462932   0    0   2</span></span></code></pre></div>
+<p>Every generator here takes a <code><a href="../reference/pmx_roles.html">pmx_roles()</a></code> and writes its
+output under those column names, so one declaration serves the
+generator, <code><a href="../reference/compare_pmx.html">compare_pmx()</a></code> and
+<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code>. The three that read a study take it as
+a description of what they are reading. This one reads nothing, so the
+same object does the opposite job: it says which schema to generate
+into, and that is what makes the table above comparable to
+<code>theo_md</code> without renaming a column.
+<code><a href="../reference/pmx_generated_roles.html">pmx_generated_roles()</a></code> is the default, and it names every
+column the generator can produce — nominal time, time after dose and
+occasion included.</p>
+<p>The clearance of 6 L/h assumed above is about twice the truth for
+theophylline, and the output shows it: concentrations run low. That is
+the honest cost of spending no budget — the data is exactly as good as
+the prior.</p>
 </div>
 <div class="section level2">
 <h2 id="mode-5-calibration">Mode 5: calibration<a class="anchor" aria-label="anchor" href="#mode-5-calibration"></a>
@@ -591,7 +605,7 @@ answers “is this release worth its budget?” before any budget is
 spent.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calibrated_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_calibrated.html">synpmx_calibrated</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">public_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">theo_design</span>, priors <span class="op">=</span> <span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">303</span>,</span>
 <span>  backend <span class="op">=</span> <span class="st">"public"</span>, public_source <span class="op">=</span> <span class="cn">TRUE</span>   <span class="co"># theo_md is public; no DP claim</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -614,7 +628,7 @@ spend the budget a second time.</p>
 <code class="sourceCode R"><span><span class="va">another</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_generate.html">synpmx_generate</a></span><span class="op">(</span><span class="va">calibrated_data</span>, seed <span class="op">=</span> <span class="fl">304</span><span class="op">)</span>   <span class="co"># spends nothing</span></span></code></pre></div>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calibrated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_calibrated.html">synpmx_calibrated</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="va">confidential</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">confidential</span>, roles <span class="op">=</span> <span class="va">public_roles</span>, model <span class="op">=</span> <span class="va">theo_model</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">theo_design</span>, priors <span class="op">=</span> <span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  backend <span class="op">=</span> <span class="st">"opendp"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -682,15 +696,16 @@ datasets, not on twelve subjects.</p>
 way. Pulled into one frame, they can be read against the source and
 against each other.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">generated_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_generated_roles.html">pmx_generated_roles</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">all_observations</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">all_observations</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
-<span>  <span class="co"># The empirical engine restores the source schema, so it uses source roles.</span></span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">public_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
+<span>  <span class="co"># Every mode now writes the schema it was declared under. This one declares</span></span>
+<span>  <span class="co"># `WT` among its bounds and generates it, so it reads back under the full</span></span>
+<span>  <span class="co"># `theo_roles` rather than the covariate-free `public_roles`.</span></span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span>,</span>
@@ -814,7 +829,8 @@ they carried.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># One long frame of every value each mode produced, so concentration and weight</span></span>
 <span><span class="co"># can be drawn on the same panel row. A mode that carries no weight column --</span></span>
-<span><span class="co"># the public-model modes declare no covariates -- simply has no rows here.</span></span>
+<span><span class="co"># the two generating under `public_roles`, which declares no covariate -- simply</span></span>
+<span><span class="co"># has no rows here.</span></span>
 <span><span class="va">weights</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">covariate</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="st">"WT"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">)</span> <span class="st">"WT"</span> <span class="kw">else</span> <span class="cn">NULL</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">covariate</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
@@ -831,8 +847,8 @@ they carried.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">generated_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">generated_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">public_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span>,</span>

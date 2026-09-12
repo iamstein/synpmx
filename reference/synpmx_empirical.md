@@ -38,7 +38,8 @@ synpmx_empirical(
 
   A
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
-  declaration for `data`.
+  declaration for `data`. It names the columns of the output too, so the
+  synthetic table wears the source study's schema.
 
 - endpoints:
 

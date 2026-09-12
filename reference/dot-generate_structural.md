@@ -18,7 +18,8 @@ post-processing and consumes no further budget.
   seed = NULL,
   dropout = 0,
   lloq = NULL,
-  covariates = NULL
+  covariates = NULL,
+  roles = NULL
 )
 ```
 
@@ -60,6 +61,14 @@ post-processing and consumes no further budget.
   for prior-mode generation. Ignored for a calibrated model, which
   carries its own released covariate summaries.
 
+- roles:
+
+  A
+  [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
+  naming the columns of the output. Defaults to the roles a calibrated
+  model was fitted under, and otherwise to
+  [`pmx_generated_roles()`](https://iamstein.github.io/synpmx/reference/pmx_generated_roles.md).
+
 ## Value
 
-A data frame in PMX event-table form.
+A data frame in PMX event-table form, under the names in `roles`.

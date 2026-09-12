@@ -36,7 +36,12 @@ synpmx_calibrated(
 
   A
   [`pmx_roles()`](https://iamstein.github.io/synpmx/reference/pmx_roles.md)
-  declaration for `data`.
+  declaration for `data`. It names the columns of the output too, so the
+  synthetic table wears the source study's schema, the way
+  [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+  and
+  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+  output does. A role left undeclared gets no column.
 
 - model:
 
@@ -91,8 +96,7 @@ synpmx_calibrated(
 
 ## Value
 
-A data frame in the generated event-table schema, carrying its release
-so that
+A data frame under the names in `roles`, carrying its release so that
 [`privacy_report()`](https://iamstein.github.io/synpmx/reference/privacy_report.md)
 and
 [`synpmx_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_generate.md)

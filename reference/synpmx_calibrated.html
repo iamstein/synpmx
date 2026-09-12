@@ -120,7 +120,10 @@ leave the data, which is why this mode stays usable at 20 to 60 subjects.</p>
 
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
-<dd><p>A <code><a href="pmx_roles.html">pmx_roles()</a></code> declaration for <code>data</code>.</p></dd>
+<dd><p>A <code><a href="pmx_roles.html">pmx_roles()</a></code> declaration for <code>data</code>. It names the columns of
+the output too, so the synthetic table wears the source study's schema,
+the way <code><a href="synpmx_avatar.html">synpmx_avatar()</a></code> and <code><a href="synpmx_model.html">synpmx_model()</a></code> output does. A role left
+undeclared gets no column.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
@@ -171,9 +174,9 @@ only meaningful for, <code>backend = "public"</code>, which makes no DP claim.</
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame in the generated event-table schema, carrying its
-release so that <code><a href="privacy_report.html">privacy_report()</a></code> and <code><a href="synpmx_generate.html">synpmx_generate()</a></code> can read it.
-A list of such data frames when <code>n_datasets &gt; 1</code>.</p>
+    <p>A data frame under the names in <code>roles</code>, carrying its release so
+that <code><a href="privacy_report.html">privacy_report()</a></code> and <code><a href="synpmx_generate.html">synpmx_generate()</a></code> can read it. A list of
+such data frames when <code>n_datasets &gt; 1</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
