@@ -511,6 +511,17 @@ test_that("the datatable says so and prints the card when DT is missing", {
 
   expect_s3_class(result, "synpmx_scorecard")
   expect_true(any(grepl("verdict", printed)))
+
+  # `report` means the same thing whether or not the colour is available: what
+  # comes back is what was shown, and it is still a card.
+  minimal <- capture.output(
+    expect_message(filtered <- synpmx_scorecard_datatable(card,
+                                                          report = "minimal"))
+  )
+  expect_s3_class(filtered, "synpmx_scorecard")
+  expect_false(any(filtered$verdict %in% c("pass", "not applicable")))
+  expect_lt(nrow(filtered), nrow(card))
+  expect_true(any(grepl("pass", minimal, fixed = TRUE)))
 })
 
 test_that("B2 is not applicable where the profiles are simulated", {

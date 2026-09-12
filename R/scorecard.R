@@ -942,8 +942,9 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #'   and `check` already names each row.
 #'
 #' @return An `htmltools::tagList` holding the coloured card and the notes that
-#'   knitting one carries. Without `DT` installed, `x` invisibly, having
-#'   printed it.
+#'   knitting one carries. Without `DT` installed, the rows `report` selects
+#'   invisibly, having printed them: `DT` is a suggested package, so the card
+#'   stays readable without it and only the colour is lost.
 #' @seealso [synpmx_scorecard()].
 #' @export
 #' @examples
@@ -960,17 +961,20 @@ knit_print.synpmx_scorecard <- function(x, ...) {
 #'                            report = "minimal")
 synpmx_scorecard_datatable <- function(x, report = c("all", "minimal"), ...) {
   report <- match.arg(report)
-  plain <- as.data.frame(x)
   # The tally before the filter, because the filter is what makes it worth
   # printing: a caption reading "24 pass, 2 review, 5 not applicable" is the
   # whole card in one line, and the rows below it are the two that moved.
-  counts <- table(factor(plain$verdict, levels = .scorecard_verdicts))
+  counts <- table(factor(x$verdict, levels = .scorecard_verdicts))
   counts <- counts[counts > 0]
   tally <- paste(sprintf("%d %s", as.integer(counts), names(counts)),
                  collapse = ", ")
+  # The card itself is subset, not a plain frame taken off it: `[` keeps the
+  # class and the attributes, so `report` means the same thing on the way out
+  # as it did on the way in. Without that, the no-`DT` path below printed the
+  # filtered rows and handed back the whole card.
   shown <- if (identical(report, "minimal")) {
-    plain[plain$verdict %in% c("review", "FAIL"), , drop = FALSE]
-  } else plain
+    x[x$verdict %in% c("review", "FAIL"), , drop = FALSE]
+  } else x
   # `htmltools` is what `DT` itself is built on, so the second test only fails
   # on a broken installation; it is here so that a missing one is a message
   # rather than an error from inside the assembly below.
@@ -978,20 +982,16 @@ synpmx_scorecard_datatable <- function(x, report = c("all", "minimal"), ...) {
       !requireNamespace("htmltools", quietly = TRUE)) {
     message("DT is not installed, so the scorecard is printed uncoloured. ",
             "Install DT for the coloured table.")
-    if (identical(report, "minimal")) {
-      cat(tally, "\n")
-      print(shown)
-    } else {
-      print(x)
-    }
-    return(invisible(x))
+    if (identical(report, "minimal")) cat(tally, "\n")
+    print(shown)
+    return(invisible(shown))
   }
   verdicts <- names(.scorecard_verdict_colours)
   # Built through `do.call` so that the two defaults are defaults rather than
   # fixtures: passing `options` to a call that already names it is an error,
   # and a caller who wants paging or a caption should get it.
   arguments <- list(...)
-  arguments$data <- shown
+  arguments$data <- as.data.frame(shown)
   arguments$rownames <- arguments$rownames %||% FALSE
   arguments$options <- arguments$options %||% list(paging = FALSE)
   if (identical(report, "minimal")) {

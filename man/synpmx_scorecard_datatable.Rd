@@ -25,8 +25,9 @@ and \code{check} already names each row.}
 }
 \value{
 An \code{htmltools::tagList} holding the coloured card and the notes that
-knitting one carries. Without \code{DT} installed, \code{x} invisibly, having
-printed it.
+knitting one carries. Without \code{DT} installed, the rows \code{report} selects
+invisibly, having printed them: \code{DT} is a suggested package, so the card
+stays readable without it and only the colour is lost.
 }
 \description{
 Displays a \code{\link[=synpmx_scorecard]{synpmx_scorecard()}} as an interactive table with the verdicts
