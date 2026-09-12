@@ -243,16 +243,8 @@ compare_pmx_distributions(case1$source, case1$synthetic, case1_roles)
 
 ``` r
 
-card_verdicts(case1$card)
+synpmx_scorecard_datatable(case1$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 30.7 -\> 29 | review |
-| D1 | Values landing in the same range | sd x0.96 on PK Concentration (furthest of 3) | review |
-
-11 pass, 2 review, 7 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails. The figure above is on a linear axis over the whole
 study, which is the structural view: both endpoints present, on the same
@@ -327,15 +319,8 @@ mad_run <- pca_run("mad", mad, mad_roles, seed = 909)
 
 ``` r
 
-card_verdicts(mad_run$card)
+synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x1.3 on PD - Count (furthest of 6) | review |
-
-12 pass, 1 review, 7 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is the
 check that the discrete endpoints kept their scale, and it reads the
@@ -419,15 +404,8 @@ compare_pmx_distributions(warfarin_run$source, warfarin_run$synthetic,
 
 ``` r
 
-card_verdicts(warfarin_run$card)
+synpmx_scorecard_datatable(warfarin_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.75 on wt (furthest of 4) | review |
-
-12 pass, 1 review, 7 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 **B4a fails here**, and it is the first of the two datasets that does.
 One generated subject’s complete list of observation times equals a real
@@ -457,17 +435,8 @@ wbc_run <- pca_run("wbcSim", wbcSim, wbc_roles, seed = 505)
 
 ``` r
 
-card_verdicts(wbc_run$card)
+synpmx_scorecard_datatable(wbc_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 3.91 -\> 3.53 | review |
-| A5b | Doses per patient | 1.16 -\> 1 | review |
-| D1 | Values landing in the same range | sd x0.76 on DV (furthest of 1) | review |
-
-10 pass, 3 review, 7 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 The figure is cut at 700 h because a handful of source patients are
 followed to 4580 h and the rest are not. Those late visits are exactly
@@ -543,15 +512,8 @@ theo_run <- pca_run("theo_md", theo_md, theo_roles, seed = 303)
 
 ``` r
 
-card_verdicts(theo_run$card)
+synpmx_scorecard_datatable(theo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.67 on WT (furthest of 2) | review |
-
-12 pass, 1 review, 7 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 Nothing fails, on twelve subjects. The cap holds the basis to two
 components here — a fifth of the cohort — which is what stops a basis
@@ -630,15 +592,8 @@ nimo_run <- pca_run("nimoData", nimoData, nimo_roles, seed = 606)
 
 ``` r
 
-card_verdicts(nimo_run$card)
+synpmx_scorecard_datatable(nimo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.23 on BSA (furthest of 4) | review |
-
-12 pass, 1 review, 7 not applicable. The rows that ask to be read:
-{.table}
 
 **The dosing comes through in full**, which is the contrast worth
 drawing with the AVATAR run on this study. There, reaching the B1b
@@ -703,17 +658,8 @@ mavo_run <- pca_run("mavoglurant", mavoglurant, mavo_roles, seed = 707)
 
 ``` r
 
-card_verdicts(mavo_run$card)
+synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 20.2 -\> 11.2 | review |
-| A5b | Doses per patient | 1.65 -\> 1 | review |
-| D1 | Values landing in the same range | sd x0.79 on HT (furthest of 5) | review |
-
-10 pass, 3 review, 7 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 **This is the most expensive construction in the vignette, and A5a says
 so**: 20.2 observations per patient in the source against 11.2 in the
@@ -786,15 +732,8 @@ mixroute_run <- pca_run("mixroute_sim", mixroute_sim, mixroute_roles, seed = 808
 
 ``` r
 
-card_verdicts(mixroute_run$card)
+synpmx_scorecard_datatable(mixroute_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.87 on WT (furthest of 2) | review |
-
-12 pass, 1 review, 7 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 Nothing fails. The route comes back because each generated dose enters
 the compartment its own route doses into — `.draw_schedule()` carries
@@ -848,16 +787,8 @@ onc_run <- pca_run("onc_sim", onc_sim, onc_roles, seed = 808)
 
 ``` r
 
-card_verdicts(onc_run$card)
+synpmx_scorecard_datatable(onc_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5b | Doses per patient | 327 -\> 286 | review |
-| D1 | Values landing in the same range | sd x1.1 on Everolimus trough (furthest of 4) | review |
-
-11 pass, 2 review, 7 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails, and one row is worth reading against the source rather
 than against a threshold. A5b — doses per patient — moves from 327 to

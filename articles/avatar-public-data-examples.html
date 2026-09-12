@@ -484,30 +484,10 @@ absence.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="36%">
-<col width="48%">
-<col width="8%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and C1 passes: all six treatment arms keep their
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.64 on PD - Continuous (furthest of 3)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and C1 passes: all six treatment arms keep their
 source size. An avatar never leaves the arm it was anchored in, because
 <code>TRTACT</code> and <code>DOSE</code> are declared as
 <code>strata</code> and are copied from the anchor. The arm
@@ -572,30 +552,10 @@ than three.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/mad-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="40%">
-<col width="42%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.6 on WEIGHTB (furthest of 6)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.6 on WEIGHTB (furthest of 6)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
 than a row count: row counts stayed plausible in the defect that
 motivated the check while an entire compartment disappeared. This is the
 second declared <code>NOMTIME</code> and it produces the same clean
@@ -752,30 +712,10 @@ dense concentration sampling around the first and last dose only.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/theo-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.55 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails. Twelve subjects on one dense protocol leave an obvious
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.55 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
 schedules to zero without a declared <code>nominal_time</code>, and the
 three visit sets that remain are each held by several subjects.</p>
@@ -802,30 +742,10 @@ covariate.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/warfarin-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="41%">
-<col width="40%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.43 on age (furthest of 4)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.43 on age (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so
 <code>wt</code> is declared as the <code>dose_covariate</code> and each
 avatar’s <code>amt</code> is rebuilt from its own blended weight rather
 than copied from its anchor’s. The ratio here is tight enough that
@@ -850,50 +770,10 @@ a few subjects are followed far longer than the rest.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/wbc-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 4 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="47%">
-<col width="36%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">3.91 -&gt; 3.62</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.16 -&gt; 1</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">2 of 4</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.64 on DV (furthest of 1)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails, and C2 is the row to read: 1 of the 4 source dose
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 4 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","C2","D1"],["Observations per patient","Doses per patient","Distinct dose-time schedules represented","Values landing in the same range"],["both","both","run settings","both"],["3.91 -&gt; 3.62","1.16 -&gt; 1","2 of 4","sd x0.64 on DV (furthest of 1)"],["review","review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and C2 is the row to read: 1 of the 4 source dose
 regimens is represented in the output.</p>
 <div class="section level3">
 <h3 id="three-re-dosed-patients-are-not-in-the-synthetic-cohort">Three re-dosed patients are not in the synthetic cohort<a class="anchor" aria-label="anchor" href="#three-re-dosed-patients-are-not-in-the-synthetic-cohort"></a>
@@ -1003,44 +883,10 @@ the doses so that it stays coherent with them. The redundant
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/nimo-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="47%">
-<col width="36%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">10 -&gt; 1.58</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">7 of 12</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.38 on AGE (furthest of 4)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Nothing fails, and the dataset is still not
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","C2","D1"],["Doses per patient","Distinct dose-time schedules represented","Values landing in the same range"],["both","run settings","both"],["10 -&gt; 1.58","7 of 12","sd x0.38 on AGE (furthest of 4)"],["review","review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Nothing fails, and the dataset is still not
 shippable.</strong> A5b is the row to read: doses per patient falls from
 10 to 1.58, nowhere near the 5% that would pass it. Ten weekly infusions
 go in and between one and two come out, because the only openings any
@@ -1319,8 +1165,8 @@ as that infusion’s time-zero sample.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">nimo_nominal</span>, <span class="va">nimo_fixed</span>, <span class="va">nimo_roles_nominal</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">[</span><span class="va">scorecard</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A5a"</span>, <span class="st">"A5b"</span><span class="op">)</span>, <span class="op">]</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A5a","A5b"],["Observations per patient","Doses per patient"],["both","both"],["26.8 -&gt; 27.2","10 -&gt; 10"],["pass","pass"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>A5a and A5b are the two rows this construction was for, so only they
+<div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"data":[["A5a","A5b"],["Observations per patient","Doses per patient"],["both","both"],["26.8 -&gt; 27.2","10 -&gt; 10"],["pass","pass"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>A5a and A5b are the two rows this construction was for, so only they
 are shown; <code>scorecard</code> still holds every row. The same figure
 as before, drawn on the new cohort:</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
@@ -1416,38 +1262,10 @@ and occasion.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/mavo-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>16 pass, 2 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.65 -&gt; 1.57</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.51 on HT (furthest of 5)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails, and B2 is the row this study used to break. Recorded
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>16 pass, 2 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["1.65 -&gt; 1.57","sd x0.51 on HT (furthest of 5)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and B2 is the row this study used to break. Recorded
 follow-up length is bimodal here, because <code>TIME</code> restarts
 within <code>OCC</code> and a subject therefore reads as either about 24
 hours or about 36 to 48. Scored on a robust z against one pooled
@@ -1555,44 +1373,10 @@ time. It is the least protocol-like dataset here.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/pheno-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="47%">
-<col width="36%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">9.98 -&gt; 5.63</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">35 of 56</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.44 on WT (furthest of 3)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Nothing fails, and the two rows that moved say what reaching
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-25c3e940e6859592f801" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-25c3e940e6859592f801">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","C2","D1"],["Doses per patient","Distinct dose-time schedules represented","Values landing in the same range"],["both","run settings","both"],["9.98 -&gt; 5.63","35 of 56","sd x0.44 on WT (furthest of 3)"],["review","review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>Nothing fails, and the two rows that moved say what reaching
 that cost.</strong> Doses per patient falls from 9.98 to 5.63 in A5b,
 and 35 of the 56 source dose regimens are represented in C2. B1b passing
 here is not each infant’s full course being masked; it is each course
@@ -1723,30 +1507,10 @@ blend across.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">mixroute_sim</span>, <span class="va">mixroute_synth</span>, <span class="va">mixroute_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/mixroute-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mixroute_sim</span>, <span class="va">mixroute_synth</span>, <span class="va">mixroute_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.66 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and the arm-by-route table is the check worth making
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mixroute_sim</span>, <span class="va">mixroute_synth</span>, <span class="va">mixroute_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-3f27c09be0c60bb52829" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.66 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and the arm-by-route table is the check worth making
 by hand, because it is the one thing this dataset is here to test:</p>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dosed</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="op">]</span></span>
@@ -1813,44 +1577,10 @@ them back on the way out:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">onc_sim</span>, <span class="va">onc_synth</span>, <span class="va">onc_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/onc-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">onc_sim</span>, <span class="va">onc_synth</span>, <span class="va">onc_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="47%">
-<col width="36%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">327 -&gt; 304</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">21 of 26</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.67 on AGE (furthest of 4)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails. The synthetic study comes back in the encoding its
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">onc_sim</span>, <span class="va">onc_synth</span>, <span class="va">onc_roles</span><span class="op">)</span>,</span>
+<span>                           report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-416566eb193bf50d04e6" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-416566eb193bf50d04e6">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","C2","D1"],["Doses per patient","Distinct dose-time schedules represented","Values landing in the same range"],["both","run settings","both"],["327 -&gt; 304","21 of 26","sd x0.67 on AGE (furthest of 4)"],["review","review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. The synthetic study comes back in the encoding its
 source used — one record per constant-dose run, carrying
 <code>ADDL</code> and <code>II</code> — which is what makes it readable
 by whatever read the real one.</p>

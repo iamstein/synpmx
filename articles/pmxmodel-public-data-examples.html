@@ -99,8 +99,12 @@
 
 
 
-
-<div class="row">
+<link href="pmxmodel-public-data-examples_files/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
+<script src="pmxmodel-public-data-examples_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="pmxmodel-public-data-examples_files/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="pmxmodel-public-data-examples_files/datatables-binding-0.34.0/datatables.js"></script><link href="pmxmodel-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="pmxmodel-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="pmxmodel-public-data-examples_files/dt-core-1.13.6/js/jquery.dataTables.min.js"></script><link href="pmxmodel-public-data-examples_files/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+<script src="pmxmodel-public-data-examples_files/crosstalk-1.2.2/js/crosstalk.min.js"></script><div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Evaluating the PMX model generator on public data</h1>
@@ -324,38 +328,9 @@ character <code>NAME</code> column, a baseline weight and a
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">source</span>, <span class="va">case1</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="35%">
-<col width="48%">
-<col width="8%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">30.7 -&gt; 29</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.88 on PK Concentration (furthest of 3)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails. A5a reads observations per patient falling from 30.7
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["30.7 -&gt; 29","sd x0.88 on PK Concentration (furthest of 3)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. A5a reads observations per patient falling from 30.7
 to 29, which is the visit model drawing attendance rather than copying
 it, and D1 puts the concentration’s standard deviation at 1.4 times the
 source’s. The report explains the 1.4: the proportional residual error
@@ -466,30 +441,9 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   whole call         34.5 s, against 34.2 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="39%">
-<col width="43%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.85 on WEIGHTB (furthest of 6)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.85 on WEIGHTB (furthest of 6)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
 including the three discrete ones, which are drawn from the level
 frequencies their arm holds at each visit rather than modelled. D1 is
 the only row to read, at 0.93 times the source’s spread on
@@ -568,30 +522,9 @@ about this study rather than constructing a grid.</p>
 <span>                          <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/warfarin-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="38%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x1.2 on cp (furthest of 4)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Read the design line in the report above rather than the parameters.
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.2 on cp (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the design line in the report above rather than the parameters.
 It says the median profile peaks at 9 h and that <strong>31% of subjects
 do too</strong> — 22 of the 32 are first sampled at 24 h, well past the
 peak, so most individual profiles only decline. The route was decided
@@ -666,44 +599,9 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   whole call         2.4 s, against 2.3 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">3.91 -&gt; 3.16</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.16 -&gt; 1</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.77 on DV (furthest of 1)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p><strong>This is the study where the generator’s endpoint test is
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.16","1.16 -&gt; 1","sd x0.77 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>This is the study where the generator’s endpoint test is
 wrong, and the scorecard only partly catches it.</strong>
 <code>wbcSim</code> records a white blood cell count, not a drug
 concentration. The test asks whether an endpoint is absent before the
@@ -800,44 +698,9 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   whole call         8.5 s, against 8.3 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="38%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">20.2 -&gt; 11.3</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.65 -&gt; 1</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.4 on DV (furthest of 5)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Three rows to read, and two findings. A5b reports occasions per
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.3","1.65 -&gt; 1","sd x0.4 on DV (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Three rows to read, and two findings. A5b reports occasions per
 patient falling from 1.65 to 1 and A5a observations per patient from
 20.2 to 11.3: <code>mavoglurant</code> is one- and two-period, and the
 dosing model carries one planned schedule per arm, so the patients who
@@ -951,30 +814,9 @@ twelve.</p>
 <span><span class="co">#&gt;   whole call         8.0 s, against 7.7 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.97 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and the card looks like the others. That is the
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.97 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
 came from twelve subjects, because the question it asks is whether this
 output copies anybody or changed the study’s shape, and a twelve-subject
@@ -1066,30 +908,9 @@ seconds.</p>
 <span><span class="co">#&gt;   whole call         2.2 s, against 2.2 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="38%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x3.4 on DV (furthest of 4)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and D1 at 3.4 times the source’s spread is the one row
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x3.4 on DV (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and D1 at 3.4 times the source’s spread is the one row
 to read — the widest of the ten, and what twelve subjects buy: a
 covariance matrix estimated from twelve people, drawn from freely,
 produces profiles more spread out than the twelve it came from. The
@@ -1218,38 +1039,9 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   whole call         19.5 s, against 19.4 s in the fitter</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="41%">
-<col width="40%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">9.98 -&gt; 7.12</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x1.5 on APGR (furthest of 3)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>The fixed effects are the same either way, and that is the point
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["9.98 -&gt; 7.12","sd x1.5 on APGR (furthest of 3)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
 worth holding on to: estimation reads the recorded clock and the
 recorded dosing history, so the grid never touches it. What the grid
 decides is the visit model, and the visit model is the whole of what the
@@ -1353,30 +1145,9 @@ and a bioavailability of 0.7.</p>
 <span><span class="co">#&gt; f    0.7  0.713  1.02</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.81 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and bioavailability is recovered — which is the whole
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-25c3e940e6859592f801" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-25c3e940e6859592f801">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.81 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and bioavailability is recovered — which is the whole
 point of fitting the two routes as one study rather than two.
 <code>f</code> is identifiable here <em>because</em> the same study
 doses both ways; on either arm alone it is confounded with clearance and
@@ -1486,38 +1257,9 @@ becomes the PD endpoint and is fitted a time course.</p>
 <span><span class="co">#&gt; ka  5.00  4.468  0.89</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/onc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="41%">
-<col width="40%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">327 -&gt; 281</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x1.1 on BSLD (furthest of 4)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails. Read the tumour endpoint against what it is, though: a
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-3f27c09be0c60bb52829" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 281","sd x1.1 on BSLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. Read the tumour endpoint against what it is, though: a
 PD time course here is a function of time with no exposure term and no
 dose term, pooled across arms unless <code>pd_by_arm = TRUE</code>. The
 source’s placebo and 10 mg arms diverge because the dose drives the

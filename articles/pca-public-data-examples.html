@@ -99,8 +99,12 @@
 
 
 
-
-<div class="row">
+<link href="pca-public-data-examples_files/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
+<script src="pca-public-data-examples_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="pca-public-data-examples_files/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="pca-public-data-examples_files/datatables-binding-0.34.0/datatables.js"></script><link href="pca-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="pca-public-data-examples_files/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="pca-public-data-examples_files/dt-core-1.13.6/js/jquery.dataTables.min.js"></script><link href="pca-public-data-examples_files/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+<script src="pca-public-data-examples_files/crosstalk-1.2.2/js/crosstalk.min.js"></script><div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Evaluating PCA on public data</h1>
@@ -413,38 +417,9 @@ is easiest on.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">source</span>, <span class="va">case1</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>11 pass, 2 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="35%">
-<col width="48%">
-<col width="8%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">30.7 -&gt; 29</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.96 on PK Concentration (furthest of 3)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails. The figure above is on a linear axis over the whole
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>11 pass, 2 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["30.7 -&gt; 29","sd x0.96 on PK Concentration (furthest of 3)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. The figure above is on a linear axis over the whole
 study, which is the structural view: both endpoints present, on the same
 ranges, over the same 2040 hours. It is the wrong axis for reading a PK
 concentration, and the censoring behaviour it cannot show is worth a
@@ -531,30 +506,9 @@ dataset is here to catch.</p>
 <span><span class="va">mad_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mad"</span>, <span class="va">mad</span>, <span class="va">mad_roles</span>, seed <span class="op">=</span> <span class="fl">909</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="38%">
-<col width="44%">
-<col width="9%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x1.3 on PD - Count (furthest of 6)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.3 on PD - Count (furthest of 6)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives. A6 is
 the check that the discrete endpoints kept their scale, and it reads the
 finished table rather than trusting the mechanism.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -638,30 +592,9 @@ declaration, not a derivation.</p>
 <span>                          <span class="va">warfarin_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/warfarin-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.75 on wt (furthest of 4)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p><strong>B4a fails here</strong>, and it is the first of the two
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.75 on wt (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>B4a fails here</strong>, and it is the first of the two
 datasets that does. One generated subject’s complete list of observation
 times equals a real patient’s that no other patient shares. The section
 “What B4a found” below is what that does and does not mean; it is a
@@ -685,44 +618,9 @@ rest.</p>
 <span><span class="va">wbc_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"wbcSim"</span>, <span class="va">wbcSim</span>, <span class="va">wbc_roles</span>, seed <span class="op">=</span> <span class="fl">505</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>10 pass, 3 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">3.91 -&gt; 3.53</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.16 -&gt; 1</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.76 on DV (furthest of 1)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>The figure is cut at 700 h because a handful of source patients are
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>10 pass, 3 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.53","1.16 -&gt; 1","sd x0.76 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The figure is cut at 700 h because a handful of source patients are
 followed to 4580 h and the rest are not. Those late visits are exactly
 what the column guard removes: a grid cell fewer than
 <code>min_column_patients</code> patients reached describes those
@@ -780,30 +678,9 @@ inside a function they cannot.</p>
 <span><span class="va">theo_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"theo_md"</span>, <span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">303</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.67 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails, on twelve subjects. The cap holds the basis to two
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.67 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, on twelve subjects. The cap holds the basis to two
 components here — a fifth of the cohort — which is what stops a basis
 fitted on that few subjects from interpolating them.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
@@ -865,30 +742,9 @@ slot of its own instead.</p>
 <span><span class="co">#&gt; (`geom_point()`).</span></span></code></pre>
 <p><img src="pca-public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="41%">
-<col width="40%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.23 on BSA (furthest of 4)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p><strong>The dosing comes through in full</strong>, which is the
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.23 on BSA (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>The dosing comes through in full</strong>, which is the
 contrast worth drawing with the AVATAR run on this study. There,
 reaching the B1b guarantee cost the dosing: 10 doses per patient became
 1.6, and every avatar’s course was truncated. Here the doses are the
@@ -999,44 +855,9 @@ so.</p>
 <span><span class="va">mavo_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>10 pass, 3 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5a</td>
-<td align="left">Observations per patient</td>
-<td align="left">20.2 -&gt; 11.2</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">1.65 -&gt; 1</td>
-<td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.79 on HT (furthest of 5)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p><strong>This is the most expensive construction in the vignette, and
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>10 pass, 3 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.2","1.65 -&gt; 1","sd x0.79 on HT (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>This is the most expensive construction in the vignette, and
 A5a says so</strong>: 20.2 observations per patient in the source
 against 11.2 in the synthetic cohort. Snapping 117 distinct recorded
 times onto 15 nominal ones collapses several real samples into one cell,
@@ -1094,30 +915,9 @@ at all.</p>
 <span><span class="va">mixroute_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"mixroute_sim"</span>, <span class="va">mixroute_sim</span>, <span class="va">mixroute_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/mixroute-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
-<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="7%">
-<col width="42%">
-<col width="39%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody><tr class="odd">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x0.87 on WT (furthest of 2)</td>
-<td align="left">review</td>
-</tr></tbody>
-</table>
-<p>Nothing fails. The route comes back because each generated dose
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.87 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails. The route comes back because each generated dose
 enters the compartment its own route doses into —
 <code>.draw_schedule()</code> carries the route of every planned dose,
 and the administration id is written from it:</p>
@@ -1162,38 +962,9 @@ what happened to that patient.</p>
 <span><span class="va">onc_run</span> <span class="op">&lt;-</span> <span class="fu">pca_run</span><span class="op">(</span><span class="st">"onc_sim"</span>, <span class="va">onc_sim</span>, <span class="va">onc_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pca-public-data-examples_files/figure-html/onc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>11 pass, 2 review, 7 not applicable. The rows that ask to be
-read:</caption>
-<colgroup>
-<col width="6%">
-<col width="35%">
-<col width="48%">
-<col width="8%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">check</th>
-<th align="left">question</th>
-<th align="left">result</th>
-<th align="left">verdict</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">A5b</td>
-<td align="left">Doses per patient</td>
-<td align="left">327 -&gt; 286</td>
-<td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">D1</td>
-<td align="left">Values landing in the same range</td>
-<td align="left">sd x1.1 on Everolimus trough (furthest of 4)</td>
-<td align="left">review</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing fails, and one row is worth reading against the source rather
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-25c3e940e6859592f801" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-25c3e940e6859592f801">{"x":{"filter":"none","vertical":false,"caption":"<caption>11 pass, 2 review, 7 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 286","sd x1.1 on Everolimus trough (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and one row is worth reading against the source rather
 than against a threshold. A5b — doses per patient — moves from 327 to
 286. That is counted on the doses, not on the records they are written
 in: both tables are expanded before the card is scored, so

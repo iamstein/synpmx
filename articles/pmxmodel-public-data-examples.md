@@ -226,16 +226,8 @@ compare_pmx_distributions(case1$source, case1$synthetic, case1_roles)
 
 ``` r
 
-card_verdicts(case1$card)
+synpmx_scorecard_datatable(case1$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 30.7 -\> 29 | review |
-| D1 | Values landing in the same range | sd x0.88 on PK Concentration (furthest of 3) | review |
-
-13 pass, 2 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to
 29, which is the visit model drawing attendance rather than copying it,
@@ -355,15 +347,8 @@ mad_run$fit
 
 ``` r
 
-card_verdicts(mad_run$card)
+synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.85 on WEIGHTB (furthest of 6) | review |
-
-14 pass, 1 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including
 the three discrete ones, which are drawn from the level frequencies
@@ -451,15 +436,8 @@ compare_pmx_distributions(warfarin_run$source, warfarin_run$synthetic,
 
 ``` r
 
-card_verdicts(warfarin_run$card)
+synpmx_scorecard_datatable(warfarin_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x1.2 on cp (furthest of 4) | review |
-
-14 pass, 1 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Read the design line in the report above rather than the parameters. It
 says the median profile peaks at 9 h and that **31% of subjects do too**
@@ -541,17 +519,8 @@ model_report(wbc_run$fit)
 
 ``` r
 
-card_verdicts(wbc_run$card)
+synpmx_scorecard_datatable(wbc_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 3.91 -\> 3.16 | review |
-| A5b | Doses per patient | 1.16 -\> 1 | review |
-| D1 | Values landing in the same range | sd x0.77 on DV (furthest of 1) | review |
-
-12 pass, 3 review, 5 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 **This is the study where the generator’s endpoint test is wrong, and
 the scorecard only partly catches it.** `wbcSim` records a white blood
@@ -658,17 +627,8 @@ mavo_run$fit
 
 ``` r
 
-card_verdicts(mavo_run$card)
+synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5a | Observations per patient | 20.2 -\> 11.3 | review |
-| A5b | Doses per patient | 1.65 -\> 1 | review |
-| D1 | Values landing in the same range | sd x0.4 on DV (furthest of 5) | review |
-
-12 pass, 3 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Three rows to read, and two findings. A5b reports occasions per patient
 falling from 1.65 to 1 and A5a observations per patient from 20.2 to
@@ -795,15 +755,8 @@ theo_run$fit
 
 ``` r
 
-card_verdicts(theo_run$card)
+synpmx_scorecard_datatable(theo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.97 on WT (furthest of 2) | review |
-
-14 pass, 1 review, 5 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
@@ -908,15 +861,8 @@ nimo_run$fit
 
 ``` r
 
-card_verdicts(nimo_run$card)
+synpmx_scorecard_datatable(nimo_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x3.4 on DV (furthest of 4) | review |
-
-14 pass, 1 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails, and D1 at 3.4 times the source’s spread is the one row to
 read — the widest of the ten, and what twelve subjects buy: a covariance
@@ -1063,16 +1009,8 @@ pheno_run$fit
 
 ``` r
 
-card_verdicts(pheno_run$card)
+synpmx_scorecard_datatable(pheno_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5b | Doses per patient | 9.98 -\> 7.12 | review |
-| D1 | Values landing in the same range | sd x1.5 on APGR (furthest of 3) | review |
-
-13 pass, 2 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 The fixed effects are the same either way, and that is the point worth
 holding on to: estimation reads the recorded clock and the recorded
@@ -1190,15 +1128,8 @@ data.frame(truth = truth, fitted = round(fitted, 3),
 
 ``` r
 
-card_verdicts(mixroute_run$card)
+synpmx_scorecard_datatable(mixroute_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| D1 | Values landing in the same range | sd x0.81 on WT (furthest of 2) | review |
-
-14 pass, 1 review, 5 not applicable. The rows that ask to be read:
-{.table style="width:100%;"}
 
 Nothing fails, and bioavailability is recovered — which is the whole
 point of fitting the two routes as one study rather than two. `f` is
@@ -1317,16 +1248,8 @@ data.frame(truth = truth, fitted = round(fitted, 3),
 
 ``` r
 
-card_verdicts(onc_run$card)
+synpmx_scorecard_datatable(onc_run$card, report = "minimal")
 ```
-
-| check | question | result | verdict |
-|:---|:---|:---|:---|
-| A5b | Doses per patient | 327 -\> 281 | review |
-| D1 | Values landing in the same range | sd x1.1 on BSLD (furthest of 4) | review |
-
-13 pass, 2 review, 5 not applicable. The rows that ask to be read:
-{.table}
 
 Nothing fails. Read the tumour endpoint against what it is, though: a PD
 time course here is a function of time with no exposure term and no dose
