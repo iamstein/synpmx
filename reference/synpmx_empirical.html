@@ -54,8 +54,8 @@ censoring, then rebuilds subjects from those summaries alone."></head><body>
     <li><a class="dropdown-item" href="../articles/example-avatar-PKPD-covariate-treatment-effect.html">Example: are relationships preserved?</a></li>
   </ul></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Methods</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-methods"><li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-addl-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Addl. Methods</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-addl-methods"><li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
     <li><a class="dropdown-item" href="../articles/pca-public-data-examples.html">Evaluation on public data</a></li>
@@ -199,8 +199,19 @@ so that <code><a href="privacy_report.html">privacy_report()</a></code> and <cod
 such data frames when <code>n_datasets &gt; 1</code>.</p>
     </div>
     <div class="section level2">
-    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>It asserts less than <code><a href="synpmx_calibrated.html">synpmx_calibrated()</a></code> but releases far more numbers, so
+    <h2 id="not-developed-further">Not developed further<a class="anchor" aria-label="anchor" href="#not-developed-further"></a></h2>
+
+
+<p>This engine exists so both ends of the privacy and utility axis are in the
+package and the tradeoff can be checked. It is not being developed, it has
+no documents of its own, and the one section that explains why it is rarely
+the right choice is "Why not release more quantities?" in the
+<a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">methods article</a>.
+Every clipping range, contribution limit and budget share is an explicit
+public input, and getting one wrong breaks the guarantee without any error
+being raised, so do not reach for it on the strength of this help page
+alone.</p>
+<p>It asserts less than <code><a href="synpmx_calibrated.html">synpmx_calibrated()</a></code> but releases far more numbers, so
 one epsilon is split many ways. Utility therefore collapses below a few
 hundred subjects; this mode earns its keep on large pooled corpora.</p>
 <p><strong>This function spends privacy budget.</strong> Calling it again spends the budget

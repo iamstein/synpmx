@@ -70,8 +70,8 @@
   </ul>
 </li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Methods</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-methods">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-addl-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Addl. Methods</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-addl-methods">
 <li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
     <li><a class="dropdown-item" href="articles/pca-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="articles/pca-algorithm.html">Algorithm</a></li>
@@ -128,7 +128,7 @@
 <div class="section level2">
 <h2 id="synthetic-data-generation-methods">Synthetic data generation methods<a class="anchor" aria-label="anchor" href="#synthetic-data-generation-methods"></a>
 </h2>
-<p>Six generators build a synthetic dataset. The first three read a study and build from it:</p>
+<p>Five generators build a synthetic dataset. The first three read a study and build from it:</p>
 <ol style="list-style-type: decimal">
 <li>
 <code><a href="reference/synpmx_model.html">synpmx_model()</a></code> — Fits simple PK and PD models to the observation data, and statistical models to the dosing and missed visit data. Builds synthetic data by simulating from the models.</li>
@@ -138,16 +138,15 @@
 <code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates. Uses model to simulate any dose changes and missed visits.</li>
 </ol>
 <p>These three all impute assay LOQ, and each takes a declaration of what the dataset columns mean. The roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
-<p>The other three assert a public structural model instead, and cover the case where data crosses a trust boundary and more formal privacy protections are needed:</p>
+<p>The other two assert a public structural model instead, and cover the case where data crosses a trust boundary and more formal privacy protections are needed:</p>
 <ol start="4" style="list-style-type: decimal">
 <li>
 <code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code> — Simulates a public model and a public protocol. Reads no data at all.</li>
 <li>
 <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> — Keeps the public model’s shape, and spends a small privacy budget correcting its magnitude.</li>
-<li>
-<code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code> — Rebuilds subjects from dozens of noised population summaries.</li>
 </ol>
-<p>All six are reviewed in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>, which numbers them the same way the navigation bar does.</p>
+<p>All five are reviewed in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>, which numbers them the same way the navigation bar does.</p>
+<p>A sixth generator, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>, measures the trajectory shape rather than asserting it, and releases far more numbers to do so — which splits the same privacy budget many ways and makes it unusable below a few hundred subjects. It is exported so the tradeoff can be checked, but it is not developed further and has no documents of its own; one section of <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a> says why.</p>
 </div>
 <div class="section level2">
 <h2 id="example-with-avatar">Example (with AVATAR)<a class="anchor" aria-label="anchor" href="#example-with-avatar"></a>

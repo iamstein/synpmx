@@ -40,7 +40,7 @@ without exposing them to patient data.
 
 ## Synthetic data generation methods
 
-Six generators build a synthetic dataset. The first three read a study
+Five generators build a synthetic dataset. The first three read a study
 and build from it:
 
 1.  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
@@ -58,7 +58,7 @@ These three all impute assay LOQ, and each takes a declaration of what
 the dataset columns mean. The roles of `id`, `time`, `nominal_time`,
 `dv`, `evid` are generally required.
 
-The other three assert a public structural model instead, and cover the
+The other two assert a public structural model instead, and cover the
 case where data crosses a trust boundary and more formal privacy
 protections are needed:
 
@@ -68,12 +68,20 @@ protections are needed:
 5.  [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
     — Keeps the public model’s shape, and spends a small privacy budget
     correcting its magnitude.
-6.  [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
-    — Rebuilds subjects from dozens of noised population summaries.
 
-All six are reviewed in
+All five are reviewed in
 [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html),
 which numbers them the same way the navigation bar does.
+
+A sixth generator,
+[`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md),
+measures the trajectory shape rather than asserting it, and releases far
+more numbers to do so — which splits the same privacy budget many ways
+and makes it unusable below a few hundred subjects. It is exported so
+the tradeoff can be checked, but it is not developed further and has no
+documents of its own; one section of
+[synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
+says why.
 
 ## Example (with AVATAR)
 

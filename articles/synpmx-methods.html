@@ -68,8 +68,8 @@
   </ul>
 </li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Methods</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-methods">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-addl-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Addl. Methods</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-addl-methods">
 <li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
@@ -154,7 +154,7 @@ nominal-time column.</p>
 <p><strong>Generators that assert a model instead.</strong> Three more,
 which take a public structural model and, in two cases, spend a
 differential-privacy budget to correct it against the study.</p>
-<p>All six run below on one dataset, in the order they carry less and
+<p>All five run below on one dataset, in the order they carry less and
 less of the study out with them:</p>
 <ol style="list-style-type: decimal">
 <li>
@@ -172,12 +172,9 @@ public model.</li>
 <li>
 <strong>Calibration</strong> — simulate from a public model whose
 magnitude is corrected by a small, differentially private release.</li>
-<li>
-<strong>Empirical</strong> — release a dense set of differentially
-private summaries and rebuild subjects from them.</li>
 </ol>
 <p>The order is not a ranking. Modes 1 to 3 are the ones to use when the
-output stays inside the source data’s own controls; modes 5 and 6 are
+output stays inside the source data’s own controls; modes 4 and 5 are
 the ones that survive crossing a trust boundary, and the panels below
 show what that costs at a cohort this size.</p>
 <p>“AVATAR” is a method name rather than an initialism, from the
@@ -653,72 +650,81 @@ enough that it is often censored at the prior boundary — the package
 warns when that happens, because the generated data then reflects the
 prior, not the study. The <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">privacy
 article</a> covers when the release is worth making.</p>
-</div>
-<div class="section level2">
-<h2 id="mode-6-empirical">Mode 6: empirical<a class="anchor" aria-label="anchor" href="#mode-6-empirical"></a>
-</h2>
-<p>The general-purpose private engine. Rather than asserting the curve
-shape, it measures it: it releases noised summaries for the subject
-count, event and regimen structure, observation timing, endpoint
-trajectories, baseline covariates, and censoring, then rebuilds subjects
-from those summaries. This buys realism that the public model does not
-contain, and pays for it by splitting one epsilon across many released
-quantities.</p>
-<p>It also needs the most declaration: every clipping range,
-contribution limit, and budget share is an explicit public input.</p>
+<div class="section level3">
+<h3 id="why-not-release-more-quantities">Why not release more quantities?<a class="anchor" aria-label="anchor" href="#why-not-release-more-quantities"></a>
+</h3>
+<p>The obvious objection to calibration is that it asserts almost
+everything. Why not measure the curve shape, the variability and the
+covariates too, release all of it privately, and get a realistic dataset
+with a guarantee attached?</p>
+<p>Because the budget divides. <code>f = d / (epsilon * N)</code> has
+<code>d</code> in the numerator, where <code>d</code> counts the
+released quantities: one for the subject count, one per correction, one
+per covariate. Releasing more does not cost a little more, it costs
+proportionally, and <code><a href="../reference/pmx_preflight.html">pmx_preflight()</a></code> will say so before
+anything is spent:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">empirical_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_empirical.html">synpmx_empirical</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="va">theo_md</span>, roles <span class="op">=</span> <span class="va">theo_roles</span>,</span>
-<span>  endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="../reference/pmx_endpoint.html">pmx_endpoint</a></span><span class="op">(</span></span>
-<span>    alignment <span class="op">=</span> <span class="st">"dose_relative"</span>, transform <span class="op">=</span> <span class="st">"log"</span>, shape <span class="op">=</span> <span class="st">"occasion"</span>, cmt <span class="op">=</span> <span class="fl">2</span></span>
-<span>  <span class="op">)</span><span class="op">)</span>,</span>
-<span>  epsilon <span class="op">=</span> <span class="fl">5</span>, delta <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  bounds <span class="op">=</span> <span class="fu"><a href="../reference/pmx_bounds.html">pmx_bounds</a></span><span class="op">(</span></span>
-<span>    time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">170</span><span class="op">)</span>, endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span>, amt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">500</span><span class="op">)</span>,</span>
-<span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>WT <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">130</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  public_design <span class="op">=</span> <span class="fu"><a href="../reference/pmx_public_design.html">pmx_public_design</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/pmx_schema.html">pmx_schema</a></span><span class="op">(</span><span class="va">theo_md</span><span class="op">)</span>, dose_evid <span class="op">=</span> <span class="fl">101</span>, dose_cmt <span class="op">=</span> <span class="fl">1</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  contribution_limits <span class="op">=</span> <span class="fu"><a href="../reference/pmx_contribution_limits.html">pmx_contribution_limits</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">8</span>, <span class="fl">8</span>, <span class="fl">30</span>, <span class="fl">11</span><span class="op">)</span>,</span>
-<span>  budget_allocation <span class="op">=</span> <span class="fu"><a href="../reference/pmx_budget_allocation.html">pmx_budget_allocation</a></span><span class="op">(</span></span>
-<span>    subject_count <span class="op">=</span> <span class="fl">0.10</span>, event <span class="op">=</span> <span class="fl">0.15</span>, timing <span class="op">=</span> <span class="fl">0.15</span>,</span>
-<span>    covariates <span class="op">=</span> <span class="fl">0.10</span>, endpoints <span class="op">=</span> <span class="fl">0.50</span>, censoring <span class="op">=</span> <span class="fl">0</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">404</span>,</span>
-<span>  backend <span class="op">=</span> <span class="st">"public"</span>, public_source <span class="op">=</span> <span class="cn">TRUE</span>   <span class="co"># theo_md is public; no DP claim</span></span>
+<code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_priors.html">pmx_priors</a></span><span class="op">(</span>pk <span class="op">=</span> <span class="fu"><a href="../reference/pmx_prior.html">pmx_prior</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fl">4</span>, <span class="fl">4</span><span class="op">)</span>,</span>
+<span>                                    source <span class="op">=</span> <span class="st">"scaling literature"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">dense</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_covariates_reference.html">pmx_covariates_reference</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"HT"</span>, <span class="st">"BMI"</span>, <span class="st">"BSA"</span>, <span class="st">"AGE"</span>, <span class="st">"CRCL"</span>, <span class="st">"EGFR"</span>, <span class="st">"ALB"</span>, <span class="st">"SEX"</span>, <span class="st">"RACE"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/privacy_report.html">privacy_report</a></span><span class="op">(</span><span class="va">empirical_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; No DP claim: the input was explicitly asserted to be a public fixture.</span></span>
-<span><span class="co">#&gt; Privacy unit: one subject's complete bounded longitudinal contribution</span></span>
-<span><span class="co">#&gt; Adjacency: add-or-remove one complete subject</span></span>
-<span><span class="co">#&gt; Backend: public-fixture 0.0.0.9000</span></span>
-<span><span class="co">#&gt; Illustrative query allocation (not a DP accounting claim): epsilon = 5, delta = 0</span></span>
-<span><span class="co">#&gt; No privacy guarantee is asserted for this public-source fixture model.</span></span></code></pre></div>
-<p>Note the requested <code>epsilon = 5</code>, five times the
-calibrated fit’s budget, for a worse result at this cohort size. That is
-not a bug: the same budget is being split six ways over dozens of
-released coordinates. This engine earns its keep on large pooled
-datasets, not on twelve subjects.</p>
+<span><span class="co"># The same budget and the same cohort, releasing two quantities and twelve.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  two <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_preflight.html">pmx_preflight</a></span><span class="op">(</span><span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, n_subjects <span class="op">=</span> <span class="fl">90</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">d</span>, f <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">f</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">verdict</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  twelve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_preflight.html">pmx_preflight</a></span><span class="op">(</span><span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, n_subjects <span class="op">=</span> <span class="fl">90</span>,</span>
+<span>                              covariates <span class="op">=</span> <span class="va">dense</span><span class="op">)</span>,</span>
+<span>                <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">d</span>, f <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">f</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">verdict</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;         d     f                    verdict</span></span>
+<span><span class="co">#&gt; two     2 0.022 consider a smaller epsilon</span></span>
+<span><span class="co">#&gt; twelve 12 0.133                 worthwhile</span></span></code></pre></div>
+<p>At a cohort of ninety and an epsilon of one, releasing two quantities
+leaves room to spare and releasing twelve is merely workable. Hold the
+epsilon and drop to a phase 1 cohort, or hold the cohort and drop the
+epsilon, and the verdict flips:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  two <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_preflight.html">pmx_preflight</a></span><span class="op">(</span><span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, n_subjects <span class="op">=</span> <span class="fl">12</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">d</span>, f <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">f</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">verdict</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  twelve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="fu"><a href="../reference/pmx_preflight.html">pmx_preflight</a></span><span class="op">(</span><span class="va">priors</span>, epsilon <span class="op">=</span> <span class="fl">1</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>,</span>
+<span>                              covariates <span class="op">=</span> <span class="va">dense</span><span class="op">)</span>,</span>
+<span>                <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">d</span>, f <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">f</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">verdict</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;         d     f    verdict</span></span>
+<span><span class="co">#&gt; two     2 0.167 worthwhile</span></span>
+<span><span class="co">#&gt; twelve 12 1.000  worthless</span></span></code></pre></div>
+<p>Same study, same budget, and the only difference is how many numbers
+were asked for. <code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is that end of the axis
+taken seriously: it measures the event structure, the observation
+timing, the endpoint trajectories, the covariates and the censoring, and
+releases noised summaries of all of them. Its <code>d</code> is larger
+than twelve, because each of those is several releases rather than one.
+At the cohort sizes early-phase pharmacometrics runs, that is not a
+usable trade, and no choice of epsilon a governance function would
+approve makes it one.</p>
+<p>The function is exported so the axis has both ends in it, and because
+the comparison above is worth being able to check. It is not developed
+further and gets no documents of its own. Reach for it only on a large
+pooled dataset, and read <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">the
+privacy article</a> first.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="the-six-side-by-side">The six side by side<a class="anchor" aria-label="anchor" href="#the-six-side-by-side"></a>
+<h2 id="the-five-side-by-side">The five side by side<a class="anchor" aria-label="anchor" href="#the-five-side-by-side"></a>
 </h2>
 <p>Every generated dataset above holds the same study in a different
 way. Pulled into one frame, they can be read against the source and
 against each other.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">all_observations</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">model_data</span>, <span class="va">theo_roles</span>, <span class="st">"1. PMX model"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">observations</span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">public_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
-<span>  <span class="co"># Every mode now writes the schema it was declared under. This one declares</span></span>
-<span>  <span class="co"># `WT` among its bounds and generates it, so it reads back under the full</span></span>
-<span>  <span class="co"># `theo_roles` rather than the covariate-free `public_roles`.</span></span>
-<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
+<span>  <span class="fu">observations</span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span>,</span>
 <span>                                  levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span></span>
@@ -789,19 +795,12 @@ against each other.</p>
 <td align="right">0.36</td>
 <td align="right">7.54</td>
 </tr>
-<tr class="odd">
-<td align="left">6. Empirical</td>
-<td align="right">264</td>
-<td align="right">4.43</td>
-<td align="right">0.43</td>
-<td align="right">11.96</td>
-</tr>
 </tbody>
 </table>
-<p>The source panel first, then the six generated datasets in order.
+<p>The source panel first, then the five generated datasets in order.
 Each line is one subject’s concentration profile over the seven daily
 doses.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
 <span>  <span class="va">all_observations</span>,</span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>, group <span class="op">=</span> <span class="va">subject</span><span class="op">)</span></span>
@@ -811,7 +810,7 @@ doses.</p>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">method</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
 <span>    x <span class="op">=</span> <span class="st">"Study time (hours)"</span>, y <span class="op">=</span> <span class="st">"Concentration"</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"One study, six generation modes"</span></span>
+<span>    title <span class="op">=</span> <span class="st">"One study, five generation modes"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="synpmx-methods_files/figure-html/compare-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
@@ -826,19 +825,18 @@ profiles are the smoothest here and a real profile’s visit-to-visit
 wobble is absent. AVATAR tracks the source most closely, because it is
 made of it. PCA takes its shape from the observed profiles instead, and
 smooths within the two components twelve subjects buy.</p>
-<p>Modes 4 to 6 are where the level goes. The prior-only data has the
+<p>Modes 4 and 5 are where the level goes. The prior-only data has the
 right structure and a clearance assumed about twice too fast, which is
-exactly the cost of reading nothing: its median concentration is 3.16
-against the source’s 5.74. Calibration spends two numbers of budget
-pulling that level back toward the study, and gets to 4.05. The
-empirical engine, at five times the budget, does not do better in any
-way that matters: its median is 4.43, and its spread runs from a tenth
-percentile of 0.43 to a ninetieth of 11.96, against 1.25 and 9.30 in the
-source. It is not a study a pharmacometrician would work with.</p>
-<p>The same six against the source, as distributions rather than
+exactly the cost of reading nothing. Calibration spends two numbers of
+budget pulling that level back toward the study, and lands between the
+prior and the source. Both are structurally correct studies at the wrong
+concentration, which is the trade a formal guarantee buys at this cohort
+size. How far that level can be trusted on a single release is what <a href="https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html">the
+calibrated evaluation</a> measures over repeated draws.</p>
+<p>The same five against the source, as distributions rather than
 profiles: the concentrations they generated, and the baseline weights
 they carried.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># One long frame of every value each mode produced, so concentration and weight</span></span>
 <span><span class="co"># can be drawn on the same panel row. A mode that carries no weight column --</span></span>
 <span><span class="co"># the two generating under `public_roles`, which declares no covariate -- simply</span></span>
@@ -860,8 +858,7 @@ they carried.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">avatar</span>, <span class="va">theo_roles</span>, <span class="st">"2. AVATAR"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">pca_data</span>, <span class="va">theo_roles</span>, <span class="st">"3. PCA"</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">prior_only</span>, <span class="va">public_roles</span>, <span class="st">"4. Prior only"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">empirical_data</span>, <span class="va">theo_roles</span>, <span class="st">"6. Empirical"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">calibrated_data</span>, <span class="va">public_roles</span>, <span class="st">"5. Calibration"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">distributions</span><span class="op">$</span><span class="va">method</span>,</span>
 <span>                               levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">all_observations</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span></span>
@@ -873,14 +870,12 @@ they carried.</p>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"#111111"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"#1B6CA8"</span>,</span>
 <span>               <span class="st">"2. AVATAR"</span> <span class="op">=</span> <span class="st">"#D95F02"</span>, <span class="st">"3. PCA"</span> <span class="op">=</span> <span class="st">"#2E8B57"</span>,</span>
-<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"#7570B3"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"#A6761D"</span>,</span>
-<span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"#B00020"</span><span class="op">)</span></span>
+<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"#7570B3"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"#A6761D"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_linetype_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Source"</span> <span class="op">=</span> <span class="st">"solid"</span>, <span class="st">"1. PMX model"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
 <span>               <span class="st">"2. AVATAR"</span> <span class="op">=</span> <span class="st">"dashed"</span>, <span class="st">"3. PCA"</span> <span class="op">=</span> <span class="st">"dashed"</span>,</span>
-<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"dotted"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"dotted"</span>,</span>
-<span>               <span class="st">"6. Empirical"</span> <span class="op">=</span> <span class="st">"dotted"</span><span class="op">)</span></span>
+<span>               <span class="st">"4. Prior only"</span> <span class="op">=</span> <span class="st">"dotted"</span>, <span class="st">"5. Calibration"</span> <span class="op">=</span> <span class="st">"dotted"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Cumulative fraction"</span>, colour <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>                linetype <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -901,10 +896,10 @@ does not have.</p>
 <colgroup>
 <col width="9%">
 <col width="10%">
-<col width="33%">
-<col width="13%">
-<col width="11%">
-<col width="20%">
+<col width="34%">
+<col width="14%">
+<col width="12%">
+<col width="19%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Mode</th>
@@ -959,14 +954,6 @@ releases</td>
 <td align="left">~20 and up</td>
 <td align="left">Model, protocol, prior ranges</td>
 </tr>
-<tr class="even">
-<td align="left">6. Empirical</td>
-<td align="left">synpmx_empirical()</td>
-<td align="left">Dozens of noised population summaries</td>
-<td align="left">(epsilon, delta) DP</td>
-<td align="left">~200 and up</td>
-<td align="left">Endpoints, bounds, limits, budget split</td>
-</tr>
 </tbody>
 </table>
 <p>Where each mode belongs:</p>
@@ -997,7 +984,7 @@ it buys nothing and costs utility.</td>
 <td>Shared with a partner, vendor, or contract research organization
 (CRO)</td>
 <td>
-<strong>Calibration</strong> or <strong>Empirical</strong>, with an
+<strong>Prior only</strong>, or <strong>Calibration</strong> with an
 approved epsilon</td>
 <td>The output leaves your controls. A contract is not a mathematical
 bound; DP is what survives a determined recipient.</td>
@@ -1103,11 +1090,12 @@ quantity stays small, which is why this engine remains usable at 20 to
 <em>asserted</em>: curve shape, variability, and residual error come
 from the public model, so the output is only as realistic as that model.
 It cannot reveal a structural feature the model does not contain.</p>
-<p><code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> instead reconstructs shape from a
-denser set of noised summaries. It asserts less — trajectory shape is
-measured rather than assumed — but it releases far more numbers, so the
-same epsilon is split many ways. Utility therefore collapses below a few
-hundred subjects.</p>
+<p><code><a href="../reference/synpmx_empirical.html">synpmx_empirical()</a></code> is the other end of that axis and
+asserts less: trajectory shape is measured rather than assumed. It
+releases far more numbers for it, so the same epsilon is split many ways
+and utility collapses below a few hundred subjects. It is exported but
+not developed further, and <a href="#why-not-release-more-quantities">the subsection above</a> is all
+the documentation it has.</p>
 <div class="section level3">
 <h3 id="the-built-in-models-are-illustrative-and-deliberately-so">The built-in models are illustrative, and deliberately so<a class="anchor" aria-label="anchor" href="#the-built-in-models-are-illustrative-and-deliberately-so"></a>
 </h3>

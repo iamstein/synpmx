@@ -36,7 +36,7 @@ claim, and the first two need a declared nominal-time column.
 public structural model and, in two cases, spend a differential-privacy
 budget to correct it against the study.
 
-All six run below on one dataset, in the order they carry less and less
+All five run below on one dataset, in the order they carry less and less
 of the study out with them:
 
 1.  **PMX model** — estimate a population model and simulate from the
@@ -48,11 +48,9 @@ of the study out with them:
 4.  **Prior only** — read no data at all; simulate from a public model.
 5.  **Calibration** — simulate from a public model whose magnitude is
     corrected by a small, differentially private release.
-6.  **Empirical** — release a dense set of differentially private
-    summaries and rebuild subjects from them.
 
 The order is not a ranking. Modes 1 to 3 are the ones to use when the
-output stays inside the source data’s own controls; modes 5 and 6 are
+output stays inside the source data’s own controls; modes 4 and 5 are
 the ones that survive crossing a trust boundary, and the panels below
 show what that costs at a cohort this size.
 
@@ -610,58 +608,78 @@ the study. The [privacy
 article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 covers when the release is worth making.
 
-## Mode 6: empirical
+### Why not release more quantities?
 
-The general-purpose private engine. Rather than asserting the curve
-shape, it measures it: it releases noised summaries for the subject
-count, event and regimen structure, observation timing, endpoint
-trajectories, baseline covariates, and censoring, then rebuilds subjects
-from those summaries. This buys realism that the public model does not
-contain, and pays for it by splitting one epsilon across many released
-quantities.
+The obvious objection to calibration is that it asserts almost
+everything. Why not measure the curve shape, the variability and the
+covariates too, release all of it privately, and get a realistic dataset
+with a guarantee attached?
 
-It also needs the most declaration: every clipping range, contribution
-limit, and budget share is an explicit public input.
+Because the budget divides. `f = d / (epsilon * N)` has `d` in the
+numerator, where `d` counts the released quantities: one for the subject
+count, one per correction, one per covariate. Releasing more does not
+cost a little more, it costs proportionally, and
+[`pmx_preflight()`](https://iamstein.github.io/synpmx/reference/pmx_preflight.md)
+will say so before anything is spent:
 
 ``` r
 
-empirical_data <- synpmx_empirical(
-  data = theo_md, roles = theo_roles,
-  endpoints = list(cp = pmx_endpoint(
-    alignment = "dose_relative", transform = "log", shape = "occasion", cmt = 2
-  )),
-  epsilon = 5, delta = 0,
-  bounds = pmx_bounds(
-    time = c(0, 170), endpoints = list(cp = c(0, 30)), amt = c(0, 500),
-    covariates = list(WT = c(40, 130))
-  ),
-  public_design = pmx_public_design(
-    pmx_schema(theo_md), dose_evid = 101, dose_cmt = 1
-  ),
-  contribution_limits = pmx_contribution_limits(40, 8, 8, 30, 11),
-  budget_allocation = pmx_budget_allocation(
-    subject_count = 0.10, event = 0.15, timing = 0.15,
-    covariates = 0.10, endpoints = 0.50, censoring = 0
-  ),
-  seed = 404,
-  backend = "public", public_source = TRUE   # theo_md is public; no DP claim
+priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4),
+                                    source = "scaling literature"))
+dense <- pmx_covariates_reference(
+  c("WT", "HT", "BMI", "BSA", "AGE", "CRCL", "EGFR", "ALB", "SEX", "RACE")
 )
-privacy_report(empirical_data)
-#> No DP claim: the input was explicitly asserted to be a public fixture.
-#> Privacy unit: one subject's complete bounded longitudinal contribution
-#> Adjacency: add-or-remove one complete subject
-#> Backend: public-fixture 0.0.0.9000
-#> Illustrative query allocation (not a DP accounting claim): epsilon = 5, delta = 0
-#> No privacy guarantee is asserted for this public-source fixture model.
+# The same budget and the same cohort, releasing two quantities and twelve.
+rbind(
+  two = with(pmx_preflight(priors, epsilon = 1, n_subjects = 90),
+             data.frame(d, f = round(f, 3), verdict)),
+  twelve = with(pmx_preflight(priors, epsilon = 1, n_subjects = 90,
+                              covariates = dense),
+                data.frame(d, f = round(f, 3), verdict))
+)
+#>         d     f                    verdict
+#> two     2 0.022 consider a smaller epsilon
+#> twelve 12 0.133                 worthwhile
 ```
 
-Note the requested `epsilon = 5`, five times the calibrated fit’s
-budget, for a worse result at this cohort size. That is not a bug: the
-same budget is being split six ways over dozens of released coordinates.
-This engine earns its keep on large pooled datasets, not on twelve
-subjects.
+At a cohort of ninety and an epsilon of one, releasing two quantities
+leaves room to spare and releasing twelve is merely workable. Hold the
+epsilon and drop to a phase 1 cohort, or hold the cohort and drop the
+epsilon, and the verdict flips:
 
-## The six side by side
+``` r
+
+rbind(
+  two = with(pmx_preflight(priors, epsilon = 1, n_subjects = 12),
+             data.frame(d, f = round(f, 3), verdict)),
+  twelve = with(pmx_preflight(priors, epsilon = 1, n_subjects = 12,
+                              covariates = dense),
+                data.frame(d, f = round(f, 3), verdict))
+)
+#>         d     f    verdict
+#> two     2 0.167 worthwhile
+#> twelve 12 1.000  worthless
+```
+
+Same study, same budget, and the only difference is how many numbers
+were asked for.
+[`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
+is that end of the axis taken seriously: it measures the event
+structure, the observation timing, the endpoint trajectories, the
+covariates and the censoring, and releases noised summaries of all of
+them. Its `d` is larger than twelve, because each of those is several
+releases rather than one. At the cohort sizes early-phase
+pharmacometrics runs, that is not a usable trade, and no choice of
+epsilon a governance function would approve makes it one.
+
+The function is exported so the axis has both ends in it, and because
+the comparison above is worth being able to check. It is not developed
+further and gets no documents of its own. Reach for it only on a large
+pooled dataset, and read [the privacy
+article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
+first.
+
+## The five side by side
 
 Every generated dataset above holds the same study in a different way.
 Pulled into one frame, they can be read against the source and against
@@ -675,11 +693,7 @@ all_observations <- rbind(
   observations(avatar, theo_roles, "2. AVATAR"),
   observations(pca_data, theo_roles, "3. PCA"),
   observations(prior_only, public_roles, "4. Prior only"),
-  observations(calibrated_data, public_roles, "5. Calibration"),
-  # Every mode now writes the schema it was declared under. This one declares
-  # `WT` among its bounds and generates it, so it reads back under the full
-  # `theo_roles` rather than the covariate-free `public_roles`.
-  observations(empirical_data, theo_roles, "6. Empirical")
+  observations(calibrated_data, public_roles, "5. Calibration")
 )
 all_observations$method <- factor(all_observations$method,
                                   levels = unique(all_observations$method))
@@ -700,19 +714,18 @@ knitr::kable(
 )
 ```
 
-|                 | n_observations | median |  p10 |   p90 |
-|:----------------|---------------:|-------:|-----:|------:|
-| Source          |            264 |   5.74 | 1.25 |  9.30 |
-| 1\. PMX model   |            258 |   5.66 | 1.50 |  9.92 |
-| 2\. AVATAR      |            264 |   5.21 | 1.21 |  8.33 |
-| 3\. PCA         |            261 |   5.95 | 1.31 |  9.30 |
-| 4\. Prior only  |            240 |   3.16 | 0.28 |  6.43 |
-| 5\. Calibration |            240 |   4.05 | 0.36 |  7.54 |
-| 6\. Empirical   |            264 |   4.43 | 0.43 | 11.96 |
+|                 | n_observations | median |  p10 |  p90 |
+|:----------------|---------------:|-------:|-----:|-----:|
+| Source          |            264 |   5.74 | 1.25 | 9.30 |
+| 1\. PMX model   |            258 |   5.66 | 1.50 | 9.92 |
+| 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
+| 3\. PCA         |            261 |   5.95 | 1.31 | 9.30 |
+| 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |
+| 5\. Calibration |            240 |   4.05 | 0.36 | 7.54 |
 
 Observed concentrations by generation mode {.table}
 
-The source panel first, then the six generated datasets in order. Each
+The source panel first, then the five generated datasets in order. Each
 line is one subject’s concentration profile over the seven daily doses.
 
 ``` r
@@ -726,7 +739,7 @@ ggplot2::ggplot(
   ggplot2::facet_wrap(~ method, ncol = 3) +
   ggplot2::labs(
     x = "Study time (hours)", y = "Concentration",
-    title = "One study, six generation modes"
+    title = "One study, five generation modes"
   ) +
   ggplot2::theme_minimal()
 ```
@@ -746,17 +759,18 @@ wobble is absent. AVATAR tracks the source most closely, because it is
 made of it. PCA takes its shape from the observed profiles instead, and
 smooths within the two components twelve subjects buy.
 
-Modes 4 to 6 are where the level goes. The prior-only data has the right
-structure and a clearance assumed about twice too fast, which is exactly
-the cost of reading nothing: its median concentration is 3.16 against
-the source’s 5.74. Calibration spends two numbers of budget pulling that
-level back toward the study, and gets to 4.05. The empirical engine, at
-five times the budget, does not do better in any way that matters: its
-median is 4.43, and its spread runs from a tenth percentile of 0.43 to a
-ninetieth of 11.96, against 1.25 and 9.30 in the source. It is not a
-study a pharmacometrician would work with.
+Modes 4 and 5 are where the level goes. The prior-only data has the
+right structure and a clearance assumed about twice too fast, which is
+exactly the cost of reading nothing. Calibration spends two numbers of
+budget pulling that level back toward the study, and lands between the
+prior and the source. Both are structurally correct studies at the wrong
+concentration, which is the trade a formal guarantee buys at this cohort
+size. How far that level can be trusted on a single release is what [the
+calibrated
+evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+measures over repeated draws.
 
-The same six against the source, as distributions rather than profiles:
+The same five against the source, as distributions rather than profiles:
 the concentrations they generated, and the baseline weights they
 carried.
 
@@ -783,8 +797,7 @@ distributions <- rbind(
   weights(avatar, theo_roles, "2. AVATAR"),
   weights(pca_data, theo_roles, "3. PCA"),
   weights(prior_only, public_roles, "4. Prior only"),
-  weights(calibrated_data, public_roles, "5. Calibration"),
-  weights(empirical_data, theo_roles, "6. Empirical")
+  weights(calibrated_data, public_roles, "5. Calibration")
 )
 distributions$method <- factor(distributions$method,
                                levels = levels(all_observations$method))
@@ -796,14 +809,12 @@ ggplot2::ggplot(distributions,
   ggplot2::scale_colour_manual(
     values = c("Source" = "#111111", "1. PMX model" = "#1B6CA8",
                "2. AVATAR" = "#D95F02", "3. PCA" = "#2E8B57",
-               "4. Prior only" = "#7570B3", "5. Calibration" = "#A6761D",
-               "6. Empirical" = "#B00020")
+               "4. Prior only" = "#7570B3", "5. Calibration" = "#A6761D")
   ) +
   ggplot2::scale_linetype_manual(
     values = c("Source" = "solid", "1. PMX model" = "dashed",
                "2. AVATAR" = "dashed", "3. PCA" = "dashed",
-               "4. Prior only" = "dotted", "5. Calibration" = "dotted",
-               "6. Empirical" = "dotted")
+               "4. Prior only" = "dotted", "5. Calibration" = "dotted")
   ) +
   ggplot2::labs(x = NULL, y = "Cumulative fraction", colour = NULL,
                 linetype = NULL,
@@ -829,14 +840,13 @@ does not have.
 | 3\. PCA | synpmx_pca() | A component basis of the observed profiles, and new scores on it | None; governance only | Any, from ~5, per arm | None, but a nominal grid is required |
 | 4\. Prior only | synpmx_prior() | A public model and protocol only | epsilon = 0 (no data read) | Any (data-independent) | Structural model + protocol |
 | 5\. Calibration | synpmx_calibrated() | A public model, magnitude corrected by 2 private releases | (epsilon, delta) DP | ~20 and up | Model, protocol, prior ranges |
-| 6\. Empirical | synpmx_empirical() | Dozens of noised population summaries | (epsilon, delta) DP | ~200 and up | Endpoints, bounds, limits, budget split |
 
 Where each mode belongs:
 
 | Environment | Appropriate modes | Why |
 |----|----|----|
 | Inside the validated environment holding the source data; you are the only consumer | **PMX model**, **PCA** or **AVATAR** | Access control and governance already bound the risk. A formal guarantee defends against an adversary who cannot reach the output, so it buys nothing and costs utility. |
-| Shared with a partner, vendor, or contract research organization (CRO) | **Calibration** or **Empirical**, with an approved epsilon | The output leaves your controls. A contract is not a mathematical bound; DP is what survives a determined recipient. |
+| Shared with a partner, vendor, or contract research organization (CRO) | **Prior only**, or **Calibration** with an approved epsilon | The output leaves your controls. A contract is not a mathematical bound; DP is what survives a determined recipient. |
 | Published, posted to a repository, or shipped inside a package or teaching material | **Prior only**, or **Calibration** with a small approved epsilon | Anyone may inspect it, forever, alongside side information you cannot anticipate. Prior-only data reads no patient record at all and is the safest thing to publish. |
 | Software testing where only schema and event grammar matter | **Prior only** | Fidelity is irrelevant; a data-independent generator removes the question entirely. |
 
@@ -923,10 +933,12 @@ output is only as realistic as that model. It cannot reveal a structural
 feature the model does not contain.
 
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md)
-instead reconstructs shape from a denser set of noised summaries. It
-asserts less — trajectory shape is measured rather than assumed — but it
-releases far more numbers, so the same epsilon is split many ways.
-Utility therefore collapses below a few hundred subjects.
+is the other end of that axis and asserts less: trajectory shape is
+measured rather than assumed. It releases far more numbers for it, so
+the same epsilon is split many ways and utility collapses below a few
+hundred subjects. It is exported but not developed further, and [the
+subsection above](#why-not-release-more-quantities) is all the
+documentation it has.
 
 ### The built-in models are illustrative, and deliberately so
 

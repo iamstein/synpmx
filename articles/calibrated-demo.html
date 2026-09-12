@@ -68,8 +68,8 @@
   </ul>
 </li>
 <li class="active nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Methods</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-methods">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-addl-methods" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Addl. Methods</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-addl-methods">
 <li><h6 class="dropdown-header" data-toc-skip>3. PCA</h6></li>
     <li><a class="dropdown-item" href="../articles/pca-demo.html">Demo</a></li>
     <li><a class="dropdown-item" href="../articles/pca-algorithm.html">Algorithm</a></li>
@@ -235,11 +235,11 @@ distribution, which is the honest way to read a single one.</p>
 <code class="sourceCode R"><span><span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"synpmx_release"</span><span class="op">)</span></span>
 <span><span class="va">release</span></span>
 <span><span class="co">#&gt; Calibrated structural model (v3)</span></span>
-<span><span class="co">#&gt;   released subject count: 82.8</span></span>
-<span><span class="co">#&gt;   pk correction: 2.25x</span></span>
-<span><span class="co">#&gt;   corrected typical: cl=4.49, v=10, ka=0.5</span></span>
+<span><span class="co">#&gt;   released subject count: 95.3</span></span>
+<span><span class="co">#&gt;   pk correction: 0.989x</span></span>
+<span><span class="co">#&gt;   corrected typical: cl=1.98, v=10, ka=0.5</span></span>
 <span><span class="co">#&gt;   epsilon: 0.1  (formal DP: TRUE)</span></span>
-<span><span class="co">#&gt;   f = 0.242 (worthwhile)</span></span></code></pre></div>
+<span><span class="co">#&gt;   f = 0.21 (worthwhile)</span></span></code></pre></div>
 <p>Two numbers left the study: a correction multiplying the assumed
 clearance, and a noisy subject count. Everything else in the printed
 object is a public input or an accounting entry.</p>
@@ -266,11 +266,11 @@ not a measurement.</p>
 </h2>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'data.frame':    1328 obs. of  8 variables:</span></span>
+<span><span class="co">#&gt; 'data.frame':    1520 obs. of  8 variables:</span></span>
 <span><span class="co">#&gt;  $ ID   : int  1 1 1 1 1 1 1 1 1 1 ...</span></span>
-<span><span class="co">#&gt;  $ TIME : num  0 0 1.04 2.04 3.09 ...</span></span>
+<span><span class="co">#&gt;  $ TIME : num  0 0 1.04 1.98 2.9 ...</span></span>
 <span><span class="co">#&gt;  $ NTIME: num  0 0 1 2 3 7 7 8 9 10 ...</span></span>
-<span><span class="co">#&gt;  $ DV   : num  NA 0 3.24 3.68 3.18 ...</span></span>
+<span><span class="co">#&gt;  $ DV   : num  NA 0 2.62 4.18 3.61 ...</span></span>
 <span><span class="co">#&gt;  $ AMT  : num  100 0 0 0 0 100 0 0 0 0 ...</span></span>
 <span><span class="co">#&gt;  $ EVID : int  1 0 0 0 0 1 0 0 0 0 ...</span></span>
 <span><span class="co">#&gt;  $ CMT  : int  1 2 2 2 2 1 2 2 2 2 ...</span></span>
@@ -337,27 +337,27 @@ not a measurement.</p>
 <span><span class="co">#&gt;   ..$ covariate_summaries  : NULL</span></span>
 <span><span class="co">#&gt;   ..$ corrections          :List of 1</span></span>
 <span><span class="co">#&gt;   .. ..$ pk:List of 3</span></span>
-<span><span class="co">#&gt;   .. .. ..$ factor           : num 2.25</span></span>
+<span><span class="co">#&gt;   .. .. ..$ factor           : num 0.989</span></span>
 <span><span class="co">#&gt;   .. .. ..$ at_prior_boundary: logi FALSE</span></span>
 <span><span class="co">#&gt;   .. .. ..$ prior            :List of 3</span></span>
 <span><span class="co">#&gt;   .. .. .. ..$ range : num [1:2] 0.25 4</span></span>
 <span><span class="co">#&gt;   .. .. .. ..$ source: chr "scaling literature: the prediction is believed good to four-fold"</span></span>
 <span><span class="co">#&gt;   .. .. .. ..$ span  : num 2.77</span></span>
 <span><span class="co">#&gt;   .. .. .. ..- attr(*, "class")= chr "pmx_prior"</span></span>
-<span><span class="co">#&gt;   ..$ corrected_typical    : Named num [1:3] 4.49 10 0.5</span></span>
+<span><span class="co">#&gt;   ..$ corrected_typical    : Named num [1:3] 1.98 10 0.5</span></span>
 <span><span class="co">#&gt;   .. ..- attr(*, "names")= chr [1:3] "cl" "v" "ka"</span></span>
-<span><span class="co">#&gt;   ..$ private_subject_count: num 82.8</span></span>
+<span><span class="co">#&gt;   ..$ private_subject_count: num 95.3</span></span>
 <span><span class="co">#&gt;   ..$ preflight            :List of 6</span></span>
 <span><span class="co">#&gt;   .. ..$ d         : int 2</span></span>
 <span><span class="co">#&gt;   .. ..$ epsilon   : num 0.1</span></span>
-<span><span class="co">#&gt;   .. ..$ n_subjects: num 82.8</span></span>
-<span><span class="co">#&gt;   .. ..$ f         : num 0.242</span></span>
+<span><span class="co">#&gt;   .. ..$ n_subjects: num 95.3</span></span>
+<span><span class="co">#&gt;   .. ..$ f         : num 0.21</span></span>
 <span><span class="co">#&gt;   .. ..$ verdict   : chr "worthwhile"</span></span>
 <span><span class="co">#&gt;   .. ..$ table     :'data.frame':    1 obs. of  4 variables:</span></span>
 <span><span class="co">#&gt;   .. .. ..$ quantity           : chr "pk"</span></span>
 <span><span class="co">#&gt;   .. .. ..$ prior_fold         : num 16</span></span>
-<span><span class="co">#&gt;   .. .. ..$ f                  : num 0.242</span></span>
-<span><span class="co">#&gt;   .. .. ..$ expected_fold_error: num 1.95</span></span>
+<span><span class="co">#&gt;   .. .. ..$ f                  : num 0.21</span></span>
+<span><span class="co">#&gt;   .. .. ..$ expected_fold_error: num 1.79</span></span>
 <span><span class="co">#&gt;   .. ..- attr(*, "class")= chr "pmx_preflight"</span></span>
 <span><span class="co">#&gt;   ..$ privacy              :List of 9</span></span>
 <span><span class="co">#&gt;   .. ..$ formal_dp         : logi TRUE</span></span>
@@ -390,8 +390,8 @@ not a measurement.</p>
 <span><span class="co">#&gt;   .. ..$ input : chr [1:3] "structural model" "trial design" "pk prior"</span></span>
 <span><span class="co">#&gt;   .. ..$ source: chr [1:3] "the documented generating truth of the mixroute_sim fixture" "the fixture's protocol: 100 mg on days 0, 7 and 14" "scaling literature: the prediction is believed good to four-fold"</span></span>
 <span><span class="co">#&gt;   ..$ ledger               :List of 5</span></span>
-<span><span class="co">#&gt;   .. ..$ release_id       : chr "pmx-20260912T210110.682433-20984"</span></span>
-<span><span class="co">#&gt;   .. ..$ created_utc      : chr "2026-09-12T21:01:10.682704Z"</span></span>
+<span><span class="co">#&gt;   .. ..$ release_id       : chr "pmx-20260912T215823.531593-21000"</span></span>
+<span><span class="co">#&gt;   .. ..$ created_utc      : chr "2026-09-12T21:58:23.531869Z"</span></span>
 <span><span class="co">#&gt;   .. ..$ requested_epsilon: num 0.1</span></span>
 <span><span class="co">#&gt;   .. ..$ realized_epsilon : num 0.1</span></span>
 <span><span class="co">#&gt;   .. ..$ backend          : chr "OpenDP"</span></span>
