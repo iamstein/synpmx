@@ -159,9 +159,13 @@ Plotting and reporting helpers used throughout this vignette
 <code class="sourceCode R"><span><span class="co"># Observation rows only, source beside synthetic on a shared y axis, one row per</span></span>
 <span><span class="co"># endpoint. The same figure the PCA survey draws, so the two can be compared</span></span>
 <span><span class="co"># panel for panel.</span></span>
+<span><span class="co"># `endpoints` draws one endpoint of a study that has several. A log axis is the</span></span>
+<span><span class="co"># reason it exists: `facet_grid()` puts one scale on every panel, so a study</span></span>
+<span><span class="co"># whose concentration wants a log axis and whose PD endpoint goes negative</span></span>
+<span><span class="co"># cannot be one figure.</span></span>
 <span><span class="va">overlay_plot</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">title</span>,</span>
 <span>                         <span class="va">y_label</span> <span class="op">=</span> <span class="st">"DV"</span>, <span class="va">log_y</span> <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">alpha</span> <span class="op">=</span> <span class="fl">0.3</span>,</span>
-<span>                         <span class="va">max_time</span> <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span> <span class="op">{</span></span>
+<span>                         <span class="va">max_time</span> <span class="op">=</span> <span class="cn">Inf</span>, <span class="va">endpoints</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">frame</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">observed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">evid</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span>, <span class="st">"0.0"</span><span class="op">)</span> <span class="op">&amp;</span></span>
 <span>      <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">[[</span><span class="va">roles</span><span class="op">$</span><span class="va">dv</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
@@ -182,6 +186,9 @@ Plotting and reporting helpers used throughout this vignette
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span>  <span class="va">plotted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/graphics/frame.html" class="external-link">frame</a></span><span class="op">(</span><span class="va">source</span>, <span class="st">"Source"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/graphics/frame.html" class="external-link">frame</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"Synthetic"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">endpoints</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">plotted</span> <span class="op">&lt;-</span> <span class="va">plotted</span><span class="op">[</span><span class="va">plotted</span><span class="op">$</span><span class="va">endpoint</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">endpoints</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span>  <span class="op">}</span></span>
 <span>  <span class="va">figure</span> <span class="op">&lt;-</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
 <span>    <span class="va">plotted</span>,</span>
 <span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>,</span>
@@ -312,20 +319,21 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;   time to fit        2 min 46 s (2 min 48 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
 <span><span class="co">#&gt;                        1cmt_oral                  2 min 46 s</span></span></code></pre></div>
-<p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">source</span>, <span class="va">case1</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="6%">
+<col width="35%">
+<col width="48%">
+<col width="8%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -341,37 +349,6 @@ pass:</caption>
 <td align="left">review</td>
 </tr>
 <tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.88 on PK Concentration (furthest of 3)</td>
@@ -392,10 +369,11 @@ and the dosing and visit models still read all 180.
 <code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code> works this study end to end,
 including what its 46% censoring and its PD endpoint cost.</p>
 <p>Five rows read <code>not applicable</code> on every card in this
-article, so they are worth reading once here. B1a, B1b and C2 need a run
-record that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> writes and this generator does
-not. B4a asks whether a generated set of observation times copies a real
-one, which is a disclosure question only where the set was taken from
+article. The cards below count them in their tally and do not list them,
+so they are worth reading once here. B1a, B1b and C2 need a run record
+that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> writes and this generator does not.
+B4a asks whether a generated set of observation times copies a real one,
+which is a disclosure question only where the set was taken from
 somebody: this generator decides each visit independently from a per-arm
 probability, so a match is a coincidence with a computable chance. B2
 asks whether a synthetic patient stands out from its stratum, which is a
@@ -492,13 +470,13 @@ the discrete ones are a question this generator does not answer.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="39%">
+<col width="43%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -506,45 +484,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.85 on WEIGHTB (furthest of 6)</td>
 <td align="left">review</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
 including the three discrete ones, which are drawn from the level
@@ -628,13 +573,13 @@ about this study rather than constructing a grid.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="7%">
+<col width="42%">
 <col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -642,45 +587,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x1.2 on cp (furthest of 4)</td>
 <td align="left">review</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Read the design line in the report above rather than the parameters.
 It says the median profile peaks at 9 h and that <strong>31% of subjects
@@ -759,14 +671,14 @@ generator looks for is not here: what is recorded is the response.</p>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>12 pass, 3 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -788,37 +700,6 @@ pass:</caption>
 <td align="left">review</td>
 </tr>
 <tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.77 on DV (furthest of 1)</td>
@@ -926,13 +807,13 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>12 pass, 3 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="7%">
+<col width="42%">
 <col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -954,37 +835,6 @@ pass:</caption>
 <td align="left">review</td>
 </tr>
 <tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.4 on DV (furthest of 5)</td>
@@ -1108,14 +958,14 @@ twelve.</p>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1123,45 +973,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.97 on WT (furthest of 2)</td>
 <td align="left">review</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
@@ -1258,13 +1075,13 @@ seconds.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="7%">
+<col width="42%">
 <col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1272,45 +1089,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x3.4 on DV (furthest of 4)</td>
 <td align="left">review</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and D1 at 3.4 times the source’s spread is the one row
 to read — the widest of the ten, and what twelve subjects buy: a
@@ -1443,13 +1227,13 @@ the sample times to the day is that statement, and it is two lines.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="41%">
+<col width="40%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1465,37 +1249,6 @@ pass:</caption>
 <td align="left">review</td>
 </tr>
 <tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x1.5 on APGR (furthest of 3)</td>
@@ -1609,14 +1362,14 @@ and a bioavailability of 0.7.</p>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>14 pass, 1 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1624,45 +1377,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.81 on WT (furthest of 2)</td>
 <td align="left">review</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and bioavailability is recovered — which is the whole
 point of fitting the two routes as one study rather than two.
@@ -1776,13 +1496,13 @@ becomes the PD endpoint and is fitted a time course.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>13 pass, 2 review, 5 not applicable. The rows that are not a
-pass:</caption>
+<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="38%">
-<col width="45%">
-<col width="11%">
+<col width="7%">
+<col width="41%">
+<col width="40%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1798,37 +1518,6 @@ pass:</caption>
 <td align="left">review</td>
 </tr>
 <tr class="even">
-<td align="left">B1a</td>
-<td align="left">Avatars with a visit set nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B1b</td>
-<td align="left">Avatars with a dose schedule nobody else shares</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">B2</td>
-<td align="left">Synthetic patients unusual within their stratum</td>
-<td align="left">not applicable: profiles simulated, not built from a
-patient</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">B4a</td>
-<td align="left">Generated time vectors copying an exposed real one</td>
-<td align="left">not applicable: attendance drawn per visit</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">C2</td>
-<td align="left">Distinct dose-time schedules represented</td>
-<td align="left">no run record</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x1.1 on BSLD (furthest of 4)</td>

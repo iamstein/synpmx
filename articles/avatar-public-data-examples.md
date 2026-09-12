@@ -82,14 +82,21 @@ observed_plot_data <- function(data, roles, dataset,
 # synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time
 # after dose instead of study time, which is the readable view once a study
 # doses more than once.
+# `endpoints` draws one endpoint of a study that has several. A log axis is the
+# reason it exists: `facet_grid()` puts one scale on every panel, so a study
+# whose concentration wants a log axis and whose PD endpoint goes negative
+# cannot be one figure.
 overlay_plot <- function(source, synthetic, roles, title,
                          clock = "study_time",
                          x_label = "Study time (hours)", y_label = "DV",
-                         log_y = FALSE, alpha = 0.3) {
+                         log_y = FALSE, alpha = 0.3, endpoints = NULL) {
   plotted <- rbind(
     observed_plot_data(source, roles, "Source", clock),
     observed_plot_data(synthetic, roles, "Synthetic", clock)
   )
+  if (!is.null(endpoints)) {
+    plotted <- plotted[plotted$endpoint %in% endpoints, , drop = FALSE]
+  }
   # One line per patient on a study-time axis, and one line per occasion on a
   # dose-relative one, where the profiles are meant to lie on top of each other.
   plotted$series <- if (identical(clock, "tad")) {
@@ -206,7 +213,7 @@ Every example follows the same five steps:
 3.  plot the real and synthetic data;
 4.  plot the observation (DV) and baseline covariate distributions,
     source against synthetic
-5.  report the score card’s verdicts, and the rows that are not a pass.
+5.  report the score card’s verdicts, and the rows that ask to be read.
 
 The scorecard marks each check `pass`, `FAIL`, `review`, or
 `not applicable`. A `review` row is one where the pharmacometrician
@@ -262,7 +269,9 @@ case1_synth <- suppressWarnings(
 )
 ```
 
-![](avatar-public-data-examples_files/figure-html/case1-plot-1.png)
+![](avatar-public-data-examples_files/figure-html/case1-plot-pk-1.png)
+
+![](avatar-public-data-examples_files/figure-html/case1-plot-pd-1.png)
 
 ``` r
 
@@ -279,10 +288,8 @@ card_verdicts(synpmx_scorecard(case1_pkpd, case1_synth, case1_roles))
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | D1 | Values landing in the same range | sd x0.64 on PD - Continuous (furthest of 3) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+17 pass, 1 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails, and C1 passes: all six treatment arms keep their source
@@ -367,10 +374,8 @@ card_verdicts(synpmx_scorecard(mad, mad_synth, mad_roles))
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | D1 | Values landing in the same range | sd x0.6 on WEIGHTB (furthest of 6) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+17 pass, 1 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails. A3 reads 5 of 5, and it is a set comparison rather than a
@@ -491,11 +496,9 @@ card_verdicts(synpmx_scorecard(theo_md, theo_synth, theo_roles))
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | D1 | Values landing in the same range | sd x0.55 on WT (furthest of 2) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-17 pass, 1 review, 2 not applicable. The rows that are not a pass:
-{.table}
+17 pass, 1 review, 2 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -538,10 +541,8 @@ card_verdicts(synpmx_scorecard(warfarin, warfarin_synth, warfarin_roles))
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | D1 | Values landing in the same range | sd x0.43 on age (furthest of 4) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-17 pass, 1 review, 2 not applicable. The rows that are not a pass:
+17 pass, 1 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so `wt` is
@@ -587,10 +588,8 @@ card_verdicts(synpmx_scorecard(wbcSim, wbc_synth, wbc_roles))
 | A5b | Doses per patient | 1.16 -\> 1 | review |
 | C2 | Distinct dose-time schedules represented | 2 of 4 | review |
 | D1 | Values landing in the same range | sd x0.64 on DV (furthest of 1) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-14 pass, 4 review, 2 not applicable. The rows that are not a pass:
+14 pass, 4 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails, and C2 is the row to read: 1 of the 4 source dose
@@ -678,10 +677,8 @@ card_verdicts(synpmx_scorecard(nimoData, nimo_synth, nimo_roles))
 | A5b | Doses per patient | 10 -\> 1.58 | review |
 | C2 | Distinct dose-time schedules represented | 7 of 12 | review |
 | D1 | Values landing in the same range | sd x0.38 on AGE (furthest of 4) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+15 pass, 3 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 **Nothing fails, and the dataset is still not shippable.** A5b is the
@@ -980,11 +977,9 @@ card_verdicts(synpmx_scorecard(mavoglurant, mavo_synth, mavo_roles))
 |:---|:---|:---|:---|
 | A5b | Doses per patient | 1.65 -\> 1.57 | review |
 | D1 | Values landing in the same range | sd x0.51 on HT (furthest of 5) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-16 pass, 2 review, 2 not applicable. The rows that are not a pass:
-{.table}
+16 pass, 2 review, 2 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 Nothing fails, and B2 is the row this study used to break. Recorded
 follow-up length is bimodal here, because `TIME` restarts within `OCC`
@@ -1071,10 +1066,8 @@ card_verdicts(synpmx_scorecard(pheno_sd, pheno_synth, pheno_roles))
 | A5b | Doses per patient | 9.98 -\> 5.63 | review |
 | C2 | Distinct dose-time schedules represented | 35 of 56 | review |
 | D1 | Values landing in the same range | sd x0.44 on WT (furthest of 3) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+15 pass, 3 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 **Nothing fails, and the two rows that moved say what reaching that
@@ -1191,11 +1184,9 @@ card_verdicts(synpmx_scorecard(mixroute_sim, mixroute_synth, mixroute_roles))
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | D1 | Values landing in the same range | sd x0.66 on WT (furthest of 2) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-17 pass, 1 review, 2 not applicable. The rows that are not a pass:
-{.table}
+17 pass, 1 review, 2 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 Nothing fails, and the arm-by-route table is the check worth making by
 hand, because it is the one thing this dataset is here to test:
@@ -1290,10 +1281,8 @@ card_verdicts(synpmx_scorecard(onc_sim, onc_synth, onc_roles))
 | A5b | Doses per patient | 327 -\> 304 | review |
 | C2 | Distinct dose-time schedules represented | 21 of 26 | review |
 | D1 | Values landing in the same range | sd x0.67 on AGE (furthest of 4) | review |
-| E1 | Fitted parameters moved off their starting values | not applicable: no population model was fitted | not applicable |
-| E2 | Between-subject terms were estimated, not left at their start | not applicable: no population model was fitted | not applicable |
 
-15 pass, 3 review, 2 not applicable. The rows that are not a pass:
+15 pass, 3 review, 2 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails. The synthetic study comes back in the encoding its source

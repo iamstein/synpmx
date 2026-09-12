@@ -49,9 +49,13 @@ Plotting and reporting helpers used throughout this vignette
 # Observation rows only, source beside synthetic on a shared y axis, one row per
 # endpoint. The same figure the PCA survey draws, so the two can be compared
 # panel for panel.
+# `endpoints` draws one endpoint of a study that has several. A log axis is the
+# reason it exists: `facet_grid()` puts one scale on every panel, so a study
+# whose concentration wants a log axis and whose PD endpoint goes negative
+# cannot be one figure.
 overlay_plot <- function(source, synthetic, roles, title,
                          y_label = "DV", log_y = FALSE, alpha = 0.3,
-                         max_time = Inf) {
+                         max_time = Inf, endpoints = NULL) {
   frame <- function(data, label) {
     observed <- as.character(data[[roles$evid]]) %in% c("0", "0.0") &
       !is.na(data[[roles$dv]])
@@ -72,6 +76,9 @@ overlay_plot <- function(source, synthetic, roles, title,
     )
   }
   plotted <- rbind(frame(source, "Source"), frame(synthetic, "Synthetic"))
+  if (!is.null(endpoints)) {
+    plotted <- plotted[plotted$endpoint %in% endpoints, , drop = FALSE]
+  }
   figure <- ggplot2::ggplot(
     plotted,
     ggplot2::aes(time, dv,
@@ -207,7 +214,9 @@ case1$fit
 #>                        1cmt_oral                  2 min 46 s
 ```
 
-![](pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png)
+![](pmxmodel-public-data-examples_files/figure-html/case1-plot-pk-1.png)
+
+![](pmxmodel-public-data-examples_files/figure-html/case1-plot-pd-1.png)
 
 ``` r
 
@@ -224,14 +233,9 @@ card_verdicts(case1$card)
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | A5a | Observations per patient | 30.7 -\> 29 | review |
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.88 on PK Concentration (furthest of 3) | review |
 
-13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+13 pass, 2 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails. A5a reads observations per patient falling from 30.7 to
@@ -248,8 +252,9 @@ dosing and visit models still read all 180.
 works this study end to end, including what its 46% censoring and its PD
 endpoint cost.
 
-Five rows read `not applicable` on every card in this article, so they
-are worth reading once here. B1a, B1b and C2 need a run record that
+Five rows read `not applicable` on every card in this article. The cards
+below count them in their tally and do not list them, so they are worth
+reading once here. B1a, B1b and C2 need a run record that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 writes and this generator does not. B4a asks whether a generated set of
 observation times copies a real one, which is a disclosure question only
@@ -357,14 +362,9 @@ card_verdicts(mad_run$card)
 
 | check | question | result | verdict |
 |:---|:---|:---|:---|
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.85 on WEIGHTB (furthest of 6) | review |
 
-14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+14 pass, 1 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including
@@ -459,14 +459,9 @@ card_verdicts(warfarin_run$card)
 
 | check | question | result | verdict |
 |:---|:---|:---|:---|
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x1.2 on cp (furthest of 4) | review |
 
-14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+14 pass, 1 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Read the design line in the report above rather than the parameters. It
@@ -557,15 +552,10 @@ card_verdicts(wbc_run$card)
 |:---|:---|:---|:---|
 | A5a | Observations per patient | 3.91 -\> 3.16 | review |
 | A5b | Doses per patient | 1.16 -\> 1 | review |
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.77 on DV (furthest of 1) | review |
 
-12 pass, 3 review, 5 not applicable. The rows that are not a pass:
-{.table}
+12 pass, 3 review, 5 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 **This is the study where the generator’s endpoint test is wrong, and
 the scorecard only partly catches it.** `wbcSim` records a white blood
@@ -680,14 +670,9 @@ card_verdicts(mavo_run$card)
 |:---|:---|:---|:---|
 | A5a | Observations per patient | 20.2 -\> 11.3 | review |
 | A5b | Doses per patient | 1.65 -\> 1 | review |
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.4 on DV (furthest of 5) | review |
 
-12 pass, 3 review, 5 not applicable. The rows that are not a pass:
+12 pass, 3 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Three rows to read, and two findings. A5b reports occasions per patient
@@ -821,15 +806,10 @@ card_verdicts(theo_run$card)
 
 | check | question | result | verdict |
 |:---|:---|:---|:---|
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.97 on WT (furthest of 2) | review |
 
-14 pass, 1 review, 5 not applicable. The rows that are not a pass:
-{.table}
+14 pass, 1 review, 5 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
@@ -940,14 +920,9 @@ card_verdicts(nimo_run$card)
 
 | check | question | result | verdict |
 |:---|:---|:---|:---|
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x3.4 on DV (furthest of 4) | review |
 
-14 pass, 1 review, 5 not applicable. The rows that are not a pass:
+14 pass, 1 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails, and D1 at 3.4 times the source’s spread is the one row to
@@ -1101,14 +1076,9 @@ card_verdicts(pheno_run$card)
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | A5b | Doses per patient | 9.98 -\> 7.12 | review |
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x1.5 on APGR (furthest of 3) | review |
 
-13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+13 pass, 2 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 The fixed effects are the same either way, and that is the point worth
@@ -1233,15 +1203,10 @@ card_verdicts(mixroute_run$card)
 
 | check | question | result | verdict |
 |:---|:---|:---|:---|
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x0.81 on WT (furthest of 2) | review |
 
-14 pass, 1 review, 5 not applicable. The rows that are not a pass:
-{.table}
+14 pass, 1 review, 5 not applicable. The rows that ask to be read:
+{.table style="width:100%;"}
 
 Nothing fails, and bioavailability is recovered — which is the whole
 point of fitting the two routes as one study rather than two. `f` is
@@ -1366,14 +1331,9 @@ card_verdicts(onc_run$card)
 | check | question | result | verdict |
 |:---|:---|:---|:---|
 | A5b | Doses per patient | 327 -\> 281 | review |
-| B1a | Avatars with a visit set nobody else shares | no run record | not applicable |
-| B1b | Avatars with a dose schedule nobody else shares | no run record | not applicable |
-| B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
-| B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
-| C2 | Distinct dose-time schedules represented | no run record | not applicable |
 | D1 | Values landing in the same range | sd x1.1 on BSLD (furthest of 4) | review |
 
-13 pass, 2 review, 5 not applicable. The rows that are not a pass:
+13 pass, 2 review, 5 not applicable. The rows that ask to be read:
 {.table}
 
 Nothing fails. Read the tumour endpoint against what it is, though: a PD

@@ -197,14 +197,21 @@ Plotting helpers used throughout this vignette
 <span><span class="co"># synthetic on a shared y axis, one row per endpoint. `clock = "tad"` plots time</span></span>
 <span><span class="co"># after dose instead of study time, which is the readable view once a study</span></span>
 <span><span class="co"># doses more than once.</span></span>
+<span><span class="co"># `endpoints` draws one endpoint of a study that has several. A log axis is the</span></span>
+<span><span class="co"># reason it exists: `facet_grid()` puts one scale on every panel, so a study</span></span>
+<span><span class="co"># whose concentration wants a log axis and whose PD endpoint goes negative</span></span>
+<span><span class="co"># cannot be one figure.</span></span>
 <span><span class="va">overlay_plot</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">source</span>, <span class="va">synthetic</span>, <span class="va">roles</span>, <span class="va">title</span>,</span>
 <span>                         <span class="va">clock</span> <span class="op">=</span> <span class="st">"study_time"</span>,</span>
 <span>                         <span class="va">x_label</span> <span class="op">=</span> <span class="st">"Study time (hours)"</span>, <span class="va">y_label</span> <span class="op">=</span> <span class="st">"DV"</span>,</span>
-<span>                         <span class="va">log_y</span> <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">alpha</span> <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">{</span></span>
+<span>                         <span class="va">log_y</span> <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">alpha</span> <span class="op">=</span> <span class="fl">0.3</span>, <span class="va">endpoints</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">plotted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>    <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">source</span>, <span class="va">roles</span>, <span class="st">"Source"</span>, <span class="va">clock</span><span class="op">)</span>,</span>
 <span>    <span class="fu">observed_plot_data</span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span>, <span class="st">"Synthetic"</span>, <span class="va">clock</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">endpoints</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">plotted</span> <span class="op">&lt;-</span> <span class="va">plotted</span><span class="op">[</span><span class="va">plotted</span><span class="op">$</span><span class="va">endpoint</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">endpoints</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span>  <span class="op">}</span></span>
 <span>  <span class="co"># One line per patient on a study-time axis, and one line per occasion on a</span></span>
 <span>  <span class="co"># dose-relative one, where the profiles are meant to lie on top of each other.</span></span>
 <span>  <span class="va">plotted</span><span class="op">$</span><span class="va">series</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">clock</span>, <span class="st">"tad"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -421,8 +428,8 @@ eight public datasets is written out as its own row.</p>
 <li>plot the real and synthetic data;</li>
 <li>plot the observation (DV) and baseline covariate distributions,
 source against synthetic</li>
-<li>report the score card’s verdicts, and the rows that are not a
-pass.</li>
+<li>report the score card’s verdicts, and the rows that ask to be
+read.</li>
 </ol>
 <p>The scorecard marks each check <code>pass</code>, <code>FAIL</code>,
 <code>review</code>, or <code>not applicable</code>. A
@@ -471,20 +478,21 @@ absence.</p>
 <span><span class="va">case1_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/synpmx_avatar.html">synpmx_avatar</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_roles</span>, seed <span class="op">=</span> <span class="fl">808</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="avatar-public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p><img src="avatar-public-data-examples_files/figure-html/case1-plot-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
+<p><img src="avatar-public-data-examples_files/figure-html/case1-plot-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="avatar-public-data-examples_files/figure-html/case1-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">case1_pkpd</span>, <span class="va">case1_synth</span>, <span class="va">case1_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
+<col width="6%">
 <col width="36%">
-<col width="11%">
+<col width="48%">
+<col width="8%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -492,27 +500,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.64 on PD - Continuous (furthest of 3)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and C1 passes: all six treatment arms keep their
 source size. An avatar never leaves the arm it was anchored in, because
@@ -581,13 +574,13 @@ than three.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mad</span>, <span class="va">mad_synth</span>, <span class="va">mad_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
-<col width="36%">
-<col width="11%">
+<col width="7%">
+<col width="40%">
+<col width="42%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -595,27 +588,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.6 on WEIGHTB (furthest of 6)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails. A3 reads 5 of 5, and it is a set comparison rather
 than a row count: row counts stayed plausible in the defect that
@@ -775,14 +753,14 @@ dense concentration sampling around the first and last dose only.</p>
 <p><img src="avatar-public-data-examples_files/figure-html/theo-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_synth</span>, <span class="va">theo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
-<col width="36%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -790,27 +768,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.55 on WT (furthest of 2)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails. Twelve subjects on one dense protocol leave an obvious
 visit grid to find, so coarsening takes the twelve unique observation
@@ -841,13 +804,13 @@ covariate.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">warfarin_synth</span>, <span class="va">warfarin_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
-<col width="36%">
-<col width="11%">
+<col width="7%">
+<col width="41%">
+<col width="40%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -855,27 +818,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.43 on age (furthest of 4)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails. Warfarin is dosed at 1.5 mg/kg to within 0.1%, so
 <code>wt</code> is declared as the <code>dose_covariate</code> and each
@@ -904,13 +852,13 @@ a few subjects are followed far longer than the rest.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">wbcSim</span>, <span class="va">wbc_synth</span>, <span class="va">wbc_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>14 pass, 4 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>14 pass, 4 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="6%">
 <col width="47%">
 <col width="36%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -942,19 +890,6 @@ pass:</caption>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.64 on DV (furthest of 1)</td>
 <td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
 </tr>
 </tbody>
 </table>
@@ -1070,13 +1005,13 @@ the doses so that it stays coherent with them. The redundant
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_synth</span>, <span class="va">nimo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="6%">
 <col width="47%">
 <col width="36%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1102,19 +1037,6 @@ pass:</caption>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.38 on AGE (furthest of 4)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
 </tr>
 </tbody>
 </table>
@@ -1495,14 +1417,14 @@ and occasion.</p>
 <p><img src="avatar-public-data-examples_files/figure-html/mavo-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mavoglurant</span>, <span class="va">mavo_synth</span>, <span class="va">mavo_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>16 pass, 2 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>16 pass, 2 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
-<col width="36%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1522,19 +1444,6 @@ pass:</caption>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.51 on HT (furthest of 5)</td>
 <td align="left">review</td>
-</tr>
-<tr class="odd">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="even">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
 </tr>
 </tbody>
 </table>
@@ -1648,13 +1557,13 @@ time. It is the least protocol-like dataset here.</p>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">pheno_sd</span>, <span class="va">pheno_synth</span>, <span class="va">pheno_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="6%">
 <col width="47%">
 <col width="36%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1680,19 +1589,6 @@ pass:</caption>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.44 on WT (furthest of 3)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
 </tr>
 </tbody>
 </table>
@@ -1828,14 +1724,14 @@ blend across.</p>
 <p><img src="avatar-public-data-examples_files/figure-html/mixroute-distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mixroute_sim</span>, <span class="va">mixroute_synth</span>, <span class="va">mixroute_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>17 pass, 1 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<table style="width:100%;" class="table">
+<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
-<col width="47%">
-<col width="36%">
-<col width="11%">
+<col width="7%">
+<col width="42%">
+<col width="39%">
+<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1843,27 +1739,12 @@ pass:</caption>
 <th align="left">result</th>
 <th align="left">verdict</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.66 on WT (furthest of 2)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <p>Nothing fails, and the arm-by-route table is the check worth making
 by hand, because it is the one thing this dataset is here to test:</p>
@@ -1934,13 +1815,13 @@ them back on the way out:</p>
 <div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">onc_sim</span>, <span class="va">onc_synth</span>, <span class="va">onc_roles</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>15 pass, 3 review, 2 not applicable. The rows that are not a
-pass:</caption>
+<caption>15 pass, 3 review, 2 not applicable. The rows that ask to be
+read:</caption>
 <colgroup>
-<col width="4%">
+<col width="6%">
 <col width="47%">
 <col width="36%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">check</th>
@@ -1966,19 +1847,6 @@ pass:</caption>
 <td align="left">Values landing in the same range</td>
 <td align="left">sd x0.67 on AGE (furthest of 4)</td>
 <td align="left">review</td>
-</tr>
-<tr class="even">
-<td align="left">E1</td>
-<td align="left">Fitted parameters moved off their starting values</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
-</tr>
-<tr class="odd">
-<td align="left">E2</td>
-<td align="left">Between-subject terms were estimated, not left at their
-start</td>
-<td align="left">not applicable: no population model was fitted</td>
-<td align="left">not applicable</td>
 </tr>
 </tbody>
 </table>
