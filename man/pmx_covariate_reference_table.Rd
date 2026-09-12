@@ -10,10 +10,12 @@ pmx_covariate_reference_table()
 A data frame.
 }
 \description{
-One row per available covariate, with its units and the distribution it
-builds. Read it before relying on a reference value: the units are the ones
-this package writes, and a study recording height in metres rather than
-centimetres needs its own declaration.
+One row per available covariate, with its units, the distribution it builds,
+and the \code{basis} that value came from. Read it before relying on a reference
+value. Two columns earn the reading: \code{unit}, because the units are the ones
+this package writes and a study recording height in metres rather than
+centimetres needs its own declaration; and \code{basis}, because a value marked
+as a placeholder is one the protocol is supposed to decide.
 }
 \examples{
 pmx_covariate_reference_table()

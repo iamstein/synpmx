@@ -4,12 +4,7 @@
 \alias{pmx_covariates_reference}
 \title{Reference distributions for the usual baseline covariates}
 \usage{
-pmx_covariates_reference(
-  names,
-  medians = NULL,
-  source = paste("synpmx reference distribution for a",
-    "broad adult population; a package", "default, not measured from any study")
-)
+pmx_covariates_reference(names, medians = NULL, cvs = NULL)
 }
 \arguments{
 \item{names}{Covariate column names. A plain vector takes each name as the
@@ -23,8 +18,10 @@ a column called \code{BWT}. A handful of common spellings resolve on their own:
 those columns, in the units listed by \code{\link[=pmx_covariate_reference_table]{pmx_covariate_reference_table()}}.
 Named by output column, so \code{c(BWT = 82)} goes with \code{names = c(BWT = "WT")}.}
 
-\item{source}{Provenance recorded on every covariate built here. The default
-says these are package reference values rather than a study's own.}
+\item{cvs}{Optional named numeric replacing the reference coefficient of
+variation, as a proportion. Named by output column, the same way as
+\code{medians}. A trial's eligibility criteria usually make this smaller than
+the survey's.}
 }
 \value{
 A \code{pmx_covariates} object.
@@ -35,30 +32,35 @@ renal and hepatic laboratory values, so that a public-model generator has
 plausible covariate columns without each distribution being elicited by
 hand. The values are round numbers for a broad adult population.
 }
-\section{What these numbers are, and are not}{
+\section{Where the numbers come from}{
 
-They are the same kind of input as the built-in structural models in
-\code{\link[=pmx_structural_model]{pmx_structural_model()}}: illustrative on purpose, so that covariate-handling
-code has something to run against. They are not a rendering of any
-particular trial and were not measured from one.
+Body size comes from NHANES, the CDC's continuous National Health and
+Nutrition Examination Survey, for adults aged 20 and over of both sexes.
+The laboratory values come from conventional adult reference intervals,
+which is what a stated normal range is. Every covariate records its own
+basis in its \code{source}, and
+\code{\link[=pmx_covariate_reference_table]{pmx_covariate_reference_table()}} prints the basis alongside the value.
+Adults only, and deliberately: a paediatric population needs its own
+declaration through \code{\link[=pmx_covariate]{pmx_covariate()}}.
+}
 
-The spread is the half that travels. Body weight holds much the same
-coefficient of variation across adult populations whatever its median is, so
-the shape and the CV are reusable and the median is not: an ordinary adult
-cohort and a cohort selected for obesity differ in the median alone.
-\code{medians} is how to move it, and a regression test holds the reference
-median against the adult studies in this package's own surveys.
+\section{A survey population is not a trial cohort}{
 
-Age, sex and race are not population constants. The protocol's inclusion
-criteria and where it enrolled decide them, and a phase 1 healthy-volunteer
-cohort, a renal-impairment study and an oncology trial have nothing in
-common here. The entries put a column in the data. State your own if
-anything downstream reads it. No dataset in this package carries a race
-column at all.
+NHANES describes the general adult population. Eligibility criteria cut the
+tails off that, so a trial runs both lighter and tighter than the survey --
+by weight, a median around 10 per cent below the survey's and a coefficient
+of variation closer to 15 per cent than 25. A cohort selected for obesity
+runs the other way. \code{medians} and \code{cvs} are how to move each, and a
+regression test holds this gap against the adult studies in this package's
+own public-data surveys so the starting point cannot drift silently.
 
-Nothing here fits a neonatal or paediatric cohort, where body size differs
-from an adult by more than an order of magnitude. Declare those with
-\code{\link[=pmx_covariate]{pmx_covariate()}}.
+Age, sex and race have no population source worth quoting here. The
+protocol's inclusion criteria and where it enrolled decide them, and a
+phase 1 healthy-volunteer cohort, a renal-impairment study and an oncology
+trial have nothing in common. Those three entries exist to put a column in
+the table and say so in their \code{source}. State your own if anything
+downstream reads them. No dataset in this package carries a race column at
+all.
 
 Before generated data crosses a trust boundary, replace these with the
 protocol's own criteria or a published description of the population, and
@@ -68,8 +70,13 @@ record that in each covariate's \code{source}.
 \examples{
 pmx_covariates_reference(c("WT", "AGE", "SEX"))
 
-# A heavier cohort, in a column named the way the study names it.
-pmx_covariates_reference(c(WEIGHTB = "WT"), medians = c(WEIGHTB = 117))
+# What the survey holds, and what it is.
+pmx_covariate_reference_table()
+
+# A trial that enrolled lighter and narrower than the general population,
+# in a column named the way the study names it.
+pmx_covariates_reference(c(WEIGHTB = "WT"), medians = c(WEIGHTB = 75),
+                         cvs = c(WEIGHTB = 0.16))
 
 # `WEIGHTB` resolves on its own, so the mapping is only needed to rename.
 pmx_covariates_reference("WEIGHTB")

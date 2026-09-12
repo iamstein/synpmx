@@ -178,72 +178,79 @@ pmx_covariates <- function(...) {
 
 # Reference covariate distributions ------------------------------------------
 #
-# Round numbers for a broad adult population, chosen so that covariate-handling
-# code has plausible columns to run against. They are the same kind of input as
-# the built-in structural models: illustrative on purpose, and not a rendering
-# of any particular trial. Two things are worth knowing about how far they
-# travel.
+# Every value traces to a named source, recorded on each covariate so it
+# travels with the declaration. Body size comes from NHANES, the CDC's
+# continuous national survey, which is the usual citable answer for adult
+# anthropometrics; the laboratory values come from conventional adult
+# reference intervals, which is what a range like 35 to 50 g/L of albumin
+# actually is. Age, sex and race have no population source worth quoting for
+# this purpose, and carry a note saying the protocol decides them.
 #
-# The CV is the durable half. Measured across the adult studies in this
-# package's own surveys, body weight runs at a CV of 14 to 18 percent whatever
-# the median is, over medians from 70 to 117 kg. So the shape and the spread
-# transfer between populations and the median does not, which is why `medians`
-# is the argument this function offers. `test-covariates.R` holds the reference
-# median against those studies rather than leaving the claim in a comment.
-#
-# Age, sex and race are not population constants at all. They are set by the
-# protocol's inclusion criteria and by where it enrolled: the three studies
-# here with an age run at medians of 31, 46 and 61, and the three with a sex
-# split at 87/13, 50/50 and 70/30. The entries below exist so a column is
-# there, and anyone who cares what is in it should state it.
+# NHANES describes the general adult population, and a trial cohort is not
+# that. Eligibility criteria cut the tails, so a trial runs lighter and
+# tighter than the survey: measured across the adult studies in this package's
+# public-data surveys, weight sits at medians of 70 to 82 kg with a CV of 14 to
+# 18 per cent, against 84 kg and 25 per cent here. That gap is the reason
+# `medians` and `cvs` exist, and `test-covariates.R` holds it rather than
+# leaving it in a comment. A cohort selected for obesity runs the other way.
 .covariate_reference <- list(
   WT = list(
-    quantity = "body weight", unit = "kg", range = c(35, 160),
-    median = 75, cv = 0.18, distribution = "lognormal"
+    quantity = "body weight", unit = "kg", range = c(35, 180),
+    median = 84, cv = 0.25, distribution = "lognormal",
+    basis = "NHANES 2015-2018, adults 20 and over, both sexes"
   ),
   HT = list(
     quantity = "height", unit = "cm", range = c(130, 210),
-    median = 170, cv = 0.06, distribution = "lognormal"
+    median = 168, cv = 0.06, distribution = "lognormal",
+    basis = "NHANES 2015-2018, adults 20 and over, both sexes"
   ),
   BMI = list(
-    quantity = "body mass index", unit = "kg/m2", range = c(15, 55),
-    median = 26, cv = 0.18, distribution = "lognormal"
+    quantity = "body mass index", unit = "kg/m2", range = c(15, 60),
+    median = 29, cv = 0.24, distribution = "lognormal",
+    basis = "NHANES 2015-2018, adults 20 and over, both sexes"
   ),
   BSA = list(
-    quantity = "body surface area", unit = "m2", range = c(1.1, 2.9),
-    median = 1.9, cv = 0.12, distribution = "lognormal"
+    quantity = "body surface area", unit = "m2", range = c(1.1, 3.0),
+    median = 2, cv = 0.14, distribution = "lognormal",
+    basis = paste("Mosteller formula applied to the NHANES 2015-2018 adult",
+                  "height and weight")
   ),
   AGE = list(
     quantity = "age", unit = "years", range = c(18, 90),
-    median = 45, cv = 0.30, distribution = "normal", integer = TRUE
+    median = 45, cv = 0.30, distribution = "normal", integer = TRUE,
+    basis = "the protocol's inclusion criteria decide this",
+    placeholder = TRUE
   ),
   CRCL = list(
     quantity = "creatinine clearance", unit = "mL/min", range = c(15, 200),
-    median = 100, cv = 0.25, distribution = "lognormal"
+    median = 100, cv = 0.25, distribution = "lognormal",
+    basis = "conventional adult reference interval, normal renal function"
   ),
   EGFR = list(
     quantity = "estimated glomerular filtration rate",
     unit = "mL/min/1.73m2", range = c(15, 180),
-    median = 95, cv = 0.25, distribution = "lognormal"
+    median = 95, cv = 0.25, distribution = "lognormal",
+    basis = "KDIGO stage G1, normal or high glomerular filtration rate"
   ),
   ALB = list(
     quantity = "serum albumin", unit = "g/L", range = c(25, 55),
-    median = 42, cv = 0.12, distribution = "normal"
+    median = 43, cv = 0.10, distribution = "normal",
+    basis = "conventional adult reference interval, 35 to 50 g/L"
   ),
   SEX = list(
-    quantity = "sex", levels = c("M", "F"), prob = c(0.5, 0.5)
+    quantity = "sex", levels = c("M", "F"), prob = c(0.5, 0.5),
+    basis = "the protocol's enrollment decides this", placeholder = TRUE
   ),
   RACE = list(
     quantity = "race",
     levels = c("White", "Black or African American", "Asian", "Other"),
-    prob = c(0.65, 0.12, 0.15, 0.08)
+    prob = c(0.65, 0.12, 0.15, 0.08),
+    basis = paste("the OMB and FDA reporting categories; where a trial",
+                  "enrolled decides the proportions"),
+    placeholder = TRUE
   )
 )
 
-# Column names that occur in the wild for a quantity the catalogue holds. Only
-# the ones actually seen: `WEIGHTB` in `case1_pkpd` and `mad`, `HGT` in
-# `nimoData`. Anything else is named explicitly, which is what the named-vector
-# form of `names` is for.
 .covariate_reference_aliases <- c(
   WEIGHTB = "WT", WEIGHT = "WT", WGT = "WT", BW = "WT",
   HGT = "HT", HEIGHT = "HT",
@@ -257,29 +264,32 @@ pmx_covariates <- function(...) {
 #' plausible covariate columns without each distribution being elicited by
 #' hand. The values are round numbers for a broad adult population.
 #'
-#' @section What these numbers are, and are not:
-#' They are the same kind of input as the built-in structural models in
-#' [pmx_structural_model()]: illustrative on purpose, so that covariate-handling
-#' code has something to run against. They are not a rendering of any
-#' particular trial and were not measured from one.
+#' @section Where the numbers come from:
+#' Body size comes from NHANES, the CDC's continuous National Health and
+#' Nutrition Examination Survey, for adults aged 20 and over of both sexes.
+#' The laboratory values come from conventional adult reference intervals,
+#' which is what a stated normal range is. Every covariate records its own
+#' basis in its `source`, and
+#' [pmx_covariate_reference_table()] prints the basis alongside the value.
+#' Adults only, and deliberately: a paediatric population needs its own
+#' declaration through [pmx_covariate()].
 #'
-#' The spread is the half that travels. Body weight holds much the same
-#' coefficient of variation across adult populations whatever its median is, so
-#' the shape and the CV are reusable and the median is not: an ordinary adult
-#' cohort and a cohort selected for obesity differ in the median alone.
-#' `medians` is how to move it, and a regression test holds the reference
-#' median against the adult studies in this package's own surveys.
+#' @section A survey population is not a trial cohort:
+#' NHANES describes the general adult population. Eligibility criteria cut the
+#' tails off that, so a trial runs both lighter and tighter than the survey --
+#' by weight, a median around 10 per cent below the survey's and a coefficient
+#' of variation closer to 15 per cent than 25. A cohort selected for obesity
+#' runs the other way. `medians` and `cvs` are how to move each, and a
+#' regression test holds this gap against the adult studies in this package's
+#' own public-data surveys so the starting point cannot drift silently.
 #'
-#' Age, sex and race are not population constants. The protocol's inclusion
-#' criteria and where it enrolled decide them, and a phase 1 healthy-volunteer
-#' cohort, a renal-impairment study and an oncology trial have nothing in
-#' common here. The entries put a column in the data. State your own if
-#' anything downstream reads it. No dataset in this package carries a race
-#' column at all.
-#'
-#' Nothing here fits a neonatal or paediatric cohort, where body size differs
-#' from an adult by more than an order of magnitude. Declare those with
-#' [pmx_covariate()].
+#' Age, sex and race have no population source worth quoting here. The
+#' protocol's inclusion criteria and where it enrolled decide them, and a
+#' phase 1 healthy-volunteer cohort, a renal-impairment study and an oncology
+#' trial have nothing in common. Those three entries exist to put a column in
+#' the table and say so in their `source`. State your own if anything
+#' downstream reads them. No dataset in this package carries a race column at
+#' all.
 #'
 #' Before generated data crosses a trust boundary, replace these with the
 #' protocol's own criteria or a published description of the population, and
@@ -294,8 +304,10 @@ pmx_covariates <- function(...) {
 #' @param medians Optional named numeric replacing the reference median for
 #'   those columns, in the units listed by [pmx_covariate_reference_table()].
 #'   Named by output column, so `c(BWT = 82)` goes with `names = c(BWT = "WT")`.
-#' @param source Provenance recorded on every covariate built here. The default
-#'   says these are package reference values rather than a study's own.
+#' @param cvs Optional named numeric replacing the reference coefficient of
+#'   variation, as a proportion. Named by output column, the same way as
+#'   `medians`. A trial's eligibility criteria usually make this smaller than
+#'   the survey's.
 #'
 #' @return A `pmx_covariates` object.
 #' @seealso [pmx_covariate_reference_table()] for what is available,
@@ -305,17 +317,17 @@ pmx_covariates <- function(...) {
 #' @examples
 #' pmx_covariates_reference(c("WT", "AGE", "SEX"))
 #'
-#' # A heavier cohort, in a column named the way the study names it.
-#' pmx_covariates_reference(c(WEIGHTB = "WT"), medians = c(WEIGHTB = 117))
+#' # What the survey holds, and what it is.
+#' pmx_covariate_reference_table()
+#'
+#' # A trial that enrolled lighter and narrower than the general population,
+#' # in a column named the way the study names it.
+#' pmx_covariates_reference(c(WEIGHTB = "WT"), medians = c(WEIGHTB = 75),
+#'                          cvs = c(WEIGHTB = 0.16))
 #'
 #' # `WEIGHTB` resolves on its own, so the mapping is only needed to rename.
 #' pmx_covariates_reference("WEIGHTB")
-pmx_covariates_reference <- function(names, medians = NULL,
-                                     source = paste(
-                                       "synpmx reference distribution for a",
-                                       "broad adult population; a package",
-                                       "default, not measured from any study"
-                                     )) {
+pmx_covariates_reference <- function(names, medians = NULL, cvs = NULL) {
   if (!is.character(names) || !length(names) || anyNA(names) ||
       any(!nzchar(names))) {
     stop("`names` must be non-empty covariate column names.", call. = FALSE)
@@ -338,14 +350,16 @@ pmx_covariates_reference <- function(names, medians = NULL,
          "one of these with a named vector such as `c(BWT = \"WT\")`.",
          call. = FALSE)
   }
-  if (!is.null(medians)) {
-    if (!is.numeric(medians) || is.null(base::names(medians)) ||
-        anyNA(medians) || any(!is.finite(medians))) {
-      stop("`medians` must be a named numeric vector.", call. = FALSE)
+  for (arg in c("medians", "cvs")) {
+    value <- if (identical(arg, "medians")) medians else cvs
+    if (is.null(value)) next
+    if (!is.numeric(value) || is.null(base::names(value)) || anyNA(value) ||
+        any(!is.finite(value))) {
+      stop("`", arg, "` must be a named numeric vector.", call. = FALSE)
     }
-    unplaced <- setdiff(base::names(medians), columns)
+    unplaced <- setdiff(base::names(value), columns)
     if (length(unplaced)) {
-      stop("`medians` names a column that is not being built: ",
+      stop("`", arg, "` names a column that is not being built: ",
            paste(unplaced, collapse = ", "), ".", call. = FALSE)
     }
   }
@@ -353,39 +367,65 @@ pmx_covariates_reference <- function(names, medians = NULL,
   for (i in seq_along(columns)) {
     column <- columns[[i]]
     spec <- .covariate_reference[[quantities[[i]]]]
-    provenance <- paste0(source, " (", spec$quantity,
-                         if (!is.null(spec$unit)) paste0(", ", spec$unit),
-                         ")")
     if (is.null(spec$levels)) {
       median <- spec$median
+      cv <- spec$cv
+      adjusted <- character()
       if (!is.null(medians) && column %in% base::names(medians)) {
         median <- unname(medians[[column]])
+        adjusted <- c(adjusted, "median")
         # A replaced median may sit outside a range chosen around the default,
         # and `pmx_covariate()` would refuse it. Widen the bound to keep it,
         # since the bound is a safety margin rather than a claim.
         spec$range <- c(min(spec$range[1L], median / 2),
                         max(spec$range[2L], median * 2))
       }
+      if (!is.null(cvs) && column %in% base::names(cvs)) {
+        cv <- unname(cvs[[column]])
+        adjusted <- c(adjusted, "CV")
+      }
       built[[column]] <- pmx_covariate(
-        range = spec$range, source = provenance, median = median,
-        cv = spec$cv, distribution = spec$distribution,
+        range = spec$range, source = .reference_source(spec, adjusted),
+        median = median, cv = cv, distribution = spec$distribution,
         integer = isTRUE(spec$integer)
       )
     } else {
       built[[column]] <- pmx_covariate(
-        levels = spec$levels, prob = spec$prob, source = provenance
+        levels = spec$levels, prob = spec$prob,
+        source = .reference_source(spec, character())
       )
     }
   }
   structure(built, class = "pmx_covariates")
 }
 
+# Provenance travels with the declaration, so it names the quantity, its unit,
+# its basis, and anything the caller moved away from that basis. A covariate
+# whose median the caller replaced is no longer the survey's, and its `source`
+# has to stop claiming it is.
+.reference_source <- function(spec, adjusted) {
+  out <- paste0(
+    spec$quantity,
+    if (!is.null(spec$unit)) paste0(" (", spec$unit, ")"),
+    if (isTRUE(spec$placeholder)) "; synpmx placeholder -- "
+    else "; synpmx reference value from ",
+    spec$basis
+  )
+  if (length(adjusted)) {
+    out <- paste0(out, "; ", paste(adjusted, collapse = " and "),
+                  " replaced by the caller")
+  }
+  out
+}
+
 #' What [pmx_covariates_reference()] holds
 #'
-#' One row per available covariate, with its units and the distribution it
-#' builds. Read it before relying on a reference value: the units are the ones
-#' this package writes, and a study recording height in metres rather than
-#' centimetres needs its own declaration.
+#' One row per available covariate, with its units, the distribution it builds,
+#' and the `basis` that value came from. Read it before relying on a reference
+#' value. Two columns earn the reading: `unit`, because the units are the ones
+#' this package writes and a study recording height in metres rather than
+#' centimetres needs its own declaration; and `basis`, because a value marked
+#' as a placeholder is one the protocol is supposed to decide.
 #'
 #' @return A data frame.
 #' @seealso [pmx_covariates_reference()]
@@ -409,6 +449,8 @@ pmx_covariate_reference_table <- function() {
       range = if (is.null(spec$levels))
         sprintf("%g to %g", spec$range[1L], spec$range[2L]) else
           NA_character_,
+      basis = paste0(if (isTRUE(spec$placeholder)) "placeholder: ",
+                     spec$basis),
       stringsAsFactors = FALSE
     )
   })

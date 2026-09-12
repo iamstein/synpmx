@@ -108,12 +108,14 @@ test_that("the reference catalogue builds usable covariates", {
   covariates <- pmx_covariates_reference(c("WT", "AGE", "SEX", "RACE"))
   expect_s3_class(covariates, "pmx_covariates")
   expect_named(covariates, c("WT", "AGE", "SEX", "RACE"))
-  # Every entry carries provenance saying what these numbers are.
-  for (name in names(covariates)) {
-    expect_match(covariates[[name]]$source, "not measured from any study")
-  }
+  # Provenance travels with each declaration and names its own basis, so a
+  # value the protocol is supposed to decide says so rather than reading as a
+  # survey measurement.
+  expect_match(covariates$WT$source, "NHANES")
+  expect_match(covariates$AGE$source, "placeholder")
+  expect_match(covariates$SEX$source, "placeholder")
   drawn <- .cov_draw(covariates)
-  expect_equal(stats::median(drawn$WT), 75, tolerance = 0.05)
+  expect_equal(stats::median(drawn$WT), 84, tolerance = 0.05)
   expect_true(all(drawn$AGE == round(drawn$AGE)))
   expect_equal(mean(drawn$RACE == "White"), 0.65, tolerance = 0.1)
 })
@@ -123,47 +125,75 @@ test_that("a column name maps onto a reference quantity", {
   # datasets resolve without one.
   renamed <- pmx_covariates_reference(c(BWT = "WT"))
   expect_named(renamed, "BWT")
-  expect_equal(renamed$BWT$median, 75)
+  expect_equal(renamed$BWT$median, 84)
   expect_named(pmx_covariates_reference(c("WEIGHTB", "HGT")),
                c("WEIGHTB", "HGT"))
-  expect_equal(pmx_covariates_reference("WEIGHTB")$WEIGHTB$median, 75)
-
-  # A replaced median widens the bound with it, or every draw would clip.
-  heavy <- pmx_covariates_reference(c(WEIGHTB = "WT"),
-                                    medians = c(WEIGHTB = 117))
-  expect_equal(heavy$WEIGHTB$median, 117)
-  expect_gt(heavy$WEIGHTB$range[2L], 117)
-  expect_equal(heavy$WEIGHTB$cv, 0.18)
+  expect_equal(pmx_covariates_reference("WEIGHTB")$WEIGHTB$median, 84)
 
   expect_error(pmx_covariates_reference("BODYWEIGHT"), "No reference")
   expect_error(pmx_covariates_reference(c("WT", "WT")), "each output column")
   expect_error(pmx_covariates_reference("WT", medians = c(AGE = 50)),
                "not being built")
+  expect_error(pmx_covariates_reference("WT", cvs = c(AGE = 0.2)),
+               "not being built")
 })
 
-test_that("the reference table lists every catalogue entry", {
+test_that("a replaced median or CV is honoured and stops claiming the source", {
+  cohort <- pmx_covariates_reference(c(WEIGHTB = "WT"),
+                                     medians = c(WEIGHTB = 75),
+                                     cvs = c(WEIGHTB = 0.16))
+  expect_equal(cohort$WEIGHTB$median, 75)
+  expect_equal(cohort$WEIGHTB$cv, 0.16)
+  expect_match(cohort$WEIGHTB$source, "median and CV replaced by the caller")
+
+  # A median far from the default widens the bound with it, or every draw
+  # would clip to one edge.
+  heavy <- pmx_covariates_reference(c(WEIGHTB = "WT"),
+                                    medians = c(WEIGHTB = 117))
+  expect_gt(heavy$WEIGHTB$range[2L], 117)
+  expect_equal(heavy$WEIGHTB$cv, 0.25)
+  expect_match(heavy$WEIGHTB$source, "median replaced by the caller")
+  expect_false(grepl("CV replaced", heavy$WEIGHTB$source))
+
+  drawn <- .cov_draw(cohort)
+  expect_equal(stats::median(drawn$WEIGHTB), 75, tolerance = 0.05)
+  expect_equal(stats::sd(drawn$WEIGHTB) / mean(drawn$WEIGHTB), 0.16,
+               tolerance = 0.15)
+})
+
+test_that("the reference table lists every catalogue entry with its basis", {
   table <- pmx_covariate_reference_table()
   expect_setequal(table$covariate, names(.covariate_reference))
   expect_true(all(nzchar(table$quantity)))
+  expect_true(all(nzchar(table$basis)))
   # The units are the ones this package writes, and the table is where a
   # reader checks them, so none may be blank for a continuous covariate.
   continuous <- table$distribution != "categorical"
   expect_false(any(is.na(table$unit[continuous])))
+  # Anything the protocol is meant to decide is marked, not dressed up as a
+  # measurement.
+  expect_match(table$basis[table$covariate %in% c("AGE", "SEX", "RACE")],
+               "placeholder", all = TRUE)
 })
 
-# The claim behind the catalogue: the CV of body weight travels between adult
-# populations and the median does not. Measured medians from the studies in
-# the public-data surveys, so that the reference value cannot drift away from
-# the populations it claims to cover without this failing.
-test_that("the reference weight covers ordinary adult cohorts and says so", {
-  reference <- .covariate_reference$WT$median
-  ordinary <- c(theo_md = 70.5, mavoglurant = 82.1, mad = 78.9,
-                mixroute_sim = 72.0)
-  expect_true(all(abs(reference - ordinary) / ordinary < 0.15))
-  # A cohort selected for obesity and a neonatal cohort are both out of reach,
-  # which is why the documentation sends them to `pmx_covariate()`.
-  expect_gt(abs(reference - 117.0) / 117.0, 0.15)
-  expect_gt(abs(reference - 1.3) / 1.3, 1)
+# The gap the documentation claims, held as a test. NHANES describes the
+# general adult population; eligibility criteria cut its tails, so a trial
+# cohort runs lighter and tighter. Medians measured from the studies in the
+# public-data surveys, so neither the reference value nor the claim about it
+# can drift without this failing.
+test_that("the survey reference runs heavier and wider than a trial cohort", {
+  reference <- .covariate_reference$WT
+  cohorts <- c(theo_md = 70.5, mavoglurant = 82.1, mad = 78.9,
+               mixroute_sim = 72.0)
+  expect_true(all(reference$median > cohorts))
+  # Heavier, but a starting point rather than a different population: within a
+  # fifth of every ordinary adult cohort measured.
+  expect_true(all((reference$median - cohorts) / cohorts < 0.20))
+  # Wider too. Those cohorts run at CVs of 14 to 18 per cent.
+  expect_gt(reference$cv, 0.18)
+  # A cohort selected for obesity runs the other way, which is the other
+  # reason `medians` exists.
+  expect_lt(reference$median, 117.0)
 })
 
 test_that("a calibrated release centres the covariate on what it measured", {

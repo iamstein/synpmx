@@ -259,14 +259,28 @@ deviations wide. That is rarely what a covariate looks like, and widening the
 bound for safety then widens the distribution with it.
 
 Where a distribution has to be assumed rather than elicited,
-`pmx_covariates_reference()` supplies one for the usual covariates and
-`pmx_covariate_reference_table()` lists what it holds with its units. Those are
-package reference values for a broad adult population, not a rendering of any
-trial, and the spread is the half worth reusing: body weight holds much the
-same coefficient of variation across adult cohorts while the median moves, so
-`medians` adjusts the one that does not transfer. Age, sex and race are
-protocol facts that no reference population can supply — answer questions 17
-and 18 instead.
+`pmx_covariates_reference()` supplies one for the usual covariates.
+`pmx_covariate_reference_table()` lists what it holds, in which units, and on
+what basis: body size from NHANES adults, the laboratory values from
+conventional reference intervals, and age, sex and race marked as placeholders
+because questions 17 and 18 are what decide those.
+
+A survey is not a trial cohort, so treat those as a starting point rather than
+an answer. NHANES describes the general adult population and eligibility
+criteria cut its tails, so a trial usually runs both lighter and tighter — a
+weight median around a tenth below the survey's, at a coefficient of variation
+nearer 15% than 25%. `medians` and `cvs` move each, and a covariate whose
+median you replace records that in its own `source` rather than going on citing
+the survey:
+
+```r
+covariates <- pmx_covariates_reference(
+  c(WEIGHTB = "WT", AGE = "AGE"),
+  medians = c(WEIGHTB = 75), cvs = c(WEIGHTB = 0.16)
+)
+```
+
+A cohort selected for obesity, or for renal impairment, runs the other way.
 
 ---
 
