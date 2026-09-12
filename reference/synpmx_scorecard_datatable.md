@@ -12,7 +12,7 @@ of it.
 ## Usage
 
 ``` r
-synpmx_scorecard_datatable(x, ...)
+synpmx_scorecard_datatable(x, report = c("all", "minimal"), ...)
 ```
 
 ## Arguments
@@ -21,6 +21,19 @@ synpmx_scorecard_datatable(x, ...)
 
   A
   [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md).
+
+- report:
+
+  `"all"`, the default, shows every row. `"minimal"` shows only the rows
+  that ask to be read – `"review"` and `"FAIL"` – and puts the full
+  tally in the caption, so the count of each verdict is still there
+  while the rows nobody has to act on are not.
+
+  `"pass"` is most of a card and says the check found nothing;
+  `"not applicable"` says the check did not run, which on a generator
+  that writes no run record is the same five rows on every card of every
+  study. Neither is a finding. A reader comparing studies wants them; a
+  reader reading one study's card wants what moved.
 
 - ...:
 
@@ -75,4 +88,10 @@ synthetic <- suppressWarnings(synpmx_avatar(data, roles, seed = 1))
 synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles))
 #> <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
 #> <script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1","E1","E2"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range","Fitted parameters moved off their starting values","Between-subject terms were estimated, not left at their start"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both","fitted model","fitted model"],["TRUE","TRUE","2 of 2","30 -&gt; 30","14 -&gt; 14","2 -&gt; 2","no discrete endpoint","0","0","0 of 30","0.767 above [0.248, 0.692]","0","0","no categorical covariate or stratum","no strata declared","1 of 1","no strata declared","sd x1.4 on pd (furthest of 3)","not applicable: no population model was fitted","not applicable: no population model was fitted"],["pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","pass","review","not applicable","not applicable"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","skeleton_uniqueness(source, roles, coarsen_time = TRUE)","compare_pmx_proximity(source, synthetic, roles)","pmx_roles(strata = , covariates = )","pmx_roles(strata = )","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_roles(strata = )","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")","model_report(attr(synthetic, \"pmx_fitted_model\"))","model_parameters(attr(synthetic, \"pmx_fitted_model\"))$omega"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
+
+# Only the rows that ask to be read
+synpmx_scorecard_datatable(synpmx_scorecard(data, synthetic, roles),
+                           report = "minimal")
+#> <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+#> <script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>17 pass, 1 review, 2 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.4 on pd (furthest of 3)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
 ```
