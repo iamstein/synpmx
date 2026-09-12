@@ -1,0 +1,718 @@
+<title>Prior &amp; Calibrated Buildout</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:       #f4f6f6;
+    --panel:        #ffffff;
+    --panel-sunk:   #eaeeee;
+    --ink:          #16201f;
+    --ink-soft:     #4a5a58;
+    --ink-faint:    #7d8d8b;
+    --rule:         #d2dad9;
+    --rule-strong:  #adbab8;
+    --accent:       #0d6e70;
+    --accent-soft:  #d9eaea;
+    --go:           #2f6b3d;
+    --go-soft:      #dcebdf;
+    --wait:         #8a5a12;
+    --wait-soft:    #f2e6cf;
+    --hold:         #96402f;
+    --hold-soft:    #f3ddd7;
+
+    --step-0:  0.795rem;
+    --step-1:  0.92rem;
+    --step-2:  1.02rem;
+    --step-3:  1.3rem;
+    --step-4:  1.62rem;
+    --step-5:  2.3rem;
+
+    --serif: "Spectral", Georgia, "Times New Roman", serif;
+    --sans:  "Source Sans 3", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:  "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #101716;
+      --panel:       #18211f;
+      --panel-sunk:  #1d2725;
+      --ink:         #e3eae8;
+      --ink-soft:    #a9b8b5;
+      --ink-faint:   #7b8a87;
+      --rule:        #2b3735;
+      --rule-strong: #3d4c49;
+      --accent:      #59b9ba;
+      --accent-soft: #17302f;
+      --go:          #7fc08c;
+      --go-soft:     #172a1c;
+      --wait:        #d8ab63;
+      --wait-soft:   #2c2212;
+      --hold:        #e09280;
+      --hold-soft:   #2e1a15;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #101716;
+    --panel:       #18211f;
+    --panel-sunk:  #1d2725;
+    --ink:         #e3eae8;
+    --ink-soft:    #a9b8b5;
+    --ink-faint:   #7b8a87;
+    --rule:        #2b3735;
+    --rule-strong: #3d4c49;
+    --accent:      #59b9ba;
+    --accent-soft: #17302f;
+    --go:          #7fc08c;
+    --go-soft:     #172a1c;
+    --wait:        #d8ab63;
+    --wait-soft:   #2c2212;
+    --hold:        #e09280;
+    --hold-soft:   #2e1a15;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-2);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 2px solid var(--rule-strong);
+    padding-bottom: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.1rem;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: var(--step-5);
+    line-height: 1.12;
+    letter-spacing: -0.012em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-family: var(--serif);
+    font-size: var(--step-3);
+    line-height: 1.48;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 46ch;
+  }
+
+  /* ---------- shared prose ---------- */
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: var(--step-4);
+    line-height: 1.2;
+    letter-spacing: -0.008em;
+    margin: 0 0 0.2rem;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: var(--step-2);
+    line-height: 1.35;
+    margin: 1.5rem 0 0.35rem;
+  }
+
+  p { margin: 0 0 0.85rem; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--panel-sunk);
+    padding: 0.1em 0.32em;
+    border-radius: 2px;
+  }
+
+  ul, ol { max-width: 68ch; padding-left: 1.3rem; margin: 0 0 0.85rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+
+  /* ---------- the decision block ---------- */
+
+  .decision {
+    margin-top: 2.4rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 1.5rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .decision .eyebrow { color: var(--accent); }
+
+  .decision-quote {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: var(--step-3);
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0;
+    max-width: 54ch;
+  }
+
+  /* ---------- tranche spine ---------- */
+
+  .tranches {
+    margin-top: 2.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tranche {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 0 1.6rem;
+    padding: 1.9rem 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .tranche:first-child { border-top: 2px solid var(--rule-strong); }
+
+  .spine {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .ordinal {
+    font-family: var(--serif);
+    font-size: var(--step-5);
+    font-weight: 600;
+    line-height: 0.9;
+    color: var(--rule-strong);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.45rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .chip.go   { background: var(--go-soft);   color: var(--go); }
+  .chip.wait { background: var(--wait-soft); color: var(--wait); }
+  .chip.hold { background: var(--hold-soft); color: var(--hold); }
+
+  .cost {
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    color: var(--ink-faint);
+    line-height: 1.4;
+  }
+
+  .verdict {
+    font-size: var(--step-3);
+    font-family: var(--serif);
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0.35rem 0 1rem;
+    max-width: 56ch;
+  }
+
+  /* ---------- files touched ---------- */
+
+  .files {
+    list-style: none;
+    padding: 0;
+    margin: 0.9rem 0;
+    border-top: 1px solid var(--rule);
+    max-width: 68ch;
+  }
+
+  .files li {
+    border-bottom: 1px solid var(--rule);
+    padding: 0.5rem 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 17rem) 1fr;
+    gap: 0.15rem 1.2rem;
+    align-items: baseline;
+  }
+
+  .files code {
+    background: none;
+    padding: 0;
+    color: var(--accent);
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+  }
+
+  .files span { font-size: var(--step-1); color: var(--ink-soft); }
+
+  /* ---------- matrix ---------- */
+
+  .table-wrap {
+    overflow-x: auto;
+    margin: 1.1rem 0;
+    border: 1px solid var(--rule);
+    background: var(--panel);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 36rem;
+    font-size: var(--step-1);
+  }
+
+  caption {
+    caption-side: bottom;
+    text-align: left;
+    font-size: var(--step-0);
+    color: var(--ink-faint);
+    padding: 0.6rem 0.8rem;
+    line-height: 1.5;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+    font-weight: 500;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--rule-strong);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 0.52rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  tbody td:first-child {
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  td .mark {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .mark.yes     { color: var(--go); }
+  .mark.partial { color: var(--wait); }
+  .mark.no      { color: var(--hold); }
+
+  /* ---------- obstacle list ---------- */
+
+  .obstacles {
+    list-style: none;
+    padding: 0;
+    margin: 1.1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-width: 68ch;
+    counter-reset: obstacle;
+  }
+
+  .obstacles > li {
+    margin: 0;
+    padding-left: 2.2rem;
+    position: relative;
+    counter-increment: obstacle;
+  }
+
+  .obstacles > li::before {
+    content: "(" counter(obstacle, lower-alpha) ")";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    line-height: 1.9;
+  }
+
+  .obstacles h3 { margin: 0 0 0.25rem; }
+  .obstacles p { margin-bottom: 0.5rem; }
+
+  .resolved {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--go);
+    background: var(--go-soft);
+    padding: 0.18rem 0.42rem;
+    border-radius: 2px;
+    margin-left: 0.4rem;
+    white-space: nowrap;
+  }
+
+  /* ---------- out of scope ---------- */
+
+  .coda {
+    margin-top: 3rem;
+    padding-top: 1.4rem;
+    border-top: 2px solid var(--rule-strong);
+  }
+
+  .coda h2 { font-size: var(--step-3); }
+
+  .footnote {
+    margin-top: 2.4rem;
+    font-size: var(--step-0);
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    line-height: 1.6;
+    max-width: 68ch;
+  }
+
+  @media (max-width: 46rem) {
+    :root { --step-5: 1.85rem; --step-4: 1.4rem; --step-3: 1.15rem; }
+    .sheet { padding: 1.75rem 1rem 4rem; }
+    .tranche { grid-template-columns: 1fr; gap: 0.9rem; }
+    .spine { flex-direction: row; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+    .ordinal { font-size: var(--step-4); }
+    .files li { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>design/ record</span>
+      <span>2026-09-12</span>
+      <span>synpmx</span>
+    </div>
+    <h1>Prior &amp; Calibrated Buildout</h1>
+    <p class="standfirst">Three documents each for <code>synpmx_prior()</code> and
+    <code>synpmx_calibrated()</code>, an extra methods menu, and a renumbering —
+    scoped into four tranches before any of it was written.</p>
+  </header>
+
+  <section class="decision">
+    <div class="eyebrow">Governing decision</div>
+    <p class="decision-quote">“<code>synpmx_prior()</code> and <code>synpmx_calibrated()</code>
+    should take on roles in exactly the way that avatar and pmxmodel do. I expect these to
+    be the workhorses of this package and other functions (even if written first) should
+    follow their conventions.”</p>
+    <p>This settles the one open API question in the scope below and reverses its
+    direction. The five generators agree on one thing — a <code>pmx_roles()</code>
+    declaration governs the column names of the output — and the two public-model modes
+    are the reference implementations of that agreement, not exceptions to it.
+    <code>synpmx_empirical()</code> comes along by construction, because all three share
+    <code>.generate_structural()</code>.</p>
+  </section>
+
+  <div class="tranches">
+
+    <!-- ===================== 1 ===================== -->
+    <article class="tranche">
+      <div class="spine">
+        <div class="ordinal">1</div>
+        <span class="chip go">do now</span>
+        <div class="cost">~1 hour<br>no code</div>
+      </div>
+      <div>
+        <h2>Menus, Numbering, README</h2>
+        <p class="verdict">Mechanical. The navbar numbers live in three
+        <code>text:</code> fields and nothing else in the repository depends on them.</p>
+
+        <p>The new structure adds one menu and demotes PCA into it:</p>
+        <ul>
+          <li><strong>1. PMXmodel</strong> and <strong>2. AVATAR</strong> keep their own
+          top-level callouts.</li>
+          <li>A <strong>Methods</strong> menu holds <strong>3. PCA</strong>,
+          <strong>4. Prior</strong> and <strong>5. Calibrated</strong>, each with Demo,
+          Algorithm and Evaluation on public data.</li>
+        </ul>
+
+        <h3>The numbering groups by what a mode reads</h3>
+        <p>The settled order is 1 PMXmodel, 2 AVATAR, 3 PCA, 4 prior, 5 calibration,
+        6 empirical. An earlier pass put PCA at 5, on prominence, and that broke something
+        the old numbering was carrying: modes 1 to 3 read the study and rest on governance,
+        modes 4 to 6 protect privacy more strictly. Two paragraphs and the distribution
+        plot's linetype scale encode that split as a contiguous range, so PCA sits at 3
+        beside PMXmodel and AVATAR rather than beside the two modes it shares the Methods
+        menu with. AVATAR moving from 3 to 2 is the only change from the numbering the
+        methods article already used. <code>synpmx_empirical()</code> sits at 6 with no
+        menu of its own, which is defensible only as a deliberate choice.</p>
+
+        <h3>The README's three-plus-three split stops being true</h3>
+        <p>The methods section reads “Three synthetic data generators read a dataset” and
+        “three additional generation algorithms … where data crosses a trust boundary”.
+        Once prior and calibrated carry full article sets and take roles like the others,
+        that framing misdescribes the package. <code>AGENTS.md</code> puts README rewrites
+        behind explicit approval, so the wording goes to Andy rather than into a commit.</p>
+
+        <ul class="files">
+          <li><code>_pkgdown.yml</code><span>navbar structure, one new menu, three renamed labels</span></li>
+          <li><code>vignettes/articles/synpmx-methods.Rmd</code><span>AVATAR and PCA swap places; twelve facet labels, the mode table, and the colour and linetype scales follow</span></li>
+          <li><code>README.md</code><span>its own list reordered to match; the three-plus-three framing rewritten with tranche 2</span></li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ===================== 2 ===================== -->
+    <article class="tranche">
+      <div class="spine">
+        <div class="ordinal">2</div>
+        <span class="chip go">next</span>
+        <div class="cost">code + tests<br>+ roxygen</div>
+      </div>
+      <div>
+        <h2>Roles on the Public-Model Modes</h2>
+        <p class="verdict">The governing decision, implemented. It has to land before the
+        four documents in tranche 3, because those documents show the call signature.</p>
+
+        <p>Today <code>synpmx_avatar()</code>, <code>synpmx_pca()</code> and
+        <code>synpmx_model()</code> return the source study's own columns, so a single
+        <code>pmx_roles()</code> serves both sides of
+        <code>compare_pmx_distributions(source, synthetic, roles)</code> and
+        <code>synpmx_scorecard(source, synthetic, roles)</code>.
+        <code>synpmx_prior()</code>, <code>synpmx_calibrated()</code> and
+        <code>synpmx_empirical()</code> return a fixed schema instead —
+        <code>pmx_generated_roles()</code>, which is
+        <code>ID</code>/<code>TIME</code>/<code>NTIME</code>/<code>TAD</code>/<code>OCC</code>/<code>DV</code>/<code>AMT</code>/<code>RATE</code>/<code>EVID</code>/<code>CMT</code>/<code>DVID</code>/<code>MDV</code>/<code>CENS</code>/<code>DOSE</code>.</p>
+
+        <h3>One argument, two directions</h3>
+        <p><code>synpmx_calibrated()</code> already accepts <code>roles</code> and uses it
+        to read <code>data</code>; what changes is that the same declaration also names the
+        output columns. <code>synpmx_prior()</code> reads no data at all, so its
+        <code>roles</code> argument is purely a statement about the output. The object is
+        the same and its direction is inverted, and the documentation has to say so rather
+        than let a reader assume <code>roles</code> always describes an input.
+        <code>pmx_generated_roles()</code> becomes the default rather than the only
+        possibility.</p>
+
+        <h3>What moves with it</h3>
+        <ul class="files">
+          <li><code>R/generate_structural.R</code><span><code>.generate_structural()</code> emits under a supplied roles declaration; <code>pmx_generated_roles()</code> becomes its default</span></li>
+          <li><code>R/synpmx.R</code><span>signatures and roxygen for <code>synpmx_prior()</code>, <code>synpmx_calibrated()</code>, <code>synpmx_empirical()</code>, <code>synpmx_generate()</code></span></li>
+          <li><code>R/covariates.R</code><span>the prior-mode covariate error message at line 241</span></li>
+          <li><code>tests/testthat/</code><span><code>test-synpmx-api.R</code>, <code>test-structural-v3.R</code>, <code>test-model-gates.R</code>, <code>test-roles-validation.R</code></span></li>
+          <li><code>vignettes/articles/synpmx-methods.Rmd</code><span>the mode 4, 5 and 6 chunks</span></li>
+          <li><code>scripts/example_prior_pyrazinamide.qmd</code><span>the worked prior example, which tranche 3 promotes to a vignette</span></li>
+        </ul>
+
+        <p>The payoff is tranche 4: the five-step survey shape transfers without a
+        column-mapping layer in each article and without a second <code>roles</code>
+        argument on the comparison functions.</p>
+      </div>
+    </article>
+
+    <!-- ===================== 3 ===================== -->
+    <article class="tranche">
+      <div class="spine">
+        <div class="ordinal">3</div>
+        <span class="chip wait">after 2</span>
+        <div class="cost">~1–2 days<br>4 documents</div>
+      </div>
+      <div>
+        <h2>Four Demo and Algorithm Pages</h2>
+        <p class="verdict">Mostly consolidation. The prose for all four exists, scattered
+        across the methods article, three privacy articles and roxygen.</p>
+
+        <h3>prior-demo is the cheapest of the six documents</h3>
+        <p><code>scripts/example_prior_pyrazinamide.qmd</code> is already a 267-line worked
+        prior example: a public specification, one unit conversion, generation, and a check
+        back against the specification. Promoting it to a vignette is front matter and
+        availability guards. It compiles nothing and reads no stored fit, so
+        <code>R CMD check</code> can execute it — unlike <code>pmxmodel-demo.Rmd</code>,
+        which knits against a fit built by <code>build-model-fits.R</code>.</p>
+
+        <h3>prior-algorithm will be short, and that is the subject's doing</h3>
+        <p><code>synpmx_prior()</code> is a thin wrapper over
+        <code>.generate_structural()</code>: no inference step, and nothing that reads
+        data. The content is the catalogue — seven linear PK forms
+        (<code>1cmt_iv</code>, <code>1cmt_oral</code>, <code>1cmt_infusion</code>,
+        <code>2cmt_iv</code>, <code>2cmt_oral</code>, <code>1cmt_mixed</code>,
+        <code>2cmt_mixed</code>) and four PD forms (<code>none</code>,
+        <code>constant</code>, <code>linear</code>, <code>exponential</code>) — plus
+        superposition, the design grammar, dropout, the assay limit and <code>CENS</code>,
+        the output schema, and what the catalogue cannot express. Next to a 42 KB
+        <code>pmxmodel-algorithm.Rmd</code> it will look thin.</p>
+
+        <h3>calibrated-algorithm has mechanism, and three articles already carry it</h3>
+        <p>The bounded multiplicative correction, clipping to the public prior, calibrated
+        noise, the two released numbers, and <code>pmx_preflight()</code>'s
+        <code>f = d / (epsilon * N)</code> are real mechanism worth a reference page. But
+        <code>feasibility.Rmd</code>, <code>privacy-background.Rmd</code> and
+        <code>privacy-argument.Rmd</code> cover much of it. The work is deciding what moves
+        and what is cross-linked, not new derivation.</p>
+
+        <h3>calibrated-demo runs on the site, with two caveats in every chunk</h3>
+        <p>Every chunk needs <code>synpmx_enable_dp_engines()</code> and
+        <code>backend = "public", public_source = TRUE</code>, since the demonstration
+        datasets are public and no differential-privacy claim can attach to them. OpenDP
+        0.15.1 resolves locally and is listed in <code>.github/workflows/pkgdown.yaml</code>,
+        so execution is not a risk. The maintenance status — complete and tested, not under
+        active development, carrying open findings, not independently privacy-audited — has
+        to appear on each new page, or promotion into a menu reads as a promotion of
+        trust.</p>
+      </div>
+    </article>
+
+    <!-- ===================== 4 ===================== -->
+    <article class="tranche">
+      <div class="spine">
+        <div class="ordinal">4</div>
+        <span class="chip hold">hold</span>
+        <div class="cost">open-ended<br>2 articles</div>
+      </div>
+      <div>
+        <h2>The Two Public-Data Articles</h2>
+        <p class="verdict">Unblocked on the API by the governing decision. Two obstacles
+        survive, and the second one says the article as specified is the wrong shape.</p>
+
+        <ol class="obstacles">
+          <li>
+            <h3>The output schema <span class="resolved">resolved</span></h3>
+            <p>The five-step contract in <code>AGENTS.md</code> passes one
+            <code>roles</code> to both the generator and the comparison functions. Tranche 2
+            makes prior and calibrated honor that, so the shape transfers unchanged.</p>
+          </li>
+          <li>
+            <h3>Every dataset needs a hand-elicited model and design</h3>
+            <p>These modes infer nothing, so each dataset needs a
+            <code>pmx_structural_model()</code> and a <code>pmx_trial_design()</code> with a
+            citable source that is not the data. Against the ten datasets in the existing
+            surveys, the catalogue expresses five cleanly, two in part, and three not at
+            all.</p>
+
+            <div class="table-wrap">
+              <table>
+                <caption>What the built-in catalogue can say about each dataset in the
+                existing surveys. Design grammar covers parallel dose levels, within-subject
+                escalation, infusion duration and stated dose times; it has no form for a
+                dose reduction triggered by a patient's own response.</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Dataset</th>
+                    <th scope="col">Expressible</th>
+                    <th scope="col">What decides it</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>mixroute_sim</td><td><span class="mark yes">yes</span></td><td><code>1cmt_mixed</code>, and the generating truth is known, so the public model needs no invention</td></tr>
+                  <tr><td>theo_md</td><td><span class="mark yes">yes</span></td><td><code>1cmt_oral</code>, published population PK, PK only</td></tr>
+                  <tr><td>pheno_sd</td><td><span class="mark yes">yes</span></td><td><code>1cmt_iv</code>, published neonatal phenobarbital model</td></tr>
+                  <tr><td>mavoglurant</td><td><span class="mark yes">yes</span></td><td><code>2cmt_iv</code>, published model</td></tr>
+                  <tr><td>nimoData</td><td><span class="mark yes">yes</span></td><td><code>1cmt_infusion</code> covers ten infusions recorded as actuals</td></tr>
+                  <tr><td>case1_pkpd</td><td><span class="mark partial">partial</span></td><td>PK fine; the PD endpoint is signed and runs to −621, which only <code>linear</code> reaches, and crudely</td></tr>
+                  <tr><td>onc_sim</td><td><span class="mark partial">partial</span></td><td>PK fine; the response-driven dose reduction has no design grammar</td></tr>
+                  <tr><td>warfarin</td><td><span class="mark no">PK only</span></td><td>PD is turnover; the catalogue has no indirect-response form</td></tr>
+                  <tr><td>wbcSim</td><td><span class="mark no">no</span></td><td>Friberg myelosuppression is an ODE model</td></tr>
+                  <tr><td>mad</td><td><span class="mark no">no</span></td><td>five endpoints, including ordinal, count and binary</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>No covariate effects, no inter-occasion variability, no additive residual
+            error and no ODEs, which the methods article already states. So the survey is
+            five or six datasets rather than nine or ten, and each one needs a literature
+            source defended in prose.</p>
+          </li>
+          <li>
+            <h3>The article would measure the elicitation, not the algorithm</h3>
+            <p>For AVATAR, PCA and PMXmodel a poor scorecard is the generator's fault. In
+            prior mode every mismatch is the assumed model's fault, which the methods
+            article says plainly about theophylline: an assumed clearance of 6 L/h is about
+            twice the truth, and the concentrations run low. Ten datasets would produce ten
+            variants of “the prior was wrong by this much”.</p>
+            <p>The article that answers a question instead: two datasets where the truth is
+            known — <code>mixroute_sim</code> and <code>onc_sim</code> — plus a sensitivity
+            axis. How wrong can the assumed clearance be before the output stops being
+            usable for code development? For calibrated the axis is epsilon against cohort
+            size, which is largely <code>feasibility.Rmd</code>'s existing ground and would
+            have to be divided with it.</p>
+          </li>
+        </ol>
+      </div>
+    </article>
+
+  </div>
+
+  <section class="coda">
+    <h2>Not in scope</h2>
+    <ul>
+      <li><strong>No fingerprint document.</strong> <code>pca-fingerprint.Rmd</code> and
+      <code>pmxmodel-fingerprint.Rmd</code> read out a fitted object. Prior and calibrated
+      fit nothing worth reading out — calibrated releases two numbers, and they already
+      print with the release attribute.</li>
+      <li><strong>PCA keeps its three documents.</strong> They are the template the new
+      pages copy, so they stay intact through tranche 3 whatever the method's standing.</li>
+      <li><strong>No new menu for <code>synpmx_empirical()</code>.</strong> It becomes mode
+      6 with an article-level treatment only inside <code>synpmx-methods.Rmd</code>.</li>
+    </ul>
+  </section>
+
+  <p class="footnote">Sources read for this scope: <code>_pkgdown.yml</code>,
+  <code>R/synpmx.R</code>, <code>R/calibrate.R</code>, <code>R/structural.R</code>,
+  <code>R/generate_structural.R</code>, <code>R/scorecard.R</code>, <code>R/compare.R</code>,
+  the six PCA/PMXmodel/AVATAR documents, <code>vignettes/articles/synpmx-methods.Rmd</code>
+  modes 4–6, <code>scripts/example_prior_pyrazinamide.qmd</code>, and
+  <code>.github/workflows/pkgdown.yaml</code>.</p>
+
+</div>

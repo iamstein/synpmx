@@ -183,29 +183,10 @@ model, three fixed effects, a covariance matrix, a residual error, and a
 per-arm dosing and visit model. `vignette("pmxmodel-fingerprint")` is the
 itemised list, and the parameters are not estimates to report.
 
-## Mode 2: PCA
+## Mode 2: AVATAR blending
 
-Rather than asserting a curve shape, this generator measures one. Every
-subject's profile becomes a vector on the nominal grid, a principal-component
-basis is fitted to those vectors, and new subjects are drawn as new scores on
-that basis. It reads the study without holding on to any subject's values.
-
-```{r pca, eval=has_nlmixr2data, message=FALSE}
-pca_summary <- synpmx_pca_summarize(theo_md, theo_roles, seed = 22)
-pca_summary
-pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
-```
-
-Twelve subjects buy two components, holding 78% of the variance, as the
-summary above says. That is the visible cost: everything outside those two
-components, measurement noise from visit to visit included, is not reproduced,
-and the generated profiles are smoother than the source ones. `vignette("pca-algorithm")` is the specification and
-`vignette("pca-fingerprint")` itemises what the summary carries.
-
-## Mode 3: AVATAR blending
-
-The least work of the three: `synpmx_avatar()` needs no grid, no model and no
-fit — only the data and a declaration of what the columns mean. For each synthetic subject
+The least work of the three data-reading modes: `synpmx_avatar()` needs no
+grid, no model and no fit — only the data and a declaration of what the columns mean. For each synthetic subject
 it copies a real subject's event skeleton, then fills the covariates and
 concentrations with a distance-weighted blend of that subject's nearest
 compatible neighbors, plus noise.
@@ -333,10 +314,29 @@ an attacker who already holds a suspected participant's record and only wants to
 confirm membership — the mechanisms reduce the ways that attack succeeds without
 limiting how often it does.
 
+## Mode 3: PCA
+
+Rather than asserting a curve shape, this generator measures one. Every
+subject's profile becomes a vector on the nominal grid, a principal-component
+basis is fitted to those vectors, and new subjects are drawn as new scores on
+that basis. It reads the study without holding on to any subject's values.
+
+```{r pca, eval=has_nlmixr2data, message=FALSE}
+pca_summary <- synpmx_pca_summarize(theo_md, theo_roles, seed = 22)
+pca_summary
+pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
+```
+
+Twelve subjects buy two components, holding 78% of the variance, as the
+summary above says. That is the visible cost: everything outside those two
+components, measurement noise from visit to visit included, is not reproduced,
+and the generated profiles are smoother than the source ones. `vignette("pca-algorithm")` is the specification and
+`vignette("pca-fingerprint")` itemises what the summary carries.
+
 ## Mode 4: prior only
 
-The opposite extreme. Declare a public structural model and a public protocol,
-and simulate. No confidential data is read, so there is nothing to protect and
+The opposite extreme from AVATAR. Declare a public structural model and a
+public protocol, and simulate. No confidential data is read, so there is nothing to protect and
 no budget to spend: this is `epsilon = 0`, the strongest possible guarantee.
 
 The typical parameter values must come from somewhere that is not the data —
@@ -502,8 +502,8 @@ generated_roles <- pmx_generated_roles()
 all_observations <- rbind(
   observations(theo_md, theo_roles, "Source"),
   observations(model_data, theo_roles, "1. PMX model"),
-  observations(pca_data, theo_roles, "2. PCA"),
-  observations(avatar, theo_roles, "3. AVATAR"),
+  observations(avatar, theo_roles, "2. AVATAR"),
+  observations(pca_data, theo_roles, "3. PCA"),
   observations(prior_only, generated_roles, "4. Prior only"),
   observations(calibrated_data, generated_roles, "5. Calibration"),
   # The empirical engine restores the source schema, so it uses source roles.
@@ -547,16 +547,17 @@ ggplot2::ggplot(
 ```
 
 The table is the quickest read. The three data-reading modes land on the
-source's concentrations — medians of 6.01, 5.95 and 5.21 against 5.74, and
+source's concentrations — medians of 5.66, 5.21 and 5.95 against 5.74, and
 tenth and ninetieth percentiles within a few tenths — while the three
 public-model modes do not: 3.16, 4.05 and 4.43. That gap is the whole subject
 of this article.
 
-Among the first three, mode 1 draws every profile from one structural model at
-a different parameter draw, so its profiles are the smoothest here and a real
-profile's visit-to-visit wobble is absent. Mode 2 takes its shape from the
-observed profiles instead, and smooths within the two components twelve
-subjects buy. Mode 3 tracks the source most closely, because it is made of it.
+Among modes 1 to 3, which read the data, the PMX model draws every profile from
+one structural model at a different parameter draw, so its profiles are the
+smoothest here and a real profile's visit-to-visit wobble is absent. AVATAR
+tracks the source most closely, because it is made of it. PCA takes its shape
+from the observed profiles instead, and smooths within the two components
+twelve subjects buy.
 
 Modes 4 to 6 are where the level goes. The prior-only data has the right
 structure and a clearance assumed about twice too fast, which is exactly the
@@ -588,8 +589,8 @@ distributions <- rbind(
              stringsAsFactors = FALSE),
   weights(theo_md, theo_roles, "Source"),
   weights(model_data, theo_roles, "1. PMX model"),
-  weights(pca_data, theo_roles, "2. PCA"),
-  weights(avatar, theo_roles, "3. AVATAR"),
+  weights(avatar, theo_roles, "2. AVATAR"),
+  weights(pca_data, theo_roles, "3. PCA"),
   weights(prior_only, generated_roles, "4. Prior only"),
   weights(calibrated_data, generated_roles, "5. Calibration"),
   weights(empirical_data, theo_roles, "6. Empirical")
@@ -603,13 +604,13 @@ ggplot2::ggplot(distributions,
   ggplot2::facet_wrap(~ variable, scales = "free_x") +
   ggplot2::scale_colour_manual(
     values = c("Source" = "#111111", "1. PMX model" = "#1B6CA8",
-               "2. PCA" = "#2E8B57", "3. AVATAR" = "#D95F02",
+               "2. AVATAR" = "#D95F02", "3. PCA" = "#2E8B57",
                "4. Prior only" = "#7570B3", "5. Calibration" = "#A6761D",
                "6. Empirical" = "#B00020")
   ) +
   ggplot2::scale_linetype_manual(
     values = c("Source" = "solid", "1. PMX model" = "dashed",
-               "2. PCA" = "dashed", "3. AVATAR" = "dashed",
+               "2. AVATAR" = "dashed", "3. PCA" = "dashed",
                "4. Prior only" = "dotted", "5. Calibration" = "dotted",
                "6. Empirical" = "dotted")
   ) +
@@ -629,14 +630,14 @@ covariate that is not declared is a column the output does not have.
 
 ```{r modes-table, echo=FALSE}
 modes <- data.frame(
-  Mode = c("1. PMX model", "2. PCA", "3. AVATAR blending", "4. Prior only",
+  Mode = c("1. PMX model", "2. AVATAR blending", "3. PCA", "4. Prior only",
            "5. Calibration", "6. Empirical"),
-  Function = c("synpmx_model()", "synpmx_pca()", "synpmx_avatar()",
+  Function = c("synpmx_model()", "synpmx_avatar()", "synpmx_pca()",
                "synpmx_prior()", "synpmx_calibrated()", "synpmx_empirical()"),
   `Output built from` = c(
     "A population model fitted to the study, simulated forward",
-    "A component basis of the observed profiles, and new scores on it",
     "Real subject templates and blended real trajectories",
+    "A component basis of the observed profiles, and new scores on it",
     "A public model and protocol only",
     "A public model, magnitude corrected by 2 private releases",
     "Dozens of noised population summaries"
@@ -649,12 +650,13 @@ modes <- data.frame(
     "(epsilon, delta) DP",
     "(epsilon, delta) DP"
   ),
-  `Cohort size` = c("~20 and up", "Any, from ~5, per arm", "Any, from ~5",
+  `Cohort size` = c("~20 and up", "Any, from ~5", "Any, from ~5, per arm",
                     "Any (data-independent)", "~20 and up", "~200 and up"),
   `Elicitation needed` = c(
     "None, but a nominal grid is required",
+    "None",
     "None, but a nominal grid is required",
-    "None", "Structural model + protocol",
+    "Structural model + protocol",
     "Model, protocol, prior ranges",
     "Endpoints, bounds, limits, budget split"
   ),

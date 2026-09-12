@@ -29,7 +29,7 @@ redirects:
 
 navbar:
   structure:
-    left: [intro, reference, background, pmxmodel, pca, avatar, scorecard]
+    left: [intro, reference, background, pmxmodel, avatar, methods, scorecard]
     right: [search, github]
   components:
     background:
@@ -67,20 +67,8 @@ navbar:
       - text: -------
       - text: Study fingerprint
         href: articles/pmxmodel-fingerprint.html
-    pca:
-      text: 2. PCA
-      menu:
-      - text: Demo
-        href: articles/pca-demo.html
-      - text: Algorithm
-        href: articles/pca-algorithm.html
-      - text: Evaluation on public data
-        href: articles/pca-public-data-examples.html
-      - text: -------
-      - text: Study fingerprint
-        href: articles/pca-fingerprint.html
     avatar:
-      text: 3. AVATAR
+      text: 2. AVATAR
       menu:
       - text: Demo
         href: articles/avatar-demo.html
@@ -91,6 +79,25 @@ navbar:
       - text: -------
       - text: "Example: are relationships preserved?"
         href: articles/example-avatar-PKPD-covariate-treatment-effect.html
+    # The three modes that are not their own callout. The numbering groups by
+    # what a mode reads: 1 to 3 read the study and rest on governance, 4 to 6
+    # protect privacy more strictly, so PCA sits at 3 beside PMXmodel and
+    # AVATAR rather than beside the two it shares this menu with. The Prior
+    # and Calibrated entries arrive with their own documents; until then the
+    # menu holds PCA alone and the 4 and 5 gap is the pending work.
+    methods:
+      text: Methods
+      menu:
+      - text: "3. PCA"
+      - text: Demo
+        href: articles/pca-demo.html
+      - text: Algorithm
+        href: articles/pca-algorithm.html
+      - text: Evaluation on public data
+        href: articles/pca-public-data-examples.html
+      - text: -------
+      - text: Study fingerprint
+        href: articles/pca-fingerprint.html
     scorecard:
       text: Scorecard
       menu:

@@ -27,18 +27,26 @@ data.
 
 ## Synthetic data generation methods
 
-Three synthetic data generators read a dataset and build a synthetic dataset from it. 
+Six generators build a synthetic dataset.  The first three read a study and build from it:
 
 1. `synpmx_model()` — Fits simple PK and PD models to the observation data, and statistical models to the dosing and missed visit data.  Builds synthetic data by simulating from the models.
-2. `synpmx_pca()` — Principal component analysis from vector of all observations
+2. `synpmx_avatar()` — Blended values from real patients
+3. `synpmx_pca()` — Principal component analysis from vector of all observations
    and covariates.  Uses model to simulate any dose changes and missed visits.
-3. `synpmx_avatar()` — Blended values from real patients
 
-The above algorithms all impute assay LOQ. All three algorithms take a declaration of what the dataset columns mean. 
+These three all impute assay LOQ, and each takes a declaration of what the dataset columns mean. 
 The roles of `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
 
-There are three additional generation algorithms provided that cover the case where data crosses a trust boundary
-and more formal privacy protections are needed.  They are reviewed in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html)
+The other three assert a public structural model instead, and cover the case where data crosses
+a trust boundary and more formal privacy protections are needed:
+
+4. `synpmx_prior()` — Simulates a public model and a public protocol.  Reads no data at all.
+5. `synpmx_calibrated()` — Keeps the public model's shape, and spends a small privacy budget
+   correcting its magnitude.
+6. `synpmx_empirical()` — Rebuilds subjects from dozens of noised population summaries.
+
+All six are reviewed in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html),
+which numbers them the same way the navigation bar does.
 
 ## Example (with AVATAR)
 
