@@ -170,17 +170,25 @@ model_fit
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
 #>   dose changes       none
-#>   visit attendance   25 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      100%, from 33% to 100%
-#>   covariates         WT lognormal, drawn per arm, independently of the
-#>                      profiles
+#>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (33% to 100%)
+#>   covariates         WT lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 0.075
+#>     DV                 0.075, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 2 before
+#>                      declining, and 100% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 11
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -193,15 +201,6 @@ model_fit
 #>   time to fit        7.7 s (8.0 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_oral                  7.7 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; measured where
-#>                      the doses go; rises to one peak and comes back down
-#>   route              oral: the median profile rises to a peak at 2 before
-#>                      declining, and 100% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 11
-#>                      distinct times after a dose, 6 after the peak
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 

@@ -263,11 +263,10 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;                      100 mg / 100 (30)</span></span>
 <span><span class="co">#&gt;                      300 mg / 300 (30)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   33 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 2 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 0% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         WEIGHTB lognormal, drawn per arm, independently of the</span></span>
-<span><span class="co">#&gt;                      profiles</span></span>
+<span><span class="co">#&gt;   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (0% to 100%)</span></span>
+<span><span class="co">#&gt;   covariates         WEIGHTB lognormal, drawn once for the whole study,</span></span>
+<span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,</span></span>
 <span><span class="co">#&gt;                      WEIGHTB, TRTACT, DOSE, STUDY</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -275,7 +274,7 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;   Reported below the assay limit:</span></span>
 <span><span class="co">#&gt;     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   PD - Continuous    exponential</span></span>
 <span><span class="co">#&gt;                        plateau          149</span></span>
 <span><span class="co">#&gt;                        baseline         52.24</span></span>
@@ -283,6 +282,18 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;                        between-subject  0.984 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 225</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   PK Concentration   inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        dose-proportional: the peak scales with the dose</span></span>
+<span><span class="co">#&gt;                        recorded in the compartment the doses go into</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 1 before</span></span>
+<span><span class="co">#&gt;                      declining, and 99% of subjects do too</span></span>
+<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 9</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 6 after the peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -298,19 +309,9 @@ character <code>NAME</code> column, a baseline weight and a
 <span><span class="co">#&gt;                      `start_param`; the rest were read off the cohort's</span></span>
 <span><span class="co">#&gt;                      median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.264 </span></span>
-<span><span class="co">#&gt;   time to fit        2 min 49 s (2 min 51 s for the whole call)</span></span>
+<span><span class="co">#&gt;   time to fit        2 min 46 s (2 min 48 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  2 min 49 s</span></span>
-<span><span class="co">#&gt;                      least squares: PD - Continuous 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   PK Concentration   inferred: absent before the first dose;</span></span>
-<span><span class="co">#&gt;                      dose-proportional; measured where the doses go; rises</span></span>
-<span><span class="co">#&gt;                      to one peak and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 1 before</span></span>
-<span><span class="co">#&gt;                      declining, and 99% of subjects do too</span></span>
-<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 9</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 6 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  2 min 46 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">source</span>, <span class="va">case1</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">case1_roles</span><span class="op">)</span></span></code></pre></div>
@@ -435,23 +436,20 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;                      800 mg / 800 (10)</span></span>
 <span><span class="co">#&gt;                      1600 mg / 1600 (10)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   66 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 5 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 0% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         WEIGHTB lognormal, SEX categorical, drawn per arm,</span></span>
-<span><span class="co">#&gt;                      independently of the profiles</span></span>
+<span><span class="co">#&gt;   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (0% to 100%)</span></span>
+<span><span class="co">#&gt;   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the</span></span>
+<span><span class="co">#&gt;                      whole study, independently of the profiles</span></span>
 <span><span class="co">#&gt;   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's</span></span>
 <span><span class="co">#&gt;                      recorded frequencies at each visit, not simulated</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,</span></span>
 <span><span class="co">#&gt;                      WEIGHTB, SEX, TRTACT, DOSE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     PK Concentration   0.025</span></span>
-<span><span class="co">#&gt;     PD - Continuous    0.0825</span></span>
+<span><span class="co">#&gt;     PK Concentration   0.025, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     PD - Continuous    0.0825, half the smallest value seen, no assay limit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   PD - Continuous    exponential</span></span>
 <span><span class="co">#&gt;                        plateau          31.47</span></span>
 <span><span class="co">#&gt;                        baseline         1.637</span></span>
@@ -467,6 +465,18 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;                        residual         additive 2.78</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   PK Concentration   inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        dose-proportional: the peak scales with the dose</span></span>
+<span><span class="co">#&gt;                        recorded in the compartment the doses go into</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 2 before</span></span>
+<span><span class="co">#&gt;                      declining, and 100% of subjects do too</span></span>
+<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 13</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 9 after the peak</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
@@ -475,19 +485,9 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   fixed effects      cl 5.47, v 152.8, ka 3.964 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.426, v 0.429, ka 0.258 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.722 </span></span>
-<span><span class="co">#&gt;   time to fit        34.3 s (34.5 s for the whole call)</span></span>
+<span><span class="co">#&gt;   time to fit        34.2 s (34.5 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  34.3 s</span></span>
-<span><span class="co">#&gt;                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   PK Concentration   inferred: absent before the first dose;</span></span>
-<span><span class="co">#&gt;                      dose-proportional; measured where the doses go; rises</span></span>
-<span><span class="co">#&gt;                      to one peak and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 2 before</span></span>
-<span><span class="co">#&gt;                      declining, and 100% of subjects do too</span></span>
-<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 13</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 9 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  34.2 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -541,7 +541,7 @@ patient</td>
 <tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
-<td align="left">sd x0.93 on PD - Count (furthest of 6)</td>
+<td align="left">sd x0.85 on WEIGHTB (furthest of 6)</td>
 <td align="left">review</td>
 </tr>
 </tbody>
@@ -581,20 +581,18 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   22 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 2 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      95%, from 9% to 100%</span></span>
+<span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 95% of an arm attends a slot (9% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
-<span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
+<span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     cp                 0.3</span></span>
-<span><span class="co">#&gt;     pca                4.5</span></span>
+<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
 <span><span class="co">#&gt;                        plateau          27.34</span></span>
 <span><span class="co">#&gt;                        baseline         96.3</span></span>
@@ -602,6 +600,14 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 12.4</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   cp                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
+<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -613,15 +619,7 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
 <span><span class="co">#&gt;   time to fit        10.5 s (10.6 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span>
-<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   cp                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; rises to one peak</span></span>
-<span><span class="co">#&gt;                      and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
-<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">source</span>, <span class="va">warfarin_run</span><span class="op">$</span><span class="va">synthetic</span>,</span>
@@ -733,16 +731,19 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;                      all (45)</span></span>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 1 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   11 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      11%, from 7% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         none declared</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 11 nominal time(s), 11 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 11% of an arm attends a slot (7% to 100%)</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     DV                 0.35</span></span>
+<span><span class="co">#&gt;     DV                 0.35, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -752,15 +753,9 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.01245, v 20.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.353, v 0.32 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.347 </span></span>
-<span><span class="co">#&gt;   time to fit        2.3 s (2.3 s for the whole call)</span></span>
+<span><span class="co">#&gt;   time to fit        2.3 s (2.4 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_infusion              2.3 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; rises to one peak</span></span>
-<span><span class="co">#&gt;                      and comes back down</span></span>
-<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_infusion              2.3 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -891,19 +886,27 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;                      all (120)</span></span>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.1667 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   14 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 6% to 100%</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 14 nominal time(s), 14 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (6% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT</span></span>
-<span><span class="co">#&gt;                      lognormal, drawn per arm, independently of the</span></span>
-<span><span class="co">#&gt;                      profiles</span></span>
+<span><span class="co">#&gt;                      lognormal, drawn once for the whole study,</span></span>
+<span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, OCC, DV, AMT, EVID, CMT, MDV, RATE,</span></span>
 <span><span class="co">#&gt;                      AGE, SEX, WT, HT, DOSE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     DV                 1.005</span></span>
+<span><span class="co">#&gt;     DV                 1.005, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        dose-proportional: the peak scales with the dose</span></span>
+<span><span class="co">#&gt;                        recorded in the compartment the doses go into</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span>
+<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 11</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 10 after the peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -918,15 +921,7 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.717 </span></span>
 <span><span class="co">#&gt;   time to fit        8.3 s (8.5 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_infusion              8.3 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 inferred: absent before the first dose;</span></span>
-<span><span class="co">#&gt;                      dose-proportional; measured where the doses go; rises</span></span>
-<span><span class="co">#&gt;                      to one peak and comes back down</span></span>
-<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span>
-<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 11</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 10 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_infusion              8.3 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -1079,17 +1074,25 @@ twelve.</p>
 <span><span class="co">#&gt;   cohort             12 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   25 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 33% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         WT lognormal, drawn per arm, independently of the</span></span>
-<span><span class="co">#&gt;                      profiles</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (33% to 100%)</span></span>
+<span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
+<span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     DV                 0.075</span></span>
+<span><span class="co">#&gt;     DV                 0.075, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        recorded in the compartment the doses go into</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 2 before</span></span>
+<span><span class="co">#&gt;                      declining, and 100% of subjects do too</span></span>
+<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 11</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 6 after the peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1101,16 +1104,7 @@ twelve.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.217 </span></span>
 <span><span class="co">#&gt;   time to fit        7.7 s (8.0 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  7.7 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; measured where</span></span>
-<span><span class="co">#&gt;                      the doses go; rises to one peak and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 2 before</span></span>
-<span><span class="co">#&gt;                      declining, and 100% of subjects do too</span></span>
-<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 11</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 6 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  7.7 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -1232,18 +1226,22 @@ seconds.</p>
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.1 to 1 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   31 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 25% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn per</span></span>
-<span><span class="co">#&gt;                      arm, independently of the profiles</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (25% to 100%)</span></span>
+<span><span class="co">#&gt;   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn</span></span>
+<span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, TAD, OCC, DV, AMT, EVID, MDV, RATE,</span></span>
 <span><span class="co">#&gt;                      BSA, AGE, HGT, DOS</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     DV                 0.1323</span></span>
+<span><span class="co">#&gt;     DV                 0.1323, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
+<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span>
+<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 6</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 5 after the peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1255,13 +1253,7 @@ seconds.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.468 </span></span>
 <span><span class="co">#&gt;   time to fit        2.2 s (2.2 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_infusion              2.2 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
-<span><span class="co">#&gt;   route              infusion: a nonzero `rate` on the dose records</span></span>
-<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 6</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 5 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_infusion              2.2 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -1422,17 +1414,18 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;                      all (59)</span></span>
 <span><span class="co">#&gt;   dose changes       per planned cycle:</span></span>
 <span><span class="co">#&gt;       all                reduce 14%, skip 1%, stop early 10% (6 dose level(s))</span></span>
-<span><span class="co">#&gt;   visit attendance   9 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      25%, from 8% to 81%</span></span>
-<span><span class="co">#&gt;   covariates         WT lognormal, APGR lognormal, drawn per arm,</span></span>
-<span><span class="co">#&gt;                      independently of the profiles</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 25% of an arm attends a slot (8% to 81%)</span></span>
+<span><span class="co">#&gt;   covariates         WT lognormal, APGR lognormal, drawn once for the whole</span></span>
+<span><span class="co">#&gt;                      study, independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     DV                 3.35</span></span>
+<span><span class="co">#&gt;     DV                 3.35, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
+<span><span class="co">#&gt;   route              both: too few distinct sampling times to place a peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1445,11 +1438,7 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   time to fit        19.4 s (19.5 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
 <span><span class="co">#&gt;                        1cmt_iv                    4.3 s</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  15.1 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
-<span><span class="co">#&gt;   route              both: too few distinct sampling times to place a peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  15.1 s</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">card_verdicts</span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
@@ -1571,17 +1560,27 @@ and a bioavailability of 0.7.</p>
 <span><span class="co">#&gt;                      IV then SC (30)</span></span>
 <span><span class="co">#&gt;   dose routes        iv and extravascular; given as a bolus</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   17 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 1 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      100%, from 100% to 100%</span></span>
-<span><span class="co">#&gt;   covariates         WT lognormal, drawn per arm, independently of the</span></span>
-<span><span class="co">#&gt;                      profiles</span></span>
+<span><span class="co">#&gt;   visit grid         1 endpoint(s) at 17 nominal time(s), 17 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (100% to 100%)</span></span>
+<span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
+<span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,</span></span>
 <span><span class="co">#&gt;                      ARM</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
 <span><span class="co">#&gt;   Reported below the assay limit:</span></span>
 <span><span class="co">#&gt;     DV                 3 of 1530 (0%) below 0.05 (the limit)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        recorded in the compartment the doses go into</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              mixed: declared through `adm` and `routes`: iv and</span></span>
+<span><span class="co">#&gt;                      extravascular doses in one study</span></span>
+<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 9</span></span>
+<span><span class="co">#&gt;                      distinct times after a dose, 3 after the peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1596,16 +1595,7 @@ and a bioavailability of 0.7.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.292 </span></span>
 <span><span class="co">#&gt;   time to fit        4.4 s (4.5 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_mixed                 4.4 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   DV                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; measured where</span></span>
-<span><span class="co">#&gt;                      the doses go; rises to one peak and comes back down</span></span>
-<span><span class="co">#&gt;   route              mixed: declared through `adm` and `routes`: iv and</span></span>
-<span><span class="co">#&gt;                      extravascular doses in one study</span></span>
-<span><span class="co">#&gt;   also available     2cmt_iv, which the sampling would support: median 9</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 3 after the peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_mixed                 4.4 s</span></span></code></pre></div>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">2</span>, v <span class="op">=</span> <span class="fl">10</span>, ka <span class="op">=</span> <span class="fl">0.5</span>, f <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span></span>
 <span><span class="va">fitted</span> <span class="op">&lt;-</span> <span class="va">mixroute_run</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">fixed</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">truth</span><span class="op">)</span><span class="op">]</span></span>
@@ -1669,7 +1659,7 @@ patient</td>
 <tr class="even">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
-<td align="left">sd x0.82 on WT (furthest of 2)</td>
+<td align="left">sd x0.81 on WT (furthest of 2)</td>
 <td align="left">review</td>
 </tr>
 </tbody>
@@ -1726,28 +1716,30 @@ the curve.</p>
 <span><span class="co">#&gt;   dose changes       per planned cycle:</span></span>
 <span><span class="co">#&gt;       Everolimus 10 mg   reduce 0%, skip 0%, stop early 0% (2 dose level(s))</span></span>
 <span><span class="co">#&gt;       Placebo            reduce 0%, skip 15%, stop early 0% (1 dose level(s))</span></span>
-<span><span class="co">#&gt;   visit attendance   30 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 2 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      71%, from 0% to 100%</span></span>
+<span><span class="co">#&gt;   visit grid         2 endpoint(s) at 24 nominal time(s), 30 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 71% of an arm attends a slot (0% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn</span></span>
-<span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
+<span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, NAME, CENS, ADDL,</span></span>
 <span><span class="co">#&gt;                      II, BSLD, AGE, SEX, ARM, CROSSOVER</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
 <span><span class="co">#&gt;   Reported below the assay limit:</span></span>
 <span><span class="co">#&gt;     Everolimus trough  203 of 1167 (17%) below 1 (the limit)</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     SLD                1.315</span></span>
+<span><span class="co">#&gt;     SLD                1.315, half the smallest value seen, no assay limit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   SLD                linear</span></span>
 <span><span class="co">#&gt;                        baseline         15.9</span></span>
 <span><span class="co">#&gt;                        slope            -0.005006</span></span>
 <span><span class="co">#&gt;                        between-subject  0.328 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 1.46</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   Everolimus trough  declared through `endpoint_roles`</span></span>
+<span><span class="co">#&gt;   route              both: too few distinct sampling times to place a peak</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1762,15 +1754,10 @@ the curve.</p>
 <span><span class="co">#&gt;   starting values    ka 5 declared through `start_param`; the rest were</span></span>
 <span><span class="co">#&gt;                      read off the cohort's median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.204 </span></span>
-<span><span class="co">#&gt;   time to fit        5 min 4 s (5 min 10 s for the whole call)</span></span>
+<span><span class="co">#&gt;   time to fit        5 min 5 s (5 min 11 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  3 min 28 s</span></span>
-<span><span class="co">#&gt;                        1cmt_iv                    1 min 36 s</span></span>
-<span><span class="co">#&gt;                      least squares: SLD 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   Everolimus trough  declared through `endpoint_roles`</span></span>
-<span><span class="co">#&gt;   route              both: too few distinct sampling times to place a peak</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  3 min 29 s</span></span>
+<span><span class="co">#&gt;                        1cmt_iv                    1 min 37 s</span></span></code></pre></div>
 <p>The stored fit above was built with
 <code>endpoint_roles = c(pk = "Everolimus trough")</code> and
 <code>start_param = c(ka = 5)</code>;
@@ -1844,7 +1831,7 @@ patient</td>
 <tr class="odd">
 <td align="left">D1</td>
 <td align="left">Values landing in the same range</td>
-<td align="left">sd x1.1 on AGE (furthest of 4)</td>
+<td align="left">sd x1.1 on BSLD (furthest of 4)</td>
 <td align="left">review</td>
 </tr>
 </tbody>

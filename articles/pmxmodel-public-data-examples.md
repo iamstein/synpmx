@@ -156,11 +156,10 @@ case1$fit
 #>                      100 mg / 100 (30)
 #>                      300 mg / 300 (30)
 #>   dose changes       none
-#>   visit attendance   33 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      100%, from 0% to 100%
-#>   covariates         WEIGHTB lognormal, drawn per arm, independently of the
-#>                      profiles
+#>   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   covariates         WEIGHTB lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
@@ -168,7 +167,7 @@ case1$fit
 #>   Reported below the assay limit:
 #>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
 #>                        plateau          149
 #>                        baseline         52.24
@@ -176,6 +175,18 @@ case1$fit
 #>                        between-subject  0.984 (SD on the log baseline)
 #>                        residual         additive 225
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   PK Concentration   inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        dose-proportional: the peak scales with the dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 1 before
+#>                      declining, and 99% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 9
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -191,19 +202,9 @@ case1$fit
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.264 
-#>   time to fit        2 min 49 s (2 min 51 s for the whole call)
+#>   time to fit        2 min 46 s (2 min 48 s for the whole call)
 #>                      nlmixr2
-#>                        1cmt_oral                  2 min 49 s
-#>                      least squares: PD - Continuous 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   PK Concentration   inferred: absent before the first dose;
-#>                      dose-proportional; measured where the doses go; rises
-#>                      to one peak and comes back down
-#>   route              oral: the median profile rises to a peak at 1 before
-#>                      declining, and 99% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 9
-#>                      distinct times after a dose, 6 after the peak
+#>                        1cmt_oral                  2 min 46 s
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/case1-plot-1.png)
@@ -293,23 +294,20 @@ mad_run$fit
 #>                      800 mg / 800 (10)
 #>                      1600 mg / 1600 (10)
 #>   dose changes       none
-#>   visit attendance   66 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 5 endpoint(s), attended at median
-#>                      100%, from 0% to 100%
-#>   covariates         WEIGHTB lognormal, SEX categorical, drawn per arm,
-#>                      independently of the profiles
+#>   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the
+#>                      whole study, independently of the profiles
 #>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
 #>                      recorded frequencies at each visit, not simulated
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,
 #>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     PK Concentration   0.025
-#>     PD - Continuous    0.0825
+#>     PK Concentration   0.025, half the smallest value seen, no assay limit
+#>     PD - Continuous    0.0825, half the smallest value seen, no assay limit
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
 #>                        plateau          31.47
 #>                        baseline         1.637
@@ -325,6 +323,18 @@ mad_run$fit
 #>                        residual         additive 2.78
 #>                        chosen on AIC from constant, linear, exponential
 #> 
+#> PK endpoint for the PopPK model
+#>   PK Concentration   inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        dose-proportional: the peak scales with the dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 2 before
+#>                      declining, and 100% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 13
+#>                      distinct times after a dose, 9 after the peak
+#> 
 #> The PopPK model
 #> 
 #> Estimated by nlmixr2
@@ -333,19 +343,9 @@ mad_run$fit
 #>   fixed effects      cl 5.47, v 152.8, ka 3.964 
 #>   between-subject    cl 0.426, v 0.429, ka 0.258 (as SD on the log scale)
 #>   residual error     proportional 0.722 
-#>   time to fit        34.3 s (34.5 s for the whole call)
+#>   time to fit        34.2 s (34.5 s for the whole call)
 #>                      nlmixr2
-#>                        1cmt_oral                  34.3 s
-#>                      least squares: PD - Continuous 0.0 s, PD - Count 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   PK Concentration   inferred: absent before the first dose;
-#>                      dose-proportional; measured where the doses go; rises
-#>                      to one peak and comes back down
-#>   route              oral: the median profile rises to a peak at 2 before
-#>                      declining, and 100% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 13
-#>                      distinct times after a dose, 9 after the peak
+#>                        1cmt_oral                  34.2 s
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png)
@@ -362,7 +362,7 @@ card_verdicts(mad_run$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x0.93 on PD - Count (furthest of 6) | review |
+| D1 | Values landing in the same range | sd x0.85 on WEIGHTB (furthest of 6) | review |
 
 14 pass, 1 review, 5 not applicable. The rows that are not a pass:
 {.table}
@@ -401,20 +401,18 @@ model_report(warfarin_run$fit)
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
 #>   dose changes       none
-#>   visit attendance   22 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      95%, from 9% to 100%
+#>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
+#>   visit attendance   median 95% of an arm attends a slot (9% to 100%)
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
-#>                      per arm, independently of the profiles
+#>                      once for the whole study, independently of the
+#>                      profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     cp                 0.3
-#>     pca                4.5
+#>     cp                 0.3, half the smallest value seen, no assay limit
+#>     pca                4.5, half the smallest value seen, no assay limit
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
 #>                        plateau          27.34
 #>                        baseline         96.3
@@ -422,6 +420,14 @@ model_report(warfarin_run$fit)
 #>                        between-subject  0.146 (SD on the log baseline)
 #>                        residual         additive 12.4
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   cp                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 9 before
+#>                      declining, and 31% of subjects do too
 #> 
 #> The PopPK model
 #> 
@@ -434,14 +440,6 @@ model_report(warfarin_run$fit)
 #>   time to fit        10.5 s (10.6 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_oral                  10.5 s
-#>                      least squares: pca 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   cp                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; rises to one peak
-#>                      and comes back down
-#>   route              oral: the median profile rises to a peak at 9 before
-#>                      declining, and 31% of subjects do too
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png)
@@ -521,16 +519,19 @@ model_report(wbc_run$fit)
 #>                      all (45)
 #>   dose routes        one route, undeclared; infused over 1 h
 #>   dose changes       none
-#>   visit attendance   11 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      11%, from 7% to 100%
-#>   covariates         none declared
+#>   visit grid         1 endpoint(s) at 11 nominal time(s), 11 slot(s) in all
+#>   visit attendance   median 11% of an arm attends a slot (7% to 100%)
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 0.35
+#>     DV                 0.35, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              infusion: a nonzero `rate` on the dose records
 #> 
 #> The PopPK model
 #> 
@@ -540,15 +541,9 @@ model_report(wbc_run$fit)
 #>   fixed effects      cl 0.01245, v 20.4 
 #>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
 #>   residual error     proportional 0.347 
-#>   time to fit        2.3 s (2.3 s for the whole call)
+#>   time to fit        2.3 s (2.4 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_infusion              2.3 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; rises to one peak
-#>                      and comes back down
-#>   route              infusion: a nonzero `rate` on the dose records
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png)
@@ -636,19 +631,27 @@ mavo_run$fit
 #>                      all (120)
 #>   dose routes        one route, undeclared; infused over 0.1667 h
 #>   dose changes       none
-#>   visit attendance   14 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      100%, from 6% to 100%
+#>   visit grid         1 endpoint(s) at 14 nominal time(s), 14 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (6% to 100%)
 #>   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT
-#>                      lognormal, drawn per arm, independently of the
-#>                      profiles
+#>                      lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, OCC, DV, AMT, EVID, CMT, MDV, RATE,
 #>                      AGE, SEX, WT, HT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 1.005
+#>     DV                 1.005, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        dose-proportional: the peak scales with the dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              infusion: a nonzero `rate` on the dose records
+#>   also available     2cmt_iv, which the sampling would support: median 11
+#>                      distinct times after a dose, 10 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -664,14 +667,6 @@ mavo_run$fit
 #>   time to fit        8.3 s (8.5 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_infusion              8.3 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 inferred: absent before the first dose;
-#>                      dose-proportional; measured where the doses go; rises
-#>                      to one peak and comes back down
-#>   route              infusion: a nonzero `rate` on the dose records
-#>   also available     2cmt_iv, which the sampling would support: median 11
-#>                      distinct times after a dose, 10 after the peak
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png)
@@ -784,17 +779,25 @@ theo_run$fit
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
 #>   dose changes       none
-#>   visit attendance   25 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      100%, from 33% to 100%
-#>   covariates         WT lognormal, drawn per arm, independently of the
-#>                      profiles
+#>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (33% to 100%)
+#>   covariates         WT lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 0.075
+#>     DV                 0.075, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 2 before
+#>                      declining, and 100% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 11
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -807,15 +810,6 @@ theo_run$fit
 #>   time to fit        7.7 s (8.0 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_oral                  7.7 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; measured where
-#>                      the doses go; rises to one peak and comes back down
-#>   route              oral: the median profile rises to a peak at 2 before
-#>                      declining, and 100% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 11
-#>                      distinct times after a dose, 6 after the peak
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png)
@@ -907,18 +901,22 @@ nimo_run$fit
 #>                      all (12)
 #>   dose routes        one route, undeclared; infused over 0.1 to 1 h
 #>   dose changes       none
-#>   visit attendance   31 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      100%, from 25% to 100%
-#>   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn per
-#>                      arm, independently of the profiles
+#>   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (25% to 100%)
+#>   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn
+#>                      once for the whole study, independently of the
+#>                      profiles
 #>   columns emitted    ID, TIME, NTIME, TAD, OCC, DV, AMT, EVID, MDV, RATE,
 #>                      BSA, AGE, HGT, DOS
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 0.1323
+#>     DV                 0.1323, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 declared through `endpoint_roles`
+#>   route              infusion: a nonzero `rate` on the dose records
+#>   also available     2cmt_iv, which the sampling would support: median 6
+#>                      distinct times after a dose, 5 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -931,12 +929,6 @@ nimo_run$fit
 #>   time to fit        2.2 s (2.2 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_infusion              2.2 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 declared through `endpoint_roles`
-#>   route              infusion: a nonzero `rate` on the dose records
-#>   also available     2cmt_iv, which the sampling would support: median 6
-#>                      distinct times after a dose, 5 after the peak
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png)
@@ -1072,17 +1064,18 @@ pheno_run$fit
 #>                      all (59)
 #>   dose changes       per planned cycle:
 #>       all                reduce 14%, skip 1%, stop early 10% (6 dose level(s))
-#>   visit attendance   9 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      25%, from 8% to 81%
-#>   covariates         WT lognormal, APGR lognormal, drawn per arm,
-#>                      independently of the profiles
+#>   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all
+#>   visit attendance   median 25% of an arm attends a slot (8% to 81%)
+#>   covariates         WT lognormal, APGR lognormal, drawn once for the whole
+#>                      study, independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     DV                 3.35
+#>     DV                 3.35, half the smallest value seen, no assay limit
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 declared through `endpoint_roles`
+#>   route              both: too few distinct sampling times to place a peak
 #> 
 #> The PopPK model
 #> 
@@ -1096,10 +1089,6 @@ pheno_run$fit
 #>                      nlmixr2
 #>                        1cmt_iv                    4.3 s
 #>                        1cmt_oral                  15.1 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 declared through `endpoint_roles`
-#>   route              both: too few distinct sampling times to place a peak
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png)
@@ -1184,17 +1173,27 @@ mixroute_run$fit
 #>                      IV then SC (30)
 #>   dose routes        iv and extravascular; given as a bolus
 #>   dose changes       none
-#>   visit attendance   17 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 1 endpoint(s), attended at median
-#>                      100%, from 100% to 100%
-#>   covariates         WT lognormal, drawn per arm, independently of the
-#>                      profiles
+#>   visit grid         1 endpoint(s) at 17 nominal time(s), 17 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (100% to 100%)
+#>   covariates         WT lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,
 #>                      ARM
 #> 
 #> Values at the lower limit of what was observed
 #>   Reported below the assay limit:
 #>     DV                 3 of 1530 (0%) below 0.05 (the limit)
+#> 
+#> PK endpoint for the PopPK model
+#>   DV                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              mixed: declared through `adm` and `routes`: iv and
+#>                      extravascular doses in one study
+#>   also available     2cmt_iv, which the sampling would support: median 9
+#>                      distinct times after a dose, 3 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -1210,15 +1209,6 @@ mixroute_run$fit
 #>   time to fit        4.4 s (4.5 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_mixed                 4.4 s
-#> 
-#> PK endpoint for the PopPK model
-#>   DV                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; measured where
-#>                      the doses go; rises to one peak and comes back down
-#>   route              mixed: declared through `adm` and `routes`: iv and
-#>                      extravascular doses in one study
-#>   also available     2cmt_iv, which the sampling would support: median 9
-#>                      distinct times after a dose, 3 after the peak
 ```
 
 ``` r
@@ -1248,7 +1238,7 @@ card_verdicts(mixroute_run$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x0.82 on WT (furthest of 2) | review |
+| D1 | Values landing in the same range | sd x0.81 on WT (furthest of 2) | review |
 
 14 pass, 1 review, 5 not applicable. The rows that are not a pass:
 {.table}
@@ -1305,28 +1295,30 @@ onc_run$fit
 #>   dose changes       per planned cycle:
 #>       Everolimus 10 mg   reduce 0%, skip 0%, stop early 0% (2 dose level(s))
 #>       Placebo            reduce 0%, skip 15%, stop early 0% (1 dose level(s))
-#>   visit attendance   30 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      71%, from 0% to 100%
+#>   visit grid         2 endpoint(s) at 24 nominal time(s), 30 slot(s) in all
+#>   visit attendance   median 71% of an arm attends a slot (0% to 100%)
 #>   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn
-#>                      per arm, independently of the profiles
+#>                      once for the whole study, independently of the
+#>                      profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, NAME, CENS, ADDL,
 #>                      II, BSLD, AGE, SEX, ARM, CROSSOVER
 #> 
 #> Values at the lower limit of what was observed
 #>   Reported below the assay limit:
 #>     Everolimus trough  203 of 1167 (17%) below 1 (the limit)
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     SLD                1.315
+#>     SLD                1.315, half the smallest value seen, no assay limit
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   SLD                linear
 #>                        baseline         15.9
 #>                        slope            -0.005006
 #>                        between-subject  0.328 (SD on the log baseline)
 #>                        residual         additive 1.46
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   Everolimus trough  declared through `endpoint_roles`
+#>   route              both: too few distinct sampling times to place a peak
 #> 
 #> The PopPK model
 #> 
@@ -1341,15 +1333,10 @@ onc_run$fit
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.204 
-#>   time to fit        5 min 4 s (5 min 10 s for the whole call)
+#>   time to fit        5 min 5 s (5 min 11 s for the whole call)
 #>                      nlmixr2
-#>                        1cmt_oral                  3 min 28 s
-#>                        1cmt_iv                    1 min 36 s
-#>                      least squares: SLD 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   Everolimus trough  declared through `endpoint_roles`
-#>   route              both: too few distinct sampling times to place a peak
+#>                        1cmt_oral                  3 min 29 s
+#>                        1cmt_iv                    1 min 37 s
 ```
 
 The stored fit above was built with
@@ -1384,7 +1371,7 @@ card_verdicts(onc_run$card)
 | B2 | Synthetic patients unusual within their stratum | not applicable: profiles simulated, not built from a patient | not applicable |
 | B4a | Generated time vectors copying an exposed real one | not applicable: attendance drawn per visit | not applicable |
 | C2 | Distinct dose-time schedules represented | no run record | not applicable |
-| D1 | Values landing in the same range | sd x1.1 on AGE (furthest of 4) | review |
+| D1 | Values landing in the same range | sd x1.1 on BSLD (furthest of 4) | review |
 
 13 pass, 2 review, 5 not applicable. The rows that are not a pass:
 {.table}

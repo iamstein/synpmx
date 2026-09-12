@@ -117,11 +117,11 @@ synpmx_model_estimate(
   weight-like covariate is declared and keeps it where it improves AIC.
 
   The default is `"none"` because a synthetic study does not need the
-  relationship: covariates are generated per arm from the source's own
-  distributions either way, and a clearance that moves with weight buys
-  nothing the generator spends. `fit$correlations` still reports where a
-  covariate moves with a random effect, so the relationship the model is
-  not carrying is still visible.
+  relationship: covariates are generated from the source's own
+  study-wide distributions either way, and a clearance that moves with
+  weight buys nothing the generator spends. `fit$correlations` still
+  reports where a covariate moves with a random effect, so the
+  relationship the model is not carrying is still visible.
 
 - min_subjects:
 

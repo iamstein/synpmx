@@ -86,20 +86,18 @@ model_report(fit)
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
 #>   dose changes       none
-#>   visit attendance   22 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      95%, from 9% to 100%
+#>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
+#>   visit attendance   median 95% of an arm attends a slot (9% to 100%)
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
-#>                      per arm, independently of the profiles
+#>                      once for the whole study, independently of the
+#>                      profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     cp                 0.3
-#>     pca                4.5
+#>     cp                 0.3, half the smallest value seen, no assay limit
+#>     pca                4.5, half the smallest value seen, no assay limit
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
 #>                        plateau          27.34
 #>                        baseline         96.3
@@ -107,6 +105,14 @@ model_report(fit)
 #>                        between-subject  0.146 (SD on the log baseline)
 #>                        residual         additive 12.4
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   cp                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 9 before
+#>                      declining, and 31% of subjects do too
 #> 
 #> The PopPK model
 #> 
@@ -119,14 +125,6 @@ model_report(fit)
 #>   time to fit        10.5 s (10.6 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_oral                  10.5 s
-#>                      least squares: pca 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   cp                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; rises to one peak
-#>                      and comes back down
-#>   route              oral: the median profile rises to a peak at 9 before
-#>                      declining, and 31% of subjects do too
 ```
 
 Every section below expands one part of it. The object is a plain list
@@ -194,7 +192,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.473
+#> 1 1cmt_oral      TRUE 926.9152  10.507
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.
@@ -332,28 +330,31 @@ and is not an exposure-response model.
 
 ## The covariate distributions
 
-One distribution per covariate per arm, drawn from independently at
-generation.
+One distribution per covariate, fitted over the whole study and drawn
+from independently at generation. Pooled rather than per arm because a
+baseline covariate is recorded before the first dose: in a randomized
+study what separates two arms’ weights is the sampling noise of however
+many patients the arm has, and modelling it per arm reproduces that
+noise as if it were structure.
 
 ``` r
 
-str(fit$covariates, max.level = 3)
-#> List of 1
-#>  $ all:List of 3
-#>   ..$ wt :List of 4
-#>   .. ..$ kind   : chr "lognormal"
-#>   .. ..$ meanlog: num 4.23
-#>   .. ..$ sdlog  : num 0.19
-#>   .. ..$ median : num 71.7
-#>   ..$ age:List of 4
-#>   .. ..$ kind   : chr "lognormal"
-#>   .. ..$ meanlog: num 3.39
-#>   .. ..$ sdlog  : num 0.304
-#>   .. ..$ median : num 27.5
-#>   ..$ sex:List of 3
-#>   .. ..$ kind       : chr "categorical"
-#>   .. ..$ levels     : chr [1:2] "female" "male"
-#>   .. ..$ probability: num [1:2] 0.156 0.844
+str(fit$covariates, max.level = 2)
+#> List of 3
+#>  $ wt :List of 4
+#>   ..$ kind   : chr "lognormal"
+#>   ..$ meanlog: num 4.23
+#>   ..$ sdlog  : num 0.19
+#>   ..$ median : num 71.7
+#>  $ age:List of 4
+#>   ..$ kind   : chr "lognormal"
+#>   ..$ meanlog: num 3.39
+#>   ..$ sdlog  : num 0.304
+#>   ..$ median : num 27.5
+#>  $ sex:List of 3
+#>   ..$ kind       : chr "categorical"
+#>   ..$ levels     : chr [1:2] "female" "male"
+#>   ..$ probability: num [1:2] 0.156 0.844
 ```
 
 ## The arms

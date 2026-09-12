@@ -465,15 +465,15 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.473
+#> 1 1cmt_oral      TRUE 926.9152  10.507
 ```
 
 ### Covariates
 
 The default `"none"` puts no covariate in the structural model. A
 synthetic study does not need the relationship: covariates are generated
-per arm from the source’s own distributions either way, so a clearance
-that moves with weight buys the generator nothing.
+from the source’s own study-wide distributions either way, so a
+clearance that moves with weight buys the generator nothing.
 
 `covariate_effects = "auto"` applies allometric scaling on clearance and
 volume where a weight-like covariate is declared, and fits nothing else.
@@ -630,20 +630,18 @@ model_report(fit)
 #>   cohort             32 patients in 1 arm(s)
 #>                      all (32)
 #>   dose changes       none
-#>   visit attendance   22 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      95%, from 9% to 100%
+#>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
+#>   visit attendance   median 95% of an arm attends a slot (9% to 100%)
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
-#>                      per arm, independently of the profiles
+#>                      once for the whole study, independently of the
+#>                      profiles
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>   No assay limit declared. Each floor below is half the smallest value the
-#>   endpoint was observed at, and a simulated value under it is raised to it:
-#>     cp                 0.3
-#>     pca                4.5
+#>     cp                 0.3, half the smallest value seen, no assay limit
+#>     pca                4.5, half the smallest value seen, no assay limit
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
 #>                        plateau          27.34
 #>                        baseline         96.3
@@ -651,6 +649,14 @@ model_report(fit)
 #>                        between-subject  0.146 (SD on the log baseline)
 #>                        residual         additive 12.4
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   cp                 inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 9 before
+#>                      declining, and 31% of subjects do too
 #> 
 #> The PopPK model
 #> 
@@ -663,14 +669,6 @@ model_report(fit)
 #>   time to fit        10.5 s (10.6 s for the whole call)
 #>                      nlmixr2
 #>                        1cmt_oral                  10.5 s
-#>                      least squares: pca 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   cp                 inferred: absent before the first dose; dose
-#>                      proportionality not computable here; rises to one peak
-#>                      and comes back down
-#>   route              oral: the median profile rises to a peak at 9 before
-#>                      declining, and 31% of subjects do too
 ```
 
 ## Step 6: Generate New Subjects

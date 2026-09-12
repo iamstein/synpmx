@@ -669,14 +669,14 @@ function errors rather than returning the least bad fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.473</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.507</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h3>
 <p>The default <code>"none"</code> puts no covariate in the structural
 model. A synthetic study does not need the relationship: covariates are
-generated per arm from the source’s own distributions either way, so a
-clearance that moves with weight buys the generator nothing.</p>
+generated from the source’s own study-wide distributions either way, so
+a clearance that moves with weight buys the generator nothing.</p>
 <p><code>covariate_effects = "auto"</code> applies allometric scaling on
 clearance and volume where a weight-like covariate is declared, and fits
 nothing else. The exponents are the standard 0.75 and 1 rather than
@@ -861,20 +861,18 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   22 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 2 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      95%, from 9% to 100%</span></span>
+<span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 95% of an arm attends a slot (9% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
-<span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
+<span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     cp                 0.3</span></span>
-<span><span class="co">#&gt;     pca                4.5</span></span>
+<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
 <span><span class="co">#&gt;                        plateau          27.34</span></span>
 <span><span class="co">#&gt;                        baseline         96.3</span></span>
@@ -882,6 +880,14 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 12.4</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   cp                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
+<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -893,15 +899,7 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
 <span><span class="co">#&gt;   time to fit        10.5 s (10.6 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span>
-<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   cp                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; rises to one peak</span></span>
-<span><span class="co">#&gt;                      and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
-<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-6-generate-new-subjects">Step 6: Generate New Subjects<a class="anchor" aria-label="anchor" href="#step-6-generate-new-subjects"></a>

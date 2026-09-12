@@ -190,20 +190,18 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
-<span><span class="co">#&gt;   visit attendance   22 cell(s) of the visit grid (one endpoint at one</span></span>
-<span><span class="co">#&gt;                      nominal time) over 2 endpoint(s), attended at median</span></span>
-<span><span class="co">#&gt;                      95%, from 9% to 100%</span></span>
+<span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
+<span><span class="co">#&gt;   visit attendance   median 95% of an arm attends a slot (9% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
-<span><span class="co">#&gt;                      per arm, independently of the profiles</span></span>
+<span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
+<span><span class="co">#&gt;                      profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;   No assay limit declared. Each floor below is half the smallest value the</span></span>
-<span><span class="co">#&gt;   endpoint was observed at, and a simulated value under it is raised to it:</span></span>
-<span><span class="co">#&gt;     cp                 0.3</span></span>
-<span><span class="co">#&gt;     pca                4.5</span></span>
+<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Each other continuous endpoint, fitted as a shape in time</span></span>
+<span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
 <span><span class="co">#&gt;                        plateau          27.34</span></span>
 <span><span class="co">#&gt;                        baseline         96.3</span></span>
@@ -211,6 +209,14 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 12.4</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
+<span><span class="co">#&gt;   cp                 inferred from the following data characteristics:</span></span>
+<span><span class="co">#&gt;                        absent before the first dose</span></span>
+<span><span class="co">#&gt;                        rises to one peak and comes back down within one</span></span>
+<span><span class="co">#&gt;                          dose interval</span></span>
+<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
+<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -222,15 +228,7 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
 <span><span class="co">#&gt;   time to fit        10.5 s (10.6 s for the whole call)</span></span>
 <span><span class="co">#&gt;                      nlmixr2</span></span>
-<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span>
-<span><span class="co">#&gt;                      least squares: pca 0.0 s</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
-<span><span class="co">#&gt;   cp                 inferred: absent before the first dose; dose</span></span>
-<span><span class="co">#&gt;                      proportionality not computable here; rises to one peak</span></span>
-<span><span class="co">#&gt;                      and comes back down</span></span>
-<span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 9 before</span></span>
-<span><span class="co">#&gt;                      declining, and 31% of subjects do too</span></span></code></pre></div>
+<span><span class="co">#&gt;                        1cmt_oral                  10.5 s</span></span></code></pre></div>
 <p>Every section below expands one part of it. The object is a plain
 list and the names used are its own, so a quantity can be reached
 directly when no accessor covers it.</p>
@@ -288,7 +286,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.473</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.507</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -407,26 +405,29 @@ and is not an exposure-response model.</p>
 <div class="section level2">
 <h2 id="the-covariate-distributions">The covariate distributions<a class="anchor" aria-label="anchor" href="#the-covariate-distributions"></a>
 </h2>
-<p>One distribution per covariate per arm, drawn from independently at
-generation.</p>
+<p>One distribution per covariate, fitted over the whole study and drawn
+from independently at generation. Pooled rather than per arm because a
+baseline covariate is recorded before the first dose: in a randomized
+study what separates two arms’ weights is the sampling noise of however
+many patients the arm has, and modelling it per arm reproduces that
+noise as if it were structure.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 1</span></span>
-<span><span class="co">#&gt;  $ all:List of 3</span></span>
-<span><span class="co">#&gt;   ..$ wt :List of 4</span></span>
-<span><span class="co">#&gt;   .. ..$ kind   : chr "lognormal"</span></span>
-<span><span class="co">#&gt;   .. ..$ meanlog: num 4.23</span></span>
-<span><span class="co">#&gt;   .. ..$ sdlog  : num 0.19</span></span>
-<span><span class="co">#&gt;   .. ..$ median : num 71.7</span></span>
-<span><span class="co">#&gt;   ..$ age:List of 4</span></span>
-<span><span class="co">#&gt;   .. ..$ kind   : chr "lognormal"</span></span>
-<span><span class="co">#&gt;   .. ..$ meanlog: num 3.39</span></span>
-<span><span class="co">#&gt;   .. ..$ sdlog  : num 0.304</span></span>
-<span><span class="co">#&gt;   .. ..$ median : num 27.5</span></span>
-<span><span class="co">#&gt;   ..$ sex:List of 3</span></span>
-<span><span class="co">#&gt;   .. ..$ kind       : chr "categorical"</span></span>
-<span><span class="co">#&gt;   .. ..$ levels     : chr [1:2] "female" "male"</span></span>
-<span><span class="co">#&gt;   .. ..$ probability: num [1:2] 0.156 0.844</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; List of 3</span></span>
+<span><span class="co">#&gt;  $ wt :List of 4</span></span>
+<span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
+<span><span class="co">#&gt;   ..$ meanlog: num 4.23</span></span>
+<span><span class="co">#&gt;   ..$ sdlog  : num 0.19</span></span>
+<span><span class="co">#&gt;   ..$ median : num 71.7</span></span>
+<span><span class="co">#&gt;  $ age:List of 4</span></span>
+<span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
+<span><span class="co">#&gt;   ..$ meanlog: num 3.39</span></span>
+<span><span class="co">#&gt;   ..$ sdlog  : num 0.304</span></span>
+<span><span class="co">#&gt;   ..$ median : num 27.5</span></span>
+<span><span class="co">#&gt;  $ sex:List of 3</span></span>
+<span><span class="co">#&gt;   ..$ kind       : chr "categorical"</span></span>
+<span><span class="co">#&gt;   ..$ levels     : chr [1:2] "female" "male"</span></span>
+<span><span class="co">#&gt;   ..$ probability: num [1:2] 0.156 0.844</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-arms">The arms<a class="anchor" aria-label="anchor" href="#the-arms"></a>

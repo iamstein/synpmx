@@ -115,11 +115,10 @@ model_report(fit)
 #>                      100 mg / 100 (30)
 #>                      300 mg / 300 (30)
 #>   dose changes       none
-#>   visit attendance   33 cell(s) of the visit grid (one endpoint at one
-#>                      nominal time) over 2 endpoint(s), attended at median
-#>                      100%, from 0% to 100%
-#>   covariates         WEIGHTB lognormal, drawn per arm, independently of the
-#>                      profiles
+#>   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all
+#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   covariates         WEIGHTB lognormal, drawn once for the whole study,
+#>                      independently of the profiles
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
 #>                      WEIGHTB, TRTACT, DOSE, STUDY
 #> 
@@ -127,7 +126,7 @@ model_report(fit)
 #>   Reported below the assay limit:
 #>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
 #> 
-#> Each other continuous endpoint, fitted as a shape in time
+#> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
 #>                        plateau          149
 #>                        baseline         52.24
@@ -135,6 +134,18 @@ model_report(fit)
 #>                        between-subject  0.984 (SD on the log baseline)
 #>                        residual         additive 225
 #>                        chosen on AIC from constant, linear, exponential
+#> 
+#> PK endpoint for the PopPK model
+#>   PK Concentration   inferred from the following data characteristics:
+#>                        absent before the first dose
+#>                        dose-proportional: the peak scales with the dose
+#>                        recorded in the compartment the doses go into
+#>                        rises to one peak and comes back down within one
+#>                          dose interval
+#>   route              oral: the median profile rises to a peak at 1 before
+#>                      declining, and 99% of subjects do too
+#>   also available     2cmt_oral, which the sampling would support: median 9
+#>                      distinct times after a dose, 6 after the peak
 #> 
 #> The PopPK model
 #> 
@@ -150,19 +161,9 @@ model_report(fit)
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.264 
-#>   time to fit        2 min 49 s (2 min 51 s for the whole call)
+#>   time to fit        2 min 46 s (2 min 48 s for the whole call)
 #>                      nlmixr2
-#>                        1cmt_oral                  2 min 49 s
-#>                      least squares: PD - Continuous 0.0 s
-#> 
-#> PK endpoint for the PopPK model
-#>   PK Concentration   inferred: absent before the first dose;
-#>                      dose-proportional; measured where the doses go; rises
-#>                      to one peak and comes back down
-#>   route              oral: the median profile rises to a peak at 1 before
-#>                      declining, and 99% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 9
-#>                      distinct times after a dose, 6 after the peak
+#>                        1cmt_oral                  2 min 46 s
 ```
 
 Three lines in the estimated half are worth reading before anything
