@@ -415,13 +415,29 @@ leaves a model with no input at all. So it is declared, on the argument
 <span>  routes         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"extravascular"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"extravascular"</span><span class="op">)</span>,</span>
 <span>  dose_endpoints <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"drug A PK"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"drug B PK"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>In a NONMEM dataset the compartment already does this job, so declare
+the column twice — <code>cmt = "CMT", adm = "CMT"</code> — and key the
+mapping on compartment numbers.</p>
 <p>Declared, each drug gets its own dose schedule per arm — its own
-amounts, its own interval, its own ladder of reductions — each
-endpoint’s profile is evaluated against its own drug’s doses, and the
-generated study writes both drugs’ dose records back with their own
-<code>adm</code> value and compartment. Undeclared,
-<code><a href="../reference/model_report.html">model_report()</a></code> says so on a study with more than one
-concentration, which is the case where it matters.</p>
+amounts, its own interval, its own ladder of reductions — and each
+endpoint’s fit and generated profile read only that drug’s doses.
+<strong>Including the dosing history each observation is read
+against</strong>: time after dose, the dose interval and the first dose
+amount follow the endpoint’s own drug, which is what the starting
+values, the route reading, the sampling richness and the
+dose-proportionality signal are all computed from. Without that half, a
+fit table split correctly still starts from a volume scaled by the wrong
+drug’s milligrams. The generated study then writes both drugs’ dose
+records back with their own <code>adm</code> value and compartment.</p>
+<p>Measured on a simulated combination — 100 mg weekly at
+<code>cl</code> 5, <code>v</code> 50, <code>ka</code> 1.2 beside 900 mg
+fortnightly at <code>cl</code> 20, <code>v</code> 200, <code>ka</code>
+0.5, sixteen subjects — the second drug comes back <code>cl</code> 14.4,
+<code>v</code> 3.26, <code>ka</code> 9.34 with the doses pooled, and
+<code>cl</code> 19.3, <code>v</code> 166, <code>ka</code> 0.57 with them
+separated, which is what that data fitted on its own gives.</p>
+<p>Undeclared, <code><a href="../reference/model_report.html">model_report()</a></code> says so on a study with more
+than one concentration, which is the case where it matters.</p>
 <p><strong>Inference promotes a second endpoint only on signal
 4.</strong> Dose proportionality is the positive evidence that something
 is a drug: a concentration scales with the dose and a biomarker does

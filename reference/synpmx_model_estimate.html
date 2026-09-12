@@ -151,9 +151,8 @@ least-squares fits.</p></dd>
 <code>c(pk = "cp")</code>, overriding the inference.</p>
 <p><strong>More than one may be named</strong>, for a study that measures two
 concentrations — two drugs, or a parent and its metabolite. Each gets its
-own structural model, its own parameters and its own residual error,
-evaluated against the one dose schedule they share; no correlation between
-their random effects is estimated. Write it as
+own structural model, its own parameters and its own residual error; no
+correlation between their random effects is estimated. Write it as
 <code>list(pk = c("parent", "metabolite"))</code>, or <code>c(pk = c("parent", "metabolite"))</code>, which R renames to <code>pk1</code>/<code>pk2</code> and which is read the same
 way.</p>
 <p>Naming several is a declaration, never an inference. Left to itself the
@@ -163,7 +162,14 @@ passes the concentration signals is at least as often a biomarker as a
 metabolite — <code>onc_sim</code>'s tumour size passes them. Where a demoted endpoint
 really is a concentration, that time course has no dose term in it and the
 generated values lose their dose ordering, which is why naming both is
-worth doing.</p></dd>
+worth doing.</p>
+<p><strong>Which doses drive which of them is a second declaration.</strong> By default
+every dose record drives every concentration named here: one
+administration, two analytes, which is what a parent and its metabolite
+are. Two <em>different</em> drugs given together need
+<code>dose_endpoints</code> in <code><a href="pmx_roles.html">pmx_roles()</a></code>, or each drug is fitted against the
+other's doses as well as its own. <code><a href="model_report.html">model_report()</a></code> says which of the two
+is happening whenever more than one concentration is named.</p></dd>
 
 
 <dt id="arg-start-param">start_param<a class="anchor" aria-label="anchor" href="#arg-start-param"></a></dt>

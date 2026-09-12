@@ -73,8 +73,11 @@ pmx_roles(
   refuses rather than let that happen silently.
 
   A NONMEM `CMT` usually does both jobs, so **one column may be named as
-  both roles**: `pmx_roles(..., cmt = "CMT", dvid = "CMT")`. This is the
-  only permitted overlap; every other collision is an error.
+  both roles**: `pmx_roles(..., cmt = "CMT", dvid = "CMT")`. `cmt` and
+  `adm` may likewise be one column, for the same reason — a NONMEM
+  dataset has no administration column, and the compartment a dose
+  enters is what says how it was given and which drug it is. Those two
+  are the only permitted overlaps; every other collision is an error.
 
 - nominal_time, occasion:
 
@@ -136,6 +139,11 @@ pmx_roles(
   study dosing both ways is fitted with one model that routes each dose
   record to its own compartment, so a patient may receive both.
 
+  `adm` may name the same column as `cmt`: a NONMEM dataset has no
+  administration column, and the compartment a dose enters is the
+  administration id. See `dose_endpoints` for the other thing an
+  administration id says — which drug the dose is.
+
 - dose_endpoints:
 
   Which endpoint each administration id doses, as
@@ -155,9 +163,27 @@ pmx_roles(
   declaration, on the same argument `routes` makes.
 
   Every administration id present on a dose record must be named, and
-  every endpoint named must be one the fit puts a structural model on.
-  Each drug then gets its own dose schedule per arm, and the generated
-  study writes both drugs' dose records back with their own `adm` value.
+  every endpoint named must be one the fit puts a structural model on —
+  both are checked against the study when the fit runs. A mapping that
+  leaves a concentration with no dose record at all is refused, and that
+  refusal is the signal that the endpoint is a metabolite and this is
+  not the argument for it.
+
+  Declared, each drug gets its own dose schedule per arm — its own
+  amounts, its own interval, its own ladder of reductions — each
+  endpoint's fit and generated profile read only that drug's doses, each
+  observation's time after dose is measured from that drug's last dose,
+  and the generated study writes both drugs' dose records back with
+  their own `adm` value and compartment.
+
+  In a NONMEM dataset the compartment does this job, so declare the
+  column twice:
+  `pmx_roles(cmt = "CMT", adm = "CMT", routes = ..., dose_endpoints = c("1" = "drug A PK", "3" = "drug B PK"))`.
+
+  Either way,
+  [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+  says which dose records drove which fit whenever a study has more than
+  one concentration.
 
 - covariates:
 
