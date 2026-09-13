@@ -133,8 +133,11 @@ print(fit)
 
 ``` r
 
-synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
+synthetic <- synpmx_model_generate(fit, seed = 2026)
 ```
+
+For brevity, one may choose to combine the fit and data generation steps
+using `synpmx_model(study, roles, seed = 2026)`.
 
 ## Installation
 
