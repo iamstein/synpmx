@@ -1,5 +1,5 @@
 ---
-title: "How AVATAR, PCA and PMXmodel Are Related"
+title: "Comparing AVATAR, PCA and PMXmodel"
 author: "Andrew Stein"
 output:
   rmarkdown::html_vignette:
@@ -7,7 +7,7 @@ output:
     fig_width: 9
     fig_height: 5
 vignette: >
-  %\VignetteIndexEntry{How AVATAR, PCA and PMXmodel Are Related}
+  %\VignetteIndexEntry{Comparing AVATAR, PCA and PMXmodel}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

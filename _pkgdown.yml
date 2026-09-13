@@ -37,8 +37,8 @@ navbar:
       menu:
       - text: The synpmx data generation algorithms
         href: articles/synpmx-methods.html
-      - text: How AVATAR, PCA and PMXmodel are related
-        href: articles/avatar-vs-pca.html
+      - text: Comparing AVATAR, PCA and PMXmodel
+        href: articles/avatar-vs-pca-vs-pmxmodel.html
       - text: "Literature: generating synthetic data"
         href: articles/synthetic-data-generation-review.html
       - text: -------
