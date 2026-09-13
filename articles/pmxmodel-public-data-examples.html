@@ -861,9 +861,11 @@ reading.</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">nimoData</span>, <span class="va">nimo_roles</span>, seed <span class="op">=</span> <span class="fl">1</span>, min_subjects <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.</span></span>
-<span><span class="co">#&gt;   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no</span></span>
-<span><span class="co">#&gt;     structural model.</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> No endpoint looks like a drug concentration: none is both absent before the</span></span>
+<span><span class="co">#&gt; first dose and dose-proportional.</span></span>
+<span><span class="co">#&gt;   Signals read: DV (post-dose yes, proportional no)</span></span>
+<span><span class="co">#&gt;   Fix: Name the concentration with `endpoint_roles = c(pk = "...")`, or use</span></span>
+<span><span class="co">#&gt;     `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.</span></span></code></pre></div>
 <p>Every subject in <code>nimoData</code> receives the same dose, so
 there are no dose levels to compare and nothing in the table says this
 endpoint scales with dose. The detection fails closed rather than
@@ -957,9 +959,11 @@ dose-proportional.</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">pheno_flat</span>, <span class="va">pheno_roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.</span></span>
-<span><span class="co">#&gt;   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no</span></span>
-<span><span class="co">#&gt;     structural model.</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> No endpoint looks like a drug concentration: none is both absent before the</span></span>
+<span><span class="co">#&gt; first dose and dose-proportional.</span></span>
+<span><span class="co">#&gt;   Signals read: DV (post-dose yes, proportional no)</span></span>
+<span><span class="co">#&gt;   Fix: Name the concentration with `endpoint_roles = c(pk = "...")`, or use</span></span>
+<span><span class="co">#&gt;     `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.</span></span></code></pre></div>
 <p>Name the endpoint and it fits. <strong>Nothing in the generator’s own
 requirements stops this study — and with <code>NTIME</code> set to
 <code>TIME</code> the output is still nearly empty.</strong></p>

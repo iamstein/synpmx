@@ -71,13 +71,13 @@ protections are needed:
 
 A sixth generator,
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md),
-measures the trajectory shape rather basing it off a prior, but it is
-not yet developed further. All the methods are discussed further in
+measures the trajectory shape rather than basing it off a prior, but it
+is not yet developed further. All the methods are discussed further in
 [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
 
-## Example using a PopPK + PD model fit\`
+## Example using a PopPK + PD model fit
 
-### Declare the dataset
+### 1. Declare the dataset
 
 ``` r
 
@@ -87,9 +87,10 @@ study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
 study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
 ```
 
-### Define Column roles
+### 2. Define Column roles
 
 ``` r
+
 roles <- pmx_roles(
   id             = "ID",                 # subject identifier - REQUIRED
   time           = "TIME",               # actual elapsed time, numeric - REQUIRED
@@ -113,29 +114,27 @@ roles <- pmx_roles(
   endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
   keep           = "STUDY",              # columns carried through verbatim
 )
-
-``` r
-fit <- synpmx_model_estimate(study, roles, seed = 2026)
-fit                                  # the structural model, parameters and arms it chose
-model_report(fit)                    # what leaves the study, itemised
-synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
 ```
 
-Fitting compiles a model, so this takes a few minutes and needs a
-working toolchain. To see what the fit found, and to draw further
-datasets without refitting, run the two halves separately:
+### 3. Fit the model and generate a study fingerprint
+
+The study “fingerprint” is the description of the study dataset by the
+model that can then be used to generate a synthetic dataset. It includes
+not only the fit parameters, but also the dose and observation times, as
+well as the frequency of dose changes and missed visits.
 
 ``` r
 
 fit <- synpmx_model_estimate(study, roles, seed = 2026)
-fit                                  # the structural model, parameters and arms it chose
-model_report(fit)                    # what leaves the study, itemised
-synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
+print(fit)                                 
 ```
 
-The fitted parameters exist to make simulated profiles resemble the
-source study. They are **not estimates to report**, and the object
-prints that warning with itself.
+### 4. Generate synthetic dataset
+
+``` r
+
+synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
+```
 
 ## Installation
 
@@ -156,11 +155,21 @@ If `remotes` is not available in your environment, you can also try:
 If your environment blocks installing from GitHub, then download the
 source archive from
 `https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz` and
-install from the file. This package needs nothing but base R.
+install from the file.
 
 ``` r
 
 install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
+```
+
+Fitting a population model is done by `nlmixr2est`, which `synpmx`
+requires and which installs alongside it. That fit compiles, so the
+example above needs a working C++ toolchain and takes a few minutes. The
+example’s data comes from `xgxr`:
+
+``` r
+
+install.packages("xgxr")
 ```
 
 The Data Privacy methods additionally require the official [OpenDP R

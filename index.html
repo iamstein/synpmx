@@ -146,13 +146,13 @@
 <li>
 <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> — Keeps the public model’s shape, and spends a small privacy budget correcting its magnitude.</li>
 </ol>
-<p>A sixth generator, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>, measures the trajectory shape rather basing it off a prior, but it is not yet developed further. All the methods are discussed further in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>.</p>
+<p>A sixth generator, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>, measures the trajectory shape rather than basing it off a prior, but it is not yet developed further. All the methods are discussed further in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="example-using-a-poppk--pd-model-fit">Example using a PopPK + PD model fit`<a class="anchor" aria-label="anchor" href="#example-using-a-poppk--pd-model-fit"></a>
+<h2 id="example-using-a-poppk--pd-model-fit">Example using a PopPK + PD model fit<a class="anchor" aria-label="anchor" href="#example-using-a-poppk--pd-model-fit"></a>
 </h2>
 <div class="section level3">
-<h3 id="declare-the-dataset">Declare the dataset<a class="anchor" aria-label="anchor" href="#declare-the-dataset"></a>
+<h3 id="id_1-declare-the-dataset">1. Declare the dataset<a class="anchor" aria-label="anchor" href="#id_1-declare-the-dataset"></a>
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
@@ -161,61 +161,66 @@
 <span><span class="va">study</span><span class="op">$</span><span class="va">CENS</span><span class="op">[</span><span class="va">study</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span>  <span class="co"># CENS here flags the PK assay limit only</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="define-column-roles">Define Column roles<a class="anchor" aria-label="anchor" href="#define-column-roles"></a>
+<h3 id="id_2-define-column-roles">2. Define Column roles<a class="anchor" aria-label="anchor" href="#id_2-define-column-roles"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>roles <span class="ot">&lt;-</span> <span class="fu">pmx_roles</span>(</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">id             =</span> <span class="st">"ID"</span>,                 <span class="co"># subject identifier - REQUIRED</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">time           =</span> <span class="st">"TIME"</span>,               <span class="co"># actual elapsed time, numeric - REQUIRED</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">dv             =</span> <span class="st">"LIDV"</span>,               <span class="co"># dependent variable - REQUIRED</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">evid           =</span> <span class="st">"EVID"</span>,               <span class="co"># event identifier - REQUIRED</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">amt            =</span> <span class="st">"AMT"</span>,                <span class="co"># dose amount</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">cmt            =</span> <span class="st">"CMT"</span>,                <span class="co"># compartment</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">dvid           =</span> <span class="st">"NAME"</span>,               <span class="co"># endpoint key: which endpoint the row reports</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="at">mdv            =</span> <span class="cn">NULL</span>,                 <span class="co"># missing-dependent-variable flag</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">rate           =</span> <span class="cn">NULL</span>,                 <span class="co"># infusion rate</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="at">nominal_time   =</span> <span class="st">"NOMTIME"</span>,            <span class="co"># protocol visit time; the visit model is built on it</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="at">tad            =</span> <span class="cn">NULL</span>,                 <span class="co"># time after dose; recomputed rather than read</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="at">occasion       =</span> <span class="cn">NULL</span>,                 <span class="co"># set if TIME resets by occasion</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>  <span class="at">cens           =</span> <span class="st">"CENS"</span>,               <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  <span class="at">limit          =</span> <span class="cn">NULL</span>,                 <span class="co"># other end of the censoring interval</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  <span class="at">addl           =</span> <span class="cn">NULL</span>,                 <span class="co"># additional doses</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>  <span class="at">ii             =</span> <span class="cn">NULL</span>,                 <span class="co"># interdose interval</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>  <span class="at">covariates     =</span> <span class="st">"WEIGHTB"</span>,            <span class="co"># patient baseline covariates</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>  <span class="at">strata         =</span> <span class="fu">c</span>(<span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span>),  <span class="co"># assigned arm / dose group / cohort; one dosing and visit model per arm</span></span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>  <span class="at">dose_covariate =</span> <span class="cn">NULL</span>,                 <span class="co"># covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)</span></span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>  <span class="at">endpoint_types =</span> <span class="cn">NULL</span>,                 <span class="co"># value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL</span></span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>  <span class="at">keep           =</span> <span class="st">"STUDY"</span>,              <span class="co"># columns carried through verbatim</span></span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>)</span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a></span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="st">```</span><span class="at"> r</span></span>
-<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="at">fit &lt;- synpmx_model_estimate(study, roles, seed = 2026)</span></span>
-<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="at">fit                                  # the structural model, parameters and arms it chose</span></span>
-<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="at">model_report(fit)                    # what leaves the study, itemised</span></span>
-<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="at">synthetic &lt;- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)</span></span></code></pre></div>
-<p>Fitting compiles a model, so this takes a few minutes and needs a working toolchain. To see what the fit found, and to draw further datasets without refitting, run the two halves separately:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
+<span>  id             <span class="op">=</span> <span class="st">"ID"</span>,                 <span class="co"># subject identifier - REQUIRED</span></span>
+<span>  time           <span class="op">=</span> <span class="st">"TIME"</span>,               <span class="co"># actual elapsed time, numeric - REQUIRED</span></span>
+<span>  dv             <span class="op">=</span> <span class="st">"LIDV"</span>,               <span class="co"># dependent variable - REQUIRED</span></span>
+<span>  evid           <span class="op">=</span> <span class="st">"EVID"</span>,               <span class="co"># event identifier - REQUIRED</span></span>
+<span>  amt            <span class="op">=</span> <span class="st">"AMT"</span>,                <span class="co"># dose amount</span></span>
+<span>  cmt            <span class="op">=</span> <span class="st">"CMT"</span>,                <span class="co"># compartment</span></span>
+<span>  dvid           <span class="op">=</span> <span class="st">"NAME"</span>,               <span class="co"># endpoint key: which endpoint the row reports</span></span>
+<span>  mdv            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># missing-dependent-variable flag</span></span>
+<span>  rate           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># infusion rate</span></span>
+<span>  nominal_time   <span class="op">=</span> <span class="st">"NOMTIME"</span>,            <span class="co"># protocol visit time; the visit model is built on it</span></span>
+<span>  tad            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># time after dose; recomputed rather than read</span></span>
+<span>  occasion       <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># set if TIME resets by occasion</span></span>
+<span>  cens           <span class="op">=</span> <span class="st">"CENS"</span>,               <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
+<span>  limit          <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># other end of the censoring interval</span></span>
+<span>  addl           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># additional doses</span></span>
+<span>  ii             <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># interdose interval</span></span>
+<span>  covariates     <span class="op">=</span> <span class="st">"WEIGHTB"</span>,            <span class="co"># patient baseline covariates</span></span>
+<span>  strata         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,  <span class="co"># assigned arm / dose group / cohort; one dosing and visit model per arm</span></span>
+<span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)</span></span>
+<span>  endpoint_types <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL</span></span>
+<span>  keep           <span class="op">=</span> <span class="st">"STUDY"</span>,              <span class="co"># columns carried through verbatim</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="id_3-fit-the-model-and-generate-a-study-fingerprint">3. Fit the model and generate a study fingerprint<a class="anchor" aria-label="anchor" href="#id_3-fit-the-model-and-generate-a-study-fingerprint"></a>
+</h3>
+<p>The study “fingerprint” is the description of the study dataset by the model that can then be used to generate a synthetic dataset. It includes not only the fit parameters, but also the dose and observation times, as well as the frequency of dose changes and missed visits.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">study</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span>
-<span><span class="va">fit</span>                                  <span class="co"># the structural model, parameters and arms it chose</span></span>
-<span><span class="fu"><a href="reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>                    <span class="co"># what leaves the study, itemised</span></span>
-<span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, n_subjects <span class="op">=</span> <span class="fl">180</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span></code></pre></div>
-<p>The fitted parameters exist to make simulated profiles resemble the source study. They are <strong>not estimates to report</strong>, and the object prints that warning with itself.</p>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>                                 </span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="id_4-generate-synthetic-dataset">4. Generate synthetic dataset<a class="anchor" aria-label="anchor" href="#id_4-generate-synthetic-dataset"></a>
+</h3>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, n_subjects <span class="op">=</span> <span class="fl">180</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>Install <code>synpmx</code> from GitHub, then load it as usual:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iamstein/synpmx"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span></code></pre></div>
 <p>If <code>remotes</code> is not available in your environment, you can also try: <code>pak::pak("iamstein/synpmx")</code> or <code>devtools::install_github("iamstein/synpmx")</code>.</p>
-<p>If your environment blocks installing from GitHub, then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file. This package needs nothing but base R.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
-<p>The Data Privacy methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<p>If your environment blocks installing from GitHub, then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
+<p>Fitting a population model is done by <code>nlmixr2est</code>, which <code>synpmx</code> requires and which installs alongside it. That fit compiles, so the example above needs a working C++ toolchain and takes a few minutes. The example’s data comes from <code>xgxr</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"xgxr"</span><span class="op">)</span></span></code></pre></div>
+<p>The Data Privacy methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"opendp"</span>, repos <span class="op">=</span> <span class="st">"https://opendp.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

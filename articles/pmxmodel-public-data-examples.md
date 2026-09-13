@@ -791,9 +791,11 @@ nimo_roles <- pmx_roles(
 )
 synpmx_model_estimate(nimoData, nimo_roles, seed = 1, min_subjects = 12L)
 #> Error:
-#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.
-#>   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no
-#>     structural model.
+#> ! No endpoint looks like a drug concentration: none is both absent before the
+#> first dose and dose-proportional.
+#>   Signals read: DV (post-dose yes, proportional no)
+#>   Fix: Name the concentration with `endpoint_roles = c(pk = "...")`, or use
+#>     `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.
 ```
 
 Every subject in `nimoData` receives the same dose, so there are no dose
@@ -900,9 +902,11 @@ pheno_roles <- pmx_roles(
 )
 synpmx_model_estimate(pheno_flat, pheno_roles, seed = 1)
 #> Error:
-#> ! `synpmx_model_estimate()` needs the nlmixr2 package, which is in Suggests.
-#>   Fix: Install it, or use `synpmx_avatar()` or `synpmx_pca()`, which fit no
-#>     structural model.
+#> ! No endpoint looks like a drug concentration: none is both absent before the
+#> first dose and dose-proportional.
+#>   Signals read: DV (post-dose yes, proportional no)
+#>   Fix: Name the concentration with `endpoint_roles = c(pk = "...")`, or use
+#>     `synpmx_avatar()` or `synpmx_pca()`, which fit no structural model.
 ```
 
 Name the endpoint and it fits. **Nothing in the generator’s own

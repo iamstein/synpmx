@@ -113,13 +113,13 @@ and
 [`synpmx_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_generate.md)
 can read it. A list of such data frames when `n_datasets > 1`.
 
-## Not developed further
+## Not developed further yet
 
 This engine exists so both ends of the privacy and utility axis are in
-the package and the tradeoff can be checked. It is not being developed,
-it has no documents of its own, and the one section that explains why it
-is rarely the right choice is "Why not release more quantities?" in the
-[methods
+the package and the tradeoff can be checked. It is not under active
+development at present, it has no documents of its own, and the one
+section that explains why it is rarely the right choice is "Why not
+release more quantities?" in the [methods
 article](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
 Every clipping range, contribution limit and budget share is an explicit
 public input, and getting one wrong breaks the guarantee without any
