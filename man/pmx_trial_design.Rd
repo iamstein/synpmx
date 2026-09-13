@@ -14,6 +14,7 @@ pmx_trial_design(
   dose_times = NULL,
   duration = 0,
   visit_window = 0.05,
+  routes = NULL,
   source
 )
 }
@@ -51,6 +52,18 @@ equally spaced times at \code{dose_interval}.}
 
 \item{visit_window}{Fractional jitter applied to nominal times.}
 
+\item{routes}{Administration route per dose, \code{"iv"} or \code{"extravascular"},
+for a study dosed by more than one. Required by the \code{"1cmt_mixed"} and
+\code{"2cmt_mixed"} structural models, which resolve to a single-route form per
+dose and apply the model's \code{f} to the extravascular ones only; an
+intravenous dose carries no bioavailability term because it is all of the
+dose. One vector serves every cohort, so an intravenous loading dose
+followed by subcutaneous maintenance is
+\code{c("iv", "extravascular", "extravascular")}. A list gives each cohort its
+own, the way \code{dose_escalation} does, which is how a study with an
+intravenous arm, a subcutaneous arm and an arm that switches is written
+down. A single entry is recycled over the doses.}
+
 \item{source}{Required provenance string.}
 }
 \value{
@@ -68,4 +81,8 @@ dose level (\code{dose_levels}) repeated \code{n_doses} times. A within-subject
 escalation gives every subject the same increasing sequence of doses
 (\code{dose_escalation}), one per occasion; this is prespecified design, not an
 outcome, when the escalation follows a fixed protocol schedule.
+
+A study that doses by more than one route declares \code{routes} alongside
+either pattern. Without it a mixed-route structural model is refused rather
+than generated as though every dose were intravenous.
 }

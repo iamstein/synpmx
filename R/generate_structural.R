@@ -65,18 +65,35 @@
 # the output was byte-identical to the plain intravenous form at any `f`
 # whatever (`REV-053`). `synpmx_model()` is the path that reads routes from a
 # study and can use these forms.
-.reject_mixed_route_model <- function(model, fn) {
+.reject_mixed_route_model <- function(model, design, fn) {
   if (!inherits(model, "pmx_structural_model")) return(invisible(NULL))
   if (!model$pk %in% c("1cmt_mixed", "2cmt_mixed")) return(invisible(NULL))
+  if (inherits(design, "pmx_trial_design") && !is.null(design$routes)) {
+    return(invisible(NULL))
+  }
   stop(.condition_text(
-    "`", fn, "()` cannot generate from the `", model$pk, "` model.",
+    "`", fn, "()` cannot generate from the `", model$pk, "` model without ",
+    "knowing which dose went by which route.",
     why = paste(
-      "A mixed-route model needs to know which dose went by which route, and",
-      "a public trial design has no way to say. Declare the route the study",
-      "actually used --", paste(sub("_mixed", "_iv", model$pk), "or",
-                                sub("_mixed", "_oral", model$pk)),
-      "-- or use `synpmx_model()`, which reads the route from the data."
+      "A mixed-route model resolves to a single-route form per dose, and",
+      "bioavailability applies to the extravascular one only."
+    ),
+    fix = paste(
+      'Give the protocol\'s routes to `pmx_trial_design(routes = )` -- for',
+      'example `c("iv", "extravascular", "extravascular")` for a loading dose',
+      "followed by maintenance -- or declare the single-route form",
+      paste0(sub("_mixed", "_iv", model$pk), " or ",
+             sub("_mixed", "_oral", model$pk)), "instead."
     )), call. = FALSE)
+}
+
+# The routes a cohort's doses take, or NULL where the design declared none.
+# One vector serves every cohort; a list gives each its own, the way
+# `dose_escalation` does.
+.design_routes <- function(design, cohort) {
+  routes <- design$routes
+  if (is.null(routes)) return(NULL)
+  routes[[if (length(routes) == 1L) 1L else cohort]]
 }
 
 # Taking a `pmx_roles()` means honouring it. Every generator that reads a study
@@ -245,7 +262,7 @@
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
   }
-  .reject_mixed_route_model(model, "synpmx_prior")
+  .reject_mixed_route_model(model, design, "synpmx_prior")
   .reject_unfillable_roles(roles, covariates)
   n_subjects <- as.integer(n_subjects)
   if (!is.finite(n_subjects) || n_subjects < 1L) {
@@ -290,7 +307,8 @@
     obs_rows <- list()
     for (ep in endpoints) {
       value <- if (ep == "cp") {
-        .pk_profile(model, actual, doses, dose_times, p, design$duration)
+        .pk_profile(model, actual, doses, dose_times, p, design$duration,
+                    routes = .design_routes(design, cohort[i]))
       } else {
         .pd_profile(model, actual, doses, dose_times, p, design$duration)
       }

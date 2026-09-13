@@ -180,6 +180,11 @@ print.pmx_preflight <- function(x, ...) {
 # an extrapolation to infinity, both of which add assumptions without adding
 # information.
 .subject_corrections <- function(data, roles, model, design) {
+  # The route each dose took, where the design states one. A per-cohort
+  # declaration cannot be used here: the correction is computed per subject
+  # from that subject's own rows, and nothing maps a subject to a cohort
+  # (`REV-053`). `.fit_calibrated()` refuses that case before reaching here.
+  routes <- if (length(design$routes) == 1L) design$routes[[1L]] else NULL
   id <- data[[roles$id]]
   subjects <- .unique_in_order(id[!is.na(id)])
   dvid <- if (is.null(roles$dvid)) NULL else data[[.dvid_primary(roles)]]
@@ -204,7 +209,7 @@ print.pmx_preflight <- function(x, ...) {
     if (length(pk_rows) >= 3L) {
       auc_obs <- .trapezoid(time[pk_rows], dv[pk_rows])
       pred <- .pk_profile(model, time[pk_rows], doses, dose_times,
-                          duration = design$duration)
+                          duration = design$duration, routes = routes)
       auc_pred <- .trapezoid(time[pk_rows], pred)
       if (is.finite(auc_obs) && auc_obs > 0 &&
           is.finite(auc_pred) && auc_pred > 0) {
@@ -270,10 +275,26 @@ print.pmx_preflight <- function(x, ...) {
   if (!inherits(model, "pmx_structural_model")) {
     stop("`model` must come from `pmx_structural_model()`.", call. = FALSE)
   }
-  # Before any budget is spent: the correction is an AUC ratio computed from
-  # `.pk_profile()` without routes, so a mixed-route model would be corrected
-  # against an all-intravenous prediction (`REV-053`).
-  .reject_mixed_route_model(model, "synpmx_calibrated")
+  # Before any budget is spent. The correction is an AUC ratio per subject, so
+  # it needs one route per dose and cannot use a per-cohort declaration:
+  # nothing here maps a subject to the cohort whose routes would apply
+  # (`REV-053`).
+  .reject_mixed_route_model(model, design, "synpmx_calibrated")
+  if (model$pk %in% c("1cmt_mixed", "2cmt_mixed") &&
+      length(design$routes) > 1L) {
+    stop(.condition_text(
+      "`synpmx_calibrated()` cannot fit a mixed-route model against a ",
+      "per-cohort `routes` declaration.",
+      why = paste(
+        "The correction is computed from each subject's own rows, and nothing",
+        "in the data says which cohort's routes that subject followed, so the",
+        "prediction it is compared against would be the wrong one."
+      ),
+      fix = paste(
+        "Fit one route sequence at a time, or use `synpmx_prior()`, which",
+        "assigns cohorts itself and can generate every arm at once."
+      )), call. = FALSE)
+  }
   if (!inherits(design, "pmx_trial_design")) {
     stop("`design` must come from `pmx_trial_design()`.", call. = FALSE)
   }

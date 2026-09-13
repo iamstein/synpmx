@@ -792,45 +792,131 @@ test_that("a calibrated release generates the schema it was fitted under", {
   expect_s3_class(synpmx_scorecard(data, synthetic, roles), "data.frame")
 })
 
-test_that("a mixed-route model is refused rather than run as intravenous", {
-  # REV-053: only `synpmx_model()` supplies routes to the profile evaluator.
-  # The public-model modes cannot, so a `_mixed` form silently discarded `f`
-  # and returned the plain intravenous profile at any value of it.
+test_that("a mixed-route model needs the design to say which route", {
+  # REV-053: the profile evaluator resolves a `_mixed` form per dose from a
+  # route. Nothing in the public-model path supplied one, so every dose was
+  # intravenous and `f` was discarded at any value. A design that states the
+  # routes now carries them; one that does not is refused.
   mixed <- pmx_structural_model(
     "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7), source = "unit test"
   )
-  design <- pmx_trial_design(100, 30, sampling = c(1, 3, 7),
-                             source = "unit test protocol")
-  expect_error(synpmx_prior(mixed, design, n_subjects = 5, seed = 1),
+  silent <- pmx_trial_design(100, 30, sampling = c(0, 1, 3, 7), n_doses = 3,
+                             dose_interval = 7, source = "unit test protocol")
+  expect_error(synpmx_prior(mixed, silent, n_subjects = 5, seed = 1),
                "1cmt_mixed")
-  expect_error(synpmx_prior(mixed, design, n_subjects = 5, seed = 1),
-               "synpmx_model")
+  expect_error(synpmx_prior(mixed, silent, n_subjects = 5, seed = 1),
+               "routes")
 
-  # And before any budget is spent, because the correction is fitted from the
-  # same route-blind prediction.
-  data <- synpmx_prior(
-    pmx_structural_model("1cmt_oral", c(cl = 2, v = 10, ka = 0.5),
-                         source = "unit test"),
-    design, n_subjects = 24, seed = 2
+  stated <- pmx_trial_design(
+    100, 30, sampling = c(0, 1, 3, 7), n_doses = 3, dose_interval = 7,
+    routes = c("iv", "extravascular", "extravascular"),
+    source = "unit test protocol"
+  )
+  generated <- synpmx_prior(mixed, stated, n_subjects = 30, seed = 1)
+  expect_s3_class(generated, "data.frame")
+
+  # The defect was that `f` changed nothing. It has to change something now,
+  # and only for the extravascular doses.
+  low_f <- pmx_structural_model(
+    "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.1), source = "unit test"
+  )
+  observed <- function(data) {
+    value <- data$DV[data$EVID == 0]
+    stats::median(value[is.finite(value) & value > 0])
+  }
+  expect_lt(observed(synpmx_prior(low_f, stated, n_subjects = 30, seed = 1)),
+            observed(generated))
+  # An all-intravenous course ignores `f`, because an intravenous dose is all
+  # of the dose.
+  all_iv <- pmx_trial_design(
+    100, 30, sampling = c(0, 1, 3, 7), n_doses = 3, dose_interval = 7,
+    routes = "iv", source = "unit test protocol"
+  )
+  expect_equal(observed(synpmx_prior(mixed, all_iv, n_subjects = 30, seed = 1)),
+               observed(synpmx_prior(low_f, all_iv, n_subjects = 30, seed = 1)))
+})
+
+test_that("each cohort can take its own routes", {
+  # The shape `mixroute_sim` has: an intravenous arm, a subcutaneous arm, and
+  # one that switches. Separating them is the whole reason the routes exist.
+  model <- pmx_structural_model(
+    "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7), source = "unit test"
+  )
+  design <- pmx_trial_design(
+    dose_levels = c(100, 100, 100), cohort_sizes = c(30, 30, 30),
+    sampling = c(0, 1, 3, 7), n_doses = 3, dose_interval = 7,
+    routes = list(rep("iv", 3), rep("extravascular", 3),
+                  c("iv", "extravascular", "extravascular")),
+    source = "unit test protocol"
+  )
+  generated <- synpmx_prior(model, design, n_subjects = 90, seed = 1)
+  observation <- generated$EVID == 0
+  arm <- cut(generated$ID, c(0, 30, 60, 90),
+             labels = c("iv", "sc", "switch"))
+  level <- tapply(generated$DV[observation], arm[observation], stats::median,
+                  na.rm = TRUE)
+  # All of an intravenous dose arrives; seventy per cent of a subcutaneous one
+  # does, so the arms separate and the switching arm lands between them.
+  expect_gt(level[["iv"]], level[["switch"]])
+  expect_gt(level[["switch"]], level[["sc"]])
+
+  expect_error(
+    pmx_trial_design(c(10, 20), c(5, 5), sampling = c(0, 1),
+                     routes = list("iv", "extravascular", "iv"),
+                     source = "unit test"),
+    "one per cohort"
+  )
+  expect_error(
+    pmx_trial_design(100, 5, sampling = c(0, 1), routes = c("iv", "oral"),
+                     source = "unit test"),
+    "extravascular"
+  )
+})
+
+test_that("a calibrated correction is computed against the declared routes", {
+  # REV-053 again, one level down. Relaxing the refusal let a mixed model reach
+  # `.subject_corrections()`, which compared each subject against a prediction
+  # built without routes -- an all-intravenous curve. The correction then
+  # absorbed the bioavailability instead of the study's clearance.
+  true_f <- pmx_structural_model(
+    "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7), source = "unit test"
+  )
+  wrong_f <- pmx_structural_model(
+    "1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.1), source = "unit test"
+  )
+  design <- pmx_trial_design(
+    100, 40, sampling = c(0, 1, 3, 7), n_doses = 3, dose_interval = 7,
+    routes = c("iv", "extravascular", "extravascular"),
+    source = "unit test protocol"
+  )
+  data <- synpmx_prior(true_f, design, n_subjects = 40, seed = 1)
+  priors <- pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "unit test"))
+  correction <- function(model) {
+    suppressWarnings(attr(synpmx_calibrated(
+      data = data, roles = pmx_generated_roles(), model = model,
+      design = design, priors = priors, epsilon = 50, seed = 1,
+      backend = "public", public_source = TRUE
+    ), "synpmx_release")$corrections$pk$factor)
+  }
+  # The data was generated under `true_f`, so its own model needs almost no
+  # correcting and a model with the wrong bioavailability needs some.
+  expect_equal(correction(true_f), 1, tolerance = 0.1)
+  expect_false(isTRUE(all.equal(correction(true_f), correction(wrong_f))))
+
+  # A per-cohort declaration cannot be used for a per-subject correction,
+  # because nothing says which cohort a subject followed.
+  per_cohort <- pmx_trial_design(
+    c(100, 100), c(20, 20), sampling = c(0, 1, 3, 7), n_doses = 3,
+    dose_interval = 7,
+    routes = list(rep("iv", 3), rep("extravascular", 3)),
+    source = "unit test protocol"
   )
   expect_error(
     synpmx_calibrated(
-      data = data, roles = pmx_generated_roles(), model = mixed,
-      design = design,
-      priors = pmx_priors(pk = pmx_prior(c(1 / 4, 4), source = "unit test")),
-      epsilon = 1, seed = 3, backend = "public", public_source = TRUE
+      data = data, roles = pmx_generated_roles(), model = true_f,
+      design = per_cohort, priors = priors, epsilon = 1, seed = 1,
+      backend = "public", public_source = TRUE
     ),
-    "1cmt_mixed"
+    "per-cohort"
   )
-
-  # The single-route forms the error names are usable.
-  for (form in c("1cmt_iv", "1cmt_oral")) {
-    typical <- c(cl = 2, v = 10)
-    if (form == "1cmt_oral") typical <- c(typical, ka = 0.5)
-    expect_s3_class(
-      synpmx_prior(pmx_structural_model(form, typical, source = "unit test"),
-                   design, n_subjects = 5, seed = 1),
-      "data.frame"
-    )
-  }
 })

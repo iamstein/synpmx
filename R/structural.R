@@ -275,6 +275,31 @@ print.pmx_structural_model <- function(x, ...) {
   invisible(x)
 }
 
+# One route per dose, or one list of them per cohort, mirroring how
+# `dose_escalation` lets each cohort carry its own dose sequence. A study that
+# gives an intravenous loading dose and then subcutaneous maintenance is one
+# vector; a study with an intravenous arm, a subcutaneous arm and an arm that
+# switches is three.
+.normalize_routes <- function(routes, n_doses, n_cohorts) {
+  if (is.null(routes)) return(NULL)
+  sequences <- if (is.list(routes)) routes else list(routes)
+  ok <- vapply(sequences, function(r) {
+    is.character(r) && length(r) >= 1L && !anyNA(r) &&
+      all(r %in% c("iv", "extravascular"))
+  }, logical(1))
+  if (!length(sequences) || !all(ok)) {
+    stop('`routes` must be "iv" or "extravascular" entries, one per dose, or ',
+         "a list of such vectors, one per cohort.", call. = FALSE)
+  }
+  if (length(sequences) != 1L && length(sequences) != n_cohorts) {
+    stop("`routes` must give one vector, or one per cohort (", n_cohorts,
+         ").", call. = FALSE)
+  }
+  # Recycled to the dose count the way `sampling` is, so a single route for a
+  # whole course needs saying once.
+  lapply(sequences, function(r) rep_len(as.character(r), n_doses))
+}
+
 #' Declare a public trial design
 #'
 #' Every field is a design fact from the protocol and consumes no privacy
@@ -287,6 +312,10 @@ print.pmx_structural_model <- function(x, ...) {
 #' escalation gives every subject the same increasing sequence of doses
 #' (`dose_escalation`), one per occasion; this is prespecified design, not an
 #' outcome, when the escalation follows a fixed protocol schedule.
+#'
+#' A study that doses by more than one route declares `routes` alongside
+#' either pattern. Without it a mixed-route structural model is refused rather
+#' than generated as though every dose were intravenous.
 #'
 #' @param dose_levels Dose amounts, one per cohort. Omit when using
 #'   `dose_escalation`.
@@ -312,6 +341,17 @@ print.pmx_structural_model <- function(x, ...) {
 #'   equally spaced times at `dose_interval`.
 #' @param duration Infusion duration; zero for bolus or oral.
 #' @param visit_window Fractional jitter applied to nominal times.
+#' @param routes Administration route per dose, `"iv"` or `"extravascular"`,
+#'   for a study dosed by more than one. Required by the `"1cmt_mixed"` and
+#'   `"2cmt_mixed"` structural models, which resolve to a single-route form per
+#'   dose and apply the model's `f` to the extravascular ones only; an
+#'   intravenous dose carries no bioavailability term because it is all of the
+#'   dose. One vector serves every cohort, so an intravenous loading dose
+#'   followed by subcutaneous maintenance is
+#'   `c("iv", "extravascular", "extravascular")`. A list gives each cohort its
+#'   own, the way `dose_escalation` does, which is how a study with an
+#'   intravenous arm, a subcutaneous arm and an arm that switches is written
+#'   down. A single entry is recycled over the doses.
 #' @param source Required provenance string.
 #'
 #' @return A `pmx_trial_design`.
@@ -319,7 +359,8 @@ print.pmx_structural_model <- function(x, ...) {
 pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
                              sampling, n_doses = 1L, dose_interval = 24,
                              dose_escalation = NULL, dose_times = NULL,
-                             duration = 0, visit_window = 0.05, source) {
+                             duration = 0, visit_window = 0.05,
+                             routes = NULL, source) {
   if (missing(source) || !is.character(source) || length(source) != 1L ||
       !nzchar(trimws(source))) {
     stop("`source` is required and must record the protocol this came from.",
@@ -378,6 +419,7 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
     }
     dose_times <- as.numeric(dose_times)
   }
+  routes <- .normalize_routes(routes, n_doses, length(dose_levels))
   structure(list(
     dose_levels = as.numeric(dose_levels), cohort_sizes = cohort_sizes,
     escalation = escalation_list,
@@ -387,6 +429,7 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
     dose_times = dose_times,
     duration = as.numeric(duration),
     visit_window = as.numeric(visit_window),
+    routes = routes,
     source = source
   ), class = "pmx_trial_design")
 }
@@ -394,6 +437,12 @@ pmx_trial_design <- function(dose_levels = NULL, cohort_sizes = NULL,
 #' @export
 print.pmx_trial_design <- function(x, ...) {
   cat("Public trial design\n", sep = "")
+  if (!is.null(x$routes)) {
+    for (i in seq_along(x$routes)) {
+      cat("  routes", if (length(x$routes) > 1L) paste0(" (cohort ", i, ")"),
+          ": ", paste(x$routes[[i]], collapse = ", "), "\n", sep = "")
+    }
+  }
   if (!is.null(x$escalation)) {
     if (length(x$escalation) == 1L) {
       cat("  within-subject escalation: ",
