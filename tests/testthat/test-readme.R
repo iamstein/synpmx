@@ -1,103 +1,82 @@
 # README.md is hand-maintained: there is no README.Rmd knitting it, so nothing
 # re-runs its example when behavior changes. This test is what keeps the example
-# honest -- it runs exactly the code shown under "Running it on your own study"
-# and "The masking options, and their defaults", and asserts exactly the output
-# printed beneath it.
+# honest -- it declares exactly the roles shown under "Example with
+# `synpmx_model()`" and checks that every argument the README passes still
+# exists on the functions it passes them to.
 #
 # If this fails, the README is telling readers something the package no longer
 # does. Fix the package or update the README -- do not relax the test.
+#
+# What it does not do is run the example. `synpmx_model()` fits a population
+# model, which compiles, and `R CMD check` must never compile one -- the same
+# reason `pmxmodel-demo.Rmd` knits against a stored fit. So the test pins the
+# inputs and the interface, which is where a rename or a dropped role would
+# show up, and the demo vignette and the public-data survey exercise the fit
+# itself.
 
-# The README has one worked example and it declares every role, because a reader
-# arriving here wants to run this on their own study rather than watch a demo.
-# So the test's job is to prove the full declaration is still accepted and still
-# produces the printed table -- an argument renamed or a role dropped shows up
-# here rather than in a reader's session.
-test_that("the README full-declaration example runs as shown", {
-  study <- pmx_simulated_fixture(24)
-  study$YTYPE <- ifelse(study$DVID == "cp", 1L, 2L)
-  study$NAME <- as.character(study$DVID)
-  study$DVID <- NULL
-  study$TRTN <- ifelse(study$ID %% 2L == 1L, 1L, 2L)
-  study$TRT <- ifelse(study$TRTN == 1L, "100 mg QD", "200 mg QD")
-  study$AMT[study$EVID != 0] <- 100 * study$TRTN[study$EVID != 0]
-  study$STUDYID <- "EXAMPLE-001"
-  bloq <- study$EVID == 0 & study$NAME == "cp" & study$DV < 1.2
-  study$DV[bloq] <- 1.2
-  study$CENS[bloq] <- 1L
-  study$LIMIT <- ifelse(bloq, 0, NA_real_)
+# The README's example is a real public dataset, so the test uses that dataset
+# rather than a fixture standing in for it.
+readme_study <- function() {
+  study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
+  # CENS here flags the PK assay limit only, as the README's comment says.
+  study$CENS[study$NAME == "PD - Continuous"] <- 0
+  study
+}
 
-  roles <- pmx_roles(
-    id                 = "ID",
-    time               = "TIME",
-    dv                 = "DV",
-    evid               = "EVID",
-    amt                = "AMT",
-    rate               = "RATE",
-    cmt                = "CMT",
-    dvid               = c("YTYPE", "NAME"),
-    mdv                = "MDV",
-    nominal_time       = "NTIME",
-    tad                = "TAD",
-    occasion           = "OCC",
-    cens               = "CENS",
-    limit              = "LIMIT",
-    covariates         = c("WT", "AGE", "SEX"),
-    dose_covariate     = "WT",
-    strata = c("TRT", "TRTN"),
-    keep               = "STUDYID"
+# Every role the README names, in the order it names them. A role dropped from
+# `pmx_roles()` or renamed fails here rather than in a reader's session.
+readme_roles <- function() {
+  pmx_roles(
+    id             = "ID",
+    time           = "TIME",
+    dv             = "LIDV",
+    evid           = "EVID",
+    amt            = "AMT",
+    cmt            = "CMT",
+    dvid           = "NAME",
+    mdv            = NULL,
+    rate           = NULL,
+    nominal_time   = "NOMTIME",
+    tad            = NULL,
+    occasion       = NULL,
+    cens           = "CENS",
+    limit          = NULL,
+    addl           = NULL,
+    ii             = NULL,
+    covariates     = "WEIGHTB",
+    strata         = c("TRTACT", "DOSE"),
+    dose_covariate = NULL,
+    endpoint_types = NULL,
+    keep           = "STUDY"
   )
+}
+
+test_that("the README declaration is accepted for the dataset it shows", {
+  skip_if_not_installed("xgxr")
+  study <- readme_study()
+  roles <- readme_roles()
 
   #> [1] TRUE
   expect_true(validate_pmx(study, roles)$valid)
 
-  # The README shows no warning and no dropped-column message under this call,
-  # which is only true because every column is declared and every arm clears the
-  # donor floor. If that stops holding, the README is showing a clean run that
-  # readers will not get.
-  expect_silent(
-    synthetic <- synpmx_avatar(
-      study, roles,
-      n_subjects         = NULL,
-      seed               = 2026,
-      k                  = 5,
-      max_donor_weight   = 0.50,
-      on_donor_shortfall = "drop",
-      screen             = TRUE,
-      coarsen_time       = TRUE,
-      min_pattern_share  = 2L,
-      subject_noise_sd   = 0.15,
-      residual_noise_sd  = 0.05,
-      residual_phi       = 0.6,
-      pca_variance       = 0.90
-    )
-  )
+  # The README says every column that is not described is dropped, and names
+  # `STUDY` as the one carried through verbatim.
+  expect_true(all(c("WEIGHTB", "TRTACT", "DOSE", "STUDY") %in% names(study)))
 
-  #> [1] TRUE
-  expect_true(validate_pmx(synthetic, roles)$valid)
+  # It also says the cohort is large enough to fit, which is a gate rather
+  # than a suggestion: `synpmx_model_estimate()` refuses under 20 subjects.
+  expect_gte(length(unique(study$ID)), formals(synpmx_model_estimate)$min_subjects)
+})
 
-  #> [1] 384  21
-  expect_equal(dim(synthetic), c(384L, 21L))
-
-  # head(synthetic[, ...], 6), as printed in README.md.
-  shown <- head(
-    synthetic[, c("ID", "TIME", "NTIME", "OCC", "NAME", "DV", "CENS", "TRT")], 6
-  )
-  expect_equal(as.character(shown$ID), rep("25", 6))
-  expect_equal(shown$TIME, c(0, 0, 0.25, 1, 2, 4), tolerance = 1e-6)
-  expect_equal(shown$NTIME, c(0, 0, 0.25, 1, 2, 4), tolerance = 1e-6)
-  expect_equal(shown$OCC, rep(1L, 6))
-  expect_equal(shown$NAME, c("cp", "pd", "cp", "cp", "cp", "pd"))
-  expect_equal(shown$DV,
-               c(0.000000, 79.636843, 1.200000, 6.573038, 3.467210, 70.010784),
-               tolerance = 1e-6)
-  expect_equal(shown$CENS, c(0L, 0L, 1L, 0L, 0L, 0L))
-  expect_equal(shown$TRT, rep("100 mg QD", 6))
-
-  # `strata` are declared here, so `preserve_strata_balance` (default TRUE)
-  # gives each arm the same share it holds in the source rather than leaving it
-  # to the anchor draw.
-  expect_equal(
-    as.integer(table(synthetic$TRT[!duplicated(synthetic$ID)])),
-    as.integer(table(study$TRT[!duplicated(study$ID)]))
-  )
+test_that("the README passes arguments these functions still have", {
+  # The one-call form.
+  expect_true(all(c("data", "roles", "n_subjects", "seed") %in%
+                    names(formals(synpmx_model))))
+  # The two-stage form the README shows underneath it.
+  expect_true(all(c("data", "roles", "seed") %in%
+                    names(formals(synpmx_model_estimate))))
+  expect_true(all(c("n_subjects", "seed") %in%
+                    names(formals(synpmx_model_generate))))
+  # And the reader is told to call this on the fit.
+  expect_true(is.function(model_report))
 })

@@ -44,26 +44,21 @@ a trust boundary and more formal privacy protections are needed:
 5. `synpmx_calibrated()` — Keeps the public model's shape, and spends a small privacy budget
    correcting its magnitude.
 
-All five are reviewed in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html),
-which numbers them the same way the navigation bar does.
+A sixth generator, `synpmx_empirical()`, measures the trajectory shape rather basing it off a prior, but it is not yet developed further.  All the methods are discussed further in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
 
-A sixth generator, `synpmx_empirical()`, measures the trajectory shape rather than asserting it,
-and releases far more numbers to do so — which splits the same privacy budget many ways and makes
-it unusable below a few hundred subjects.  It is exported so the tradeoff can be checked, but it is
-not developed further and has no documents of its own; one section of
-[synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html) says why.
+## Example using a PopPK + PD model fit`
 
-## Example (with AVATAR)
-
-`synpmx_avatar()` is the easiest place to start. Every column that is not described is dropped.
+### Declare the dataset
 
 ``` r
 library(synpmx)
 
 study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
 study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
+```
 
-# ?pmx_roles` describes the options here
+### Define Column roles
+``` r
 roles <- pmx_roles(
   id             = "ID",                 # subject identifier - REQUIRED
   time           = "TIME",               # actual elapsed time, numeric - REQUIRED
@@ -74,26 +69,42 @@ roles <- pmx_roles(
   dvid           = "NAME",               # endpoint key: which endpoint the row reports
   mdv            = NULL,                 # missing-dependent-variable flag
   rate           = NULL,                 # infusion rate
-  nominal_time   = "NOMTIME",            # protocol visit time
-  tad            = NULL,                 # time after dose; this is not used by AVATAR, it is recomputed
+  nominal_time   = "NOMTIME",            # protocol visit time; the visit model is built on it
+  tad            = NULL,                 # time after dose; recomputed rather than read
   occasion       = NULL,                 # set if TIME resets by occasion
   cens           = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
   limit          = NULL,                 # other end of the censoring interval
   addl           = NULL,                 # additional doses
   ii             = NULL,                 # interdose interval
-  covariates     = "WEIGHTB",            # patient baseline covariates; blended across donors
-  strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort (default is to balance synthetic data by strata)
+  covariates     = "WEIGHTB",            # patient baseline covariates
+  strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort; one dosing and visit model per arm
   dose_covariate = NULL,                 # covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)
   endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
   keep           = "STUDY",              # columns carried through verbatim
 )
 
-synthetic <- synpmx_avatar(
-  study,             #study data
-  roles,             #column description
-  n_subjects = NULL, # cohort size; NULL matches the source
-  seed       = 2026)
+``` r
+fit <- synpmx_model_estimate(study, roles, seed = 2026)
+fit                                  # the structural model, parameters and arms it chose
+model_report(fit)                    # what leaves the study, itemised
+synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
 ```
+
+
+Fitting compiles a model, so this takes a few minutes and needs a working
+toolchain. To see what the fit found, and to draw further datasets without
+refitting, run the two halves separately:
+
+``` r
+fit <- synpmx_model_estimate(study, roles, seed = 2026)
+fit                                  # the structural model, parameters and arms it chose
+model_report(fit)                    # what leaves the study, itemised
+synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
+```
+
+The fitted parameters exist to make simulated profiles resemble the source
+study. They are **not estimates to report**, and the object prints that warning
+with itself.
 
 ## Installation
 
