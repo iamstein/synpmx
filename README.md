@@ -48,6 +48,8 @@ A sixth generator, `synpmx_empirical()`, measures the trajectory shape rather th
 
 ## Example using a PopPK + PD model fit
 
+
+
 ### 1. Declare the dataset
 
 ``` r
@@ -96,8 +98,10 @@ print(fit)
 ### 4. Generate synthetic dataset
 
 ``` r
-synthetic <- synpmx_model_generate(fit, n_subjects = 180, seed = 2026)
+synthetic <- synpmx_model_generate(fit, seed = 2026)
 ```
+
+For brevity, one may choose to combine the fit and data generation steps using `synpmx_model(study, roles, seed = 2026)`.
 
 ## Installation
 
