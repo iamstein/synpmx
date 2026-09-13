@@ -50,7 +50,7 @@ to say.
 | Dataset | What the design grammar cannot state |
 |----|----|
 | `theo_md` | — |
-| `mixroute_sim` | Two administration routes; the mixed-route forms are refused because a design cannot say which dose went by which route |
+| `mixroute_sim` | — (the two administration routes need `routes` declared, and the allometric scaling on weight has nowhere to go) |
 | `warfarin` | Dosing in mg/kg — `dose_levels` takes absolute amounts, so a weight-based regimen becomes one typical dose |
 | `pheno_sd`, `wbcSim` | The same mg/kg limitation, over irregular per-subject schedules |
 | `mavoglurant`, `nimoData` | An infusion rate per subject; `duration` is one number for the whole design |
@@ -143,10 +143,10 @@ mode can have: the prior is not an estimate or a guess, it is the truth,
 and whatever gap remains is the part of the truth the catalogue cannot
 hold.
 
-Three things it cannot hold here. The allometric scaling, because no
-covariate reaches a parameter. The bioavailability, because `1cmt_oral`
-has no `f` and the mixed form that does is refused for a public design.
-And the three arms, because one asserted model covers one route.
+The study doses three arms two different ways, which `1cmt_mixed`
+expresses once the design says which dose went which way. One thing is
+left over: the allometric scaling, because no covariate reaches a
+parameter.
 
 ``` r
 
@@ -155,13 +155,18 @@ mixroute_roles <- pmx_roles(
   evid = "EVID", cmt = "CMT", cens = "CENS", covariates = "WT"
 )
 mixroute_model <- pmx_structural_model(
-  pk = "1cmt_oral", typical = c(cl = 2, v = 10, ka = 0.5),
+  pk = "1cmt_mixed", typical = c(cl = 2, v = 10, ka = 0.5, f = 0.7),
   source = "the documented generating truth of the mixroute_sim fixture"
 )
+# Three arms of thirty: intravenous throughout, intravenous then subcutaneous,
+# and subcutaneous throughout. `f` applies to the extravascular doses only.
 mixroute_design <- pmx_trial_design(
-  dose_levels = 100, cohort_sizes = 90, sampling = c(0, 1, 2, 3, 7),
-  n_doses = 3, dose_interval = 7,
-  source = "the fixture's protocol: 100 mg on days 0, 7 and 14"
+  dose_levels = c(100, 100, 100), cohort_sizes = c(30, 30, 30),
+  sampling = c(0, 1, 2, 3, 7), n_doses = 3, dose_interval = 7,
+  routes = list(rep("iv", 3),
+                c("iv", "extravascular", "extravascular"),
+                rep("extravascular", 3)),
+  source = "the fixture's protocol: 100 mg on days 0, 7 and 14, by two routes"
 )
 mixroute_covariates <- pmx_covariates(WT = pmx_covariate(
   range = c(40, 130), median = 72, cv = 0.17,
@@ -193,7 +198,7 @@ ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
 
 round(level_ratio(mixroute, mixroute_syn, mixroute_roles), 3)
 #>    source synthetic     ratio 
-#>     4.683     5.848     1.249
+#>     4.683     5.388     1.151
 ```
 
 ``` r
@@ -203,11 +208,11 @@ synpmx_scorecard_datatable(
 )
 ```
 
-The median sits within about a quarter of the study’s, which flatters
-it. The figure shows why, and so does the scorecard’s one substantive
-review row: the synthetic profiles are tighter than the real ones. One
-asserted model gives every subject the same route, and the route is what
-separates this study’s arms.
+The level sits close, and the arms separate the way the study’s do. The
+route is what separates them — an intravenous dose is all of the dose
+and a subcutaneous one is seventy per cent of it — so a design that
+states the routes reproduces the separation and one that does not lands
+every arm on the same level.
 
 ``` r
 
@@ -217,30 +222,40 @@ spread <- function(data) {
   c(median = stats::median(v), sd = stats::sd(v),
     p90 = stats::quantile(v, 0.9, names = FALSE))
 }
-by_arm <- tapply(mixroute$DV[mixroute$EVID == 0],
-                 mixroute$ARM[mixroute$EVID == 0],
-                 function(v) stats::median(v, na.rm = TRUE))
-round(by_arm, 2)
-#>    IV only IV then SC    SC only 
-#>       8.19       4.47       3.26
+# The cohorts were declared in the order the arms are listed here.
+synthetic_arm <- cut(mixroute_syn$ID, c(0, 30, 60, 90),
+                     labels = c("IV only", "IV then SC", "SC only"))
+observation <- mixroute_syn$EVID == 0
+round(rbind(
+  source = tapply(mixroute$DV[mixroute$EVID == 0],
+                  factor(mixroute$ARM[mixroute$EVID == 0],
+                         c("IV only", "IV then SC", "SC only")),
+                  stats::median, na.rm = TRUE),
+  synthetic = tapply(mixroute_syn$DV[observation], synthetic_arm[observation],
+                     stats::median, na.rm = TRUE)
+), 2)
+#>           IV only IV then SC SC only
+#> source       8.19       4.47    3.26
+#> synthetic    8.22       5.19    3.84
 round(rbind(source = spread(mixroute), synthetic = spread(mixroute_syn)), 2)
 #>           median   sd   p90
 #> source      4.68 3.95 11.32
-#> synthetic   5.85 2.27  8.97
+#> synthetic   5.39 3.19 10.43
 ```
 
-The three arms sit a factor of two and a half apart, because an
-intravenous dose is all of the dose and a subcutaneous one is seventy
-per cent of it. The synthetic cohort lands between them — it is the
-average of arms it has no way to tell apart — and its spread is roughly
-half the study’s, the missing part being that between-arm separation
-plus the allometric scaling on weight that no covariate can reach.
+The arms come back in the right order and at roughly the right
+separation. The spread is narrower than the study’s, and what is missing
+from it is the allometric scaling: in the source, a heavy subject and a
+light one have different clearances, and here they have the same one
+because no covariate reaches a parameter.
 
 **This is the ceiling, and it is worth being precise about what it is a
-ceiling on.** Handed the model that generated the data, this mode
-reproduces the event structure exactly, the central level to within a
-quarter, and the dispersion to about a half. Nothing a better prior
-could fix remains: what is left out is what the catalogue cannot say.
+ceiling on.** Handed the model that generated the data and a design that
+states everything the grammar can state, this mode reproduces the event
+structure exactly, the central level to within about a seventh, and the
+dispersion to about four fifths. What remains is one covariate
+relationship the catalogue has no way to express, and no better prior
+would recover it.
 
 ## warfarin: a regimen read off the data, and a prior from drug properties
 
@@ -494,7 +509,7 @@ knitr::kable(levels_tbl, row.names = FALSE,
 
 | dataset | prior | source | synthetic | ratio |
 |:---|:---|:---|:---|:---|
-| mixroute_sim | the documented generating truth | 4.68 | 5.85 | 1.25 |
+| mixroute_sim | the documented generating truth | 4.68 | 5.39 | 1.15 |
 | warfarin | round numbers from drug properties | 6.3 | 7.03 | 1.12 |
 | theo_md | allometric scaling, clearance ~3x too fast | 5.89 | 3.15 | 0.53 |
 

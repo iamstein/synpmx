@@ -79,31 +79,54 @@ pmx_structural_model(pk = "2cmt_oral", typical = c(cl = 1), source = "x")
 ```
 
 Two forms in that list, `1cmt_mixed` and `2cmt_mixed`, are for a study
-dosed by two routes. They resolve to a single-route form per dose, and
-`f` is the bioavailability applied to the extravascular one. **This mode
-refuses them**, because resolving the form needs to know which dose went
-by which route and a public trial design has no way to say:
+dosed by more than one route. They resolve to a single-route form per
+dose, and `f` is the bioavailability applied to the extravascular ones;
+an intravenous dose carries no bioavailability term because it is all of
+the dose. Resolving the form needs to know which dose went which way, so
+the design has to say:
 
 ``` r
 
-synpmx_prior(
-  pmx_structural_model("1cmt_mixed", c(cl = 2, v = 10, ka = 0.5, f = 0.7),
-                       source = "illustrative"),
-  pmx_trial_design(100, 30, sampling = c(1, 3, 7), source = "illustrative")
-)
+mixed <- pmx_structural_model("1cmt_mixed",
+                              c(cl = 2, v = 10, ka = 0.5, f = 0.7),
+                              source = "illustrative")
+synpmx_prior(mixed, pmx_trial_design(100, 30, sampling = c(1, 3, 7),
+                                     source = "illustrative"))
 #> Error:
-#> ! `synpmx_prior()` cannot generate from the `1cmt_mixed` model.
-#>   A mixed-route model needs to know which dose went by which route, and a
-#>   public trial design has no way to say. Declare the route the study
-#>   actually used -- 1cmt_iv or 1cmt_oral -- or use `synpmx_model()`, which
-#>   reads the route from the data.
+#> ! `synpmx_prior()` cannot generate from the `1cmt_mixed` model without
+#> knowing which dose went by which route.
+#>   A mixed-route model resolves to a single-route form per dose, and
+#>   bioavailability applies to the extravascular one only.
+#>   Fix: Give the protocol's routes to `pmx_trial_design(routes = )` -- for
+#>     example `c("iv", "extravascular", "extravascular")` for a loading dose
+#>     followed by maintenance -- or declare the single-route form 1cmt_iv or
+#>     1cmt_oral instead.
 ```
 
-Before that refusal existed, these forms ran and returned the plain
+`pmx_trial_design(routes = )` is what it is asking for. One vector
+serves every cohort, and a list gives each its own the way
+`dose_escalation` does:
+
+``` r
+
+switching <- pmx_trial_design(
+  dose_levels = c(100, 100), cohort_sizes = c(15, 15),
+  sampling = c(0, 1, 3, 7), n_doses = 3, dose_interval = 7,
+  routes = list(rep("iv", 3), c("iv", "extravascular", "extravascular")),
+  source = "illustrative protocol: an intravenous arm and a switching arm"
+)
+switching
+#> Public trial design
+#>   routes (cohort 1): iv, iv, iv
+#>   routes (cohort 2): iv, extravascular, extravascular
+#>   doses: 100, 100  (n = 15, 15)
+#>   dose times: 0, 7, 14
+#>   sampling: 0, 1, 3, 7
+#>   source: illustrative protocol: an intravenous arm and a switching arm
+```
+
+Before the refusal existed these forms ran anyway and returned the plain
 intravenous profile with `f` discarded, identical at any value of it.
-Declare the route the study used, or use
-[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md),
-which reads the route from the data.
 
 Two further inputs are assertions about variability:
 

@@ -130,11 +130,11 @@ which is the honest way to read a single one.
 release <- attr(synthetic, "synpmx_release")
 release
 #> Calibrated structural model (v3)
-#>   released subject count: 65
-#>   pk correction: 3.34x
-#>   corrected typical: cl=6.67, v=10, ka=0.5
+#>   released subject count: 116.7
+#>   pk correction: 0.533x
+#>   corrected typical: cl=1.07, v=10, ka=0.5
 #>   epsilon: 0.1  (formal DP: TRUE)
-#>   f = 0.308 (worthwhile)
+#>   f = 0.171 (worthwhile)
 ```
 
 Two numbers left the study: a correction multiplying the assumed
@@ -167,11 +167,11 @@ not a measurement.
 ``` r
 
 str(synthetic)
-#> 'data.frame':    1040 obs. of  8 variables:
+#> 'data.frame':    1872 obs. of  8 variables:
 #>  $ ID   : int  1 1 1 1 1 1 1 1 1 1 ...
-#>  $ TIME : num  0 0 0.974 1.976 3.05 ...
+#>  $ TIME : num  0 0 0.996 1.937 2.994 ...
 #>  $ NTIME: num  0 0 1 2 3 7 7 8 9 10 ...
-#>  $ DV   : num  NA 0 1.9 2.4 2.43 ...
+#>  $ DV   : num  NA 0 2.72 4.6 6.55 ...
 #>  $ AMT  : num  100 0 0 0 0 100 0 0 0 0 ...
 #>  $ EVID : int  1 0 0 0 0 1 0 0 0 0 ...
 #>  $ CMT  : int  1 2 2 2 2 1 2 2 2 2 ...
@@ -212,7 +212,7 @@ str(synthetic)
 #>   .. ..$ residual_cv: num 0.15
 #>   .. ..$ endpoints  : chr "cp"
 #>   .. ..- attr(*, "class")= chr "pmx_structural_model"
-#>   ..$ design               :List of 10
+#>   ..$ design               :List of 11
 #>   .. ..$ dose_levels  : num 100
 #>   .. ..$ cohort_sizes : int 90
 #>   .. ..$ escalation   : NULL
@@ -225,6 +225,7 @@ str(synthetic)
 #>   .. ..$ dose_times   : NULL
 #>   .. ..$ duration     : num 0
 #>   .. ..$ visit_window : num 0.05
+#>   .. ..$ routes       : NULL
 #>   .. ..$ source       : chr "the fixture's protocol: 100 mg on days 0, 7 and 14"
 #>   .. ..- attr(*, "class")= chr "pmx_trial_design"
 #>   ..$ priors               :List of 1
@@ -238,27 +239,27 @@ str(synthetic)
 #>   ..$ covariate_summaries  : NULL
 #>   ..$ corrections          :List of 1
 #>   .. ..$ pk:List of 3
-#>   .. .. ..$ factor           : num 3.34
+#>   .. .. ..$ factor           : num 0.533
 #>   .. .. ..$ at_prior_boundary: logi FALSE
 #>   .. .. ..$ prior            :List of 3
 #>   .. .. .. ..$ range : num [1:2] 0.25 4
 #>   .. .. .. ..$ source: chr "scaling literature: the prediction is believed good to four-fold"
 #>   .. .. .. ..$ span  : num 2.77
 #>   .. .. .. ..- attr(*, "class")= chr "pmx_prior"
-#>   ..$ corrected_typical    : Named num [1:3] 6.67 10 0.5
+#>   ..$ corrected_typical    : Named num [1:3] 1.07 10 0.5
 #>   .. ..- attr(*, "names")= chr [1:3] "cl" "v" "ka"
-#>   ..$ private_subject_count: num 65
+#>   ..$ private_subject_count: num 117
 #>   ..$ preflight            :List of 6
 #>   .. ..$ d         : int 2
 #>   .. ..$ epsilon   : num 0.1
-#>   .. ..$ n_subjects: num 65
-#>   .. ..$ f         : num 0.308
+#>   .. ..$ n_subjects: num 117
+#>   .. ..$ f         : num 0.171
 #>   .. ..$ verdict   : chr "worthwhile"
 #>   .. ..$ table     :'data.frame':    1 obs. of  4 variables:
 #>   .. .. ..$ quantity           : chr "pk"
 #>   .. .. ..$ prior_fold         : num 16
-#>   .. .. ..$ f                  : num 0.308
-#>   .. .. ..$ expected_fold_error: num 2.35
+#>   .. .. ..$ f                  : num 0.171
+#>   .. .. ..$ expected_fold_error: num 1.61
 #>   .. ..- attr(*, "class")= chr "pmx_preflight"
 #>   ..$ privacy              :List of 9
 #>   .. ..$ formal_dp         : logi TRUE
@@ -291,8 +292,8 @@ str(synthetic)
 #>   .. ..$ input : chr [1:3] "structural model" "trial design" "pk prior"
 #>   .. ..$ source: chr [1:3] "the documented generating truth of the mixroute_sim fixture" "the fixture's protocol: 100 mg on days 0, 7 and 14" "scaling literature: the prediction is believed good to four-fold"
 #>   ..$ ledger               :List of 5
-#>   .. ..$ release_id       : chr "pmx-20260912T222925.348706-20833"
-#>   .. ..$ created_utc      : chr "2026-09-12T22:29:25.348981Z"
+#>   .. ..$ release_id       : chr "pmx-20260913T012159.459462-21133"
+#>   .. ..$ created_utc      : chr "2026-09-13T01:21:59.459771Z"
 #>   .. ..$ requested_epsilon: num 0.1
 #>   .. ..$ realized_epsilon : num 0.1
 #>   .. ..$ backend          : chr "OpenDP"

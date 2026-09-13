@@ -34,7 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-background" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Background</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-background">
 <li><a class="dropdown-item" href="../articles/synpmx-methods.html">The synpmx data generation algorithms</a></li>
-    <li><a class="dropdown-item" href="../articles/avatar-vs-pca.html">How AVATAR, PCA and PMXmodel are related</a></li>
+    <li><a class="dropdown-item" href="../articles/avatar-vs-pca-vs-pmxmodel.html">Comparing AVATAR, PCA and PMXmodel</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-generation-review.html">Literature: generating synthetic data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Privacy</h6></li>
@@ -183,8 +183,8 @@ say.</p>
 </tr>
 <tr class="even">
 <td><code>mixroute_sim</code></td>
-<td>Two administration routes; the mixed-route forms are refused because
-a design cannot say which dose went by which route</td>
+<td>— (the two administration routes need <code>routes</code> declared,
+and the allometric scaling on weight has nowhere to go)</td>
 </tr>
 <tr class="odd">
 <td><code>warfarin</code></td>
@@ -303,24 +303,28 @@ weight. Handing those back as the public model is the best case this
 mode can have: the prior is not an estimate or a guess, it is the truth,
 and whatever gap remains is the part of the truth the catalogue cannot
 hold.</p>
-<p>Three things it cannot hold here. The allometric scaling, because no
-covariate reaches a parameter. The bioavailability, because
-<code>1cmt_oral</code> has no <code>f</code> and the mixed form that
-does is refused for a public design. And the three arms, because one
-asserted model covers one route.</p>
+<p>The study doses three arms two different ways, which
+<code>1cmt_mixed</code> expresses once the design says which dose went
+which way. One thing is left over: the allometric scaling, because no
+covariate reaches a parameter.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mixroute_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"ID"</span>, time <span class="op">=</span> <span class="st">"TIME"</span>, nominal_time <span class="op">=</span> <span class="st">"NTIME"</span>, dv <span class="op">=</span> <span class="st">"DV"</span>, amt <span class="op">=</span> <span class="st">"AMT"</span>,</span>
 <span>  evid <span class="op">=</span> <span class="st">"EVID"</span>, cmt <span class="op">=</span> <span class="st">"CMT"</span>, cens <span class="op">=</span> <span class="st">"CENS"</span>, covariates <span class="op">=</span> <span class="st">"WT"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">mixroute_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_structural_model.html">pmx_structural_model</a></span><span class="op">(</span></span>
-<span>  pk <span class="op">=</span> <span class="st">"1cmt_oral"</span>, typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">2</span>, v <span class="op">=</span> <span class="fl">10</span>, ka <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>  pk <span class="op">=</span> <span class="st">"1cmt_mixed"</span>, typical <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">2</span>, v <span class="op">=</span> <span class="fl">10</span>, ka <span class="op">=</span> <span class="fl">0.5</span>, f <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span>,</span>
 <span>  source <span class="op">=</span> <span class="st">"the documented generating truth of the mixroute_sim fixture"</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co"># Three arms of thirty: intravenous throughout, intravenous then subcutaneous,</span></span>
+<span><span class="co"># and subcutaneous throughout. `f` applies to the extravascular doses only.</span></span>
 <span><span class="va">mixroute_design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_trial_design.html">pmx_trial_design</a></span><span class="op">(</span></span>
-<span>  dose_levels <span class="op">=</span> <span class="fl">100</span>, cohort_sizes <span class="op">=</span> <span class="fl">90</span>, sampling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">7</span><span class="op">)</span>,</span>
-<span>  n_doses <span class="op">=</span> <span class="fl">3</span>, dose_interval <span class="op">=</span> <span class="fl">7</span>,</span>
-<span>  source <span class="op">=</span> <span class="st">"the fixture's protocol: 100 mg on days 0, 7 and 14"</span></span>
+<span>  dose_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span><span class="op">)</span>, cohort_sizes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">30</span>, <span class="fl">30</span><span class="op">)</span>,</span>
+<span>  sampling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">7</span><span class="op">)</span>, n_doses <span class="op">=</span> <span class="fl">3</span>, dose_interval <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>  routes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"iv"</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>                <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"iv"</span>, <span class="st">"extravascular"</span>, <span class="st">"extravascular"</span><span class="op">)</span>,</span>
+<span>                <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"extravascular"</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  source <span class="op">=</span> <span class="st">"the fixture's protocol: 100 mg on days 0, 7 and 14, by two routes"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">mixroute_covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_covariates.html">pmx_covariates</a></span><span class="op">(</span>WT <span class="op">=</span> <span class="fu"><a href="../reference/pmx_covariate.html">pmx_covariate</a></span><span class="op">(</span></span>
 <span>  range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">130</span><span class="op">)</span>, median <span class="op">=</span> <span class="fl">72</span>, cv <span class="op">=</span> <span class="fl">0.17</span>,</span>
@@ -345,17 +349,17 @@ asserted model covers one route.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">level_ratio</span><span class="op">(</span><span class="va">mixroute</span>, <span class="va">mixroute_syn</span>, <span class="va">mixroute_roles</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    source synthetic     ratio </span></span>
-<span><span class="co">#&gt;     4.683     5.848     1.249</span></span></code></pre></div>
+<span><span class="co">#&gt;     4.683     5.388     1.151</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">mixroute</span>, <span class="va">mixroute_syn</span>, <span class="va">mixroute_roles</span><span class="op">)</span>, report <span class="op">=</span> <span class="st">"minimal"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["17 -&gt; 13","sd x0.68 on DV (furthest of 2)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The median sits within about a quarter of the study’s, which flatters
-it. The figure shows why, and so does the scorecard’s one substantive
-review row: the synthetic profiles are tighter than the real ones. One
-asserted model gives every subject the same route, and the route is what
-separates this study’s arms.</p>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["17 -&gt; 13","sd x0.83 on DV (furthest of 2)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The level sits close, and the arms separate the way the study’s do.
+The route is what separates them — an intravenous dose is all of the
+dose and a subcutaneous one is seventy per cent of it — so a design that
+states the routes reproduces the separation and one that does not lands
+every arm on the same level.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spread</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -363,28 +367,37 @@ separates this study’s arms.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>median <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span>, sd <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span>,</span>
 <span>    p90 <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">v</span>, <span class="fl">0.9</span>, names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="va">by_arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">mixroute</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">mixroute</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>,</span>
-<span>                 <span class="va">mixroute</span><span class="op">$</span><span class="va">ARM</span><span class="op">[</span><span class="va">mixroute</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>,</span>
-<span>                 <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">v</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">by_arm</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    IV only IV then SC    SC only </span></span>
-<span><span class="co">#&gt;       8.19       4.47       3.26</span></span>
+<span><span class="co"># The cohorts were declared in the order the arms are listed here.</span></span>
+<span><span class="va">synthetic_arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cut.html" class="external-link">cut</a></span><span class="op">(</span><span class="va">mixroute_syn</span><span class="op">$</span><span class="va">ID</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span>, <span class="fl">60</span>, <span class="fl">90</span><span class="op">)</span>,</span>
+<span>                     labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IV only"</span>, <span class="st">"IV then SC"</span>, <span class="st">"SC only"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">observation</span> <span class="op">&lt;-</span> <span class="va">mixroute_syn</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">mixroute</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">mixroute</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>,</span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">mixroute</span><span class="op">$</span><span class="va">ARM</span><span class="op">[</span><span class="va">mixroute</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>,</span>
+<span>                         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IV only"</span>, <span class="st">"IV then SC"</span>, <span class="st">"SC only"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                  <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  synthetic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">mixroute_syn</span><span class="op">$</span><span class="va">DV</span><span class="op">[</span><span class="va">observation</span><span class="op">]</span>, <span class="va">synthetic_arm</span><span class="op">[</span><span class="va">observation</span><span class="op">]</span>,</span>
+<span>                     <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           IV only IV then SC SC only</span></span>
+<span><span class="co">#&gt; source       8.19       4.47    3.26</span></span>
+<span><span class="co">#&gt; synthetic    8.22       5.19    3.84</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>source <span class="op">=</span> <span class="fu">spread</span><span class="op">(</span><span class="va">mixroute</span><span class="op">)</span>, synthetic <span class="op">=</span> <span class="fu">spread</span><span class="op">(</span><span class="va">mixroute_syn</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt;           median   sd   p90</span></span>
 <span><span class="co">#&gt; source      4.68 3.95 11.32</span></span>
-<span><span class="co">#&gt; synthetic   5.85 2.27  8.97</span></span></code></pre></div>
-<p>The three arms sit a factor of two and a half apart, because an
-intravenous dose is all of the dose and a subcutaneous one is seventy
-per cent of it. The synthetic cohort lands between them — it is the
-average of arms it has no way to tell apart — and its spread is roughly
-half the study’s, the missing part being that between-arm separation
-plus the allometric scaling on weight that no covariate can reach.</p>
+<span><span class="co">#&gt; synthetic   5.39 3.19 10.43</span></span></code></pre></div>
+<p>The arms come back in the right order and at roughly the right
+separation. The spread is narrower than the study’s, and what is missing
+from it is the allometric scaling: in the source, a heavy subject and a
+light one have different clearances, and here they have the same one
+because no covariate reaches a parameter.</p>
 <p><strong>This is the ceiling, and it is worth being precise about what
-it is a ceiling on.</strong> Handed the model that generated the data,
-this mode reproduces the event structure exactly, the central level to
-within a quarter, and the dispersion to about a half. Nothing a better
-prior could fix remains: what is left out is what the catalogue cannot
-say.</p>
+it is a ceiling on.</strong> Handed the model that generated the data
+and a design that states everything the grammar can state, this mode
+reproduces the event structure exactly, the central level to within
+about a seventh, and the dispersion to about four fifths. What remains
+is one covariate relationship the catalogue has no way to express, and
+no better prior would recover it.</p>
 </div>
 <div class="section level2">
 <h2 id="warfarin-a-regimen-read-off-the-data-and-a-prior-from-drug-properties">warfarin: a regimen read off the data, and a prior from drug
@@ -650,8 +663,8 @@ evidence about the clearance than it appears.</p>
 <td align="left">mixroute_sim</td>
 <td align="left">the documented generating truth</td>
 <td align="left">4.68</td>
-<td align="left">5.85</td>
-<td align="left">1.25</td>
+<td align="left">5.39</td>
+<td align="left">1.15</td>
 </tr>
 <tr class="even">
 <td align="left">warfarin</td>

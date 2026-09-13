@@ -6,7 +6,7 @@ articles:
   avatar-demo: avatar-demo.html
   articles/avatar-public-data-examples: avatar-public-data-examples.html
   avatar-scorecard: avatar-scorecard.html
-  articles/avatar-vs-pca: avatar-vs-pca.html
+  articles/avatar-vs-pca-vs-pmxmodel: avatar-vs-pca-vs-pmxmodel.html
   calibrated-algorithm: calibrated-algorithm.html
   calibrated-demo: calibrated-demo.html
   articles/calibrated-public-data-examples: calibrated-public-data-examples.html
@@ -31,7 +31,7 @@ articles:
   articles/synpmx-privacy: synpmx-privacy.html
   articles/synthetic-data-checking-review: synthetic-data-checking-review.html
   articles/synthetic-data-generation-review: synthetic-data-generation-review.html
-last_built: 2026-09-12T22:25Z
+last_built: 2026-09-13T01:18Z
 urls:
   reference: https://iamstein.github.io/synpmx/reference
   article: https://iamstein.github.io/synpmx/articles

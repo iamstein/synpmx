@@ -14,8 +14,8 @@
 - [Scorecard: Checks of the synthetic
   data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md):
 
-- [How AVATAR, PCA and PMXmodel Are
-  Related](https://iamstein.github.io/synpmx/articles/avatar-vs-pca.md):
+- [Comparing AVATAR, PCA and
+  PMXmodel](https://iamstein.github.io/synpmx/articles/avatar-vs-pca-vs-pmxmodel.md):
 
 - [The synpmx_calibrated
   Algorithm](https://iamstein.github.io/synpmx/articles/calibrated-algorithm.md):
