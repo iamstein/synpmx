@@ -519,8 +519,8 @@ that is not a usable trade, and no choice of epsilon a governance function
 would approve makes it one.
 
 The function is exported so the axis has both ends in it, and because the
-comparison above is worth being able to check. It is not developed further and
-gets no documents of its own. Reach for it only on a large pooled dataset, and
+comparison above is worth being able to check. It is not under active
+development at present and gets no documents of its own. Reach for it only on a large pooled dataset, and
 read [the privacy article](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
 first.
 

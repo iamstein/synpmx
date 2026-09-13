@@ -69,14 +69,13 @@ test_that("the README declaration is accepted for the dataset it shows", {
 })
 
 test_that("the README passes arguments these functions still have", {
-  # The one-call form.
-  expect_true(all(c("data", "roles", "n_subjects", "seed") %in%
-                    names(formals(synpmx_model))))
-  # The two-stage form the README shows underneath it.
+  # The README fits and generates in two steps, so those are the two
+  # signatures it depends on.
   expect_true(all(c("data", "roles", "seed") %in%
                     names(formals(synpmx_model_estimate))))
   expect_true(all(c("n_subjects", "seed") %in%
                     names(formals(synpmx_model_generate))))
-  # And the reader is told to call this on the fit.
-  expect_true(is.function(model_report))
+  # It prints the fit, which is where the study fingerprint is read.
+  expect_true(any(grepl("pmx_fitted_model", as.character(
+    utils::methods(class = "pmx_fitted_model")))))
 })

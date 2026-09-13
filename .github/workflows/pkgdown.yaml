@@ -43,15 +43,15 @@ jobs:
       # green. Adding a suggested package that any vignette or article executes
       # belongs in the same commit as the code that starts executing it.
       #
-      # rxode2 is deliberately absent. Nothing in the documentation runs it:
-      # the one rxode2 block, in vignettes/articles/model-elicitation.Rmd, is a
-      # plain ```r fence that the article itself notes was never executed.
-      # Installing it anyway pulled in rxode2 -> qs -> stringfish, whose TBB
-      # symbols do not resolve against RcppParallel 6.0.0 ("undefined symbol:
-      # ...concurrent_vector_base_v3..."), and downlit loaded it while
-      # autolinking that article's rxode2 references. That failed every site
-      # build from 2026-07-23 on. Without rxode2 installed, downlit leaves
-      # those references as plain text and the block still renders.
+      # rxode2 is no longer excludable. `nlmixr2est` became a hard dependency
+      # on 2026-09-13, so `dependencies: "hard"` installs it and rxode2
+      # arrives with it. It used to be kept out on purpose: rxode2 -> qs ->
+      # stringfish had TBB symbols that did not resolve against RcppParallel
+      # 6.0.0 ("undefined symbol: ...concurrent_vector_base_v3..."), downlit
+      # loaded it while autolinking, and that failed every site build from
+      # 2026-07-23 on. rxode2 5.0.2 installs and loads cleanly now, which is
+      # why the hard dependency was acceptable. If the site starts failing on
+      # a stringfish or TBB symbol again, this is the history to read first.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: '"hard"'

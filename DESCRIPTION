@@ -21,6 +21,8 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1.0)
+Imports:
+    nlmixr2est
 Suggests:
     xgxr,
     rxode2,
@@ -30,7 +32,6 @@ Suggests:
     htmltools,
     knitr,
     nlmixr2data,
-    nlmixr2est,
     opendp,
     patchwork,
     rmarkdown,
