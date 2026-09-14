@@ -1,57 +1,57 @@
-# Objective
+# Deliverable
 
-We've developed a synthetic data generation R package synpmx (https://iamstein.github.io/synpmx/) for sharing realistic-looking data outside the GxP computing environment.  This synthetic data can be used in generating code for data exploration, model building, and diagnostics.  When the latest GenAI tools are not available on the systems hosting the clinical data, synthetic data can be generated and transferred to other machines that do run the latest GenAI tools.  
+We've developed a synthetic data generation R package synpmx (https://iamstein.github.io/synpmx/) for sharing realistic-looking synthetic data outside the GxP computing environment.  This synthetic data can be used in generating code for data exploration, model building, and diagnostics.  When the latest GenAI tools are not available on the systems hosting the clinical data, synthetic data can be generated and transferred to other machines that run the latest GenAI tools.
 
-# Background: Four approaches to Synthetic Data Generation
+# Background: Four synthetic data generation approaches were considered:
 
-Provide strengths, limitations, and applications.
-Mention differential privacy.
+refer to table in 2026-acop-poster-table-synthetic_pkpd_methods.md
 
-1. Trial Simulation (rxode2)
-2. Deep Generative Model (GenAI)
-3. Sequential Conditional Models (synthpop)
-4. Blending (AVATAR)
+# What is available in `synpmx`
 
-# synpmx-avatar method
+note from author: here there should be a table of the methods.  the approach (blending, mechanistic model, etc.), whether it offers formal privacy guarantees.  prespecification required.
 
-AVATAR-inspired blending method that extends past work (2023, 2026).
-Include ✅/⚠️/❌ checks
+Methods based fully off the data
 
-## The algorithm
+1. `synpmx_model()` — Fits simple PK and PD models to the observation data.
+2. `synpmx_avatar()` — Blended values from real patients
+3. `synpmx_pca()` — Principal component analysis from real patient data.
+4. `synpmx_prior()` — Simulates a public model and a public protocol.  Reads no data at all.
+5. `synpmx_calibrated()` — Keeps the public model's shape, and spends a small privacy budget
+   correcting its magnitude.
+6. `synpmx_empirical()`
 
-13 steps
-6 sources of masking
+# Primary synthetic data method: mechanistic model of PK, PD, dose changes, and missed observations
 
-## Applied to example (result)
+Author note: Describe the method.  It will involve
+- dose model
+- missed observation model
+- Pooled-PD model
+- Pop-PK model
+
+
+Check these things still happen
+- BLOQ handling
+- Weight-based dosing
+- Proper event handling
+- Removal of extreme outliers (in time, dose, observations)
+
+# Example
 
 probably mad from xgxr
 
 - show simulated data
 - show show distributions
-- show scorecard
+- show scorecard (full scorecard if room)
 
-## What it adds
+# Evaluated datasets
 
-- BLOQ handling
-- Weight-based dosing
-- Proper event handling
-- Removal of extreme outliers (in time, dose, observations)
-- Removal of dose and observation timing fingerprint
+Author note: fill in M and N
 
-## Use at our company (not sure yet what this section will read)
+- N public datasets
+- M simulated datasets
+- 3 complex internal datasets (mulitple PK, mixed IV + SC, intrapatient escalation)
 
-- We've tried with X datasets and it gives something reasonable
-- Status of where we are with it in terms of approval?
+# Current Status
 
-## Gaps
-
-- no time varying covariates (but could be treated as another another DV with long dataset)
-- baseline levels won't match if you have a baseline column, but that's an easy fix, just rederive baseline levels
-- no formal privacy protection
-- not for scientific discovery (relationships between variables not fully preserved)
-
-# Survey
-
-- How are you permitted to use agentic coding at your company.  Direct access to GxP, not at all, something in between.
-- What is your role.
-- What size company are you.
+- R package available in github: https://iamstein.github.io/synpmx/
+- Internal discussions ongoing.

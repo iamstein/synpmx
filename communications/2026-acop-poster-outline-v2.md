@@ -21,8 +21,40 @@ use the real data inside the secure environment.
 
 ## Workflow
 
-**Figure 1: Draw two labelled environments, with arrows for synthetic data
-leaving and code returning.**
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "24px"}}}%%
+flowchart LR
+  subgraph secure["Secure clinical-data environment"]
+    real[("Real clinical data")]
+    generate["Generate synthetic data<br/>with synpmx"]
+    review["Check synthetic data<br/>and review for release"]
+    validate["Run code on real data<br/>Validate and interpret"]
+    real --> generate --> review
+    real --> validate
+  end
+
+  subgraph development["AI-enabled development environment"]
+    synthetic[("Approved synthetic data")]
+    coding["Develop and debug code<br/>with AI assistance"]
+    synthetic --> coding
+  end
+
+  review -->|"Synthetic data out"| synthetic
+  coding -->|"Analysis code back"| validate
+
+  classDef data fill:#DBEAFE,stroke:#2563EB,color:#172554
+  classDef process fill:#FFFFFF,stroke:#64748B,color:#0F172A
+  classDef result fill:#DCFCE7,stroke:#15803D,color:#14532D
+  class real,synthetic data
+  class generate,review,coding process
+  class validate result
+  style secure fill:#F1F5F9,stroke:#64748B,color:#0F172A
+  style development fill:#FFF7ED,stroke:#C2410C,color:#7C2D12
+```
+
+**Figure 1.** Approved synthetic data supports AI-assisted code development
+outside the secure environment. Analysis code returns for execution and
+validation on the real clinical data, which remains inside.
 
 1. **Secure environment:** Declare column roles with `pmx_roles()`, generate a
    synthetic dataset, and compare its structure and distributions with the source.
@@ -33,89 +65,91 @@ leaving and code returning.**
 4. **Secure environment:** Run the returned code on real data, validate the
    analysis and interpret the results.
 
-The fitted-model generator has no formal privacy guarantee. A passing
-scorecard does not establish that an output is safe to release.
+The preferred synthetic data generator has no formal privacy guarantee.
 
-## Methods Available in `synpmx`
+## Selected methods available in `synpmx`
 
-Differential privacy (DP) bounds how much an individual's participation can
-affect a release. Its privacy budget controls the strength of that bound.
+| Function | Generation approach | Required specification  | Formal privacy | Source patients | Reportable fingerprint |
+|---|---|---|---|---|---|
+| `synpmx_prior()` | Simulate a public model and trial design |      Public model,       Study design | Yes  | 0 | Yes |
+|  |
+| `synpmx_model()` | Fit longitudinal PK and PD models; simulate new subjects    | Nominal times;    | No | 10s | Yes |
+| `synpmx_avatar()` | blending of similar patient profiles | Nominal times        | No | 10s–100s | No |
+|  |
 
-| Function | Generation approach | Required specification beyond column roles | Formal privacy |
-|---|---|---|---|
-| `synpmx_model()` | Fit population pharmacokinetic (PK) models and pharmacodynamic (PD) time courses; simulate new subjects | Nominal times; endpoint and route declarations where inference is ambiguous | No |
-| `synpmx_avatar()` | AVATAR-style blending of neighbouring patient profiles | Role and masking choices | No |
-| `synpmx_pca()` | Principal component analysis (PCA): fit shared profile patterns and draw new coefficients | Nominal times | No |
-| `synpmx_prior()` | Simulate a public model and trial design | Public model, parameters and design | Reads no protected study data, provided inputs are independent of it |
-| `synpmx_calibrated()` | Privately correct the magnitude of a public model | Public model, design, correction bounds and budget | DP mechanism; experimental implementation* |
-| `synpmx_empirical()` | Reconstruct from noisy study summaries | Public bounds, contribution limits and budget allocation | DP mechanism; experimental implementation* |
+Additional methods available, including some with formal differential privacy guarantees.
 
-*The DP engines require the OpenDP privacy backend for their DP claim, have
-known open findings and have not been independently privacy-audited. The public
-fixture backend adds no privacy noise. The empirical engine is not under active
-development.*
+## Preferred generation algorithm `synpmx_model()`
 
-## Fitted-Model Generation
-
-**Figure 2: Four model boxes feeding a synthetic event table. Draw the dose
-schedule feeding the PK simulation explicitly.**
+**Figure 2: Overview of `synpmx_model`
 
 | Component | What the generator does |
 |---|---|
-| Dosing | Summarizes planned amounts and times by arm, including scheduled escalation; draws reductions, skipped cycles and discontinuation. |
-| Observations | Estimates attendance by endpoint and nominal visit; draws which observations each synthetic subject contributes. |
-| Population PK | Fits a one-compartment model by default using `nlmixr2`, an R population-model fitting tool. Draws subject parameters and simulates concentrations against each generated dosing history. Additional model candidates can be requested. |
-| PD | Fits constant, linear or exponential time courses to continuous endpoints, with subject variability and residual error. The default pools arms; `pd_by_arm = TRUE` allows arm-specific curves. Discrete endpoints are drawn from arm-and-visit frequencies. |
-
-`synpmx_model_estimate()` builds a reusable fitted object;
-`synpmx_model_generate()` draws datasets from that object without rereading
-patient records. `synpmx_model()` combines both stages.
-
-Declared below-limit PK observations enter the fit as censored observations,
-and generated values are censored at the output boundary. Output uses declared
-column names and classes, with new subject identifiers. Columns outside the
-role declaration are dropped.
-
-The PD time courses have no exposure term. Dose reductions affect simulated
-PK, but the generator does not model a patient's response causing a subsequent
-dose change. Sparse sampling and small cohorts can produce weak fits.
+|
+Privacy Protection  | Regenerate new IDs; Drop all column without defined roles; Drop cohorts with fewer than 3 patients; Drop categorical covariates that fewer than 3 patients take |
+Dosing | For each cohort, fit hazard model for missed dosing, reduced dosing, and discontinuation.  Covariate-based dosing (e.g. weight) can be specified.
+| Observations | Estimates missed visits rates by endpoint and nominal visit time and simulate this missingness.  |
+| Population PK | Fits a one-compartment model using `nlmixr2`.  Simulate PK from this model.  Alternative model candidates can be specified. |
+| PD | Fits constant, linear or exponential time courses to continuous endpoints, with subject variability and residual error. The default pools arms.  If capturing dose-response is desired, `pd_by_arm = TRUE` allows arm-specific curves. Discrete endpoints are sampled from distribution of all values taken        |
+| LOQ | Uses or estimates LOQ for all continuous observations |
 
 ## Worked Example: `xgxr::mad`
 
 The publicly available multiple-ascending-dose example in `xgxr` combines a PK
-concentration with continuous, ordinal, count and binary PD endpoints. It
-exercises a shared event-table schema across different observation types.
+concentration with continuous, ordinal, count and binary PD endpoints.
 
-**Figure 3: Source versus synthetic data, with matching axes.** Use PK profiles
-over one dosing interval and continuous PD over study time, grouped by arm.
-Place a small distribution comparison beneath them. Give each panel a caption
-describing the observed agreement or discrepancy after inspecting the run.
+![Source and synthetic PK profiles by treatment arm](2026-acop-poster-figures/mad-pk-profiles.png)
 
-**Results strip:** Display the scorecard verdict tally, including unanswered
-checks, plus endpoint retention, observation and dose counts per subject, and
-the largest change in standard deviation. Obtain these from
-`synpmx_scorecard()` and `compare_pmx_distributions()` for the plotted run.
+**Figure 3a. Pharmacokinetic (PK) profiles over the first dosing interval.**
+Source and synthetic subjects share axes and treatment-arm columns. The stored
+fit underrepresents the sharp early concentration peak. Placebo panels are
+empty because this example has no placebo concentration observations.
 
-**Workflow demonstration:** Develop one concentration-time plotting function
-against the synthetic table, then execute the same function on the public source
-table. Record any changes needed. This demonstration still needs to be performed;
-successful data generation alone does not establish successful code transfer.
+![Source and synthetic continuous PD profiles by treatment arm](2026-acop-poster-figures/mad-pd-profiles.png)
 
-## Evaluation Across Study Designs
+**Figure 3b. Continuous pharmacodynamic (PD) profiles over study time.**
+The pooled PD fit produces rising responses but does not reproduce the source's
+differences between treatment arms; synthetic trajectories also show more
+visit-to-visit scatter.
 
-**Compact results table:** One row per dataset, with a design feature, counts
-of failed/review/unanswered checks, and the main observed limitation. Populate
-the outcomes from a fresh run of the package evaluation.
+![Source and synthetic distributions of continuous PD, PK and baseline weight](2026-acop-poster-figures/mad-distributions.png)
 
-The existing model survey covers ten publicly available examples:
-`case1_pkpd`, `mad`, `warfarin`, `wbcSim`, `mavoglurant`, `theo_md`, `nimoData`,
-`pheno_sd`, `mixroute_sim` and `onc_sim`. These include simulated datasets;
-public availability and simulation origin are overlapping categories.
+**Figure 3c. Pooled distributions.** Continuous PD, PK and baseline weight
+have overlapping distributions, with differences in shape and spread.
+Curves are scaled to a peak height of one. Pooling across arms and visits
+does not establish agreement in the time courses above.
 
-Select rows illustrating mixed administration routes, sparse sampling,
-censoring and dose changes. Link to the complete survey. Add an aggregate
-internal-study evaluation only after its outcomes and permissible wording have
-been confirmed.
+`synpmx` includes a scorecard that checks dataset structure, distribution
+changes and potential patient copying, helping identify synthetic outputs
+that need review. [Scorecard documentation](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
+
+**Code compatibility:** The figure script applies the same plotting helper to
+the synthetic and public source tables without modification. A full
+AI-assisted analysis-development and code-transfer demonstration remains to
+be performed.
+
+## Evaluation across study designs
+
+Publicly available examples span controlled dosing, routine care and simulated
+studies. Findings below refer to the stored-fit configurations used in the
+[model evaluation article](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html).
+
+| Dataset | Patients | Design feature | Main finding |
+|---|---:|---|---|
+| `case1_pkpd` | 180 | Multiple arms; censored concentrations | Censoring represented; pooled PD loses arm differences. |
+| `mad` | 60 | Multiple doses; mixed endpoint types | Endpoint types retained; early PK peak underrepresented. |
+| `warfarin` | 32 | Single oral dose; delayed response | PD decline represented; recovery absent. |
+| `wbcSim` | 45 | Infusions; white-cell nadir and recovery | Response fitted as PK; nadir and recovery missed. |
+| `mavoglurant` | 120 | Repeated occasions; resetting clock | Second occasions lost; fewer observations generated. |
+| `theo_md` | 12 | Repeated oral doses; small cohort | Repeated dosing retained; fit rests on a small cohort. |
+| `nimoData` | 12 | Weekly infusions; small cohort | Infusion schedule retained; concentration spread inflated. |
+| `pheno_sd` | 59 | Neonatal care; sparse, irregular sampling | Nominal grid required; fewer doses generated. |
+| `mixroute_sim` | 90 | Intravenous and subcutaneous dosing | Both routes retained; bioavailability close to simulation truth. |
+| `onc_sim` | 200 | Trough sampling; tumour response; dose changes | Pooled tumour curve loses arm differences; fewer doses generated. |
+
+Patient counts refer to source subjects, including simulated subjects.
+Generation and comparison were rerun for this table; population models were
+not refitted.
 
 ## Availability
 
@@ -129,36 +163,65 @@ poster materials. Internal discussions on use are ongoing.
 
 ## Preparation Notes — Not Poster Copy
 
+### Workflow Figure Typography
+
+Use 24–28 pt labels at the final printed poster size, including arrow labels,
+with larger environment headings. Keep labels short and enlarge the diagram's
+allocated space if needed; do not shrink the lettering to fit the column.
+The Mermaid preview uses a 24 px base font; check the physical text size again
+after placing the figure on the poster.
+
 ### Example Generation and Verification
 
-Use the existing stored `mad` fit for the first figures. The following code
-uses the same role declaration as the public-data survey. The fit was estimated
-previously; this code runs generation and evaluation only.
+Run [2026-acop-poster-figures.R](2026-acop-poster-figures.R) from the
+repository root:
 
-```r
-library(synpmx)
-source_data <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
-roles <- pmx_roles(
-  id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
-  cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-  strata = c("TRTACT", "DOSE"), covariates = c("WEIGHTB", "SEX")
-)
-fit <- readRDS(system.file("extdata", "mad-model-fit.rds", package = "synpmx"))
-synthetic <- synpmx_model_generate(fit, seed = 909)
-card <- synpmx_scorecard(source_data, synthetic, roles)
-verdicts <- table(factor(
-  card$verdict, levels = c("pass", "review", "FAIL", "not applicable")
-))
-verdicts
-card[card$check %in% c("A3", "A5a", "A5b", "D1"), ]
-compare_pmx_distributions(source_data, synthetic, roles)
+```sh
+Rscript communications/2026-acop-poster-figures.R
 ```
 
-Generation and the scorecard were rerun against the working-tree R code while
-preparing this outline. Endpoint retention passed; the spread comparison needs
-review, and several checks are not applicable to this generator. Use the live
-output for numbers and name the unanswered checks in the linked evaluation.
-The population fit was not re-estimated in this preparation run.
+The script loads the working-tree package, reads public `xgxr::mad` data and
+its stored fit, and generates synthetic subjects with seed 909. It does not
+refit the population model. Required R packages are `devtools`, `xgxr`,
+`ggplot2`, `patchwork`, and the package's own dependencies.
+
+Figures are saved beside the script in `2026-acop-poster-figures/` as PNG
+previews and vector PDF files. Each main figure is 18 inches wide, with large
+labels for poster placement. Use the PDF for scaling; check label sizes if
+reducing its width.
+
+- [PK profiles, PDF](2026-acop-poster-figures/mad-pk-profiles.pdf)
+- [Continuous PD profiles, PDF](2026-acop-poster-figures/mad-pd-profiles.pdf)
+- [Compact distributions, PDF](2026-acop-poster-figures/mad-distributions.pdf)
+- [All endpoint and covariate distributions, PDF](2026-acop-poster-figures/mad-distributions-full.pdf)
+  — supporting figure, outside the main poster.
+
+The same directory holds aggregate distribution tables, the scorecard and
+`run-info.txt` with the seed, fit and source-code checksums, and R session
+information. Scorecard output stays in the supporting evaluation.
+An optional output directory and seed can be passed as the first and second
+arguments. Inputs are fixed to the public example; this script accepts no
+internal-study data.
+
+### Evaluation Table Generation
+
+Run [2026-acop-poster-evaluation.R](2026-acop-poster-evaluation.R) to regenerate
+the public-data table:
+
+```sh
+Rscript communications/2026-acop-poster-evaluation.R
+```
+
+The script uses the evaluation article's dataset preparation, roles, stored
+fits and generation seeds. It saves a Markdown table and aggregate CSV,
+supporting scorecards and run provenance in `2026-acop-poster-evaluation/`.
+Patient counts are computed; the short findings are editorial summaries that
+must be reviewed when the fits or generator change.
+
+Add internal-study rows using the same four columns: **Dataset**, **Patients**,
+**Design feature**, **Main finding**. Describe the design briefly and give one
+observed result or limitation. The script regenerates only the public table
+and does not overwrite the outline or any internal rows added to it.
 
 ### Feature Claims
 

@@ -1,0 +1,5 @@
+"variable","dataset","level","n","proportion"
+"SEX","source","Female",30,0.5
+"SEX","source","Male",30,0.5
+"SEX","synthetic","Female",29,0.483333333333333
+"SEX","synthetic","Male",31,0.516666666666667
