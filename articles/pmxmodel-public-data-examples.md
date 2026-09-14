@@ -209,8 +209,8 @@ case1$fit
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.264 
-#>   time to fit        2 min 46 s
-#>   whole call         2 min 48 s, against 2 min 46 s in the fitter
+#>   time to fit        2 min 52 s
+#>   whole call         2 min 54 s, against 2 min 52 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/case1-plot-pk-1.png)
@@ -339,8 +339,8 @@ mad_run$fit
 #>   fixed effects      cl 5.47, v 152.8, ka 3.964 
 #>   between-subject    cl 0.426, v 0.429, ka 0.258 (as SD on the log scale)
 #>   residual error     proportional 0.722 
-#>   time to fit        34.2 s
-#>   whole call         34.5 s, against 34.2 s in the fitter
+#>   time to fit        34.3 s
+#>   whole call         34.5 s, against 34.3 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png)
@@ -420,8 +420,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
 #>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.211 
-#>   time to fit        10.5 s
-#>   whole call         10.6 s, against 10.5 s in the fitter
+#>   time to fit        10.9 s
+#>   whole call         11.0 s, against 10.9 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png)
@@ -512,7 +512,7 @@ model_report(wbc_run$fit)
 #>   between-subject    cl 0.353, v 0.32 (as SD on the log scale)
 #>   residual error     proportional 0.347 
 #>   time to fit        2.3 s
-#>   whole call         2.4 s, against 2.3 s in the fitter
+#>   whole call         2.3 s, against 2.3 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png)
@@ -619,8 +619,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.03414, v 0.2079 
 #>   between-subject    cl 0.434, v 0.364 (as SD on the log scale)
 #>   residual error     proportional 0.717 
-#>   time to fit        8.3 s
-#>   whole call         8.5 s, against 8.3 s in the fitter
+#>   time to fit        8.4 s
+#>   whole call         8.5 s, against 8.4 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png)
@@ -747,8 +747,8 @@ theo_run$fit
 #>   fixed effects      cl 2.813, v 33.6, ka 1.45 
 #>   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)
 #>   residual error     proportional 0.217 
-#>   time to fit        7.7 s
-#>   whole call         8.0 s, against 7.7 s in the fitter
+#>   time to fit        7.9 s
+#>   whole call         8.3 s, against 7.9 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png)
@@ -1003,10 +1003,10 @@ pheno_run$fit
 #>   fixed effects      cl 0.005864, v 1.441 
 #>   between-subject    cl 0.367, v 0.446 (as SD on the log scale)
 #>   residual error     proportional 0.126 
-#>   time to fit        19.4 s
+#>   time to fit        19.6 s
 #>                        1cmt_iv                    4.3 s
-#>                        1cmt_oral                  15.1 s
-#>   whole call         19.5 s, against 19.4 s in the fitter
+#>                        1cmt_oral                  15.3 s
+#>   whole call         19.7 s, against 19.6 s in the fitter
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png)
@@ -1111,8 +1111,8 @@ mixroute_run$fit
 #>   fixed effects      cl 2.398, v 11.6, ka 0.5446, f 0.7134 
 #>   between-subject    cl 0.322, v 0.272, ka 0.337 (as SD on the log scale)
 #>   residual error     proportional 0.292 
-#>   time to fit        4.4 s
-#>   whole call         4.5 s, against 4.4 s in the fitter
+#>   time to fit        4.6 s
+#>   whole call         4.7 s, against 4.6 s in the fitter
 ```
 
 ``` r
@@ -1225,10 +1225,10 @@ onc_run$fit
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.204 
-#>   time to fit        5 min 5 s
-#>                        1cmt_oral                  3 min 29 s
-#>                        1cmt_iv                    1 min 37 s
-#>   whole call         5 min 11 s, against 5 min 5 s in the fitter
+#>   time to fit        5 min 11 s
+#>                        1cmt_oral                  3 min 32 s
+#>                        1cmt_iv                    1 min 39 s
+#>   whole call         5 min 18 s, against 5 min 11 s in the fitter
 ```
 
 The stored fit above was built with

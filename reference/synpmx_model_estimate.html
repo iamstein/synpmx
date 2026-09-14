@@ -121,7 +121,8 @@ generated subjects are built from. No patient row survives it.</p>
 <span>  max_fit_subjects <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>  estimation <span class="op">=</span> <span class="st">"focei"</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  min_category_patients <span class="op">=</span> <span class="fl">3L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -259,6 +260,17 @@ before the fit.</p></dd>
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
 <dd><p>Suppress the per-candidate progress messages.</p></dd>
+
+
+<dt id="arg-min-category-patients">min_category_patients<a class="anchor" aria-label="anchor" href="#arg-min-category-patients"></a></dt>
+<dd><p>Minimum distinct patients holding a categorical
+baseline level, 3 by default. Counts use each patient's first row after
+small arms have been excluded. Factor, character and logical covariates
+are categorical; numeric category codes must be supplied as factors.
+Levels below the threshold are excluded and all synthetic subjects draw
+from the remaining levels in proportion to their counts. If none remain,
+the column is generated as missing with a warning. Set to 1 to retain all
+observed levels. This does not filter discrete observation endpoints.</p></dd>
 
 </dl></div>
     <div class="section level2">

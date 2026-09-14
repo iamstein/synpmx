@@ -35,12 +35,12 @@ A data frame in the source's shape, carrying the fitted model as a
 ## Details
 
 Per subject: an arm is assigned keeping the source arm shares,
-covariates are drawn from the arm's covariate model, random effects from
-the between-subject covariance matrix, and the dose schedule from the
-arm's dosing model. The concentration is then evaluated at the visits
-drawn from the arm's visit model, against the schedule that was drawn,
-so a reduced or skipped dose reaches the concentrations rather than
-appearing only in the dosing records.
+covariates are drawn from the study-wide covariate model, random effects
+from the between-subject covariance matrix, and the dose schedule from
+the arm's dosing model. The concentration is then evaluated at the
+visits drawn from the arm's visit model, against the schedule that was
+drawn, so a reduced or skipped dose reaches the concentrations rather
+than appearing only in the dosing records.
 
 ## See also
 

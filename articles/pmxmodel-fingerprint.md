@@ -122,8 +122,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
 #>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.211 
-#>   time to fit        10.5 s
-#>   whole call         10.6 s, against 10.5 s in the fitter
+#>   time to fit        10.9 s
+#>   whole call         11.0 s, against 10.9 s in the fitter
 ```
 
 Every section below expands one part of it. The object is a plain list
@@ -140,8 +140,8 @@ names(fit)
 #> [13] "covariate_effects"    "covariates"           "discrete"            
 #> [16] "design"               "correlations"         "censoring"           
 #> [19] "quantification_floor" "timing"               "movement"            
-#> [22] "fit_subjects"         "start_param"          "pk_models"           
-#> [25] "endpoints"
+#> [22] "fit_subjects"         "start_param"          "dose_records"        
+#> [25] "pk_models"            "endpoints"
 ```
 
 ## The settings that produced it
@@ -149,10 +149,12 @@ names(fit)
 ``` r
 
 unlist(fit$settings)
-#>      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects 
-#>              "20"               "3"               "6"              "60" 
-#>        estimation covariate_effects             error 
-#>           "focei"            "none"            "prop"
+#>          min_subjects      min_arm_patients min_category_patients 
+#>                  "20"                   "3"                   "3" 
+#>         min_time_bins      max_fit_subjects            estimation 
+#>                   "6"                  "60"               "focei" 
+#>     covariate_effects                 error 
+#>                "none"                "prop"
 c(patients = fit$n_source, arms = length(fit$arms$arms))
 #> patients     arms 
 #>       32        1
@@ -191,7 +193,7 @@ fit$structural
 #> [1] "1cmt_oral"
 model_candidates(fit)
 #>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.507
+#> 1 1cmt_oral      TRUE 926.9152  10.908
 ```
 
 One row, because the default fits one model. `pk` is what asks for more.
@@ -335,6 +337,15 @@ baseline covariate is recorded before the first dose: in a randomized
 study what separates two arms’ weights is the sampling noise of however
 many patients the arm has, and modelling it per arm reproduces that
 noise as if it were structure.
+
+Categorical distributions retain only levels held by at least
+`min_category_patients` patients (default 3), counted once per patient
+after small arms are excluded. The remaining frequencies are
+renormalized. If no level remains, the covariate is generated as missing
+with a warning during estimation. Excluded labels are absent from the
+factor schema as well. Set `min_category_patients = 1` when estimating
+to retain all observed levels; previously stored fits must be
+re-estimated to apply the threshold.
 
 ``` r
 

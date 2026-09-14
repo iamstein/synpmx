@@ -25,7 +25,8 @@ synpmx_model_estimate(
   max_fit_subjects = 60L,
   estimation = "focei",
   seed = NULL,
-  quiet = FALSE
+  quiet = FALSE,
+  min_category_patients = 3L
 )
 ```
 
@@ -181,6 +182,18 @@ synpmx_model_estimate(
 - quiet:
 
   Suppress the per-candidate progress messages.
+
+- min_category_patients:
+
+  Minimum distinct patients holding a categorical baseline level, 3 by
+  default. Counts use each patient's first row after small arms have
+  been excluded. Factor, character and logical covariates are
+  categorical; numeric category codes must be supplied as factors.
+  Levels below the threshold are excluded and all synthetic subjects
+  draw from the remaining levels in proportion to their counts. If none
+  remain, the column is generated as missing with a warning. Set to 1 to
+  retain all observed levels. This does not filter discrete observation
+  endpoints.
 
 ## Value
 

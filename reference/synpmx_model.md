@@ -36,7 +36,9 @@ synpmx_model(data, roles, n_subjects = NULL, seed = NULL, ...)
 - ...:
 
   Passed to
-  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md).
+  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
+  including `min_category_patients` (default 3). Set it to 1 to retain
+  all observed categorical baseline levels.
 
 ## Value
 

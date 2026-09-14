@@ -238,8 +238,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1353, v 8.115, ka 0.5796 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.211 </span></span>
-<span><span class="co">#&gt;   time to fit        10.5 s</span></span>
-<span><span class="co">#&gt;   whole call         10.6 s, against 10.5 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   time to fit        10.9 s</span></span>
+<span><span class="co">#&gt;   whole call         11.0 s, against 10.9 s in the fitter</span></span></code></pre></div>
 <p>Every section below expands one part of it. The object is a plain
 list and the names used are its own, so a quantity can be reached
 directly when no accessor covers it.</p>
@@ -252,18 +252,20 @@ directly when no accessor covers it.</p>
 <span><span class="co">#&gt; [13] "covariate_effects"    "covariates"           "discrete"            </span></span>
 <span><span class="co">#&gt; [16] "design"               "correlations"         "censoring"           </span></span>
 <span><span class="co">#&gt; [19] "quantification_floor" "timing"               "movement"            </span></span>
-<span><span class="co">#&gt; [22] "fit_subjects"         "start_param"          "pk_models"           </span></span>
-<span><span class="co">#&gt; [25] "endpoints"</span></span></code></pre></div>
+<span><span class="co">#&gt; [22] "fit_subjects"         "start_param"          "dose_records"        </span></span>
+<span><span class="co">#&gt; [25] "pk_models"            "endpoints"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
 </h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">settings</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      min_subjects  min_arm_patients     min_time_bins  max_fit_subjects </span></span>
-<span><span class="co">#&gt;              "20"               "3"               "6"              "60" </span></span>
-<span><span class="co">#&gt;        estimation covariate_effects             error </span></span>
-<span><span class="co">#&gt;           "focei"            "none"            "prop"</span></span>
+<span><span class="co">#&gt;          min_subjects      min_arm_patients min_category_patients </span></span>
+<span><span class="co">#&gt;                  "20"                   "3"                   "3" </span></span>
+<span><span class="co">#&gt;         min_time_bins      max_fit_subjects            estimation </span></span>
+<span><span class="co">#&gt;                   "6"                  "60"               "focei" </span></span>
+<span><span class="co">#&gt;     covariate_effects                 error </span></span>
+<span><span class="co">#&gt;                "none"                "prop"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">n_source</span>, arms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; patients     arms </span></span>
 <span><span class="co">#&gt;       32        1</span></span></code></pre></div>
@@ -297,7 +299,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "1cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.507</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 1cmt_oral      TRUE 926.9152  10.908</span></span></code></pre></div>
 <p>One row, because the default fits one model. <code>pk</code> is what
 asks for more.</p>
 </div>
@@ -422,6 +424,14 @@ baseline covariate is recorded before the first dose: in a randomized
 study what separates two arms’ weights is the sampling noise of however
 many patients the arm has, and modelling it per arm reproduces that
 noise as if it were structure.</p>
+<p>Categorical distributions retain only levels held by at least
+<code>min_category_patients</code> patients (default 3), counted once
+per patient after small arms are excluded. The remaining frequencies are
+renormalized. If no level remains, the covariate is generated as missing
+with a warning during estimation. Excluded labels are absent from the
+factor schema as well. Set <code>min_category_patients = 1</code> when
+estimating to retain all observed levels; previously stored fits must be
+re-estimated to apply the threshold.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 3</span></span>
@@ -458,7 +468,7 @@ builds, unchanged.</p>
 <code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0],[null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n      <th>adm<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4},{"name":"adm","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">dosing</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">reduction</span>,</span>
 <span>  interruption <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">interruption</span>, discontinuation <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">discontinuation</span><span class="op">)</span></span>

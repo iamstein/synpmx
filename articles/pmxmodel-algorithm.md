@@ -513,7 +513,7 @@ function errors rather than returning the least bad fit.
 
 model_candidates(fit)
 #>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.507
+#> 1 1cmt_oral      TRUE 926.9152  10.908
 ```
 
 ### Covariates
@@ -617,11 +617,11 @@ models
 [`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
 already builds, unchanged in what they represent. Dose reductions,
 interrupted cycles, discontinuation and missed visits are modelled here
-exactly as they are there, and so are arm sizes, the covariate
-distributions, the censoring boundary and the schema. The two generators
-call the same code rather than a copy of it; what differs is only the
-adapter that hands it the grid, and this generator writes its own over
-the nominal times the source holds.
+exactly as they are there, along with arm sizes, the censoring boundary
+and the schema. Baseline covariates use the study-wide distributions
+described below. The two generators call the same code rather than a
+copy of it; what differs is only the adapter that hands it the grid, and
+this generator writes its own over the nominal times the source holds.
 
 Per arm:
 
@@ -642,6 +642,24 @@ because the rates already say it.
 A grid cell is kept only where at least `min_arm_patients` distinct
 patients hold an observation there. A nominal time one patient attended
 is that patient, and generating from it would put them back.
+
+Baseline covariates are drawn independently from study-wide
+distributions. Each patient’s first row contributes one value, after
+small arms are excluded. For factor, character and logical covariates,
+levels held by fewer than `min_category_patients` patients (default 3)
+are excluded. The remaining counts are renormalized to probabilities,
+and every synthetic subject draws from that distribution. Set
+`min_category_patients = 1` to retain all observed levels. Numeric
+category codes must be supplied as factors; numeric covariates keep
+their continuous distribution models. Discrete observation endpoints are
+unaffected.
+
+If no categorical level remains, generation keeps the column with
+missing values and estimation warns. Excluded factor labels are also
+removed from the stored schema. This changes the category proportions
+and can remove a covariate entirely from analysis; it supplies no formal
+privacy guarantee. The threshold is applied during estimation, so stored
+fits must be re-estimated to use it.
 
 ## Step 5: Store the Fit
 
@@ -715,15 +733,15 @@ model_report(fit)
 #>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
 #>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
 #>   residual error     proportional 0.211 
-#>   time to fit        10.5 s
-#>   whole call         10.6 s, against 10.5 s in the fitter
+#>   time to fit        10.9 s
+#>   whole call         11.0 s, against 10.9 s in the fitter
 ```
 
 ## Step 6: Generate New Subjects
 
 Per synthetic subject: assign an arm keeping the source arm shares, draw
-covariates from the arm’s covariate model, draw random effects from the
-covariance matrix, apply the covariate effects to the typical
+covariates from the study-wide covariate model, draw random effects from
+the covariance matrix, apply the covariate effects to the typical
 parameters, draw the dose schedule from the arm’s dosing model, draw the
 visits attended from the visit model, evaluate the profile at the
 attended times against the drawn schedule, add residual error, apply the
@@ -783,6 +801,7 @@ fit badly is fitted, and told about.
 | No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
+| Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
 | Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |

@@ -161,8 +161,8 @@ model_report(fit)
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.264 
-#>   time to fit        2 min 46 s
-#>   whole call         2 min 48 s, against 2 min 46 s in the fitter
+#>   time to fit        2 min 52 s
+#>   whole call         2 min 54 s, against 2 min 52 s in the fitter
 ```
 
 Three lines in the estimated half are worth reading before anything
