@@ -69,7 +69,7 @@ c(weights_sum_to = sum(weights),
   max_difference = max(abs(as.vector(t(profiles) %*% weights) -
                              reconstruction)))
 #> weights_sum_to max_difference 
-#>   1.000000e+00   8.881784e-16
+#>   1.000000e+00   1.776357e-15
 ```
 
 Generating from a principal-component model re-weights the study rather
