@@ -57,7 +57,6 @@ flowchart LR
 | Function | Generation approach | Required specification  | Formal privacy | Source patients | Reportable fingerprint |
 |---|---|---|---|---|---|
 | `synpmx_prior()` | Simulate a public model and trial design |      Public model,       Study design | Yes  | 0 | Yes |
-|  |
 | `synpmx_model()` | Fit longitudinal PK and PD models; simulate new subjects    | Nominal times;    | No | 10s | Yes |
 | `synpmx_avatar()` | blending of similar patient profiles | Nominal times        | No | 10s–100s | No |
 |  |

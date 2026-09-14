@@ -1,0 +1,31 @@
+# Introduction
+
+After the `synpmx_model` has been written and a vignette `pmxmodel-algorithm.Rmd` now exists explaining it, I am now thinking about what this actually does and if it does what I think it does, since the code was mainly developed by Claude.  So here, I describe what I think this algorithm should be doing.  And after writing it, I'll have claude check this against both the code and the vignette (`pmxmodel-algorithm.Rmd`) to see if it matches what was intendend, and if not, why not.
+
+# Overview
+
+This synthetic data generation algorithm has two parts: fitting and generation.  Fitting is done to the actual dataset and the fit is summarized in a variable `fit` which can produce a little mini-report.  It's more than just a PopPKPD fit, it's essentially the fingerprint of the study that can be used to generate a new study. The generation algorithm then takes the `fit` and generates a synthetic dataset.
+
+In this document, I'm not going to get into all the roles (columns) that need to be defined.  That is well defined elsewhere.
+
+# Fit
+
+## Strata
+
+## Covariates
+
+## Dosing
+
+## Observation values
+
+### Continuous
+
+#### PK
+
+#### PD
+
+### Categorical
+
+## Observation missingness
+
+# Generation
