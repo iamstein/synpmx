@@ -54,6 +54,9 @@ flowchart LR
 
 ## Selected methods available in `synpmx`
 
+`synpmx_avatar()` uses an AVATAR-inspired adaptation [1]. Prior studies have
+also evaluated generative models for longitudinal PK/PD datasets [2, 3].
+
 | Function | Generation approach | Required specification | Formal privacy | Reportable fingerprint |
 |---|---|---|---|---|
 | `synpmx_prior()` | Simulate a public model and trial design | Public model; study design | Yes—uses no private data | Yes |
@@ -129,6 +132,21 @@ R package prototype, source code, worked examples and evaluation methods:
 [iamstein.github.io/synpmx](https://iamstein.github.io/synpmx/).
 
 Internal discussions on use of this package are ongoing.
+
+## References
+
+1. Destere A, Lombardi R, Labriffe M, et al. Can synthetic data overcome the
+   privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark
+   using a daptomycin population pharmacokinetic model. *medRxiv* [preprint].
+   2026. [doi:10.64898/2026.05.30.26354512](https://www.medrxiv.org/content/10.64898/2026.05.30.26354512v1).
+2. Jiang Y, García-Durán A, Bachali Losada I, Girard P, Terranova N. Generative
+   models for synthetic data generation: application to
+   pharmacokinetic/pharmacodynamic data. *J Pharmacokinet Pharmacodyn.*
+   2024;51:877–885. [doi:10.1007/s10928-024-09935-6](https://doi.org/10.1007/s10928-024-09935-6).
+3. Schöning V, Hammann F. Improving Population Pharmacokinetic Modelling with
+   Artificial Patients using Generative Artificial Intelligence.
+   *Pharmacol Res Perspect.* 2026;14:e70241.
+   [doi:10.1002/prp2.70241](https://doi.org/10.1002/prp2.70241).
 
 ---
 
