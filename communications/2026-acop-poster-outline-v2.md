@@ -67,7 +67,7 @@ Additional methods available, including some methods with formal differential pr
 
 **Figure 2:** Overview of `synpmx_model`
 
-| Component | What the generator does |
+| Component | Description |
 |---|---|
 | Privacy Protection  | Generate new IDs; Drop all columns without defined roles; Drop cohorts with fewer than 3 patients; Resample categorical covariates that fewer than 3 patients take |
 Dosing | For each cohort, fits hazard model for missed doses, reduced doses, and discontinuation.  Covariate-based dosing (e.g. weight-based) can be specified.
@@ -76,9 +76,9 @@ Dosing | For each cohort, fits hazard model for missed doses, reduced doses, and
 | PD | Fit constant, linear or exponential time courses to continuous endpoints, with subject variability and residual error. The default pools arms.  If capturing dose-response is desired, `pd_by_arm = TRUE` allows arm-specific curves. Discrete endpoints are sampled from distribution of all values taken |
 | LOQ | Uses or estimates LOQ for all continuous observations |
 
-## Worked Example: `xgxr::mad`
+## Worked Example:
 
-The publicly available multiple-ascending-dose example in `xgxr` combines a PK concentration with continuous, ordinal, count and binary PD endpoints.
+The publicly available multiple-ascending-dose example from `xgxr::mad` combines a PK concentration with continuous, ordinal, count and binary PD endpoints.  Continuous PK and PD are shown below.
 
 ![Source and synthetic PK profiles by treatment arm](2026-acop-poster-figures/mad-pk-profiles.png)
 
@@ -92,9 +92,7 @@ Source data vs synthetic data.  Because by default all cohorts are pooled togeth
 
 ![Source and synthetic distributions of continuous PD, PK, baseline weight and sex](2026-acop-poster-figures/mad-distributions.png)
 
-**Figure 3c. Pooled distributions.** Distributions of observations and covariates provide one graphical tool for assessing the synthetic dataset.
-
-`synpmx` also includes a scorecard that checks dataset structure, distribution
+**Figure 3c. Pooled distributions.** Distributions of observations and covariates provide one graphical tool for assessing the synthetic dataset.  `synpmx` also includes a scorecard that checks dataset structure, distribution
 changes and potential patient copying, helping identify synthetic outputs
 that need review. [Scorecard documentation](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
 
@@ -122,8 +120,7 @@ studies. The datasets below are covered in the
 R package prototype, source code, worked examples and evaluation methods:
 [iamstein.github.io/synpmx](https://iamstein.github.io/synpmx/).
 
-**Footer:** Add a scannable link to the package website and the approved
-poster materials. Internal discussions on use of this package are ongoing.
+Internal discussions on use of this package are ongoing.
 
 ---
 
