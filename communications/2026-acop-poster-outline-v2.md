@@ -54,18 +54,17 @@ flowchart LR
 
 ## Selected methods available in `synpmx`
 
-`synpmx_avatar()` uses an AVATAR-inspired adaptation [1]. Prior studies have
-also evaluated generative models for longitudinal PK/PD datasets [2, 3].
-
 | Function | Generation approach | Required specification | Formal privacy | Reportable fingerprint |
 |---|---|---|---|---|
 | `synpmx_prior()` | Simulate a public model and trial design | Public model; study design | Yes—uses no private data | Yes |
 | `synpmx_model()` | Fit longitudinal PK and PD models; simulate new subjects | Column roles; nominal times | No | Yes |
-| `synpmx_avatar()` | Blend similar patient profiles | Column roles; nominal times recommended | No | No |
+| `synpmx_avatar()` | Blend similar patient profiles; AVATAR-inspired [1] | Column roles; nominal times recommended | No | No |
 
 "Reportable fingerprint" means a compact model-and-parameter representation
 from which synthetic data can be generated without retaining source patient
 profiles.
+
+Related work evaluates deep generative models for longitudinal PK/PD datasets [2].
 
 Additional methods provide formal differential privacy guarantees. In the
 small-study settings evaluated, privacy noise substantially reduced fidelity
@@ -143,10 +142,6 @@ Internal discussions on use of this package are ongoing.
    models for synthetic data generation: application to
    pharmacokinetic/pharmacodynamic data. *J Pharmacokinet Pharmacodyn.*
    2024;51:877–885. [doi:10.1007/s10928-024-09935-6](https://doi.org/10.1007/s10928-024-09935-6).
-3. Schöning V, Hammann F. Improving Population Pharmacokinetic Modelling with
-   Artificial Patients using Generative Artificial Intelligence.
-   *Pharmacol Res Perspect.* 2026;14:e70241.
-   [doi:10.1002/prp2.70241](https://doi.org/10.1002/prp2.70241).
 
 ---
 
