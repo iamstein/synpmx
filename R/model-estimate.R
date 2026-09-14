@@ -1377,6 +1377,14 @@
 #'   [synpmx_pca_summarize()] uses. Patients in a shorter arm are dropped with a
 #'   warning before anything is fitted, so that arm is absent from the fitted
 #'   model and from the data generated from it.
+#' @param min_category_patients Minimum distinct patients holding a categorical
+#'   baseline level, 3 by default. Counts use each patient's first row after
+#'   small arms have been excluded. Factor, character and logical covariates
+#'   are categorical; numeric category codes must be supplied as factors.
+#'   Levels below the threshold are excluded and all synthetic subjects draw
+#'   from the remaining levels in proportion to their counts. If none remain,
+#'   the column is generated as missing with a warning. Set to 1 to retain all
+#'   observed levels. This does not filter discrete observation endpoints.
 #' @param start_param Starting values for the population PK parameters, as
 #'   `start_param = c(cl = 4, v = 40, ka = 0.5)`. Anything not named is read
 #'   off the curve as usual, so a caller who knows the clearance and not the
@@ -1425,10 +1433,13 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   min_subjects = 20L, min_arm_patients = 3L,
                                   min_time_bins = 6L, max_fit_subjects = 60L,
                                   estimation = "focei",
-                                  seed = NULL, quiet = FALSE) {
+                                  seed = NULL, quiet = FALSE,
+                                  min_category_patients = 3L) {
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
   }
+  min_category_patients <- .positive_integer(min_category_patients,
+                                              "min_category_patients")
   max_fit_subjects <- .positive_integer(max_fit_subjects, "max_fit_subjects")
   if (max_fit_subjects < .positive_integer(min_subjects, "min_subjects")) {
     stop("`max_fit_subjects` (", max_fit_subjects, ") is below `min_subjects` ",
@@ -1737,6 +1748,10 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     subject_group[as.character(subjects) %in% fitted_ids], parameters$etas)
   parameters$etas <- NULL
 
+  covariates <- .covariate_model(source, roles, min_category_patients)
+  schema <- .model_covariate_schema(
+    .source_schema(censoring_source, roles, fittable, subject_group), covariates)
+
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = primary$candidates,
     parameters = parameters, pk_models = pk_models,
@@ -1747,10 +1762,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                      decided_by = classified$decided_by),
     arms = list(arms = arm_models$arms, sizes = arm_models$sizes),
     dosing = arm_models$dosing, visits = arm_models$visits,
-    schema = .source_schema(censoring_source, roles, fittable, subject_group),
+    schema = schema,
     roles = roles,
     settings = list(min_subjects = min_subjects,
                     min_arm_patients = min_arm_patients,
+                    min_category_patients = min_category_patients,
                     min_time_bins = min_time_bins,
                     max_fit_subjects = max_fit_subjects,
                     estimation = estimation,
@@ -1758,7 +1774,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     n_source = n_source,
     cells = cells, pd = pd_fits, covariate_effects = effects,
     dose_records = dose_records,
-    covariates = .covariate_model(source, roles),
+    covariates = covariates,
     # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
     # not a concentration, and not a shape that fitted. A PD endpoint that
     # failed to fit falls through to a per-visit marginal, so it belongs here.
@@ -1852,7 +1868,9 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 #'   `nominal_time`.
 #' @param n_subjects Number of synthetic subjects. Defaults to the source count.
 #' @param seed Seed, used for both stages.
-#' @param ... Passed to [synpmx_model_estimate()].
+#' @param ... Passed to [synpmx_model_estimate()], including
+#'   `min_category_patients` (default 3). Set it to 1 to retain all observed
+#'   categorical baseline levels.
 #'
 #' @return A data frame in the source's shape, carrying the fitted model as an
 #'   attribute.

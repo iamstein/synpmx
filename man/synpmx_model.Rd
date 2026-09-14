@@ -16,7 +16,9 @@ synpmx_model(data, roles, n_subjects = NULL, seed = NULL, ...)
 
 \item{seed}{Seed, used for both stages.}
 
-\item{...}{Passed to \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}.}
+\item{...}{Passed to \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, including
+\code{min_category_patients} (default 3). Set it to 1 to retain all observed
+categorical baseline levels.}
 }
 \value{
 A data frame in the source's shape, carrying the fitted model as an

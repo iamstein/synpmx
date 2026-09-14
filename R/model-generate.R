@@ -71,7 +71,11 @@
 # study does not have in it. The cost is a study whose arms enrol differently by
 # design -- a pediatric cohort, a renal-impairment arm -- where the arms now
 # share one distribution.
-.covariate_model <- function(source, roles) {
+# pmxmodel-algorithm.Rmd, Step 4: exclude sparsely supported baseline levels
+# before constructing the sampling distribution (REV-054).
+.covariate_model <- function(source, roles, min_category_patients = 3L) {
+  min_category_patients <- .positive_integer(min_category_patients,
+                                              "min_category_patients")
   subjects <- .unique_in_order(source[[roles$id]])
   first_row <- vapply(subjects, function(subject) {
     which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
@@ -92,9 +96,31 @@
                   median = stats::median(values)))
     }
     counts <- table(as.character(values))
+    counts <- counts[counts >= min_category_patients]
+    if (!length(counts)) {
+      warning("Categorical covariate `", column, "` has no level held by at least ",
+              min_category_patients, " patients; generated values will be missing.",
+              call. = FALSE)
+      return(list(kind = "missing"))
+    }
     list(kind = "categorical", levels = names(counts),
          probability = as.numeric(counts) / sum(counts))
   })
+}
+
+# pmxmodel-algorithm.Rmd, Step 5: the schema carries only eligible factor
+# labels, including when every level was excluded (REV-054).
+.model_covariate_schema <- function(schema, covariates) {
+  for (column in names(covariates)) {
+    prototype <- schema$prototypes[[column]]
+    if (is.factor(prototype)) {
+      eligible <- covariates[[column]]$levels
+      schema$prototypes[[column]] <- factor(character(),
+        levels = levels(prototype)[levels(prototype) %in% eligible],
+        ordered = is.ordered(prototype))
+    }
+  }
+  schema
 }
 
 `%|na|%` <- function(x, y) if (is.na(x)) y else x
@@ -228,8 +254,9 @@
 #' about the source that reaches the output has already passed through the fit.
 #'
 #' Per subject: an arm is assigned keeping the source arm shares, covariates are
-#' drawn from the arm's covariate model, random effects from the between-subject
-#' covariance matrix, and the dose schedule from the arm's dosing model. The
+#' drawn from the study-wide covariate model, random effects from the
+#' between-subject covariance matrix, and the dose schedule from the arm's
+#' dosing model. The
 #' concentration is then evaluated at the visits drawn from the arm's visit
 #' model, against the schedule that was drawn, so a reduced or skipped dose
 #' reaches the concentrations rather than appearing only in the dosing records.

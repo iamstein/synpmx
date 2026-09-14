@@ -699,3 +699,61 @@ test_that("`dose_endpoints` is not treated as a column name", {
   expect_false(any(c("A conc", "B conc") %in% .retained_role_columns(roles)))
   expect_silent(validate_pmx(data, roles))
 })
+
+# REV-054: repeated observation rows must not make a rare baseline level safe.
+test_that("rare categorical baseline levels are excluded by patient count", {
+  baseline <- c(rep("common", 6), rep("boundary", 3), rep("pair", 2), "single")
+  data <- data.frame(ID = rep(seq_along(baseline), each = 20),
+                     CATEGORY = rep(baseline, each = 20))
+  roles <- list(id = "ID", covariates = "CATEGORY")
+  model <- .covariate_model(data, roles)
+  expect_equal(model$CATEGORY$levels, c("boundary", "common"))
+  expect_equal(model$CATEGORY$probability, c(1/3, 2/3))
+  expect_true(all(.draw_covariates(model, 100)$CATEGORY %in%
+                    c("boundary", "common")))
+  unfiltered <- .covariate_model(data, roles, min_category_patients = 1)
+  expect_setequal(unfiltered$CATEGORY$levels, unique(baseline))
+  expect_equal(.covariate_model(data, roles, 4)$CATEGORY$levels, "common")
+
+  # Counts are pooled across arms, and missing baseline values add no support.
+  data$ARM <- rep(c("a", "b"), length.out = nrow(data))
+  expect_equal(.covariate_model(data, roles), model)
+  data$CATEGORY[data$ID == 9] <- NA_character_
+  expect_equal(.covariate_model(data, roles)$CATEGORY$levels, "common")
+})
+
+test_that("rare categorical baseline levels leave neither values nor factor labels", {
+  data <- .cycle_fixture(n = 12)
+  data$CATEGORY <- ordered(ifelse(data$ID <= 2, "rare", "common"),
+                           levels = c("rare", "common", "unused"))
+  roles <- .generate_roles()
+  roles$covariates <- c("WT", "CATEGORY")
+  fit <- .hand_built_fit(data, roles)
+  fit$schema <- .model_covariate_schema(fit$schema, fit$covariates)
+  expect_identical(levels(fit$schema$prototypes$CATEGORY), "common")
+  out <- synpmx_model_generate(fit, seed = 1)
+  expect_true(all(out$CATEGORY == "common"))
+  expect_identical(levels(out$CATEGORY), "common")
+  expect_true(is.ordered(out$CATEGORY))
+  expect_equal(fit$covariates$WT, .covariate_model(data, roles, 1)$WT)
+
+  data$CATEGORY <- factor(data$ID)
+  expect_warning(fit$covariates <- .covariate_model(data, roles),
+                 "no level held by at least 3 patients")
+  fit$schema <- .model_covariate_schema(fit$schema, fit$covariates)
+  out <- synpmx_model_generate(fit, seed = 1)
+  expect_true(all(is.na(out$CATEGORY)))
+  expect_length(levels(out$CATEGORY), 0)
+})
+
+test_that("categorical support handles logical and wholly missing covariates", {
+  data <- data.frame(ID = 1:6, FLAG = c(TRUE, rep(FALSE, 5)), EMPTY = NA_character_)
+  roles <- list(id = "ID", covariates = c("FLAG", "EMPTY"))
+  model <- .covariate_model(data, roles)
+  expect_equal(model$FLAG$levels, "FALSE")
+  expect_equal(model$EMPTY$kind, "missing")
+  expect_true(all(is.na(.draw_covariates(model, 4)$EMPTY)))
+  for (bad in list(0, -1, 1.5, NA, Inf, "3", c(1, 3))) {
+    expect_error(.covariate_model(data, roles, bad), "min_category_patients")
+  }
+})

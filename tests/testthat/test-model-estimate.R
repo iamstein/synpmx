@@ -80,6 +80,7 @@ test_that("the default fits one model and no more", {
   skip_without_fitter()
   # One row, because one model was fitted. Not a search that happened to have
   # one candidate: `pk` is what asks for a search.
+  expect_identical(.default_fit()$settings$min_category_patients, 3L)
   expect_identical(nrow(model_candidates(.default_fit())), 1L)
   expect_true(model_candidates(.default_fit())$converged)
 })
@@ -872,4 +873,27 @@ test_that("an impossible implied f falls back to the extravascular read", {
                                        "1cmt_mixed", "cp")
   expect_lt(ok[["f"]], 1)
   expect_gt(ok[["f"]], 0.05)
+})
+
+# REV-054: the public option reaches the stored distribution and schema.
+test_that("categorical support option is validated before fitting", {
+  for (bad in list(0, NA, 2.5, "3", c(1, 3))) {
+    expect_error(synpmx_model_estimate(data.frame(), .estimate_roles(),
+                 min_category_patients = bad), "min_category_patients")
+  }
+})
+
+test_that("categorical support option controls the estimated model", {
+  skip_without_fitter()
+  data <- .oral_study()
+  data$CATEGORY <- factor(ifelse(data$ID <= 4, "four", "common"))
+  data$ARM <- ifelse(data$ID == 1, "small", "main")
+  # Four holders become three after the singleton arm is dropped.
+  expect_warning(fit <- synpmx_model_estimate(data,
+    .estimate_roles(covariates = "CATEGORY", strata = "ARM"),
+    min_category_patients = 4, quiet = TRUE, seed = 1), "dropped 1 patient")
+  expect_identical(fit$settings$min_category_patients, 4L)
+  expect_equal(fit$covariates$CATEGORY$levels, "common")
+  expect_identical(levels(fit$schema$prototypes$CATEGORY), "common")
+  expect_true(all(synpmx_model_generate(fit, seed = 1)$CATEGORY == "common"))
 })

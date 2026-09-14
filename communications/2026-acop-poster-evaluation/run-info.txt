@@ -1,4 +1,4 @@
-Generated: 2026-09-14 08:21:12 UTC
+Generated: 2026-09-14 10:17:29 UTC
 Public data only. Generation and evaluation rerun; population fits not re-estimated.
 Patient counts computed from source subjects.
 Seeds and source preparation follow the named survey chunks.
@@ -19,27 +19,27 @@ Survey, script, stored-fit and working-tree R source MD5s:
         /Users/steinanf/git/synpmx/communications/2026-acop-poster-evaluation.R
                                              "3b796ad04470404c856d4c3828889579"
                /Users/steinanf/git/synpmx/inst/extdata/case1-pkpd-model-fit.rds
-                                             "2c9effb83bdb7e484768cd38ef3cdb8e"
+                                             "540dc56dc980da2e01f34e7ce630bdf6"
                       /Users/steinanf/git/synpmx/inst/extdata/mad-model-fit.rds
-                                             "2f7edd2c8c6e7f6e070072337b303279"
+                                             "e4667dc8d9646c904729869706d8f719"
               /Users/steinanf/git/synpmx/inst/extdata/mavoglurant-model-fit.rds
-                                             "1fa0f69b598055a339bcabdf6dca4b30"
+                                             "d57ca8ad7d9e12ca859f110f9a195801"
              /Users/steinanf/git/synpmx/inst/extdata/mixroute-sim-model-fit.rds
-                                             "6de32ec6711ce017972730fe1b793bee"
+                                             "9f26e4b8a0b00ffd0876f6634827f668"
                      /Users/steinanf/git/synpmx/inst/extdata/nimo-model-fit.rds
-                                             "fd148ef9a2bcda540506ea921419ee82"
+                                             "d3979d908302fe54cbea491c1d2c04e2"
                   /Users/steinanf/git/synpmx/inst/extdata/onc-sim-model-fit.rds
-                                             "e301b0212899cb13332436be654da3f7"
+                                             "307d0f58f8617168206aab371abd4104"
                /Users/steinanf/git/synpmx/inst/extdata/pheno-flat-model-fit.rds
-                                             "f34ead256a6ebe81636a626daf21c34c"
+                                             "734852260b4480c2fe8ad804e565b312"
                     /Users/steinanf/git/synpmx/inst/extdata/pheno-model-fit.rds
-                                             "bd02759482367c6af5b87f7450c2bd2a"
+                                             "a1608c283f69398728fafccab5e42000"
                   /Users/steinanf/git/synpmx/inst/extdata/theo-md-model-fit.rds
-                                             "98936eae3302c1e556522aa46e72a8fd"
+                                             "4a0a6aeedca266630c4905147eabf88c"
                  /Users/steinanf/git/synpmx/inst/extdata/warfarin-model-fit.rds
-                                             "2dd66346fb35785f138f7de5564c8581"
+                                             "8245352b70fda7b864a5c3452d14f6a8"
                    /Users/steinanf/git/synpmx/inst/extdata/wbcsim-model-fit.rds
-                                             "58c309e153244a7ba0740cc80fb6c536"
+                                             "36dd885f84ea3d8977830cc0433d6902"
                                        /Users/steinanf/git/synpmx/R/calibrate.R
                                              "24fdc2eab71d7f405496f6e77dd25c92"
                                          /Users/steinanf/git/synpmx/R/compare.R
@@ -62,16 +62,16 @@ Survey, script, stored-fit and working-tree R source MD5s:
                                              "52d33e6c44b5f9cb64c5533fa99ce395"
                                         /Users/steinanf/git/synpmx/R/fixtures.R
                                              "50aee79d03cbef6b73d4c2c3b1f9da67"
-                                        /Users/steinanf/git/synpmx/R/generate.R
-                                             "abef81e4152f24caa213c61b9eecb44f"
                              /Users/steinanf/git/synpmx/R/generate_structural.R
                                              "3636dcfaa387bb77fc64a56ea9c38e5e"
+                                        /Users/steinanf/git/synpmx/R/generate.R
+                                             "abef81e4152f24caa213c61b9eecb44f"
                                     /Users/steinanf/git/synpmx/R/model-design.R
                                              "6254d1e3c0267a7c4243993970fd9ed2"
                                   /Users/steinanf/git/synpmx/R/model-estimate.R
-                                             "25e926bd2c204cc1e2a216f38c6babfd"
+                                             "22ad5842e9ca346bcb29b188e438f7d0"
                                   /Users/steinanf/git/synpmx/R/model-generate.R
-                                             "41c1645808b3803d0d7ac92102840bda"
+                                             "0fcddd09b73ab28a51771caa7f902c5d"
                                            /Users/steinanf/git/synpmx/R/model.R
                                              "f235d1701ae3e022e08ccf128d5e6fc5"
                                              /Users/steinanf/git/synpmx/R/pca.R
@@ -111,7 +111,7 @@ BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRbla
 LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 
 locale:
-[1] C
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
 time zone: America/New_York
 tzcode source: internal

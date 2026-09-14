@@ -266,6 +266,14 @@ separates two arms' weights is the sampling noise of however many patients the
 arm has, and modelling it per arm reproduces that noise as if it were
 structure.
 
+Categorical distributions retain only levels held by at least
+`min_category_patients` patients (default 3), counted once per patient after
+small arms are excluded. The remaining frequencies are renormalized. If no
+level remains, the covariate is generated as missing with a warning during
+estimation. Excluded labels are absent from the factor schema as well. Set
+`min_category_patients = 1` when estimating to retain all observed levels;
+previously stored fits must be re-estimated to apply the threshold.
+
 ```{r covariate-model, eval=run}
 str(fit$covariates, max.level = 2)
 ```

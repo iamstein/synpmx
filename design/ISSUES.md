@@ -108,6 +108,18 @@ specification as well as its documentation. Only findings go here.
 
 What broke, why, and what stops it coming back. Rows are permanent.
 
+### Model categorical covariates
+
+| ID | Area | What broke, and why | Pinned by |
+|---|---|---|---|
+| `REV-054` | Model categorical support | The model generator retained categorical levels held by one or two patients, despite the poster claiming they were excluded. `min_category_patients` now defaults to 3, counts each patient's baseline once after arm filtering, excludes unsupported levels and renormalizes the remaining frequencies. A threshold of 1 retains observed levels. With no supported level the column is generated as missing and estimation warns. Factor prototypes also omit excluded labels. Numeric covariates and discrete observations retain their existing models. | `test-model-generate.R`: rare categorical baseline levels; `test-model-estimate.R`: categorical support option |
+
+### Poster figures
+
+| ID | Area | What broke, and why | Pinned by |
+|---|---|---|---|
+| `REV-055` | Poster figure labels | The continuous-PD figure clipped its source/synthetic row labels, and the distribution figure called peak-scaled densities relative frequencies. The poster script now reserves left-side strip space and labels density panels as scaled density and categorical panels as proportion. | Assertions in `communications/2026-acop-poster-figures.R` check both left row strips, absence of right strips, panel kinds and axis labels; rendered PNGs are inspected before delivery. |
+
 ### Differential privacy and decoding
 
 | ID | Area | What broke, and why | Pinned by |

@@ -52,6 +52,8 @@ colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 poster_theme <- theme_minimal(base_size = 24) + theme(
   strip.text = element_text(size = 22, face = "bold"),
   strip.clip = "off",
+  strip.placement = "outside",
+  strip.text.y.left = element_text(angle = 90),
   axis.text = element_text(size = 20),
   axis.title = element_text(size = 24),
   plot.title = element_text(size = 27, face = "bold"),
@@ -86,12 +88,16 @@ profile_plot <- function(endpoint, title, y_label, first_interval = FALSE,
                            colour = Dataset)) +
     geom_line(alpha = 0.45, linewidth = 0.55) +
     geom_point(alpha = 0.55, size = 0.8) +
-    facet_grid(Dataset ~ TRTACT, drop = FALSE) +
+    facet_grid(Dataset ~ TRTACT, drop = FALSE, switch = "y") +
     scale_colour_manual(values = colours) +
     labs(title = title, x = "Time (hours)", y = y_label) + poster_theme
   if (first_interval) plot <- plot + scale_x_continuous(breaks = c(0, 12, 24))
   else plot <- plot + scale_x_continuous(breaks = c(0, 96, 192))
   if (log_y) plot <- plot + xgxr::xgx_scale_y_log10()
+  # REV-055: reserve layout space for both row labels outside the left axes.
+  layout <- ggplotGrob(plot)$layout
+  stopifnot(sum(grepl("^strip-l", layout$name)) == 2L,
+            !any(grepl("^strip-r", layout$name)))
   plot
 }
 
@@ -133,11 +139,26 @@ distribution_theme <- theme(
   legend.text = element_text(size = 22),
   plot.margin = margin(12, 12, 12, 12)
 )
+# REV-055: these axes distinguish peak-scaled densities from category shares.
+label_distribution_axes <- function(plot) {
+  for (i in seq_len(length(plot))) {
+    panel <- plot[[i]]
+    kind <- unique(panel$data$kind)
+    stopifnot(length(kind) == 1L, kind %in% c("density", "bars"))
+    label <- if (kind == "density") "Scaled density" else "Proportion"
+    plot[[i]] <- panel + labs(y = label)
+    stopifnot(identical(plot[[i]]$labels$y, label))
+  }
+  plot
+}
+
 compact <- compare_pmx_distributions(compact_data(source_data),
                                       compact_data(synthetic), compact_roles) +
   patchwork::plot_layout(ncol = 4)
+compact <- label_distribution_axes(compact)
 save_figure(compact & distribution_theme, "mad-distributions", 18, 4.5)
 full <- compare_pmx_distributions(source_data, synthetic, roles)
+full <- label_distribution_axes(full)
 save_figure(full & distribution_theme, "mad-distributions-full", 18, 12)
 
 provenance <- c(
