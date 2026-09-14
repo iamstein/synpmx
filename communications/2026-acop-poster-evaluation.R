@@ -50,11 +50,10 @@ datasets <- c("case1_pkpd", "mad", "warfarin", "wbcSim", "mavoglurant",
               "theo_md", "nimoData", "pheno_sd", "mixroute_sim", "onc_sim")
 if (!identical(names(runs), datasets)) stop("Survey dataset list changed; review the table.")
 
-# Editorial findings describe the stored-fit configuration in the survey.
-# Review these against the outputs when fits or generation behaviour change.
+# Design descriptions summarize the public-data survey.
 design <- c(
   "Multiple arms; censored concentrations",
-  "Multiple doses; mixed endpoint types",
+  "Multiple doses; mixed endpoint types (continuous, categorical)",
   "Single oral dose; delayed response",
   "Infusions; white-cell nadir and recovery",
   "Repeated occasions; resetting clock",
@@ -64,32 +63,20 @@ design <- c(
   "Intravenous and subcutaneous dosing",
   "Trough sampling; tumour response; dose changes"
 )
-findings <- c(
-  "Censoring represented; pooled PD loses arm differences.",
-  "Endpoint types retained; early PK peak underrepresented.",
-  "PD decline represented; recovery absent.",
-  "Response fitted as PK; nadir and recovery missed.",
-  "Second occasions lost; fewer observations generated.",
-  "Repeated dosing retained; fit rests on a small cohort.",
-  "Infusion schedule retained; concentration spread inflated.",
-  "Nominal grid required; fewer doses generated.",
-  "Both routes retained; bioavailability close to simulation truth.",
-  "Pooled tumour curve loses arm differences; fewer doses generated."
-)
 table <- data.frame(
   Dataset = datasets,
   Patients = vapply(runs, function(x) length(unique(x$source[[x$roles$id]])), integer(1)),
-  `Design feature` = design, `Main finding` = findings,
+  `Design feature` = design,
   row.names = NULL, check.names = FALSE
 )
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 utils::write.csv(table, file.path(out, "public-data-table.csv"), row.names = FALSE)
 rows <- vapply(seq_len(nrow(table)), function(i) {
   paste0("| `", table$Dataset[i], "` | ", table$Patients[i], " | ",
-         table$`Design feature`[i], " | ", table$`Main finding`[i], " |")
+         table$`Design feature`[i], " |")
 }, character(1))
-writeLines(c("| Dataset | Patients | Design feature | Main finding |",
-             "|---|---:|---|---|", rows), file.path(out, "public-data-table.md"))
+writeLines(c("| Dataset | Patients | Design feature |",
+             "|---|---:|---|", rows), file.path(out, "public-data-table.md"))
 cards <- do.call(rbind, lapply(runs, function(x) {
   cbind(Dataset = x$label, as.data.frame(x$card))
 }))
@@ -99,7 +86,7 @@ fit_files <- list.files(file.path(root, "inst", "extdata"),
 writeLines(c(
   paste("Generated:", format(Sys.time(), tz = "UTC", usetz = TRUE)),
   "Public data only. Generation and evaluation rerun; population fits not re-estimated.",
-  "Patient counts computed from source subjects; qualitative findings reviewed separately.",
+  "Patient counts computed from source subjects.",
   "Seeds and source preparation follow the named survey chunks.",
   "Warnings:", warnings,
   "Survey, script, stored-fit and working-tree R source MD5s:",

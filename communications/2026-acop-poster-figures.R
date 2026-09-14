@@ -50,7 +50,6 @@ arm_table <- unique(source_data[c("TRTACT", "DOSE")])
 arms <- as.character(arm_table$TRTACT[order(arm_table$DOSE)])
 colours <- c(Source = "#1B6CA8", Synthetic = "#D95F02")
 poster_theme <- theme_minimal(base_size = 24) + theme(
-  panel.grid.minor = element_blank(),
   strip.text = element_text(size = 22, face = "bold"),
   strip.clip = "off",
   axis.text = element_text(size = 20),
@@ -92,7 +91,7 @@ profile_plot <- function(endpoint, title, y_label, first_interval = FALSE,
     labs(title = title, x = "Time (hours)", y = y_label) + poster_theme
   if (first_interval) plot <- plot + scale_x_continuous(breaks = c(0, 12, 24))
   else plot <- plot + scale_x_continuous(breaks = c(0, 96, 192))
-  if (log_y) plot <- plot + scale_y_log10()
+  if (log_y) plot <- plot + xgxr::xgx_scale_y_log10()
   plot
 }
 
@@ -115,12 +114,12 @@ save_figure(profile_plot("PD - Continuous", "Continuous PD profiles",
             "mad-pd-profiles", 18, 7)
 
 # Use the public distribution API for both comparisons. The compact figure
-# selects PK, continuous PD and baseline weight; the full figure retains every
-# endpoint and baseline covariate. Density curves use relative peak height.
+# selects PK, continuous PD, baseline weight and sex; the full figure retains
+# every endpoint and baseline covariate. Density curves use relative peak height.
 compact_roles <- pmx_roles(
   id = "ID", time = "TIME", dv = "LIDV", amt = "AMT", evid = "EVID",
   cmt = "CMT", dvid = "NAME", mdv = "MDV", nominal_time = "NOMTIME",
-  strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB"
+  strata = c("TRTACT", "DOSE"), covariates = c("WEIGHTB", "SEX")
 )
 compact_data <- function(data) {
   data[data$EVID != 0 | data$NAME %in% c("PK Concentration", "PD - Continuous"), ]
@@ -135,7 +134,8 @@ distribution_theme <- theme(
   plot.margin = margin(12, 12, 12, 12)
 )
 compact <- compare_pmx_distributions(compact_data(source_data),
-                                      compact_data(synthetic), compact_roles)
+                                      compact_data(synthetic), compact_roles) +
+  patchwork::plot_layout(ncol = 4)
 save_figure(compact & distribution_theme, "mad-distributions", 18, 4.5)
 full <- compare_pmx_distributions(source_data, synthetic, roles)
 save_figure(full & distribution_theme, "mad-distributions-full", 18, 12)

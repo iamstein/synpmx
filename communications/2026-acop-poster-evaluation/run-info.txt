@@ -1,6 +1,6 @@
-Generated: 2026-09-14 08:05:46 UTC
+Generated: 2026-09-14 08:21:12 UTC
 Public data only. Generation and evaluation rerun; population fits not re-estimated.
-Patient counts computed from source subjects; qualitative findings reviewed separately.
+Patient counts computed from source subjects.
 Seeds and source preparation follow the named survey chunks.
 Warnings:
 32% of generated observations (45 of 142) fell below the smallest value the
@@ -17,7 +17,7 @@ Survey, script, stored-fit and working-tree R source MD5s:
 /Users/steinanf/git/synpmx/vignettes/articles/pmxmodel-public-data-examples.Rmd
                                              "3c3f660403635ba0d52e378284f9ce28"
         /Users/steinanf/git/synpmx/communications/2026-acop-poster-evaluation.R
-                                             "c0737cb390b00796eabce242e1d2d315"
+                                             "3b796ad04470404c856d4c3828889579"
                /Users/steinanf/git/synpmx/inst/extdata/case1-pkpd-model-fit.rds
                                              "2c9effb83bdb7e484768cd38ef3cdb8e"
                       /Users/steinanf/git/synpmx/inst/extdata/mad-model-fit.rds

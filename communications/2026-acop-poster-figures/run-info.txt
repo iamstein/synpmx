@@ -1,72 +1,72 @@
 Input: publicly available xgxr::mad (not an internal clinical dataset).
-Generated: 2026-09-14 08:02:18 UTC
+Generated: 2026-09-14 08:39:06 UTC
 Generation seed: 909
 Fit: stored mad-model-fit.rds; no model re-estimation in this run.
 Fit MD5: 2f7edd2c8c6e7f6e070072337b303279
-Script MD5: 50c4c312375b6d94efe0c84f3ca58470
+Script MD5: 5486c6073af5477f54f197c5d2ca7cab
 Working-tree R source MD5s:
-          /Users/steinanf/git/synpmx/R/calibrate.R
-                "24fdc2eab71d7f405496f6e77dd25c92"
-            /Users/steinanf/git/synpmx/R/compare.R
-                "2c5837b8e8edf320d2b7e5399fb15fd6"
-             /Users/steinanf/git/synpmx/R/config.R
-                "75eb35a08513e938d406575b4dce1709"
-         /Users/steinanf/git/synpmx/R/covariates.R
-                "4c90418df11dca441ac93e8ae1ef3e44"
-               /Users/steinanf/git/synpmx/R/data.R
-                "c5e2c3e143021f63b5a1a5ff24fade2b"
-       /Users/steinanf/git/synpmx/R/dose-records.R
-                "a945880270fdb1df705feae5d28e3cfb"
-  /Users/steinanf/git/synpmx/R/dose-visit-models.R
-                "e08d0abf94d9dcbb297145bbf3408d7a"
-     /Users/steinanf/git/synpmx/R/endpoint-types.R
-                "fafaa9df50da1baccf61067ff257b3df"
-          /Users/steinanf/git/synpmx/R/endpoints.R
-                "2f8556b5a511a88f88e96753a0cef3b6"
-                /Users/steinanf/git/synpmx/R/fit.R
-                "52d33e6c44b5f9cb64c5533fa99ce395"
-           /Users/steinanf/git/synpmx/R/fixtures.R
-                "50aee79d03cbef6b73d4c2c3b1f9da67"
-           /Users/steinanf/git/synpmx/R/generate.R
-                "abef81e4152f24caa213c61b9eecb44f"
-/Users/steinanf/git/synpmx/R/generate_structural.R
-                "3636dcfaa387bb77fc64a56ea9c38e5e"
-       /Users/steinanf/git/synpmx/R/model-design.R
-                "6254d1e3c0267a7c4243993970fd9ed2"
-     /Users/steinanf/git/synpmx/R/model-estimate.R
-                "25e926bd2c204cc1e2a216f38c6babfd"
-     /Users/steinanf/git/synpmx/R/model-generate.R
-                "41c1645808b3803d0d7ac92102840bda"
-              /Users/steinanf/git/synpmx/R/model.R
-                "f235d1701ae3e022e08ccf128d5e6fc5"
-                /Users/steinanf/git/synpmx/R/pca.R
-                "32d60c5367f98dbef3a82ea41f04d822"
-            /Users/steinanf/git/synpmx/R/privacy.R
-                "09f5f080191d70a3b34082ae3c4cbcd8"
-           /Users/steinanf/git/synpmx/R/profiles.R
-                "74a05650d56ff7a9c064c84116156577"
-         /Users/steinanf/git/synpmx/R/properties.R
-                "e858ee7dcf9e97a60001bc2109dbd0a7"
-     /Users/steinanf/git/synpmx/R/representation.R
-                "4ffbb588555f03687a327f7dcd12fd2c"
-              /Users/steinanf/git/synpmx/R/roles.R
-                "f950b12f2a7c4f751c79f45b01baf3c1"
-           /Users/steinanf/git/synpmx/R/sampling.R
-                "614b1c9679f350813ec8bff9c748b197"
-          /Users/steinanf/git/synpmx/R/scorecard.R
-                "f00ee3134daf883a29261339625035cc"
-         /Users/steinanf/git/synpmx/R/structural.R
-                "8fb3cf7911c9ce51ce458d1352f15df2"
-     /Users/steinanf/git/synpmx/R/synpmx-package.R
-                "2a9701db3e8ca4ebb21e521c9afb17dc"
-             /Users/steinanf/git/synpmx/R/synpmx.R
-                "80703a04e5da0fbb39a793e9a73ad2cd"
-          /Users/steinanf/git/synpmx/R/synthesis.R
-                "86f10351a3b8b92f6cb30328572e944c"
-              /Users/steinanf/git/synpmx/R/utils.R
-                "204a2dfbcb03748dea5a03c73ff8fd46"
-           /Users/steinanf/git/synpmx/R/validate.R
-                "183e0b81b2b858f24d9a622cf28f6855"
+          /Users/steinanf/git/synpmx/R/calibrate.R 
+                "24fdc2eab71d7f405496f6e77dd25c92" 
+            /Users/steinanf/git/synpmx/R/compare.R 
+                "2c5837b8e8edf320d2b7e5399fb15fd6" 
+             /Users/steinanf/git/synpmx/R/config.R 
+                "75eb35a08513e938d406575b4dce1709" 
+         /Users/steinanf/git/synpmx/R/covariates.R 
+                "4c90418df11dca441ac93e8ae1ef3e44" 
+               /Users/steinanf/git/synpmx/R/data.R 
+                "c5e2c3e143021f63b5a1a5ff24fade2b" 
+       /Users/steinanf/git/synpmx/R/dose-records.R 
+                "a945880270fdb1df705feae5d28e3cfb" 
+  /Users/steinanf/git/synpmx/R/dose-visit-models.R 
+                "e08d0abf94d9dcbb297145bbf3408d7a" 
+     /Users/steinanf/git/synpmx/R/endpoint-types.R 
+                "fafaa9df50da1baccf61067ff257b3df" 
+          /Users/steinanf/git/synpmx/R/endpoints.R 
+                "2f8556b5a511a88f88e96753a0cef3b6" 
+                /Users/steinanf/git/synpmx/R/fit.R 
+                "52d33e6c44b5f9cb64c5533fa99ce395" 
+           /Users/steinanf/git/synpmx/R/fixtures.R 
+                "50aee79d03cbef6b73d4c2c3b1f9da67" 
+           /Users/steinanf/git/synpmx/R/generate.R 
+                "abef81e4152f24caa213c61b9eecb44f" 
+/Users/steinanf/git/synpmx/R/generate_structural.R 
+                "3636dcfaa387bb77fc64a56ea9c38e5e" 
+       /Users/steinanf/git/synpmx/R/model-design.R 
+                "6254d1e3c0267a7c4243993970fd9ed2" 
+     /Users/steinanf/git/synpmx/R/model-estimate.R 
+                "25e926bd2c204cc1e2a216f38c6babfd" 
+     /Users/steinanf/git/synpmx/R/model-generate.R 
+                "41c1645808b3803d0d7ac92102840bda" 
+              /Users/steinanf/git/synpmx/R/model.R 
+                "f235d1701ae3e022e08ccf128d5e6fc5" 
+                /Users/steinanf/git/synpmx/R/pca.R 
+                "32d60c5367f98dbef3a82ea41f04d822" 
+            /Users/steinanf/git/synpmx/R/privacy.R 
+                "09f5f080191d70a3b34082ae3c4cbcd8" 
+           /Users/steinanf/git/synpmx/R/profiles.R 
+                "74a05650d56ff7a9c064c84116156577" 
+         /Users/steinanf/git/synpmx/R/properties.R 
+                "e858ee7dcf9e97a60001bc2109dbd0a7" 
+     /Users/steinanf/git/synpmx/R/representation.R 
+                "4ffbb588555f03687a327f7dcd12fd2c" 
+              /Users/steinanf/git/synpmx/R/roles.R 
+                "f950b12f2a7c4f751c79f45b01baf3c1" 
+           /Users/steinanf/git/synpmx/R/sampling.R 
+                "614b1c9679f350813ec8bff9c748b197" 
+          /Users/steinanf/git/synpmx/R/scorecard.R 
+                "f00ee3134daf883a29261339625035cc" 
+         /Users/steinanf/git/synpmx/R/structural.R 
+                "8fb3cf7911c9ce51ce458d1352f15df2" 
+     /Users/steinanf/git/synpmx/R/synpmx-package.R 
+                "2a9701db3e8ca4ebb21e521c9afb17dc" 
+             /Users/steinanf/git/synpmx/R/synpmx.R 
+                "80703a04e5da0fbb39a793e9a73ad2cd" 
+          /Users/steinanf/git/synpmx/R/synthesis.R 
+                "86f10351a3b8b92f6cb30328572e944c" 
+              /Users/steinanf/git/synpmx/R/utils.R 
+                "204a2dfbcb03748dea5a03c73ff8fd46" 
+           /Users/steinanf/git/synpmx/R/validate.R 
+                "183e0b81b2b858f24d9a622cf28f6855" 
 Profile helper executed on synthetic and source data without modification.
 This checks plotting compatibility, not a full AI-assisted analysis workflow.
 Profile axes: actual time in hours; PK ng/mL; continuous PD IU/L (xgxr metadata).
@@ -112,7 +112,7 @@ Platform: aarch64-apple-darwin20
 Running under: macOS Sonoma 14.4.1
 
 Matrix products: default
-BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib
+BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
 LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 
 locale:
@@ -122,46 +122,46 @@ time zone: America/New_York
 tzcode source: internal
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base
+[1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] patchwork_1.3.2   ggplot2_4.0.3     synpmx_0.0.0.9000 testthat_3.3.2
+[1] patchwork_1.3.2   ggplot2_4.0.3     synpmx_0.0.0.9000 testthat_3.3.2   
 
 loaded via a namespace (and not attached):
-  [1] bitops_1.1-0          gridExtra_2.3.1       gld_2.6.8
-  [4] readxl_1.5.0          rlang_1.3.0           magrittr_2.0.5
-  [7] otel_0.2.0            e1071_1.7-17          compiler_4.5.3
- [10] systemfonts_1.3.2     png_0.1-9             vctrs_0.7.3
- [13] PreciseSums_0.7       stringr_1.6.0         pkgconfig_2.0.3
- [16] fastmap_1.2.0         backports_1.5.1       ellipsis_0.3.3
- [19] labeling_0.4.3        pander_0.6.6          rmarkdown_2.31
- [22] sessioninfo_1.2.4     tzdb_0.5.0            haven_2.5.5
- [25] ragg_1.5.2            purrr_1.2.2           xfun_0.60
- [28] cachem_1.1.0          nlmixr2data_2.0.9     rxode2_5.0.2
- [31] Deriv_4.3.0           cluster_2.1.8.3       DescTools_0.99.60
- [34] R6_2.6.1              stringi_1.8.9         RColorBrewer_1.1-3
- [37] boot_1.3-32           pkgload_1.5.3         rpart_4.1.27
- [40] brio_1.1.5            cellranger_1.1.0      Rcpp_1.1.2
- [43] assertthat_0.2.1      knitr_1.51            usethis_3.2.1
- [46] base64enc_0.1-6       readr_2.2.0           Matrix_1.7-6
- [49] nnet_7.3-21           tidyselect_1.2.1      rstudioapi_0.19.0
- [52] stringfish_0.18.0     dparser_1.3.1-13      minpack.lm_1.2-4
- [55] lbfgsb3c_2024-3.5     pkgbuild_1.4.8        lattice_0.22-9
- [58] tibble_3.3.1          withr_3.0.3           S7_0.2.2
- [61] evaluate_1.0.5        foreign_0.8-91        desc_1.4.3
- [64] RcppParallel_5.1.11-2 proxy_0.4-29          pillar_1.11.1
- [67] checkmate_2.3.4       generics_0.1.4        rprojroot_2.1.1
- [70] RCurl_1.98-1.19       hms_1.1.4             scales_1.4.0
- [73] rootSolve_1.8.2.4     qs2_0.1.7             n1qn1_6.0.1-12
- [76] class_7.3-24          glue_1.8.1            nlmixr2est_5.0.2
- [79] symengine_0.2.11      lotri_1.0.3           Hmisc_5.2-6
- [82] lmom_3.3              tools_4.5.3           sys_3.4.3
- [85] data.table_1.18.4     forcats_1.0.1         Exact_3.3
- [88] fs_2.1.0              mvtnorm_1.4-2         grid_4.5.3
- [91] devtools_2.5.2        colorspace_2.1-3      nlme_3.1-170
- [94] htmlTable_2.5.0       Formula_1.2-6         cli_3.6.6
- [97] textshaping_1.0.5     expm_1.0-0            binom_1.1-2
-[100] dplyr_1.2.1           gtable_0.3.6          digest_0.6.39
-[103] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1
-[106] htmltools_0.5.9       lifecycle_1.0.5       httr_1.4.8
-[109] xgxr_1.1.6            MASS_7.3-66
+  [1] bitops_1.1-0          gridExtra_2.3.1       gld_2.6.8            
+  [4] readxl_1.5.0          rlang_1.3.0           magrittr_2.0.5       
+  [7] otel_0.2.0            e1071_1.7-17          compiler_4.5.3       
+ [10] systemfonts_1.3.2     png_0.1-9             vctrs_0.7.3          
+ [13] PreciseSums_0.7       stringr_1.6.0         pkgconfig_2.0.3      
+ [16] fastmap_1.2.0         backports_1.5.1       ellipsis_0.3.3       
+ [19] labeling_0.4.3        pander_0.6.6          rmarkdown_2.31       
+ [22] sessioninfo_1.2.4     tzdb_0.5.0            haven_2.5.5          
+ [25] ragg_1.5.2            purrr_1.2.2           xfun_0.60            
+ [28] cachem_1.1.0          nlmixr2data_2.0.9     rxode2_5.0.2         
+ [31] Deriv_4.3.0           cluster_2.1.8.3       DescTools_0.99.60    
+ [34] R6_2.6.1              stringi_1.8.9         RColorBrewer_1.1-3   
+ [37] boot_1.3-32           pkgload_1.5.3         rpart_4.1.27         
+ [40] brio_1.1.5            cellranger_1.1.0      Rcpp_1.1.2           
+ [43] assertthat_0.2.1      knitr_1.51            usethis_3.2.1        
+ [46] base64enc_0.1-6       readr_2.2.0           Matrix_1.7-6         
+ [49] nnet_7.3-21           tidyselect_1.2.1      rstudioapi_0.19.0    
+ [52] stringfish_0.18.0     dparser_1.3.1-13      minpack.lm_1.2-4     
+ [55] lbfgsb3c_2024-3.5     pkgbuild_1.4.8        lattice_0.22-9       
+ [58] tibble_3.3.1          withr_3.0.3           S7_0.2.2             
+ [61] evaluate_1.0.5        foreign_0.8-91        desc_1.4.3           
+ [64] RcppParallel_5.1.11-2 proxy_0.4-29          pillar_1.11.1        
+ [67] checkmate_2.3.4       generics_0.1.4        rprojroot_2.1.1      
+ [70] RCurl_1.98-1.19       hms_1.1.4             scales_1.4.0         
+ [73] rootSolve_1.8.2.4     qs2_0.1.7             n1qn1_6.0.1-12       
+ [76] class_7.3-24          glue_1.8.1            nlmixr2est_5.0.2     
+ [79] symengine_0.2.11      lotri_1.0.3           Hmisc_5.2-6          
+ [82] lmom_3.3              tools_4.5.3           sys_3.4.3            
+ [85] data.table_1.18.4     forcats_1.0.1         Exact_3.3            
+ [88] fs_2.1.0              mvtnorm_1.4-2         grid_4.5.3           
+ [91] devtools_2.5.2        colorspace_2.1-3      nlme_3.1-170         
+ [94] htmlTable_2.5.0       Formula_1.2-6         cli_3.6.6            
+ [97] textshaping_1.0.5     expm_1.0-0            binom_1.1-2          
+[100] dplyr_1.2.1           gtable_0.3.6          digest_0.6.39        
+[103] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1        
+[106] htmltools_0.5.9       lifecycle_1.0.5       httr_1.4.8           
+[109] xgxr_1.1.6            MASS_7.3-66          
