@@ -69,8 +69,7 @@ Additional methods available, including some methods with formal differential pr
 
 | Component | What the generator does |
 |---|---|
-|
-Privacy Protection  | Generate new IDs; Drop all columns without defined roles; Drop cohorts with fewer than 3 patients; Resample categorical covariates that fewer than 3 patients take |
+| Privacy Protection  | Generate new IDs; Drop all columns without defined roles; Drop cohorts with fewer than 3 patients; Resample categorical covariates that fewer than 3 patients take |
 Dosing | For each cohort, fits hazard model for missed doses, reduced doses, and discontinuation.  Covariate-based dosing (e.g. weight-based) can be specified.
 | Observations | Estimate rates of missed visits for each endpoint and at at each visit; simulate missingness. |
 | Population PK | Fit a one-compartment model using `nlmixr2`.  Simulate PK from this model.  Alternative model candidates can be specified. |
