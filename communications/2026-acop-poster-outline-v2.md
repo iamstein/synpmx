@@ -64,7 +64,10 @@ flowchart LR
 from which synthetic data can be generated without retaining source patient
 profiles.
 
-Related work evaluates deep generative models for longitudinal PK/PD datasets [2].
+Deep learning methods such as conditional and time-series generative adversarial
+networks (cGANs and TimeGAN) [2] are outside our scope because their learned
+weights do not provide a compact, interpretable fingerprint of how the synthetic
+patient records were generated.
 
 Additional methods provide formal differential privacy guarantees. In the
 small-study settings evaluated, privacy noise substantially reduced fidelity
