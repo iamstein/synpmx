@@ -110,6 +110,9 @@ synthetic <- synpmx_calibrated(
   design = public_design, priors = priors,
   epsilon = 0.1, seed = 404, backend = "opendp"
 )
+#> Warning: The pk correction is pressed against its prior boundary. The prior is
+#> probably wrong and the release is censored; the generated data reflects the
+#> boundary, not the study.
 ```
 
 A warning here is expected rather than exceptional, and this page shows
@@ -130,11 +133,11 @@ which is the honest way to read a single one.
 release <- attr(synthetic, "synpmx_release")
 release
 #> Calibrated structural model (v3)
-#>   released subject count: 72.6
-#>   pk correction: 0.995x
-#>   corrected typical: cl=1.99, v=10, ka=0.5
+#>   released subject count: 86.6
+#>   pk correction: 0.25x  [AT PRIOR BOUNDARY]
+#>   corrected typical: cl=0.5, v=10, ka=0.5
 #>   epsilon: 0.1  (formal DP: TRUE)
-#>   f = 0.276 (worthwhile)
+#>   f = 0.231 (worthwhile)
 ```
 
 Two numbers left the study: a correction multiplying the assumed
@@ -167,11 +170,11 @@ not a measurement.
 ``` r
 
 str(synthetic)
-#> 'data.frame':    1168 obs. of  8 variables:
+#> 'data.frame':    1392 obs. of  8 variables:
 #>  $ ID   : int  1 1 1 1 1 1 1 1 1 1 ...
-#>  $ TIME : num  0 0 1.04 1.96 2.96 ...
+#>  $ TIME : num  0 0 1.02 2 3.05 ...
 #>  $ NTIME: num  0 0 1 2 3 7 7 8 9 10 ...
-#>  $ DV   : num  NA 0 2.7 3.35 5.08 ...
+#>  $ DV   : num  NA 0 4.79 6.93 7.72 ...
 #>  $ AMT  : num  100 0 0 0 0 100 0 0 0 0 ...
 #>  $ EVID : int  1 0 0 0 0 1 0 0 0 0 ...
 #>  $ CMT  : int  1 2 2 2 2 1 2 2 2 2 ...
@@ -239,27 +242,27 @@ str(synthetic)
 #>   ..$ covariate_summaries  : NULL
 #>   ..$ corrections          :List of 1
 #>   .. ..$ pk:List of 3
-#>   .. .. ..$ factor           : num 0.995
-#>   .. .. ..$ at_prior_boundary: logi FALSE
+#>   .. .. ..$ factor           : num 0.25
+#>   .. .. ..$ at_prior_boundary: logi TRUE
 #>   .. .. ..$ prior            :List of 3
 #>   .. .. .. ..$ range : num [1:2] 0.25 4
 #>   .. .. .. ..$ source: chr "scaling literature: the prediction is believed good to four-fold"
 #>   .. .. .. ..$ span  : num 2.77
 #>   .. .. .. ..- attr(*, "class")= chr "pmx_prior"
-#>   ..$ corrected_typical    : Named num [1:3] 1.99 10 0.5
+#>   ..$ corrected_typical    : Named num [1:3] 0.5 10 0.5
 #>   .. ..- attr(*, "names")= chr [1:3] "cl" "v" "ka"
-#>   ..$ private_subject_count: num 72.6
+#>   ..$ private_subject_count: num 86.6
 #>   ..$ preflight            :List of 6
 #>   .. ..$ d         : int 2
 #>   .. ..$ epsilon   : num 0.1
-#>   .. ..$ n_subjects: num 72.6
-#>   .. ..$ f         : num 0.276
+#>   .. ..$ n_subjects: num 86.6
+#>   .. ..$ f         : num 0.231
 #>   .. ..$ verdict   : chr "worthwhile"
 #>   .. ..$ table     :'data.frame':    1 obs. of  4 variables:
 #>   .. .. ..$ quantity           : chr "pk"
 #>   .. .. ..$ prior_fold         : num 16
-#>   .. .. ..$ f                  : num 0.276
-#>   .. .. ..$ expected_fold_error: num 2.15
+#>   .. .. ..$ f                  : num 0.231
+#>   .. .. ..$ expected_fold_error: num 1.9
 #>   .. ..- attr(*, "class")= chr "pmx_preflight"
 #>   ..$ privacy              :List of 9
 #>   .. ..$ formal_dp         : logi TRUE
@@ -292,12 +295,12 @@ str(synthetic)
 #>   .. ..$ input : chr [1:3] "structural model" "trial design" "pk prior"
 #>   .. ..$ source: chr [1:3] "the documented generating truth of the mixroute_sim fixture" "the fixture's protocol: 100 mg on days 0, 7 and 14" "scaling literature: the prediction is believed good to four-fold"
 #>   ..$ ledger               :List of 5
-#>   .. ..$ release_id       : chr "pmx-20260914T090744.820434-21034"
-#>   .. ..$ created_utc      : chr "2026-09-14T09:07:44.820739Z"
+#>   .. ..$ release_id       : chr "pmx-20260914T092619.653902-21117"
+#>   .. ..$ created_utc      : chr "2026-09-14T09:26:19.654180Z"
 #>   .. ..$ requested_epsilon: num 0.1
 #>   .. ..$ realized_epsilon : num 0.1
 #>   .. ..$ backend          : chr "OpenDP"
-#>   ..$ warnings             : chr(0) 
+#>   ..$ warnings             : chr "The pk correction is pressed against its prior boundary. The prior is probably wrong and the release is censore"| __truncated__
 #>   ..- attr(*, "class")= chr "pmx_calibrated_model"
 ```
 
