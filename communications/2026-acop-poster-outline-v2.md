@@ -135,6 +135,8 @@ R package prototype, source code, worked examples and evaluation methods:
 
 Internal discussions on use of this package are ongoing.
 
+The authors set the goal and vision for this package and directed the work. Almost all of the code was written by AI coding agents and has not yet been formally verified; establishing a validation process for the package is a next step.
+
 ## References
 
 1. Destere A, Lombardi R, Labriffe M, et al. Can synthetic data overcome the
