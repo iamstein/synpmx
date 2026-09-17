@@ -1,10 +1,11 @@
 # Demo: Using synpmx_model
 
 Fit a population model to a study, look at what the fit carries, and
-generate a synthetic dataset by simulating from it. No number a patient
-measured reaches the output: what leaves the source is a structural
-model, a handful of fixed effects, a covariance matrix, a residual
-error, and a dosing and visit model per arm.
+generate a synthetic dataset by simulating from it. Generation uses
+fitted population parameters and study summaries: structural curves,
+between-subject variability, residual error, endpoint frequencies, and
+dosing and visit models per arm. It does not read the original patient
+rows.
 
 It makes no formal privacy claim, and **it is not for estimation** — the
 fitted parameters exist to make simulated profiles look like the source
@@ -12,14 +13,12 @@ study, and the object prints that warning with itself. The full
 specification is in
 [`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md).
 
-The dataset is
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html): 180
-patients, six arms from placebo to 300 mg, with a pharmacokinetic (PK)
-concentration endpoint and a continuous pharmacodynamic (PD) endpoint.
-[`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md)
-and
-[`vignette("pca-demo")`](https://iamstein.github.io/synpmx/articles/pca-demo.md)
-run the other two generators over the same study.
+The dataset is [`xgxr::mad`](https://rdrr.io/pkg/xgxr/man/mad.html): 60
+patients in six treatment arms, with a pharmacokinetic (PK)
+concentration endpoint and continuous, count, ordinal and binary
+pharmacodynamic (PD) endpoints. The two-compartment fit passed the
+convergence and generation checks. The public-data survey also shows a
+fit accepted with a false-convergence warning.
 
 ## Configuration
 
@@ -33,8 +32,7 @@ The rest of the code can be kept as is.
 ``` r
 
 library(dplyr)
-raw <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr"))) |>
-  mutate(CENS = ifelse(NAME == "PD - Continuous", 0, CENS))
+raw <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
 SEED <- 808
 ```
 
@@ -47,15 +45,14 @@ roles <- pmx_roles(
   id           = "ID",
   time         = "TIME",
   dv           = "LIDV",
-  cens         = "CENS",
+  mdv          = "MDV",
   amt          = "AMT",
   evid         = "EVID",
   cmt          = "CMT",
   dvid         = "NAME",        # which endpoint each observation row is
   nominal_time = "NOMTIME",     # the grid the visit model is built on
   strata       = c("TRTACT", "DOSE"), # treatment arms, fitted one at a time
-  covariates   = "WEIGHTB",     # drawn, and available to the structural model
-  keep         = "STUDY"        # carried through verbatim
+  covariates   = c("WEIGHTB", "SEX") # drawn independently of the profiles
 )
 ```
 
@@ -64,7 +61,7 @@ roles <- pmx_roles(
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
 is the only stage that reads patient data, and the only one that needs
 `nlmixr2`. It works out which endpoint is the drug, what design produced
-it, fits the candidates that design admits and picks one on AIC.
+it, and tries two compartments with checked fallback to one.
 
 ``` r
 
@@ -72,24 +69,21 @@ fit <- synpmx_model_estimate(raw, roles, seed = 1)
 ```
 
 The chunk above is shown rather than run. Fitting compiles a model, so
-this document reads a stored fit built by `scripts/build-model-fits.R`
-and `R CMD check` never needs a compiler.
+this document reads a stored
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+fit and `R CMD check` never needs a compiler.
 
-That call takes about five minutes on this study, and says so before it
-starts. Two things set the wait. The population model is fitted to 60 of
-the 150 patients with a concentration, drawn in proportion to the arms
-under `max_fit_subjects`, because fit time is linear in subjects and the
-parameters a synthetic study needs are settled long before the sixtieth
-— the dosing, visit and covariate models still read all 180, and the
-report says so. And every likelihood evaluation sums a contribution per
-dose per subject: twelve weeks of daily dosing for those 60 patients is
-5,100 dose records. Where a study’s doses are on an exact interval they
-are compressed to one record per patient first, which the message also
-reports; `case1_pkpd` records its dose times as actuals — 0, 24.22,
-48.28 — so there is no exact interval to compress to, and the rest of
-the wait is the honest cost of the design.
+The fit report gives the elapsed time and the number of subjects used.
+Each likelihood evaluation reads the dosing history, so repeated-dose
+studies cost more than single-dose studies. `max_fit_subjects` caps the
+population fit; the dosing, visit and covariate models still read every
+subject.
 
-A clearance of 21.1 L/h and a volume of 98.3 L. Whether those are the
+`pk = "1cmt_oral"` requests one compartment directly. The requested fit
+must pass the same convergence, parameter and generation checks, and is
+never replaced by another model automatically.
+
+A clearance of 6.25 L/h and a volume of 48.5 L. Whether those are the
 right numbers for this compound is not the question the generator asks:
 they exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
@@ -107,32 +101,41 @@ which is why printing the fitted object shows the same account.
 
 model_report(fit)
 #> Summarized from the source, not estimated
-#>   cohort             180 patients in 6 arm(s)
-#>                      Placebo / 0 (30)
-#>                      3 mg / 3 (30)
-#>                      10 mg / 10 (30)
-#>                      30 mg / 30 (30)
-#>                      100 mg / 100 (30)
-#>                      300 mg / 300 (30)
+#>   cohort             60 patients in 6 arm(s)
+#>                      Placebo / 0 (10)
+#>                      100 mg / 100 (10)
+#>                      200 mg / 200 (10)
+#>                      400 mg / 400 (10)
+#>                      800 mg / 800 (10)
+#>                      1600 mg / 1600 (10)
 #>   dose changes       none
-#>   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all
+#>   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all
 #>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
-#>   covariates         WEIGHTB lognormal, drawn once for the whole study,
-#>                      independently of the profiles
-#>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
-#>                      WEIGHTB, TRTACT, DOSE, STUDY
+#>   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the
+#>                      whole study, independently of the profiles
+#>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
+#>                      recorded frequencies at each visit, not simulated
+#>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,
+#>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>   Reported below the assay limit:
-#>     PK Concentration   1669 of 3600 (46%) below 0.05 (the limit)
+#>     PK Concentration   0.025, half the smallest value seen, no assay limit
+#>     PD - Continuous    0.0825, half the smallest value seen, no assay limit
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          149
-#>                        baseline         52.24
-#>                        rate             0.04868
-#>                        between-subject  0.984 (SD on the log baseline)
-#>                        residual         additive 225
+#>                        plateau          31.47
+#>                        baseline         1.637
+#>                        rate             0.01344
+#>                        between-subject  1.33 (SD on the log baseline)
+#>                        residual         additive 8.13
+#>                        chosen on AIC from constant, linear, exponential
+#>   PD - Count         exponential
+#>                        plateau          2.888
+#>                        baseline         10.38
+#>                        rate             0.01484
+#>                        between-subject  0.248 (SD on the log baseline)
+#>                        residual         additive 2.78
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -142,44 +145,29 @@ model_report(fit)
 #>                        recorded in the compartment the doses go into
 #>                        rises to one peak and comes back down within one
 #>                          dose interval
-#>   route              oral: the median profile rises to a peak at 1 before
-#>                      declining, and 99% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 9
-#>                      distinct times after a dose, 6 after the peak
+#>   route              oral: the median profile rises to a peak at 2 before
+#>                      declining, and 100% of subjects do too
+#>   sampling           median 13 distinct times after a dose, 9 after the
+#>                      peak: richer within-subject sampling
 #> 
 #> The PopPK model
 #> 
 #> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
-#>   fitted on          60 of 150 patients with a concentration, drawn in
-#>                      proportion to the arms under `max_fit_subjects` = 60;
-#>                      the dosing, visit and covariate models below read the
-#>                      whole study
-#>   fixed effects      cl 21.15, v 98.26, ka 5.703 
-#>   between-subject    cl 0.323, v 0.334, ka 0.319 (as SD on the log scale)
-#>   starting values    cl 10.55, v 88.93, ka 4.76 declared through
-#>                      `start_param`; the rest were read off the cohort's
-#>                      median profile
-#>   residual error     proportional 0.264 
-#>   time to fit        2 min 52 s
-#>   whole call         2 min 54 s, against 2 min 52 s in the fitter
+#>   structural model   2cmt_oral 
+#>   selected by        two-compartment model passed acceptance checks
+#>   fitted on          all 50 patients with a concentration
+#>   fixed effects      cl 6.254, v 48.55, q 4.871, v2 147, ka 1.208 
+#>   between-subject    cl 0.42, v 0.445, ka 0.372, q 0.534, v2 0.424 (as SD on the log scale)
+#>   residual error     proportional 0.372 
+#>   time to fit        5 min 42 s
+#>   whole call         5 min 43 s, against 5 min 42 s in the fitter
 ```
 
-Three lines in the estimated half are worth reading before anything
-else. The residual error is proportional, which follows from every
-observed concentration here being positive; a study recording zeros gets
-an additive error instead, because a proportional one has nothing to
-scale there. The PD endpoint gets an exponential shape from the
-least-squares search, with no exposure term. And 46% of the
-concentrations sit below the assay limit; those rows were fitted as
-censored rather than given a value, so each contributed the probability
-of falling below the limit. A study this censored still asks the fit to
-describe mostly-censored arms, and the arm-by-arm comparison further
-down is where that shows.
-
-The signals table says how the concentration endpoint was decided:
-`PK Concentration` is post-dose, dose-proportional and rise-and-fall,
-and the PD endpoint is none of the three.
+The concentration has a proportional residual error. The continuous and
+count PD endpoints have fitted time courses with no exposure term.
+Binary and ordinal endpoints are drawn from arm-by-visit frequencies
+rather than from the compartment model. The signals table explains why
+`PK Concentration` was identified as the concentration endpoint.
 
 The correlation block is the other thing to read. A covariate that moves
 with a random effect and is not in the model above is generated
@@ -192,16 +180,23 @@ keeps those relationships without modelling them.
 
 ``` r
 
-show(model_candidates(fit), "Candidates the design admitted")
+show(model_candidates(fit), "Models attempted and acceptance results")
 ```
 
-One row, because the default fits one model and stops. A distribution
-phase is a refinement of a shape the one-compartment model already has
-and costs several times as long to fit, so it is available rather than
-routine: `pk = "2cmt_oral"` forces it,
-`pk = c("1cmt_oral", "2cmt_oral")` fits both and picks on AIC, and
+The table contains only models actually attempted. An accepted
+two-compartment fit needs no one-compartment comparison. A rejected fit
+retains its convergence status and rejection reason, and the fallback
+has its own row.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-says when the sampling would support one.
+explains the selection. A vector of model names in `pk` requests an
+Akaike information criterion (AIC) comparison of those models after
+acceptance checks.
+
+A study containing only pharmacodynamic observations can instead declare
+`endpoint_roles = c(pd = "response")`, using its endpoint name. That
+skips compartment fitting and uses the existing PD time courses. A
+positive baseline can also identify the study as PD-only automatically,
+as the public-data survey demonstrates on `wbcSim`.
 
 ## Generating
 
@@ -215,8 +210,8 @@ through the fit.
 synthetic <- synpmx_model_generate(fit, seed = SEED)
 ```
 
-The generated table is in the source’s shape: same columns, same
-classes, same compartment numbers, new identifiers.
+The generated table follows the declared schema: retained columns and
+classes, the same compartment numbers, and new identifiers.
 
 ``` r
 
@@ -225,8 +220,8 @@ show(head(synthetic, 10), "The first ten rows")
 
 ## Plot synthetic data and original data
 
-The same overlays the other two demos draw, so the three can be read
-against each other.
+Compare each endpoint on the recorded time scale, with source and
+synthetic subjects shown separately within each treatment arm.
 
 ``` r
 
@@ -241,8 +236,8 @@ both <- rbind(
 )
 obs <- both[both$EVID == 0 & !is.na(both$LIDV), ]
 obs$TRTACT <- factor(obs$TRTACT,
-                     levels = c("Placebo", "3 mg", "10 mg", "30 mg",
-                                "100 mg", "300 mg"))
+                     levels = c("Placebo", "100 mg", "200 mg", "400 mg",
+                                "800 mg", "1600 mg"))
 ```
 
 ``` r
@@ -264,8 +259,8 @@ ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
 ``` r
 
 last_dose <- obs[obs$NAME == "PK Concentration" &
-                   obs$TIME >= 2016 & obs$TIME <= 2040, ]
-last_dose$TAD <- last_dose$TIME - 2016
+                   obs$TIME >= 120 & obs$TIME <= 144, ]
+last_dose$TAD <- last_dose$TIME - 120
 
 ggplot(last_dose, aes(TAD, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.4) +
@@ -275,66 +270,34 @@ ggplot(last_dose, aes(TAD, LIDV, group = ID, colour = DATA)) +
   scale_colour_manual(values = comparison_colours) +
   labs(x = "Time after dose (hours)", y = "PK concentration", colour = NULL) +
   theme(legend.position = "top") +
-  ggtitle("Last Dose (2016 h) Conc. Profile")
+  ggtitle("Last Dose (120 h) Conc. Profile")
 ```
 
 ![](pmxmodel-demo_files/figure-html/overlay-pk-last-1.png)
 
-The synthetic profiles are smoother than the source’s, and that is the
-generator’s shape rather than a fault in the run: every one of them is
-the same one-compartment curve evaluated at a different draw of
-clearance, volume and absorption, with residual error on top. A real
-cohort’s profiles wander in ways one structural model does not
-reproduce.
-
-Almost half the source concentrations are below the assay limit, so the
-honest comparison in the low arms is how much of each arm is censored
-rather than where its curve sits.
-
-``` r
-
-censored <- function(data, label) {
-  rows <- data$EVID == 0 & data$NAME == "PK Concentration" & !is.na(data$LIDV)
-  out <- aggregate(list(pct_blq = data$CENS[rows] == 1),
-                   list(arm = data$TRTACT[rows]),
-                   function(x) round(100 * mean(x)))
-  stats::setNames(out, c("arm", paste0("pct_blq_", label)))
-}
-blq_table <- merge(censored(raw, "source"), censored(synthetic, "synthetic"),
-                   by = "arm")
-show(blq_table, "Share of concentrations below the assay limit, by arm")
-```
-
-The censored share moves in the right direction across the arms and does
-not match the source arm for arm: the generator censors more of the 3 mg
-arm than the study did and less of the 30 and 100 mg arms. One clearance
-and one volume distribution, shared by every arm and evaluated at the
-arm’s dose, cannot reproduce six arm-specific censoring fractions — the
-study’s low arms are not simply its high arms divided down. Where the
-analysis to be developed turns on how much data is below the limit, read
-this table before trusting the output.
+Every synthetic concentration profile uses the selected structural curve
+with new parameter draws and residual error. Compare the rise, decline
+and spread within each arm: pooled generation checks can miss
+discrepancies confined to one dose group or part of the sampling window.
 
 ``` r
 
 ggplot(obs[obs$NAME == "PD - Continuous", ],
        aes(TIME, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.35) +
-  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "weeks") +
+  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "days") +
   facet_grid(DATA~TRTACT) +
   scale_colour_manual(values = comparison_colours) +
-  labs(x = "Time (hours)", y = "PD (continuous)", colour = NULL) +
+  labs(x = "Time (days)", y = "PD (continuous)", colour = NULL) +
   theme(legend.position = "top") +
   ggtitle("PD Response")
 ```
 
 ![](pmxmodel-demo_files/figure-html/overlay-pd-1.png)
 
-The PD endpoint is an exponential in time per subject, which is the
-whole of what the shape search offers: a constant, a line, or an
-exponential, with variability on the baseline and no exposure term. Its
-spread across the study lands close to the source’s — the median moves
-from 123 to 136 and the range is about as wide — because the shape was
-fitted to the study rather than asserted.
+The continuous PD endpoint has an exponential time course. Its
+parameters are fitted to the pooled study, and subjects differ in their
+baseline draws and residual error.
 
 **What is missing is the dose ordering.** One shape is fitted to the
 pooled observations and each subject gets a draw on its baseline, so the
@@ -344,25 +307,21 @@ arm a subject was assigned to does not reach its response.
 
 late_pd <- function(data, label) {
   rows <- data$NAME == "PD - Continuous" & data$EVID == 0 &
-    data$TIME > 1500 & !is.na(data$LIDV)
+    data$TIME > 144 & !is.na(data$LIDV)
   out <- aggregate(list(mean_pd = data$LIDV[rows]),
                    list(arm = data$TRTACT[rows]), function(x) round(mean(x)))
   stats::setNames(out, c("arm", paste0("mean_pd_", label)))
 }
 pd_table <- merge(late_pd(raw, "source"), late_pd(synthetic, "synthetic"),
                   by = "arm")
-show(pd_table, "Mean PD response after 1500 h, by arm")
+show(pd_table, "Mean PD response after 144 h, by arm")
 ```
 
-The source’s arms are ordered by dose. The synthetic ones are not: its
-placebo arm can sit above its 300 mg arm. That is the documented
-boundary of this generator rather than a bad seed — the PD shape carries
-no exposure term, so a dataset whose point is exposure-response is not
-served by it.
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-keeps that relationship without modelling it, and
-[`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md)
-runs it on this study.
+This table compares late responses by arm. The continuous PD model
+carries no exposure term, so any source relationship between dose and
+response is not preserved by construction. A dataset whose purpose is
+exposure-response needs that limitation considered separately from
+numerical fit acceptance.
 
 ## Distributions of Synthetic and Original Data
 
@@ -391,23 +350,11 @@ card <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(card)
 ```
 
-**Three rows read `not applicable`.** B1a, B1b and C2 read a run record
-that
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-writes on its output and this generator does not, so there is nothing
-for them to measure. That is a gap in those three checks rather than a
-property of this dataset.
-
-**Two rows ask to be read.** A5a reports observations per patient
-falling from 30.7 to 29, which is the visit model drawing attendance
-rather than copying it. D1 reports the standard deviation of
-`PK Concentration` at 0.68 times the source’s, the furthest of the three
-numeric variables — a spread that narrowed. That follows from fitting
-the censored rows as censored: the residual error is 0.26 where an
-imputed fit takes 0.39, and the residual is what sets the scatter of
-every generated concentration. Half the source’s own spread is where its
-assay stopped reporting, and the fit no longer treats that as measured
-variation.
+Read the fidelity checks alongside the plots. A passing acceptance
+screen excludes gross fitting and generation failures; it does not
+guarantee that the simulated spread, attendance or endpoint
+relationships match the source. Checks requiring an AVATAR run record
+are not applicable to this generator.
 
 [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
 documents what each row asks and what its pass criterion is.
@@ -435,8 +382,8 @@ attr(synthetic, "pmx_fitted_model")
   — the same generator over the public studies the other two surveys
   use.
 - [`vignette("pca-demo")`](https://iamstein.github.io/synpmx/articles/pca-demo.md)
-  — the same study through the principal-component generator.
+  — a worked study through the principal-component generator.
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md)
-  — and through blending.
+  — a worked study through blending.
 - [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
   — the checks above, in detail.

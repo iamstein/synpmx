@@ -83,8 +83,7 @@ is not yet developed further. All the methods are discussed further in
 
 library(synpmx)
 
-study <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr")))
-study$CENS[study$NAME == "PD - Continuous"] <- 0  # CENS here flags the PK assay limit only
+study <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
 ```
 
 ### 2. Define Column roles
@@ -99,20 +98,20 @@ roles <- pmx_roles(
   amt            = "AMT",                # dose amount
   cmt            = "CMT",                # compartment
   dvid           = "NAME",               # endpoint key: which endpoint the row reports
-  mdv            = NULL,                 # missing-dependent-variable flag
+  mdv            = "MDV",                # missing-dependent-variable flag
   rate           = NULL,                 # infusion rate
   nominal_time   = "NOMTIME",            # protocol visit time; the visit model is built on it
   tad            = NULL,                 # time after dose; recomputed rather than read
   occasion       = NULL,                 # set if TIME resets by occasion
-  cens           = "CENS",               # 1 = BLOQ, -1 = above, 0 = not
+  cens           = NULL,                 # 1 = BLOQ, -1 = above, 0 = not
   limit          = NULL,                 # other end of the censoring interval
   addl           = NULL,                 # additional doses
   ii             = NULL,                 # interdose interval
-  covariates     = "WEIGHTB",            # patient baseline covariates
+  covariates     = c("WEIGHTB", "SEX"),  # patient baseline covariates
   strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort; one dosing and visit model per arm
   dose_covariate = NULL,                 # covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)
   endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
-  keep           = "STUDY",              # columns carried through verbatim
+  keep           = NULL,                 # columns carried through verbatim
 )
 ```
 
@@ -167,8 +166,11 @@ install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
 
 Fitting a population model is done by `nlmixr2est`, which `synpmx`
 requires and which installs alongside it. That fit compiles, so the
-example above needs a working C++ toolchain and takes a few minutes. The
-example’s data comes from `xgxr`:
+example above needs a working C++ toolchain. It first fits two
+compartments and falls back to one if the fit fails convergence or
+generation checks.
+`synpmx_model_estimate(study, roles, seed = 2026, pk = "1cmt_oral")`
+requests one compartment directly. The example’s data comes from `xgxr`:
 
 ``` r
 

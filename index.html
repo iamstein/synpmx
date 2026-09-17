@@ -157,8 +157,7 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iamstein.github.io/synpmx/">synpmx</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"case1_pkpd"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">study</span><span class="op">$</span><span class="va">CENS</span><span class="op">[</span><span class="va">study</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span>  <span class="co"># CENS here flags the PK assay limit only</span></span></code></pre></div>
+<span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span>list <span class="op">=</span> <span class="st">"mad"</span>, package <span class="op">=</span> <span class="st">"xgxr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_2-define-column-roles">2. Define Column roles<a class="anchor" aria-label="anchor" href="#id_2-define-column-roles"></a>
@@ -172,20 +171,20 @@
 <span>  amt            <span class="op">=</span> <span class="st">"AMT"</span>,                <span class="co"># dose amount</span></span>
 <span>  cmt            <span class="op">=</span> <span class="st">"CMT"</span>,                <span class="co"># compartment</span></span>
 <span>  dvid           <span class="op">=</span> <span class="st">"NAME"</span>,               <span class="co"># endpoint key: which endpoint the row reports</span></span>
-<span>  mdv            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># missing-dependent-variable flag</span></span>
+<span>  mdv            <span class="op">=</span> <span class="st">"MDV"</span>,                <span class="co"># missing-dependent-variable flag</span></span>
 <span>  rate           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># infusion rate</span></span>
 <span>  nominal_time   <span class="op">=</span> <span class="st">"NOMTIME"</span>,            <span class="co"># protocol visit time; the visit model is built on it</span></span>
 <span>  tad            <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># time after dose; recomputed rather than read</span></span>
 <span>  occasion       <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># set if TIME resets by occasion</span></span>
-<span>  cens           <span class="op">=</span> <span class="st">"CENS"</span>,               <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
+<span>  cens           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># 1 = BLOQ, -1 = above, 0 = not</span></span>
 <span>  limit          <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># other end of the censoring interval</span></span>
 <span>  addl           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># additional doses</span></span>
 <span>  ii             <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># interdose interval</span></span>
-<span>  covariates     <span class="op">=</span> <span class="st">"WEIGHTB"</span>,            <span class="co"># patient baseline covariates</span></span>
+<span>  covariates     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WEIGHTB"</span>, <span class="st">"SEX"</span><span class="op">)</span>,  <span class="co"># patient baseline covariates</span></span>
 <span>  strata         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRTACT"</span>, <span class="st">"DOSE"</span><span class="op">)</span>,  <span class="co"># assigned arm / dose group / cohort; one dosing and visit model per arm</span></span>
 <span>  dose_covariate <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)</span></span>
 <span>  endpoint_types <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL</span></span>
-<span>  keep           <span class="op">=</span> <span class="st">"STUDY"</span>,              <span class="co"># columns carried through verbatim</span></span>
+<span>  keep           <span class="op">=</span> <span class="cn">NULL</span>,                 <span class="co"># columns carried through verbatim</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -217,7 +216,7 @@
 <p>If your environment blocks installing from GitHub, then download the source archive from <code>https://github.com/iamstein/synpmx/archive/refs/heads/main.tar.gz</code> and install from the file.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"synpmx-main.tar.gz"</span>, repos <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"source"</span><span class="op">)</span></span></code></pre></div>
-<p>Fitting a population model is done by <code>nlmixr2est</code>, which <code>synpmx</code> requires and which installs alongside it. That fit compiles, so the example above needs a working C++ toolchain and takes a few minutes. The example’s data comes from <code>xgxr</code>:</p>
+<p>Fitting a population model is done by <code>nlmixr2est</code>, which <code>synpmx</code> requires and which installs alongside it. That fit compiles, so the example above needs a working C++ toolchain. It first fits two compartments and falls back to one if the fit fails convergence or generation checks. <code>synpmx_model_estimate(study, roles, seed = 2026, pk = "1cmt_oral")</code> requests one compartment directly. The example’s data comes from <code>xgxr</code>:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"xgxr"</span><span class="op">)</span></span></code></pre></div>
 <p>The Data Privacy methods additionally require the official <a href="https://docs.opendp.org/en/stable/api/r/" class="external-link">OpenDP R package</a>:</p>

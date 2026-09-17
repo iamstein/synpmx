@@ -13,11 +13,11 @@ generates are for prototyping analysis code. The goodness of fit of the
 selected model is not assessed:
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 says what the search had to go on, not whether the model describes the
-source. The candidate set is five linear models and the covariate model
-is allometric scaling or nothing, which is too little to answer a
-scientific question, so the fitted parameters are not estimates to
-report, even though the printed object looks exactly like the output of
-a real population analysis.
+source. The candidate set is the package’s linear models and the
+covariate model is allometric scaling or nothing, which is too little to
+answer a scientific question, so the fitted parameters are not estimates
+to report, even though the printed object looks exactly like the output
+of a real population analysis.
 
 No formal privacy guarantee is offered, although no patient’s measured
 value reaches the output.
@@ -33,19 +33,19 @@ value reaches the output.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 inventories everything the fitted object carries,
 [`model_candidates()`](https://iamstein.github.io/synpmx/reference/model_candidates.md)
-returns the comparison table the selection was made from, and
+returns the attempted models and their acceptance results, and
 [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
 returns the fixed effects, the between-subject covariance matrix and the
 residual error.
 
-`nlmixr2` is in `Suggests`, is loaded only by
+`nlmixr2est` is an imported dependency, used by
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
 and the candidate set is exactly the models the generator can evaluate
 in closed form. A candidate the fitter could estimate and the generator
 could not simulate would be a model that fits and then generates
-nothing, so the two lists are one list. The vignettes read a stored fit
-built by `scripts/build-model-fits.R`, so `R CMD check` and the pkgdown
-site never compile a model.
+nothing, so the two lists are one list. The vignettes read a stored
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+fit, so `R CMD check` and the pkgdown site never compile a model.
 
 ## The Arguments
 
@@ -53,10 +53,10 @@ Beyond the roles and the seed:
 
 | Argument | Default | Effect |
 |----|----|----|
-| `pk` | `NULL` | One of the five built-in models, forcing it; or several, which is how a search is asked for. |
+| `pk` | `NULL` | One of the built-in models, forcing it and skipping the search; or several, which is how a search of your own choosing is asked for. |
 | `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
 | `pd_by_arm` | `FALSE` | Fit each PD endpoint’s shape per arm rather than once over the pooled cohort. |
-| `endpoint_roles` | `NULL` | Names which endpoint is the drug concentration, overriding inference. More than one may be named. |
+| `endpoint_roles` | `NULL` | Declares concentration endpoints with `pk`, or a PD-only study with `c(pd = "response")`. More than one concentration may be named. |
 | `start_param` | `NULL` | Starting values for the population fit, keyed by endpoint where more than one concentration is fitted. The escape hatch where the non-compartmental read of the median profile starts the optimizer somewhere it cannot move from. |
 | `covariate_effects` | `"none"` | `"none"` puts no covariate in the structural model; `"auto"` applies allometric scaling on clearance and volume where a weight-like covariate is declared. |
 | `min_subjects` | `20L` | Warn and fit anyway below this cohort size. |
@@ -65,10 +65,11 @@ Beyond the roles and the seed:
 | `max_fit_subjects` | `60L` | Fit the population model to this many subjects, drawn in proportion to the arms. The dosing, visit and covariate models read every subject. |
 | `estimation` | `"focei"` | Passed to `nlmixr2`. |
 
-**The default path performs exactly one population fit.** The arguments
-above are the ways to spend more time for more accuracy: a search costs
-one fit per candidate, and a second concentration endpoint costs one
-more. Neither happens unless it is asked for.
+**The default tries two compartments first**, with a one-compartment
+fallback only if the first fit fails acceptance checks. An ambiguous
+administration route gets this sequence for each possible route. A named
+`pk` model is fitted alone; a vector of names requests an Akaike
+information criterion (AIC) comparison of acceptable fits.
 
 ## Two Time Axes, and `nominal_time` Is Required
 
@@ -111,14 +112,14 @@ on the way out, so it comes back in the encoding its source used.
 1.  **Classify the endpoints.** Four signals decide which endpoint or
     endpoints are drug concentrations. Everything else continuous
     becomes a pharmacodynamic (PD) endpoint.
-2.  **Detect the design.** The route of administration and the sampling
-    richness prune the set of PK models that will be offered to the
-    fitter.
+2.  **Detect the design.** The route of administration determines the
+    candidate models. Sampling richness is reported alongside the fit.
 3.  **Estimate the parameters.** Fit each surviving PK model as a
-    population nonlinear mixed-effects model through `nlmixr2` and
-    select on AIC, once per concentration endpoint. No covariate enters
-    the structural model unless `covariate_effects = "auto"` asks for
-    it. Fit each PD endpoint’s time course by least squares.
+    population nonlinear mixed-effects model through `nlmixr2`,
+    screening before fallback, once per concentration endpoint. No
+    covariate enters the structural model unless
+    `covariate_effects = "auto"` asks for it. Fit each PD endpoint’s
+    time course by least squares.
 4.  **Fit a dosing model and a visit model per arm**: a planned dose
     schedule with rates for reduction, interruption and discontinuation,
     and the probability of a visit at each nominal time.
@@ -143,8 +144,10 @@ endpoint that is a time course:
 1.  **Compartment.** The `cmt` role puts the endpoint in the compartment
     the doses go to, or one above a dosing compartment nobody observes,
     which is the depot-and-central convention.
-2.  **Post-dose only.** Observations before the first dose are absent,
-    or sit at or below the censoring limit, in most subjects.
+2.  **Post-dose only.** Observations at or before the first recorded
+    dose are absent, zero, or at or below the censoring limit, in most
+    subjects. Recorded observation and dose times are compared on the
+    same clock. Later troughs do not count as baseline.
 3.  **Shape.** The median profile within the richest dose interval rises
     to a maximum and declines without rising again.
 4.  **Dose proportionality.** Between the highest and lowest dose level,
@@ -165,11 +168,41 @@ ratio near 1, which almost any endpoint passes. Where the distinct
 amounts outnumber half the cohort the signal reports “not computable”
 and signals 1 to 3 decide.
 
-Where no endpoint passes, or two pass and neither tie-break separates
-them, the function errors and names `endpoint_roles` as the way through.
-That is the inference-versus-declaration fork, answered the way
-`dose_covariate` answers it: infer where the data settles the question,
-offer the declaration as an override.
+Where every continuous endpoint fails the baseline signal, the study is
+inferred as PD-only. Otherwise, if no endpoint passes or two pass and
+neither tie-break separates them, the function errors and names
+`endpoint_roles` as the way through. That is the
+inference-versus-declaration fork, answered the way `dose_covariate`
+answers it: infer where the data settles the question, offer the
+declaration as an override.
+
+### A study can contain only PD endpoints
+
+`endpoint_roles = c(pd = "response")` declares a response-only study.
+`endpoint_roles = list(pk = character())` makes the same declaration for
+all observed endpoints. The pipeline fits continuous responses using the
+PD shapes in Step 3 and discrete responses using visit frequencies. It
+skips compartment selection, population PK estimation, and the PK
+acceptance checks. It also skips the post-dose coverage gate: dose
+records need not exist, although the nominal observation grid remains
+required.
+
+A positive baseline at the first dose time identifies `wbcSim` as
+PD-only without an override. Missing doses likewise provide no evidence
+of PK. An immediate post-bolus sample sharing the first dose timestamp,
+a pretreated patient, or an endogenous concentration can contradict this
+baseline heuristic; use `endpoint_roles = c(pk = "response")` when the
+assay is known to measure a concentration. The available continuous PD
+shapes remain constant, linear and exponential in study time, with no
+exposure term or cell-turnover model.
+
+A PD-only fitted object has `structural = NULL`, `parameters = NULL`,
+and an empty `pk_models` list.
+[`model_candidates()`](https://iamstein.github.io/synpmx/reference/model_candidates.md)
+returns an empty PK candidate table; the PD candidates are in
+`model_report(fit)$pd[[endpoint]]$candidates`, and
+`model_parameters(fit)$pd` returns the PD fits. Generation still carries
+the declared dosing, observation, covariate and arm summaries.
 
 ### More than one endpoint can be a concentration
 
@@ -236,14 +269,13 @@ necessary and not sufficient, and it is satisfied by any endpoint with
 no pre-dose observation. The distinction matters because signal 4 is
 often *not computable*, and the required test treats that as passing —
 which is right for choosing one endpoint and wrong for promoting a
-second. `warfarin`’s prothrombin activity and `onc_sim`’s tumour size
-both pass signals 2 and 4 that way, and neither is a drug concentration;
-requiring signal 4 to be `TRUE` rather than merely not `FALSE` leaves
-both where they belong.
+second. Unknown dose proportionality does not promote a second endpoint
+into PK. Positive baselines independently identify `warfarin`’s
+prothrombin activity and `onc_sim`’s tumour size as PD.
 
-So a study whose two endpoints both scale with dose is classified with
-two concentrations and no declaration. A study where the evidence is
-absent on both still refuses and asks, which is what `onc_sim` does.
+A study whose two endpoints both pass the baseline signal and scale with
+dose is classified with two concentrations. If the remaining evidence
+cannot separate them, the caller must declare the endpoint roles.
 
 `endpoint_roles = list(pk = c("parent", "metabolite"))` declares it
 where inference cannot. Declaring several is worth doing wherever it is
@@ -257,7 +289,7 @@ range, against 2.7 in the source (`SIM-080`).
 model_report(fit)$endpoints$signals
 #>   endpoint compartment post_dose shape proportional
 #> 1       cp          NA      TRUE  TRUE           NA
-#> 2      pca          NA      TRUE FALSE           NA
+#> 2      pca          NA     FALSE FALSE           NA
 ```
 
 **What this cannot do.** On a study with one continuous endpoint and one
@@ -282,11 +314,11 @@ convention of the dataset and cannot be read off the numbers, so a guess
 would put every dose in the wrong compartment without failing.
 
 Where a study declares both routes, the route is a property of each dose
-record rather than of the study, and the candidate is `1cmt_mixed` — the
-intravenous form for the doses given intravenously and the extravascular
-form for the rest, summed. That sum is exact rather than an
-approximation, because every model in the closed-form set is linear in
-dose, and it is what lets one patient receive both. Bioavailability
+record rather than of the study, and the candidates are the mixed models
+— the intravenous form for the doses given intravenously and the
+extravascular form for the rest, summed. That sum is exact rather than
+an approximation, because every model in the closed-form set is linear
+in dose, and it is what lets one patient receive both. Bioavailability
 scales the extravascular doses and not the intravenous ones, which is
 what bioavailability means and why it is identifiable in a study dosed
 both ways and not in one dosed a single way. It is fitted as a fixed
@@ -322,9 +354,9 @@ dosed one way and no answer at all for a study dosed two ways — the
 study”, so a mixed study came back as an infusion model with no
 absorption in it.
 
-A `rate` role carrying a nonzero value is an infusion, and
-`1cmt_infusion` is the only candidate. Otherwise one property separates
-the two remaining routes, and it is not how many patients peak early.
+A `rate` role carrying a nonzero value is an infusion, and the infusion
+models are the candidates. Otherwise one property separates the two
+remaining routes, and it is not how many patients peak early.
 
 A drug given by mouth cannot be in the blood at the moment it is
 swallowed. So a concentration observed at time zero after a dose is
@@ -355,7 +387,7 @@ observation. Below six the fit still runs and warns: a one-compartment
 model is not identifiable from that sampling, so its parameters stay
 near their starting values and the simulated profiles are a plausible
 shape rather than this study’s. There is no simpler structural model to
-drop to — the default candidate set is already one compartment.
+drop to — the simplest candidate is already the one-compartment model.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 and
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
@@ -363,35 +395,40 @@ carry sparse sampling without fitting a structure to it. No post-dose
 observation at all is an error, since there is then no curve to fit.
 
 **Per subject**, distinct nominal times after a dose within the richest
-dose interval. Four or more, with two after the median peak, is enough
-to identify a distribution phase. A sample *before* the peak is required
+dose interval. Four or more, with two after the median peak, is labelled
+richer sampling. A sample *before* the peak is required for that label
 only where there is an ascending limb to sample, since an intravenous
-bolus peaks at the dose.
+bolus peaks at the dose. This sampling heuristic does not establish
+parameter identifiability.
 
-This count decides nothing. It is reported, and
+This count decides nothing. Both compartment counts remain available,
+and
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-says so when the sampling would support a two-compartment model, because
-asking for one is your move rather than the search’s.
+prints it beside the selection, because what it answers is how much
+within-subject time coverage the fitted curve rests on.
 
-### One Compartment by Default
+### Choosing the Compartment Count
 
-The default is one-compartment: `1cmt_iv`, `1cmt_oral` or
-`1cmt_infusion`. Where the route is ambiguous both are fitted and AIC
-chooses, which is the only case the default runs more than one fit.
+**The default first fits two compartments for the detected route.** A
+fit that passes the checks in Step 3 is accepted without fitting one
+compartment. If it fails, one compartment is tried under the same
+checks. If both fail, estimation stops and lists the reasons. A stable
+two-compartment fit may be accepted even when a one-compartment model
+could describe the study.
 
-A distribution phase is a refinement of a shape the one-compartment
-model already has, and this generator exists to make simulated profiles
-resemble the source study rather than to characterise it. The cost is
-not small: a two-compartment fit takes several times as long, and on
-data a one-compartment model describes it spends that time against a
-flat likelihood and reports the worse AIC anyway.
-
-**It remains available.** `pk = "2cmt_oral"` or `pk = "2cmt_iv"` forces
-the model and skips the search, and the generator simulates from it
-exactly as it does from any other, since the closed-form solution is
-already there.
+Where the route is ambiguous, each route gets its own fallback sequence.
+The accepted models are then compared by Akaike information criterion
+(AIC). `pk = "1cmt_oral"` or `pk = "2cmt_oral"` requests exactly that
+model, with no automatic substitution. A vector such as
+`pk = c("1cmt_oral", "2cmt_oral")` fits both and selects the acceptable
+model with the lowest AIC, without an extra preference for two
+compartments.
 
 ## Step 3: Estimate the PK and PD Parameters
+
+The population-fitting and acceptance operations below apply only to PK
+endpoints. A declared PD-only study proceeds directly to the PD
+time-course fits later in this step.
 
 **The population model is fitted to at most `max_fit_subjects`
 patients**, 60 by default, drawn in proportion to the arms with the
@@ -405,16 +442,15 @@ reads the whole study, and the report states the count.
 Each one is fitted as a population nonlinear mixed-effects model through
 `nlmixr2`, which estimates the fixed effects, the between-subject
 covariance matrix and the residual error, and where more than one
-candidate is offered they are compared on AIC. The PD endpoints are
-estimated separately, and not as mixed-effects models.
+candidate is offered they are compared by the rule above. The PD
+endpoints are estimated separately, and not as mixed-effects models.
 
-The candidate set is at most the five models in the package’s
-closed-form set, and never more. A candidate the fitter could estimate
-and the generator could not simulate would be a model that fits and then
-generates nothing, so the two lists are one list. That is also why no
-dose effect on clearance is fitted: it would mean a candidate set that
-is no longer five closed-form models, and generation would need a
-solver.
+The candidate set is drawn from the package’s closed-form set and never
+goes outside it. A candidate the fitter could estimate and the generator
+could not simulate would be a model that fits and then generates
+nothing, so the two lists are one list. That is also why no dose effect
+on clearance is fitted: it would mean a candidate with no closed form,
+and generation would need a solver.
 
 **A subject the endpoint was never measured in is not fitted.** It adds
 no term to the likelihood, and a record carrying doses and no samples is
@@ -434,11 +470,11 @@ Where the study declares a censoring column, the rows below the assay
 limit reach `nlmixr2` as censored – the limit in `DV`, the flag in
 `CENS`, and the other bound in `LIMIT` where the study reports one – so
 each contributes the probability of falling below the limit rather than
-a value nobody measured. On 30 subjects of `case1_pkpd`, 45% of them
-below the limit, that moves the proportional residual from 0.517 to
-0.290 against imputing the same rows, and the residual is what sets the
-scatter of every generated observation. It costs about a factor of 1.7
-in fitting time there, and less where less of the endpoint is censored.
+a value nobody measured. The residual error determines the scatter of
+generated observations, so substituting invented concentrations in the
+likelihood would change the quantity that generation uses. The
+`case1_pkpd` example retains an optimizer false-convergence warning
+while passing the parameter and generation checks.
 
 **Everything else reads an imputed value**, because nothing else has a
 likelihood to put censoring in: the visit model, the covariate model and
@@ -467,53 +503,98 @@ steady-state volume comes from the mean residence time, with the
 absorption mean taken back off for an oral dose, and is split between
 the central and peripheral compartments.
 
-**The default fits one model and stops.** Not a search that happens to
-have one candidate: one model, chosen by the route detection above, with
-allometric scaling folded into it where a weight-like covariate is
-declared. `pk` is how you buy accuracy with time.
+**The default tries two compartments, with one compartment as
+fallback.** Allometric scaling, when requested, is folded into each fit.
 
 ``` r
 
-# One fit, the default.
-synpmx_model_estimate(data, roles)
-# One fit, your choice of model.
-synpmx_model_estimate(data, roles, pk = "2cmt_oral")
-# Two fits, compared on AIC.
-synpmx_model_estimate(data, roles, pk = c("1cmt_oral", "2cmt_oral"))
+synpmx_model_estimate(data, roles) # two compartments, then fallback if needed
+synpmx_model_estimate(data, roles, pk = "2cmt_oral") # this model only
+synpmx_model_estimate(data, roles, pk = c("1cmt_oral", "2cmt_oral")) # AIC
 ```
 
-**How long it takes is set by the dose records, not the patients.**
-Every likelihood evaluation superposes one contribution per dose per
-subject, so the cost scales with the number of dose events rather than
-with cohort size. A single-dose study of a few dozen patients fits in
-seconds. A daily regimen carrying scores of dose records per subject
-over a cohort several times larger is two orders of magnitude more work,
-and a call that has not returned after half an hour is that cost rather
-than a fault.
+### Acceptance Checks
 
-**What it did take is reported.** Each candidate’s fitting time is a
-column of the candidate table, the fit prints the total with itself, and
-the run says so as it finishes, because the number a caller weighs a
-rerun against is how long the last one took.
+A finite AIC alone does not establish convergence. For first-order
+conditional estimation with interaction (FOCEi), the optimizer must
+return a successful termination code and a finite AIC, except that
+**false convergence alone is a warning**. The report explains it as:
 
-**Where there is a search, selection is on AIC**, and the estimation
-method is `focei` for that reason. SAEM’s log-likelihood is a
-Gaussian-quadrature step run after the fit, and at phase 1 cohort sizes
-it returns a non-finite value, so a search over two candidates has
-nothing to compare. `estimation = "saem"` remains available for a study
-large enough to give it a likelihood. A candidate whose AIC is not
-finite is recorded as not converged whichever method produced it.
+> Warning: the optimizer stalled before convergence was confirmed. Check
+> that the synthetic data reasonably reproduces the source data’s
+> patterns and variability.
 
-A candidate that fails drops out carrying its reason and stays in the
-table, so that a search which came down to one survivor does not look
-like a search that had one candidate. Where nothing converges the
-function errors rather than returning the least bad fit.
+A fit with that warning can be accepted if its parameters and generated
+profiles pass the remaining checks; `converged` stays false and
+`accepted` is true. Iteration or evaluation limits and other failures
+still reject the candidate. Stochastic approximation
+expectation-maximization (SAEM) has no equivalent termination code: the
+check compares mean parameter values in two halves of the final fifth of
+its trajectory (at least ten rows). A change exceeding 50% of the larger
+of one and the first-half absolute mean rejects the fit. A trajectory
+with fewer than 20 usable rows or non-finite values in its checked tail
+also fails. This is a coarse drift screen, not proof that a stochastic
+fit has converged. A missing SAEM AIC only prevents comparison when
+multiple accepted candidates remain.
+
+Fixed effects must be finite and positive, residual error finite and
+non-negative, and the between-subject covariance finite, symmetric and
+positive semidefinite within numerical tolerance. Standard errors and
+peripheral-parameter precision are not acceptance criteria. Estimates
+remaining within 1% of their starts warn; little movement alone does not
+prove failure.
+
+The generation screen draws four new subjects for each fitted subject’s
+recorded dose and sampling design, using the generator’s
+population-effect, profile and residual-error functions. It uses
+expanded dose records, including infusion durations and mixed
+administration routes, and declared allometric scaling. It never uses
+the original subjects’ fitted random effects. An internal seed of 104729
+makes the screen repeatable and preserves the caller’s random-number
+stream.
+
+Missing observed designs, non-finite parameters or concentrations,
+nonpositive drawn parameters, and concentrations below -1e-8 fail. Tiny
+negative roundoff is clamped to zero. Each source reading supplies lower
+and upper bounds: an exact reading has identical bounds, a left-censored
+reading lies between zero and its limit, and an unbounded right-censored
+reading lies above its limit. A declared second interval boundary
+tightens those bounds. Inconsistent bounds fail. The medians of the
+lower and upper bounds enclose the source median. A generated median
+below 0.01 times a positive lower bound or above 100 times a finite
+positive upper bound fails. With uncensored data this is the ordinary
+median ratio check.
+
+More than 10% of simulated profiles exceeding 100 times their
+source-design maximum also fails. The source maximum uses the upper
+observation bounds; designs with an unbounded right-censored reading are
+omitted from this check, and that omission is reported. These are
+engineering screens for gross failures, not validated goodness-of-fit
+cutoffs.
+
+Less decisive discrepancies warn: a generated median more than twofold
+outside the source median bounds, an uncensored generated/source
+interquartile-range ratio outside 0.5 to 2, or a typical profile
+differing by more than fourfold at the median positive uncensored
+observation. Censoring disables the spread comparison, and the omission
+is reported. Numerical checks and comparisons supported by the remaining
+bounds still run. The pooled comparisons can miss time- or arm-specific
+errors; inspect the source-versus-synthetic plots for the profile’s
+rise, decline and spread.
+
+[`model_candidates()`](https://iamstein.github.io/synpmx/reference/model_candidates.md)
+lists attempted candidates in order, with separate `converged` and
+`accepted` columns and warning or rejection reasons in `note`. A
+fallback that was not needed has no row.
+[`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
+states why the model was selected. The measured time includes fitting
+and acceptance checks.
 
 ``` r
 
 model_candidates(fit)
-#>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.908
+#>       model converged accepted      aic seconds note
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  51.794
 ```
 
 ### Covariates
@@ -526,8 +607,8 @@ clearance that moves with weight buys the generator nothing.
 `covariate_effects = "auto"` applies allometric scaling on clearance and
 volume where a weight-like covariate is declared, and fits nothing else.
 The exponents are the standard 0.75 and 1 rather than estimated ones,
-and the effect is **asserted rather than tested**: it is folded into the
-one fit, not compared against a model without it. Testing it would
+and the effect is **asserted rather than tested**: it is folded into
+each fit, not compared against a model without it. Testing it would
 double the cost of the whole call.
 
 The covariate is recognised by name, `wt`, `weight`, `bw` and the like,
@@ -563,14 +644,11 @@ average subject’s response.
 
 **One shape for the whole cohort by default, and one per arm on
 request.** The pooled fit predicts a single number for every arm, so a
-synthetic patient’s dose does not reach their response: on `case1_pkpd`
-the source’s mean PD after 1500 h runs 83, 68, 70, 126, 237, 341 across
-placebo and five ascending doses, and the pooled shape answers 149 to
-all six. `pd_by_arm = TRUE` fits the shape within each arm instead,
-which is the same per-arm summary the dosing and visit models already
-are and asserts no dose-response form – an arm is fitted on its own
-observations, on the same three-candidate ladder, or not at all. On that
-study it answers 47, 76, 77, 126, 217, 363. It is not the default
+synthetic patient’s dose does not reach their response.
+`pd_by_arm = TRUE` fits the shape within each arm instead, which is the
+same per-arm summary the dosing and visit models already are and asserts
+no dose-response form – an arm is fitted on its own observations, on the
+same three-candidate ladder, or not at all. It is not the default
 because it is a different claim about the study: the pooled shape says
 these endpoints are a time course, the per-arm shape says each arm has
 its own. An arm holding too little of an endpoint to fit keeps the
@@ -724,17 +802,20 @@ model_report(fit)
 #>                          dose interval
 #>   route              oral: the median profile rises to a peak at 9 before
 #>                      declining, and 31% of subjects do too
+#>   sampling           median 6 distinct times after a dose, 6 after the
+#>                      peak: sparse within-subject sampling
 #> 
 #> The PopPK model
 #> 
 #> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
+#>   structural model   2cmt_oral 
+#>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
-#>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
-#>   residual error     proportional 0.211 
-#>   time to fit        10.9 s
-#>   whole call         11.0 s, against 10.9 s in the fitter
+#>   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 
+#>   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)
+#>   residual error     proportional 0.206 
+#>   time to fit        51.8 s
+#>   whole call         52.0 s, against 51.8 s in the fitter
 ```
 
 ## Step 6: Generate New Subjects
@@ -797,16 +878,21 @@ fit badly is fitted, and told about.
 |----|----|----|
 | Cohort size | 20 subjects | Warns and fits. A covariance matrix fitted to a handful of subjects describes those subjects, and nothing downstream will say so: the scorecard asks whether the output copies anybody or changed the study’s shape, and a small-cohort fit does neither. [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)’s floor is 10 and this one is higher because a parameter estimate concentrates on its cohort faster than a score does. |
 | Fit cap | `max_fit_subjects` = 60 | The PK model is fitted to a subset drawn in proportion to the arms; the dosing, visit and covariate models read every subject. Reported in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md). Cannot be set below `min_subjects`. |
-| Cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller’s call to accept. |
-| No observation after a dose | — | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
+| PK cohort time coverage | 6 distinct nominal times after a dose | Warns and fits. Below it a one-compartment model is not identifiable and the parameters sit close to their starting values, which is the caller’s call to accept. |
+| No observation after a dose | PK endpoints only | Errors, naming which of the role columns the empty count came from: nothing selected as an observation, nothing selected as a dose, or the two never meeting in one subject. |
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
 | Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |
-| No PK endpoint identified | — | Errors and names `endpoint_roles`. |
-| No candidate converged | — | Errors rather than returning the least bad fit. |
+| No PK endpoint identified | — | All continuous endpoints fail the baseline signal, or there are only discrete endpoints: infer PD-only and skip PK fitting. Other unresolved classifications error and name `endpoint_roles`. |
+| Optimizer convergence | Successful termination or false convergence alone; finite AIC for FOCEi | False convergence warns and leaves acceptance to the remaining checks; other failures reject the candidate. SAEM uses the trajectory screen described in Step 3. |
+| Parameter validity | Positive finite fixed effects; non-negative finite residual; usable covariance | Rejects the candidate. |
+| Generation validity | Finite parameters and concentrations; numerical negatives below -1e-8 rejected | Rejects the candidate, using new population draws on the recorded designs. |
+| Gross generation discrepancy | Median more than 100-fold outside source median bounds, or over 10% of profiles above 100 times their source-design maximum | Rejects the candidate. Censoring supplies bounds; unbounded source maxima omit the affected designs from the upper-tail check. Omissions are reported. |
+| Moderate generation discrepancy | Median more than twofold outside source median bounds; uncensored interquartile-range ratio outside 0.5–2; median typical-profile discrepancy over fourfold on positive uncensored observations | Warns; does not trigger fallback. Censoring omits the spread comparison. |
+| No candidate accepted | — | Errors with each attempted model’s rejection reason. |
 | The between-subject terms did not move | 1% of the eta init, fixed effects moved | A line under the parameter block in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md), not the banner: the fixed effects are estimates, but the spread synthetic subjects get is the starting value rather than this study’s. |
 | Two endpoints tie as concentrations | neither tie-break separates them | Errors, naming both and `endpoint_roles`. Naming several is accepted, and each is fitted its own model. |
 | The fit did not move | 1% of every starting value | Warns, and prints `!! THE FIT DID NOT MOVE !!` above the parameter block in [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md). A converged-looking fit is not necessarily an estimated one: where the optimizer takes no effective step, `nlmixr2` returns an objective, an AIC and a full table of starting values, and nothing else downstream contradicts them — the generator simulates from them and the scorecard passes, because it asks whether the output copies anybody or changed the study’s shape and a fit that never moved does neither. Each parameter’s start, estimate and percent change are listed, because “did not move” is a claim the reader has to be able to check. |

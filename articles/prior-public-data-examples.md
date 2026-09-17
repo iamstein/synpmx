@@ -189,6 +189,7 @@ ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
   ggplot2::scale_colour_manual(values = comparison_colours, guide = "none") +
   ggplot2::labs(x = "Study time (days)", y = "Concentration (mg/L)",
                 title = "mixroute_sim under its own generating model") +
+  xgxr::xgx_scale_y_log10() +
   ggplot2::theme_minimal()
 ```
 

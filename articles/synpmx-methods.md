@@ -136,25 +136,28 @@ The most familiar route to a pharmacometrician: fit a population model
 to the study and simulate new subjects from the parameters.
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
 works out which endpoint is the drug and what design produced it, fits
-the candidates that design admits and picks one on AIC;
+the two-compartment model first, with checked fallback to one
+compartment;
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
 then reads the fit alone. No number a patient measured is in scope while
-the second call runs.
+the second call runs. A response-only study can declare
+`endpoint_roles = c(pd = "response")` to skip compartment fitting and
+use the PD time-course models instead.
 
-Twelve subjects is below the floor this generator sets for itself. It
-refuses under 20, because a covariance matrix fitted to fewer describes
-those subjects rather than a population, and the refusal is lifted here
-deliberately so that the mode can be shown on the same study as the
-other five.
+Twelve subjects is below the default warning threshold of 20. The fit
+still runs, but its estimated between-subject variability rests on a
+small cohort. Here `min_subjects = 12L` acknowledges the study size
+explicitly.
 
 ``` r
 
 model_fit <- synpmx_model_estimate(theo_md, theo_roles, seed = 1,
-                                   min_subjects = 12L)   # below the floor
+                                   min_subjects = 12L)   # acknowledge the small cohort
 ```
 
 The chunk above is shown rather than run: fitting compiles a model, so
-this article reads a stored fit built by `scripts/build-model-fits.R`.
+this article reads a stored result of
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md).
 
 ``` r
 
@@ -162,7 +165,7 @@ model_fit
 #> A fitted PMX model, from synpmx_model_estimate()
 #> Everything below is an input to `synpmx_model_generate()`.
 #> 
-#>   candidates fitted  1 (1cmt_oral selected on AIC) 
+#>   candidates fitted  1 (2cmt_oral selected) 
 #> 
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s)
@@ -185,19 +188,23 @@ model_fit
 #>                          dose interval
 #>   route              oral: the median profile rises to a peak at 2 before
 #>                      declining, and 100% of subjects do too
-#>   also available     2cmt_oral, which the sampling would support: median 11
-#>                      distinct times after a dose, 6 after the peak
+#>   sampling           median 11 distinct times after a dose, 6 after the
+#>                      peak: richer within-subject sampling
 #> 
 #> The PopPK model
 #> 
 #> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
+#>   structural model   2cmt_oral 
+#>   selected by        two-compartment model passed acceptance checks
+#>   fit checks         Warning: the optimizer stalled before convergence was
+#>                      confirmed. Check that the synthetic data reasonably
+#>                      reproduces the source data's patterns and variability.
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.813, v 33.6, ka 1.45 
-#>   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)
-#>   residual error     proportional 0.217 
-#>   time to fit        7.9 s
-#>   whole call         8.3 s, against 7.9 s in the fitter
+#>   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 
+#>   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)
+#>   residual error     proportional 0.216 
+#>   time to fit        1 min 18 s
+#>   whole call         1 min 18 s, against 1 min 18 s in the fitter
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 
@@ -717,7 +724,7 @@ knitr::kable(
 |                 | n_observations | median |  p10 |  p90 |
 |:----------------|---------------:|-------:|-----:|-----:|
 | Source          |            264 |   5.74 | 1.25 | 9.30 |
-| 1\. PMX model   |            258 |   5.66 | 1.50 | 9.92 |
+| 1\. PMX model   |            265 |   5.57 | 1.56 | 9.30 |
 | 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
 | 3\. PCA         |            261 |   5.95 | 1.31 | 9.30 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |
@@ -918,11 +925,12 @@ takes shape from a **public structural model** — a closed-form
 one-compartment or two-compartment PK model, evaluated analytically
 rather than by solving ordinary differential equations (ODEs) — and
 spends budget only on correcting its magnitude. The supported PK shapes
-are `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`, `"2cmt_iv"`, and
-`"2cmt_oral"`. Optional PD shapes are `"constant"`, `"linear"`, and
-`"exponential"`, with no exposure dependence. Between-subject
-variability (`iiv`) and residual error (`residual_cv`) are public
-assumptions and consume no budget.
+are `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`, `"2cmt_iv"`,
+`"2cmt_oral"`, and `"2cmt_infusion"`, plus `"1cmt_mixed"` and
+`"2cmt_mixed"` for a study dosed by two routes. Optional PD shapes are
+`"constant"`, `"linear"`, and `"exponential"`, with no exposure
+dependence. Between-subject variability (`iiv`) and residual error
+(`residual_cv`) are public assumptions and consume no budget.
 
 Because only a handful of numbers are released (`d = 2` for a single PK
 correction plus the count), the noise per released quantity stays small,

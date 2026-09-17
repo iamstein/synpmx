@@ -24,7 +24,7 @@ pmx_structural_model(
 - pk:
 
   One of `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`, `"2cmt_iv"`,
-  `"2cmt_oral"`.
+  `"2cmt_oral"`, `"2cmt_infusion"`, `"1cmt_mixed"` or `"2cmt_mixed"`.
 
 - typical:
 

@@ -185,7 +185,7 @@ six visits, two components, one drawn score vector:</p>
 <span>  max_difference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">profiles</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">weights</span><span class="op">)</span> <span class="op">-</span></span>
 <span>                             <span class="va">reconstruction</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; weights_sum_to max_difference </span></span>
-<span><span class="co">#&gt;   1.000000e+00   8.881784e-16</span></span></code></pre></div>
+<span><span class="co">#&gt;   1.000000e+00   1.776357e-15</span></span></code></pre></div>
 <p>Generating from a principal-component model re-weights the study
 rather than departing from it.</p>
 </div>
@@ -364,7 +364,7 @@ strategy in coordinates where the parametric assumption is close to
 true. That is also why its fitted quantities are ones a
 pharmacometrician already reasons about. The cost is that the structural
 model has to be right enough: where a principal-component basis adapts
-to whatever shape the profiles have, a one-compartment model asserts the
+to whatever shape the profiles have, a compartmental model asserts the
 shape and cannot represent a study that does not have it.</p>
 </div>
 <div class="section level2">

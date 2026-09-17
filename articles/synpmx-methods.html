@@ -250,27 +250,29 @@ data-reading generators.</p>
 <p>The most familiar route to a pharmacometrician: fit a population
 model to the study and simulate new subjects from the parameters.
 <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> works out which endpoint is the
-drug and what design produced it, fits the candidates that design admits
-and picks one on AIC; <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> then reads
-the fit alone. No number a patient measured is in scope while the second
-call runs.</p>
-<p>Twelve subjects is below the floor this generator sets for itself. It
-refuses under 20, because a covariance matrix fitted to fewer describes
-those subjects rather than a population, and the refusal is lifted here
-deliberately so that the mode can be shown on the same study as the
-other five.</p>
+drug and what design produced it, fits the two-compartment model first,
+with checked fallback to one compartment;
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> then reads the fit alone. No number
+a patient measured is in scope while the second call runs. A
+response-only study can declare
+<code>endpoint_roles = c(pd = "response")</code> to skip compartment
+fitting and use the PD time-course models instead.</p>
+<p>Twelve subjects is below the default warning threshold of 20. The fit
+still runs, but its estimated between-subject variability rests on a
+small cohort. Here <code>min_subjects = 12L</code> acknowledges the
+study size explicitly.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">theo_md</span>, <span class="va">theo_roles</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>                                   min_subjects <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span>   <span class="co"># below the floor</span></span></code></pre></div>
+<span>                                   min_subjects <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span>   <span class="co"># acknowledge the small cohort</span></span></code></pre></div>
 <p>The chunk above is shown rather than run: fitting compiles a model,
-so this article reads a stored fit built by
-<code>scripts/build-model-fits.R</code>.</p>
+so this article reads a stored result of
+<code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model_fit</span></span>
 <span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
 <span><span class="co">#&gt; Everything below is an input to `synpmx_model_generate()`.</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   candidates fitted  1 (1cmt_oral selected on AIC) </span></span>
+<span><span class="co">#&gt;   candidates fitted  1 (2cmt_oral selected) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             12 patients in 1 arm(s)</span></span>
@@ -293,19 +295,23 @@ so this article reads a stored fit built by
 <span><span class="co">#&gt;                          dose interval</span></span>
 <span><span class="co">#&gt;   route              oral: the median profile rises to a peak at 2 before</span></span>
 <span><span class="co">#&gt;                      declining, and 100% of subjects do too</span></span>
-<span><span class="co">#&gt;   also available     2cmt_oral, which the sampling would support: median 11</span></span>
-<span><span class="co">#&gt;                      distinct times after a dose, 6 after the peak</span></span>
+<span><span class="co">#&gt;   sampling           median 11 distinct times after a dose, 6 after the</span></span>
+<span><span class="co">#&gt;                      peak: richer within-subject sampling</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The PopPK model</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimated by nlmixr2</span></span>
-<span><span class="co">#&gt;   structural model   1cmt_oral </span></span>
+<span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
+<span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
+<span><span class="co">#&gt;   fit checks         Warning: the optimizer stalled before convergence was</span></span>
+<span><span class="co">#&gt;                      confirmed. Check that the synthetic data reasonably</span></span>
+<span><span class="co">#&gt;                      reproduces the source data's patterns and variability.</span></span>
 <span><span class="co">#&gt;   fitted on          all 12 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 2.813, v 33.6, ka 1.45 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.189, v 0.128, ka 0.543 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.217 </span></span>
-<span><span class="co">#&gt;   time to fit        7.9 s</span></span>
-<span><span class="co">#&gt;   whole call         8.3 s, against 7.9 s in the fitter</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.216 </span></span>
+<span><span class="co">#&gt;   time to fit        1 min 18 s</span></span>
+<span><span class="co">#&gt;   whole call         1 min 18 s, against 1 min 18 s in the fitter</span></span>
 <span><span class="va">model_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">model_fit</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span></code></pre></div>
 <p>What leaves the study is the printed object and nothing else: a
 structural model, three fixed effects, a covariance matrix, a residual
@@ -763,10 +769,10 @@ against each other.</p>
 </tr>
 <tr class="even">
 <td align="left">1. PMX model</td>
-<td align="right">258</td>
-<td align="right">5.66</td>
-<td align="right">1.50</td>
-<td align="right">9.92</td>
+<td align="right">265</td>
+<td align="right">5.57</td>
+<td align="right">1.56</td>
+<td align="right">9.30</td>
 </tr>
 <tr class="odd">
 <td align="left">2. AVATAR</td>
@@ -1077,12 +1083,13 @@ two-compartment PK model, evaluated analytically rather than by solving
 ordinary differential equations (ODEs) — and spends budget only on
 correcting its magnitude. The supported PK shapes are
 <code>"1cmt_iv"</code>, <code>"1cmt_oral"</code>,
-<code>"1cmt_infusion"</code>, <code>"2cmt_iv"</code>, and
-<code>"2cmt_oral"</code>. Optional PD shapes are
-<code>"constant"</code>, <code>"linear"</code>, and
-<code>"exponential"</code>, with no exposure dependence. Between-subject
-variability (<code>iiv</code>) and residual error
-(<code>residual_cv</code>) are public assumptions and consume no
+<code>"1cmt_infusion"</code>, <code>"2cmt_iv"</code>,
+<code>"2cmt_oral"</code>, and <code>"2cmt_infusion"</code>, plus
+<code>"1cmt_mixed"</code> and <code>"2cmt_mixed"</code> for a study
+dosed by two routes. Optional PD shapes are <code>"constant"</code>,
+<code>"linear"</code>, and <code>"exponential"</code>, with no exposure
+dependence. Between-subject variability (<code>iiv</code>) and residual
+error (<code>residual_cv</code>) are public assumptions and consume no
 budget.</p>
 <p>Because only a handful of numbers are released (<code>d = 2</code>
 for a single PK correction plus the count), the noise per released

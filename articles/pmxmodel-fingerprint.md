@@ -113,17 +113,20 @@ model_report(fit)
 #>                          dose interval
 #>   route              oral: the median profile rises to a peak at 9 before
 #>                      declining, and 31% of subjects do too
+#>   sampling           median 6 distinct times after a dose, 6 after the
+#>                      peak: sparse within-subject sampling
 #> 
 #> The PopPK model
 #> 
 #> Estimated by nlmixr2
-#>   structural model   1cmt_oral 
+#>   structural model   2cmt_oral 
+#>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1353, v 8.115, ka 0.5796 
-#>   between-subject    cl 0.267, v 0.204, ka 0.68 (as SD on the log scale)
-#>   residual error     proportional 0.211 
-#>   time to fit        10.9 s
-#>   whole call         11.0 s, against 10.9 s in the fitter
+#>   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 
+#>   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)
+#>   residual error     proportional 0.206 
+#>   time to fit        51.8 s
+#>   whole call         52.0 s, against 51.8 s in the fitter
 ```
 
 Every section below expands one part of it. The object is a plain list
@@ -190,13 +193,21 @@ fit$endpoints$decided_by
 ``` r
 
 fit$structural
-#> [1] "1cmt_oral"
+#> [1] "2cmt_oral"
 model_candidates(fit)
-#>       model converged      aic seconds note
-#> 1 1cmt_oral      TRUE 926.9152  10.908
+#>       model converged accepted      aic seconds note
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  51.794
 ```
 
-One row, because the default fits one model. `pk` is what asks for more.
+Each row is an attempted fit. The default stops when two compartments
+pass the acceptance checks; a rejected fit is followed by one
+compartment. `pk` names a particular model, or several to compare by
+Akaike information criterion (AIC) after those checks.
+
+For a declared PD-only study there is no PK structure: `structural` and
+`parameters` are `NULL`, `pk_models` is empty, and the PK candidate
+table has no rows. The PD shapes and their candidates are in
+`model_report(fit)$pd`; `model_parameters(fit)$pd` returns those fits.
 
 ## The fixed effects
 
@@ -206,8 +217,8 @@ look most like a result and are least entitled to be read as one.
 ``` r
 
 model_parameters(fit)$fixed
-#>        cl         v        ka 
-#> 0.1352699 8.1149407 0.5796365
+#>         cl          v          q         v2         ka 
+#> 0.13140202 6.57422812 0.09833005 1.56198488 0.42057604
 ```
 
 ## Between-subject variability
@@ -219,13 +230,15 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>            cl          v        ka
-#> cl 0.07122477 0.00000000 0.0000000
-#> v  0.00000000 0.04153328 0.0000000
-#> ka 0.00000000 0.00000000 0.4620561
+#>            cl          v        ka           q        v2
+#> cl 0.07161216 0.00000000 0.0000000 0.000000000 0.0000000
+#> v  0.00000000 0.03696289 0.0000000 0.000000000 0.0000000
+#> ka 0.00000000 0.00000000 0.3081432 0.000000000 0.0000000
+#> q  0.00000000 0.00000000 0.0000000 0.005565667 0.0000000
+#> v2 0.00000000 0.00000000 0.0000000 0.000000000 0.4071258
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
-#>        cl         v        ka 
-#> 0.2668797 0.2037971 0.6797471
+#>        cl         v        ka         q        v2 
+#> 0.2676045 0.1922573 0.5551065 0.0746034 0.6380641
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
@@ -243,7 +256,7 @@ model_parameters(fit)$residual
 #> [1] "proportional"
 #> 
 #> $cv
-#> [1] 0.2108138
+#> [1] 0.2056582
 ```
 
 Additive here rather than proportional, because `warfarin` holds
@@ -272,8 +285,10 @@ study where it is, this is the line to read before trusting the
 concentrations:
 [`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) has
 46% of its concentrations below the limit and 95% of the lowest dose
-arm, and there the concentration curve is drawn mostly from where the
-assay stopped reporting.
+arm. Much of the information is therefore a bound rather than a measured
+concentration. The two-compartment fit in the public-data survey retains
+a false-convergence warning and passes the parameter and generation
+checks.
 
 ## The covariate effects
 
@@ -475,7 +490,7 @@ c(rows = nrow(synthetic),
   subjects = length(unique(synthetic$id)),
   valid = validate_pmx(synthetic, roles)$valid)
 #>     rows subjects    valid 
-#>      513       32        1
+#>      525       32        1
 ```
 
 ## Where to go next

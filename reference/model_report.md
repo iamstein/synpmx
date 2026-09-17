@@ -1,8 +1,8 @@
 # What a fitted model carries
 
 An inventory of everything in a `pmx_fitted_model`, in two halves: what
-`nlmixr2` estimated, and the dosing, visit and covariate models that are
-summaries of the source rather than estimates. Nothing here is
+the PK and PD fits estimated, and the dosing, visit and covariate models
+that are summaries of the source rather than estimates. Nothing here is
 per-subject.
 
 ## Usage

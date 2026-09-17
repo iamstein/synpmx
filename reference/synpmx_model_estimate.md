@@ -1,11 +1,12 @@
 # Estimate a population model from a trial
 
 The only stage that reads patient data, and the only one that needs
-`nlmixr2`. It works out which endpoint is the drug concentration and
-what design produced it, fits the candidate models that design admits,
-picks one on AIC, and returns that fit alongside the dosing and visit
-models the generated subjects are built from. No patient row survives
-it.
+`nlmixr2` for concentration fitting. It works out which endpoint is the
+drug concentration and what design produced it, fits two compartments
+with checked fallback to one, and returns that fit alongside the dosing
+and visit models the generated subjects are built from. A declared
+pharmacodynamic (PD)-only study skips the compartment fits and uses the
+PD time-course and visit-frequency models. No patient row survives it.
 
 ## Usage
 
@@ -44,8 +45,19 @@ synpmx_model_estimate(
 
 - pk:
 
-  One of the five built-in structural models, forcing it and skipping
-  the search. `NULL` searches the candidates the design admits.
+  Structural model name, or a vector of names to compare by Akaike
+  information criterion (AIC) after acceptance checks. `NULL` first fits
+  two compartments for the detected route, trying one compartment only
+  if the two-compartment fit fails termination, parameter or
+  population-generation checks. False convergence alone warns and does
+  not trigger fallback if the remaining checks pass. Ambiguous routes
+  are screened separately and their accepted models compared by AIC. A
+  named model is never replaced automatically; an unacceptable requested
+  fit errors. Moderate generation discrepancies and estimates close to
+  their starts warn. These screens do not establish identifiability or
+  scientific validity. See
+  [`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md)
+  for the criteria and simulation thresholds.
 
 - pd:
 
@@ -65,7 +77,18 @@ synpmx_model_estimate(
 - endpoint_roles:
 
   Which endpoint is the drug concentration, as `c(pk = "cp")`,
-  overriding the inference.
+  overriding the inference. A positive baseline at or before the first
+  recorded dose excludes a continuous endpoint from inferred PK when
+  present in at least half its subjects. If all continuous endpoints are
+  excluded, a PD-only study is inferred. Explicitly declare one with
+  `c(pd = "response")`, or `list(pk = character())` to classify all
+  observed endpoints as responses. No compartment model is fitted in
+  that case; continuous responses use the existing time-course shapes
+  and discrete responses use visit frequencies. Dose records may be
+  absent. A PD-only declaration cannot be combined with `pk` or
+  `start_param`. With declared PK endpoints, remaining continuous
+  endpoints are PD; the same endpoint cannot be explicitly named as both
+  PK and PD.
 
   **More than one may be named**, for a study that measures two
   concentrations — two drugs, or a parent and its metabolite. Each gets
@@ -125,7 +148,8 @@ synpmx_model_estimate(
 
   `"none"`, the default, puts no covariate in the structural model.
   `"auto"` fits allometric scaling on clearance and volume where a
-  weight-like covariate is declared and keeps it where it improves AIC.
+  weight-like covariate is declared. Scaling is asserted, without a
+  separate AIC comparison.
 
   The default is `"none"` because a synthetic study does not need the
   relationship: covariates are generated from the source's own
@@ -170,14 +194,16 @@ synpmx_model_estimate(
 
 - estimation:
 
-  Passed to `nlmixr2`. `"focei"` by default because the selection
-  criterion is AIC and `"saem"` does not reliably produce one at these
-  cohort sizes.
+  Estimation method passed to `nlmixr2`, default `"focei"`. False
+  convergence alone warns; other unsuccessful optimizer termination
+  rejects the candidate. `"saem"` instead checks for gross late drift in
+  the parameter trajectory; an unavailable AIC prevents comparison of
+  multiple accepted models, but not use of a single model.
 
 - seed:
 
-  Seed for the one random step, which is imputing censored values before
-  the fit.
+  Seed for imputing censored values and selecting the fitting subset.
+  The population-generation screen uses its own fixed local seed.
 
 - quiet:
 
@@ -202,8 +228,8 @@ A `pmx_fitted_model`.
 ## Details
 
 **The fitted parameters are not estimates to report.** They exist to
-make simulated profiles look like the source study. The candidate set is
-five linear models and the covariate model is allometric scaling or
+make simulated profiles look like the source study. The candidates are
+built-in linear models and the covariate model is allometric scaling or
 nothing, which is too little to answer a scientific question, and the
 object prints that warning with itself because its contents look exactly
 like the output of a real population analysis.

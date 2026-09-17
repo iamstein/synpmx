@@ -19,7 +19,8 @@ model_parameters(fitted_model)
 
 ## Value
 
-A list with `fixed`, `omega` and `residual`.
+For a fit with PK, a list with `fixed`, `omega` and `residual`. For a
+PD-only fit, a list containing `pd`, the named PD time-course fits.
 
 ## See also
 

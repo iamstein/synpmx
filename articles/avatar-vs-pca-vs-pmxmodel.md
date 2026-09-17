@@ -69,7 +69,7 @@ c(weights_sum_to = sum(weights),
   max_difference = max(abs(as.vector(t(profiles) %*% weights) -
                              reconstruction)))
 #> weights_sum_to max_difference 
-#>   1.000000e+00   8.881784e-16
+#>   1.000000e+00   1.776357e-15
 ```
 
 Generating from a principal-component model re-weights the study rather
@@ -247,9 +247,8 @@ running the parametric strategy in coordinates where the parametric
 assumption is close to true. That is also why its fitted quantities are
 ones a pharmacometrician already reasons about. The cost is that the
 structural model has to be right enough: where a principal-component
-basis adapts to whatever shape the profiles have, a one-compartment
-model asserts the shape and cannot represent a study that does not have
-it.
+basis adapts to whatever shape the profiles have, a compartmental model
+asserts the shape and cannot represent a study that does not have it.
 
 ## The Family These Sit In
 

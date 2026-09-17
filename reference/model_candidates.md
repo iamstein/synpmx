@@ -1,9 +1,8 @@
 # The candidate models the selection was made from
 
-Every candidate the design admitted, whether or not it converged, with
-the AIC it was compared on. A candidate that failed keeps its reason, so
-a search that came down to one survivor does not look like a search that
-had one candidate.
+Every candidate actually attempted, in attempt order, with numerical
+convergence, acceptance after parameter and generation checks, and
+reasons for rejection or warnings. An unneeded fallback has no row.
 
 ## Usage
 
@@ -20,8 +19,13 @@ model_candidates(fitted_model)
 
 ## Value
 
-A data frame with columns `model`, `converged`, `aic`, `seconds` – how
-long that candidate took to fit – and `note`.
+A data frame with columns `model`, `converged`, `accepted`, `aic`,
+`seconds` (fitting and acceptance checks), and `note`. AIC may be
+missing for an accepted stochastic approximation
+expectation-maximization (SAEM) fit that was not compared with another
+model. These are PK candidates; a PD-only fit returns an empty table. PD
+candidates are in
+`model_report(fitted_model)$pd[[endpoint]]$candidates`.
 
 ## See also
 

@@ -53,7 +53,7 @@ could drift, these two chunks ask the package:
 pmx_structural_model(pk = "list the options", typical = c(cl = 1, v = 1),
                      source = "illustrative")
 #> Error in `match.arg()`:
-#> ! 'arg' should be one of "1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv", "2cmt_oral", "1cmt_mixed", "2cmt_mixed"
+#> ! 'arg' should be one of "1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv", "2cmt_oral", "2cmt_infusion", "1cmt_mixed", "2cmt_mixed"
 ```
 
 ``` r
