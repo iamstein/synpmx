@@ -1,8 +1,8 @@
 Input: publicly available xgxr::mad (not an internal clinical dataset).
-Generated: 2026-09-14 10:17:13 UTC
+Generated: 2026-09-17 11:48:10 UTC
 Generation seed: 909
 Fit: stored mad-model-fit.rds; no model re-estimation in this run.
-Fit MD5: e4667dc8d9646c904729869706d8f719
+Fit MD5: f4a8819bc844ae579894e0a91111e793
 Script MD5: d73273a86267a08024dcc619c0c134ae
 Working-tree R source MD5s:
           /Users/steinanf/git/synpmx/R/calibrate.R
@@ -27,18 +27,20 @@ Working-tree R source MD5s:
                 "52d33e6c44b5f9cb64c5533fa99ce395"
            /Users/steinanf/git/synpmx/R/fixtures.R
                 "50aee79d03cbef6b73d4c2c3b1f9da67"
-/Users/steinanf/git/synpmx/R/generate_structural.R
-                "3636dcfaa387bb77fc64a56ea9c38e5e"
            /Users/steinanf/git/synpmx/R/generate.R
                 "abef81e4152f24caa213c61b9eecb44f"
+/Users/steinanf/git/synpmx/R/generate_structural.R
+                "3636dcfaa387bb77fc64a56ea9c38e5e"
        /Users/steinanf/git/synpmx/R/model-design.R
-                "6254d1e3c0267a7c4243993970fd9ed2"
+                "5d1dfce0812ed9893aa7ce814d44c390"
      /Users/steinanf/git/synpmx/R/model-estimate.R
-                "22ad5842e9ca346bcb29b188e438f7d0"
+                "cd47d4438e6db59bf2bc47ce1583f620"
+   /Users/steinanf/git/synpmx/R/model-fit-checks.R
+                "35b13ecdd9b2be61a797419de8213546"
      /Users/steinanf/git/synpmx/R/model-generate.R
-                "0fcddd09b73ab28a51771caa7f902c5d"
+                "17235bcdf27becf103b0702c42dfc305"
               /Users/steinanf/git/synpmx/R/model.R
-                "f235d1701ae3e022e08ccf128d5e6fc5"
+                "eba30e440200eb62bd0aae9dceaf0f8e"
                 /Users/steinanf/git/synpmx/R/pca.R
                 "32d60c5367f98dbef3a82ea41f04d822"
             /Users/steinanf/git/synpmx/R/privacy.R
@@ -56,7 +58,7 @@ Working-tree R source MD5s:
           /Users/steinanf/git/synpmx/R/scorecard.R
                 "f00ee3134daf883a29261339625035cc"
          /Users/steinanf/git/synpmx/R/structural.R
-                "8fb3cf7911c9ce51ce458d1352f15df2"
+                "6718a25a23967ce08a4eda64d1f9d0c5"
      /Users/steinanf/git/synpmx/R/synpmx-package.R
                 "2a9701db3e8ca4ebb21e521c9afb17dc"
              /Users/steinanf/git/synpmx/R/synpmx.R
@@ -85,14 +87,14 @@ Scorecard: see vignette("avatar-scorecard") for what each asks
   B1a   Avatars with a visit set nobody else shares                   run settings no run record                                 not applicable
   B1b   Avatars with a dose schedule nobody else shares               run settings no run record                                 not applicable
   B2    Synthetic patients unusual within their stratum               synthetic    not applicable: profiles simulated, not built from a patient not applicable
-  B3    Adversarial accuracy inside its null interval                 both         0.633 above [0.333, 0.630]                    pass
+  B3    Adversarial accuracy inside its null interval                 both         0.650 above [0.354, 0.613]                    pass
   B4a   Generated time vectors copying an exposed real one            both         not applicable: attendance drawn per visit    not applicable
   B4b   Generated DV vectors copying an exposed real one              both         0                                             pass
   B5    Rare source levels copied into the output                     both         0 of 0 exposed                                pass
   C1    Strata keeping their source size                              both         6 of 6                                        pass
   C2    Distinct dose-time schedules represented                      run settings no run record                                 not applicable
   C3    Arms keeping their source endpoints                           both         6 of 6                                        pass
-  D1    Values landing in the same range                              both         sd x0.85 on WEIGHTB (furthest of 6)           review
+  D1    Values landing in the same range                              both         sd x0.78 on PK Concentration (furthest of 6)  review
   E1    Fitted parameters moved off their starting values             fitted model moved (1 model(s))                            pass
   E2    Between-subject terms were estimated, not left at their start fitted model estimated                                     pass
 
@@ -116,7 +118,7 @@ BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRbla
 LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 
 locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+[1] C
 
 time zone: America/New_York
 tzcode source: internal

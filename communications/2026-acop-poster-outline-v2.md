@@ -82,7 +82,7 @@ at the privacy budgets tested.
 | Disclosure safeguards   | Generate new IDs; Drop all columns without defined roles; Drop arms with fewer than 3 patients; Exclude categorical covariate levels held by fewer than 3 patients and sample from the remaining levels (configurable thresholds) |
 | Dosing | Estimate constant per-cycle probabilities within each arm for skipped cycles, dose reductions and treatment discontinuation; simulate dosing schedules from these probabilities. |
 | Observations | Estimate attendance probabilities within each arm, endpoint and nominal visit; simulate missed observations. |
-| Population PK | Fit a one-compartment model using `nlmixr2`.  Simulate PK from this model.  Alternative model candidates can be specified. |
+| Population PK | Fit a two-compartment model using `nlmixr2` first; fall back to a one-compartment model if the fit fails convergence or generation checks. An optimizer-stall warning alone does not reject a usable fit. Simulate PK from the accepted model. Users can specify a model instead. |
 | PD | Fit constant, linear or exponential time courses with subject variability and residual error. Pool arms by default; use `pd_by_arm = TRUE` to represent differences between arms. Sample discrete endpoints within each arm and nominal visit. |
 | LOQ | Apply declared censoring limits. Otherwise, for predominantly positive continuous endpoints, use half the smallest positive observation as a heuristic lower bound. |
 
@@ -93,8 +93,9 @@ The publicly available multiple-ascending-dose example from `xgxr::mad` combines
 ![Source and synthetic PK profiles by treatment arm](2026-acop-poster-figures/mad-pk-profiles.png)
 
 **Figure 3a. PK profiles over the first dosing interval.**
-The default one-compartment fit does not reproduce the source peak and decline
-closely in this example. Alternative built-in models can be evaluated.
+The two-compartment model passes the fitting and generation checks here, so no
+one-compartment fallback is needed. Source and synthetic profiles show the peak
+and biphasic decline.
 
 ![Source and synthetic continuous PD profiles by treatment arm](2026-acop-poster-figures/mad-pd-profiles.png)
 
