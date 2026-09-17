@@ -53,9 +53,9 @@ test_that("a one-endpoint oral study is classified and its route detected", {
   design <- .model_detect_design(data, roles, obs, classified$pk)
   expect_identical(design$route, "oral")
   expect_true(design$richness$rich)
-  # One compartment is the whole default set even where the sampling would
-  # support a distribution phase; `pk = "2cmt_oral"` is how you ask for one.
-  expect_identical(design$candidates, "1cmt_oral")
+  # Both compartment counts of the detected route; the fit chooses between
+  # them, and `pk = "1cmt_oral"` is how the second one is skipped.
+  expect_identical(design$candidates, c("1cmt_oral", "2cmt_oral"))
 })
 
 test_that("a sample at the moment of the dose makes it intravenous", {
@@ -65,7 +65,7 @@ test_that("a sample at the moment of the dose makes it intravenous", {
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$route, "iv")
-  expect_identical(design$candidates, "1cmt_iv")
+  expect_identical(design$candidates, c("1cmt_iv", "2cmt_iv"))
 })
 
 test_that("a declared rate makes it an infusion, with no search over routes", {
@@ -75,7 +75,7 @@ test_that("a declared rate makes it an infusion, with no search over routes", {
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$route, "infusion")
-  expect_identical(design$candidates, "1cmt_infusion")
+  expect_identical(design$candidates, c("1cmt_infusion", "2cmt_infusion"))
   expect_match(design$reason, "rate")
 })
 
@@ -87,17 +87,21 @@ test_that("a study sampled only at troughs would not support two compartments", 
   expect_false(design$richness$rich)
 })
 
-test_that("no design offers a two-compartment candidate on its own", {
-  # The candidate set is one-compartment whatever the sampling shows. A
-  # distribution phase is a refinement of a shape the one-compartment model
-  # already has, and fitting for it costs five times as long.
+test_that("every design offers both compartment counts of its route", {
+  # Sampling too sparse to identify a distribution phase still offers one: the
+  # fit and generation checks decide whether fallback is needed; sampling
+  # richness is reported beside that decision.
   for (times in list(c(0.25, 0.5, 1, 2, 4, 8, 12, 24), c(12, 24),
                      c(0, 0.5, 1, 2, 4, 8, 12, 24))) {
     data <- .pk_fixture(times = times)
     roles <- .design_roles()
     obs <- .model_observations(data, roles)
     design <- .model_detect_design(data, roles, obs, "cp")
-    expect_false(any(grepl("^2cmt", design$candidates)))
+    # Every route the design admits is offered in both counts, so the
+    # ambiguous case is four candidates and every other case two.
+    routes <- unique(sub("^.cmt", "", design$candidates))
+    expect_setequal(design$candidates,
+                    c(paste0("1cmt", routes), paste0("2cmt", routes)))
   }
 })
 
@@ -113,7 +117,8 @@ test_that("a study nobody samples early enough offers both routes", {
   obs <- .model_observations(data, roles)
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$route, "both")
-  expect_setequal(design$candidates, c("1cmt_iv", "1cmt_oral"))
+  expect_setequal(design$candidates,
+                  c("1cmt_iv", "1cmt_oral", "2cmt_iv", "2cmt_oral"))
   expect_match(design$reason, "declines from its first sample")
 })
 
@@ -145,7 +150,8 @@ test_that("a median profile no subject supports offers both routes", {
   design <- .model_detect_design(data, roles, obs, "cp")
   expect_identical(design$rising, 0)
   expect_identical(design$route, "both")
-  expect_setequal(design$candidates, c("1cmt_iv", "1cmt_oral"))
+  expect_setequal(design$candidates,
+                  c("1cmt_iv", "1cmt_oral", "2cmt_iv", "2cmt_oral"))
   expect_match(design$reason, "no subject's own profile rises")
 })
 
@@ -208,7 +214,7 @@ test_that("the compartment signal breaks a tie the required signals leave", {
   expect_identical(.model_classify_endpoints(data, roles, obs)$pk, "cp")
 })
 
-test_that("no endpoint looking like a concentration is refused, not guessed", {
+test_that("baseline responses infer a PD-only study", {
   # A baseline biomarker on its own: present before the dose, so the one
   # required signal that can be computed here fails.
   data <- .pk_fixture(dv_at = function(t, i) 80 + 2 * t * i)
@@ -218,9 +224,9 @@ test_that("no endpoint looking like a concentration is refused, not guessed", {
   data <- rbind(data, pre)
   roles <- .design_roles()
   obs <- .model_observations(data, roles)
-  expect_error(.model_classify_endpoints(data, roles, obs),
-               "No endpoint looks like a drug concentration")
-  expect_error(.model_classify_endpoints(data, roles, obs), "endpoint_roles")
+  classified <- .model_classify_endpoints(data, roles, obs)
+  expect_length(classified$pk, 0)
+  expect_identical(classified$pd, "cp")
 })
 
 test_that("endpoint_roles overrides the signals rather than hinting at them", {
@@ -623,9 +629,9 @@ test_that("inference promotes several endpoints only on dose proportionality", {
 })
 
 test_that("an endpoint whose proportionality is unknown is not promoted", {
-  # `warfarin`'s prothrombin activity and `onc_sim`'s tumour size both pass the
-  # required signals only because `proportional` cannot be computed, and a
-  # signal nobody could compute is not evidence that an endpoint is a drug.
+  # A hypothetical biomarker without a recorded baseline can pass the required
+  # signals when proportionality cannot be computed. That missing evidence
+  # must not promote it into a second concentration.
   signals <- data.frame(
     endpoint = c("cp", "biomarker"), compartment = c(TRUE, FALSE),
     post_dose = c(TRUE, TRUE), shape = c(TRUE, FALSE),

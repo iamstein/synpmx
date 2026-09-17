@@ -325,6 +325,33 @@ test_that("two-compartment PK is biphasic and conserves Dose/CL", {
   expect_gt(max(values), 0)
 })
 
+# SIM-063.
+test_that("two-compartment infusion matches its two limiting cases", {
+  p <- c(cl = 4, v = 20, q = 6, v2 = 60)
+  model <- pmx_structural_model("2cmt_infusion", p, source = "x")
+  grid <- seq(0, 400, by = 0.05)
+  profile <- .pk_profile(model, grid, 100, 0, duration = 3)
+  expect_equal(.trapezoid(grid, profile), 100 / 4, tolerance = 1e-3)
+  expect_true(all(diff(profile[grid <= 3]) > 0))
+  expect_true(all(diff(profile[grid > 3]) < 0))
+
+  # An infusion short enough to be a bolus is the bolus solution, and a
+  # peripheral compartment nothing reaches is the one-compartment infusion.
+  # Evaluated away from time zero, where the bolus starts at its maximum and
+  # the infusion has not begun.
+  times <- seq(0.01, 48, by = 0.05)
+  expect_equal(
+    .pk_single_dose("2cmt_infusion", times, 100, p, duration = 1e-4),
+    .pk_single_dose("2cmt_iv", times, 100, p), tolerance = 1e-3
+  )
+  expect_equal(
+    .pk_single_dose("2cmt_infusion", times, 100,
+                    c(cl = 4, v = 20, q = 1e-8, v2 = 60), duration = 2),
+    .pk_single_dose("1cmt_infusion", times, 100, c(cl = 4, v = 20),
+                    duration = 2), tolerance = 1e-6
+  )
+})
+
 test_that("simple PD shapes are closed-form and go the right way", {
   spec <- function(pd, extra) pmx_structural_model(
     "1cmt_oral", c(cl = 10, v = 70, ka = 1, baseline = 100, extra),

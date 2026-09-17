@@ -1,6 +1,6 @@
 # The PMX model generator: the fitted-model object, and the gates that guard it.
 #
-# The generator estimates a small set of linear PK models, picks one on AIC, and
+# The generator fits a linear PK model with checked fallback and
 # draws new subjects by simulating from it. Everything that is not the
 # concentration-time curve -- dose reductions, skipped cycles, discontinuation,
 # visit attendance, arms, covariates, censoring -- comes from the shared models
@@ -184,7 +184,7 @@
 # fixed effects sit close to their starting values and the generated profiles
 # are a plausible shape rather than this study's. That is worth saying loudly
 # and is the caller's call to make, so it warns. There is no simpler structural
-# model to fall back to -- the default candidate set is already the
+# model to fall back to -- the simplest candidate is already the
 # one-compartment model, and below it there is no concentration-time curve at
 # all. Nothing to fit at all is still an error, because no fit follows.
 .model_require_time_coverage <- function(source, roles, minimum) {
@@ -332,38 +332,50 @@
                               movement = NULL, fit_subjects = NULL,
                               start_param = NULL, pk_models = NULL,
                               dose_records = NULL) {
-  if (!structural %in% .pk_models) {
-    stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
-         ".", call. = FALSE)
-  }
-  if (!is.data.frame(candidates) ||
-      !all(c("model", "converged", "aic", "note") %in% names(candidates))) {
-    stop("`candidates` must be a data frame with columns model, converged, ",
-         "aic and note.", call. = FALSE)
-  }
-  if (!structural %in% candidates$model[which(candidates$converged)]) {
-    stop("`structural` names a model that is not among the converged ",
-         "candidates.", call. = FALSE)
-  }
-  needed <- c("fixed", "omega", "residual")
-  if (!is.list(parameters) || !all(needed %in% names(parameters))) {
-    stop("`parameters` must hold ", paste(needed, collapse = ", "), ".",
-         call. = FALSE)
-  }
-  required <- .required_pk_params[[structural]]
-  missing_params <- setdiff(required, names(parameters$fixed))
-  if (length(missing_params)) {
-    stop("`parameters$fixed` is missing: ",
-         paste(missing_params, collapse = ", "), ".", call. = FALSE)
-  }
-  if (!is.matrix(parameters$omega) ||
-      nrow(parameters$omega) != ncol(parameters$omega) ||
-      is.null(rownames(parameters$omega))) {
-    stop("`parameters$omega` must be a named square matrix.", call. = FALSE)
-  }
-  if (!all(rownames(parameters$omega) %in% names(parameters$fixed))) {
-    stop("Every random effect in `parameters$omega` needs a fixed effect of ",
-         "the same name.", call. = FALSE)
+  # SIM-088: a PD-only object has no PK parameters or selected structure.
+  if (!length(endpoints$pk)) {
+    if (!is.null(structural) || !is.null(parameters) || length(pk_models) ||
+        !is.data.frame(candidates) || nrow(candidates))
+      stop("A PD-only fit must not contain a PK model or PK candidates.", call. = FALSE)
+  } else {
+    if (!structural %in% .pk_models) {
+      stop("`structural` must be one of: ", paste(.pk_models, collapse = ", "),
+           ".", call. = FALSE)
+    }
+    if (!is.data.frame(candidates) ||
+        !all(c("model", "converged", "aic", "note") %in% names(candidates))) {
+      stop("`candidates` must be a data frame with columns model, converged, ",
+           "aic and note.", call. = FALSE)
+    }
+    if (!"accepted" %in% names(candidates) &&
+        !structural %in% candidates$model[which(candidates$converged)]) {
+      stop("`structural` names a model that is not among the converged ",
+           "candidates.", call. = FALSE)
+    }
+    if ("accepted" %in% names(candidates) &&
+        !structural %in% candidates$model[which(candidates$accepted)]) {
+      stop("`structural` names a model that failed acceptance checks.", call. = FALSE)
+    }
+    needed <- c("fixed", "omega", "residual")
+    if (!is.list(parameters) || !all(needed %in% names(parameters))) {
+      stop("`parameters` must hold ", paste(needed, collapse = ", "), ".",
+           call. = FALSE)
+    }
+    required <- .required_pk_params[[structural]]
+    missing_params <- setdiff(required, names(parameters$fixed))
+    if (length(missing_params)) {
+      stop("`parameters$fixed` is missing: ",
+           paste(missing_params, collapse = ", "), ".", call. = FALSE)
+    }
+    if (!is.matrix(parameters$omega) ||
+        nrow(parameters$omega) != ncol(parameters$omega) ||
+        is.null(rownames(parameters$omega))) {
+      stop("`parameters$omega` must be a named square matrix.", call. = FALSE)
+    }
+    if (!all(rownames(parameters$omega) %in% names(parameters$fixed))) {
+      stop("Every random effect in `parameters$omega` needs a fixed effect of ",
+           "the same name.", call. = FALSE)
+    }
   }
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
@@ -402,7 +414,7 @@
     # A model assembled without the list -- a hand-built fixture, or a fit
     # stored before there could be more than one -- gets a one-entry list built
     # from those fields, so every reader can index by endpoint unconditionally.
-    pk_models = pk_models %||% stats::setNames(list(list(
+    pk_models = if (!length(endpoints$pk)) list() else pk_models %||% stats::setNames(list(list(
       endpoint = endpoints$pk[[1L]], structural = structural,
       parameters = parameters, candidates = candidates, movement = movement,
       design = design, start_param = start_param,
@@ -420,8 +432,10 @@
 print.pmx_fitted_model <- function(x, ...) {
   cat("A fitted PMX model, from synpmx_model_estimate()\n")
   cat("Everything below is an input to `synpmx_model_generate()`.\n\n")
-  cat("  candidates fitted ", nrow(x$candidates),
-      sprintf("(%s selected on AIC)", x$structural), "\n")
+  if (length(x$endpoints$pk)) {
+    cat("  candidates fitted ", nrow(x$candidates),
+        sprintf("(%s selected)", x$structural), "\n")
+  } else cat("  PD-only fit; no PK model fitted\n")
   cat("\n")
   print(model_report(x))
   invisible(x)
@@ -430,7 +444,7 @@ print.pmx_fitted_model <- function(x, ...) {
 #' What a fitted model carries
 #'
 #' An inventory of everything in a `pmx_fitted_model`, in two halves: what
-#' `nlmixr2` estimated, and the dosing, visit and covariate models that are
+#' the PK and PD fits estimated, and the dosing, visit and covariate models that are
 #' summaries of the source rather than estimates. Nothing here is per-subject.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
@@ -670,7 +684,8 @@ print.pmx_model_report <- function(x, ...) {
   # so what prints here is the decision in words. Before the model rather than
   # after it: the reader is told which endpoint was fitted, and why that one,
   # before they are shown the fit to it.
-  cat("\nPK endpoint for the PopPK model\n")
+  if (length(x$endpoints$pk)) cat("\nPK endpoint for the PopPK model\n") else
+    cat("\nPD-only study: no PK model fitted. Responses use study-time shapes or visit frequencies.\n")
   for (endpoint in x$endpoints$pk) {
     if (identical(x$endpoints$decided_by, "declared")) {
       field(endpoint, "declared through `endpoint_roles`")
@@ -698,18 +713,16 @@ print.pmx_model_report <- function(x, ...) {
   }
   if (!is.null(x$design)) {
     field("route", x$design$route, ": ", x$design$reason)
-    if (isTRUE(x$design$richness$rich) && !grepl("^2cmt", x$structural)) {
-      field("also available",
-            sprintf("2cmt_%s, which the sampling would support: median %g distinct times after a dose, %g after the peak",
-                    if (grepl("oral", x$structural)) "oral" else "iv",
-                    x$design$richness$per_subject,
-                    x$design$richness$after_peak))
-    }
+    # Sampling richness describes the design; it is not an acceptance gate.
+    field("sampling", sprintf(
+      "median %g distinct times after a dose, %g after the peak: %s within-subject sampling",
+      x$design$richness$per_subject, x$design$richness$after_peak,
+      if (isTRUE(x$design$richness$rich)) "richer" else "sparse"))
   }
 
-  cat("\nThe PopPK model\n\n")
+  if (length(x$endpoints$pk)) cat("\nThe PopPK model\n\n")
   models <- x$pk_models
-  if (!length(models)) models <- list(list(structural = x$structural,
+  if (length(x$endpoints$pk) && !length(models)) models <- list(list(structural = x$structural,
                                            parameters = x$parameters,
                                            movement = x$movement,
                                            start_param = x$start_param))
@@ -719,6 +732,12 @@ print.pmx_model_report <- function(x, ...) {
       sprintf("Estimated by nlmixr2: `%s`\n", own$endpoint) else
         "Estimated by nlmixr2\n")
     cat("  structural model  ", own$structural, "\n")
+    # Explain fallback or explicit selection without implying an AIC search.
+    if (!is.null(own$selection)) field("selected by", own$selection)
+    if (!is.null(own$candidates)) {
+      checks <- own$candidates$note[own$candidates$model == own$structural]
+      if (length(checks) && nzchar(checks[[1L]])) field("fit checks", checks[[1L]])
+    }
     if (k == 1L && !is.null(x$fit_subjects)) {
       fs <- x$fit_subjects
       field("fitted on", if (fs$fitted < fs$of) paste0(
@@ -781,7 +800,7 @@ print.pmx_model_report <- function(x, ...) {
       if (!is.null(rows) && "seconds" %in% names(rows) && nrow(rows) > 1L) {
         cat(sprintf("%s%-26s %s%s\n", strrep(" ", 23L), rows$model,
                     vapply(rows$seconds, .model_duration, character(1)),
-                    ifelse(rows$converged, "", " (did not converge)")),
+                    ifelse(rows$accepted %||% rows$converged, "", " (rejected)")),
             sep = "")
       }
     }
@@ -812,14 +831,17 @@ print.pmx_model_report <- function(x, ...) {
 
 #' The candidate models the selection was made from
 #'
-#' Every candidate the design admitted, whether or not it converged, with the
-#' AIC it was compared on. A candidate that failed keeps its reason, so a search
-#' that came down to one survivor does not look like a search that had one
-#' candidate.
+#' Every candidate actually attempted, in attempt order, with numerical
+#' convergence, acceptance after parameter and generation checks, and reasons
+#' for rejection or warnings. An unneeded fallback has no row.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
-#' @return A data frame with columns `model`, `converged`, `aic`, `seconds` --
-#'   how long that candidate took to fit -- and `note`.
+#' @return A data frame with columns `model`, `converged`, `accepted`, `aic`,
+#'   `seconds` (fitting and acceptance checks), and `note`. AIC may be missing
+#'   for an accepted stochastic approximation expectation-maximization (SAEM)
+#'   fit that was not compared with another model. These are PK candidates;
+#'   a PD-only fit returns an empty table. PD candidates are in
+#'   `model_report(fitted_model)$pd[[endpoint]]$candidates`.
 #' @seealso [model_report()], [model_parameters()].
 #' @export
 model_candidates <- function(fitted_model) {
@@ -833,10 +855,12 @@ model_candidates <- function(fitted_model) {
 #' Not estimates to report: see [synpmx_model_estimate()].
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
-#' @return A list with `fixed`, `omega` and `residual`.
+#' @return For a fit with PK, a list with `fixed`, `omega` and `residual`.
+#'   For a PD-only fit, a list containing `pd`, the named PD time-course fits.
 #' @seealso [model_report()], [model_candidates()].
 #' @export
 model_parameters <- function(fitted_model) {
   stopifnot(inherits(fitted_model, "pmx_fitted_model"))
+  if (!length(fitted_model$endpoints$pk)) return(list(pd = fitted_model$pd))
   fitted_model$parameters[c("fixed", "omega", "residual")]
 }

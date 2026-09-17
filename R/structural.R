@@ -7,7 +7,7 @@
 # compiler. An rxode2 model may be supplied instead for anything else.
 
 .pk_models <- c("1cmt_iv", "1cmt_oral", "1cmt_infusion", "2cmt_iv",
-                "2cmt_oral", "1cmt_mixed", "2cmt_mixed")
+                "2cmt_oral", "2cmt_infusion", "1cmt_mixed", "2cmt_mixed")
 
 # A study dosed both ways. The route is a property of each dose record rather
 # than of the study, so a mixed model is not a sixth curve shape: it is the
@@ -21,7 +21,7 @@
 # and is not in a study dosed one way.
 .pk_mixed_forms <- list(
   `1cmt_mixed` = c(iv = "1cmt_infusion", extravascular = "1cmt_oral"),
-  `2cmt_mixed` = c(iv = "2cmt_iv", extravascular = "2cmt_oral")
+  `2cmt_mixed` = c(iv = "2cmt_infusion", extravascular = "2cmt_oral")
 )
 # PD is a simple time course with no exposure dependence. This is both adequate
 # for synthetic data and far better conditioned to calibrate than an exposure-driven
@@ -34,6 +34,7 @@
   `1cmt_infusion` = c("cl", "v"),
   `2cmt_iv`       = c("cl", "v", "q", "v2"),
   `2cmt_oral`     = c("cl", "v", "q", "v2", "ka"),
+  `2cmt_infusion` = c("cl", "v", "q", "v2"),
   `1cmt_mixed`    = c("cl", "v", "ka", "f"),
   `2cmt_mixed`    = c("cl", "v", "q", "v2", "ka", "f")
 )
@@ -107,6 +108,29 @@
       a <- f * dose / p[["v"]] * (r$alpha - r$k21) / gap
       b <- f * dose / p[["v"]] * (r$k21 - r$beta) / gap
       a * exp(-r$alpha * time) + b * exp(-r$beta * time)
+    },
+    `2cmt_infusion` = {
+      # A zero-order input into the central compartment of the same
+      # bi-exponential disposition. One expression covers both phases:
+      # `infused` is how long the infusion has been running by `time` and stops
+      # at its duration, `after` is the time since it ended and is zero until
+      # then, so during the infusion each term accumulates and afterwards each
+      # decays at its own rate. The coefficients are the bolus ones divided by
+      # their exponent, which is what integrating a constant input over the
+      # bolus solution gives.
+      if (!is.finite(duration) || duration <= 0) {
+        return(.pk_single_dose("2cmt_iv", time, dose, p))
+      }
+      r <- .two_cmt_rates(p)
+      gap <- r$alpha - r$beta
+      a <- if (gap < 1e-10) 0 else (r$k21 - r$alpha) / (r$beta - r$alpha)
+      b <- if (gap < 1e-10) 1 else (r$k21 - r$beta) / (r$alpha - r$beta)
+      rate <- f * dose / duration
+      infused <- pmin(time, duration)
+      after <- pmax(time - duration, 0)
+      rate / p[["v"]] * (
+        a / r$alpha * (1 - exp(-r$alpha * infused)) * exp(-r$alpha * after) +
+        b / r$beta * (1 - exp(-r$beta * infused)) * exp(-r$beta * after))
     },
     `2cmt_oral` = {
       r <- .two_cmt_rates(p)
@@ -192,7 +216,8 @@
 #' scaling, which is also what selected the starting dose.
 #'
 #' @param pk One of `"1cmt_iv"`, `"1cmt_oral"`, `"1cmt_infusion"`,
-#'   `"2cmt_iv"`, `"2cmt_oral"`.
+#'   `"2cmt_iv"`, `"2cmt_oral"`, `"2cmt_infusion"`, `"1cmt_mixed"` or
+#'   `"2cmt_mixed"`.
 #' @param typical Named numeric vector of typical parameter values, interpreted
 #'   as the median of a lognormal population. Requires `cl` and `v` (the central
 #'   volume), plus `ka` for oral models and `q` and `v2` for two-compartment

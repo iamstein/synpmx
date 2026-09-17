@@ -14,7 +14,7 @@ A \code{pmx_model_report} list, printed as sections.
 }
 \description{
 An inventory of everything in a \code{pmx_fitted_model}, in two halves: what
-\code{nlmixr2} estimated, and the dosing, visit and covariate models that are
+the PK and PD fits estimated, and the dosing, visit and covariate models that are
 summaries of the source rather than estimates. Nothing here is per-subject.
 }
 \seealso{

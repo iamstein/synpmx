@@ -990,10 +990,11 @@ mixroute_synth <- suppressWarnings(
 )
 ```
 
-```{r mixroute-plot, echo=FALSE, eval=has_ggplot2, fig.height=overlay_height(mixroute_sim, mixroute_roles)}
+```{r mixroute-plot, echo=FALSE, eval=has_ggplot2 && has_xgxr, fig.height=overlay_height(mixroute_sim, mixroute_roles)}
 overlay_plot(mixroute_sim, mixroute_synth, mixroute_roles,
              "mixroute_sim: concentration by arm, three routes",
-             clock = "tad", x_label = "Time after dose (days)", alpha = 0.3)
+             clock = "tad", x_label = "Time after dose (days)", alpha = 0.3) +
+  xgxr::xgx_scale_y_log10()
 ```
 
 ```{r mixroute-distributions, eval=has_distributions, fig.height=compare_pmx_distributions_height(mixroute_sim, mixroute_roles)}

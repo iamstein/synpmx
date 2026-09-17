@@ -1,7 +1,9 @@
-# Estimation. Everything here needs `nlmixr2` and a toolchain that can link a
-# compiled model, so every test skips where either is missing. The parts of the
-# generator that do not need a fitter are covered in `test-model-generate.R` and
-# `test-model-design.R`, which is the whole reason the fitter arrives last.
+# Estimation. Almost everything here needs `nlmixr2` and a toolchain that can
+# link a compiled model, so those tests skip where either is missing; the
+# selection rule is exercised against stub fits and runs anywhere. The parts of
+# the generator that do not need a fitter are covered in
+# `test-model-generate.R` and `test-model-design.R`, which is the whole reason
+# the fitter arrives last.
 
 # Compiling once and caching the answer: `nlmixr2` being installed is not the
 # same as it being able to build a model, and the difference is a linker
@@ -58,10 +60,7 @@ skip_without_fitter <- function() {
   out
 }
 
-# The default path performs exactly one population fit, which is the design
-# point rather than an accident: a search costs a fit per candidate and testing
-# allometry against AIC costs another. Fits are still slow enough that the ones
-# the tests share are built once and reused.
+# Fits are cached because compiling and fitting dominate this test file.
 .shared <- local({
   cache <- list()
   function(name, expression) {
@@ -76,18 +75,20 @@ skip_without_fitter <- function() {
                                            covariate_effects = "none"))
 }
 
-test_that("the default fits one model and no more", {
-  skip_without_fitter()
-  # One row, because one model was fitted. Not a search that happened to have
-  # one candidate: `pk` is what asks for a search.
-  expect_identical(.default_fit()$settings$min_category_patients, 3L)
-  expect_identical(nrow(model_candidates(.default_fit())), 1L)
-  expect_true(model_candidates(.default_fit())$converged)
-})
-
-test_that("the fit recovers the model and parameters it was simulated from", {
+test_that("the default starts with two compartments and retains only acceptable fits", {
   skip_without_fitter()
   fit <- .default_fit()
+  expect_identical(fit$settings$min_category_patients, 3L)
+  tab <- model_candidates(fit)
+  expect_identical(tab$model[[1]], "2cmt_oral")
+  expect_true(tab$accepted[match(fit$structural, tab$model)])
+  expect_equal(nrow(tab), if (tab$accepted[[1]]) 1L else 2L)
+})
+
+test_that("an explicitly specified one-compartment fit recovers its parameters", {
+  skip_without_fitter()
+  fit <- .shared("one", synpmx_model_estimate(.oral_study(), .estimate_roles(),
+                       pk = "1cmt_oral", quiet = TRUE))
   expect_s3_class(fit, "pmx_fitted_model")
   expect_identical(fit$structural, "1cmt_oral")
   expect_equal(unname(fit$parameters$fixed[["cl"]]), 4, tolerance = 0.3)
@@ -105,7 +106,7 @@ test_that("every model fitted is in the table, converged or not", {
   # had one candidate, so failures keep their row and their reason.
   expect_true(all(is.na(table$aic) | is.finite(table$aic)))
   expect_true(all(nzchar(table$note[!table$converged])))
-  expect_identical(fit$structural, table$model[which.min(table$aic)])
+  expect_true(fit$structural %in% table$model[which(table$accepted)])
 })
 
 test_that("`pk` naming several models is how a search is asked for", {
@@ -115,32 +116,48 @@ test_that("`pk` naming several models is how a search is asked for", {
                                covariate_effects = "none")
   expect_identical(nrow(model_candidates(fit)), 2L)
   expect_match(fit$design$reason, "searched over")
-  expect_identical(fit$structural,
-                   model_candidates(fit)$model[which.min(model_candidates(fit)$aic)])
+  accepted <- subset(model_candidates(fit), accepted)
+  expect_identical(fit$structural, accepted$model[which.min(accepted$aic)])
 })
 
 test_that("`pk` forces one model", {
   skip_without_fitter()
   data <- .oral_study()
-  fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "1cmt_iv",
+  fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "1cmt_oral",
                                quiet = TRUE, covariate_effects = "none")
-  expect_identical(fit$structural, "1cmt_iv")
+  expect_identical(fit$structural, "1cmt_oral")
   expect_identical(nrow(model_candidates(fit)), 1L)
   expect_match(fit$design$reason, "declared")
 })
 
-test_that("a two-compartment model is available by asking for it", {
+test_that("a two-compartment model can be forced, skipping the search", {
   skip_without_fitter()
   data <- .oral_study()
-  # Not fitted by default -- it costs about five times a one-compartment fit --
-  # but nothing stops a caller who wants one.
-  expect_false("2cmt_oral" %in% .default_fit()$candidates$model)
+  # It is in the default candidate set; naming it is how the one-compartment
+  # fit beside it is skipped, which is the point of naming any model.
+  expect_true("2cmt_oral" %in% .default_fit()$candidates$model)
   fit <- synpmx_model_estimate(data, .estimate_roles(), pk = "2cmt_oral",
                                quiet = TRUE, covariate_effects = "none")
+  expect_identical(nrow(model_candidates(fit)), 1L)
   expect_identical(fit$structural, "2cmt_oral")
   expect_true(all(c("q", "v2") %in% names(fit$parameters$fixed)))
   synthetic <- synpmx_model_generate(fit, n_subjects = 10, seed = 2)
   expect_true(validate_pmx(synthetic, .estimate_roles())$valid)
+})
+
+.stub_table <- function(aic) {
+  data.frame(model = names(aic), converged = TRUE, aic = unname(aic),
+             seconds = 1, note = "", stringsAsFactors = FALSE)
+}
+
+test_that("explicit candidate sets use AIC without a compartment preference", {
+  table <- .stub_table(c(`1cmt_oral` = 100, `2cmt_oral` = 104))
+  table$accepted <- TRUE
+  expect_identical(.model_select_candidate(table)$selected, "1cmt_oral")
+  table$aic[2] <- 99
+  expect_identical(.model_select_candidate(table)$selected, "2cmt_oral")
+  table$accepted[2] <- FALSE
+  expect_identical(.model_select_candidate(table)$selected, "1cmt_oral")
 })
 
 test_that("`pk` naming a model outside the closed-form set is refused", {
@@ -177,16 +194,17 @@ test_that("allometric scaling is asserted, not tested, and costs no extra fit", 
     .oral_study(), .estimate_roles(covariates = "WT"), quiet = TRUE,
     covariate_effects = "auto"))
   # Applied because a weight-like covariate is declared, with the standard
-  # exponents. Testing it against a model without it would double the cost of
-  # the only fit the default path performs.
+  # exponents. Testing it against a model without it would double the fits the
+  # default path already performs.
   expect_identical(auto$covariate_effects$cl$covariate, "WT")
   expect_equal(auto$covariate_effects$cl$exponent, 0.75)
   expect_equal(auto$covariate_effects$v$exponent, 1)
-  expect_identical(nrow(model_candidates(auto)), 1L)
+  expect_lte(nrow(model_candidates(auto)), 2L)
+  expect_identical(model_candidates(auto)$model[[1]], "2cmt_oral")
   expect_length(.default_fit()$covariate_effects, 0L)
 })
 
-test_that("no weight-like covariate means no scaling, and still one fit", {
+test_that("no weight-like covariate means no scaling, and no extra fit", {
   skip_without_fitter()
   # `AGE` is declared and positive but is not a weight, and nothing here tries
   # to recognise a body weight from its values.
@@ -195,7 +213,8 @@ test_that("no weight-like covariate means no scaling, and still one fit", {
   fit <- synpmx_model_estimate(data, .estimate_roles(covariates = "AGE"),
                                quiet = TRUE)
   expect_length(fit$covariate_effects, 0L)
-  expect_identical(nrow(model_candidates(fit)), 1L)
+  expect_lte(nrow(model_candidates(fit)), 2L)
+  expect_identical(model_candidates(fit)$model[[1]], "2cmt_oral")
 })
 
 test_that("covariate_effects only takes the two documented values", {
@@ -407,7 +426,7 @@ test_that("a declared administration column routes each dose", {
   design <- .model_detect_design(data, roles, .model_observations(data, roles),
                                  "cp")
   expect_identical(design$route, "mixed")
-  expect_identical(design$candidates, "1cmt_mixed")
+  expect_identical(design$candidates, c("1cmt_mixed", "2cmt_mixed"))
   expect_match(design$reason, "declared through `adm` and `routes`")
 
   # The solver is told which compartment each dose enters: the depot for the
@@ -425,7 +444,8 @@ test_that("a declared administration column routes each dose", {
   single$ADM <- 2L
   expect_identical(.model_detect_design(single, roles,
                                         .model_observations(single, roles),
-                                        "cp")$candidates, "1cmt_oral")
+                                        "cp")$candidates,
+                   c("1cmt_oral", "2cmt_oral"))
 })
 
 # Bioavailability scales the extravascular doses and not the intravenous ones,

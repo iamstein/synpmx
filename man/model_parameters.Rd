@@ -10,7 +10,8 @@ model_parameters(fitted_model)
 \item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}.}
 }
 \value{
-A list with \code{fixed}, \code{omega} and \code{residual}.
+For a fit with PK, a list with \code{fixed}, \code{omega} and \code{residual}.
+For a PD-only fit, a list containing \code{pd}, the named PD time-course fits.
 }
 \description{
 Fixed effects, the between-subject covariance matrix and the residual error.

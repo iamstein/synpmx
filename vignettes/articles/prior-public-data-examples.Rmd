@@ -16,6 +16,7 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
 library(synpmx)
 has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
+has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 run <- has_nlmixr2data
 plots <- run && has_ggplot2
@@ -183,7 +184,7 @@ mixroute_syn <- synpmx_prior(
 )
 ```
 
-```{r mixroute-figure, eval=plots, fig.height=4}
+```{r mixroute-figure, eval=plots && has_xgxr, fig.height=4}
 frame <- rbind(observed(mixroute, mixroute_roles, "Source"),
                observed(mixroute_syn, mixroute_roles, "Synthetic"))
 ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
@@ -193,6 +194,7 @@ ggplot2::ggplot(frame, ggplot2::aes(time, dv, group = subject, colour = set)) +
   ggplot2::scale_colour_manual(values = comparison_colours, guide = "none") +
   ggplot2::labs(x = "Study time (days)", y = "Concentration (mg/L)",
                 title = "mixroute_sim under its own generating model") +
+  xgxr::xgx_scale_y_log10() +
   ggplot2::theme_minimal()
 ```
 

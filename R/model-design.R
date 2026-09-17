@@ -17,8 +17,9 @@
 # and on recorded times they are statements about the clock instead: no two
 # patients share a time, so a "median profile" is one point per time and a
 # study sampled six times looks like a study sampled two hundred. Estimation
-# reads `time` -- a population fit is about the dose that was actually given --
-# and everything here reads `nominal_time`.
+# reads `time` -- a population fit is about the dose that was actually given.
+# Baseline classification also compares recorded observation and dose times;
+# profile shape and richness use `nominal_time`.
 .model_dose_relative <- function(source, roles, time, dosed, amount = NULL) {
   id <- as.character(source[[roles$id]])
   interval <- rep(NA_integer_, nrow(source))
@@ -194,11 +195,15 @@
                                     censoring) {
   rows <- observations[observations$endpoint == endpoint, , drop = FALSE]
   if (!nrow(rows)) return(FALSE)
-  limit <- censoring[[endpoint]]$left %||% -Inf
+  limit <- max(0, censoring[[endpoint]]$left %||% 0)
   by_subject <- split(rows, rows$subject)
   clean <- vapply(by_subject, function(part) {
-    before <- part$time < part$first_dose_time[1L] - 1e-8 |
-      !is.finite(part$interval)
+    if (all(!is.finite(part$first_dose_at))) return(FALSE)
+    # SIM-089: use the recorded first dose on the recorded-time axis.
+    # A baseline sharing that timestamp is still a baseline; later troughs
+    # are not. Explicit PK declarations override this inference.
+    before <- !is.finite(part$first_dose_at) |
+      part$time <= part$first_dose_at + 1e-8
     !any(before) || all(part$dv[before] <= limit + 1e-8)
   }, logical(1))
   mean(clean) > 0.5
@@ -310,14 +315,22 @@
     # form; `c(pk = c("a", "b"))` is what a caller naturally writes and what R
     # silently renames to `pk1`, `pk2`; `list(pk = c("a", "b"))` is the form
     # that survives the rename. All three mean the same thing here.
-    declared <- if (is.list(endpoint_roles)) {
-      unname(endpoint_roles[["pk"]] %||% endpoint_roles[[1L]])
-    } else {
-      keys <- names(endpoint_roles) %||% rep("", length(endpoint_roles))
-      named_pk <- grepl("^pk[0-9]*$", keys)
-      if (any(named_pk)) unname(endpoint_roles[named_pk]) else
-        unname(endpoint_roles[[1L]])
-    }
+    # SIM-088: a named PD declaration must never become an implicit PK one.
+    keys <- names(endpoint_roles) %||% rep("", length(endpoint_roles))
+    pk_keys <- grepl("^pk[0-9]*$", keys)
+    pd_keys <- grepl("^pd[0-9]*$", keys)
+    named_roles <- any(pk_keys | pd_keys)
+    declared <- if (named_roles) {
+      unname(unlist(endpoint_roles[pk_keys], use.names = FALSE)) %||% character()
+    } else unname(unlist(endpoint_roles[[1L]], use.names = FALSE))
+    declared_pd <- unname(unlist(endpoint_roles[pd_keys], use.names = FALSE))
+    unknown_pd <- setdiff(declared_pd, names(specs))
+    if (length(unknown_pd)) stop("`endpoint_roles` names PD endpoint(s) not in this data: ",
+      paste(unknown_pd, collapse = ", "), ".", call. = FALSE)
+    if (length(intersect(declared, declared_pd)))
+      stop("An endpoint cannot be declared as both PK and PD.", call. = FALSE)
+    if (named_roles && !length(declared) && !length(specs))
+      stop("A PD-only study needs at least one observed endpoint.", call. = FALSE)
     absent <- setdiff(declared, names(specs))
     if (length(absent)) {
       stop(.condition_text(
@@ -347,6 +360,11 @@
   required[is.na(required)] <- FALSE
   passing <- signals$endpoint[required]
 
+  if (!length(passing) &&
+      (!length(continuous) || all(!signals$post_dose))) {
+    return(list(pk = character(), pd = continuous, discrete = discrete,
+                signals = signals, decided_by = "inferred"))
+  }
   if (!length(passing)) {
     stop(.condition_text(
       "No endpoint looks like a drug concentration: none is both absent ",
@@ -354,7 +372,8 @@
       why = paste("Signals read:", .model_signal_summary(signals)),
       fix = paste("Name the concentration with `endpoint_roles =",
                   "c(pk = \"...\")`, or use `synpmx_avatar()` or",
-                  "`synpmx_pca()`, which fit no structural model.")),
+                  "`synpmx_pca()`, which fit no structural model. For a PD-only",
+                  "study, declare `endpoint_roles = c(pd = \"...\")`.")),
       call. = FALSE)
   }
   # Several endpoints may be concentrations -- two drugs, or a parent and its
@@ -524,12 +543,11 @@
          min(profile$time)))
 }
 
-# Whether the sampling would support a two-compartment model. Reported rather
-# than acted on: the candidate set is one-compartment only, and this is what
-# tells a reader that asking for `pk = "2cmt_oral"` is worth their time.
+# A within-subject sampling heuristic, reported rather than used to select a
+# compartment count. Acceptance checks decide whether fallback is needed.
+# This count describes time coverage, not parameter identifiability.
 #
-# The reading itself is the standard one. A distribution phase cannot be
-# identified from troughs, so it needs four distinct times in one dose interval
+# Richer sampling requires four distinct times in one dose interval
 # with two after the peak. A sample *before* the peak is required only where
 # there is an ascending limb to sample -- an intravenous bolus peaks at the
 # dose, and asking for a sample before it would refuse every such study.
@@ -568,24 +586,14 @@
                                interval)
   richness <- .model_sampling_richness(observations, pk_endpoint, interval)
 
-  # One compartment, and that is the whole default candidate set.
-  #
-  # A two-compartment model is not what this generator is for. It exists to make
-  # simulated profiles resemble the source study, and a distribution phase is a
-  # refinement of a shape the one-compartment model already has -- while costing
-  # a fit that takes five times as long and, on a study a one-compartment model
-  # describes, spends that time against a flat likelihood. Measured on a
-  # thirty-subject oral study: 12 s against 49 s, for a worse AIC.
-  #
-  # It remains available. `pk = "2cmt_oral"` or `pk = "2cmt_iv"` forces it and
-  # skips the search, and `richness$rich` says whether the sampling would
-  # support one, so a caller who wants it is told when it is worth asking for.
+  # Step 2 of pmxmodel-algorithm: a two-compartment attempt and a
+  # one-compartment fallback per admitted route. Step 3 decides which run.
   candidates <- switch(route$route,
-                       infusion = "1cmt_infusion",
-                       iv = "1cmt_iv",
-                       oral = "1cmt_oral",
-                       mixed = "1cmt_mixed",
-                       both = c("1cmt_iv", "1cmt_oral"))
+                       infusion = c("1cmt_infusion", "2cmt_infusion"),
+                       iv = c("1cmt_iv", "2cmt_iv"),
+                       oral = c("1cmt_oral", "2cmt_oral"),
+                       mixed = c("1cmt_mixed", "2cmt_mixed"),
+                       both = c("1cmt_iv", "1cmt_oral", "2cmt_iv", "2cmt_oral"))
 
   list(route = route$route, rising = route$rising, routes = route$routes,
        reason = route$reason, interval = interval, richness = richness,

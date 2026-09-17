@@ -345,17 +345,8 @@
   out
 }
 
-# The estimation method is `"focei"` rather than `"saem"`, which reverses what
-# the design assumed, and the reason is the selection criterion. Choosing among
-# candidates on AIC needs every candidate to have one. SAEM's log-likelihood is
-# a Gaussian-quadrature step run after the fit, and on cohorts the size of a
-# phase 1 study it returns a non-finite value: `theo_sd` fits perfectly well
-# under SAEM -- clearance 2.75, volume 32.3, absorption 1.51, which are the
-# textbook values -- and reports `AIC = Inf`, so a search over two candidates
-# has nothing to compare. Under FOCEi the same fit reports AIC -42.1. SAEM
-# remains available through `estimation` for a study large enough to give it a
-# likelihood, and a candidate whose AIC is not finite is recorded as not
-# converged whichever method produced it.
+# FOCEi is the deterministic default. SAEM is screened by its trajectory;
+# an unavailable SAEM likelihood blocks comparisons, not a single accepted fit.
 
 # One `nlmixr2` model function per candidate, written as text because that is
 # what the shape of these functions is: a fixed block of parameter declarations
@@ -714,74 +705,106 @@
   paste(c(compressed, wait), collapse = " ")
 }
 
-# The search. Every candidate is fitted, the ones that converge are compared on
-# AIC, and the ones that do not stay in the table carrying their reason -- a
-# search that came down to one survivor should not look like a search that had
-# one candidate.
+.model_run_fit <- function(spec, data, estimation, control) {
+  nlmixr2est::nlmixr(spec, data, est = estimation, control = control)
+}
+
+.model_fit_aic <- function(fit) {
+  suppressWarnings(tryCatch(as.numeric(stats::AIC(fit)),
+                             error = function(e) NA_real_))
+}
+
+# pmxmodel-algorithm, Step 3: fit, screen, and select (SIM-087).
+# Defaults fall back within each route. Explicit candidate sets are all fitted.
 .model_fit_candidates <- function(data, candidates, observations, pk_endpoint,
                                   error, estimation, quiet, weight = NULL,
-                                  start_param = NULL) {
-  fits <- list()
-  rows <- list()
-  starts <- list()
-  for (candidate in candidates) {
+                                  start_param = NULL, fallback = FALSE,
+                                  check_data = data) {
+  fits <- rows <- starts <- list()
+  accepted_routes <- character()
+  if (fallback) candidates <- candidates[order(!grepl("^2cmt", candidates))]
+  for (candidate in unique(candidates)) {
+    route <- sub("^[12]cmt_", "", candidate)
+    if (fallback && route %in% accepted_routes) next
     start <- .model_apply_start_param(
-      .model_initial_estimates(observations, candidate, pk_endpoint),
-      start_param)
+      .model_initial_estimates(observations, candidate, pk_endpoint), start_param)
     starts[[candidate]] <- start
     error_start <- if (identical(error, "prop")) 0.2 else
       stats::sd(data$DV, na.rm = TRUE) / 5
-    spec <- .model_nlmixr_function(candidate, start, error, error_start,
-                                   weight)
-    # Wall clock rather than CPU time: the fitter threads, and what the caller
-    # waited through is the number they are comparing against.
+    spec <- .model_nlmixr_function(candidate, start, error, error_start, weight)
     started <- proc.time()[["elapsed"]]
-    # Neither the covariance step nor the residual tables is read by anything
-    # downstream: the generator takes the fixed effects, the omega matrix, the
-    # residual error and the empirical Bayes estimates, and every one of those
-    # is on the fit without them. Measured on a 40-patient cut of `onc_sim`
-    # (2026-09-08): 244 s with them, 98 s without, same estimates to the digit.
-    # The dose count is not where the time goes -- cutting each subject's dose
-    # history to 30 days saved 23% -- so this is the lever, not the schedule.
     control <- if (identical(estimation, "focei")) {
       nlmixr2est::foceiControl(print = 0, covMethod = "", calcTables = FALSE)
     } else list(print = 0L)
-    fit <- try(suppressWarnings(suppressMessages(
-      nlmixr2est::nlmixr(spec, data, est = estimation, control = control)
-    )), silent = TRUE)
-    seconds <- proc.time()[["elapsed"]] - started
-    converged <- !inherits(fit, "try-error") &&
-      is.finite(suppressWarnings(stats::AIC(fit)))
-    rows[[length(rows) + 1L]] <- data.frame(
-      model = candidate, converged = converged,
-      aic = if (converged) as.numeric(stats::AIC(fit)) else NA_real_,
-      seconds = seconds,
-      note = if (converged) "" else
-        if (inherits(fit, "try-error")) .model_first_line(fit) else
-          "no finite objective function",
-      stringsAsFactors = FALSE
-    )
-    if (converged) fits[[candidate]] <- fit
-    if (!quiet) {
-      message(sprintf("  %-14s %-20s %s", candidate,
-                      if (converged) sprintf("AIC %.1f", stats::AIC(fit))
-                      else "did not converge",
-                      .model_duration(seconds)))
+    fit_warnings <- character()
+    fit <- try(withCallingHandlers(suppressMessages(
+      .model_run_fit(spec, data, estimation, control)
+    ), warning = function(w) {
+      fit_warnings <<- c(fit_warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }), silent = TRUE)
+    aic <- if (inherits(fit, "try-error")) NA_real_ else .model_fit_aic(fit)
+    if (length(aic) != 1L || !is.finite(aic)) aic <- NA_real_
+    assessment <- if (inherits(fit, "try-error")) {
+      list(converged = FALSE, accepted = FALSE, note = .model_first_line(fit))
+    } else .model_assess_fit(fit, candidate, start, error, estimation,
+                              check_data, weight)
+    # An unavailable likelihood is not a failed SAEM trajectory. It only
+    # prevents comparison when more than one accepted route/model remains.
+    if (!identical(estimation, "saem") && is.na(aic)) {
+      assessment$converged <- assessment$accepted <- FALSE
+      assessment$note <- paste(assessment$note, "no finite objective function")
     }
+    note <- paste(unique(c(assessment$note,
+                            fit_warnings[nzchar(fit_warnings)])), collapse = "; ")
+    note <- sub("^; ", "", note)
+    seconds <- proc.time()[["elapsed"]] - started
+    rows[[length(rows) + 1L]] <- data.frame(
+      model = candidate, converged = assessment$converged,
+      accepted = assessment$accepted, aic = aic, seconds = seconds,
+      note = note, stringsAsFactors = FALSE)
+    if (assessment$accepted) {
+      fits[[candidate]] <- fit
+      accepted_routes <- c(accepted_routes, route)
+    }
+    if (!quiet) message(sprintf("  %-14s %s (%s)%s", candidate,
+      if (assessment$accepted) "accepted" else "rejected",
+      .model_duration(seconds), if (nzchar(note)) paste0(": ", note) else ""))
   }
   table <- do.call(rbind, rows)
-  table <- table[order(table$aic, na.last = TRUE), , drop = FALSE]
-  rownames(table) <- NULL
-  if (!any(table$converged)) {
-    stop(.condition_text(
-      "No candidate model converged, so there is nothing to generate from. ",
-      "Candidates tried:",
-      items = table$model,
-      fix = paste("`synpmx_avatar()` and `synpmx_pca()` need no identifiable",
-                  "structure and will run on this study.")), call. = FALSE)
+  if (!any(table$accepted)) {
+    stop("No candidate model passed the convergence and generation checks. ",
+      paste(paste0(table$model, ": ", table$note), collapse = "; "),
+      ". Supply starting values through `start_param`, or use `synpmx_avatar()` ",
+      "or `synpmx_pca()`.", call. = FALSE)
   }
-  list(table = table, selected = table$model[which.min(table$aic)],
+  choice <- .model_select_candidate(table, fallback = fallback)
+  selected_note <- table$note[match(choice$selected, table$model)]
+  if (nzchar(selected_note)) warning(choice$selected, ": ", selected_note,
+                                      call. = FALSE)
+  if (!quiet) message("  selected ", choice$selected, ": ", choice$reason)
+  list(table = table, selected = choice$selected, reason = choice$reason,
        fits = fits, starts = starts)
+}
+
+.model_select_candidate <- function(table, fallback = FALSE) {
+  accepted <- table[table$accepted, , drop = FALSE]
+  if (nrow(accepted) > 1L && any(!is.finite(accepted$aic)))
+    stop("Accepted candidates cannot be compared because AIC is unavailable; ",
+         "name one model in `pk` or use `estimation = \"focei\"`.", call. = FALSE)
+  best <- if (nrow(accepted) == 1L) accepted$model[[1L]] else
+    accepted$model[which.min(accepted$aic)]
+  reason <- if (fallback) {
+    if (grepl("^2cmt", best)) "two-compartment model passed acceptance checks" else {
+      sibling <- sub("^1cmt", "2cmt", best)
+      row <- table[table$model == sibling, , drop = FALSE]
+      paste0("one-compartment fallback; ", sibling, " rejected: ", row$note)
+    }
+  } else "accepted requested model"
+  if (nrow(accepted) > 1L) reason <- paste0(reason,
+    if (fallback) "; lowest AIC among accepted routes" else
+      "; lowest AIC among accepted requested models")
+  list(selected = best, reason = reason)
 }
 
 .model_first_line <- function(x) {
@@ -1154,7 +1177,7 @@
 # its values alone, and guessing from a distribution would be worse than asking.
 #
 # Applied where it is found rather than tested for improvement. Testing costs a
-# second fit, which is the whole budget of the default path, and allometry on a
+# second fit, and allometry on a
 # weight is a shape this generator asserts rather than a hypothesis it examines.
 # `covariate_effects = "none"` switches it off.
 #
@@ -1294,13 +1317,15 @@
 #' Estimate a population model from a trial
 #'
 #' The only stage that reads patient data, and the only one that needs
-#' `nlmixr2`. It works out which endpoint is the drug concentration and what
-#' design produced it, fits the candidate models that design admits, picks one
-#' on AIC, and returns that fit alongside the dosing and visit models the
-#' generated subjects are built from. No patient row survives it.
+#' `nlmixr2` for concentration fitting. It works out which endpoint is the drug concentration and what
+#' design produced it, fits two compartments with checked fallback to one, and
+#' returns that fit alongside the dosing and visit models the generated subjects
+#' are built from. A declared pharmacodynamic (PD)-only study skips the
+#' compartment fits and uses the PD time-course and visit-frequency models.
+#' No patient row survives it.
 #'
 #' **The fitted parameters are not estimates to report.** They exist to make
-#' simulated profiles look like the source study. The candidate set is five
+#' simulated profiles look like the source study. The candidates are built-in
 #' linear models and the covariate model is allometric scaling or nothing, which
 #' is too little to answer a scientific question, and the object prints that
 #' warning with itself because its contents look exactly like the output of a
@@ -1321,8 +1346,17 @@
 #' @param data Source PMX event data.
 #' @param roles Explicit column roles from [pmx_roles()], including
 #'   `nominal_time`.
-#' @param pk One of the five built-in structural models, forcing it and skipping
-#'   the search. `NULL` searches the candidates the design admits.
+#' @param pk Structural model name, or a vector of names to compare by Akaike
+#'   information criterion (AIC) after acceptance checks. `NULL` first fits two
+#'   compartments for the detected route, trying one compartment only if the
+#'   two-compartment fit fails termination, parameter or population-generation
+#'   checks. False convergence alone warns and does not trigger fallback if
+#'   the remaining checks pass. Ambiguous routes are screened separately and their accepted models
+#'   compared by AIC. A named model is never replaced automatically; an
+#'   unacceptable requested fit errors. Moderate generation discrepancies and
+#'   estimates close to their starts warn. These screens do not establish
+#'   identifiability or scientific validity. See `vignette("pmxmodel-algorithm")`
+#'   for the criteria and simulation thresholds.
 #' @param pd Named character vector of PD shapes per endpoint, skipping that
 #'   search. One of `"constant"`, `"linear"` or `"exponential"` each.
 #' @param pd_by_arm Fit each PD endpoint's shape per arm rather than once over
@@ -1333,7 +1367,17 @@
 #'   to fit keeps the pooled shape. Costs nothing measurable, since these are
 #'   least-squares fits.
 #' @param endpoint_roles Which endpoint is the drug concentration, as
-#'   `c(pk = "cp")`, overriding the inference.
+#'   `c(pk = "cp")`, overriding the inference. A positive baseline at or before
+#'   the first recorded dose excludes a continuous endpoint from inferred PK
+#'   when present in at least half its subjects. If all continuous endpoints
+#'   are excluded, a PD-only study is inferred. Explicitly declare one with
+#'   `c(pd = "response")`, or `list(pk = character())` to classify all observed
+#'   endpoints as responses. No compartment model is fitted in that case;
+#'   continuous responses use the existing time-course shapes and discrete
+#'   responses use visit frequencies. Dose records may be absent. A PD-only
+#'   declaration cannot be combined with `pk` or `start_param`. With declared
+#'   PK endpoints, remaining continuous endpoints are PD; the same endpoint
+#'   cannot be explicitly named as both PK and PD.
 #'
 #'   **More than one may be named**, for a study that measures two
 #'   concentrations — two drugs, or a parent and its metabolite. Each gets its
@@ -1361,8 +1405,8 @@
 #'   whenever more than one concentration is named.
 #' @param covariate_effects `"none"`, the default, puts no covariate in the
 #'   structural model. `"auto"` fits allometric scaling on clearance and volume
-#'   where a weight-like covariate is declared and keeps it where it improves
-#'   AIC.
+#'   where a weight-like covariate is declared. Scaling is asserted, without
+#'   a separate AIC comparison.
 #'
 #'   The default is `"none"` because a synthetic study does not need the
 #'   relationship: covariates are generated from the source's own study-wide
@@ -1415,11 +1459,13 @@
 #'   hold. Below it a one-compartment model is not identifiable, which warns
 #'   rather than refuses: the fit runs and its parameters sit close to their
 #'   starting values. No post-dose observation at all is an error.
-#' @param estimation Passed to `nlmixr2`. `"focei"` by default because the
-#'   selection criterion is AIC and `"saem"` does not reliably produce one at
-#'   these cohort sizes.
-#' @param seed Seed for the one random step, which is imputing censored values
-#'   before the fit.
+#' @param estimation Estimation method passed to `nlmixr2`, default `"focei"`.
+#'   False convergence alone warns; other unsuccessful optimizer termination
+#'   rejects the candidate. `"saem"` instead checks for
+#'   gross late drift in the parameter trajectory; an unavailable AIC prevents
+#'   comparison of multiple accepted models, but not use of a single model.
+#' @param seed Seed for imputing censored values and selecting the fitting
+#'   subset. The population-generation screen uses its own fixed local seed.
 #' @param quiet Suppress the per-candidate progress messages.
 #'
 #' @return A `pmx_fitted_model`.
@@ -1464,13 +1510,6 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   if (!is.logical(pd_by_arm) || length(pd_by_arm) != 1L || is.na(pd_by_arm)) {
     stop("`pd_by_arm` must be TRUE or FALSE.", call. = FALSE)
   }
-  if (!requireNamespace("nlmixr2est", quietly = TRUE)) {
-    stop(.condition_text(
-      "`synpmx_model_estimate()` needs the nlmixr2 package, which is in ",
-      "Suggests.",
-      fix = paste("Install it, or use `synpmx_avatar()` or `synpmx_pca()`,",
-                  "which fit no structural model.")), call. = FALSE)
-  }
   started <- proc.time()[["elapsed"]]
   data <- as.data.frame(data)
   source <- data[, intersect(.retained_role_columns(roles), names(data)),
@@ -1491,7 +1530,6 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   n_source <- length(.unique_in_order(source[[roles$id]]))
   .model_note_subjects(n_source, min_subjects)
   .model_require_nominal_time(source, roles)
-  .model_require_time_coverage(source, roles, min_time_bins)
 
   censoring_source <- source
   source <- if (is.null(seed)) .impute_censored(source, roles) else
@@ -1500,10 +1538,23 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   observations <- .model_observations(source, roles)
   classified <- .model_classify_endpoints(source, roles, observations,
                                           endpoint_roles)
+  # SIM-088: only concentration fits need post-dose coverage and nlmixr2.
+  if (length(classified$pk)) {
+    .model_require_time_coverage(source, roles, min_time_bins)
+    if (!requireNamespace("nlmixr2est", quietly = TRUE)) {
+      stop(.condition_text(
+        "`synpmx_model_estimate()` needs the nlmixr2 package, which is in ",
+        "Imports.",
+        fix = paste("Install it, or use `synpmx_avatar()` or `synpmx_pca()`,",
+                    "which fit no structural model.")), call. = FALSE)
+    }
+  } else if (!is.null(pk) || !is.null(start_param)) {
+    stop("`pk` and `start_param` cannot be supplied for a PD-only study.", call. = FALSE)
+  }
   .model_check_dose_endpoints(source, roles, classified$pk)
   # One design read per concentration endpoint: the route is a property of the
-  # study, but the sampling richness that prunes the candidate set is a property
-  # of the endpoint, and a metabolite is not always sampled like its parent.
+  # study, but the profile the route is read off is a property of the endpoint,
+  # and a metabolite is not always sampled like its parent.
   designs <- stats::setNames(lapply(classified$pk, function(endpoint) {
     one <- .model_detect_design(source, roles, observations, endpoint)
     if (!is.null(pk)) {
@@ -1516,7 +1567,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     }
     one
   }), classified$pk)
-  design <- designs[[1L]]
+  design <- if (length(designs)) designs[[1L]] else NULL
 
   # The apparatus, on the nominal grid, exactly as `synpmx_pca_summarize()`
   # builds it. `.model_cells()` is this generator's adapter over the same
@@ -1545,160 +1596,179 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       dose_rows & !is.na(drives) & drives == endpoint)
   }, integer(1))
 
-  # `censoring_source` rather than `source`: the fitter is given the study's own
-  # values with their censoring flags, while the summaries below keep the
-  # imputed ones. The two frames differ only in the censored `DV` values.
-  # The FIRST concentration endpoint, never the vector of them. This table is
-  # the fit table for that one endpoint -- the loop below reuses it under
-  # `identical(endpoint, classified$pk[[1L]])` and builds its own for the rest
-  # -- and handing the whole vector to a function that tests `endpoint ==
-  # pk_endpoint` recycles the comparison row by row (`SIM-082`).
-  primary_endpoint <- classified$pk[[1L]]
-  recorded_data <- .model_estimation_data(censoring_source, roles,
-                                          primary_endpoint)
-  # Who that left out. Said plainly, because the fit is then a statement about
-  # fewer people than the study has, and a warning where it takes the fitted
-  # cohort under the floor the run was told to hold.
-  fitted_subjects <- length(unique(recorded_data$ID))
-  # The cap. Fit time is linear in subjects and the inner per-subject loop is
-  # where it goes -- measured 2026-09-08 on `onc_sim`, 40 patients fit in four
-  # minutes and 200 in twenty-five -- while what the generator needs from the
-  # fit, population parameters that put synthetic values where the real ones
-  # are, is settled long before the two-hundredth patient. So the population
-  # model is fitted to a subset drawn in proportion to the arms, and every
-  # other model -- dosing, visits, covariates, cells -- still reads the whole
-  # study. The report says so, because a reader who sees 200 patients and a
-  # fit on 60 is owed the number.
-  fit_draw <- .model_fit_subset(recorded_data$ID, subjects, subject_group,
-                                max_fit_subjects, seed)
-  if (!is.null(fit_draw)) {
-    recorded_data <- recorded_data[recorded_data$ID %in% fit_draw, ,
-                                   drop = FALSE]
-  }
-  fit_subjects <- list(fitted = length(unique(recorded_data$ID)),
-                       of = fitted_subjects, cap = max_fit_subjects)
-  if (!quiet && !is.null(fit_draw)) {
-    message(.wrap_plain(paste0(
-      "Fitting the population model to ", fit_subjects$fitted, " of ",
-      fitted_subjects, " patients (`max_fit_subjects` = ", max_fit_subjects,
-      "), drawn in proportion to the arms; the dosing, visit and covariate ",
-      "models read all ", n_source, ".")))
-  }
-  if (fitted_subjects < n_source) {
-    note <- paste0(n_source - fitted_subjects, " of ", n_source,
-                   " subjects have no `", primary_endpoint,
-                   "` observation and are not fitted; their dosing and visits ",
-                   "still reach the arm models.")
-    # A warning only where it is news: a cohort already under the floor was
-    # warned about before the endpoints were classified.
-    if (fitted_subjects < min_subjects && n_source >= min_subjects) {
-      warning(note, " That leaves ", fitted_subjects,
-              " subjects under `min_subjects` = ", min_subjects,
-              ", so the covariance describes those subjects rather than a ",
-              "population.", call. = FALSE)
-    } else if (!quiet) {
-      message(note)
+  # Step 3, SIM-088: no placeholder compartment model in a PD-only fit.
+  if (length(classified$pk)) {
+    # `censoring_source` rather than `source`: the fitter is given the study's own
+    # values with their censoring flags, while the summaries below keep the
+    # imputed ones. The two frames differ only in the censored `DV` values.
+    # The FIRST concentration endpoint, never the vector of them. This table is
+    # the fit table for that one endpoint -- the loop below reuses it under
+    # `identical(endpoint, classified$pk[[1L]])` and builds its own for the rest
+    # -- and handing the whole vector to a function that tests `endpoint ==
+    # pk_endpoint` recycles the comparison row by row (`SIM-082`).
+    primary_endpoint <- classified$pk[[1L]]
+    recorded_data <- .model_estimation_data(censoring_source, roles,
+                                            primary_endpoint)
+    # Who that left out. Said plainly, because the fit is then a statement about
+    # fewer people than the study has, and a warning where it takes the fitted
+    # cohort under the floor the run was told to hold.
+    fitted_subjects <- length(unique(recorded_data$ID))
+    # The cap. Fit time is linear in subjects and the inner per-subject loop is
+    # where it goes -- measured 2026-09-08 on `onc_sim`, 40 patients fit in four
+    # minutes and 200 in twenty-five -- while what the generator needs from the
+    # fit, population parameters that put synthetic values where the real ones
+    # are, is settled long before the two-hundredth patient. So the population
+    # model is fitted to a subset drawn in proportion to the arms, and every
+    # other model -- dosing, visits, covariates, cells -- still reads the whole
+    # study. The report says so, because a reader who sees 200 patients and a
+    # fit on 60 is owed the number.
+    fit_draw <- .model_fit_subset(recorded_data$ID, subjects, subject_group,
+                                  max_fit_subjects, seed)
+    if (!is.null(fit_draw)) {
+      recorded_data <- recorded_data[recorded_data$ID %in% fit_draw, ,
+                                     drop = FALSE]
     }
-  }
-  # A source that arrived compressed is folded back by runs, which is exact and
-  # keeps a dose change as its own record; one that wrote every dose out is
-  # compressed only where the whole schedule is regular.
-  estimation_data <- if (is.null(roles$addl)) {
-    .compress_dose_schedule(recorded_data)
+    fit_subjects <- list(fitted = length(unique(recorded_data$ID)),
+                         of = fitted_subjects, cap = max_fit_subjects)
+    if (!quiet && !is.null(fit_draw)) {
+      message(.wrap_plain(paste0(
+        "Fitting the population model to ", fit_subjects$fitted, " of ",
+        fitted_subjects, " patients (`max_fit_subjects` = ", max_fit_subjects,
+        "), drawn in proportion to the arms; the dosing, visit and covariate ",
+        "models read all ", n_source, ".")))
+    }
+    if (fitted_subjects < n_source) {
+      note <- paste0(n_source - fitted_subjects, " of ", n_source,
+                     " subjects have no `", primary_endpoint,
+                     "` observation and are not fitted; their dosing and visits ",
+                     "still reach the arm models.")
+      # A warning only where it is news: a cohort already under the floor was
+      # warned about before the endpoints were classified.
+      if (fitted_subjects < min_subjects && n_source >= min_subjects) {
+        warning(note, " That leaves ", fitted_subjects,
+                " subjects under `min_subjects` = ", min_subjects,
+                ", so the covariance describes those subjects rather than a ",
+                "population.", call. = FALSE)
+      } else if (!quiet) {
+        message(note)
+      }
+    }
+    # A source that arrived compressed is folded back by runs, which is exact and
+    # keeps a dose change as its own record; one that wrote every dose out is
+    # compressed only where the whole schedule is regular.
+    estimation_data <- if (is.null(roles$addl)) {
+      .compress_dose_schedule(recorded_data)
+    } else {
+      .compress_dose_runs(recorded_data)
+    }
+    # Proportional error unless the concentration lives on a scale that includes
+    # zero. A handful of non-positive readings does not make that scale: they are
+    # what the assay returns near its limit, and treating them as evidence costs
+    # the whole error model. `nimoData` reports one negative concentration in 321,
+    # and reading that one row as "this endpoint reaches zero" fitted an additive
+    # residual of 1.46 to values whose median is 3 -- which then generated a
+    # cohort scattered from zero upward. Below the limit they are substituted at
+    # the same floor the generator will not emit below, which is the LLOQ/2
+    # convention applied to a value the assay reported as if it were a reading.
+    values <- estimation_data$DV[!is.na(estimation_data$DV)]
+    assay_floor <- .model_assay_floor(values)
+    error <- if (is.null(assay_floor)) "add" else "prop"
+    substituted <- if (is.null(assay_floor)) integer(0) else
+      which(!is.na(estimation_data$DV) & estimation_data$DV <= 0)
+    if (length(substituted)) {
+      estimation_data$DV[substituted] <- assay_floor
+      if (!quiet) {
+        message(length(substituted), " of ", length(values), " `",
+                primary_endpoint, "` observations are not positive and were fitted ",
+                "at ", signif(assay_floor, 4),
+                ", half the smallest positive value the study reports.")
+      }
+    }
+
+    # Allometric scaling is folded into each fit, without a separate comparison.
+    weight <- if (identical(covariate_effects, "auto")) {
+      .model_weight_covariate(source, roles)
+    } else NULL
+    with_weight <- .model_attach_weight(estimation_data, source, roles, weight)
+    if (is.null(with_weight)) weight <- NULL else estimation_data <- with_weight
+
+    if (!quiet) {
+      note <- .dose_record_message(recorded_data, estimation_data)
+      if (!is.null(note)) message(note)
+    }
+    starts_by_endpoint <- .model_split_start_param(start_param, classified$pk)
+
+    # One population model per concentration endpoint. They share the dosing
+    # records -- the same doses drive a parent and its metabolite -- and nothing
+    # else: each has its own structural model, its own parameters and its own
+    # residual error, and no correlation between their random effects is
+    # estimated, which is a limitation worth knowing rather than a claim.
+    pk_models <- stats::setNames(lapply(classified$pk, function(endpoint) {
+      own_design <- designs[[endpoint]]
+      own_check_data <- .model_estimation_data(censoring_source, roles, endpoint)
+      attached_check <- .model_attach_weight(own_check_data, source, roles, weight)
+      if (!is.null(attached_check)) own_check_data <- attached_check
+      own_data <- if (identical(endpoint, classified$pk[[1L]])) estimation_data else {
+        one <- .model_estimation_data(censoring_source, roles, endpoint)
+        one <- if (is.null(roles$addl)) .compress_dose_schedule(one) else
+          .compress_dose_runs(one)
+        attached <- .model_attach_weight(one, source, roles, weight)
+        if (is.null(attached)) one else attached
+      }
+      own_check_data <- own_check_data[own_check_data$ID %in% own_data$ID, ,
+                                       drop = FALSE]
+      if (!quiet) {
+        message(if (is.null(pk)) "Trying up to " else "Fitting ",
+                length(own_design$candidates), " model(s) for `",
+                endpoint, "` (", own_design$route, ")",
+                if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
+                ":")
+      }
+      own_start <- .model_validate_start_param(starts_by_endpoint[[endpoint]],
+                                               own_design$candidates)
+      search <- .model_fit_candidates(own_data, own_design$candidates,
+                                      observations, endpoint, error,
+                                      estimation, quiet, weight, own_start,
+                                      fallback = is.null(pk),
+                                      check_data = own_check_data)
+      selected <- search$selected
+      parameters <- .model_read_fit(search$fits[[selected]], selected, error)
+      movement <- .model_fit_movement(parameters$fixed, parameters$omega,
+                                      search$starts[[selected]])
+      if (!movement$moved) .model_warn_unmoved(selected, movement)
+      list(endpoint = endpoint, structural = selected, parameters = parameters,
+           candidates = search$table, selection = search$reason,
+           movement = movement, design = own_design,
+           start_param = own_start,
+           seconds = sum(search$table$seconds, na.rm = TRUE),
+           effects = if (is.null(weight)) list() else stats::setNames(
+             lapply(intersect(names(parameters$fixed),
+                              names(.model_allometric_exponents)),
+                    function(parameter) {
+                      list(covariate = weight$covariate,
+                           reference = weight$reference,
+                           exponent = unname(
+                             .model_allometric_exponents[[parameter]]))
+                    }),
+             intersect(names(parameters$fixed),
+                       names(.model_allometric_exponents))))
+    }), classified$pk)
+
+    primary <- pk_models[[1L]]
+    selected <- primary$structural
+    parameters <- primary$parameters
+    movement <- primary$movement
+    effects <- primary$effects
+    fit_seconds <- sum(vapply(pk_models, function(m) m$seconds, numeric(1)))
   } else {
-    .compress_dose_runs(recorded_data)
+    pk_models <- list()
+    primary <- list(candidates = data.frame(model = character(),
+      converged = logical(), accepted = logical(), aic = numeric(),
+      seconds = numeric(), note = character()))
+    selected <- parameters <- movement <- fit_subjects <- error <- NULL
+    effects <- list()
+    fit_seconds <- 0
   }
-  # Proportional error unless the concentration lives on a scale that includes
-  # zero. A handful of non-positive readings does not make that scale: they are
-  # what the assay returns near its limit, and treating them as evidence costs
-  # the whole error model. `nimoData` reports one negative concentration in 321,
-  # and reading that one row as "this endpoint reaches zero" fitted an additive
-  # residual of 1.46 to values whose median is 3 -- which then generated a
-  # cohort scattered from zero upward. Below the limit they are substituted at
-  # the same floor the generator will not emit below, which is the LLOQ/2
-  # convention applied to a value the assay reported as if it were a reading.
-  values <- estimation_data$DV[!is.na(estimation_data$DV)]
-  assay_floor <- .model_assay_floor(values)
-  error <- if (is.null(assay_floor)) "add" else "prop"
-  substituted <- if (is.null(assay_floor)) integer(0) else
-    which(!is.na(estimation_data$DV) & estimation_data$DV <= 0)
-  if (length(substituted)) {
-    estimation_data$DV[substituted] <- assay_floor
-    if (!quiet) {
-      message(length(substituted), " of ", length(values), " `",
-              primary_endpoint, "` observations are not positive and were fitted ",
-              "at ", signif(assay_floor, 4),
-              ", half the smallest positive value the study reports.")
-    }
-  }
-
-  # Allometric scaling is folded into the fit rather than compared against one
-  # without it, so the default path performs exactly one fit.
-  weight <- if (identical(covariate_effects, "auto")) {
-    .model_weight_covariate(source, roles)
-  } else NULL
-  with_weight <- .model_attach_weight(estimation_data, source, roles, weight)
-  if (is.null(with_weight)) weight <- NULL else estimation_data <- with_weight
-
-  if (!quiet) {
-    note <- .dose_record_message(recorded_data, estimation_data)
-    if (!is.null(note)) message(note)
-  }
-  starts_by_endpoint <- .model_split_start_param(start_param, classified$pk)
-
-  # One population model per concentration endpoint. They share the dosing
-  # records -- the same doses drive a parent and its metabolite -- and nothing
-  # else: each has its own structural model, its own parameters and its own
-  # residual error, and no correlation between their random effects is
-  # estimated, which is a limitation worth knowing rather than a claim.
-  pk_models <- stats::setNames(lapply(classified$pk, function(endpoint) {
-    own_design <- designs[[endpoint]]
-    own_data <- if (identical(endpoint, classified$pk[[1L]])) estimation_data else {
-      one <- .model_estimation_data(censoring_source, roles, endpoint)
-      one <- if (is.null(roles$addl)) .compress_dose_schedule(one) else
-        .compress_dose_runs(one)
-      attached <- .model_attach_weight(one, source, roles, weight)
-      if (is.null(attached)) one else attached
-    }
-    if (!quiet) {
-      message("Fitting ", length(own_design$candidates), " model(s) for `",
-              endpoint, "` (", own_design$route, ")",
-              if (!is.null(weight)) paste0(", allometric on ", weight$covariate),
-              ":")
-    }
-    own_start <- .model_validate_start_param(starts_by_endpoint[[endpoint]],
-                                             own_design$candidates)
-    search <- .model_fit_candidates(own_data, own_design$candidates,
-                                    observations, endpoint, error,
-                                    estimation, quiet, weight, own_start)
-    selected <- search$selected
-    parameters <- .model_read_fit(search$fits[[selected]], selected, error)
-    movement <- .model_fit_movement(parameters$fixed, parameters$omega,
-                                    search$starts[[selected]])
-    if (!movement$moved) .model_warn_unmoved(selected, movement)
-    list(endpoint = endpoint, structural = selected, parameters = parameters,
-         candidates = search$table, movement = movement, design = own_design,
-         start_param = own_start,
-         seconds = sum(search$table$seconds, na.rm = TRUE),
-         effects = if (is.null(weight)) list() else stats::setNames(
-           lapply(intersect(names(parameters$fixed),
-                            names(.model_allometric_exponents)),
-                  function(parameter) {
-                    list(covariate = weight$covariate,
-                         reference = weight$reference,
-                         exponent = unname(
-                           .model_allometric_exponents[[parameter]]))
-                  }),
-           intersect(names(parameters$fixed),
-                     names(.model_allometric_exponents))))
-  }), classified$pk)
-
-  primary <- pk_models[[1L]]
-  selected <- primary$structural
-  parameters <- primary$parameters
-  movement <- primary$movement
-  effects <- primary$effects
-  fit_seconds <- sum(vapply(pk_models, function(m) m$seconds, numeric(1)))
 
   # Not timed, unlike the population fits. `lm()` and `nls()` on one endpoint's
   # observations return in milliseconds, so the number was always 0.0 s beside a
@@ -1741,12 +1811,15 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # The empirical Bayes estimates are one row per FITTED subject, in source
   # order, so the frame they are set beside has to be the same subjects in the
   # same order.
-  fitted_ids <- unique(recorded_data$ID)
-  in_fit <- as.character(source[[roles$id]]) %in% fitted_ids
-  correlations <- .model_covariate_correlations(
-    source[in_fit, , drop = FALSE], roles,
-    subject_group[as.character(subjects) %in% fitted_ids], parameters$etas)
-  parameters$etas <- NULL
+  correlations <- NULL
+  if (length(classified$pk)) {
+    fitted_ids <- unique(recorded_data$ID)
+    in_fit <- as.character(source[[roles$id]]) %in% fitted_ids
+    correlations <- .model_covariate_correlations(
+      source[in_fit, , drop = FALSE], roles,
+      subject_group[as.character(subjects) %in% fitted_ids], parameters$etas)
+    parameters$etas <- NULL
+  }
 
   covariates <- .covariate_model(source, roles, min_category_patients)
   schema <- .model_covariate_schema(

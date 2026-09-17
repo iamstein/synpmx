@@ -230,6 +230,13 @@ test_that("the constructor refuses a selection no candidate supports", {
                "not among the converged candidates")
 })
 
+test_that("a converged model rejected by generation checks cannot be selected", {
+  # SIM-087: numerical convergence and suitability for generation differ.
+  expect_error(.fitted_fixture(candidates = data.frame(
+    model = "1cmt_iv", converged = TRUE, accepted = FALSE, aic = 1,
+    note = "population simulation failed")), "failed acceptance checks")
+})
+
 test_that("the constructor refuses fixed effects the model needs and lacks", {
   expect_error(
     .fitted_fixture(structural = "1cmt_oral",
@@ -345,4 +352,16 @@ test_that("fixed effects moving while every omega sits still is reported", {
   omega_moved <- omega; diag(omega_moved) <- c(0.3, 0.1)
   expect_true(.model_fit_movement(c(cl = 6, v = 50), omega_moved,
                                   c(cl = 4, v = 40))$omega_moved)
+})
+
+# SIM-090: advisory optimizer status must survive construction and reporting.
+test_that("a false-convergence warning does not veto an accepted model", {
+  fit <- .fitted_fixture(candidates = data.frame(model = "1cmt_iv",
+    converged = FALSE, accepted = TRUE, aic = 1,
+    note = "Warning: the optimizer stalled before convergence was confirmed. Check that the synthetic data reasonably reproduces the source data's patterns and variability."))
+  expect_s3_class(fit, "pmx_fitted_model")
+  expect_false(model_candidates(fit)$converged[[1L]])
+  expect_true(model_candidates(fit)$accepted[[1L]])
+  expect_match(paste(capture.output(print(model_report(fit))), collapse = " "),
+                "optimizer stalled before convergence")
 })

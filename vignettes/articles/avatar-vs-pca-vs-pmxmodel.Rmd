@@ -234,7 +234,7 @@ So `synpmx_model()` belongs on the same side of the previous section as
 parametric assumption is close to true. That is also why its fitted quantities
 are ones a pharmacometrician already reasons about. The cost is that the structural model has to be right enough:
 where a principal-component basis adapts to whatever shape the profiles have,
-a one-compartment model asserts the shape and cannot represent a study that
+a compartmental model asserts the shape and cannot represent a study that
 does not have it.
 
 ## The Family These Sit In

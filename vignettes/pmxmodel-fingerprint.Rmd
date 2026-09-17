@@ -161,7 +161,15 @@ fit$structural
 model_candidates(fit)
 ```
 
-One row, because the default fits one model. `pk` is what asks for more.
+Each row is an attempted fit. The default stops when two compartments pass
+the acceptance checks; a rejected fit is followed by one compartment. `pk`
+names a particular model, or several to compare by Akaike information
+criterion (AIC) after those checks.
+
+For a declared PD-only study there is no PK structure: `structural` and
+`parameters` are `NULL`, `pk_models` is empty, and the PK candidate table has no
+rows. The PD shapes and their candidates are in `model_report(fit)$pd`;
+`model_parameters(fit)$pd` returns those fits.
 
 ## The fixed effects
 
@@ -213,8 +221,9 @@ fit$censoring
 `warfarin` declares no censoring, so nothing here is below a limit. On a study
 where it is, this is the line to read before trusting the concentrations:
 `xgxr::case1_pkpd` has 46% of its concentrations below the limit and 95% of the
-lowest dose arm, and there the concentration curve is drawn mostly from where
-the assay stopped reporting.
+lowest dose arm. Much of the information is therefore a bound rather than a
+measured concentration. The two-compartment fit in the public-data survey retains a false-convergence
+warning and passes the parameter and generation checks.
 
 ## The covariate effects
 

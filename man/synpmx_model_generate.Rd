@@ -30,6 +30,9 @@ dosing model. The
 concentration is then evaluated at the visits drawn from the arm's visit
 model, against the schedule that was drawn, so a reduced or skipped dose
 reaches the concentrations rather than appearing only in the dosing records.
+A PD-only fit skips concentration simulation: responses use their fitted
+study-time shapes or visit frequencies, while any declared dosing records
+are still generated.
 }
 \seealso{
 \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=synpmx_model]{synpmx_model()}}, \code{\link[=model_report]{model_report()}}.

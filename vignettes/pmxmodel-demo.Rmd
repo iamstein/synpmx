@@ -19,7 +19,7 @@ has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 has_dplyr <- requireNamespace("dplyr", quietly = TRUE)
 has_dt <- requireNamespace("DT", quietly = TRUE)
-stored <- system.file("extdata", "case1-pkpd-model-fit.rds", package = "synpmx")
+stored <- system.file("extdata", "mad-model-fit.rds", package = "synpmx")
 fit <- if (nzchar(stored)) readRDS(stored) else NULL
 run <- has_xgxr && has_dplyr && !is.null(fit)
 plots <- run && has_ggplot2
@@ -50,20 +50,21 @@ show <- function(x, caption = NULL) {
 ```
 
 Fit a population model to a study, look at what the fit carries, and generate a
-synthetic dataset by simulating from it. No number a patient measured reaches
-the output: what leaves the source is a structural model, a handful of fixed
-effects, a covariance matrix, a residual error, and a dosing and visit model per
-arm.
+synthetic dataset by simulating from it. Generation uses fitted population
+parameters and study summaries: structural curves, between-subject variability,
+residual error, endpoint frequencies, and dosing and visit models per arm.
+It does not read the original patient rows.
 
 It makes no formal privacy claim, and **it is not for estimation** — the fitted
 parameters exist to make simulated profiles look like the source study, and the
 object prints that warning with itself. The full specification is in
 `vignette("pmxmodel-algorithm")`.
 
-The dataset is `xgxr::case1_pkpd`: 180 patients, six arms from placebo to 300
-mg, with a pharmacokinetic (PK) concentration endpoint and a continuous
-pharmacodynamic (PD) endpoint. `vignette("avatar-demo")` and
-`vignette("pca-demo")` run the other two generators over the same study.
+The dataset is `xgxr::mad`: 60 patients in six treatment arms, with a
+pharmacokinetic (PK) concentration endpoint and continuous, count, ordinal and
+binary pharmacodynamic (PD) endpoints. The two-compartment fit passed the
+convergence and generation checks. The public-data survey also shows a fit
+accepted with a false-convergence warning.
 
 ## Configuration
 
@@ -76,8 +77,7 @@ The rest of the code can be kept as is.
 
 ```{r data, eval=run, message = FALSE}
 library(dplyr)
-raw <- as.data.frame(get(utils::data(list = "case1_pkpd", package = "xgxr"))) |>
-  mutate(CENS = ifelse(NAME == "PD - Continuous", 0, CENS))
+raw <- as.data.frame(get(utils::data(list = "mad", package = "xgxr")))
 SEED <- 808
 ```
 
@@ -88,15 +88,14 @@ roles <- pmx_roles(
   id           = "ID",
   time         = "TIME",
   dv           = "LIDV",
-  cens         = "CENS",
+  mdv          = "MDV",
   amt          = "AMT",
   evid         = "EVID",
   cmt          = "CMT",
   dvid         = "NAME",        # which endpoint each observation row is
   nominal_time = "NOMTIME",     # the grid the visit model is built on
   strata       = c("TRTACT", "DOSE"), # treatment arms, fitted one at a time
-  covariates   = "WEIGHTB",     # drawn, and available to the structural model
-  keep         = "STUDY"        # carried through verbatim
+  covariates   = c("WEIGHTB", "SEX") # drawn independently of the profiles
 )
 ```
 
@@ -104,7 +103,7 @@ roles <- pmx_roles(
 
 `synpmx_model_estimate()` is the only stage that reads patient data, and the only
 one that needs `nlmixr2`. It works out which endpoint is the drug, what design
-produced it, fits the candidates that design admits and picks one on AIC.
+produced it, and tries two compartments with checked fallback to one.
 
 ```{r estimate-shown, eval=FALSE}
 fit <- synpmx_model_estimate(raw, roles, seed = 1)
@@ -112,22 +111,18 @@ fit <- synpmx_model_estimate(raw, roles, seed = 1)
 
 ```{r estimate-note, echo=FALSE, results="asis", eval=run}
 cat("The chunk above is shown rather than run. Fitting compiles a model, so this",
-    "document reads a stored fit built by `scripts/build-model-fits.R` and",
+    "document reads a stored `synpmx_model_estimate()` fit and",
     "`R CMD check` never needs a compiler.\n")
 ```
 
-That call takes about five minutes on this study, and says so before it
-starts. Two things set the wait. The population model is fitted to 60 of the
-150 patients with a concentration, drawn in proportion to the arms under
-`max_fit_subjects`, because fit time is linear in subjects and the parameters
-a synthetic study needs are settled long before the sixtieth — the dosing,
-visit and covariate models still read all 180, and the report says so. And
-every likelihood evaluation sums a contribution per dose per subject: twelve
-weeks of daily dosing for those 60 patients is 5,100 dose records. Where a
-study's doses are on an exact interval they are compressed to one record per
-patient first, which the message also reports; `case1_pkpd` records its dose
-times as actuals — 0, 24.22, 48.28 — so there is no exact interval to compress
-to, and the rest of the wait is the honest cost of the design.
+The fit report gives the elapsed time and the number of subjects used. Each
+likelihood evaluation reads the dosing history, so repeated-dose studies cost
+more than single-dose studies. `max_fit_subjects` caps the population fit;
+the dosing, visit and covariate models still read every subject.
+
+`pk = "1cmt_oral"` requests one compartment directly. The requested fit must
+pass the same convergence, parameter and generation checks, and is never
+replaced by another model automatically.
 
 A clearance of `r if (run) signif(fit$parameters$fixed[["cl"]], 3) else NA` L/h
 and a volume of `r if (run) signif(fit$parameters$fixed[["v"]], 3) else NA` L.
@@ -146,20 +141,11 @@ here, which is why printing the fitted object shows the same account.
 model_report(fit)
 ```
 
-Three lines in the estimated half are worth reading before anything else. The
-residual error is proportional, which follows from every observed concentration
-here being positive; a study recording zeros gets an additive error instead,
-because a proportional one has nothing to scale there. The PD endpoint gets an
-exponential shape from the least-squares search, with no exposure term. And 46%
-of the concentrations sit below the assay limit; those rows were fitted as
-censored rather than given a value, so each contributed the probability of
-falling below the limit. A study this censored still asks the fit to describe
-mostly-censored arms, and the arm-by-arm comparison further down is where that
-shows.
-
-The signals table says how the concentration endpoint was decided: `PK
-Concentration` is post-dose, dose-proportional and rise-and-fall, and the PD
-endpoint is none of the three.
+The concentration has a proportional residual error. The continuous and count
+PD endpoints have fitted time courses with no exposure term. Binary and ordinal
+endpoints are drawn from arm-by-visit frequencies rather than from the
+compartment model. The signals table explains why `PK Concentration` was
+identified as the concentration endpoint.
 
 The correlation block is the other thing to read. A covariate that moves with a
 random effect and is not in the model above is generated independently of the
@@ -169,14 +155,21 @@ profiles, so the synthetic data carries no relationship between them.
 ## The candidates
 
 ```{r candidates, eval=run}
-show(model_candidates(fit), "Candidates the design admitted")
+show(model_candidates(fit), "Models attempted and acceptance results")
 ```
 
-One row, because the default fits one model and stops. A distribution phase is a
-refinement of a shape the one-compartment model already has and costs several
-times as long to fit, so it is available rather than routine: `pk = "2cmt_oral"`
-forces it, `pk = c("1cmt_oral", "2cmt_oral")` fits both and picks on AIC, and
-`model_report()` says when the sampling would support one.
+The table contains only models actually attempted. An accepted two-compartment
+fit needs no one-compartment comparison. A rejected fit retains its convergence
+status and rejection reason, and the fallback has its own row.
+`model_report()` explains the selection. A vector of model names in `pk`
+requests an Akaike information criterion (AIC) comparison of those models after
+acceptance checks.
+
+A study containing only pharmacodynamic observations can instead declare
+`endpoint_roles = c(pd = "response")`, using its endpoint name. That skips
+compartment fitting and uses the existing PD time courses. A positive baseline
+can also identify the study as PD-only automatically, as the public-data
+survey demonstrates on `wbcSim`.
 
 ## Generating
 
@@ -188,8 +181,8 @@ passed through the fit.
 synthetic <- synpmx_model_generate(fit, seed = SEED)
 ```
 
-The generated table is in the source's shape: same columns, same classes, same
-compartment numbers, new identifiers.
+The generated table follows the declared schema: retained columns and classes,
+the same compartment numbers, and new identifiers.
 
 ```{r head, eval=run}
 show(head(synthetic, 10), "The first ten rows")
@@ -197,8 +190,8 @@ show(head(synthetic, 10), "The first ten rows")
 
 ## Plot synthetic data and original data
 
-The same overlays the other two demos draw, so the three can be read against
-each other.
+Compare each endpoint on the recorded time scale, with source and synthetic
+subjects shown separately within each treatment arm.
 
 ```{r overlay-setup, eval=plots}
 library(ggplot2)
@@ -212,8 +205,8 @@ both <- rbind(
 )
 obs <- both[both$EVID == 0 & !is.na(both$LIDV), ]
 obs$TRTACT <- factor(obs$TRTACT,
-                     levels = c("Placebo", "3 mg", "10 mg", "30 mg",
-                                "100 mg", "300 mg"))
+                     levels = c("Placebo", "100 mg", "200 mg", "400 mg",
+                                "800 mg", "1600 mg"))
 ```
 
 ```{r overlay-pk, eval=plots, fig.height=5}
@@ -231,8 +224,8 @@ ggplot(obs[obs$NAME == "PK Concentration" & obs$TIME <= 24, ],
 
 ```{r overlay-pk-last, eval=plots, fig.height=5}
 last_dose <- obs[obs$NAME == "PK Concentration" &
-                   obs$TIME >= 2016 & obs$TIME <= 2040, ]
-last_dose$TAD <- last_dose$TIME - 2016
+                   obs$TIME >= 120 & obs$TIME <= 144, ]
+last_dose$TAD <- last_dose$TIME - 120
 
 ggplot(last_dose, aes(TAD, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.4) +
@@ -242,57 +235,29 @@ ggplot(last_dose, aes(TAD, LIDV, group = ID, colour = DATA)) +
   scale_colour_manual(values = comparison_colours) +
   labs(x = "Time after dose (hours)", y = "PK concentration", colour = NULL) +
   theme(legend.position = "top") +
-  ggtitle("Last Dose (2016 h) Conc. Profile")
+  ggtitle("Last Dose (120 h) Conc. Profile")
 ```
 
-The synthetic profiles are smoother than the source's, and that is the
-generator's shape rather than a fault in the run: every one of them is the same
-one-compartment curve evaluated at a different draw of clearance, volume and
-absorption, with residual error on top. A real cohort's profiles wander in ways
-one structural model does not reproduce.
-
-Almost half the source concentrations are below the assay limit, so the honest
-comparison in the low arms is how much of each arm is censored rather than where
-its curve sits.
-
-```{r blq-table, eval=run}
-censored <- function(data, label) {
-  rows <- data$EVID == 0 & data$NAME == "PK Concentration" & !is.na(data$LIDV)
-  out <- aggregate(list(pct_blq = data$CENS[rows] == 1),
-                   list(arm = data$TRTACT[rows]),
-                   function(x) round(100 * mean(x)))
-  stats::setNames(out, c("arm", paste0("pct_blq_", label)))
-}
-blq_table <- merge(censored(raw, "source"), censored(synthetic, "synthetic"),
-                   by = "arm")
-show(blq_table, "Share of concentrations below the assay limit, by arm")
-```
-
-The censored share moves in the right direction across the arms and does not
-match the source arm for arm: the generator censors more of the 3 mg arm than
-the study did and less of the 30 and 100 mg arms. One clearance and one volume
-distribution, shared by every arm and evaluated at the arm's dose, cannot
-reproduce six arm-specific censoring fractions — the study's low arms are not
-simply its high arms divided down. Where the analysis to be developed turns on
-how much data is below the limit, read this table before trusting the output.
+Every synthetic concentration profile uses the selected structural curve with
+new parameter draws and residual error. Compare the rise, decline and spread
+within each arm: pooled generation checks can miss discrepancies confined to
+one dose group or part of the sampling window.
 
 ```{r overlay-pd, eval=plots, fig.height=5}
 ggplot(obs[obs$NAME == "PD - Continuous", ],
        aes(TIME, LIDV, group = ID, colour = DATA)) +
   geom_line(alpha = 0.35) +
-  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "weeks") +
+  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "days") +
   facet_grid(DATA~TRTACT) +
   scale_colour_manual(values = comparison_colours) +
-  labs(x = "Time (hours)", y = "PD (continuous)", colour = NULL) +
+  labs(x = "Time (days)", y = "PD (continuous)", colour = NULL) +
   theme(legend.position = "top") +
   ggtitle("PD Response")
 ```
 
-The PD endpoint is an exponential in time per subject, which is the whole of
-what the shape search offers: a constant, a line, or an exponential, with
-variability on the baseline and no exposure term. Its spread across the study
-lands close to the source's — the median moves from 123 to 136 and the range is
-about as wide — because the shape was fitted to the study rather than asserted.
+The continuous PD endpoint has an exponential time course. Its parameters are
+fitted to the pooled study, and subjects differ in their baseline draws and
+residual error.
 
 **What is missing is the dose ordering.** One shape is fitted to the pooled
 observations and each subject gets a draw on its baseline, so the arm a subject
@@ -301,22 +266,20 @@ was assigned to does not reach its response.
 ```{r pd-by-arm, eval=run}
 late_pd <- function(data, label) {
   rows <- data$NAME == "PD - Continuous" & data$EVID == 0 &
-    data$TIME > 1500 & !is.na(data$LIDV)
+    data$TIME > 144 & !is.na(data$LIDV)
   out <- aggregate(list(mean_pd = data$LIDV[rows]),
                    list(arm = data$TRTACT[rows]), function(x) round(mean(x)))
   stats::setNames(out, c("arm", paste0("mean_pd_", label)))
 }
 pd_table <- merge(late_pd(raw, "source"), late_pd(synthetic, "synthetic"),
                   by = "arm")
-show(pd_table, "Mean PD response after 1500 h, by arm")
+show(pd_table, "Mean PD response after 144 h, by arm")
 ```
 
-The source's arms are ordered by dose. The synthetic ones are not: its placebo
-arm can sit above its 300 mg arm. That is the documented boundary of this
-generator rather than a bad seed — the PD shape carries no exposure term, so a
-dataset whose point is exposure-response is not served by it.
-`synpmx_avatar()` keeps that relationship without modelling it, and
-`vignette("avatar-demo")` runs it on this study.
+This table compares late responses by arm. The continuous PD model carries no
+exposure term, so any source relationship between dose and response is not
+preserved by construction. A dataset whose purpose is exposure-response needs
+that limitation considered separately from numerical fit acceptance.
 
 ## Distributions of Synthetic and Original Data
 
@@ -338,20 +301,10 @@ card <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(card)
 ```
 
-**Three rows read `not applicable`.** B1a, B1b and C2 read a run record that
-`synpmx_avatar()` writes on its output and this generator does not, so there is
-nothing for them to measure. That is a gap in those three
-checks rather than a property of this dataset.
-
-**Two rows ask to be read.** A5a reports observations per patient falling from
-30.7 to 29, which is the visit model drawing attendance rather than copying it.
-D1 reports the standard deviation of `PK Concentration` at 0.68 times the
-source's, the furthest of the three numeric variables — a spread that narrowed.
-That follows from fitting the censored rows as censored: the residual error is
-0.26 where an imputed fit takes 0.39, and the residual is what sets the scatter
-of every generated concentration. Half the source's own spread is where its
-assay stopped reporting, and the fit no longer treats that as measured
-variation.
+Read the fidelity checks alongside the plots. A passing acceptance screen
+excludes gross fitting and generation failures; it does not guarantee that the
+simulated spread, attendance or endpoint relationships match the source.
+Checks requiring an AVATAR run record are not applicable to this generator.
 
 `vignette("avatar-scorecard")` documents what each row asks and what its pass
 criterion is.
@@ -373,7 +326,7 @@ attr(synthetic, "pmx_fitted_model")
   study, in detail.
 - [Evaluating the model generator on public data](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html)
   — the same generator over the public studies the other two surveys use.
-- `vignette("pca-demo")` — the same study through the principal-component
+- `vignette("pca-demo")` — a worked study through the principal-component
   generator.
-- `vignette("avatar-demo")` — and through blending.
+- `vignette("avatar-demo")` — a worked study through blending.
 - `vignette("avatar-scorecard")` — the checks above, in detail.

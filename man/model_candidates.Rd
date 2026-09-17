@@ -10,14 +10,17 @@ model_candidates(fitted_model)
 \item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}.}
 }
 \value{
-A data frame with columns \code{model}, \code{converged}, \code{aic}, \code{seconds} --
-how long that candidate took to fit -- and \code{note}.
+A data frame with columns \code{model}, \code{converged}, \code{accepted}, \code{aic},
+\code{seconds} (fitting and acceptance checks), and \code{note}. AIC may be missing
+for an accepted stochastic approximation expectation-maximization (SAEM)
+fit that was not compared with another model. These are PK candidates;
+a PD-only fit returns an empty table. PD candidates are in
+\code{model_report(fitted_model)$pd[[endpoint]]$candidates}.
 }
 \description{
-Every candidate the design admitted, whether or not it converged, with the
-AIC it was compared on. A candidate that failed keeps its reason, so a search
-that came down to one survivor does not look like a search that had one
-candidate.
+Every candidate actually attempted, in attempt order, with numerical
+convergence, acceptance after parameter and generation checks, and reasons
+for rejection or warnings. An unneeded fallback has no row.
 }
 \seealso{
 \code{\link[=model_report]{model_report()}}, \code{\link[=model_parameters]{model_parameters()}}.

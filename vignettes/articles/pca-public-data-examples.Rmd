@@ -660,9 +660,11 @@ mixroute_roles <- pmx_roles(
 mixroute_run <- pca_run("mixroute_sim", mixroute_sim, mixroute_roles, seed = 808)
 ```
 
-```{r mixroute-plot, echo=FALSE, eval=has_ggplot2}
+```{r mixroute-plot, echo=FALSE, eval=has_ggplot2 && has_xgxr}
 overlay_plot(mixroute_run$source, mixroute_run$synthetic, mixroute_roles,
-             "mixroute_sim: three arms, two routes", alpha = 0.35)
+             "mixroute_sim: three arms, two routes", alpha = 0.35) +
+  xgxr::xgx_scale_y_log10() +
+  ggplot2::labs(x = "Study time (days)")
 ```
 
 ```{r mixroute-scorecard}

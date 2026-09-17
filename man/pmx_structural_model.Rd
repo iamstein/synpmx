@@ -16,7 +16,8 @@ pmx_structural_model(
 }
 \arguments{
 \item{pk}{One of \code{"1cmt_iv"}, \code{"1cmt_oral"}, \code{"1cmt_infusion"},
-\code{"2cmt_iv"}, \code{"2cmt_oral"}.}
+\code{"2cmt_iv"}, \code{"2cmt_oral"}, \code{"2cmt_infusion"}, \code{"1cmt_mixed"} or
+\code{"2cmt_mixed"}.}
 
 \item{typical}{Named numeric vector of typical parameter values, interpreted
 as the median of a lognormal population. Requires \code{cl} and \code{v} (the central

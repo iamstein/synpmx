@@ -67,7 +67,7 @@ if (!requireNamespace("xgxr", quietly = TRUE)) {
   stop("xgxr is needed to build the demo fit.")
 }
 
-# The study the three demos share, declared exactly as they declare it: 180
+# The study used by the AVATAR and PCA demos and the model survey: 180
 # patients, six arms, a concentration endpoint and a continuous PD one. The
 # `CENS` flag is cleared on the PD rows, where the source sets it on values
 # that are not below any limit.
@@ -78,21 +78,20 @@ case1_roles <- pmx_roles(
   cens = "CENS", amt = "AMT", evid = "EVID", cmt = "CMT", dvid = "NAME",
   strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB", keep = "STUDY"
 )
-# `start_param` because the non-compartmental read of this study's median
-# profile starts the optimizer somewhere it takes no step from at all: every
-# parameter came back within 1% and the AIC was 4077 against 2989 from a
-# workable start. Allometric scaling used to hide that -- it rescaled `cl` and
-# `v` enough for the fit to move -- and with `covariate_effects` now defaulting
-# to `"none"` the weakness is the caller's to answer, which is what this
-# argument is for (`SIM-079`). The fit moves a long way from these numbers,
-# to `cl` 21.2 and `ka` 5.7, so they are a starting point and not the answer.
-case1_fit <- synpmx_model_estimate(case1, case1_roles, seed = 1,
-                                   start_param = c(cl = 10.55, v = 88.93,
-                                                   ka = 4.76))
+# Both compartment fits may be refused. Store that outcome so the survey
+# reports it instead of generating from an obsolete, unaccepted fit.
+# Rounded starts from an exploratory fit of this public repeated-dose study.
+# They are initial values; parameter and generation checks still apply.
+case1_fit <- tryCatch(synpmx_model_estimate(case1, case1_roles, seed = 1,
+  start_param = c(cl = 13, v = 65, q = 8, v2 = 150, ka = 2)),
+  error = function(e) {
+    if (!startsWith(conditionMessage(e), "No candidate model passed")) stop(e)
+    structure(list(message = conditionMessage(e)), class = "pmx_example_rejection")
+  })
 
 saveRDS(case1_fit, "inst/extdata/case1-pkpd-model-fit.rds", version = 2)
 message("wrote inst/extdata/case1-pkpd-model-fit.rds")
-print(model_report(case1_fit))
+if (inherits(case1_fit, "pmx_fitted_model")) print(model_report(case1_fit))
 
 # The public-data survey. One fit per study, including the three that need
 # something declared before they will run: `theo_md` and `nimoData` are below
@@ -117,8 +116,9 @@ wbc_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", rate = "RATE"
 )
-saveRDS(synpmx_model_estimate(wbcSim, wbc_roles, seed = 1),
-        "inst/extdata/wbcsim-model-fit.rds", version = 2)
+# The positive baseline identifies this response without a PK declaration.
+wbc_fit <- synpmx_model_estimate(wbcSim, wbc_roles, seed = 1)
+saveRDS(wbc_fit, "inst/extdata/wbcsim-model-fit.rds", version = 2)
 message("wrote inst/extdata/wbcsim-model-fit.rds")
 
 mavoglurant <- as.data.frame(nlmixr2data::mavoglurant)
@@ -203,10 +203,8 @@ saveRDS(mixroute_fit, "inst/extdata/mixroute-sim-model-fit.rds", version = 2)
 message("wrote inst/extdata/mixroute-sim-model-fit.rds")
 print(model_report(mixroute_fit))
 
-# `onc_sim` carries two endpoints and neither signal separates them: tumour size
-# and a trough concentration both read post-dose and dose-proportional, so the
-# classification asks for `endpoint_roles` and gets it. The tumour endpoint then
-# becomes the PD one, fitted as a time course.
+# `onc_sim` carries a positive-baseline tumour response and a trough
+# concentration. The explicit declaration agrees with baseline inference.
 onc_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", dvid = "NAME", addl = "ADDL", ii = "II",

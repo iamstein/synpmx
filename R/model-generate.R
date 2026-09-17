@@ -260,6 +260,9 @@
 #' concentration is then evaluated at the visits drawn from the arm's visit
 #' model, against the schedule that was drawn, so a reduced or skipped dose
 #' reaches the concentrations rather than appearing only in the dosing records.
+#' A PD-only fit skips concentration simulation: responses use their fitted
+#' study-time shapes or visit frequencies, while any declared dosing records
+#' are still generated.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
 #' @param n_subjects Number of synthetic subjects. Defaults to the source count.
@@ -309,7 +312,6 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
   pk_etas <- lapply(fit$pk_models, function(model) {
     .draw_random_effects(model$parameters$omega, n_subjects)
   })
-  etas <- pk_etas[[1L]]
   # Between-subject variability on a PD baseline is its own draw. It is not in
   # the PK covariance matrix, because the PD shapes are fitted separately and a
   # baseline is not a parameter of the concentration-time curve.

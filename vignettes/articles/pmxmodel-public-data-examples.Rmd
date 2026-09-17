@@ -19,14 +19,14 @@ has_nlmixr2data <- requireNamespace("nlmixr2data", quietly = TRUE)
 has_xgxr <- requireNamespace("xgxr", quietly = TRUE)
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
 # Fitting compiles a model. Every fit below was built once by
-# `scripts/build-model-fits.R` and is read from the installed package, so this
+# `synpmx_model_estimate()` and is read from the installed package, so this
 # article -- and the site that renders it -- needs neither nlmixr2 nor a
 # compiler.
 stored_fit <- function(file) {
   path <- system.file("extdata", file, package = "synpmx")
   if (nzchar(path)) readRDS(path) else NULL
 }
-has_fits <- !is.null(stored_fit("case1-pkpd-model-fit.rds"))
+has_fits <- !is.null(stored_fit("mad-model-fit.rds"))
 run <- has_nlmixr2data && has_xgxr && has_fits
 plots <- run && has_ggplot2
 # `compare_pmx_distributions()` composes its panels with patchwork and refuses
@@ -51,27 +51,27 @@ Two things it will not guess, and one it will do anyway and warn about:
 - **A declared nominal grid**, as `synpmx_pca()` needs — the visit model is
   built on it. Refused, because inferring the grid is a statement about the
   protocol only the reader can make.
-- **An endpoint that behaves like a drug concentration**: absent before the
-  first dose and rising with dose. Refused, because without one there is
-  nothing to put a structural model on.
+- **An endpoint declaration when PK inference is unsuitable.** Concentration
+  inference looks for absence before dosing and scaling with dose. A response-only
+  study can be inferred from its positive baseline, as `wbcSim` is, or declared
+  with `endpoint_roles = c(pd = "DV")`.
 - **A cohort large enough for a covariance matrix**, which `min_subjects` sets
   at twenty. Below it the fit runs and warns: a matrix estimated from twelve
   subjects describes those twelve, and whether that is fit for the purpose is a
   judgement about the purpose rather than about the count.
 
-Six studies clear both refusals unaided. The other two run once something is
-declared, and what each has to declare is the useful part: `nimoData` needs its
-concentration named, and `pheno_sd` needs that and a nominal grid built for it,
+`wbcSim` is inferred as PD-only from its baseline. `nimoData` needs its concentration named, and `pheno_sd` needs that and a nominal grid built for it,
 because routine care wrote none down — which is the case to read before
 declaring one your study does not have. `theo_md` needs nothing declared and
 warns about its twelve subjects.
 
-All eight run below. Every refusal is shown before the declaration that lifts
-it, because the refusal is what you will meet first.
+Each dataset is attempted. A rejected population fit is shown as a refusal,
+with no synthetic data or scorecard. Successful fits follow the same generation
+and comparison steps.
 
 Every fit below reads patient data once, through `synpmx_model_estimate()`.
-Everything after that — every figure, every table, every scorecard — is
-computed from the fit and never touches the source again.
+Generation reads only the stored fit. Comparisons and scorecards also read
+the source to assess the generated data.
 
 <details>
 <summary>Plotting and reporting helpers used throughout this vignette</summary>
@@ -162,8 +162,8 @@ snap_to <- function(x, grid) {
 ## case1_pkpd: six arms and a censored endpoint
 
 180 patients across six treatment arms, two endpoints keyed by a character
-`NAME` column, a baseline weight and a `CENS` column. This is the study the
-three demos share.
+`NAME` column, a baseline weight and a `CENS` column. The AVATAR and PCA
+demos use this study; the model demo uses `mad`, whose fit passed the checks.
 
 ```{r case1, eval=run, message=FALSE}
 case1_pkpd <- as.data.frame(
@@ -178,12 +178,18 @@ case1_roles <- pmx_roles(
   evid = "EVID", cmt = "CMT", dvid = "NAME", nominal_time = "NOMTIME",
   strata = c("TRTACT", "DOSE"), covariates = "WEIGHTB", keep = "STUDY"
 )
-case1 <- model_run("case1_pkpd", case1_pkpd, case1_roles,
-                   "case1-pkpd-model-fit.rds", seed = 808)
-case1$fit
+case1_fit <- stored_fit("case1-pkpd-model-fit.rds")
+case1 <- NULL
+if (inherits(case1_fit, "pmx_example_rejection")) {
+  cat(case1_fit$message, "\n")
+} else {
+  case1 <- model_run("case1_pkpd", case1_pkpd, case1_roles,
+                     "case1-pkpd-model-fit.rds", seed = 808)
+  print(case1$fit)
+}
 ```
 
-```{r case1-plot-pk, echo=FALSE, eval=plots, fig.height=3.4}
+```{r case1-plot-pk, echo=FALSE, eval=plots && !is.null(case1), fig.height=3.4}
 # Log, because 46% of this study's concentrations are at the assay limit and on
 # a linear axis they and everything near them are one line along the bottom.
 overlay_plot(case1$source, case1$synthetic, case1_roles,
@@ -192,7 +198,7 @@ overlay_plot(case1$source, case1$synthetic, case1_roles,
              endpoints = "PK Concentration")
 ```
 
-```{r case1-plot-pd, echo=FALSE, eval=plots, fig.height=3.4}
+```{r case1-plot-pd, echo=FALSE, eval=plots && !is.null(case1), fig.height=3.4}
 # Linear, because the PD endpoint is signed and runs to -621.
 overlay_plot(case1$source, case1$synthetic, case1_roles,
              "case1_pkpd: continuous PD, six arms",
@@ -200,25 +206,20 @@ overlay_plot(case1$source, case1$synthetic, case1_roles,
              endpoints = "PD - Continuous")
 ```
 
-```{r case1-distributions, eval=run && has_distributions, fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
+```{r case1-distributions, eval=run && has_distributions && !is.null(case1), fig.height=compare_pmx_distributions_height(case1_pkpd, case1_roles)}
 compare_pmx_distributions(case1$source, case1$synthetic, case1_roles)
 ```
 
-```{r case1-scorecard, eval=run}
+```{r case1-scorecard, eval=run && !is.null(case1)}
 synpmx_scorecard_datatable(case1$card, report = "minimal")
 ```
 
-Nothing fails. A5a reads observations per patient falling from 30.7 to 29,
-which is the visit model drawing attendance rather than copying it, and D1
-puts the concentration's standard deviation at 1.4 times the source's. The
-report explains the 1.4: the proportional residual error is estimated at 49%
-on a study where 46% of the concentrations are censored, and that scatter is
-written into every synthetic value, while the source's censored rows carry
-none of it — they sit at the limit. The population model behind it is fitted
-to 60 of the 150 patients with a concentration, under `max_fit_subjects`; the
-report says so, and the dosing and visit models still read all 180.
-`vignette("pmxmodel-demo")` works this study end to end, including what its 46%
-censoring and its PD endpoint cost.
+The stored fit uses `start_param = c(cl = 13, v = 65, q = 8, v2 = 150, ka = 2)`,
+rounded starts from an exploratory fit of this public study.
+The two-compartment fit reports false convergence. That warning remains in
+the candidate table; the fit passes the parameter and generation checks and
+is used for this synthetic cohort. No one-compartment fallback is needed.
+`vignette("pmxmodel-demo")` uses `mad` for the end-to-end example.
 
 Five rows read `not applicable` on every card in this article. The cards below
 count them in their tally and do not list them, so they are worth reading once
@@ -266,9 +267,9 @@ synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including the
 three discrete ones, which are drawn from the level frequencies their arm holds
-at each visit rather than modelled. D1 is the only row to read, at 0.93 times
-the source's spread on `PD - Count`, which is the furthest of six numeric
-variables and not the concentration.
+at each visit rather than modelled. D1 is the only row to read, and the variable
+it names is now the concentration, whose synthetic spread runs a little
+narrower than the source's.
 
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a single
@@ -344,9 +345,10 @@ wbc_roles <- pmx_roles(
   id = "ID", time = "TIME", nominal_time = "NTIME", dv = "DV", amt = "AMT",
   evid = "EVID", cmt = "CMT", rate = "RATE"
 )
+# The positive baseline identifies this as a PD-only study.
 wbc_run <- model_run("wbcSim", wbcSim, wbc_roles, "wbcsim-model-fit.rds",
                      seed = 505)
-model_report(wbc_run$fit)
+print(model_report(wbc_run$fit))
 ```
 
 ```{r wbc-plot, echo=FALSE, eval=plots}
@@ -354,36 +356,22 @@ overlay_plot(wbc_run$source, wbc_run$synthetic, wbc_roles,
              "wbcSim: white blood cell count", max_time = 700)
 ```
 
+```{r wbc-distributions, eval=run && has_distributions, fig.height=compare_pmx_distributions_height(wbcSim, wbc_roles)}
+compare_pmx_distributions(wbc_run$source, wbc_run$synthetic, wbc_roles)
+```
+
 ```{r wbc-scorecard, eval=run}
 synpmx_scorecard_datatable(wbc_run$card, report = "minimal")
 ```
 
-**This is the study where the generator's endpoint test is wrong, and the
-scorecard only partly catches it.** `wbcSim` records a white blood cell count,
-not a drug concentration. The test asks whether an endpoint is absent before
-the first dose and rises and falls afterwards, and a delayed myelosuppression
-answers yes to both, so a one-compartment infusion model was fitted to a cell
-count. It converged, and the report says `1cmt_infusion` with a clearance of
-0.012 as though that meant something.
+The positive first-dose baseline identifies this as a PD-only study. No
+compartment model is attempted. The report shows the response's time-course fit and its residual
+variation, alongside the infusion and visit summaries.
 
-The output shows it, and so does the generator. A cell count recovers to its
-baseline between infusions and a concentration decays toward zero, so the
-generated profiles run below the source's — per-time medians of 0.35 to 6.9
-against the source's 1.1 to 10.8 — and the source's nadir at 216 h and its
-recovery are absent. **32% of the generated observations landed below the
-smallest value the study reported** and were raised to half of it, which the
-run says out loud: a floor catching a third of the output is a model that does
-not describe the low end of the data. It draws as the flat band along the bottom of
-the synthetic panel. A4 reads 45 -> 37, because eight subjects drew no
-observations at all, and A5a and A5b fall with it.
-
-Nothing here `FAIL`s, which is the honest report of what the scorecard checks:
-it asks whether the output is a legal dataset in the study's shape and whether
-it copies anybody, not whether the structural model was the right one to fit.
-`endpoint_roles` cannot help — the endpoint really is the one modelled. What
-this study needs is a generator that does not assert a PK shape, and both
-`synpmx_pca()` and `synpmx_avatar()` reproduce its nadir and recovery, as their
-own surveys show.
+The available PD shapes cannot reproduce a decline followed by recovery.
+Accepting a PD-only study makes the endpoint classification correct; it does
+not make this simple time-course catalogue a cell-turnover model. Read the
+source-versus-synthetic plot for that missing shape.
 
 ## mavoglurant: an occasion-reset clock
 
@@ -425,29 +413,22 @@ schedule per arm, so the patients who had a second period do not get it back.
 A study whose periods matter needs them declared as arms, or a generator that
 keeps each patient's own schedule.
 
-The second finding is in the figure rather than the card. The source's profiles
-are a tight declining band and the synthetic ones scatter across it, with a
-line of values along the assay floor: the fit's proportional residual is 0.72,
-which is what a one-compartment model produces on a drug that plainly has a
-distribution phase.
+The second finding used to be in the figure rather than the card, and this is
+the study that closed it. The source's profiles are a tight declining band, the
+synthetic ones scattered across it, and a line of values sat on the assay
+floor. The cause was the candidate set. A `rate` role makes this an infusion
+study, and the closed-form set held two compartments for a bolus and for an
+oral dose and not for an infusion — so a drug with an obvious distribution
+phase was fitted a one-compartment model, which took a proportional residual of
+0.72 and wrote that scatter into every generated value. `2cmt_infusion` is now
+in the set and tried first by default. The report above gives the accepted
+model, its residual error, and any fallback reason.
 
-The route detection reads the `rate` role and offers `1cmt_infusion`, and
-**there is no two-compartment infusion model in the closed-form set** —
-`1cmt_iv`, `1cmt_oral`, `1cmt_infusion`, `2cmt_iv`, `2cmt_oral`. The shape is
-still reachable by asking for the intravenous one and giving up the infusion
-duration, which on this study is worth 4,200 AIC:
-
-```{r mavo-2cmt, eval=FALSE}
-synpmx_model_estimate(mavoglurant, mavo_roles, seed = 1,
-                      pk = c("1cmt_infusion", "2cmt_iv"))
-#> 1cmt_infusion  AIC 29105.6
-#> 2cmt_iv        AIC 24870.7
-```
-
-Worth knowing before reaching for it: the better-fitting model does not produce
-a better dataset by the scorecard's reading. D1 moves from 0.41 of the source's
-spread to 0.34, and A5a and A5b do not move at all, because what they measure
-is the visit and dosing models rather than the structural one.
+**The scorecard moves less than the fit does.** D1 still reads a synthetic
+spread well below the source's, and A5a and A5b do not move at all, because
+what they measure is the visit and dosing models rather than the structural
+one. A better-fitting structural model is a fit-quality argument here rather
+than a scorecard one.
 
 ## theo_md: twelve subjects, which is below the floor
 
@@ -570,11 +551,12 @@ overlay_plot(nimo_run$source, nimo_run$synthetic, nimo_roles,
 synpmx_scorecard_datatable(nimo_run$card, report = "minimal")
 ```
 
-Nothing fails, and D1 at 3.4 times the source's spread is the one row to
-read — the widest of the ten, and what twelve subjects buy: a covariance
-matrix estimated from twelve people, drawn from freely, produces profiles more
-spread out than the twelve it came from. The subject floor exists for this, and
-`nimoData` is the study that shows what lifting it costs.
+The generation screen warns that the simulated interquartile range is more
+than twice the source's. The fit remains accepted: this is a spread warning,
+not a gross failure that triggers one-compartment fallback. D1 and the plot
+show the wider synthetic distribution. With only twelve subjects, the estimated
+population variability also has limited support; passing the checks does not
+make that variability precise.
 
 `nimoData` is also the study that shows the other reading the fit has to make.
 It reports **one negative concentration in 321** — what an assay returns for a
@@ -666,12 +648,15 @@ history, so the grid never touches it. What the grid decides is the visit
 model, and the visit model is the whole of what the generated study has. With
 somewhere to put an observation, observations per patient come back.
 
-(For the record on the fit itself: clearance near 0.006 L/h and volume near
-1.3 L for a 1.3 kg baby is where the literature puts neonatal phenobarbital,
-which is worth saying only because a study this sparse — one concentration per
-baby per dose interval — has no interval that can be read
-non-compartmentally, and the starting values are read off the cohort's doses
-and concentrations instead.)
+This sparse design has no dose interval with enough observations for the
+usual starting-value calculation. Its starts are read from the cohort's dose
+amounts and concentrations instead.
+
+**Passing acceptance checks does not establish a distribution phase.** This
+study has sparse sampling within dose intervals. The fit report shows whether
+two compartments passed the checks or required fallback, but a numerically
+usable split between central and peripheral volumes does not establish that
+both volumes are identified by these observations.
 
 What has not moved is the dosing: every baby in `pheno_sd` is dosed to their
 own weight and response, and the dosing model carries one planned schedule per
@@ -691,7 +676,9 @@ runs this study that way.
 Ninety patients dosed intravenously, subcutaneously, and both. This is the study
 `1cmt_mixed` exists for, and because it is simulated the fit can be graded
 rather than merely read: the truth is a clearance of 2 L/day, a volume of 10 L,
-an absorption rate of 0.5 /day and a bioavailability of 0.7.
+an absorption rate of 0.5 /day and a bioavailability of 0.7. The fitted parameters and generated profiles can be compared with that known
+truth. The default may accept two compartments even on this one-compartment
+study; the candidate table reports whether fallback was needed.
 
 ```{r mixroute, eval=run, message=FALSE}
 mixroute_roles <- pmx_roles(
@@ -714,15 +701,18 @@ data.frame(truth = truth, fitted = round(fitted, 3),
 
 ```{r mixroute-plot, echo=FALSE, eval=plots}
 overlay_plot(mixroute_run$source, mixroute_run$synthetic, mixroute_roles,
-             "mixroute_sim: three arms, two routes", alpha = 0.35)
+             "mixroute_sim: three arms, two routes", alpha = 0.35) +
+  xgxr::xgx_scale_y_log10() +
+  ggplot2::labs(x = "Study time (days)")
 ```
 
 ```{r mixroute-scorecard, eval=run}
 synpmx_scorecard_datatable(mixroute_run$card, report = "minimal")
 ```
 
-Nothing fails, and bioavailability is recovered — which is the whole point of
-fitting the two routes as one study rather than two. `f` is identifiable here
+The truth table compares estimated bioavailability with the value used to
+simulate this study. That comparison depends on fitting the two routes as
+one study. `f` is identifiable here
 *because* the same study doses both ways; on either arm alone it is confounded
 with clearance and volume and cannot be estimated at all. It is fitted as a
 fixed effect with no between-subject term, because a design with one dose each
@@ -734,12 +724,9 @@ Two hundred patients, a year of daily everolimus, tumour size beside trough
 concentrations. Two things here defeat the parts of this generator that read a
 curve.
 
-**Both endpoints look like concentrations, and neither signal separates them.**
-Tumour size is absent before the first dose and its dose proportionality is not
-computable, which is exactly the pattern a concentration shows, so the
-classification refuses rather than guessing and names `endpoint_roles`. That is
-the right refusal: tumour size is not a drug concentration, and fitting it a
-one-compartment model would be worse than useless.
+**The baseline separates the endpoints.** Tumour size is positive at the first
+dose and is classified as PD; the everolimus trough remains PK. The stored fit
+also declares the concentration explicitly, which gives the same assignment.
 
 **The concentration is sampled only at troughs.** The starting values are a
 non-compartmental read of the median profile, which needs a peak and a terminal
@@ -760,9 +747,8 @@ onc_run$fit
 ```
 
 The stored fit above was built with
-`endpoint_roles = c(pk = "Everolimus trough")` and `start_param = c(ka = 5)`;
-`scripts/build-model-fits.R` has the call. Tumour size becomes the PD endpoint
-and is fitted a time course.
+`endpoint_roles = c(pk = "Everolimus trough")` and `start_param = c(ka = 5)`.
+Tumour size becomes the PD endpoint and is fitted a time course.
 
 ```{r onc-truth, eval=run}
 truth <- c(cl = 0.470, v = 0.850, ka = 5)
@@ -780,14 +766,14 @@ overlay_plot(onc_run$source, onc_run$synthetic, onc_roles,
 synpmx_scorecard_datatable(onc_run$card, report = "minimal")
 ```
 
-Nothing fails. Read the tumour endpoint against what it is, though: a PD time
+Read the tumour endpoint against what it is: a PD time
 course here is a function of time with no exposure term and no dose term, pooled
 across arms unless `pd_by_arm = TRUE`. The source's placebo and 10 mg arms
 diverge because the dose drives the tumour; the generated ones follow one shape.
 The dose history is faithfully reproduced and the endpoint that responds to it
 is not, and on this study that gap is the whole scientific content.
 
-## What the ten runs held
+## What the accepted fits held
 
 ```{r inventory, eval=run}
 inventory <- do.call(rbind, lapply(runs, function(entry) {
@@ -795,13 +781,13 @@ inventory <- do.call(rbind, lapply(runs, function(entry) {
   data.frame(
     Dataset = entry$label,
     Patients = length(unique(entry$source[[entry$roles$id]])),
-    Model = fit$structural,
-    `Fixed effects` = paste(names(fit$parameters$fixed),
+    Model = if (is.null(fit$structural)) "PD only" else fit$structural,
+    `Fixed effects` = if (is.null(fit$parameters)) "PD parameters shown above" else paste(names(fit$parameters$fixed),
                             signif(fit$parameters$fixed, 3),
                             collapse = ", "),
     # A proportional error reports a coefficient of variation and an additive
     # one a standard deviation, so the field is named by the kind.
-    Residual = paste(fit$parameters$residual$kind,
+    Residual = if (is.null(fit$parameters)) "PD residuals shown above" else paste(fit$parameters$residual$kind,
                      signif(if (is.null(fit$parameters$residual$cv))
                               fit$parameters$residual$sd else
                               fit$parameters$residual$cv, 3)),
@@ -824,20 +810,18 @@ verdicts <- do.call(rbind, lapply(runs, function(entry) {
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
 knitr::kable(verdicts, row.names = FALSE,
-             caption = "Scorecard verdicts across the ten runs.")
+             caption = "Scorecard verdicts across the accepted runs.")
 ```
 
-No card fails on any of the ten. Five rows on each read `not applicable` for
-the reasons given under `case1_pkpd`, and the rows that ask to be read are
-`A5a`, `A5b` and `D1` — how many observations and occasions each patient kept,
-and how far a spread moved.
+The verdicts above report which checks pass, require review or fail on each
+accepted run. Rejected fits do not contribute a synthetic cohort to this table.
 
 ## What is preserved, and what is not
 
-Preserved on all ten: the schema and event grammar, the cohort and arm
-sizes, the nominal grid the study declared, one dose schedule per arm, the
-covariate marginals, and the guarantee B4b measures — no value any patient
-measured is reproduced.
+Each accepted fit stores the schema, nominal grid, arm sizes, dose schedules
+and covariate summaries. The scorecards above assess their realized
+reproduction in the generated cohorts; B4b checks that measured values were
+not copied.
 
 Not preserved, with the study that shows each:
 
@@ -846,25 +830,24 @@ Not preserved, with the study that shows each:
   ones. Visible on every dataset here.
 - **Exposure-response.** The PD shapes are fitted to the pooled observations
   with no exposure term, so a synthetic patient's arm does not reach their
-  response. `case1_pkpd` is the worked case, in the demo.
+  response. `mad` is the worked case in the demo, and `onc_sim` shows why
+  it matters for an exposure-driven tumour response.
 - **Per-patient dose schedules, and multiple periods.** One planned schedule
   per arm. `mavoglurant` is the worked case: occasions per patient fall from
   1.65 to 1. `pheno_sd` is the other half of it — every neonate is dosed to
   their own weight and response, and the generated babies all follow the ward's
   cycle.
-- **Arm-specific censoring.** One parameter distribution evaluated at each
-  arm's dose cannot reproduce six arm-specific fractions below the limit;
-  `case1_pkpd`, again in the demo.
-- **Any endpoint that is not a concentration.** `wbcSim` is the worked case,
-  and the one to read before trusting this generator on a response variable.
+- **A delayed decline followed by recovery.** The PD-only `wbcSim` example
+  has this response shape; the current PD time courses cannot reproduce it.
 - **Anything the declared grid does not hold.** The visit model can only place
   an observation where the grid has a cell enough patients reached, so a grid
   that describes nothing produces a study that holds nothing. `pheno_sd`
   declared as `NTIME <- TIME` is the worked case, and the fidelity rows are
   where it shows.
-- **Spread, at the floor.** `nimoData` and `theo_md` are both twelve subjects,
-  and D1 reads 4 and 1.1 — the first is a covariance matrix drawn from more
-  freely than the cohort it came from.
+- **Spread, on a cohort of twelve.** `nimoData` and `theo_md` are both twelve
+  subjects, and D1 reads a synthetic spread away from the source's on each: a
+  covariance matrix estimated from twelve people and drawn from freely is not
+  the spread of the twelve it came from.
 
 ## Where to go next
 
