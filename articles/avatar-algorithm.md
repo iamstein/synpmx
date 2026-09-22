@@ -482,7 +482,7 @@ There are two reasons subjects may be excluded from being an anchor.
 When an arm holds nobody who can be masked, individualised dosing in one
 cohort of a trial for instance, its avatars keep the anchor they have,
 the run raises an alert naming that arm, and rows B1a and B1b of
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
 fail against it.
 [`unmaskable_strata()`](https://iamstein.github.io/synpmx/reference/unmaskable_strata.md)
 can assess whether any such strata exist.
@@ -1054,7 +1054,7 @@ analysis around it. `seed` must be an integer between zero and
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 is the function that is used to assess a synthetic dataset. It is
 explained in
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md),
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md),
 and demonstrated in:
 
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -

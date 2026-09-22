@@ -356,7 +356,7 @@ guarantee that the simulated spread, attendance or endpoint
 relationships match the source. Checks requiring an AVATAR run record
 are not applicable to this generator.
 
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
 documents what each row asks and what its pass criterion is.
 
 ## One call
@@ -385,5 +385,5 @@ attr(synthetic, "pmx_fitted_model")
   — a worked study through the principal-component generator.
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md)
   — a worked study through blending.
-- [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+- [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
   — the checks above, in detail.

@@ -502,5 +502,5 @@ c(rows = nrow(synthetic),
 - [`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
   — the same walk for the PCA generator, which carries the same
   apparatus and a completely different description of the profiles.
-- [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+- [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
   — the checks that read a generated dataset against its source.

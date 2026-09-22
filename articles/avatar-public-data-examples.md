@@ -228,7 +228,7 @@ handful of `review` rows instead, and those are where the ten datasets
 actually differ — so each section below prints the tally and *only*
 those rows. Ten full cards side by side is what the closing tables are
 for, and reading one card end to end is what
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
 is for.
 
 The runs below are quiet:
@@ -864,7 +864,7 @@ h against the source’s 96 h, where the recorded-time run gave 935 h —
 and it is the pre-dose slot above that buys most of that. Rounding the
 trough onto its next infusion instead leaves the median at 0 and doubles
 the share of time-zero samples, which is the A1 gap in
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
 reached by a construction rather than by the generator.
 
 What the package does not yet do is *notice* the first case: no check

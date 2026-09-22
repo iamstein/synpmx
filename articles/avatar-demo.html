@@ -92,7 +92,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-scorecard">
-<li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Checks of the synthetic data</a></li>
+<li><a class="dropdown-item" href="../articles/scorecard.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
   </ul>
 </li>
@@ -132,7 +132,7 @@ Stein</h4>
     
 <p>Generate a synthetic dataset, look at it, and read the checks of the
 data, sumamrized in a scorecard.</p>
-<p><code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> is the reference for better
+<p><code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> is the reference for better
 understanding the synthetic data checks.</p>
 <p>The dataset is <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code>: 180 patients, six arms
 from placebo to 300 mg, with a pharmacokinetic (PK) concentration
@@ -246,7 +246,7 @@ and the scorecard’s D1 row reports the variable that moved furthest.</p>
 <h2 id="the-scorecard">The scorecard<a class="anchor" aria-label="anchor" href="#the-scorecard"></a>
 </h2>
 <p>The scorecard computes checks of the synthetic dataset. It is
-described further in <code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code>.</p>
+described further in <code><a href="../articles/scorecard.html">vignette("scorecard")</a></code>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scorecard</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">scorecard</span><span class="op">)</span></span></code></pre></div>
@@ -265,8 +265,8 @@ is.</p>
 </h2>
 <ul>
 <li>
-<code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> — every check, what it
-asks, and what passing means.</li>
+<code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> — every check, what it asks, and
+what passing means.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html">Evaluating
 AVATAR on public data</a> - AVATAR algorithm applied to 8 public

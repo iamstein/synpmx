@@ -92,7 +92,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-scorecard" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Scorecard</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-scorecard">
-<li><a class="dropdown-item" href="../articles/avatar-scorecard.html">Checks of the synthetic data</a></li>
+<li><a class="dropdown-item" href="../articles/scorecard.html">Checks of the synthetic data</a></li>
     <li><a class="dropdown-item" href="../articles/synthetic-data-checking-review.html">Literature: checking synthetic data</a></li>
   </ul>
 </li>
@@ -456,8 +456,7 @@ involved. Every card carries a handful of <code>review</code> rows
 instead, and those are where the ten datasets actually differ — so each
 section below prints the tally and <em>only</em> those rows. Ten full
 cards side by side is what the closing tables are for, and reading one
-card end to end is what <code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> is
-for.</p>
+card end to end is what <code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> is for.</p>
 <p>The runs below are quiet: <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> prints an
 alert for every exposure it could not remove, and eighteen of those
 blocks would say what the scorecard and
@@ -1208,8 +1207,8 @@ comes back to 72 h against the source’s 96 h, where the recorded-time
 run gave 935 h — and it is the pre-dose slot above that buys most of
 that. Rounding the trough onto its next infusion instead leaves the
 median at 0 and doubles the share of time-zero samples, which is the A1
-gap in <code><a href="../articles/avatar-scorecard.html">vignette("avatar-scorecard")</a></code> reached by a
-construction rather than by the generator.</p>
+gap in <code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> reached by a construction
+rather than by the generator.</p>
 <p>What the package does not yet do is <em>notice</em> the first case:
 no check asks whether an avatar’s observations still have dosing
 supporting them, so that card passes every row while describing a study

@@ -3,7 +3,7 @@
 Generate a synthetic dataset, look at it, and read the checks of the
 data, sumamrized in a scorecard.
 
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
 is the reference for better understanding the synthetic data checks.
 
 The dataset is
@@ -141,7 +141,7 @@ scorecard’s D1 row reports the variable that moved furthest.
 
 The scorecard computes checks of the synthetic dataset. It is described
 further in
-[`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md).
+[`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md).
 
 ``` r
 
@@ -160,7 +160,7 @@ call behind each one is where the answer is.
 
 ## Where to go next
 
-- [`vignette("avatar-scorecard")`](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md)
+- [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
   — every check, what it asks, and what passing means.
 - [Evaluating AVATAR on public
   data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html) -

@@ -11,9 +11,6 @@
 - [Evaluating AVATAR on public
   data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.md):
 
-- [Scorecard: Checks of the synthetic
-  data](https://iamstein.github.io/synpmx/articles/avatar-scorecard.md):
-
 - [Comparing AVATAR, PCA and
   PMXmodel](https://iamstein.github.io/synpmx/articles/avatar-vs-pca-vs-pmxmodel.md):
 
@@ -76,6 +73,9 @@
 
 - [Privacy background: where d, f, and the error law come
   from](https://iamstein.github.io/synpmx/articles/privacy-background.md):
+
+- [Scorecard: Checks of the synthetic
+  data](https://iamstein.github.io/synpmx/articles/scorecard.md):
 
 - [The synpmx data generation
   algorithms](https://iamstein.github.io/synpmx/articles/synpmx-methods.md):

@@ -297,7 +297,7 @@ measured across eight public datasets in the
 [evaluation](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html),
 and the questions to ask of any generated dataset — from any method —
 are in [the checks
-article](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
+article](https://iamstein.github.io/synpmx/articles/scorecard.html).
 
 ### The modes across the families
 
