@@ -136,7 +136,7 @@ R package prototype, source code, worked examples and evaluation methods:
 
 Internal discussions on use of this package are ongoing.
 
-The authors set the goal and vision for this package and directed the work. Almost all of the code was written by AI coding agents and has not yet been formally verified; establishing a validation process for the package is a next step.
+The authors set the goal and vision for this package and directed the work. Almost all of the code was written by ChatGPT and Claude and has not yet been formally verified, establishing a validation process for the package is a next step.  The authors reviewed and edited the content and take full responsibility for the content of the publication.
 
 ## References
 
@@ -152,20 +152,6 @@ The authors set the goal and vision for this package and directed the work. Almo
 ---
 
 ## Preparation Notes — Not Poster Copy
-
-### Poster Layout
-
-Three columns: workflow and available methods on the left; the fitted-model
-generator in the centre; the worked example and evaluation on the right.
-Give the example the most space. Target approximately 650–800 words of visible copy, including tables and captions. Figure instructions and the preparation notes are working material, not poster copy.
-
-### Workflow Figure Typography
-
-Use 24–28 pt labels at the final printed poster size, including arrow labels,
-with larger environment headings. Keep labels short and enlarge the diagram's
-allocated space if needed; do not shrink the lettering to fit the column.
-The Mermaid preview uses a 24 px base font; check the physical text size again
-after placing the figure on the poster.
 
 ### Example Generation and Verification
 
