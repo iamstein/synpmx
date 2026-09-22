@@ -109,7 +109,7 @@ Pooling arms removes the source’s between-arm response differences.
 the profile differences shown above. Each density curve is scaled to peak at
 one; sex is shown as proportions. `synpmx` also includes a scorecard that checks dataset structure, distribution
 changes and potential patient copying, helping identify synthetic outputs
-that need review. [Scorecard documentation](https://iamstein.github.io/synpmx/articles/avatar-scorecard.html).
+that need review. [Scorecard documentation](https://iamstein.github.io/synpmx/articles/scorecard.html).
 
 ## Datasets evaluated
 

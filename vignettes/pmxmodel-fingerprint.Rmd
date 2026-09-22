@@ -377,5 +377,5 @@ c(rows = nrow(synthetic),
 - `vignette("pca-fingerprint")` — the same walk for the PCA generator, which
   carries the same apparatus and a completely different description of the
   profiles.
-- `vignette("avatar-scorecard")` — the checks that read a generated dataset
+- `vignette("scorecard")` — the checks that read a generated dataset
   against its source.

@@ -14,13 +14,14 @@ template:
 # and its own documents can sit beside them without either set having to be
 # read as the default.
 redirects:
+  - ["articles/avatar-scorecard.html", "articles/scorecard.html"]
   - ["articles/avatar-mathematics.html", "articles/avatar-algorithm.html"]
   - ["articles/synpmx-demo.html", "articles/avatar-public-data-examples.html"]
   - ["articles/avatar-evaluation-public-data.html", "articles/avatar-public-data-examples.html"]
   - ["articles/literature-review.html", "articles/synthetic-data-generation-review.html"]
   - ["articles/demo.html", "articles/avatar-demo.html"]
   - ["articles/public-data-examples.html", "articles/avatar-public-data-examples.html"]
-  - ["articles/scorecard-synthetic-data-checks.html", "articles/avatar-scorecard.html"]
+  - ["articles/scorecard-synthetic-data-checks.html", "articles/scorecard.html"]
   - ["articles/synpmx-4-methods.html", "articles/synpmx-methods.html"]
   # 2026-09-01: `pca-trial-summary` -> `pca-fingerprint`, when the object it
   # describes was named for what it is rather than for the function that
@@ -120,11 +121,8 @@ navbar:
     scorecard:
       text: Scorecard
       menu:
-      # Still `avatar-scorecard` on disk. The function scores any generator's
-      # output and the document is written that way; renaming the file is
-      # `REV-043` and moves every cross-reference with it.
       - text: Checks of the synthetic data
-        href: articles/avatar-scorecard.html
+        href: articles/scorecard.html
       - text: "Literature: checking synthetic data"
         href: articles/synthetic-data-checking-review.html
 

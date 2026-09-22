@@ -310,6 +310,8 @@ test_that("a table with no run record is scored, not refused", {
   # need the run's record and two more need a fitted model, which an avatar
   # table stripped of its attributes has neither of.
   expect_output(print(card), "5 unanswered")
+  # REV-043: printed guidance points to the generator-independent vignette.
+  expect_output(print(card), 'vignette("scorecard")', fixed = TRUE)
 })
 
 test_that("C2 reads the run's record, and says that it does", {

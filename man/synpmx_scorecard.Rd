@@ -25,12 +25,15 @@ A \code{synpmx_scorecard} data frame with columns \code{check}, \code{question},
 \code{"restricted_not_releasable"}.
 }
 \description{
-Runs the checks from \code{vignette("avatar-scorecard")} that can
+Assesses output from any generator. Checks that need a particular mechanism
+or run record report \verb{not applicable} when it is absent.
+}
+\details{
+Runs the checks from \code{vignette("scorecard")} that can
 be run automatically, and returns them as one table with the answer, whether
 that answer passes, and the call that explains it. The vignette is the
 reference for what each check asks and why its pass criterion is what it is.
-}
-\details{
+
 The \code{reads} column decides where the table may go. Rows marked \code{"source"} or
 \code{"both"} were computed from real patient data, so the filled-in scorecard is
 itself restricted output and belongs in the environment the source lives in.
@@ -124,5 +127,5 @@ synpmx_scorecard(data, synthetic, roles)
 \seealso{
 \code{\link[=synpmx_scorecard_datatable]{synpmx_scorecard_datatable()}} to colour the verdicts in an HTML
 report, \code{\link[=compare_pmx]{compare_pmx()}}, \code{\link[=pmx_masking_report]{pmx_masking_report()}}, \code{\link[=pmx_endpoint_types]{pmx_endpoint_types()}},
-\code{vignette("avatar-scorecard")}.
+\code{vignette("scorecard")}.
 }

@@ -720,7 +720,7 @@ knit_print.pmx_distribution_summary <- function(x, ...) {
 #'   `reached`. Zero rows when the roles declare no categorical axis.
 #' @seealso [synpmx_scorecard()], which reports this as row B5,
 #'   [compare_pmx_distributions()],
-#'   `vignette("avatar-scorecard")`.
+#'   `vignette("scorecard")`.
 #' @export
 #' @examples
 #' data <- pmx_simulated_fixture(20)

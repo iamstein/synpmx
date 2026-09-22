@@ -306,7 +306,7 @@ excludes gross fitting and generation failures; it does not guarantee that the
 simulated spread, attendance or endpoint relationships match the source.
 Checks requiring an AVATAR run record are not applicable to this generator.
 
-`vignette("avatar-scorecard")` documents what each row asks and what its pass
+`vignette("scorecard")` documents what each row asks and what its pass
 criterion is.
 
 ## One call
@@ -329,4 +329,4 @@ attr(synthetic, "pmx_fitted_model")
 - `vignette("pca-demo")` — a worked study through the principal-component
   generator.
 - `vignette("avatar-demo")` — a worked study through blending.
-- `vignette("avatar-scorecard")` — the checks above, in detail.
+- `vignette("scorecard")` — the checks above, in detail.
